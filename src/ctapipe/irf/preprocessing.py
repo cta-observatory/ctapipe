@@ -60,16 +60,16 @@ class EventPreprocessor(Component):
     irf_pre_processing = Bool(
         default_value=True,
         help="If true the pre processing assume the purpose is for IRF production, if false, for DL3 production",
-    ).tag(config=False)
+    ).tag(config=True)
 
     optional_dl3_columns = Bool(
         default_value=False, help="If true add optional columns to produce file"
-    ).tag(config=False)
+    ).tag(config=True)
 
     raise_error_for_optional = Bool(
         default_value=True,
         help="If true will raise error in the case optional column are missing",
-    ).tag(config=False)
+    ).tag(config=True)
 
     def __init__(
         self, quality_selection_only: bool = True, config=None, parent=None, **kwargs
@@ -125,7 +125,8 @@ class EventPreprocessor(Component):
                         "reco_glon",
                         "reco_glat",
                         "reco_fov_lat",
-                        "reco_fov_lon" "reco_source_fov_offset",
+                        "reco_fov_lon",
+                        "reco_source_fov_offset",
                         "reco_source_fov_position_angle",
                         "reco_energy_uncert",
                         "reco_dir_uncert",
@@ -301,12 +302,12 @@ class EventPreprocessor(Component):
             )
         else:
             reco_icrs = reco.transform_to(ICRS())
-            events["reco_ra"] = reco_icrs.ra
-            events["reco_dec"] = reco_icrs.dec
+            events["reco_ra"] = u.Quantity(reco_icrs.ra)
+            events["reco_dec"] = u.Quantity(reco_icrs.dec)
             if self.optional_dl3_columns:
                 reco_gal = reco_icrs.transform_to(Galactic())
-                events["reco_glon"] = reco_gal.l
-                events["reco_glat"] = reco_gal.b
+                events["reco_glon"] = u.Quantity(reco_gal.l)
+                events["reco_glat"] = u.Quantity(reco_gal.b)
 
                 events["multiplicity"] = np.sum(events["tels_with_trigger"], axis=1)
 
@@ -325,6 +326,11 @@ class EventPreprocessor(Component):
         columns = [
             Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
             Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+            Time(
+                val=[],
+                scale="tai",
+                format="mjd",
+            ),
             Column(
                 name="true_energy",
                 unit=u.TeV,
@@ -468,17 +474,27 @@ class EventPreprocessor(Component):
         # Rearrange in a dict, easier for searching after
         columns_dict = {}
         for i in range(len(columns)):
-            columns_dict[columns[i].name] = columns[i]
+            if type(columns[i]) is Time:
+                columns_dict["time"] = columns[i]
+            else:
+                columns_dict[columns[i].name] = columns[i]
 
         # Select only the necessary columns
         columns_for_keep = []
-        for c in columns_to_use:
+        index_time_column = -1
+        for i, c in enumerate(columns_to_use):
             if c in columns_dict.keys():
                 columns_for_keep.append(columns_dict[c])
+                if c == "time":
+                    index_time_column = i
             else:
                 raise ValueError(f"Missing columns definition for {c}")
 
-        return QTable(columns_for_keep)
+        empty_table = QTable(columns_for_keep)
+        if index_time_column >= 0:
+            empty_table.rename_column("col" + str(index_time_column), "time")
+
+        return empty_table
 
 
 class EventLoader(Component):
@@ -561,10 +577,15 @@ class EventLoader(Component):
 
             # Extract GTI
             list_gti = []
+            mask_nan = np.isnan(obs_all_info_table["actual_duration"])
+            if np.sum(mask_nan) > 0:
+                self.log.warning("Duration of the run is nan, replaced with zero")
+                obs_all_info_table["actual_duration"][mask_nan] = 0.0 * u.s
             for i in range(len(obs_all_info_table)):
                 start_time = Time(obs_all_info_table["actual_start_time"][i])
                 stop_time = start_time + TimeDelta(
                     obs_all_info_table["actual_duration"][i]
+                    * obs_all_info_table["actual_duration"].unit
                 )
                 list_gti.append((start_time, stop_time))
             meta["gti"] = list_gti
@@ -592,14 +613,18 @@ class EventLoader(Component):
                     == "ALTAZ"
                 ):
                     pointing_start = AltAz(
-                        alt=obs_all_info_table["subarray_pointing_lat"][i],
-                        az=obs_all_info_table["subarray_pointing_lon"][i],
+                        alt=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        az=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
                         location=meta["location"],
                         obstime=meta["gti"][i][0],
                     )
                     pointing_stop = AltAz(
-                        alt=obs_all_info_table["subarray_pointing_lat"][i],
-                        az=obs_all_info_table["subarray_pointing_lon"][i],
+                        alt=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        az=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
                         location=meta["location"],
                         obstime=meta["gti"][i][1],
                     )
@@ -610,8 +635,10 @@ class EventLoader(Component):
                     == "ICRS"
                 ):
                     pointing_start = ICRS(
-                        dec=obs_all_info_table["subarray_pointing_lat"][i],
-                        ra=obs_all_info_table["subarray_pointing_lon"][i],
+                        dec=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        ra=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
                     )
                     pointing_stop = pointing_start
                 elif (
@@ -621,8 +648,10 @@ class EventLoader(Component):
                     == "GALACTIC"
                 ):
                     pointing_start = Galactic(
-                        b=obs_all_info_table["subarray_pointing_lat"][i],
-                        l=obs_all_info_table["subarray_pointing_lon"][i],
+                        b=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        l=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
                     )
                     pointing_stop = pointing_start
                 list_pointing.append((meta["gti"][i][0], pointing_start))

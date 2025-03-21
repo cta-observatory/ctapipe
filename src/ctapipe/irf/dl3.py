@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Tuple
 
 import astropy.units as u
@@ -30,12 +30,12 @@ class DL3_Format(Component):
 
     optional_dl3_columns = Bool(
         default_value=False, help="If true add optional columns to produce file"
-    ).tag(config=False)
+    ).tag(config=True)
 
     raise_error_for_optional = Bool(
         default_value=True,
         help="If true will raise error in the case optional column are missing",
-    ).tag(config=False)
+    ).tag(config=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -314,7 +314,7 @@ class DL3_GADF(DL3_Format):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
+        self.file_creation_time = datetime.now(tz=UTC)
         self.reference_time = Time(datetime.fromisoformat("1970-01-01T00:00:00+00:00"))
 
     def write_file(self, path):
@@ -327,7 +327,7 @@ class DL3_GADF(DL3_Format):
         path : str
             The full path and filename of the new file to write
         """
-        self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
+        self.file_creation_time = datetime.now(tz=UTC)
 
         hdu_dl3 = fits.HDUList(
             [fits.PrimaryHDU(header=Header(self.get_hdu_header_base_format()))]
@@ -381,7 +381,7 @@ class DL3_GADF(DL3_Format):
             "HDUVERS": "v0.3",
             "HDUDOC": "https://gamma-astro-data-formats.readthedocs.io/en/v0.3/index.html",
             "CREATOR": "ctapipe " + ctapipe_version,
-            "CREATED": self.file_creation_time,
+            "CREATED": self.file_creation_time.isoformat(),
         }
 
     def get_hdu_header_base_time(self) -> Dict[str, Any]:
@@ -414,8 +414,8 @@ class DL3_GADF(DL3_Format):
             "TIMEUNIT": "s",
             "TIMEREF": "GEOCENTER",
             "TIMESYS": "UTC",
-            "TSTART": start_time,
-            "TSTOP": stop_time,
+            "TSTART": (start_time - self.reference_time).to_value(u.s),
+            "TSTOP": (stop_time - self.reference_time).to_value(u.s),
             "ONTIME": ontime.to_value(u.s),
             "LIVETIME": ontime.to_value(u.s) * self.dead_time_fraction,
             "DEADC": self.dead_time_fraction,
@@ -446,8 +446,16 @@ class DL3_GADF(DL3_Format):
             object_coordinate = self.target_information[
                 "object_coordinate"
             ].transform_to(ICRS())
-            header["RA_OBJ"] = object_coordinate.ra.to_value(u.deg)
-            header["DEC_OBJ"] = object_coordinate.dec.to_value(u.deg)
+            header["RA_OBJ"] = (
+                "nan"
+                if np.isnan(object_coordinate.ra.to_value(u.deg))
+                else object_coordinate.ra.to_value(u.deg)
+            )
+            header["DEC_OBJ"] = (
+                "nan"
+                if np.isnan(object_coordinate.dec.to_value(u.deg))
+                else object_coordinate.dec.to_value(u.deg)
+            )
         return header
 
     def get_hdu_header_base_subarray_information(self) -> Dict[str, Any]:
@@ -460,8 +468,8 @@ class DL3_GADF(DL3_Format):
             "ORIGIN": self.telescope_information["organisation"],
             "TELESCOP": self.telescope_information["array"],
             "INSTRUME": self.telescope_information["subarray"],
-            "TELLIST": self.telescope_information["telescope_list"],
-            "N_TELS": np.sum(self.telescope_information["telescope_list"]),
+            "TELLIST": str(self.telescope_information["telescope_list"]),
+            "N_TELS": len(self.telescope_information["telescope_list"]),
         }
         return header
 
@@ -488,24 +496,25 @@ class DL3_GADF(DL3_Format):
             raise ValueError("Telescope location information are missing")
 
         gti_table = self.create_gti_table()
-        time_evaluation = []
+        delta_time_evaluation = []
         for i in range(len(gti_table)):
-            time_evaluation += list(
+            delta_time_evaluation += list(
                 np.linspace(gti_table["START"][i], gti_table["STOP"][i], 100)
             )
-        time_evaluation = self.reference_time + TimeDelta(time_evaluation)
+        delta_time_evaluation = u.Quantity(delta_time_evaluation)
+        time_evaluation = self.reference_time + TimeDelta(delta_time_evaluation)
 
         pointing_table = self.create_pointing_table()
         if self.pointing_mode == "TRACK":
             obs_mode = "POINTING"
             icrs_coordinate = SkyCoord(
                 ra=np.interp(
-                    time_evaluation,
+                    delta_time_evaluation,
                     xp=pointing_table["TIME"],
                     fp=pointing_table["RA_PNT"],
                 ),
                 dec=np.interp(
-                    time_evaluation,
+                    delta_time_evaluation,
                     xp=pointing_table["TIME"],
                     fp=pointing_table["DEC_PNT"],
                 ),
@@ -517,12 +526,12 @@ class DL3_GADF(DL3_Format):
             obs_mode = "DRIFT"
             altaz_coordinate = AltAz(
                 alt=np.interp(
-                    time_evaluation,
+                    delta_time_evaluation,
                     xp=pointing_table["TIME"],
                     fp=pointing_table["ALT_PNT"],
                 ),
                 az=np.interp(
-                    time_evaluation,
+                    delta_time_evaluation,
                     xp=pointing_table["TIME"],
                     fp=pointing_table["AZ_PNT"],
                 ),
@@ -543,7 +552,7 @@ class DL3_GADF(DL3_Format):
             "AZ_PNT": np.mean(altaz_coordinate.az.to_value(u.deg)),
             "GEOLON": self.location.lon.to_value(u.deg),
             "GEOLAT": self.location.lat.to_value(u.deg),
-            "ALTITUDE": self.location.altitude.to_value(u.m),
+            "ALTITUDE": self.location.height.to_value(u.m),
             "OBSGEO-X": self.location.x.to_value(u.m),
             "OBSGEO-Y": self.location.y.to_value(u.m),
             "OBSGEO-Z": self.location.z.to_value(u.m),
@@ -674,13 +683,13 @@ class DL3_GADF(DL3_Format):
                 (gti_interval[1] - self.reference_time).to(u.s)
             )
 
-        table = QTable(table_structure).sort("START")
-        for i in range(len(QTable) - 1):
+        QTable(table_structure).sort("START")
+        for i in range(len(table_structure) - 1):
             if table_structure["STOP"][i] > table_structure["START"][i + 1]:
                 self.log.warning("Overlapping GTI intervals")
                 break
 
-        return table
+        return QTable(table_structure)
 
     def create_pointing_table(self) -> QTable:
         """
@@ -705,13 +714,12 @@ class DL3_GADF(DL3_Format):
             pointing_altaz = pointing[1].transform_to(
                 AltAz(location=location, obstime=time)
             )
-            table_structure = {
-                "TIME": (time - self.reference_time).to(u.s),
-                "RA_PNT": pointing_icrs.ra.to(u.deg),
-                "DEC_PNT": pointing_icrs.dec.to(u.deg),
-                "ALT_PNT": pointing_altaz.alt.to(u.deg),
-                "AZ_PNT": pointing_altaz.az.to(u.deg),
-            }
+            table_structure["TIME"].append((time - self.reference_time).to(u.s))
+            table_structure["RA_PNT"].append(pointing_icrs.ra.to(u.deg))
+            table_structure["DEC_PNT"].append(pointing_icrs.dec.to(u.deg))
+            table_structure["ALT_PNT"].append(pointing_altaz.alt.to(u.deg))
+            table_structure["AZ_PNT"].append(pointing_altaz.az.to(u.deg))
 
-        table = QTable(table_structure).sort("TIME")
+        table = QTable(table_structure)
+        table.sort("TIME")
         return table

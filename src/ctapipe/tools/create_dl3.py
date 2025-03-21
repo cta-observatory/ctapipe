@@ -68,13 +68,7 @@ class DL3Tool(Tool):
 
     flags = {
         **flag(
-            "overwrite",
-            "DL3_GADF.overwrite",
-            "Will allow to overwrite existing DL3 file",
-            "Prevent overwriting existing DL3 file",
-        ),
-        **flag(
-            "optional-column",
+            "optional-columns",
             "DL3Tool.optional_dl3_columns",
             "Add optional columns for events in the DL3 file",
             "Do not add optional column for events in the DL3 file",
@@ -100,6 +94,7 @@ class DL3Tool(Tool):
         # Setting the GADF format object
         DL3_Format.optional_dl3_columns = self.optional_dl3_columns
         DL3_Format.raise_error_for_optional = self.raise_error_for_optional
+        DL3_Format.overwrite = self.overwrite
 
         self.dl3_format = DL3_GADF()
 
@@ -128,10 +123,16 @@ class DL3Tool(Tool):
         for i in range(1, len(hdu_irfs)):
             if "HDUCLAS2" in hdu_irfs[i].header.keys():
                 if hdu_irfs[i].header["HDUCLAS2"] == "EFF_AREA":
-                    self.dl3_format.aeff = hdu_irfs[i]
+                    if self.dl3_format.aeff is None:
+                        self.dl3_format.aeff = hdu_irfs[i]
+                    elif "EXTNAME" in hdu_irfs[i].header and not (
+                        "PROTONS" in hdu_irfs[i].header["EXTNAME"]
+                        or "ELECTRONS" in hdu_irfs[i].header["EXTNAME"]
+                    ):
+                        self.dl3_format.aeff = hdu_irfs[i]
                 elif hdu_irfs[i].header["HDUCLAS2"] == "EDISP":
                     self.dl3_format.edisp = hdu_irfs[i]
-                elif hdu_irfs[i].header["HDUCLAS2"] == "RPSF":
+                elif hdu_irfs[i].header["HDUCLAS2"] == "PSF":
                     self.dl3_format.psf = hdu_irfs[i]
                 elif hdu_irfs[i].header["HDUCLAS2"] == "BKG":
                     self.dl3_format.bkg = hdu_irfs[i]

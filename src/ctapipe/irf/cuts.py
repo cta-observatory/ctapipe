@@ -22,9 +22,6 @@ class EventQualitySelection(QualityQuery):
                 "multiplicity 4",
                 "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
             ),
-            ("valid classifier", "RandomForestClassifier_is_valid"),
-            ("valid geom reco", "HillasReconstructor_is_valid"),
-            ("valid energy reco", "RandomForestRegressor_is_valid"),
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
