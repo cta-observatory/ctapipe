@@ -149,7 +149,20 @@ class ApplyModels(Tool):
 
         self._reconstructors = []
         for path in self.reconstructor_paths:
-            r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            r = Reconstructor.read(
+                path,
+                parent=self,
+                subarray=self.loader.subarray,
+            )
+            # DispReconstructor hat norm_cls und sign_cls - keine model_cls
+            r.stereo_combiner = Reconstructor.from_name(
+                r.__class__.__name__,
+                subarray=self.loader.subarray,
+                parent=self,
+                prefix=r.prefix,
+                model_cls=r.model_cls,
+            ).stereo_combiner
+
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
             self._reconstructors.append(r)
