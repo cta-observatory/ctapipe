@@ -90,6 +90,10 @@ BACKUP_SPE_TABLE = {
     "UNKNOWN-960PX": 0.6,
 }
 
+# Validity bounds of the templates in degree in camera coordinates.
+# Needed to initialize the templates
+TEMPLATE_BOUNDS = ((-5, 1), (-1.5, 1.5))
+
 __all__ = ["ImPACTReconstructor"]
 
 
@@ -332,7 +336,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         for template_path, tel_ids in template_sort_dict.items():
             net_interpolator = TemplateNetworkInterpolator(
-                template_path, bounds=((-5, 1), (-1.5, 1.5))
+                template_path, bounds=TEMPLATE_BOUNDS
             )
 
             interp_tel_string = net_interpolator.tel_type_string
