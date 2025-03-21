@@ -1,2 +1,4 @@
 Adding a ``meta_convention`` option to ``SubarrayDescription.to_table()`` method to choose
 between hdf and fits conventions mainly for the reference location. Default is set to 'hdf'.
+In Addition ``TableLoader`` does not join metadata of instrument table when
+``instrument=true``.
