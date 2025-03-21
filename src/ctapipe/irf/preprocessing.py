@@ -546,6 +546,9 @@ class EventLoader(Component):
             return table
 
     def get_observation_information(self) -> Dict[str, Any]:
+        """
+        Retrieve all useful information on the observation for DL3 production
+        """
         with TableLoader(self.file, parent=self, **self.opts_loader) as load:
             # Extract telescope location
             meta = {}
