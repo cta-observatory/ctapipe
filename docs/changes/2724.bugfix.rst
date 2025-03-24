@@ -1,0 +1,3 @@
+Make ``StereoCombiner`` configurable in ``ApplyModels``.
+Loaded joblib-pickled ``Reconstructor``s are already instantiated, which
+leads to a non-configurable ``StereoCombiner``.
