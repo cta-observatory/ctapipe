@@ -154,13 +154,18 @@ class ApplyModels(Tool):
                 parent=self,
                 subarray=self.loader.subarray,
             )
-            # DispReconstructor hat norm_cls und sign_cls - keine model_cls
+
+            # Init new Reconstructor with config parameters and overwrite the StereoCombiner
+            model_keys = ["model_cls", "norm_cls", "sign_cls"]
+            model_kwargs = {
+                key: getattr(r, key) for key in model_keys if hasattr(r, key)
+            }
             r.stereo_combiner = Reconstructor.from_name(
                 r.__class__.__name__,
                 subarray=self.loader.subarray,
                 parent=self,
                 prefix=r.prefix,
-                model_cls=r.model_cls,
+                **model_kwargs,
             ).stereo_combiner
 
             if self.n_jobs:
