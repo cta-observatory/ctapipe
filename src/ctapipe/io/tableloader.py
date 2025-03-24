@@ -597,6 +597,7 @@ class TableLoader(Component):
 
         if instrument:
             instrument_table = self.subarray.to_table("joined")
+            instrument_table.meta.clear()
             table = join_allow_empty(
                 table, instrument_table, keys=["tel_id"], join_type="left"
             )
