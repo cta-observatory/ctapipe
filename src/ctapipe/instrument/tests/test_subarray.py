@@ -1,4 +1,5 @@
-""" Tests for SubarrayDescriptions """
+"""Tests for SubarrayDescriptions"""
+
 from copy import deepcopy
 
 import numpy as np
@@ -83,8 +84,18 @@ def test_subarray_peek(prod5_mst_nectarcam):
 def test_to_table(example_subarray):
     """Check that we can generate astropy Tables from the SubarrayDescription"""
     sub = example_subarray
-    assert len(sub.to_table(kind="subarray")) == sub.n_tels
+    sub_meta_hdf_table = sub.to_table(kind="subarray")
+    sub_meta_fits_table = sub.to_table(kind="subarray", meta_convention="fits")
+
+    assert len(sub_meta_hdf_table) == sub.n_tels
     assert len(sub.to_table(kind="optics")) == len(sub.optics_types)
+    assert "OBSGEO-X" in sub_meta_fits_table.meta
+    assert "reference_itrs_x" in sub_meta_hdf_table.meta
+
+    with pytest.raises(ValueError):
+        sub.to_table(kind="NON_EXISTENT_KIND")
+    with pytest.raises(ValueError):
+        sub.to_table(meta_convention="NON_EXISTENT_META_CONVENTION")
 
 
 def test_tel_indexing(example_subarray):

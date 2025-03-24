@@ -4,6 +4,7 @@ FITS files that can be loaded independently (e.g. with
 CameraGeometry.from_table()).  The name of the output files are
 automatically generated.
 """
+
 import os
 import pathlib
 
@@ -120,7 +121,7 @@ class DumpInstrumentTool(Tool):
     def write_subarray_description(self):
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format)
-        tab = sub.to_table(kind="subarray")
+        tab = sub.to_table(kind="subarray", meta_convention="fits")
         tab.meta["SOURCE"] = str(self.infile)
         filename = self.outdir / f"{sub.name}.subarray.{ext}"
         try:

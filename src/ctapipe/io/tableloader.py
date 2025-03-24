@@ -2,6 +2,7 @@
 Class and related functions to read DL1 (a,b) and/or DL2 (a) data
 from an HDF5 file produced with ctapipe-process.
 """
+
 import warnings
 from collections import defaultdict, namedtuple
 from pathlib import Path
@@ -596,6 +597,7 @@ class TableLoader(Component):
 
         if instrument:
             instrument_table = self.subarray.to_table("joined")
+            instrument_table.meta.clear()
             table = join_allow_empty(
                 table, instrument_table, keys=["tel_id"], join_type="left"
             )
