@@ -62,7 +62,7 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
             Dictionary containing tables of events used for calculating cuts.
             This has to include "signal" events and can include "background" events.
         quality_query: ctapipe.irf.EventPreprocessor
-            ``ctapipe.core.QualityQuery`` subclass containing preselection
+            ``ctapipe.irf.cuts.EventQualitySelection`` subclass containing preselection
             criteria for events.
         clf_prefix: str
             Prefix of the output from the G/H classifier for which the
@@ -209,7 +209,7 @@ class PercentileCuts(CutOptimizerBase):
         )
 
         result = OptimizationResult(
-            quality_query=quality_query,
+            quality_selection=quality_query,
             gh_cuts=gh_cuts,
             clf_prefix=clf_prefix,
             valid_energy_min=self.reco_energy_min,
@@ -335,7 +335,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         )
 
         result = OptimizationResult(
-            quality_query=quality_query,
+            quality_selection=quality_query,
             gh_cuts=gh_cuts,
             clf_prefix=clf_prefix,
             valid_energy_min=valid_energy[0],

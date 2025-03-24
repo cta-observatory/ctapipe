@@ -477,7 +477,7 @@ class IrfTool(Tool):
 
             if (
                 loader.epp.event_selection.quality_criteria
-                != self.opt_result.quality_query.quality_criteria
+                != self.opt_result.quality_selection.quality_criteria
             ):
                 self.log.warning(
                     "Quality criteria are different from quality criteria used for "
@@ -487,14 +487,14 @@ class IrfTool(Tool):
                         loader.epp.event_selection.to_table(functions=True)[
                             "criteria", "func"
                         ],
-                        self.opt_result.event_selection.to_table(functions=True)[
+                        self.opt_result.quality_selection.to_table(functions=True)[
                             "criteria", "func"
                         ],
                     )
                 )
                 loader.epp.event_selection = EventQualitySelection(
                     parent=loader,
-                    quality_criteria=self.opt_result.event_selection.quality_criteria,
+                    quality_criteria=self.opt_result.quality_selection.quality_criteria,
                 )
 
             self.log.debug(

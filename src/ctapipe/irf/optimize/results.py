@@ -5,9 +5,9 @@ from astropy import units as u
 from astropy.io import fits
 from astropy.table import QTable, Table
 
-from ...core import QualityQuery
 from ...core.traits import Path
 from ...irf import ResultValidRange
+from ..cuts.quality_cuts import EventQualitySelection
 
 
 class OptimizationResult:
@@ -22,22 +22,28 @@ class OptimizationResult:
         gh_cuts: QTable,
         clf_prefix: str,
         spatial_selection_table: QTable | None = None,
-        quality_query: QualityQuery | Sequence | None = None,
+        quality_selection: EventQualitySelection | Sequence | None = None,
     ) -> None:
-        if quality_query:
-            if isinstance(quality_query, QualityQuery):
-                if len(quality_query.quality_criteria) == 0:
-                    quality_query.quality_criteria = [
+        if quality_selection:
+            if isinstance(quality_selection, EventQualitySelection):
+                if len(quality_selection.quality_criteria) == 0:
+                    quality_selection.quality_criteria = [
                         (" ", " ")
                     ]  # Ensures table serialises properly
 
-                self.quality_query = quality_query
-            elif isinstance(quality_query, list):
-                self.quality_query = QualityQuery(quality_criteria=quality_query)
+                self.quality_selection = quality_selection
+            elif isinstance(quality_selection, list):
+                self.quality_selection = EventQualitySelection(
+                    quality_criteria=quality_selection
+                )
             else:
-                self.quality_query = QualityQuery(quality_criteria=list(quality_query))
+                self.quality_selection = EventQualitySelection(
+                    quality_criteria=list(quality_selection)
+                )
         else:
-            self.quality_query = QualityQuery(quality_criteria=[(" ", " ")])
+            self.quality_selection = EventQualitySelection(
+                quality_criteria=[(" ", " ")]
+            )
 
         self.valid_energy = ResultValidRange(min=valid_energy_min, max=valid_energy_max)
         self.valid_offset = ResultValidRange(min=valid_offset_min, max=valid_offset_max)
@@ -52,21 +58,21 @@ class OptimizationResult:
                 f"and {len(self.spatial_selection_table)} theta bins valid "
                 f"between {self.valid_offset.min} to {self.valid_offset.max} "
                 f"and {self.valid_energy.min} to {self.valid_energy.max} "
-                f"with {len(self.quality_query.quality_criteria)} quality criteria>"
+                f"with {len(self.quality_selection.quality_criteria)} quality criteria>"
             )
         else:
             return (
                 f"<OptimizationResult with {len(self.gh_cuts)} G/H bins valid "
                 f"between {self.valid_offset.min} to {self.valid_offset.max} "
                 f"and {self.valid_energy.min} to {self.valid_energy.max} "
-                f"with {len(self.quality_query.quality_criteria)} quality criteria>"
+                f"with {len(self.quality_selection.quality_criteria)} quality criteria>"
             )
 
     def write(self, output_name: Path | str, overwrite: bool = False) -> None:
         """Write an ``OptimizationResult`` to a file in FITS format."""
 
         cut_expr_tab = Table(
-            rows=self.quality_query.quality_criteria,
+            rows=self.quality_selection.quality_criteria,
             names=["name", "cut_expr"],
             dtype=[np.str_, np.str_],
         )
@@ -109,14 +115,14 @@ class OptimizationResult:
             if (" ", " ") in cut_expr_lst:
                 cut_expr_lst.remove((" ", " "))
 
-            quality_query = QualityQuery(quality_criteria=cut_expr_lst)
+            quality_query = EventQualitySelection(quality_criteria=cut_expr_lst)
             gh_cuts = QTable.read(hdul[2])
             valid_energy = QTable.read(hdul[3])
             valid_offset = QTable.read(hdul[4])
             spatial_selection_table = QTable.read(hdul[5]) if len(hdul) > 5 else None
 
         return cls(
-            quality_query=quality_query,
+            quality_selection=quality_query,
             valid_energy_min=valid_energy["energy_min"],
             valid_energy_max=valid_energy["energy_max"],
             valid_offset_min=valid_offset["offset_min"],
