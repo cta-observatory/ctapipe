@@ -661,7 +661,6 @@ def test_column_transforms(tmp_path):
         # add user generated transform for the "value" column
         writer.write("mytable", cont, time_format="mjd")
 
-    # check that we get a length-3 array when reading back
     with HDF5TableReader(tmp_file, mode="r") as reader:
         data = next(reader.read("/data/mytable", SomeContainer))
         assert data.current.value == 1e6
@@ -1053,7 +1052,6 @@ def test_column_transform_high_res_timestamp(tmp_path):
         for t in times:
             writer.write("events", SomeContainer(time=t))
 
-    # check that we get a length-3 array when reading back
     with HDF5TableReader(tmp_file, mode="r") as reader:
         times_read = [c.time for c in reader.read("/events", SomeContainer)]
         assert isinstance(times_read[0], Time)
