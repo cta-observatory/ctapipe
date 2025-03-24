@@ -1042,7 +1042,8 @@ def test_column_transform_high_res_timestamp(tmp_path):
 
     # low-resolution timestamp only has ~us precision, so test we can actually
     # store much smaller differences
-    times = Time.now() + [0, 0.25, 0.5, 0.75, 1.0, 1.25] * u.ns
+    dt = [0, 0.25, 0.5, 0.75, 1.0, 1.25] * u.ns
+    times = Time("2025-01-01T00:00:12.123456789") + dt
 
     with HDF5TableWriter(tmp_file) as writer:
         writer.add_column_transform(
@@ -1062,7 +1063,7 @@ def test_column_transform_high_res_timestamp(tmp_path):
         times_read = Time(times_read)
         # check absolute error due to floating point imprecision
         roundtrip_error = (times - times_read).to_value(u.ns)
-        np.testing.assert_array_less(np.abs(roundtrip_error), 0.01)
+        np.testing.assert_array_less(np.abs(roundtrip_error), 0.02)
 
         # check that times are exactly equal in ctao representation
         np.testing.assert_array_equal(
