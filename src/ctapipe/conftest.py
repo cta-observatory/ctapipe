@@ -783,7 +783,7 @@ def irf_event_loader_test_config():
                 "energy_reconstructor": "ExtraTreesRegressor",
                 "geometry_reconstructor": "HillasReconstructor",
                 "gammaness_classifier": "ExtraTreesClassifier",
-                "EventQualityQuery": {
+                "EventQualitySelection": {
                     "quality_criteria": [
                         (
                             "multiplicity 4",
