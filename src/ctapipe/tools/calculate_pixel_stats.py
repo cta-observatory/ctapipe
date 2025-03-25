@@ -82,6 +82,8 @@ class PixelStatisticsCalculatorTool(Tool):
         TableLoader,
     ] + classes_with_traits(PixelStatisticsCalculator)
 
+    DL1_COLUMN_NAMES = ["image", "peak_time"]
+
     def setup(self):
         # Read the input data with the 'TableLoader'
         self.input_data = self.enter_context(
@@ -137,6 +139,10 @@ class PixelStatisticsCalculatorTool(Tool):
                     f"Column '{self.input_column_name}' not found "
                     f"in the input data for telescope 'tel_id={tel_id}'."
                 )
+            # Check if the dl1 data is gain selected and add an extra dimension for n_channels
+            for col_name in self.DL1_COLUMN_NAMES:
+                if col_name in dl1_table.colnames and dl1_table[col_name].ndim == 2:
+                    dl1_table[col_name] = dl1_table[col_name][:, np.newaxis]
             # Perform the first pass of the statistics calculation
             aggregated_stats = self.stats_calculator.first_pass(
                 table=dl1_table,

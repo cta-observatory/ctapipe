@@ -3,10 +3,12 @@ Tests for OutlierDetector and related functions
 """
 
 import numpy as np
+import pytest
 from astropy.table import Table
 
 from ctapipe.monitoring.outlier import (
     MedianOutlierDetector,
+    OutlierDetector,
     RangeOutlierDetector,
     StdOutlierDetector,
 )
@@ -102,3 +104,28 @@ def test_std_detection(example_subarray):
     # Check if outliers where detected correctly
     np.testing.assert_array_equal(ff_outliers, ff_expected_outliers)
     np.testing.assert_array_equal(ped_outliers, ped_expected_outliers)
+
+
+def test_check_for_column_shape(example_subarray):
+    """test the check for the shape of the column"""
+
+    # Create dummy data for testing
+    rng = np.random.default_rng(0)
+    # Distribution mimics the median values of gain-selected charge images of flat-field events
+    median = rng.normal(77.0, 0.6, size=(50, 1855))
+    # Create astropy table
+    table = Table([median], names=("median",))
+    # Initialize the outlier detector based on the deviation from the camera median
+    outlier_detectors = [
+        "RangeOutlierDetector",
+        "MedianOutlierDetector",
+        "StdOutlierDetector",
+    ]
+    for outlier_detector_name in outlier_detectors:
+        outlier_detector = OutlierDetector.from_name(
+            outlier_detector_name,
+            subarray=example_subarray,
+        )
+        # Check if ValueError is raised when the provided column shape is invalid
+        with pytest.raises(ValueError, match="Invalid shape of the column"):
+            outlier_detector(table["median"])

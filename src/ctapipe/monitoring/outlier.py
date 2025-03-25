@@ -65,6 +65,12 @@ class RangeOutlierDetector(OutlierDetector):
     ).tag(config=True)
 
     def __call__(self, column):
+        # Validate that the shape of the statistic values has three dimensions
+        if column.ndim != 3:
+            raise ValueError(
+                f"Invalid shape of the column '{column.name}': '{column.shape}'. "
+                "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
+            )
         # Remove outliers is statistical values out a given range
         outliers = np.logical_or(
             column < self.validity_range[0],
@@ -93,6 +99,12 @@ class MedianOutlierDetector(OutlierDetector):
     ).tag(config=True)
 
     def __call__(self, column):
+        # Validate that the shape of the statistic values has three dimensions
+        if column.ndim != 3:
+            raise ValueError(
+                f"Invalid shape of the column '{column.name}': '{column.shape}'. "
+                "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
+            )
         # Camera median
         camera_median = np.ma.median(column, axis=2)
         # Detect outliers based on the deviation of the median distribution
@@ -124,6 +136,12 @@ class StdOutlierDetector(OutlierDetector):
     ).tag(config=True)
 
     def __call__(self, column):
+        # Validate that the shape of the statistic values has three dimensions
+        if column.ndim != 3:
+            raise ValueError(
+                f"Invalid shape of the column '{column.name}': '{column.shape}'. "
+                "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
+            )
         # Camera median
         camera_median = np.ma.median(column, axis=2)
         # Camera std
