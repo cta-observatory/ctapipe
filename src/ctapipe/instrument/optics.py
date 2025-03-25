@@ -378,7 +378,7 @@ class ComaPSFModel(PSFModel):
         help=(
             "Describes the dependency of the polar scale on the "
             "distance to the center of the camera. Used to calculate "
-            "the width :math:`S_\phi` of the polar Laplacian in the PSF "
+            r"the width :math:`S_\phi` of the polar Laplacian in the PSF "
             "as a function of the distance r to the optical axis"
         )
     ).tag(config=True)

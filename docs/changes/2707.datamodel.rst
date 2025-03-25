@@ -1,0 +1,9 @@
+Change format in which event timestamps are written to HDF5 files.
+Instead of a single float64 MJD value which has ~µs precision,
+the CTAO high precision time format is used now.
+This stores the timestamp as two uint32 values: seconds
+and quarter nanoseconds since ``1970-01-01T00:00:00.0 TAI``.
+
+This only affects the storage format and the precision,
+the in-memory API is unchanged as it relies on ``astropy.time.Time``
+and values are converted when reading/writing from/to HDF5.

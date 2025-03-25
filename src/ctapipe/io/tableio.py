@@ -13,6 +13,7 @@ from ctapipe.compat import COPY_IF_NEEDED
 
 from ..core import Component
 from ..instrument import SubarrayDescription
+from ..time import ctao_high_res_to_time, time_to_ctao_high_res
 
 __all__ = ["TableReader", "TableWriter"]
 
@@ -305,7 +306,7 @@ class ColumnTransform(metaclass=ABCMeta):
 
 
 class TimeColumnTransform(ColumnTransform):
-    """A Column transformation that converts astropy time objects to MJD TAI"""
+    """A Column transformation that converts astropy time objects to a specific format."""
 
     def __init__(self, scale, format):
         self.scale = scale
@@ -315,9 +316,19 @@ class TimeColumnTransform(ColumnTransform):
         """
         Convert an astropy time object to an mjd value in tai scale
         """
+        # ctao_high_res is not implemented as an astropy format but using
+        # conversion functions defined in ctapipe
+        if self.format == "ctao_high_res":
+            return time_to_ctao_high_res(value)
+        # for all other formats, use astropy mechanism
         return getattr(getattr(value, self.scale), self.format)
 
     def inverse(self, value):
+        # ctao_high_res is not implemented as an astropy format but using
+        # conversion functions defined in ctapipe
+        if self.format == "ctao_high_res":
+            return ctao_high_res_to_time(value[..., 0], value[..., 1])
+        # for all other formats, use astropy mechanism
         return Time(value, scale=self.scale, format=self.format, copy=COPY_IF_NEEDED)
 
     def get_meta(self, colname):
