@@ -202,17 +202,20 @@ class Tool(Application):
         # makes sure user defined aliases override default aliases
         self.aliases = {**aliases, **self.aliases}
 
-        flags = {
-            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
-            ("v", "verbose"): (
-                {"Tool": {"log_level": "DEBUG"}},
-                "Set log level to DEBUG",
-            ),
-            "overwrite": (
-                {"Tool": {"overwrite": True}},
-                "Overwrite existing output files without asking",
-            ),
-        }
+        flags = Application.flags.copy()
+        flags.update(
+            {
+                ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
+                ("v", "verbose"): (
+                    {"Tool": {"log_level": "DEBUG"}},
+                    "Set log level to DEBUG",
+                ),
+                "overwrite": (
+                    {"Tool": {"overwrite": True}},
+                    "Overwrite existing output files without asking",
+                ),
+            }
+        )
         self.flags = {**flags, **self.flags}
 
         self.is_setup = False
@@ -423,8 +426,9 @@ class Tool(Application):
 
                 self.initialize(argv)
 
-                self.setup()
-                self.is_setup = True
+                if not self.show_config:
+                    self.setup()
+                    self.is_setup = True
 
                 self.log.debug("CONFIG: %s", self.get_current_config())
                 Provenance().add_config(self.get_current_config())
@@ -437,7 +441,9 @@ class Tool(Application):
                 self.log.removeHandler(self.trait_warning_handler)
 
                 self.start()
-                self.finish()
+                if not self.show_config:
+                    self.finish()
+
             except (ToolConfigurationError, TraitError) as err:
                 current_exception = err
                 self.log.error("%s", err)

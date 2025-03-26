@@ -20,6 +20,7 @@ from ctapipe.core.container import Container, Field
 from ctapipe.io import read_table
 from ctapipe.io.datalevels import DataLevel
 from ctapipe.io.hdf5tableio import HDF5TableReader, HDF5TableWriter
+from ctapipe.time import time_to_ctao_high_res
 
 
 @pytest.fixture(scope="session")
@@ -658,9 +659,8 @@ def test_column_transforms(tmp_path):
             "mytable", "image", FixedPointColumnTransform(100, 0, np.float64, np.int32)
         )
         # add user generated transform for the "value" column
-        writer.write("mytable", cont)
+        writer.write("mytable", cont, time_format="mjd")
 
-    # check that we get a length-3 array when reading back
     with HDF5TableReader(tmp_file, mode="r") as reader:
         data = next(reader.read("/data/mytable", SomeContainer))
         assert data.current.value == 1e6
@@ -741,7 +741,14 @@ def test_column_transforms_regexps(tmp_path):
         assert data.hillas_y == 10
 
 
-def test_time(tmp_path):
+@pytest.mark.parametrize(
+    ("time_format", "tolerance"),
+    [
+        ("mjd", 0.1 * u.us),
+        ("ctao_high_res", 0.01 * u.ns),
+    ],
+)
+def test_time(tmp_path, time_format, tolerance):
     tmp_file = tmp_path / "test_time.hdf5"
 
     class TimeContainer(Container):
@@ -751,15 +758,16 @@ def test_time(tmp_path):
     container = TimeContainer(time=time)
 
     with HDF5TableWriter(tmp_file, group_name="data") as writer:
-        # add user generated transform for the "value" column
-        writer.write("table", container)
+        writer.write("table", container, time_format=time_format)
 
     with HDF5TableReader(tmp_file, mode="r") as reader:
         for data in reader.read("/data/table", TimeContainer):
             assert isinstance(data.time, Time)
             assert data.time.scale == "tai"
-            assert data.time.format == "mjd"
-            assert (data.time - time).to(u.s).value < 1e-7
+            assert data.time.format == (
+                "unix_tai" if time_format == "ctao_high_res" else time_format
+            )
+            assert np.abs((data.time - time).to(u.s)) < tolerance
 
 
 def test_filters(tmp_path):
@@ -1019,3 +1027,46 @@ def test_hdf5_datalevels(input_type, dl2_shower_geometry_file):
         DataLevel.DL1_PARAMETERS,
         DataLevel.DL2,
     }
+
+
+def test_column_transform_high_res_timestamp(tmp_path):
+    """Test high-res timestamp column transformation."""
+    from ctapipe.containers import NAN_TIME
+    from ctapipe.io.tableio import TimeColumnTransform
+
+    tmp_file = tmp_path / "test_high_res_time.hdf5"
+
+    class SomeContainer(Container):
+        default_prefix = ""
+        time = Field(NAN_TIME)
+
+    # low-resolution timestamp only has ~us precision, so test we can actually
+    # store much smaller differences
+    dt = [0, 0.25, 0.5, 0.75, 1.0, 1.25] * u.ns
+    times = Time("2025-01-01T00:00:12.123456789") + dt
+
+    with HDF5TableWriter(tmp_file) as writer:
+        writer.add_column_transform(
+            "events", "time", TimeColumnTransform("tai", "ctao_high_res")
+        )
+
+        for t in times:
+            writer.write("events", SomeContainer(time=t))
+
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        times_read = [c.time for c in reader.read("/events", SomeContainer)]
+        assert isinstance(times_read[0], Time)
+        assert times_read[0].scale == "tai"
+        assert times_read[0].format == "unix_tai"
+
+        # convert list of scalar time to 1d Time object
+        times_read = Time(times_read)
+        # check absolute error due to floating point imprecision
+        roundtrip_error = (times - times_read).to_value(u.ns)
+        np.testing.assert_array_less(np.abs(roundtrip_error), 0.02)
+
+        # check that times are exactly equal in ctao representation
+        np.testing.assert_array_equal(
+            time_to_ctao_high_res(times),
+            time_to_ctao_high_res(times_read),
+        )

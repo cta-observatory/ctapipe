@@ -184,8 +184,8 @@ class PixelStatus(enum.IntFlag):
     https://redmine.cta-observatory.org/dmsf/files/17552/view
     """
 
-    DVR_STORED_AS_SIGNAL = enum.auto()
-    DVR_STORED_NO_SIGNAL = enum.auto()
+    DVR_0 = enum.auto()
+    DVR_1 = enum.auto()
     HIGH_GAIN_STORED = enum.auto()
     LOW_GAIN_STORED = enum.auto()
     SATURATED = enum.auto()
@@ -193,9 +193,12 @@ class PixelStatus(enum.IntFlag):
     PIXEL_TRIGGER_1 = enum.auto()
     PIXEL_TRIGGER_2 = enum.auto()
 
-    #: DVR status uses two bits
-    #: 0 = not stored, 1 = identified as signal, 2 = stored, not identified as signal
-    DVR_STATUS = DVR_STORED_AS_SIGNAL | DVR_STORED_NO_SIGNAL
+    #: DVR status uses two bits:
+    #: 0 = not stored;
+    #: 1 = stored, passthrough (i.e. no DVR algorithm applied in R1->DL0 step);
+    #: 2 = stored, but not identified as signal (e.g. neighbors of signal pixels);
+    #: 3 = stored, identified as signal;
+    DVR_STATUS = DVR_0 | DVR_1
 
     #: Pixel trigger information, TBD
     PIXEL_TRIGGER = PIXEL_TRIGGER_0 | PIXEL_TRIGGER_1 | PIXEL_TRIGGER_2
@@ -209,8 +212,9 @@ class PixelStatus(enum.IntFlag):
         -------
         dvr_status: int or array[uint8]
             0 = pixel not stored
-            1 = pixel was identified as signal pixel and stored
-            2 = pixel was stored, but not identified as signal
+            1 = stored, passthrough (i.e. no DVR algorithm applied in R1->DL0 step)
+            2 = stored, but not identified as signal (e.g. neighbors of signal pixels)
+            3 = stored, identified as signal
         """
         return pixel_status & PixelStatus.DVR_STATUS
 

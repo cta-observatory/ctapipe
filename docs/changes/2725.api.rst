@@ -1,0 +1,1 @@
+Change definition of DVR bits in PixelStatus to new definition in DL0 data model.
