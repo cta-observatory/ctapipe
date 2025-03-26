@@ -37,7 +37,10 @@ class DL3_Format(Component):
         help="If true will raise error in the case optional column are missing",
     ).tag(config=True)
 
-    reference_time = AstroTime(default_value=Time("2018-01-01T00:00:00", scale="tai"))
+    reference_time = AstroTime(
+        default_value=Time("2018-01-01T00:00:00", scale="tai"),
+        help="The reference time that will be used in the FITS file",
+    ).tag(config=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
