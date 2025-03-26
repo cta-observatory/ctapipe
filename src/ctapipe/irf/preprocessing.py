@@ -22,12 +22,13 @@ from pyirf.utils import (
 )
 from tables import NoSuchNodeError
 
+from ..atmosphere import AtmosphereDensityProfile
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType, PointingMode
 from ..coordinates import NominalFrame
 from ..core import Component
 from ..core.traits import Bool, Unicode
-from ..io import TableLoader
+from ..io import EventSource, TableLoader
 from ..version import version as ctapipe_version
 from .cuts import EventQualitySelection, EventSelection
 from .spectra import SPECTRA, Spectra
@@ -135,9 +136,11 @@ class EventPreprocessor(Component):
                         "reco_core_uncert",
                         "reco_h_max",
                         "reco_h_max_uncert",
+                        "reco_x_max",
+                        "reco_x_max_uncert",
                     ]
 
-                    if not self.raise_error_for_optional:
+                    if self.raise_error_for_optional:
                         if events is None:
                             raise ValueError(
                                 "Require events table to assess existence of optional columns"
@@ -250,7 +253,10 @@ class EventPreprocessor(Component):
         return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
 
     def make_derived_columns(
-        self, events: QTable, location_subarray: EarthLocation
+        self,
+        events: QTable,
+        location_subarray: EarthLocation,
+        atmosphere_density_profile: AtmosphereDensityProfile = None,
     ) -> QTable:
         """
         This function compute all the derived columns necessary either to irf production or DL3 file
@@ -315,6 +321,35 @@ class EventPreprocessor(Component):
                     events["reco_core_uncert_x"] ** 2
                     + events["reco_core_uncert_y"] ** 2
                 )
+
+                try:
+                    events[
+                        "reco_x_max"
+                    ] = atmosphere_density_profile.slant_depth_from_height(
+                        events["reco_h_max"], np.pi * u.rad / 2 - events["reco_alt"]
+                    ).to(u.g / u.cm / u.cm)
+                    uncert_up = (
+                        atmosphere_density_profile.slant_depth_from_height(
+                            events["reco_h_max"] + events["reco_h_max_uncert"],
+                            np.pi * u.rad / 2 - events["reco_alt"],
+                        )
+                        - events["reco_x_max"]
+                    )
+                    uncert_down = events[
+                        "reco_x_max"
+                    ] - atmosphere_density_profile.slant_depth_from_height(
+                        events["reco_h_max"] + events["reco_h_max_uncert"],
+                        np.pi * u.rad / 2 - events["reco_alt"],
+                    )
+                    events["reco_x_max_uncert"] = ((uncert_up + uncert_down) / 2.0).to(
+                        u.g / u.cm / u.cm
+                    )
+                except Exception as e:
+                    if self.raise_error_for_optional:
+                        raise e
+                    else:
+                        events["reco_x_max"] = np.nan * u.g / u.cm / u.cm
+                        events["reco_x_max_uncert"] = np.nan * u.g / u.cm / u.cm
 
         return events
 
@@ -469,6 +504,16 @@ class EventPreprocessor(Component):
                 unit=u.m,
                 description="Uncertainty on the reconstructed altitude of the maximum of the shower",
             ),
+            Column(
+                name="reco_x_max",
+                unit=u.g / u.cm / u.cm,
+                description="Reconstructed maximum of the shower",
+            ),
+            Column(
+                name="reco_x_max_uncert",
+                unit=u.g / u.cm / u.cm,
+                description="Uncertainty on the maximum of the shower",
+            ),
         ]
 
         # Rearrange in a dict, easier for searching after
@@ -525,6 +570,16 @@ class EventLoader(Component):
         self.opts_loader = dict(dl2=True, simulated=True, observation_info=True)
 
     def load_preselected_events(self, chunk_size: int) -> tuple[QTable, int, dict]:
+        # Load atmosphere density profile
+        atmosphere_density_profile = None
+        if self.epp.optional_dl3_columns:
+            try:
+                with EventSource(self.file) as source:
+                    atmosphere_density_profile = source.atmosphere_density_profile
+            except Exception:
+                self.log.warning("Unable to read atmosphere density profile")
+
+        # Load event
         with TableLoader(self.file, parent=self, **self.opts_loader) as load:
             keep_columns, _, _ = self.epp.get_columns_keep_rename_scheme(None, True)
             header = self.epp.make_empty_table(keep_columns)
@@ -533,8 +588,9 @@ class EventLoader(Component):
                 chunk_size, **self.opts_loader
             ):
                 events = self.epp.normalise_column_names(events)
+
                 events = self.epp.make_derived_columns(
-                    events, load.subarray.reference_location
+                    events, load.subarray.reference_location, atmosphere_density_profile
                 )
                 events = self.epp.event_selection.calculate_selection(events)
                 selected = events[events["selected"]]

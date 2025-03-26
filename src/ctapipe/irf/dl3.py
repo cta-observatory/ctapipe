@@ -628,6 +628,8 @@ class DL3_GADF(DL3_Format):
                 "reco_core_uncert",
                 "reco_h_max",
                 "reco_h_max_uncert",
+                "reco_x_max",
+                "reco_x_max_uncert",
             ]
             rename_to_optional = [
                 "MULTIP",
@@ -647,9 +649,11 @@ class DL3_GADF(DL3_Format):
                 "CORE_ERR",
                 "HMAX",
                 "HMAX_ERR",
+                "XMAX",
+                "XMAX_ERR",
             ]
 
-            if not self.raise_error_for_optional:
+            if self.raise_error_for_optional:
                 for i, c in enumerate(rename_from_optional):
                     if c not in events.colnames:
                         self.log.warning(
