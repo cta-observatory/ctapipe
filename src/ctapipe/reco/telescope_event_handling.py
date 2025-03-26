@@ -3,6 +3,7 @@
 from functools import lru_cache
 from itertools import combinations
 
+import astropy.units as u
 import numpy as np
 from numba import njit, uint64
 
@@ -237,8 +238,13 @@ def calc_num_combs(multiplicity, k):
     return num_combs
 
 
-@njit
-def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi):
+def calc_fov_lon_lat(valid_mono_predictions, prefix):
+    hillas_fov_lon = valid_mono_predictions["hillas_fov_lon"].quantity.to_value(u.deg)
+    hillas_fov_lat = valid_mono_predictions["hillas_fov_lat"].quantity.to_value(u.deg)
+    hillas_psi = valid_mono_predictions["hillas_psi"].quantity.to_value(u.rad)
+    disp = valid_mono_predictions[f"{prefix}_parameter"]
+    signs = np.array([-1, 1])
+
     cos_psi = np.cos(hillas_psi)
     sin_psi = np.sin(hillas_psi)
     lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]

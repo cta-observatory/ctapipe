@@ -171,6 +171,20 @@ class ApplyModels(Tool):
         self._reconstructors = []
         for path in self.reconstructor_paths:
             r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+
+            # Init new Reconstructor with config parameters and overwrite the StereoCombiner
+            model_keys = ["model_cls", "norm_cls", "sign_cls"]
+            model_kwargs = {
+                key: getattr(r, key) for key in model_keys if hasattr(r, key)
+            }
+            r.stereo_combiner = Reconstructor.from_name(
+                r.__class__.__name__,
+                subarray=self.loader.subarray,
+                parent=self,
+                prefix=r.prefix,
+                **model_kwargs,
+            ).stereo_combiner
+
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
             self._reconstructors.append(r)
@@ -261,7 +275,7 @@ class ApplyModels(Tool):
         stereo_predictions = combiner.predict_table(stereo_table)
         end = time.time()
         duration = end - start
-        print(f"{reconstructor} - Dauer: {duration}")
+        print(f"{reconstructor}, {combiner} - Dauer: {duration}")
         del stereo_table
 
         trafo = TelListToMaskTransform(self.loader.subarray)
