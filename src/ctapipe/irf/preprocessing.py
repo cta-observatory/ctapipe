@@ -641,7 +641,7 @@ class EventLoader(Component):
                 self.log.warning("Duration of the run is nan, replaced with zero")
                 obs_all_info_table["actual_duration"][mask_nan] = 0.0 * u.s
             for i in range(len(obs_all_info_table)):
-                start_time = Time(obs_all_info_table["actual_start_time"][i])
+                start_time = Time(obs_all_info_table["actual_start_time"][i]).tai
                 stop_time = start_time + TimeDelta(
                     obs_all_info_table["actual_duration"][i]
                     * obs_all_info_table["actual_duration"].unit

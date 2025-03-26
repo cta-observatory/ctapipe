@@ -14,7 +14,7 @@ from astropy.time import Time, TimeDelta
 from ctapipe.compat import COPY_IF_NEEDED
 from ctapipe.coordinates.tests.test_coordinates import location
 from ctapipe.core import Component
-from ctapipe.core.traits import Bool
+from ctapipe.core.traits import AstroTime, Bool
 from ctapipe.version import version as ctapipe_version
 
 
@@ -36,6 +36,8 @@ class DL3_Format(Component):
         default_value=True,
         help="If true will raise error in the case optional column are missing",
     ).tag(config=True)
+
+    reference_time = AstroTime(default_value=Time("2018-01-01T00:00:00", scale="tai"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -315,7 +317,7 @@ class DL3_GADF(DL3_Format):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.file_creation_time = datetime.now(tz=UTC)
-        self.reference_time = Time(datetime.fromisoformat("1970-01-01T00:00:00+00:00"))
+        self._reference_time = self.reference_time.tai
 
     def write_file(self, path):
         """
@@ -409,21 +411,21 @@ class DL3_GADF(DL3_Format):
             )
 
         return {
-            "MJDREFI": int(self.reference_time.mjd),
-            "MJDREFF": self.reference_time.mjd % 1,
+            "MJDREFI": int(self._reference_time.mjd),
+            "MJDREFF": self._reference_time.mjd % 1,
             "TIMEUNIT": "s",
             "TIMEREF": "GEOCENTER",
-            "TIMESYS": "UTC",
-            "TSTART": (start_time - self.reference_time).to_value(u.s),
-            "TSTOP": (stop_time - self.reference_time).to_value(u.s),
+            "TIMESYS": "TAI",
+            "TSTART": (start_time.tai - self._reference_time).to_value(u.s),
+            "TSTOP": (stop_time.tai - self._reference_time).to_value(u.s),
             "ONTIME": ontime.to_value(u.s),
             "LIVETIME": ontime.to_value(u.s) * self.dead_time_fraction,
             "DEADC": self.dead_time_fraction,
-            "TELAPSE": (stop_time - start_time).to_value(u.s),
-            "DATE-OBS": start_time.fits,
-            "DATE-BEG": start_time.fits,
-            "DATE-AVG": (start_time + (stop_time - start_time) / 2.0).fits,
-            "DATE-END": stop_time.fits,
+            "TELAPSE": (stop_time.tai - start_time.tai).to_value(u.s),
+            "DATE-OBS": start_time.tai.fits,
+            "DATE-BEG": start_time.tai.fits,
+            "DATE-AVG": (start_time.tai + (stop_time.tai - start_time.tai) / 2.0).fits,
+            "DATE-END": stop_time.tai.fits,
         }
 
     def get_hdu_header_base_observation_information(
@@ -502,7 +504,7 @@ class DL3_GADF(DL3_Format):
                 np.linspace(gti_table["START"][i], gti_table["STOP"][i], 100)
             )
         delta_time_evaluation = u.Quantity(delta_time_evaluation)
-        time_evaluation = self.reference_time + TimeDelta(delta_time_evaluation)
+        time_evaluation = self._reference_time + TimeDelta(delta_time_evaluation)
 
         pointing_table = self.create_pointing_table()
         if self.pointing_mode == "TRACK":
@@ -681,10 +683,10 @@ class DL3_GADF(DL3_Format):
         table_structure = {"START": [], "STOP": []}
         for gti_interval in self.gti:
             table_structure["START"].append(
-                (gti_interval[0] - self.reference_time).to(u.s)
+                (gti_interval[0].tai - self._reference_time).to(u.s)
             )
             table_structure["STOP"].append(
-                (gti_interval[1] - self.reference_time).to(u.s)
+                (gti_interval[1].tai - self._reference_time).to(u.s)
             )
 
         QTable(table_structure).sort("START")
@@ -718,7 +720,7 @@ class DL3_GADF(DL3_Format):
             pointing_altaz = pointing[1].transform_to(
                 AltAz(location=location, obstime=time)
             )
-            table_structure["TIME"].append((time - self.reference_time).to(u.s))
+            table_structure["TIME"].append((time.tai - self._reference_time).to(u.s))
             table_structure["RA_PNT"].append(pointing_icrs.ra.to(u.deg))
             table_structure["DEC_PNT"].append(pointing_icrs.dec.to(u.deg))
             table_structure["ALT_PNT"].append(pointing_altaz.alt.to(u.deg))
