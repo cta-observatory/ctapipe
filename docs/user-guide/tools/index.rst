@@ -48,4 +48,5 @@ The following pages contain examples on how to use the command-line tools.
 .. toctree::
   :maxdepth: 1
 
-  mono_dl2
+  mono_dl2_guide
+  irf_guide

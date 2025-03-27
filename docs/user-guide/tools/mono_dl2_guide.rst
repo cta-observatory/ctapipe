@@ -1,4 +1,4 @@
-.. _mono_dl2:
+.. _mono_dl2_guide:
 
 ***************************************************************
 How to do monoscopic DL2 reconstruction using ``ctapipe`` tools
