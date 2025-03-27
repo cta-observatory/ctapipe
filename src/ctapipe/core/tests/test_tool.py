@@ -7,11 +7,13 @@ import tempfile
 from multiprocessing import Barrier, Process
 from pathlib import Path
 
+import astropy.units as u
 import pytest
+from astropy.time import Time
 from traitlets import Dict, Float, Int, TraitError
 from traitlets.config import Config
 
-from .. import Component, Tool
+from .. import Component, Tool, traits
 from ..tool import (
     ToolConfigurationError,
     export_tool_config_to_commented_yaml,
@@ -477,15 +479,33 @@ def test_exit_stack():
 def test_activity(tmp_path):
     """check that the config is correctly in the provenance"""
 
+    class Comp(Component):
+        quantity = traits.AstroQuantity(u.m).tag(config=True)
+
     class MyTool(Tool):
         name = "test_prov_log"
         description = "test"
-        userparam = Float(5.0, help="parameter").tag(config=True)
+
+        value = Float(5.0, help="parameter").tag(config=True)
+        path = traits.Path(default_value=None, allow_none=True).tag(config=True)
+        time = traits.AstroTime(default_value=None, allow_none=True).tag(config=True)
+
+        def setup(self):
+            self.comp = Comp(parent=self)
 
     tool = MyTool()
-
+    config = {
+        "MyTool": {
+            "value": 10.0,
+            "path": str(tmp_path / "foo.txt"),
+            "time": "2025-01-01T00:00:00",
+            "Comp": {
+                "quantity": {"value": 5.0, "unit": "m"},
+            },
+        }
+    }
     config_path = tmp_path / "config.json"
-    config_path.write_text(json.dumps({"MyTool": {"userparam": 10.0}}))
+    config_path.write_text(json.dumps(config))
     provenance_path = tmp_path / "provenance.json"
 
     run_tool(
@@ -507,6 +527,19 @@ def test_activity(tmp_path):
     assert len(inputs) == 1
     assert inputs[0]["role"] == "Tool Configuration"
     assert inputs[0]["url"] == str(config_path)
+
+    # check we re-create the same tool from the config stored in provenance
+    provenance_config = provlog["config"]
+    prov_config_path = tmp_path / "config_from_prov.json"
+    prov_config_path.write_text(json.dumps(provenance_config))
+
+    tool = MyTool()
+    tool.initialize(["-c", str(prov_config_path)])
+    tool.setup()
+    assert tool.value == 10.0
+    assert tool.path == tmp_path / "foo.txt"
+    assert tool.time == Time("2025-01-01T00:00:00")
+    assert tool.comp.quantity == 5 * u.m
 
 
 @pytest.mark.parametrize(

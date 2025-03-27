@@ -387,8 +387,12 @@ class Provenance(metaclass=Singleton):
                 return str(obj)
 
             if isinstance(obj, Reference):
-                print(type(obj), obj.to_dict())
                 return obj.to_dict()
+
+            if isinstance(obj, Time):
+                # Time(iso_string) defaults to UTC, so we need to convert everything to
+                # UTC here.
+                return obj.utc.isot
 
             if isinstance(obj, u.Quantity):
                 return {
