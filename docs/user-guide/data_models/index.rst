@@ -72,6 +72,12 @@ output file, where ``<algorithm>`` is the identifier of the algorithm (e.g.
 Simulation Data Model
 =====================
 
+.. list-table::
+    :header-rows: 1
+
+    * - Group/Dataset
+      - Description
+      - Contents
     * - ``/simulation/event/subarray/shower``
       - true shower parameters from Monte-Carlo simulation
       - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedShowerContainer`
