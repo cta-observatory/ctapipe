@@ -328,3 +328,95 @@ def calc_combs_min_distances_table(
     weighted_lats = np.average(lat_values, weights=mapped_weights.T, axis=0)
 
     return weighted_lons, weighted_lats, combined_weights
+
+
+@njit
+def calc_fov_lon_lat_njit(hillas_fov_lon, hillas_fov_lat, hillas_psi, disp):
+    signs = np.array([-1, 1])
+
+    cos_psi = np.cos(hillas_psi)
+    sin_psi = np.sin(hillas_psi)
+    lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]
+    lats = hillas_fov_lat[:, None] + signs * disp[:, None] * sin_psi[:, None]
+
+    return lons, lats
+
+
+@njit
+def calc_fov_njit(
+    obs_ids,
+    event_ids,
+    valid_tels,
+    valid_weights,
+    hillas_fov_lon,
+    hillas_fov_lat,
+    hillas_psi,
+    disp,
+    combs_map,
+    combs_to_multi_indices,
+):
+    n_tel_events = len(obs_ids)
+    idx_min_list = []
+    idx_min = 0
+    subarray_counter = 0
+    single_tel_mask = np.empty(n_tel_events, dtype=np.bool)
+    single_tel_mask_array = []
+    fov_lon_weighted_average = []
+    fov_lat_weighted_average = []
+    for i in range(1, n_tel_events):
+        if (
+            obs_ids[i] != obs_ids[i - 1]
+            or event_ids[i] != event_ids[i - 1]
+            or i == (n_tel_events - 1)
+        ):
+            valid_mask = valid_tels[idx_min:i]
+            valid_multiplicity = valid_mask.sum()
+            if valid_multiplicity >= 1:
+                if valid_multiplicity == 1:
+                    single_tel_mask[idx_min:i] = valid_mask
+                    single_tel_mask_array.append(subarray_counter)
+                    fov_lon_weighted_average.append(np.nan)
+                    fov_lat_weighted_average.append(np.nan)
+                else:
+                    single_tel_mask[idx_min:i] = np.full(len(valid_mask), False)
+                    fov_lon_values, fov_lat_values = calc_fov_lon_lat_njit(
+                        hillas_fov_lon[idx_min:i][valid_mask],
+                        hillas_fov_lat[idx_min:i][valid_mask],
+                        hillas_psi[idx_min:i][valid_mask],
+                        disp[idx_min:i][valid_mask],
+                    )
+                    index_combs_tel_ids = combs_map[
+                        combs_to_multi_indices == valid_multiplicity
+                    ]
+                    (
+                        min_dist_lon,
+                        min_dist_lat,
+                        combined_weights,
+                    ) = calc_combs_min_distances(
+                        index_combs_tel_ids,
+                        fov_lon_values,
+                        fov_lat_values,
+                        valid_weights[idx_min:i],
+                    )
+                    fov_lon_weighted_average.append(
+                        np.average(min_dist_lon, weights=combined_weights)
+                    )
+                    fov_lat_weighted_average.append(
+                        np.average(min_dist_lat, weights=combined_weights)
+                    )
+            else:
+                single_tel_mask[idx_min:i] = np.full(len(valid_mask), False)
+                fov_lon_weighted_average.append(np.nan)
+                fov_lat_weighted_average.append(np.nan)
+
+            idx_min_list.append(idx_min)
+            idx_min = i
+            subarray_counter += 1
+
+    return (
+        fov_lon_weighted_average,
+        fov_lat_weighted_average,
+        single_tel_mask,
+        single_tel_mask_array,
+        idx_min_list,
+    )
