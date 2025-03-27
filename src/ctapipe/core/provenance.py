@@ -31,7 +31,10 @@ from .support import Singleton
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Provenance"]
+__all__ = [
+    "Provenance",
+    "json_config_handler",
+]
 
 _interesting_env_vars = [
     "CONDA_DEFAULT_ENV",
@@ -47,6 +50,45 @@ _interesting_env_vars = [
     "HOME",
     "SHELL",
 ]
+
+
+def json_config_handler(obj):
+    """
+    Handle ctapipe configuration objects for json serialization.
+
+    Example
+    -------
+    >>> json.dumps(config, default=json_config_handler)
+    """
+    from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
+
+    if isinstance(obj, (set, UserList)):
+        return list(obj)
+
+    if isinstance(obj, Enum):
+        return obj.value
+
+    if isinstance(obj, Path):
+        return str(obj)
+
+    if isinstance(obj, Reference):
+        return obj.to_dict()
+
+    if isinstance(obj, Time):
+        # Time(iso_string) defaults to UTC, so we need to convert everything to
+        # UTC here.
+        return obj.utc.isot
+
+    if isinstance(obj, u.Quantity):
+        return {
+            "value": obj.value.tolist(),
+            "unit": obj.unit.to_string("vounit"),
+        }
+
+    if isinstance(obj, (Contact, Instrument)):
+        return _to_dict(obj)
+
+    raise TypeError(f"{obj!r} cannot be serialized to json")
 
 
 @cache
@@ -372,46 +414,9 @@ class Provenance(metaclass=Singleton):
 
     def as_json(self, **kwargs):
         """return all finished provenance as JSON.  Kwargs for `json.dumps`
-        may be included, e.g. ``indent=4``"""
-        from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
-
-        def set_default(obj):
-            """handle sets (not part of JSON) by converting to list"""
-            if isinstance(obj, (set, UserList)):
-                return list(obj)
-
-            if isinstance(obj, Enum):
-                return obj.value
-
-            if isinstance(obj, Path):
-                return str(obj)
-
-            if isinstance(obj, Reference):
-                return obj.to_dict()
-
-            if isinstance(obj, Time):
-                # Time(iso_string) defaults to UTC, so we need to convert everything to
-                # UTC here.
-                return obj.utc.isot
-
-            if isinstance(obj, u.Quantity):
-                return {
-                    "value": obj.value.tolist(),
-                    "unit": obj.unit.to_string("vounit"),
-                }
-
-            if isinstance(
-                obj,
-                (
-                    Contact,
-                    Instrument,
-                ),
-            ):
-                return _to_dict(obj)
-
-            raise TypeError(f"{obj!r} cannot be serialized to json")
-
-        return json.dumps(self.provenance, default=set_default, **kwargs)
+        may be included, e.g. ``indent=4``
+        """
+        return json.dumps(self.provenance, default=json_config_handler, **kwargs)
 
     @property
     def active_activity_names(self):
