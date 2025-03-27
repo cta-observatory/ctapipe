@@ -77,7 +77,6 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
             f"--config={config}",
             f"--input={dl1_image_file}",
             f"--output={dl1b_from_dl1a_file}",
-            "--camera-frame",
             "--write-parameters",
             "--overwrite",
         ],
@@ -103,8 +102,8 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
         "obs_id",
         "event_id",
         "tel_id",
-        "camera_frame_hillas_intensity",
-        "camera_frame_hillas_x",
+        "hillas_intensity",
+        "hillas_fov_lon",
         "concentration_cog",
         "leakage_pixels_width_1",
     )
