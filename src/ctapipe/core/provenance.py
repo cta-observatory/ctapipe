@@ -14,13 +14,13 @@ import uuid
 import warnings
 from collections import UserList
 from contextlib import contextmanager
+from enum import Enum
 from functools import cache
 from importlib import import_module
 from importlib.metadata import Distribution, distributions
 from os.path import abspath
 from pathlib import Path
 from types import ModuleType
-from enum import Enum
 
 import astropy.units as u
 import psutil
