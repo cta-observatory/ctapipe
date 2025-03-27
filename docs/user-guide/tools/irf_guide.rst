@@ -40,7 +40,9 @@ The optimization of both, gamma/hadron cuts and cuts on the origin direction, ca
     --gamma-file $GAMMA_OPT_FILE \
     --proton-file $PROTON_OPT_FILE \
     --electron-file $ELECTRON_OPT_FILE \
-    --output $OUTPUT_DIR/cuts_opt.fits
+    --output $OUTPUT_DIR/cuts_opt.fits \
+    --provenance-log $OUTPUT_DIR/cuts_opt.provenance.log \
+    --log-file $OUTPUT_DIR/cuts_opt.log
 
 After that, the IRF can be calculated while applying both sets of cuts
 by passing the ``--spatial-selection-applied`` flag::
@@ -52,6 +54,8 @@ by passing the ``--spatial-selection-applied`` flag::
     --electron-file $ELECTRON_IRF_FILE \
     --output $OUTPUT_DIR/irf_spatial_cuts.fits.gz \
     --benchmark-output $OUTPUT_DIR/benchmarks_spatial_cuts.fits.gz \
+    --provenance-log $OUTPUT_DIR/irf_spatial_cuts.provenance.log \
+    --log-file $OUTPUT_DIR/irf_spatial_cuts.log \
     --spatial-selection-applied
 
 Or while only applying the gamma/hadron cuts, which is the default behaviour::
@@ -62,7 +66,9 @@ Or while only applying the gamma/hadron cuts, which is the default behaviour::
     --proton-file $PROTON_IRF_FILE \
     --electron-file $ELECTRON_IRF_FILE \
     --output $OUTPUT_DIR/irf.fits.gz \
-    --benchmark-output $OUTPUT_DIR/benchmarks.fits.gz
+    --benchmark-output $OUTPUT_DIR/benchmarks.fits.gz \
+    --provenance-log $OUTPUT_DIR/irf.provenance.log \
+    --log-file $OUTPUT_DIR/irf.log
 
 .. NOTE::
   * If the background should not be estimated using the given simulation files, the ``--no-do-background`` flag

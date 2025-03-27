@@ -95,29 +95,26 @@ First define the following environment variables:
 Then the training of the machine learning models is done using the following commands::
 
   ctapipe-train-energy-regressor --input $INPUT_GAMMA_EN_FILE \
-      --output $OUTPUT_DIR/energy_regressor.pkl \
-      --config $REG_CONF_FILE \
-      --cv-output $OUTPUT_DIR/cv_energy.h5 \
-      --provenance-log $OUTPUT_DIR/train_energy.provenance.log \
-      --log-file $OUTPUT_DIR/train_energy.log \
-      --log-level INFO \
-      --overwrite
+    --output $OUTPUT_DIR/energy_regressor.pkl \
+    --config $REG_CONF_FILE \
+    --cv-output $OUTPUT_DIR/cv_energy.h5 \
+    --provenance-log $OUTPUT_DIR/train_energy.provenance.log \
+    --log-file $OUTPUT_DIR/train_energy.log \
+    --log-level INFO
 
   ctapipe-apply-models --input $INPUT_GAMMA_CLF_FILE \
     --output $OUTPUT_DIR/gamma_train_clf.dl2.h5 \
     --reconstructor $OUTPUT_DIR/energy_regressor.pkl \
     --provenance-log $OUTPUT_DIR/apply_gamma_train_clf.provenance.log \
     --log-file $OUTPUT_DIR/apply_gamma_train_clf.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
   ctapipe-apply-models --input $INPUT_PROTON_FILE  \
     --output $OUTPUT_DIR/proton_train_clf.dl2.h5 \
     --reconstructor $OUTPUT_DIR/energy_regressor.pkl \
     --provenance-log $OUTPUT_DIR/apply_proton_train.provenance.log \
     --log-file $OUTPUT_DIR/apply_proton_train.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
   ctapipe-train-particle-classifier --signal $OUTPUT_DIR/gamma_train_clf.dl2.h5 \
     --background $OUTPUT_DIR/proton_train_clf.dl2.h5 \
@@ -126,8 +123,7 @@ Then the training of the machine learning models is done using the following com
     --cv-output $OUTPUT_DIR/cv_particle.h5 \
     --provenance-log $OUTPUT_DIR/train_particle.provenance.log \
     --log-file $OUTPUT_DIR/train_particle.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
   ctapipe-train-disp-reconstructor --input $OUTPUT_DIR/gamma_train_clf.dl2.h5 \
     --output $OUTPUT_DIR/disp_reconstructor.pkl \
@@ -135,8 +131,7 @@ Then the training of the machine learning models is done using the following com
     --cv-output $OUTPUT_DIR/cv_disp.h5 \
     --provenance-log $OUTPUT_DIR/train_disp.provenance.log \
     --log-file $OUTPUT_DIR/train_disp.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
 which will produce three trained models saved as ``$OUTPUT_DIR/energy_regressor.pkl``, ``$OUTPUT_DIR/particle_classifier.pkl``,
 and ``$OUTPUT_DIR/disp_reconstructor.pkl``.
@@ -155,8 +150,7 @@ to produce the final DL2 files::
     --reconstructor $OUTPUT_DIR/disp_reconstructor.pkl \
     --provenance-log $OUTPUT_DIR/apply_gamma_final.provenance.log \
     --log-file $OUTPUT_DIR/apply_gamma_final.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
   ctapipe-apply-models --input $EVAL_PROTON_FILE \
     --output $OUTPUT_DIR/proton_final.dl2.h5 \
@@ -165,8 +159,7 @@ to produce the final DL2 files::
     --reconstructor $OUTPUT_DIR/disp_reconstructor.pkl \
     --provenance-log $OUTPUT_DIR/apply_proton_final.provenance.log \
     --log-file $OUTPUT_DIR/apply_proton_final.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
   ctapipe-apply-models --input $EVAL_ELECTRON_FILE \
     --output $OUTPUT_DIR/electron_final.dl2.h5 \
@@ -175,8 +168,7 @@ to produce the final DL2 files::
     --reconstructor $OUTPUT_DIR/disp_reconstructor.pkl \
     --provenance-log $OUTPUT_DIR/apply_electron_final.provenance.log \
     --log-file $OUTPUT_DIR/apply_electron_final.log \
-    --log-level INFO \
-    --overwrite
+    --log-level INFO
 
 which will produce ``$OUTPUT_DIR/gamma_final.dl2.h5``, ``$OUTPUT_DIR/proton_final.dl2.h5``,
 and ``$OUTPUT_DIR/electron_final.dl2.h5``.
