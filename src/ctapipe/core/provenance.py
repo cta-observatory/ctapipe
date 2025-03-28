@@ -58,7 +58,9 @@ def json_config_handler(obj):
 
     Example
     -------
+    >>> config = {"quantity": 5 * u.m}
     >>> json.dumps(config, default=json_config_handler)
+    '{"quantity": {"value": 5.0, "unit": "m"}}'
     """
     from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
 
