@@ -1,20 +1,19 @@
-.. _mono_dl2_guide:
+.. _dl2_guide:
 
 ***************************************************************
-How to do monoscopic DL2 reconstruction using ``ctapipe`` tools
+How to do DL2 reconstruction using ``ctapipe`` tools
 ***************************************************************
 
-This guide explains how to use the machine learning capabilities of ``ctapipe``
-to process files containing image parameters (data level 1b/ DL1b) to data level 2 (DL2).
+This guide explains how to use ``ctapipe`` to process files containing images (data level 1a/ DL1a)
+to data level 2 (DL2) for both monoscopic and stereoscopic analyses.
+This includes the steps of image cleaning, image parametrization, training and applying machine learning
+models to estimate the energy and particle type, and either geometric direction reconstruction (stereo)
+or machine learning based direction reconstruction using the ``disp`` algorithm (mono or stereo).
 
 .. NOTE::
-   * This guide can also be used for a stereo analysis, if the disp algorithm should
-     be used for direction reconstruction (Compared to the geometric reconstruction,
-     `~ctapipe.reco.hillas_reconstructor.HillasReconstructor`, which is used by default).
    * This guide assumes you have a directory containing gamma, proton, and electron files
-     already containing image parameters.
-   * The provided commands also assume you are trying to process files in a ``bash`` shell
-     environment.
+     already processed to DL1a.
+   * The provided commands assume you are trying to process files in a ``bash`` shell environment.
 
 Setup
 =====
@@ -26,10 +25,41 @@ As always, you can run
 
 to get some example configuration files, which you can use as a starting point to create your
 desired configuration.
+You can also get up to date configuration files from `gitlab <https://gitlab.cta-observatory.org/cta-computing/dpps/datapipe/pipeline-configurations>`_,
+but take care to **select the configuration files appropriate for the version of ctapipe you are using**.
+
 To keep things organized, also define an output directory and make sure it exists, for example like this::
 
   OUTPUT_DIR=build
   mkdir -p $OUTPUT_DIR
+
+Image cleaning, image parametrization, and geometric direction reconstruction
+=============================================================================
+Image cleaning and parametrization, as well as the geometric direction reconstruction can all be done by
+`ctapipe-process <ctapipe.tools.process.ProcessorTool>` with the following command::
+
+  ctapipe-process --input $INPUT_FILE \
+    --output $OUTPUT_DIR/$OUTPUT_FILE \
+    --config $CONFIG_FILE \
+    --config $SUBARRAY_FILE \
+    --provenance-log $OUTPUT_DIR/$PROVENANCE_LOG
+
+``INPUT_FILE`` is the path to an input file and ``OUTPUT_FILE`` the name of the output file.
+``CONFIG_FILE`` is the path to a configuration file, such as ``dl1_to_dl2.yml`` found in the gitlab
+for ``v0.23/v1`` of ``ctapipe``, and ``SUBARRAY_FILE`` is another configuration file describing
+the subarray, such as ``prod6/subarray_north_alpha.yml`` found next to the  ``dl1_to_dl2.yml`` in the gitlab.
+You can also combine all the configuration options in one file and only pass this one to the tool.
+Finally, ``PROVENANCE_LOG`` is the name of the file in which the provenance log will be saved, take care
+to change it for each input file or later tracking will be complicated.
+
+Run the above command with the inputs adjusted so that each of the available input files is processed
+into a separate file, and you will end up with a set of ``h5`` files containing image parameters and
+entries at the path ``dl2/event/subarray/geometry``.
+
+To exclude the geometric direction reconstruction from the processing (e.g. for a mono analysis),
+the ``ShowerProcessor`` section in ``dl1_to_dl2.yml`` would have to be changed to not include
+``HillasReconstructor`` under ``reconstructor_types``.
+Or, even easier, the whole ``ShowerProcessor`` section can be removed.
 
 Merging
 =======
