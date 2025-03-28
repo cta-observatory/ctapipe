@@ -12,6 +12,8 @@ from ctapipe.core import Provenance, Tool
 from ctapipe.core.traits import Enum, Path, Unicode
 from ctapipe.io import EventSource
 
+__all__ = ["DumpInstrumentTool"]
+
 
 class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)
