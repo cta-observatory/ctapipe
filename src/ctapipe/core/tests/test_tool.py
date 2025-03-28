@@ -13,7 +13,7 @@ from astropy.time import Time
 from traitlets import Dict, Float, Int, TraitError
 from traitlets.config import Config
 
-from .. import Component, Tool, traits
+from .. import Component, TelescopeComponent, Tool, traits
 from ..tool import (
     ToolConfigurationError,
     export_tool_config_to_commented_yaml,
@@ -476,11 +476,16 @@ def test_exit_stack():
     assert tool.manager.exit_called
 
 
-def test_activity(tmp_path):
+def test_activity(tmp_path, example_subarray):
     """check that the config is correctly in the provenance"""
 
     class Comp(Component):
         quantity = traits.AstroQuantity(u.m).tag(config=True)
+
+    class TelComp(TelescopeComponent):
+        energy = traits.TelescopeParameter(
+            traits.AstroQuantity(u.TeV),
+        ).tag(config=True)
 
     class MyTool(Tool):
         name = "test_prov_log"
@@ -492,6 +497,7 @@ def test_activity(tmp_path):
 
         def setup(self):
             self.comp = Comp(parent=self)
+            self.tel_comp = TelComp(parent=self, subarray=example_subarray)
 
     tool = MyTool()
     config = {
@@ -501,6 +507,12 @@ def test_activity(tmp_path):
             "time": "2025-01-01T00:00:00",
             "Comp": {
                 "quantity": {"value": 5.0, "unit": "m"},
+            },
+            "TelComp": {
+                "energy": [
+                    ("type", "*", {"value": 2.0, "unit": "TeV"}),
+                    ("id", 1, {"value": 1.0, "unit": "TeV"}),
+                ]
             },
         }
     }
@@ -540,6 +552,9 @@ def test_activity(tmp_path):
     assert tool.path == tmp_path / "foo.txt"
     assert tool.time == Time("2025-01-01T00:00:00")
     assert tool.comp.quantity == 5 * u.m
+    assert tool.tel_comp.energy.tel[1] == 1 * u.TeV
+    assert tool.tel_comp.energy.tel[2] == 2 * u.TeV
+    assert tool.tel_comp.energy.tel[None] == 2 * u.TeV
 
 
 @pytest.mark.parametrize(
