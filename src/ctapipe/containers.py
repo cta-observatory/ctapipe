@@ -303,7 +303,9 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
-        nan * u.m, "rotated centroid y coordinate uncertainty", unit=u.m
+        nan * u.m,
+        "uncertainty on the center of gravity along the transverse axis of the image",
+        unit=u.m,
     )
 
 
@@ -335,7 +337,9 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
-        nan * u.deg, "rotated centroid y coordinate uncertainty", unit=u.deg
+        nan * u.deg,
+        "uncertainty on the center of gravity along the transverse axis of the image",
+        unit=u.deg,
     )
 
 
