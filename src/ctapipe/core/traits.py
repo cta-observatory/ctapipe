@@ -3,6 +3,7 @@ Traitlet implementations for ctapipe
 """
 import os
 import pathlib
+from collections.abc import Mapping
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -120,7 +121,10 @@ class AstroQuantity(TraitType):
 
     def validate(self, obj, value):
         try:
-            quantity = u.Quantity(value)
+            if isinstance(value, Mapping):
+                quantity = u.Quantity(**value)
+            else:
+                quantity = u.Quantity(value)
         except TypeError:
             self.error(obj, value)
         except ValueError:
@@ -178,7 +182,9 @@ class Path(TraitType):
         file_ok=True,
         **kwargs,
     ):
-        super().__init__(default_value=default_value, **kwargs)
+        if default_value is not Undefined:
+            kwargs["default_value"] = default_value
+        super().__init__(**kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
