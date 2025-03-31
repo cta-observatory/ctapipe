@@ -1,4 +1,0 @@
-Add a tutorial to the docs on how to use the machine learning tools
-to process dl1b (image parameters) files to dl2 for a mono analysis.
-
-Perform minor updates to other parts of the api docs and the user-guide.

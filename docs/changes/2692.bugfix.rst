@@ -1,2 +1,0 @@
-Fix the function grouping telescope ids into ranges for
-the case of unsigned integer telescope ids.
