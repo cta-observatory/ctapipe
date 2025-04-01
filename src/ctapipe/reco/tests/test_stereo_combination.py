@@ -71,8 +71,8 @@ def mono_table():
                 True,
                 False,
                 True,
-                True,
-                True,
+                False,
+                False,
                 True,
                 True,
                 True,
@@ -300,17 +300,17 @@ def test_predict_disp_combiner(mono_table):
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     assert_allclose(
         stereo["disp_alt"].quantity,
-        [70.7338725, 69.9550623, 81, 70.4917615] * u.deg,
+        [70.7338725, np.nan, 81, 70.4917615] * u.deg,
         atol=1e-7,
     )
     assert_allclose(
         stereo["disp_az"].quantity,
-        [359.9419634, 359.8805054, 14.5, 359.5978866] * u.deg,
+        [359.9419634, np.nan, 14.5, 359.5978866] * u.deg,
         atol=1e-7,
     )
     tel_ids = stereo["disp_telescopes"]
     assert_array_equal(tel_ids[0], [1, 3])
-    assert_array_equal(tel_ids[1], [5, 7])
+    assert_array_equal(tel_ids[1], [])
     assert_array_equal(tel_ids[2], [1])
     assert_array_equal(tel_ids[3], [1, 3, 4, 5])
 
@@ -320,19 +320,20 @@ def test_disp_combiner_single_event(weights):
     event = ArrayEventContainer()
 
     event_dict = {
-        "tel_id": [1, 2, 9],
-        "hillas_intensity": [100, 200, 50],
-        "hillas_width": [0.1, 0.2, 0.1] * u.deg,
-        "hillas_length": 3 * ([0.1, 0.2, 0.1] * u.deg),
-        "hillas_fov_lon": [-0.5, 0, 0.5] * u.deg,
-        "hillas_fov_lat": [0.3, -0.3, 0.3] * u.deg,
-        "hillas_psi": [40, 85, -40] * u.deg,
-        "disp_tel_alt": [58.5, 58, 62.5] * u.deg,
-        "disp_tel_az": [12.5, 15, 13] * u.deg,
-        "disp_tel_parameter": [0.65, 1.1, 0.7] * u.deg,
+        "tel_id": [1, 2, 9, 10],
+        "hillas_intensity": [100, 200, 50, 30],
+        "hillas_width": [0.1, 0.2, 0.1, 0.1] * u.deg,
+        "hillas_length": 3 * ([0.1, 0.2, 0.1, 0.1] * u.deg),
+        "hillas_fov_lon": [-0.5, 0, 0.5, 0.1] * u.deg,
+        "hillas_fov_lat": [0.3, -0.3, 0.3, 0.2] * u.deg,
+        "hillas_psi": [40, 85, -40, 30] * u.deg,
+        "disp_tel_alt": [58.5, 58, 62.5, 20] * u.deg,
+        "disp_tel_az": [12.5, 15, 13, 30] * u.deg,
+        "disp_tel_parameter": [0.65, 1.1, 0.7, 1.0] * u.deg,
+        "disp_tel_is_valid": [True, True, True, False],
     }
 
-    for i in range(3):
+    for i in range(4):
         event.dl1.tel[event_dict["tel_id"][i]].parameters = ImageParametersContainer(
             hillas=HillasParametersContainer(
                 intensity=event_dict["hillas_intensity"][i],
@@ -352,7 +353,7 @@ def test_disp_combiner_single_event(weights):
                 "dummy": ReconstructedGeometryContainer(
                     alt=event_dict["disp_tel_alt"][i],
                     az=event_dict["disp_tel_az"][i],
-                    is_valid=True,
+                    is_valid=event_dict["disp_tel_is_valid"][i],
                 )
             },
         )
