@@ -4,6 +4,7 @@
 Hillas-style moment-based shower image parametrization.
 """
 
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
@@ -158,6 +159,9 @@ def hillas_parameters(geom, image):
         X = np.column_stack([longi, np.ones_like(longi)])
         lsq_cov = np.linalg.inv(X.T @ W @ X)
         p = lsq_cov @ X.T @ W @ trans
+        # p[0] is the psi angle in the rotated frame, which should be zero.
+        # Now we add the non-zero residual psi angle in the rotated frame to psi uncertainty
+        # We also add additional uncertainty to account for elongation of the image (i.e. width / length)
         psi_uncert = np.sqrt(lsq_cov[0, 0] + p[0] * p[0]) * (
             1.0 + pow(np.tan(width / length * np.pi / 2.0), 2)
         )
