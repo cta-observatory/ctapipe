@@ -1,3 +1,0 @@
-Make sure that the configuration stored in the provenance
-information actually contains the full configuration
-and can be used to re-create the application.

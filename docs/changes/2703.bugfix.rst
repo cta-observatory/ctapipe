@@ -1,5 +1,0 @@
-Fix ``Tool`` not exposing all options defined by ``traitlets.Application``
-by default.
-
-Fix ``--show-config`` and ``--show-config-json`` by not running ``setup`` and
-``finish`` steps in case those options are given.
