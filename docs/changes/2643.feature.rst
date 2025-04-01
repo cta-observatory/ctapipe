@@ -1,2 +1,0 @@
-Adds psf models to ``ctapipe.instrument.optics`` with the parent class ``PSFModel`` and a psf model based on pure coma aberration called ``ComaPSFModel``
-- The function ``PSFModel.pdf`` gives the value of the PSF in a given location
