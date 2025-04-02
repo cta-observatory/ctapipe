@@ -39,6 +39,7 @@ _containers = {
 __all__ = [
     "StereoCombiner",
     "StereoMeanCombiner",
+    "StereoDispCombiner",
 ]
 
 
@@ -507,7 +508,6 @@ class StereoDispCombiner(StereoCombiner):
             alt = az = u.Quantity(np.nan, u.deg, copy=False)
             valid = False
 
-        # ang dist uncert?
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
             az=az,
