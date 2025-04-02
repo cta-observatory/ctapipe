@@ -334,16 +334,14 @@ def radial_light_distribution(
     delta_r = pixel_r - mean
     radial_std_dev = np.sqrt(np.average(delta_r**2, weights=image))
     skewness = (
-        np.average(delta_r**3, weights=image)
-        / radial_std_dev**3
-        * u.dimensionless_unscaled
-    )
+        np.average(delta_r**3, weights=image) / radial_std_dev**3
+    ) * u.dimensionless_unscaled
     excess_kurtosis = (
         np.average(delta_r**4, weights=image) / radial_std_dev**4 - 3.0
     ) * u.dimensionless_unscaled
 
     return (
         radial_std_dev,
-        skewness,
-        excess_kurtosis,
+        skewness.to_value(),
+        excess_kurtosis.to_value(),
     )
