@@ -15,6 +15,9 @@ __all__ = [
     "get_combinations",
     "calc_combs_min_distances_event",
     "calc_combs_min_distances_table",
+    "calc_fov_lon_lat",
+    "create_combs_array",
+    "get_index_combs",
 ]
 
 
@@ -342,7 +345,7 @@ def calc_combs_min_distances_table(
     return weighted_lons, weighted_lats, combined_weights
 
 
-def calc_fov_lon_lat(mono_predictions, prefix="DispReconstructor"):
+def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
     """
     Calculate the possible field-of-view longitude and latitude coordinates.
 
@@ -351,7 +354,7 @@ def calc_fov_lon_lat(mono_predictions, prefix="DispReconstructor"):
 
     Parameters
     ----------
-    mono_predictions : astropy.table.Table
+    tel_table : astropy.table.Table
         Table containing Hillas parameters and DISP parameter.
     prefix : str
         Prefix used to access the DISP parameter.
@@ -362,10 +365,10 @@ def calc_fov_lon_lat(mono_predictions, prefix="DispReconstructor"):
         Arrays containing the possible field-of-view longitudes and latitudes for
         each SIGN value.
     """
-    hillas_fov_lon = mono_predictions["hillas_fov_lon"].quantity.to_value(u.deg)
-    hillas_fov_lat = mono_predictions["hillas_fov_lat"].quantity.to_value(u.deg)
-    hillas_psi = mono_predictions["hillas_psi"].quantity.to_value(u.rad)
-    disp = mono_predictions[f"{prefix}_parameter"]
+    hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
+    hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
+    hillas_psi = tel_table["hillas_psi"].quantity.to_value(u.rad)
+    disp = tel_table[f"{prefix}_parameter"]
     signs = np.array([-1, 1])
 
     cos_psi = np.cos(hillas_psi)
@@ -402,14 +405,14 @@ def create_combs_array(max_multi, k):
         combs = get_combinations(range(i), k)
         combs_array = np.concatenate([combs_array, combs])
 
-    num_combs = calc_num_combs(np.arange(2, max_multi + 1), k)
+    num_combs = _calc_num_combs(np.arange(2, max_multi + 1), k)
     combs_to_multi_indices = np.repeat(np.arange(2, max_multi + 1), num_combs)
 
     return combs_array, combs_to_multi_indices
 
 
 @njit
-def binomial(n, k):
+def _binomial(n, k):
     """
     Compute the binomial coefficient (`n` choose `k`).
 
@@ -435,7 +438,7 @@ def binomial(n, k):
 
 
 @njit
-def calc_num_combs(multiplicity, k):
+def _calc_num_combs(multiplicity, k):
     """
     Calculate the number of possible `k`-combinations for each `multiplicity` value.
 
@@ -453,7 +456,7 @@ def calc_num_combs(multiplicity, k):
     """
     num_combs = np.empty(len(multiplicity), dtype=np.int64)
     for i in range(len(multiplicity)):
-        num_combs[i] = binomial(multiplicity[i], k)
+        num_combs[i] = _binomial(multiplicity[i], k)
 
     return num_combs
 
@@ -483,7 +486,7 @@ def get_index_combs(multiplicity, combs_array, combs_to_multi_indices, k):
         - Array of index combinations for telescope events.
         - Array containing the number of combinations per multiplicity.
     """
-    num_combs = calc_num_combs(multiplicity, k)
+    num_combs = _calc_num_combs(multiplicity, k)
     total_combs = np.sum(num_combs)
     index_tel_combs = np.empty((total_combs, k), dtype=np.int64)
     cum_multiplicity = 0
