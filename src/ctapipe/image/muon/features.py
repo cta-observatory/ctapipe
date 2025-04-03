@@ -324,8 +324,8 @@ def radial_light_distribution(
     if np.sum(image) == 0:
         return (
             np.nan * u.deg,
-            np.nan * u.dimensionless_unscaled,
-            np.nan * u.dimensionless_unscaled,
+            np.nan,
+            np.nan,
         )
 
     pixel_r = np.hypot(pixel_fov_lon - center_fov_lon, pixel_fov_lat - center_fov_lat)
@@ -333,15 +333,13 @@ def radial_light_distribution(
     mean = np.average(pixel_r, weights=image)
     delta_r = pixel_r - mean
     radial_std_dev = np.sqrt(np.average(delta_r**2, weights=image))
-    skewness = (
-        np.average(delta_r**3, weights=image) / radial_std_dev**3
-    ) * u.dimensionless_unscaled
+    skewness = (np.average(delta_r**3, weights=image) / radial_std_dev**3).to_value()
     excess_kurtosis = (
         np.average(delta_r**4, weights=image) / radial_std_dev**4 - 3.0
-    ) * u.dimensionless_unscaled
+    ).to_value()
 
     return (
         radial_std_dev,
-        skewness.to_value(),
-        excess_kurtosis.to_value(),
+        skewness,
+        excess_kurtosis,
     )
