@@ -182,7 +182,7 @@ def get_combinations(iterable, size):
     Generate all possible combinations of elements of a given `size` from
     the given `iterable`.
 
-    Uses caching to speed up repeated calls.
+    Uses ``itertools.combinations`` and caching to speed up repeated calls.
 
     Parameters
     ----------
@@ -213,32 +213,35 @@ def calc_combs_min_distances_event(
     Parameters
     ----------
     index_tel_combs : np.ndarray
-        Array of shape (num_combs, 2) containing index pairs of telescope IDs forming combinations.
+        Array of shape (n_combs, 2) containing index pairs of the valid telescope IDs per
+        array event forming combinations.
     fov_lon_values : np.ndarray
-        Array containing the field-of-view longitude values for telescopes.
+        Array of shape (n_tels, 2) containing the field-of-view longitude values for each
+        SIGN value (-1, 1) per telescope event.
     fov_lat_values : np.ndarray
-        Array containing the field-of-view latitude values for telescopes.
+        Array of shape (n_tels, 2) containing the field-of-view latitude values for each
+        SIGN value (-1, 1) per telescope event.
     weights : np.ndarray
         Array of weights for each telescope event.
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
+    Tuple(np.ndarray, np.ndarray, np.ndarray)
         - Weighted mean FoV longitude values for each combination with the minimum distance
           SIGN pair.
         - Weighted mean FoV latitude values for each combination with the minimum distance
           SIGN pair.
         - Combined weights of each telescope combination.
     """
-    num_combs = len(index_tel_combs)
+    n_combs = len(index_tel_combs)
 
-    combined_weights = np.empty(num_combs, dtype=np.float64)
-    fov_lons = np.empty(num_combs, dtype=np.float64)
-    fov_lats = np.empty(num_combs, dtype=np.float64)
+    combined_weights = np.empty(n_combs, dtype=np.float64)
+    fov_lons = np.empty(n_combs, dtype=np.float64)
+    fov_lats = np.empty(n_combs, dtype=np.float64)
 
     sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 
-    for i in range(num_combs):
+    for i in range(n_combs):
         tel_1, tel_2 = index_tel_combs[i]
 
         # Calculate weights
@@ -291,22 +294,25 @@ def calc_combs_min_distances_table(
     Parameters
     ----------
     index_tel_combs : np.ndarray
-        Array of shape (num_combs, 2) containing index pairs of telescope IDs forming combinations.
+        Array of shape (n_combs, 2) containing index pairs of the valid telescope IDs per
+        array event forming combinations.
     fov_lon_values : np.ndarray
-        Array containing the field-of-view longitude values for telescopes.
+        Array of shape (n_tels, 2) containing the field-of-view longitude values for each
+        SIGN value (-1, 1) per telescope event.
     fov_lat_values : np.ndarray
-        Array containing the field-of-view latitude values for telescopes.
+        Array of shape (n_tels, 2) containing the field-of-view latitude values for each
+        SIGN value (-1, 1) per telescope event.
     weights : np.ndarray
         Array of weights for each telescope event.
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
+    Tuple(np.ndarray, np.ndarray, np.ndarray)
         - Weighted mean FoV longitude values for each combination with the minimum distance
           SIGN pair.
         - Weighted mean FoV latitude values for each combination with the minimum distance
           SIGN pair.
-        - Combined weights of each telescope combination.
+        - Combined weights for each telescope combination.
     """
     # Adding weights for each telescope combination
     mapped_weights = weights[index_tel_combs]
@@ -349,8 +355,9 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
     """
     Calculate the possible field-of-view longitude and latitude coordinates.
 
-    Computes both possible fov_lons and fov_lats values from DISP parameter
-    (Considering that its SIGN parameter could be 1 and -1).
+    Computes both possible fov_lon and fov_lat values from Hillas and
+    DISP parameter (Considering that its SIGN parameter could be 1 and -1) for
+    each telescope event.
 
     Parameters
     ----------
@@ -361,9 +368,9 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray]
-        Arrays containing the possible field-of-view longitudes and latitudes for
-        each SIGN value.
+    Tuple(np.ndarray, np.ndarray)
+        Arrays of shape (n_tel_events, 2) containing the possible field-of-view
+        longitudes and latitudes for each SIGN value.
     """
     hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
     hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
@@ -396,7 +403,7 @@ def create_combs_array(max_multi, k):
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray]
+    Tuple(np.ndarray, np.ndarray)
         - An array of all k-combinations for different multiplicities.
         - An array mapping each combination to its respective multiplicity.
     """
@@ -405,8 +412,8 @@ def create_combs_array(max_multi, k):
         combs = get_combinations(range(i), k)
         combs_array = np.concatenate([combs_array, combs])
 
-    num_combs = _calc_num_combs(np.arange(2, max_multi + 1), k)
-    combs_to_multi_indices = np.repeat(np.arange(2, max_multi + 1), num_combs)
+    n_combs = _calc_n_combs(np.arange(2, max_multi + 1), k)
+    combs_to_multi_indices = np.repeat(np.arange(2, max_multi + 1), n_combs)
 
     return combs_array, combs_to_multi_indices
 
@@ -438,7 +445,7 @@ def _binomial(n, k):
 
 
 @njit
-def _calc_num_combs(multiplicity, k):
+def _calc_n_combs(multiplicity, k):
     """
     Calculate the number of possible `k`-combinations for each `multiplicity` value.
 
@@ -454,24 +461,24 @@ def _calc_num_combs(multiplicity, k):
     np.ndarray
         Array of combination counts corresponding to each multiplicity.
     """
-    num_combs = np.empty(len(multiplicity), dtype=np.int64)
+    n_combs = np.empty(len(multiplicity), dtype=np.int64)
     for i in range(len(multiplicity)):
-        num_combs[i] = _binomial(multiplicity[i], k)
+        n_combs[i] = _binomial(multiplicity[i], k)
 
-    return num_combs
+    return n_combs
 
 
 @njit
-def get_index_combs(multiplicity, combs_array, combs_to_multi_indices, k):
+def get_index_combs(multiplicities, combs_array, combs_to_multi_indices, k):
     """
     Generate the telescope event indices for all `k`-combinations of telescope events based on
-    `multiplicity`.
+    `multiplicities`.
 
     Returns also an array containing the number of combinations per multiplicity.
 
     Parameters
     ----------
-    multiplicity : np.ndarray
+    multiplicities : np.ndarray
         Array of multiplicity values for each array event.
     combs_array : np.ndarray
         Precomputed combinations for different multiplicities.
@@ -482,21 +489,21 @@ def get_index_combs(multiplicity, combs_array, combs_to_multi_indices, k):
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray]
+    Tuple(np.ndarray, np.ndarray)
         - Array of index combinations for telescope events.
         - Array containing the number of combinations per multiplicity.
     """
-    num_combs = _calc_num_combs(multiplicity, k)
-    total_combs = np.sum(num_combs)
+    n_combs = _calc_n_combs(multiplicities, k)
+    total_combs = np.sum(n_combs)
     index_tel_combs = np.empty((total_combs, k), dtype=np.int64)
-    cum_multiplicity = 0
+    cum_multiplicities = 0
     idx = 0
 
-    for i in range(len(multiplicity)):
-        mask = combs_to_multi_indices == multiplicity[i]
-        selected_combs = combs_array[mask] + cum_multiplicity
+    for i in range(len(multiplicities)):
+        mask = combs_to_multi_indices == multiplicities[i]
+        selected_combs = combs_array[mask] + cum_multiplicities
         index_tel_combs[idx : idx + len(selected_combs)] = selected_combs
         idx += len(selected_combs)
-        cum_multiplicity += multiplicity[i]
+        cum_multiplicities += multiplicities[i]
 
-    return index_tel_combs, num_combs
+    return index_tel_combs, n_combs
