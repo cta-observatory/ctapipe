@@ -7,8 +7,6 @@ import astropy.units as u
 import numpy as np
 from numba import njit, uint64
 
-from ctapipe.image.statistics import argmin
-
 __all__ = [
     "get_subarray_index",
     "weighted_mean_std_ufunc",
@@ -261,7 +259,7 @@ def calc_combs_min_distances_event(
         distances = np.hypot(lon_diffs, lat_diffs)
 
         # Weighted mean for minimum distances
-        argmin_distance = argmin(distances)
+        argmin_distance = np.argmin(distances)
         lon_vals = [
             fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
             fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
