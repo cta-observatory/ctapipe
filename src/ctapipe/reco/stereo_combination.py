@@ -558,14 +558,14 @@ class StereoDispCombiner(StereoCombiner):
                 combs_array, combs_to_multi_indices = create_combs_array(
                     valid_multiplicity.max(), n_tel_combinations
                 )
-                index_tel_combs, num_combs = get_index_combs(
+                index_tel_combs, n_combs = get_index_combs(
                     valid_multiplicity,
                     combs_array,
                     combs_to_multi_indices,
                     n_tel_combinations,
                 )
                 combs_to_array_indices = np.repeat(
-                    np.arange(len(valid_multiplicity)), num_combs
+                    np.arange(len(valid_multiplicity)), n_combs
                 )
 
                 (
@@ -585,14 +585,14 @@ class StereoDispCombiner(StereoCombiner):
                     comb_fov_lons,
                     all_valid,
                     combs_to_array_indices,
-                    num_combs,
+                    n_combs,
                     weights=comb_weights,
                 )
                 fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
                     comb_fov_lats,
                     all_valid,
                     combs_to_array_indices,
-                    num_combs,
+                    n_combs,
                     weights=comb_weights,
                 )
 
