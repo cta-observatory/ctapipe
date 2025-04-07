@@ -121,6 +121,57 @@ def _clip_altitude_if_close(altitude):
     return altitude
 
 
+def _split_history(history):
+    tel_history = {0: []}
+    tel = 0
+
+    for timestamp, line in history:
+        line = line.decode("utf-8").strip()
+
+        if line.startswith("# Telescope-specific configuration follows"):
+            tel += 1
+            tel_history[tel] = []
+
+        tel_history[tel].append((timestamp, line))
+
+    global_history = tel_history.pop(0)
+    return global_history, tel_history
+
+
+def _has_true_image(history):
+    global_history, tel_history = _split_history(history)
+
+    # merge_simtel does not include photoelectrons, so always missing
+    if "merge_simtel" in global_history[0][1]:
+        return False
+
+    # first, check for global default
+    save_photons = 0
+    global_store_pe = -1
+    for _, line in global_history:
+        if line.lower().startswith("save_photons"):
+            save_photons = int(line.split()[1])
+
+        if line.lower().startswith("store_photoelectrons"):
+            global_store_pe = int(line.split()[1])
+
+    if (save_photons & 0b10) > 0:
+        return True
+
+    if global_store_pe > 0:
+        return True
+
+    # if global default is not set, we still might have true images
+    # via the telescope configuration
+    store_photoelectrons = {}
+    for tel, config in tel_history.items():
+        for _, line in config:
+            if "store_photoelectrons" in line.lower():
+                store_photoelectrons[tel] = int(line.split()[1])
+
+    return any(v > 0 for v in store_photoelectrons.values())
+
+
 @enum.unique
 class MirrorClass(enum.Enum):
     """Enum for the sim_telarray MIRROR_CLASS values"""
@@ -575,7 +626,13 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
-        self._has_true_image = None
+        try:
+            self._has_true_image = _has_true_image(self.file_.history)
+        except Exception:
+            self.log.exception(
+                "Error trying to determine whether file has true_image, assuming yes"
+            )
+            self._has_true_image = True
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -894,9 +951,6 @@ class SimTelEventSource(EventSource):
                 true_image_sum = true_image_sums[
                     self.telescope_indices_original[tel_id]
                 ]
-
-                if self._has_true_image is None:
-                    self._has_true_image = true_image is not None
 
                 if self._has_true_image and true_image is None:
                     if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
