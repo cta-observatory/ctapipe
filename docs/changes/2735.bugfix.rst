@@ -1,0 +1,4 @@
+Improve heuristic in ``SimTelEventSource`` when true Cherenkov
+images are expected to be present in the input file to fix missing
+true images in output files when the first event of a run
+had missing true images.
