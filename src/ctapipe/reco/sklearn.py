@@ -703,7 +703,7 @@ class DispReconstructor(Reconstructor):
             else:
                 prediction[valid] = valid_norms
 
-            sign_proba = self._models[key][1].predict_proba(X)[:, 0]
+            sign_proba = self._models[key][1].predict_proba(X)[:, 1]
             # proba is [0 and 1] where 0 => very certain -1, 1 => very certain 1
             # and 0.5 means random guessing either. So we transform to a score
             # where 0 means "guessing" and 1 means "very certain"
