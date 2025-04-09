@@ -113,3 +113,12 @@ def test_read_hdf5_metadata(tmp_path):
         metadata_out = meta.read_hdf5_metadata(file, path=metadata_path)
 
     assert metadata_out == metadata_in
+
+
+def test_reprs(reference):
+    assert isinstance(repr(reference), str)
+    assert isinstance(repr(reference.activity), str)
+    assert isinstance(repr(reference.product), str)
+    assert isinstance(repr(reference.contact), str)
+    assert isinstance(repr(reference.instrument), str)
+    assert isinstance(repr(reference.process), str)

@@ -14,10 +14,12 @@ import uuid
 import warnings
 from collections import UserList
 from contextlib import contextmanager
+from functools import cache
 from importlib import import_module
-from importlib.metadata import distributions, version
+from importlib.metadata import Distribution, distributions
 from os.path import abspath
 from pathlib import Path
+from types import ModuleType
 
 import psutil
 from astropy.time import Time
@@ -45,21 +47,195 @@ _interesting_env_vars = [
 ]
 
 
+@cache
+def modules_of_distribution(distribution: Distribution):
+    modules = distribution.read_text("top_level.txt")
+    if modules is None:
+        return None
+    return set(modules.splitlines())
+
+
+@cache
+def get_distribution_of_module(module: ModuleType | str):
+    """Get the package distribution for an imported module"""
+    if isinstance(module, str):
+        name = module
+        module = import_module(module)
+    else:
+        name = module.__name__
+
+    path = Path(module.__file__).absolute()
+
+    for dist in distributions():
+        modules = modules_of_distribution(dist)
+        if modules is None:
+            base = dist.locate_file("")
+            if dist.files is not None and any(path == base / f for f in dist.files):
+                return dist
+        elif name in modules:
+            return dist
+
+    raise ValueError(f"Could not find a distribution for module: {module}")
+
+
 def get_module_version(name):
+    """
+    Get the version of a python *module*, something you can import.
+
+    If the module does not expose a ``__version__`` attribute, this function
+    will try to determine the *distribution* of the module and return its
+    version.
+    """
+    # we try first with module.__version__
+    # to support editable installs
     try:
         module = import_module(name)
+    except ModuleNotFoundError:
+        return "not installed"
+
+    try:
         return module.__version__
     except AttributeError:
         try:
-            return version(name)
+            return get_distribution_of_module(module).version
         except Exception:
             return "unknown"
-    except ImportError:
-        return "not installed"
 
 
 class MissingReferenceMetadata(UserWarning):
     """Warning raised if reference metadata could not be read from input file."""
+
+
+class _ActivityProvenance:
+    """
+    Low-level helper class to collect provenance information for a given
+    *activity*.  Users should use `Provenance` as a top-level API,
+    not this class directly.
+    """
+
+    def __init__(self, activity_name=sys.executable):
+        self._prov = {
+            "activity_name": activity_name,
+            "activity_uuid": str(uuid.uuid4()),
+            "status": "running",
+            "start": {},
+            "stop": {},
+            "system": {},
+            "input": [],
+            "output": [],
+            "exit_code": None,
+        }
+        self.name = activity_name
+
+    def start(self):
+        """begin recording provenance for this activity. Set's up the system
+        and startup provenance data. Generally should be called at start of a
+        program."""
+        self._prov["start"].update(_sample_cpu_and_memory())
+        self._prov["system"].update(_get_system_provenance())
+
+    def _register(self, what, url, role, add_meta, reference_meta):
+        if what not in {"input", "output"}:
+            raise ValueError("what must be 'input' or 'output'")
+
+        reference_meta = self._get_reference_meta(
+            url=url, reference_meta=reference_meta, read_meta=add_meta
+        )
+        self._prov[what].append(dict(url=url, role=role, reference_meta=reference_meta))
+
+    def register_input(self, url, role=None, add_meta=True, reference_meta=None):
+        """
+        Add a URL of a file to the list of inputs (can be a filename or full
+        url, if no URL specifier is given, assume 'file://')
+
+        Parameters
+        ----------
+        url: str
+            filename or url of input file
+        role: str
+            role name that this input satisfies
+        add_meta: bool
+            If true, try to load reference metadata from input file
+            and add to provenance.
+        """
+        self._register(
+            "input", url, role=role, add_meta=add_meta, reference_meta=reference_meta
+        )
+
+    def register_output(self, url, role=None, add_meta=True, reference_meta=None):
+        """
+        Add a URL of a file to the list of outputs (can be a filename or full
+        url, if no URL specifier is given, assume 'file://')
+
+        Should only be called once the file is finalized, so that reference metadata
+        can be read.
+
+        Parameters
+        ----------
+        url: str
+            filename or url of output file
+        role: str
+            role name that this output satisfies
+        add_meta: bool
+            If true, try to load reference metadata from input file
+            and add to provenance.
+        """
+        self._register(
+            "output", url, role=role, add_meta=add_meta, reference_meta=reference_meta
+        )
+
+    def register_config(self, config):
+        """add a dictionary of configuration parameters to this activity"""
+        self._prov["config"] = config
+
+    def finish(self, status="success", exit_code=0):
+        """record final provenance information, normally called at shutdown."""
+        self._prov["stop"].update(_sample_cpu_and_memory())
+
+        # record the duration (wall-clock) for this activity
+        t_start = Time(self._prov["start"]["time_utc"], format="isot")
+        t_stop = Time(self._prov["stop"]["time_utc"], format="isot")
+        self._prov["status"] = status
+        self._prov["exit_code"] = exit_code
+        self._prov["duration_min"] = (t_stop - t_start).to("min").value
+
+    @property
+    def output(self):
+        return self._prov.get("output", None)
+
+    @property
+    def input(self):
+        return self._prov.get("input", None)
+
+    def sample_cpu_and_memory(self):
+        """
+        Record a snapshot of current CPU and memory information.
+        """
+        if "samples" not in self._prov:
+            self._prov["samples"] = []
+        self._prov["samples"].append(_sample_cpu_and_memory())
+
+    @property
+    def provenance(self):
+        return self._prov
+
+    def _get_reference_meta(
+        self, url, reference_meta=None, read_meta=True
+    ) -> dict | None:
+        # here to prevent circular imports / top-level cross-dependencies
+        from ..io.metadata import read_reference_metadata
+
+        if reference_meta is not None or read_meta is False:
+            return reference_meta
+
+        try:
+            return read_reference_metadata(url).to_dict()
+        except Exception:
+            warnings.warn(
+                f"Could not read reference metadata for input file: {url}",
+                MissingReferenceMetadata,
+            )
+            return None
 
 
 class Provenance(metaclass=Singleton):
@@ -85,18 +261,18 @@ class Provenance(metaclass=Singleton):
         activity.start()
         self._activities.append(activity)
         log.debug(f"started activity: {activity_name}")
+        return activity
 
-    def _get_current_or_start_activity(self):
+    def _get_current_or_start_activity(self) -> _ActivityProvenance:
         if self.current_activity is None:
             log.info(
                 "No activity has been explicitly started, starting new default activity."
                 " Consider calling Provenance().start_activity(<name>) explicitly."
             )
-            self.start_activity()
-
+            return self.start_activity()
         return self.current_activity
 
-    def add_input_file(self, filename, role=None, add_meta=True):
+    def add_input_file(self, filename, role=None, add_meta=True, reference_meta=None):
         """register an input to the current activity
 
         Parameters
@@ -107,7 +283,12 @@ class Provenance(metaclass=Singleton):
             role this input file satisfies (optional)
         """
         activity = self._get_current_or_start_activity()
-        activity.register_input(abspath(filename), role=role, add_meta=add_meta)
+        activity.register_input(
+            abspath(filename),
+            role=role,
+            add_meta=add_meta,
+            reference_meta=reference_meta,
+        )
         log.debug(
             "added input entity '%s' to activity: '%s'",
             filename,
@@ -216,125 +397,6 @@ class Provenance(metaclass=Singleton):
         self._finished_activities = []
 
 
-class _ActivityProvenance:
-    """
-    Low-level helper class to collect provenance information for a given
-    *activity*.  Users should use `Provenance` as a top-level API,
-    not this class directly.
-    """
-
-    def __init__(self, activity_name=sys.executable):
-        self._prov = {
-            "activity_name": activity_name,
-            "activity_uuid": str(uuid.uuid4()),
-            "status": "running",
-            "start": {},
-            "stop": {},
-            "system": {},
-            "input": [],
-            "output": [],
-            "exit_code": None,
-        }
-        self.name = activity_name
-
-    def start(self):
-        """begin recording provenance for this activity. Set's up the system
-        and startup provenance data. Generally should be called at start of a
-        program."""
-        self._prov["start"].update(_sample_cpu_and_memory())
-        self._prov["system"].update(_get_system_provenance())
-
-    def register_input(self, url, role=None, add_meta=True):
-        """
-        Add a URL of a file to the list of inputs (can be a filename or full
-        url, if no URL specifier is given, assume 'file://')
-
-        Parameters
-        ----------
-        url: str
-            filename or url of input file
-        role: str
-            role name that this input satisfies
-        add_meta: bool
-            If true, try to load reference metadata from input file
-            and add to provenance.
-        """
-        reference_meta = self._get_reference_meta(url=url) if add_meta else None
-        self._prov["input"].append(
-            dict(url=url, role=role, reference_meta=reference_meta)
-        )
-
-    def register_output(self, url, role=None, add_meta=True):
-        """
-        Add a URL of a file to the list of outputs (can be a filename or full
-        url, if no URL specifier is given, assume 'file://')
-
-        Should only be called once the file is finalized, so that reference metadata
-        can be read.
-
-        Parameters
-        ----------
-        url: str
-            filename or url of output file
-        role: str
-            role name that this output satisfies
-        add_meta: bool
-            If true, try to load reference metadata from input file
-            and add to provenance.
-        """
-        reference_meta = self._get_reference_meta(url=url) if add_meta else None
-        self._prov["output"].append(
-            dict(url=url, role=role, reference_meta=reference_meta)
-        )
-
-    def register_config(self, config):
-        """add a dictionary of configuration parameters to this activity"""
-        self._prov["config"] = config
-
-    def finish(self, status="success", exit_code=0):
-        """record final provenance information, normally called at shutdown."""
-        self._prov["stop"].update(_sample_cpu_and_memory())
-
-        # record the duration (wall-clock) for this activity
-        t_start = Time(self._prov["start"]["time_utc"], format="isot")
-        t_stop = Time(self._prov["stop"]["time_utc"], format="isot")
-        self._prov["status"] = status
-        self._prov["exit_code"] = exit_code
-        self._prov["duration_min"] = (t_stop - t_start).to("min").value
-
-    @property
-    def output(self):
-        return self._prov.get("output", None)
-
-    @property
-    def input(self):
-        return self._prov.get("input", None)
-
-    def sample_cpu_and_memory(self):
-        """
-        Record a snapshot of current CPU and memory information.
-        """
-        if "samples" not in self._prov:
-            self._prov["samples"] = []
-        self._prov["samples"].append(_sample_cpu_and_memory())
-
-    @property
-    def provenance(self):
-        return self._prov
-
-    def _get_reference_meta(self, url):
-        # here to prevent circular imports / top-level cross-dependencies
-        from ..io.metadata import read_reference_metadata
-
-        try:
-            return read_reference_metadata(url).to_dict()
-        except Exception:
-            warnings.warn(
-                f"Could not read reference metadata for input file: {url}",
-                MissingReferenceMetadata,
-            )
-
-
 def _get_python_packages():
     def _sortkey(dist):
         """Sort packages by name, case insensitive"""
@@ -351,15 +413,13 @@ def _get_python_packages():
 
 
 def _get_system_provenance():
-    """return JSON string containing provenance for all things that are
+    """return a dict containing provenance for all things that are
     fixed during the runtime"""
 
     bits, linkage = platform.architecture()
 
     return dict(
         ctapipe_version=__version__,
-        ctapipe_resources_version=get_module_version("ctapipe_resources"),
-        eventio_version=get_module_version("eventio"),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
         executable=sys.executable,
         platform=dict(

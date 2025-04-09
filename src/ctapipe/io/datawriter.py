@@ -9,12 +9,10 @@ from collections import defaultdict
 
 import numpy as np
 import tables
-from astropy import units as u
 from traitlets import Dict, Instance
 
 from ..containers import (
     ArrayEventContainer,
-    SimulatedShowerDistribution,
     TelescopeConfigurationIndexContainer,
     TelEventIndexContainer,
 )
@@ -26,7 +24,6 @@ from .astropy_helpers import write_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableWriter
-from .simteleventsource import SimTelEventSource
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
 __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
@@ -563,65 +560,16 @@ class DataWriter(Component):
 
             self._writer.write("configuration/simulation/run", [extramc, config])
 
-    def write_simulation_histograms(self, event_source):
-        """Write the distribution of thrown showers
-
-        Notes
-        -----
-        - this only runs if this is a simulation file. The current
-          implementation is a bit of a hack and implies we should improve
-          SimTelEventSource to read this info.
-
-        - Currently the histograms are at the end of the simtel file, so if
-          max_events is set to non-zero, the end of the file may not be read,
-          and this no histograms will be found.
-        """
-        if not self._is_simulation:
-            self.log.debug("Not writing simulation histograms for observed data")
-            return
-
-        if not isinstance(event_source, SimTelEventSource):
-            self.log.debug("Not writing simulation for non-SimTelEventSource")
-            return
+    def write_simulated_shower_distributions(self, distributions):
+        """Write the distribution of thrown showers."""
 
         self.log.debug("Writing simulation histograms")
 
-        def fill_from_simtel(
-            obs_id, eventio_hist, container: SimulatedShowerDistribution
-        ):
-            """fill from a SimTel Histogram entry"""
-            container.obs_id = obs_id
-            container.hist_id = eventio_hist["id"]
-            container.n_entries = eventio_hist["entries"]
-            xbins = np.linspace(
-                eventio_hist["lower_x"],
-                eventio_hist["upper_x"],
-                eventio_hist["n_bins_x"] + 1,
+        for container in distributions.values():
+            self._writer.write(
+                table_name="simulation/service/shower_distribution",
+                containers=container,
             )
-            ybins = np.linspace(
-                eventio_hist["lower_y"],
-                eventio_hist["upper_y"],
-                eventio_hist["n_bins_y"] + 1,
-            )
-
-            container.bins_core_dist = xbins * u.m
-            container.bins_energy = 10**ybins * u.TeV
-            container.histogram = eventio_hist["data"]
-            container.meta["hist_title"] = eventio_hist["title"]
-            container.meta["x_label"] = "Log10 E (TeV)"
-            container.meta["y_label"] = "3D Core Distance (m)"
-
-        hists = event_source.file_.histograms
-        if hists is not None:
-            hist_container = SimulatedShowerDistribution()
-            hist_container.prefix = ""
-            for hist in hists:
-                if hist["id"] == 6:
-                    fill_from_simtel(self.event_source.obs_ids[0], hist, hist_container)
-                    self._writer.write(
-                        table_name="simulation/service/shower_distribution",
-                        containers=hist_container,
-                    )
 
     def table_name(self, tel_id):
         """construct dataset table names depending on chosen split method"""

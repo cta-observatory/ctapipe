@@ -19,6 +19,8 @@ from astropy import units as u
 from astropy.table import QTable, Table
 from scipy.interpolate import interp1d
 
+from ctapipe.exceptions import OptionalDependencyMissing
+
 from .compat import COPY_IF_NEEDED
 
 __all__ = [
@@ -152,7 +154,10 @@ class AtmosphereDensityProfile(abc.ABC):
         Draw quick plot of profile
         """
         # pylint: disable=import-outside-toplevel
-        import matplotlib.pyplot as plt
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            raise OptionalDependencyMissing("matplotlib") from None
 
         fig, axis = plt.subplots(1, 3, constrained_layout=True, figsize=(10, 3))
 

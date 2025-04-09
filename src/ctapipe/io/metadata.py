@@ -1,5 +1,5 @@
 """
-Management of CTA Reference Metadata.
+Management of CTAO Reference Metadata.
 
 Definitions from :cite:`ctao-top-level-data-model`.
 This information is required to be attached to the header of any files generated.
@@ -26,7 +26,7 @@ import gzip
 import os
 import uuid
 import warnings
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from contextlib import ExitStack
 
 import tables
@@ -95,7 +95,12 @@ class Contact(Configurable):
             return ""
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, email={self.email}, organization={self.organization})"
+        return (
+            f"{self.__class__.__name__}("
+            f"name='{self.name}', email='{self.email}'"
+            f", organization='{self.organization}'"
+            ")"
+        )
 
 
 class Product(HasTraits):
@@ -133,6 +138,19 @@ class Product(HasTraits):
         """default id is a UUID"""
         return str(uuid.uuid4())
 
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}("
+            f"id_='{self.id_}'"
+            f", description='{self.description}'"
+            f", creation_time='{self.creation_time.utc.isot}Z'"
+            f", data_category='{self.data_category}'"
+            f", data_levels='{','.join(dl.name for dl in self.data_levels)}'"
+            f", data_model_version='{self.data_model_version}'"
+            f", format='{self.format}'"
+            ")"
+        )
+
 
 class Process(HasTraits):
     """Process (top-level workflow) information"""
@@ -140,6 +158,15 @@ class Process(HasTraits):
     type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
     id_ = Unicode("")
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}("
+            f"id_='{self.id_}'"
+            f", type_='{self.type_}'"
+            f", subtype='{self.subtype}'"
+            ")"
+        )
 
 
 class Activity(HasTraits):
@@ -171,6 +198,23 @@ class Activity(HasTraits):
     def default_time(self):
         """default time is now"""
         return Time.now().iso
+
+    def __repr__(self):
+        if self.stop_time is not None:
+            stop_time = f"'{self.stop_time.utc.isot}Z'"
+        else:
+            stop_time = None
+        return (
+            f"{self.__class__.__name__}("
+            f"name='{self.name}'"
+            f", id_='{self.id_}'"
+            f", type_='{self.type_}'"
+            f", start_time='{self.start_time.utc.isot}Z'"
+            f", stop_time={stop_time}"
+            f", software_name='{self.software_name}'"
+            f", software_version='{self.software_version}'"
+            ")"
+        )
 
 
 class Instrument(Configurable):
@@ -208,15 +252,15 @@ class Instrument(Configurable):
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
-            f"site={self.site}, class_={self.class_}, type_={self.type_}"
-            f", subtype={self.subtype}, version={self.version}, id_={self.id_}"
+            f"site='{self.site}', class_='{self.class_}', type_='{self.type_}'"
+            f", subtype='{self.subtype}', version='{self.version}', id_='{self.id_}'"
             ")"
         )
 
 
 def _to_dict(hastraits_instance, prefix=""):
     """helper to convert a HasTraits to a dict with keys
-    in the required CTA format (upper-case, space separated)
+    in the required CTAO format (upper-case, space separated)
     """
     res = {}
 
@@ -236,7 +280,7 @@ def _to_dict(hastraits_instance, prefix=""):
 
 
 class Reference(HasTraits):
-    """All the reference Metadata required for a CTA output file, plus a way to turn
+    """All the reference Metadata required for a CTAO output file, plus a way to turn
     it into a dict() for easy addition to the header of a file"""
 
     contact = Instance(Contact)
@@ -253,7 +297,7 @@ class Reference(HasTraits):
         """
         prefix = "CTA " if fits is False else "HIERARCH CTA "
 
-        meta = OrderedDict({prefix + "REFERENCE VERSION": "1"})
+        meta = {prefix + "REFERENCE VERSION": "1"}
         meta.update(_to_dict(self.contact, prefix=prefix + "CONTACT "))
         meta.update(_to_dict(self.product, prefix=prefix + "PRODUCT "))
         meta.update(_to_dict(self.process, prefix=prefix + "PROCESS "))

@@ -1,7 +1,10 @@
 import json
 import logging
 import os
+import signal
+import sys
 import tempfile
+from multiprocessing import Barrier, Process
 from pathlib import Path
 
 import pytest
@@ -487,3 +490,113 @@ def test_activity(tmp_path):
     assert len(inputs) == 1
     assert inputs[0]["role"] == "Tool Configuration"
     assert inputs[0]["url"] == str(config_path)
+
+
+@pytest.mark.parametrize(
+    ("exit_code", "expected_status"),
+    [
+        (0, "completed"),
+        (None, "completed"),
+        (1, "error"),
+        (2, "error"),
+    ],
+)
+def test_exit_status(exit_code, expected_status, tmp_path, provenance):
+    """check that the config is correctly in the provenance"""
+
+    class MyTool(Tool):
+        exit_code = Int(allow_none=True, default_value=None).tag(config=True)
+
+        def start(self):
+            if self.exit_code is None:
+                return
+
+            if self.exit_code == 0:
+                sys.exit(0)
+
+            if self.exit_code == 1:
+                raise ValueError("Some error happened")
+
+            class CustomError(ValueError):
+                exit_code = self.exit_code
+
+            raise CustomError("Some error with specific code happened")
+
+    provenance_path = tmp_path / "provlog.json"
+    run_tool(
+        MyTool(exit_code=exit_code),
+        [f"--provenance-log={provenance_path}"],
+        raises=False,
+    )
+
+    activities = json.loads(provenance_path.read_text())
+    assert len(activities) == 1
+    provlog = activities[0]
+    assert provlog["status"] == expected_status
+
+
+class InterruptTestTool(Tool):
+    name = "test-interrupt"
+
+    def __init__(self, barrier):
+        super().__init__()
+        self.barrier = barrier
+
+    def start(self):
+        self.barrier.wait()
+        signal.pause()
+
+
+def test_exit_status_interrupted(tmp_path, provenance):
+    """check that the config is correctly in the provenance"""
+
+    # to make sure we only kill the process once it is running
+    barrier = Barrier(2)
+    tool = InterruptTestTool(barrier)
+
+    provenance_path = tmp_path / "provlog.json"
+    args = [f"--provenance-log={provenance_path}", "--log-level=INFO"]
+    process = Process(target=run_tool, args=(tool, args), kwargs=dict(raises=False))
+    process.start()
+    barrier.wait()
+
+    # process.terminate()
+    os.kill(process.pid, signal.SIGINT)
+    process.join()
+
+    activities = json.loads(provenance_path.read_text())
+    assert len(activities) == 1
+    provlog = activities[0]
+    assert provlog["activity_name"] == InterruptTestTool.name
+    assert provlog["status"] == "interrupted"
+
+
+def test_no_ignore_bad_config_type(tmp_path: Path):
+    """Check that if an unknown type of config file is given, an error is raised
+    instead of silently ignoring the file (which is the default for
+    traitlets.config)
+    """
+
+    class SomeTool(Tool):
+        float_option = Float(1.0, help="An option to change").tag(config=True)
+
+    test_config_file = """
+    SomeTool:
+        float_option: 200.0
+    """
+
+    bad_conf_path = tmp_path / "test.conf"  # note named "conf" not yaml.
+    bad_conf_path.write_text(test_config_file)
+
+    good_conf_path = tmp_path / "test.yaml"
+    good_conf_path.write_text(test_config_file)
+
+    tool = SomeTool()
+
+    # here we should receive an error.
+    with pytest.raises(ToolConfigurationError):
+        tool.load_config_file(bad_conf_path)
+
+    # test correct case:
+    tool.load_config_file(good_conf_path)
+    assert tool.float_option > 1

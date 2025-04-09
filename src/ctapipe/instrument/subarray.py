@@ -310,7 +310,7 @@ class SubarrayDescription:
 
             tab = Table(
                 dict(
-                    tel_id=np.array(ids, dtype=np.short),
+                    tel_id=np.array(ids, dtype=np.uint16),
                     name=tel_names,
                     type=tel_types,
                     pos_x=tel_coords.x,
@@ -751,7 +751,6 @@ class SubarrayDescription:
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
-        reference_location = None
         name = layout.meta.get("SUBARRAY", "Unknown")
 
         if "reference_itrs_x" in layout.meta:
@@ -759,6 +758,13 @@ class SubarrayDescription:
                 x=layout.meta["reference_itrs_x"] * u.m,
                 y=layout.meta["reference_itrs_y"] * u.m,
                 z=layout.meta["reference_itrs_z"] * u.m,
+            )
+        else:
+            # "null island" dummy location for backwards compatibility with old files
+            reference_location = EarthLocation(
+                lon=0 * u.deg,
+                lat=0 * u.deg,
+                height=0 * u.m,
             )
 
         return cls(

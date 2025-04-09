@@ -4,7 +4,7 @@ Exploring Raw Data
 
 Here are just some very simple examples of going through and inspecting
 the raw data, and making some plots using ``ctapipe``. The data explored
-here are *raw Monte Carlo* data, which is Data Level “R0” in CTA
+here are *raw Monte Carlo* data, which is Data Level “R0” in CTAO
 terminology (e.g. it is before any processing that would happen inside a
 Camera or off-line)
 

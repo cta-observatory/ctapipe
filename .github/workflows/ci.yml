@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
       - name: Check README syntax
         run: |
           pip install restructuredtext-lint
@@ -33,42 +33,57 @@ jobs:
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --files $(git diff origin/main --name-only)
+
   tests:
     runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - name: Linux (3.10, mamba)
+            os: ubuntu-latest
             python-version: "3.10"
             install-method: mamba
+            extras: tests,all
 
-          - os: ubuntu-latest
+          - name: Linux (3.10, pip)
+            os: ubuntu-latest
             python-version: "3.10"
             install-method: pip
+            extras: tests,all
 
-          - os: ubuntu-latest
+          - name: Linux (3.11, pip, minimal-dependencies)
+            os: ubuntu-latest
             python-version: "3.11"
-            install-method: mamba
+            install-method: pip
+            extras: tests
 
-          - os: ubuntu-latest
+          - name: Linux (3.12, mamba, coverage)
+            os: ubuntu-latest
             python-version: "3.12"
             install-method: mamba
             extra-args: ["codecov"]
+            extras: tests,all
 
-          - os: ubuntu-latest
+          - name: Linux (3.12, pip)
+            os: ubuntu-latest
             python-version: "3.12"
             install-method: pip
+            extras: tests,all
 
           # macos 13 image is x86-based
-          - os: macos-13
+          - name: macos (3.10, x86_64, pip)
+            os: macos-13
             python-version: "3.10"
             install-method: pip
+            extras: tests,all
 
           # macos 14 image is arm64 based
-          - os: macos-14
+          - name: macos (3.12, arm64, mamba)
+            os: macos-14
             python-version: "3.12"
             install-method: mamba
+            extras: tests,all
 
     defaults:
       run:
@@ -84,7 +99,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ctapipe
-          key: ctapipe-test-data
+          key: ctapipe-test-data-desy
 
       - name: Prepare mamba installation
         if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
@@ -96,7 +111,7 @@ jobs:
 
       - name: mamba setup
         if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: environment.yml
           cache-downloads: true
@@ -122,9 +137,10 @@ jobs:
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
+          EXTRAS: ${{ matrix.extras }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          pip install -e .[tests]
+          pip install -e ".[${EXTRAS}]"
           pip install ./test_plugin
           pip freeze
           pip list
@@ -180,7 +196,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Install doc dependencies
         run: |
@@ -190,10 +206,6 @@ jobs:
           pip install ./test_plugin
           git describe --tags
           python -c 'import ctapipe; print(ctapipe.__version__)'
-
-      - name: Produce Changelog
-        run: |
-          towncrier build --yes
 
       - name: Build docs
         run: make doc

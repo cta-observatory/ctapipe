@@ -1,22 +1,8 @@
 import json
 
-import pytest
-
 from ctapipe.core import Provenance
 from ctapipe.core.provenance import _ActivityProvenance
 from ctapipe.io.metadata import Reference
-
-
-@pytest.fixture
-def provenance(monkeypatch):
-    # the singleton nature of Provenance messes with
-    # the order-independence of the tests asserting
-    # the provenance contains the correct information
-    # so we monkeypatch back to an empty state here
-    prov = Provenance()
-    monkeypatch.setattr(prov, "_activities", [])
-    monkeypatch.setattr(prov, "_finished_activities", [])
-    return prov
 
 
 def test_provenance_activity_names(provenance):
@@ -76,3 +62,11 @@ def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
     assert "reference_meta" in input_meta
     assert "CTA PRODUCT ID" in input_meta["reference_meta"]
     Reference.from_dict(input_meta["reference_meta"])
+
+
+def test_get_distribution_of_module():
+    from ctapipe.core.provenance import get_distribution_of_module
+
+    assert get_distribution_of_module("yaml").name == "PyYAML"
+    assert get_distribution_of_module("sklearn").name == "scikit-learn"
+    assert get_distribution_of_module("ctapipe_test_plugin").version == "0.1.0"

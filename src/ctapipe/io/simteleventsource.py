@@ -11,8 +11,6 @@ from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
 from astropy.table import Table
 from astropy.time import Time
-from eventio.file_types import is_eventio
-from eventio.simtel.simtelfile import SimTelFile
 
 from ..atmosphere import (
     AtmosphereDensityProfile,
@@ -40,6 +38,7 @@ from ..containers import (
     SimulatedCameraContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulatedShowerDistribution,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
@@ -50,6 +49,7 @@ from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
+from ..exceptions import OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -70,12 +70,23 @@ from ..instrument.guess import (
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
+try:
+    from eventio import SimTelFile
+except ModuleNotFoundError:
+    SimTelFile = None
+
+
 __all__ = [
     "SimTelEventSource",
     "read_atmosphere_profile_from_simtel",
     "AtmosphereProfileKind",
     "MirrorClass",
 ]
+
+# default for MAX_PHOTOELECTRONS in simtel_array is 2_500_000
+# so this should be a safe limit to distinguish "dim image true missing"
+# from "extremely bright true image missing", see issue #2344
+MISSING_IMAGE_BRIGHTNESS_LIMIT = 1_000_000
 
 # Mapping of SimTelArray Calibration trigger types to EventType:
 # from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
@@ -529,6 +540,8 @@ class SimTelEventSource(EventSource):
         kwargs
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
+        if SimTelFile is None:
+            raise OptionalDependencyMissing("eventio")
 
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
@@ -536,6 +549,12 @@ class SimTelEventSource(EventSource):
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
         )
+        # TODO: read metadata from simtel metaparams once we have files that
+        # actually provide the reference metadata.
+        Provenance().add_input_file(
+            str(self.input_url), role="DL0/Event", add_meta=False
+        )
+
         if self.back_seekable and self.is_stream:
             raise OSError("back seekable was required but not possible for inputfile")
         (
@@ -556,6 +575,7 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
+        self._has_true_image = None
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -736,6 +756,11 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        try:
+            from eventio.file_types import is_eventio
+        except ModuleNotFoundError:
+            raise OptionalDependencyMissing("eventio") from None
+
         path = Path(file_path).expanduser()
         if not path.is_file():
             return False
@@ -744,6 +769,40 @@ class SimTelEventSource(EventSource):
     @property
     def subarray(self):
         return self._subarray_info
+
+    @property
+    def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
+        if self.file_.histograms is None:
+            warnings.warn(
+                "eventio file has no histograms (yet)."
+                " Histograms are stored at the end of the file and can only be read after all events have been consumed."
+                " Setting max-events will also prevent the histograms from being available."
+            )
+            return {}
+
+        shower_hist = next(hist for hist in self.file_.histograms if hist["id"] == 6)
+
+        xbins = np.linspace(
+            shower_hist["lower_x"],
+            shower_hist["upper_x"],
+            shower_hist["n_bins_x"] + 1,
+        )
+        ybins = np.linspace(
+            shower_hist["lower_y"],
+            shower_hist["upper_y"],
+            shower_hist["n_bins_y"] + 1,
+        )
+
+        container = SimulatedShowerDistribution(
+            obs_id=self.obs_id,
+            hist_id=shower_hist["id"],
+            n_entries=shower_hist["entries"],
+            bins_core_dist=u.Quantity(xbins, u.m, copy=False),
+            bins_energy=u.Quantity(10**ybins, u.TeV, copy=False),
+            histogram=shower_hist["data"],
+        )
+
+        return {self.obs_id: container}
 
     def _generator(self):
         if self.file_.tell() > self.start_pos:
@@ -808,6 +867,20 @@ class SimTelEventSource(EventSource):
                 impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
             for tel_id, telescope_event in telescope_events.items():
+                if tel_id not in trigger.tels_with_trigger:
+                    # skip additional telescopes that have data but did not
+                    # participate in the subarray trigger decision for this stereo event
+                    # see #2660 for details
+                    self.log.warning(
+                        "Encountered telescope event not present in"
+                        " stereo trigger information, skipping."
+                        " event_id = %d, tel_id = %d, tels_with_trigger: %s",
+                        event_id,
+                        tel_id,
+                        trigger.tels_with_trigger,
+                    )
+                    continue
+
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
                     adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
@@ -818,6 +891,30 @@ class SimTelEventSource(EventSource):
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
+                true_image_sum = true_image_sums[
+                    self.telescope_indices_original[tel_id]
+                ]
+
+                if self._has_true_image is None:
+                    self._has_true_image = true_image is not None
+
+                if self._has_true_image and true_image is None:
+                    if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
+                        self.log.warning(
+                            "Encountered extremely bright telescope event with missing true_image in"
+                            "file that has true images: event_id = %d, tel_id = %d."
+                            "event might be truncated, skipping telescope event",
+                            event_id,
+                            tel_id,
+                        )
+                        continue
+                    else:
+                        self.log.info(
+                            "telescope event event_id = %d, tel_id = %d is missing true image",
+                            event_id,
+                            tel_id,
+                        )
+                        true_image = np.full(n_pixels, -1, dtype=np.int32)
 
                 if data.simulation is not None:
                     if data.simulation.shower is not None:
@@ -834,9 +931,7 @@ class SimTelEventSource(EventSource):
                         )
 
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                        true_image_sum=true_image_sums[
-                            self.telescope_indices_original[tel_id]
-                        ],
+                        true_image_sum=true_image_sum,
                         true_image=true_image,
                         impact=impact_container,
                     )
@@ -903,8 +998,8 @@ class SimTelEventSource(EventSource):
         low_gain_stored = selected_gain_channel == GainChannel.LOW
 
         # set gain bits
-        pixel_status[high_gain_stored] |= PixelStatus.HIGH_GAIN_STORED
-        pixel_status[low_gain_stored] |= PixelStatus.LOW_GAIN_STORED
+        pixel_status[high_gain_stored] |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
+        pixel_status[low_gain_stored] |= np.uint8(PixelStatus.LOW_GAIN_STORED)
 
         # reset gain bits for completely disabled pixels
         disabled = tel_desc["disabled_pixels"]["HV_disabled"]

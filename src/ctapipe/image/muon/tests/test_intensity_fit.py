@@ -27,6 +27,8 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
     )
     from ctapipe.instrument import SubarrayDescription
 
+    pytest.importorskip("iminuit")
+
     tel_id = 1
     telescope = prod5_lst
     subarray = SubarrayDescription(
@@ -87,6 +89,8 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
 def test_scts(prod5_sst, reference_location):
     from ctapipe.image.muon.intensity_fitter import MuonIntensityFitter
     from ctapipe.instrument import SubarrayDescription
+
+    pytest.importorskip("iminuit")
 
     telescope = prod5_sst
     subarray = SubarrayDescription(

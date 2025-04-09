@@ -12,13 +12,19 @@ Introduction
 
 This module provides methods to display various information related to
 events and reconstruction, like Cherenkov Camera images, image
-parameterizations, etc. The default implementation uses MatPlotLib
-to render displays, but in the future more rendering methods may be supported.
+parameterizations, etc.
 
-The main classes are:
+For the classes defined at this level, ``matplotlib`` is required as optional
+dependency. There are also bokeh-based versions of these classes defined in :ref:`visualization_bokeh`.
 
-* `CameraDisplay`
-* `ArrayDisplay`
+
+Submodules
+==========
+
+.. toctree::
+  :maxdepth: 1
+
+  bokeh
 
 
 Reference/API

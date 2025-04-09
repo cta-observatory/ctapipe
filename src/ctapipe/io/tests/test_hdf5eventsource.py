@@ -262,3 +262,40 @@ def test_interpolate_pointing(dl1_mon_pointing_file):
             for pointing in e.pointing.tel.values():
                 assert not np.isnan(pointing.azimuth)
                 assert not np.isnan(pointing.altitude)
+
+
+def test_simulated_events_distribution(dl1_file):
+    with HDF5EventSource(dl1_file) as source:
+        assert len(source.simulated_shower_distributions) == 1
+        dist = source.simulated_shower_distributions[1]
+        assert dist["n_entries"] == 1000
+        assert dist["histogram"].sum() == 1000.0
+
+
+def test_provenance(dl1_file, provenance):
+    """Make sure that HDF5EventSource reads reference metadata and adds to provenance"""
+    from ctapipe.io.metadata import _read_reference_metadata_hdf5
+
+    provenance.start_activity("test_hdf5eventsource")
+    with HDF5EventSource(input_url=dl1_file):
+        pass
+
+    inputs = provenance.current_activity.input
+    assert len(inputs) == 1
+    assert inputs[0]["url"] == str(dl1_file)
+    meta = _read_reference_metadata_hdf5(dl1_file)
+    assert inputs[0]["reference_meta"].product.id_ == meta.product.id_
+
+
+def test_pointing_old_file():
+    input_url = "dataset://gamma_diffuse_dl2_train_small.dl2.h5"
+
+    n_read = 0
+    with HDF5EventSource(input_url, max_events=5) as source:
+        for e in source:
+            assert e.pointing.tel.keys() == set(e.trigger.tels_with_trigger)
+            for pointing in e.pointing.tel.values():
+                assert u.isclose(pointing.altitude, 70 * u.deg)
+                assert u.isclose(pointing.azimuth, 0 * u.deg)
+            n_read += 1
+    assert n_read == 5

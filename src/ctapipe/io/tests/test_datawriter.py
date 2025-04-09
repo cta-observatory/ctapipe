@@ -91,7 +91,9 @@ def test_write(tmpdir: Path):
             calibrate(event)
             generate_dummy_dl2(event)
             writer(event)
-        writer.write_simulation_histograms(source)
+        writer.write_simulated_shower_distributions(
+            source.simulated_shower_distributions
+        )
 
     assert output_path.exists()
 
@@ -174,7 +176,9 @@ def test_roundtrip(tmpdir: Path):
             generate_dummy_dl2(event)
             write(event)
             events.append(deepcopy(event))
-        write.write_simulation_histograms(source)
+        write.write_simulated_shower_distributions(
+            source.simulated_shower_distributions
+        )
         assert DataLevel.DL1_IMAGES in write.datalevels
         assert DataLevel.DL1_PARAMETERS not in write.datalevels
         assert DataLevel.DL2 in write.datalevels
@@ -197,15 +201,16 @@ def test_roundtrip(tmpdir: Path):
 
     # make sure it is readable by the event source and matches the images
 
-    for event in EventSource(output_path):
-        for tel_id, dl1 in event.dl1.tel.items():
-            original_image = events[event.count].dl1.tel[tel_id].image
-            read_image = dl1.image
-            assert np.allclose(original_image, read_image, atol=0.1)
+    with EventSource(output_path) as source:
+        for event in source:
+            for tel_id, dl1 in event.dl1.tel.items():
+                original_image = events[event.count].dl1.tel[tel_id].image
+                read_image = dl1.image
+                assert np.allclose(original_image, read_image, atol=0.1)
 
-            original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
-            read_peaktime = dl1.peak_time
-            assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
+                original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
+                read_peaktime = dl1.peak_time
+                assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
 
 def test_dl1writer_no_events(tmpdir: Path):
@@ -233,7 +238,9 @@ def test_dl1writer_no_events(tmpdir: Path):
         write_dl1_images=True,
     ) as writer:
         writer.log.level = logging.DEBUG
-        writer.write_simulation_histograms(source)
+        writer.write_simulated_shower_distributions(
+            source.simulated_shower_distributions
+        )
 
     assert output_path.exists()
 

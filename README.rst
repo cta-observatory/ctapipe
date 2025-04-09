@@ -2,14 +2,14 @@
  ctapipe |pypi| |conda| |doilatest| |ci| |sonarqube_coverage| |sonarqube_quality|
 ==================================================================================
 
-.. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=main
-    :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amain
+.. |ci| image:: https://github.com/cta-observatory/ctapipe/actions/workflows/ci.yml/badge.svg?branch=main
+    :target: https://github.com/cta-observatory/ctapipe/actions/workflows/ci.yml
     :alt: Test Status
 .. |sonarqube_quality| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=alert_status&token=sqb_a533204f382b350568e922385cab7c2394587458
     :target: https://sonar-cta-dpps.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
     :alt: sonarqube quality gate
 .. |sonarqube_coverage| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=coverage&token=sqb_a533204f382b350568e922385cab7c2394587458
-    :target: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=coverage&token=sqb_a533204f382b350568e922385cab7c2394587458)](https://sonar-cta-dpps.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
+    :target: https://sonar-cta-dpps.zeuthen.desy.de/component_measures?metric=coverage&selected=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs%3Asrc%2Fctapipe&view=treemap&id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
     :alt: sonarqube code coverage
 .. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
@@ -18,8 +18,8 @@
 .. |pypi| image:: https://badge.fury.io/py/ctapipe.svg
     :target: https://pypi.org/project/ctapipe
 
-Low-level data processing pipeline software for
-`CTA <https://www.cta-observatory.org>`__ (the Cherenkov Telescope Array)
+Low-level data processing pipeline software for the
+`CTAO (Cherenkov Telescope Array Observatory) <https://www.ctao.org>`__.
 
 This is code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an

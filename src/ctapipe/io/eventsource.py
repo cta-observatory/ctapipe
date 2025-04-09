@@ -13,9 +13,10 @@ from ..containers import (
     ArrayEventContainer,
     ObservationBlockContainer,
     SchedulingBlockContainer,
+    SimulatedShowerDistribution,
     SimulationConfigContainer,
 )
-from ..core import Provenance, ToolConfigurationError
+from ..core import ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
 from ..instrument import SubarrayDescription
@@ -78,9 +79,9 @@ class EventSource(Component):
     as these are mutable and may lead to errors when analyzing multiple events.
 
 
-    Attributes
+    Parameters
     ----------
-    input_url : str
+    input_url : str | Path
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
@@ -133,23 +134,6 @@ class EventSource(Component):
         return super().__new__(subcls)
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
-        """
-        Class to handle generic input files. Enables obtaining the "source"
-        generator, regardless of the type of file (either hessio or camera
-        file).
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         # traitlets differentiates between not getting the kwarg
         # and getting the kwarg with a None value.
         # the latter overrides the value in the config with None, the former
@@ -164,8 +148,6 @@ class EventSource(Component):
 
         if self.max_events:
             self.log.info(f"Max events being read = {self.max_events}")
-
-        Provenance().add_input_file(str(self.input_url), role="DL0/Event")
 
     @staticmethod
     @abstractmethod
@@ -288,7 +270,7 @@ class EventSource(Component):
         return list(self.observation_blocks.keys())
 
     @property
-    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile | None:
         """atmosphere density profile that can be integrated to
         convert between h_max and X_max.  This should correspond
         either to what was used in a simulation, or a measurement
@@ -300,6 +282,17 @@ class EventSource(Component):
            profile to be used
         """
         return None
+
+    @property
+    def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
+        """
+        The distribution of simulated showers for each obs_id.
+
+        Returns
+        -------
+        dict[int,ctapipe.containers.SimulatedShowerDistribution]
+        """
+        return {}
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:
@@ -338,16 +331,19 @@ class EventSource(Component):
         if input_url == "" or input_url in {None, Undefined}:
             raise ToolConfigurationError("EventSource: No input_url was specified")
 
-        # validate input url with the traitel validate method
+        # validate input url with the traitlet validate method
         # to make sure it's compatible and to raise the correct error
         input_url = EventSource.input_url.validate(obj=None, value=input_url)
 
         available_classes = cls.non_abstract_subclasses()
 
+        missing_deps = {}
         for name, subcls in available_classes.items():
             try:
                 if subcls.is_compatible(input_url):
                     return subcls
+            except ModuleNotFoundError as e:
+                missing_deps[subcls] = e.module
             except Exception as e:
                 warnings.warn(f"{name}.is_compatible raised exception: {e}")
 
@@ -355,15 +351,23 @@ class EventSource(Component):
         if not input_url.exists():
             raise TraitError(
                 f"input_url {input_url} is not an existing file "
-                " and no EventSource implementation claimed compatibility"
+                " and no EventSource implementation claimed compatibility."
             )
 
-        raise ValueError(
-            "Cannot find compatible EventSource for \n"
-            "\turl:{}\n"
-            "in available EventSources:\n"
-            "\t{}".format(input_url, [c for c in available_classes])
+        available_sources = [
+            name for name, cls in available_classes.items() if cls not in missing_deps
+        ]
+
+        msg = (
+            f"Could not find compatible EventSource for input_url: {input_url!r}\n"
+            f"in available EventSources: {available_sources}\n"
+            "EventSources that are installed but could not be used due to missing dependencies:\n\t"
+            + "\n\t".join(
+                f"{source.__name__}: {missing}"
+                for source, missing in missing_deps.items()
+            )
         )
+        raise ValueError(msg)
 
     @classmethod
     def from_url(cls, input_url, **kwargs):

@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.11
   - pip
-  - astropy>=5.3,<7
+  - astropy>=5.3,<8
   - black
   - bokeh=3
   - nbsphinx
@@ -40,6 +40,7 @@ dependencies:
   - pydata-sphinx-theme
   - sphinx-design
   - sphinxcontrib-bibtex
+  - sphinx_changelog
   - tomli
   - towncrier
   - tqdm
@@ -48,6 +49,5 @@ dependencies:
   - wheel
   - xz
   - zlib
-  - zstandard
   - eventio>=1.9.1
   - ffmpeg # for making movies in the documentation

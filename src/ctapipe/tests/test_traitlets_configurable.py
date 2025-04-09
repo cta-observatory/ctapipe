@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import ctapipe
 from ctapipe.core import Component, Tool
+from ctapipe.exceptions import OptionalDependencyMissing
 
 ignore_traits = {
     "config",
@@ -44,7 +45,12 @@ def test_all_traitlets_configurable():
             if submodule.startswith("test_") or submodule in skip_modules:
                 continue
 
-            submodule = importlib.import_module(module_name + "." + submodule_info.name)
+            try:
+                submodule = importlib.import_module(
+                    module_name + "." + submodule_info.name
+                )
+            except OptionalDependencyMissing:
+                continue
 
             if submodule_info.ispkg:
                 find_all_traitlets(submodule, missing_config=missing_config)

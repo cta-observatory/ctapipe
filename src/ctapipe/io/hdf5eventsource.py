@@ -35,6 +35,7 @@ from ..containers import (
     SchedulingBlockContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulatedShowerDistribution,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
@@ -43,15 +44,17 @@ from ..containers import (
     TimingParametersContainer,
     TriggerContainer,
 )
-from ..core import Container, Field
+from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
 from ..monitoring.interpolation import PointingInterpolator
+from ..utils import IndexFinder
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
+from .metadata import _read_reference_metadata_hdf5
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
 __all__ = ["HDF5EventSource"]
@@ -202,6 +205,11 @@ class HDF5EventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(self.input_url)
+        meta = _read_reference_metadata_hdf5(self.file_)
+        Provenance().add_input_file(
+            str(self.input_url), role="Event", reference_meta=meta
+        )
+
         self._full_subarray = SubarrayDescription.from_hdf(
             self.input_url,
             focal_length_choice=self.focal_length_choice,
@@ -223,6 +231,11 @@ class HDF5EventSource(EventSource):
             self.file_.root.configuration.observation.observation_block.col("obs_id")
         )
         pointing_key = "/configuration/telescope/pointing"
+        # for ctapipe <0.21
+        legacy_pointing_key = "/dl1/monitoring/telescope/pointing"
+        self._legacy_tel_pointing_finders = {}
+        self._legacy_tel_pointing_tables = {}
+
         self._constant_telescope_pointing = {}
         if pointing_key in self.file_.root:
             for h5table in self.file_.root[pointing_key]._f_iter_nodes("Table"):
@@ -230,6 +243,35 @@ class HDF5EventSource(EventSource):
                 table = QTable(read_table(self.file_, h5table._v_pathname), copy=False)
                 table.add_index("obs_id")
                 self._constant_telescope_pointing[tel_id] = table
+        elif legacy_pointing_key in self.file_.root:
+            self.log.info(
+                "Found file written using ctapipe<0.21, using legacy pointing information"
+            )
+            for node in self.file_.root[legacy_pointing_key]:
+                tel_id = int(node.name.removeprefix("tel_"))
+                table = QTable(read_table(self.file_, node._v_pathname), copy=False)
+                self._legacy_tel_pointing_tables[tel_id] = table
+                self._legacy_tel_pointing_finders[tel_id] = IndexFinder(
+                    table["time"].mjd
+                )
+
+        self._simulated_shower_distributions = (
+            self._read_simulated_shower_distributions()
+        )
+
+    def _read_simulated_shower_distributions(self):
+        key = "/simulation/service/shower_distribution"
+        if key not in self.file_.root:
+            return {}
+
+        reader = HDF5TableReader(self.file_).read(
+            key, containers=SimulatedShowerDistribution
+        )
+        return {dist.obs_id: dist for dist in reader}
+
+    @property
+    def simulated_shower_distributions(self):
+        return self._simulated_shower_distributions
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -666,6 +708,7 @@ class HDF5EventSource(EventSource):
                     if self.has_simulated_dl1:
                         simulated_image_row = next(simulated_image_iterators[key])
                         simulated.true_image = simulated_image_row["true_image"]
+                        simulated.true_image_sum = simulated_image_row["true_image_sum"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     # Is there a smarter way to unpack this?
@@ -742,12 +785,18 @@ class HDF5EventSource(EventSource):
             return
 
         for tel_id in event.trigger.tels_with_trigger:
-            tel_pointing = self._constant_telescope_pointing.get(tel_id)
-            if tel_pointing is None:
-                continue
-
-            current = tel_pointing.loc[event.index.obs_id]
-            event.pointing.tel[tel_id] = TelescopePointingContainer(
-                altitude=current["telescope_pointing_altitude"],
-                azimuth=current["telescope_pointing_azimuth"],
-            )
+            if (
+                tel_pointing := self._constant_telescope_pointing.get(tel_id)
+            ) is not None:
+                current = tel_pointing.loc[event.index.obs_id]
+                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                    altitude=current["telescope_pointing_altitude"],
+                    azimuth=current["telescope_pointing_azimuth"],
+                )
+            elif (finder := self._legacy_tel_pointing_finders.get(tel_id)) is not None:
+                index = finder.closest(event.trigger.time.mjd)
+                row = self._legacy_tel_pointing_tables[tel_id][index]
+                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                    altitude=row["altitude"],
+                    azimuth=row["azimuth"],
+                )

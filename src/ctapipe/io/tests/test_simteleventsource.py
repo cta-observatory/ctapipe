@@ -627,3 +627,64 @@ def test_override_obs_id(override_obs_id, expected_obs_id, prod5_gamma_simtel_pa
 
         for e in s:
             assert e.index.obs_id == expected_obs_id
+
+
+def test_shower_distribution(prod5_gamma_simtel_path):
+    with SimTelEventSource(prod5_gamma_simtel_path) as source:
+        with pytest.warns(match="eventio file has no"):
+            assert source.simulated_shower_distributions == {}
+
+        for e in source:
+            pass
+
+        distributions = source.simulated_shower_distributions
+        assert len(distributions) == 1
+        distribution = distributions[source.obs_id]
+        assert distribution.n_entries == 1000
+
+
+def test_provenance(provenance, prod5_gamma_simtel_path):
+    provenance.start_activity("test_simteleventsource")
+
+    with SimTelEventSource(prod5_gamma_simtel_path):
+        pass
+
+    inputs = provenance.current_activity.input
+    assert len(inputs) == 1
+    assert inputs[0]["url"] == str(prod5_gamma_simtel_path)
+    assert inputs[0]["reference_meta"] is None
+
+
+def test_prod6_issues():
+    """Test behavior of source on file from prod6, see issues #2344 and #2660"""
+    input_url = "dataset://prod6_issues.simtel.zst"
+
+    events_checked_trigger = set()
+    events_checked_image = set()
+
+    # events with two telescope events but only one in stereo trigger in simtel
+    strange_trigger_events = {
+        1548602: 3,
+        2247909: 32,
+        3974908: 2,
+        4839806: 1,
+    }
+    missing_true_images = {1664106: 32}
+
+    with SimTelEventSource(input_url) as source:
+        for e in source:
+            event_id = e.index.event_id
+            if event_id in strange_trigger_events:
+                expected_tel_id = strange_trigger_events[event_id]
+                np.testing.assert_equal(e.trigger.tels_with_trigger, [expected_tel_id])
+                assert e.trigger.tel.keys() == {expected_tel_id}
+                assert e.r1.tel.keys() == {expected_tel_id}
+                events_checked_trigger.add(event_id)
+
+            if event_id in missing_true_images:
+                tel_id = missing_true_images[event_id]
+                np.testing.assert_equal(e.simulation.tel[tel_id].true_image, -1)
+                events_checked_image.add(event_id)
+
+    assert strange_trigger_events.keys() == events_checked_trigger
+    assert missing_true_images.keys() == events_checked_image

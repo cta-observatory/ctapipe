@@ -18,8 +18,7 @@ from ctapipe.reco.impact_utilities import (
 )
 from ctapipe.utils import get_dataset_path
 
-#    CameraHillasParametersContainer,
-#    ReconstructedEnergyContainer,
+pytest.importorskip("iminuit")
 
 SIMTEL_PATH = get_dataset_path(
     "gamma_20deg_0deg_run2___cta-prod5-paranal_desert"

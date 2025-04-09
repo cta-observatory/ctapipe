@@ -1,10 +1,15 @@
 import numpy as np
 from astropy.units import Quantity
-from iminuit import Minuit
 
-from ctapipe.utils.quantities import all_to_value
+from ...exceptions import OptionalDependencyMissing
+from ...utils.quantities import all_to_value
 
 __all__ = ["kundu_chaudhuri_circle_fit", "taubin_circle_fit"]
+
+try:
+    from iminuit import Minuit
+except ModuleNotFoundError:
+    Minuit = None
 
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
@@ -61,6 +66,9 @@ def taubin_circle_fit(x, y, mask):
     mask: array-like boolean
         true for pixels surviving the cleaning
     """
+    if Minuit is None:
+        raise OptionalDependencyMissing("iminuit")
+
     original_unit = x.unit
     x, y = all_to_value(x, y, unit=original_unit)
 
