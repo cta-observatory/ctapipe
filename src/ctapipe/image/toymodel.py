@@ -375,15 +375,17 @@ class SkewedGaussian(ImageModel):
 class RingGaussian(ImageModel):
     """A shower image consisting of a ring with gaussian radial profile.
 
-    Simplified model for a muon ring.
+    Simplified model for a muon ring. With asymmetry in both the x and y directions.
     """
 
-    def __init__(self, x, y, radius, sigma):
+    def __init__(self, x, y, radius, sigma, asymmetry_slope_x=0, asymmetry_slope_y=0):
         self.unit = x.unit
         self.x = x
         self.y = y
         self.sigma = sigma
         self.radius = radius
+        self.asymmetry_slope_x = asymmetry_slope_x
+        self.asymmetry_slope_y = asymmetry_slope_y
         self.dist = norm(
             self.radius.to_value(self.unit), self.sigma.to_value(self.unit)
         )
@@ -391,4 +393,49 @@ class RingGaussian(ImageModel):
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
-        return self.dist.pdf(r)
+        uniform_ring_pdf = self.dist.pdf(r)
+        asymmetric_ring_pdf = (
+            uniform_ring_pdf
+            * self.linear_pdf(x, self.asymmetry_slope_x)
+            * self.linear_pdf(y, self.asymmetry_slope_y)
+        )
+        return (
+            asymmetric_ring_pdf / np.sum(asymmetric_ring_pdf) * np.sum(uniform_ring_pdf)
+        )
+
+    def linear_pdf(self, var, linear_slope=0):
+        """This is a function that generates a probability density
+        function (pdf) with a linear increase/decrease and a given slope in 1D.
+
+        Parameters
+        ----------
+        var : u.Quantity[length, shape(n, )]
+              A random variable with a linearly increasing or decreasing probability density function.
+        linear_slope: linear slope
+
+        Returns
+        -------
+        a pdf shape(n, )
+
+        """
+
+        if linear_slope == 0:
+            return 1
+
+        if len(var) < 2:
+            return 0
+
+        min_var = np.nanmin(var)
+        max_var = np.nanmax(var)
+
+        delta_var = (max_var - min_var).to_value(self.unit)
+        mean_var = (max_var + min_var).to_value(self.unit) / 2
+        d_var = delta_var / (len(var) - 1)
+
+        intercept = 1 / delta_var - mean_var * linear_slope
+
+        pdf = linear_slope * var.to_value(self.unit) + intercept
+        pdf = np.nan_to_num(pdf, nan=0.0)
+        pdf[pdf < 0] = 0
+
+        return pdf / (d_var * np.sum(pdf))
