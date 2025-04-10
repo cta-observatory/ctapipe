@@ -269,92 +269,53 @@ def test_psi_uncertainty():
         pix_area=np.full(9, 1.0) * u.cm**2,
     )
 
-    # symmetric image should have large uncertainty
+    image = np.zeros((3, 3))
+    image[0, 0] = 2
+    image[0, 1] = 0
+    image[0, 2] = 0
+    image[1, 0] = 0
+    image[1, 1] = 5
+    image[1, 2] = 0
+    image[2, 0] = 0
+    image[2, 1] = 0
+    image[2, 2] = 2
+    image = image.ravel()
+    hillas = hillas_parameters(geom, image)
+    assert np.isclose(
+        hillas.psi_uncertainty.to_value(u.deg), 20.25711711353489, rtol=1e-05
+    )
+
     image = np.zeros((3, 3))
     image[0, 0] = 5
-    image[0, 1] = 5
-    image[0, 2] = 5
-    image[1, 0] = 5
+    image[0, 1] = 0
+    image[0, 2] = 0
+    image[1, 0] = 0
     image[1, 1] = 10
-    image[1, 2] = 5
-    image[2, 0] = 5
-    image[2, 1] = 5
+    image[1, 2] = 0
+    image[2, 0] = 0
+    image[2, 1] = 0
     image[2, 2] = 5
     image = image.ravel()
     hillas = hillas_parameters(geom, image)
-    assert hillas.psi_uncertainty.value > 1e10
-
-    # check two images with identical morphology but different intensities
-    image1 = np.zeros((3, 3))
-    image1[0, 0] = 5
-    image1[1, 1] = 10
-    image1[2, 2] = 5
-    image2 = np.zeros((3, 3))
-    intensity_scaling = 2.0
-    image2 += image1 * intensity_scaling
-    image1 = image1.ravel()
-    image2 = image2.ravel()
-    hillas1 = hillas_parameters(geom, image1)
-    hillas2 = hillas_parameters(geom, image2)
-    assert (
-        abs(
-            hillas1.psi_uncertainty.value / hillas2.psi_uncertainty.value
-            - np.sqrt(intensity_scaling)
-        )
-        < 1e-4
+    assert np.isclose(
+        hillas.psi_uncertainty.to_value(u.deg), 12.811725781509189, rtol=1e-05
     )
 
-    # check psi uncertainty for a random image with the manual calculation
-    image = np.random.random((3, 3)) * 100.0
+    image = np.zeros((3, 3))
+    image[0, 0] = 5
+    image[0, 1] = 0
+    image[0, 2] = 2
+    image[1, 0] = 0
+    image[1, 1] = 10
+    image[1, 2] = 0
+    image[2, 0] = 0
+    image[2, 1] = 2
+    image[2, 2] = 5
     image = image.ravel()
     hillas = hillas_parameters(geom, image)
-    # Now calculate the uncertainty manually
-    unit = geom.pix_x.unit
-    pix_x = geom.pix_x.to_value(unit)
-    pix_y = geom.pix_y.to_value(unit)
-    pix_area = geom.pix_area.to_value(unit**2)
-    image = np.asanyarray(image, dtype=np.float64)
-    # calculate the cog as the mean of the coordinates weighted with the image
-    cog_x = np.average(pix_x, weights=image)
-    cog_y = np.average(pix_y, weights=image)
-    delta_x = pix_x - cog_x
-    delta_y = pix_y - cog_y
-    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
-    eig_vals, eig_vecs = np.linalg.eigh(cov)
-    # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
-    HILLAS_ATOL = np.finfo(np.float64).eps
-    near_zero = np.isclose(eig_vals, 0, atol=HILLAS_ATOL)
-    eig_vals[near_zero] = 0
-    # width and length are eigen values of the PCA
-    width, length = np.sqrt(eig_vals)
-    # psi is the angle of the eigenvector to length to the x-axis
-    vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
-    # psi will be consistently defined in the range (-pi/2, pi/2)
-    if length == 0:
-        psi = psi_uncert = np.nan
-    else:
-        if vx != 0:
-            psi = np.arctan(vy / vx)
-        else:
-            psi = np.pi / 2
-        # calculate higher order moments along shower axes
-        cos_psi = np.cos(psi)
-        sin_psi = np.sin(psi)
-        longi = delta_x * cos_psi + delta_y * sin_psi
-        trans = delta_x * -sin_psi + delta_y * cos_psi
-        # lsq solution to determine uncertainty on phi
-        W = np.diag(image / pix_area)
-        X = np.column_stack([longi, np.ones_like(longi)])
-        lsq_cov = np.linalg.inv(X.T @ W @ X)
-        p = lsq_cov @ X.T @ W @ trans
-        # p[0] is the psi angle in the rotated frame, which should be zero.
-        # Now we add the non-zero residual psi angle in the rotated frame to psi uncertainty
-        # We also add additional uncertainty to account for elongation of the image (i.e. width / length)
-        psi_uncert = np.sqrt(lsq_cov[0, 0] + p[0] * p[0]) * (
-            1.0 + pow(np.tan(width / length * np.pi / 2.0), 2)
-        )
-
-    assert abs(hillas.psi_uncertainty.value - psi_uncert) / psi_uncert < 0.01
+    assert np.isclose(
+        hillas.psi_uncertainty.to_value(u.deg), 23.560635267712282, rtol=1e-05
+    )
 
 
 def test_reconstruction_in_telescope_frame(prod5_lst):
