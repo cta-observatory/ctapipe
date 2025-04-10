@@ -21,7 +21,7 @@ def test_MuonRingFitter(method, prod5_mst_flashcam):
     center_ys = 0.6 * u.m
     radius = 0.3 * u.m
     width = 0.05 * u.m
-    ringAsymmetry_slope_x = 1.3
+    ringAsymmetry_slope_x = 1.4
     ringAsymmetry_slope_y = 0.0
 
     muon_model = toymodel.RingGaussian(
