@@ -165,9 +165,8 @@ def hillas_parameters(geom, image):
         psi_uncert = np.sqrt(lsq_cov[0, 0] + p[0] * p[0]) * (
             1.0 + pow(np.tan(width / length * np.pi / 2.0), 2)
         )
-        transverse_cog_uncert = np.sqrt(
-            lsq_cov[1, 1] * (1.0 + np.sin(p[0]) * np.sin(p[0]))
-        )
+        sin_p0 = np.sin(p[0])
+        transverse_cog_uncert = np.sqrt(lsq_cov[1, 1] * (1.0 + sin_p0 * sin_p0))
 
     # Compute of the Hillas parameters uncertainties.
     # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
