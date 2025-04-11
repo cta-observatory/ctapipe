@@ -122,6 +122,8 @@ def test_process_apply_disp(
 ):
     from ctapipe.tools.process import ProcessorTool
 
+    disp_reconstructor_path, _ = disp_reconstructor_path
+
     output = tmp_path / "gamma_prod5.dl2_disp.h5"
 
     config_path = tmp_path / "config.json"
