@@ -3,6 +3,7 @@ import pytest
 
 from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.exceptions import TooFewEvents
+from ctapipe.io import read_table
 from ctapipe.utils.datasets import resource_file
 
 
@@ -21,7 +22,15 @@ def test_train_particle_classifier(particle_classifier_path):
 def test_train_disp_reconstructor(disp_reconstructor_path):
     from ctapipe.reco import DispReconstructor
 
-    DispReconstructor.read(disp_reconstructor_path)
+    model_path, cv_path = disp_reconstructor_path
+
+    DispReconstructor.read(model_path)
+
+    cv_table = read_table(cv_path, "/cv_predictions/LST_LST_LSTCam")
+    disp = cv_table["disp_parameter"]
+    true_disp = cv_table["truth"]
+    accuracy = np.count_nonzero(np.sign(disp) == np.sign(true_disp)) / len(disp)
+    assert accuracy > 0.75
 
 
 def test_too_few_events(tmp_path, dl2_shower_geometry_file):

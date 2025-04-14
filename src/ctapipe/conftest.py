@@ -642,6 +642,7 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
     from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
 
     out_file = model_tmp_path / "disp_reconstructor.pkl"
+    cv_out_file = model_tmp_path / "cv_disp_reconstructor.h5"
     with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
         if out_file.is_file():
             return out_file
@@ -653,12 +654,13 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
             argv=[
                 f"--input={gamma_train_clf}",
                 f"--output={out_file}",
+                f"--cv-output={cv_out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
             ],
         )
         assert ret == 0
-        return out_file
+        return out_file, cv_out_file
 
 
 @pytest.fixture(scope="session")

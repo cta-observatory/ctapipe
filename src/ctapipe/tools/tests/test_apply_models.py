@@ -110,6 +110,8 @@ def test_apply_all(
 ):
     from ctapipe.tools.apply_models import ApplyModels
 
+    disp_reconstructor_path, _ = disp_reconstructor_path
+
     input_path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
     output_path = tmp_path / "particle-and-energy-and-disp.dl2.h5"
 
