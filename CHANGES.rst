@@ -1,3 +1,34 @@
+ctapipe 0.25.0 (2025-04-16)
+===========================
+
+Bug Fixes
+---------
+
+- Fix units (absence of) for skewness and excess kurtosis in muon analysis [`#2732 <https://github.com/cta-observatory/ctapipe/pull/2732>`__]
+
+- Improve heuristic in ``SimTelEventSource`` for when true Cherenkov
+  images are expected to be present in the input file.
+  This fixes missing true images in output files when the first event of a run
+  had missing true images. [`#2735 <https://github.com/cta-observatory/ctapipe/pull/2735>`__]
+
+- Fix inverted sign of ``DispReconstructor`` prediction. [`#2738 <https://github.com/cta-observatory/ctapipe/pull/2738>`__]
+
+
+Data Model Changes
+------------------
+- Two new fields in the Hillas parameters:
+  1. psi_uncertainty (uncertainty on the psi angle of the image)
+  2. transverse_cog_uncertainty (uncertainty on the center of gravity along the transverse axis of the image) [`#2629 <https://github.com/cta-observatory/ctapipe/pull/2629>`__]
+
+
+New Features
+------------
+
+- Add two new fields in the Hillas parameters computations:
+  1. psi_uncertainty (uncertainty on the psi angle of the image)
+  2. transverse_cog_uncertainty (uncertainty on the center of gravity along the transverse axis of the image) [`#2629 <https://github.com/cta-observatory/ctapipe/pull/2629>`__]
+
+
 ctapipe v0.24.0 (2025-03-31)
 ============================
 
