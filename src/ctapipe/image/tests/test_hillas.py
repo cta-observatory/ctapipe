@@ -253,6 +253,69 @@ def test_single_pixel():
     assert hillas.length.value == 0
     assert hillas.width.value == 0
     assert np.isnan(hillas.psi)
+    assert np.isnan(hillas.psi_uncertainty)
+
+
+def test_psi_uncertainty():
+    x = y = np.arange(3)
+    x, y = np.meshgrid(x, y)
+
+    geom = CameraGeometry(
+        name="testcam",
+        pix_id=np.arange(9),
+        pix_x=x.ravel() * u.cm,
+        pix_y=y.ravel() * u.cm,
+        pix_type="rectangular",
+        pix_area=np.full(9, 1.0) * u.cm**2,
+    )
+
+    image = np.zeros((3, 3))
+    image[0, 0] = 2
+    image[0, 1] = 0
+    image[0, 2] = 0
+    image[1, 0] = 0
+    image[1, 1] = 5
+    image[1, 2] = 0
+    image[2, 0] = 0
+    image[2, 1] = 0
+    image[2, 2] = 2
+    image = image.ravel()
+    hillas = hillas_parameters(geom, image)
+    assert np.isclose(
+        hillas.psi_uncertainty.to_value(u.deg), 20.25711711353489, rtol=1e-05
+    )
+
+    image = np.zeros((3, 3))
+    image[0, 0] = 5
+    image[0, 1] = 0
+    image[0, 2] = 0
+    image[1, 0] = 0
+    image[1, 1] = 10
+    image[1, 2] = 0
+    image[2, 0] = 0
+    image[2, 1] = 0
+    image[2, 2] = 5
+    image = image.ravel()
+    hillas = hillas_parameters(geom, image)
+    assert np.isclose(
+        hillas.psi_uncertainty.to_value(u.deg), 12.811725781509189, rtol=1e-05
+    )
+
+    image = np.zeros((3, 3))
+    image[0, 0] = 5
+    image[0, 1] = 0
+    image[0, 2] = 2
+    image[1, 0] = 0
+    image[1, 1] = 10
+    image[1, 2] = 0
+    image[2, 0] = 0
+    image[2, 1] = 2
+    image[2, 2] = 5
+    image = image.ravel()
+    hillas = hillas_parameters(geom, image)
+    assert np.isclose(
+        hillas.psi_uncertainty.to_value(u.deg), 23.560635267712282, rtol=1e-05
+    )
 
 
 def test_reconstruction_in_telescope_frame(prod5_lst):

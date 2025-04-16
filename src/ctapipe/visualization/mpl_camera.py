@@ -511,6 +511,24 @@ class CameraDisplay:
             **kwargs,
         )
 
+        for sign in (-1, 1):
+            for direction in (-1, 1):
+                angle = params["psi_rad"] + sign * params["psi_uncert_rad"]
+                (line,) = self.axes.plot(
+                    [
+                        params["cog_x"],
+                        params["cog_x"]
+                        + direction * np.cos(angle) * 3 * params["length"],
+                    ],
+                    [
+                        params["cog_y"],
+                        params["cog_y"]
+                        + direction * np.sin(angle) * 3 * params["length"],
+                    ],
+                    **kwargs,
+                )
+                self._axes_overlays.append(line)
+
         self._axes_overlays.append(el)
 
         if with_label:

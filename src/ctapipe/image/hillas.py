@@ -4,6 +4,7 @@
 Hillas-style moment-based shower image parametrization.
 """
 
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
@@ -87,6 +88,7 @@ def hillas_parameters(geom, image):
     unit = geom.pix_x.unit
     pix_x = geom.pix_x.to_value(unit)
     pix_y = geom.pix_y.to_value(unit)
+    pix_area = geom.pix_area.to_value(unit**2)
     image = np.asanyarray(image, dtype=np.float64)
 
     if isinstance(image, np.ma.masked_array):
@@ -131,7 +133,9 @@ def hillas_parameters(geom, image):
     # avoid divide by 0 warnings
     # psi will be consistently defined in the range (-pi/2, pi/2)
     if length == 0:
-        psi = skewness_long = kurtosis_long = np.nan
+        psi = (
+            psi_uncert
+        ) = transverse_cog_uncert = skewness_long = kurtosis_long = np.nan
     else:
         if vx != 0:
             psi = np.arctan(vy / vx)
@@ -139,13 +143,30 @@ def hillas_parameters(geom, image):
             psi = np.pi / 2
 
         # calculate higher order moments along shower axes
-        longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
+        cos_psi = np.cos(psi)
+        sin_psi = np.sin(psi)
+        longi = delta_x * cos_psi + delta_y * sin_psi
+        trans = delta_x * -sin_psi + delta_y * cos_psi
 
-        m3_long = np.average(longitudinal**3, weights=image)
+        m3_long = np.average(longi**3, weights=image)
         skewness_long = m3_long / length**3
 
-        m4_long = np.average(longitudinal**4, weights=image)
+        m4_long = np.average(longi**4, weights=image)
         kurtosis_long = m4_long / length**4
+
+        # lsq solution to determine uncertainty on phi
+        W = np.diag(image / pix_area)
+        X = np.column_stack([longi, np.ones_like(longi)])
+        lsq_cov = np.linalg.inv(X.T @ W @ X)
+        p = lsq_cov @ X.T @ W @ trans
+        # p[0] is the psi angle in the rotated frame, which should be zero.
+        # Now we add the non-zero residual psi angle in the rotated frame to psi uncertainty
+        # We also add additional uncertainty to account for elongation of the image (i.e. width / length)
+        psi_uncert = np.sqrt(lsq_cov[0, 0] + p[0] * p[0]) * (
+            1.0 + pow(np.tan(width / length * np.pi / 2.0), 2)
+        )
+        sin_p0 = np.sin(p[0])
+        transverse_cog_uncert = np.sqrt(lsq_cov[1, 1] * (1.0 + sin_p0 * sin_p0))
 
     # Compute of the Hillas parameters uncertainties.
     # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
@@ -190,6 +211,8 @@ def hillas_parameters(geom, image):
             width=u.Quantity(width, unit),
             width_uncertainty=u.Quantity(width_uncertainty, unit),
             psi=Angle(psi, unit=u.rad),
+            psi_uncertainty=Angle(psi_uncert, unit=u.rad),
+            transverse_cog_uncertainty=u.Quantity(transverse_cog_uncert, unit),
             skewness=skewness_long,
             kurtosis=kurtosis_long,
         )
@@ -204,6 +227,8 @@ def hillas_parameters(geom, image):
         width=u.Quantity(width, unit),
         width_uncertainty=u.Quantity(width_uncertainty, unit),
         psi=Angle(psi, unit=u.rad),
+        psi_uncertainty=Angle(psi_uncert, unit=u.rad),
+        transverse_cog_uncertainty=u.Quantity(transverse_cog_uncert, unit),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
