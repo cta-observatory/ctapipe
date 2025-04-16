@@ -1,3 +1,0 @@
-Add two new fields in the Hillas parameters computations:
-1. psi_uncertainty (uncertainty on the psi angle of the image)
-2. transverse_cog_uncertainty (uncertainty on the center of gravity along the transverse axis of the image)

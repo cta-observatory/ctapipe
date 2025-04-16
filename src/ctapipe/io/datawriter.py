@@ -45,8 +45,9 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v7.0.0"
+DATA_MODEL_VERSION = "v7.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v7.1.0: - Two new fields for the hillas parameters, uncertainties on psi and the transversal cog coordinate.
 - v7.0.0: - Use high resolution timestamps for times. CTAO high resolution times
             are stored as two uint32: seconds and quarter nanoseconds since 1970-01-01T00:00:00 TAI.
 - v6.0.0: - Change R1- and DL0-waveform shape from (n_pixels, n_samples) to be always
