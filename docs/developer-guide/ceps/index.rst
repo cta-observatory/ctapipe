@@ -24,11 +24,13 @@ Accepted CEPs
 Proposed CEPs
 =============
 
-.. toctree::
-   :maxdepth: 1
-   :glob:
+There are no proposed CEPs currently.
 
-   proposed/*
+.. .. toctree::
+..    :maxdepth: 1
+..    :glob:
+..
+..    proposed/*
 
 
 Rejected CEPs
