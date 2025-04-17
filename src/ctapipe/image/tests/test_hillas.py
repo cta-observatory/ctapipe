@@ -3,14 +3,11 @@ import itertools
 import numpy as np
 import pytest
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import Angle
 from numpy import isclose
 from pytest import approx
 
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
+from ctapipe.containers import HillasParametersContainer
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import HillasParameterizationError, hillas_parameters
@@ -19,16 +16,16 @@ from ctapipe.instrument import CameraGeometry, SubarrayDescription
 
 def create_sample_image(
     psi="-30d",
-    x=0.2 * u.m,
-    y=0.3 * u.m,
-    width=0.05 * u.m,
-    length=0.15 * u.m,
+    x=1 * u.deg,
+    y=1 * u.deg,
+    width=0.06 * u.deg,
+    length=0.3 * u.deg,
     intensity=1500,
     geometry=None,
 ):
     if geometry is None:
         s = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-        geometry = s.tel[1].camera.geometry
+        geometry = s.tel[1].camera.geometry.transform_to(TelescopeFrame())
 
     # make a toymodel shower model
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
@@ -64,7 +61,7 @@ def test_hillas_selected(prod5_lst):
     test Hillas-parameter routines on a sample image with selected values
     against a sample image with masked values set to zero
     """
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
     image, clean_mask = create_sample_image(geometry=geom)
 
     image_zeros = image.copy()
@@ -80,7 +77,7 @@ def test_hillas_selected(prod5_lst):
 
 
 def test_hillas_failure(prod5_lst):
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
     blank_image = np.zeros(geom.n_pixels)
 
     with pytest.raises(HillasParameterizationError):
@@ -88,7 +85,7 @@ def test_hillas_failure(prod5_lst):
 
 
 def test_hillas_masked_array(prod5_lst):
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
     image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
     image_zeros = image.copy()
@@ -102,30 +99,26 @@ def test_hillas_masked_array(prod5_lst):
 
 
 def test_hillas_container(prod5_lst):
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
     image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
     params = hillas_parameters(geom[clean_mask], image[clean_mask])
-    assert isinstance(params, CameraHillasParametersContainer)
-
-    geom_telescope_frame = geom.transform_to(TelescopeFrame())
-    params = hillas_parameters(geom_telescope_frame[clean_mask], image[clean_mask])
     assert isinstance(params, HillasParametersContainer)
 
 
 def test_with_toy(prod5_lst):
     rng = np.random.default_rng(42)
 
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
 
-    width = 0.03 * u.m
-    length = 0.15 * u.m
-    width_uncertainty = 0.00094 * u.m
-    length_uncertainty = 0.00465 * u.m
+    width = 0.06 * u.deg
+    length = 0.3 * u.deg
+    width_uncertainty = 0.0018 * u.deg
+    length_uncertainty = 0.0094 * u.deg
     intensity = 500
 
-    xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
-    ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
+    xs = u.Quantity([1, 1, -1, -1], u.deg)
+    ys = u.Quantity([1, -1, 1, -1], u.deg)
     psis = Angle([-90, -45, 0, 45, 90], unit="deg")
 
     for x, y in zip(xs, ys):
@@ -139,8 +132,8 @@ def test_with_toy(prod5_lst):
 
             result = hillas_parameters(geom, signal)
 
-            assert u.isclose(result.x, x, rtol=0.1)
-            assert u.isclose(result.y, y, rtol=0.1)
+            assert u.isclose(result.fov_lon, x, rtol=0.1)
+            assert u.isclose(result.fov_lat, y, rtol=0.1)
 
             assert u.isclose(result.width, width, rtol=0.1)
             assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=0.4)
@@ -156,14 +149,14 @@ def test_with_toy(prod5_lst):
 def test_skewness(prod5_lst):
     rng = np.random.default_rng(42)
 
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
 
-    width = 0.03 * u.m
-    length = 0.15 * u.m
+    width = 0.10 * u.deg
+    length = 0.3 * u.deg
     intensity = 2500
 
-    xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
-    ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
+    xs = u.Quantity([1, 1, -1, -1], u.deg)
+    ys = u.Quantity([1, -1, 1, -1], u.deg)
     psis = Angle([-90, -45, 0, 45, 90], unit="deg")
     skews = [0, 0.3, 0.6]
 
@@ -179,8 +172,8 @@ def test_skewness(prod5_lst):
 
         result = hillas_parameters(geom, signal)
 
-        assert u.isclose(result.x, x, rtol=0.1)
-        assert u.isclose(result.y, y, rtol=0.1)
+        assert u.isclose(result.fov_lon, x, rtol=0.1)
+        assert u.isclose(result.fov_lat, y, rtol=0.1)
 
         assert u.isclose(result.width, width, rtol=0.1)
         assert u.isclose(result.length, length, rtol=0.1)
@@ -203,7 +196,7 @@ def test_skewness(prod5_lst):
 def test_straight_line_width_0():
     """Test that hillas_parameters.width is 0 for a straight line of pixels"""
     # three pixels in a straight line
-    long = np.array([0, 1, 2]) * 0.01
+    long = np.array([0, 1, 2]) * 1.25
     trans = np.zeros(len(long))
     pix_id = np.arange(len(long))
 
@@ -218,10 +211,11 @@ def test_straight_line_width_0():
                 geom = CameraGeometry(
                     name="testcam",
                     pix_id=pix_id,
-                    pix_x=x * u.m,
-                    pix_y=y * u.m,
+                    pix_x=x * u.deg,
+                    pix_y=y * u.deg,
                     pix_type="hexagonal",
-                    pix_area=np.full(len(pix_id), 1.0) * u.m**2,
+                    pix_area=np.full(len(pix_id), 1.0) * u.deg**2,
+                    frame=TelescopeFrame(),
                 )
 
                 img = rng.poisson(5, size=len(long))
@@ -238,10 +232,11 @@ def test_single_pixel():
     geom = CameraGeometry(
         name="testcam",
         pix_id=np.arange(9),
-        pix_x=x.ravel() * u.cm,
-        pix_y=y.ravel() * u.cm,
+        pix_x=x.ravel() * u.deg,
+        pix_y=y.ravel() * u.deg,
         pix_type="rectangular",
-        pix_area=np.full(9, 1.0) * u.cm**2,
+        pix_area=np.full(9, 1.0) * u.deg**2,
+        frame=TelescopeFrame(),
     )
 
     image = np.zeros((3, 3))
@@ -316,82 +311,3 @@ def test_psi_uncertainty():
     assert np.isclose(
         hillas.psi_uncertainty.to_value(u.deg), 23.560635267712282, rtol=1e-05
     )
-
-
-def test_reconstruction_in_telescope_frame(prod5_lst):
-    """
-    Compare the reconstruction in the telescope
-    and camera frame.
-    """
-    np.random.seed(42)
-
-    geom = prod5_lst.camera.geometry
-    telescope_frame = TelescopeFrame()
-    camera_frame = geom.frame
-    geom_nom = geom.transform_to(telescope_frame)
-
-    width = 0.03 * u.m
-    length = 0.15 * u.m
-    intensity = 500
-
-    xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
-    ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
-    psis = Angle([-90, -45, 0, 45, 90], unit="deg")
-
-    def distance(coord):
-        return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
-
-    def get_transformed_length(telescope_hillas, telescope_frame, camera_frame):
-        main_edges = u.Quantity([-telescope_hillas.length, telescope_hillas.length])
-        main_lon = main_edges * np.cos(telescope_hillas.psi) + telescope_hillas.fov_lon
-        main_lat = main_edges * np.sin(telescope_hillas.psi) + telescope_hillas.fov_lat
-        cam_main_axis = SkyCoord(
-            fov_lon=main_lon, fov_lat=main_lat, frame=telescope_frame
-        ).transform_to(camera_frame)
-        transformed_length = distance(cam_main_axis)
-        return transformed_length
-
-    def get_transformed_width(telescope_hillas, telescope_frame, camera_frame):
-        secondary_edges = u.Quantity([-telescope_hillas.width, telescope_hillas.width])
-        secondary_lon = (
-            secondary_edges * np.cos(telescope_hillas.psi) + telescope_result.fov_lon
-        )
-        secondary_lat = (
-            secondary_edges * np.sin(telescope_hillas.psi) + telescope_result.fov_lat
-        )
-        cam_secondary_edges = SkyCoord(
-            fov_lon=secondary_lon, fov_lat=secondary_lat, frame=telescope_frame
-        ).transform_to(camera_frame)
-        transformed_width = distance(cam_secondary_edges)
-        return transformed_width
-
-    for x, y in zip(xs, ys):
-        for psi in psis:
-            # generate a toy image
-            model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
-            image, signal, noise = model.generate_image(
-                geom, intensity=intensity, nsb_level_pe=5
-            )
-
-            telescope_result = hillas_parameters(geom_nom, signal)
-            camera_result = hillas_parameters(geom, signal)
-            assert camera_result.intensity == telescope_result.intensity
-
-            # Compare results in both frames
-            transformed_cog = SkyCoord(
-                fov_lon=telescope_result.fov_lon,
-                fov_lat=telescope_result.fov_lat,
-                frame=telescope_frame,
-            ).transform_to(camera_frame)
-            assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
-            assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
-
-            transformed_length = get_transformed_length(
-                telescope_result, telescope_frame, camera_frame
-            )
-            assert u.isclose(transformed_length, camera_result.length, rtol=0.01)
-
-            transformed_width = get_transformed_width(
-                telescope_result, telescope_frame, camera_frame
-            )
-            assert u.isclose(transformed_width, camera_result.width, rtol=0.01)

@@ -24,6 +24,7 @@ from scipy.sparse.csgraph import connected_components
 from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import (
     ImageProcessor,
     camera_to_shower_coordinates,
@@ -202,7 +203,7 @@ event.dl1.tel.keys()
 tel_id = 130
 
 ######################################################################
-geometry = source.subarray.tel[tel_id].camera.geometry
+geometry = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
 dl1 = event.dl1.tel[tel_id]
 
 geometry, dl1
@@ -293,7 +294,7 @@ print(timing)
 
 ######################################################################
 long, trans = camera_to_shower_coordinates(
-    geometry.pix_x, geometry.pix_y, hillas.x, hillas.y, hillas.psi
+    geometry.pix_x, geometry.pix_y, hillas.fov_lon, hillas.fov_lat, hillas.psi
 )
 
 plt.plot(long[clean], dl1.peak_time[clean], "o")
@@ -539,6 +540,7 @@ for i in range(9):
     )
     image += new_image
 
+geometry = geometry.transform_to(TelescopeFrame())
 ######################################################################
 clean = tailcuts_clean(
     geometry,

@@ -136,10 +136,6 @@ class ProcessorTool(Tool):
             "store DL1/Event/Telescope muon parameters in output",
             "don't store DL1/Event/Telescope muon parameters in output",
         ),
-        "camera-frame": (
-            {"ImageProcessor": {"use_telescope_frame": False}},
-            "Use camera frame for image parameters instead of telescope frame",
-        ),
     }
 
     classes = (

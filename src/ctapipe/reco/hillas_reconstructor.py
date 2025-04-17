@@ -10,7 +10,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import AltAz, Longitude, SkyCoord, cartesian_to_spherical
 
-from ..containers import CameraHillasParametersContainer, ReconstructedGeometryContainer
+from ..containers import ReconstructedGeometryContainer
 from ..coordinates import (
     CameraFrame,
     MissingFrameAttributeWarning,
@@ -257,8 +257,6 @@ class HillasReconstructor(HillasGeometryReconstructor):
         az = np.empty(len(hillas_dict))
         tel_ids = np.empty(len(hillas_dict), dtype=int)
 
-        hillas_in_camera_frame = False
-
         for i, (tel_id, hillas) in enumerate(hillas_dict.items()):
             tel_ids[i] = tel_id
 
@@ -266,15 +264,9 @@ class HillasReconstructor(HillasGeometryReconstructor):
             alt[i] = pointing.altitude.to_value(u.rad)
             az[i] = pointing.azimuth.to_value(u.rad)
 
-            if isinstance(hillas, CameraHillasParametersContainer):
-                hillas_in_camera_frame = True
-                cog1[i] = hillas.x.to_value(u.m)
-                cog2[i] = hillas.y.to_value(u.m)
-                cam_radius[i] = self._cam_radius_m[tel_id]
-            else:
-                cog1[i] = hillas.fov_lon.to_value(u.deg)
-                cog2[i] = hillas.fov_lat.to_value(u.deg)
-                cam_radius[i] = self._cam_radius_deg[tel_id]
+            cog1[i] = hillas.fov_lon.to_value(u.deg)
+            cog2[i] = hillas.fov_lat.to_value(u.deg)
+            cam_radius[i] = self._cam_radius_deg[tel_id]
 
             psi[i] = hillas.psi.to_value(u.rad)
             weights[i] = hillas.intensity * hillas.length.value / hillas.width.value
@@ -288,25 +280,18 @@ class HillasReconstructor(HillasGeometryReconstructor):
         telescope_pointings = SkyCoord(alt=alt, az=az, unit=u.rad, frame=altaz)
 
         focal_length = u.Quantity(focal_length, u.m, copy=False)
-        camera_frame = CameraFrame(
-            telescope_pointing=telescope_pointings, focal_length=focal_length
-        )
 
         telescope_frame = TelescopeFrame(telescope_pointing=telescope_pointings)
 
         p2_1 = cog1 + 0.1 * cam_radius * np.cos(psi)
         p2_2 = cog2 + 0.1 * cam_radius * np.sin(psi)
 
-        if hillas_in_camera_frame:
-            cog_coord = SkyCoord(x=cog1, y=cog2, unit=u.m, frame=camera_frame)
-            p2_coord = SkyCoord(x=p2_1, y=p2_2, unit=u.m, frame=camera_frame)
-        else:
-            p2_coord = SkyCoord(
-                fov_lon=p2_1, fov_lat=p2_2, unit=u.deg, frame=telescope_frame
-            )
-            cog_coord = SkyCoord(
-                fov_lon=cog1, fov_lat=cog2, unit=u.deg, frame=telescope_frame
-            )
+        p2_coord = SkyCoord(
+            fov_lon=p2_1, fov_lat=p2_2, unit=u.deg, frame=telescope_frame
+        )
+        cog_coord = SkyCoord(
+            fov_lon=cog1, fov_lat=cog2, unit=u.deg, frame=telescope_frame
+        )
 
         cog_coord = cog_coord.transform_to(altaz)
         p2_coord = p2_coord.transform_to(altaz)

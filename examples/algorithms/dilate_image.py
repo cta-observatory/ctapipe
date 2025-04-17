@@ -13,20 +13,21 @@ import astropy.units as u
 # %matplotlib inline
 from matplotlib import pyplot as plt
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import dilate, tailcuts_clean, toymodel
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.visualization import CameraDisplay
 
 # Load a camera from an example file
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-geom = subarray.tel[100].camera.geometry
+geom = subarray.tel[100].camera.geometry.transform_to(TelescopeFrame())
 
 # Create a fake camera image to display:
 model = toymodel.Gaussian(
-    x=0.2 * u.m,
-    y=0.0 * u.m,
-    width=0.05 * u.m,
-    length=0.15 * u.m,
+    x=0.2 * u.deg,
+    y=0.0 * u.deg,
+    width=0.05 * u.deg,
+    length=0.15 * u.deg,
     psi="35d",
 )
 
