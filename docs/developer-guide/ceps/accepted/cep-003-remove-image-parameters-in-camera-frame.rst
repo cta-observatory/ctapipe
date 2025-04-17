@@ -4,9 +4,9 @@
 CEP 3 - Dropping Support for Image Parameters in CameraFrame
 ************************************************************
 
-* Status: proposed
+* Status: accepted-implemented
 * Discussion: DataPipe F2F Meeting and [`#2405 <https://github.com/cta-observatory/ctapipe/pull/2405>`__], ctapipe developer meeting 2023-11-24
-* Date accepted:
+* Date accepted: 2025-04-17
 * Last revised: 2023-09-22
 * Author: Maximilian Linhoff
 * Created: 2023-09-22
