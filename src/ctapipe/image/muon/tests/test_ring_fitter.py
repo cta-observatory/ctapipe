@@ -11,9 +11,19 @@ def test_MuonRingFitter_has_methods():
     assert len(MuonRingFitter.fit_method.values) >= 2
 
 
-@pytest.mark.parametrize("method", MuonRingFitter.fit_method.values)
-def test_MuonRingFitter(method, prod5_mst_flashcam):
+@pytest.mark.parametrize(
+    "method, ringAsymmetry_slope_x, ringAsymmetry_slope_y",
+    [
+        (MuonRingFitter.fit_method.values[0], 1.3, 1.3),
+        (MuonRingFitter.fit_method.values[1], 1.7, 1.7),
+        (MuonRingFitter.fit_method.values[2], 1.7, 1.7),
+    ],
+)
+def test_MuonRingFitter(
+    method, ringAsymmetry_slope_x, ringAsymmetry_slope_y, prod5_mst_flashcam
+):
     """test MuonRingFitter"""
+
     pytest.importorskip("iminuit")
 
     # flashCam example
@@ -21,8 +31,6 @@ def test_MuonRingFitter(method, prod5_mst_flashcam):
     center_ys = 0.6 * u.m
     radius = 0.3 * u.m
     width = 0.05 * u.m
-    ringAsymmetry_slope_x = 1.4
-    ringAsymmetry_slope_y = 0.0
 
     muon_model = toymodel.RingGaussian(
         x=center_xs,
