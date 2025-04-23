@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import traitlets as traits
 
 from ctapipe.containers import MuonRingContainer
@@ -67,11 +66,6 @@ class MuonRingFitter(Component):
             fov_lon, fov_lat, img, mask
         )
 
-        """temporary function to be removed"""
-        self.print_to_csv_lon_lat(
-            fov_lon, fov_lat, img, mask, radius, center_fov_lon, center_fov_lat
-        )
-
         return MuonRingContainer(
             center_fov_lon=center_fov_lon,
             center_fov_lat=center_fov_lat,
@@ -79,54 +73,3 @@ class MuonRingFitter(Component):
             center_phi=np.arctan2(center_fov_lat, center_fov_lon),
             center_distance=np.sqrt(center_fov_lon**2 + center_fov_lat**2),
         )
-
-    """temporary function to be removed"""
-
-    def print_to_csv_lon_lat(
-        self, fov_lon, fov_lat, img, mask, radius, center_fov_lon, center_fov_lat
-    ):
-        fov_lon_deg = fov_lon.to_value(unit=fov_lon.unit)
-        fov_lat_deg = fov_lat.to_value(unit=fov_lat.unit)
-        radius_fit = np.ones(len(fov_lat_deg)) * radius.to_value(unit=radius.unit)
-        center_fov_lon_fit = np.ones(len(fov_lat_deg)) * center_fov_lon.to_value(
-            unit=center_fov_lon.unit
-        )
-        center_fov_lat_fit = np.ones(len(fov_lat_deg)) * center_fov_lat.to_value(
-            unit=center_fov_lat.unit
-        )
-        print("FIT_COUNTER     = ", self.FIT_COUNTER)
-        print("radius          = ", radius)
-        print("center_fov_lon  = ", center_fov_lon)
-        print("center_fov_lat  = ", center_fov_lat)
-        csv_val_out = "./"
-        csv_val_out += str(self.FIT_COUNTER)
-        csv_val_out += ".csv"
-        pd.DataFrame(
-            np.column_stack(
-                (
-                    fov_lon_deg,
-                    fov_lat_deg,
-                    img,
-                    mask.astype(int),
-                    radius_fit,
-                    center_fov_lon_fit,
-                    center_fov_lat_fit,
-                )
-            ),
-            columns=[
-                "fov_lon",
-                "fov_lat",
-                "img",
-                "mask",
-                "radius_fit",
-                "center_fov_lon_fit",
-                "center_fov_lat_fit",
-            ],
-        ).to_csv(csv_val_out, sep=" ")
-        MuonRingFitter.increment()
-
-    """temporary function to be removed"""
-
-    @staticmethod
-    def increment():
-        MuonRingFitter.FIT_COUNTER += 1
