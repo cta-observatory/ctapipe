@@ -53,9 +53,12 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     return radius, center_x, center_y
 
 
-def taubin_circle_fit(x, y, mask):
+def taubin_circle_fit(
+    x, y, mask, weights=None, taubin_r_initial=None, xc_initial=None, yc_initial=None
+):
     """
     reference : Barcelona_Muons_TPA_final.pdf (slide 6)
+    updated with weight
 
     Parameters
     ----------
@@ -65,6 +68,10 @@ def taubin_circle_fit(x, y, mask):
         y coordinates of the points
     mask: array-like boolean
         true for pixels surviving the cleaning
+    weights: array-like float
+    taubin_r_initial: astropy quantity - initial r
+    xc_initial: astropy quantity - initial xc (center of the ring)
+    yc_initial: astropy quantity - initial yc (center of the ring)
     """
     if Minuit is None:
         raise OptionalDependencyMissing("iminuit")
@@ -75,16 +82,25 @@ def taubin_circle_fit(x, y, mask):
     x_masked = x[mask]
     y_masked = y[mask]
 
-    R = x.max()  # x.max() just happens to be identical with R in many cases.
+    if weights is None:
+        weights_masked = np.ones(len(x_masked))
+    else:
+        weights_masked = weights[mask]
 
-    taubin_r_initial = R / 2
+    R = x.max()  # x.max() just happens to be identical with R in many cases.
+    if taubin_r_initial is None or xc_initial is None or yc_initial is None:
+        taubin_r_initial = Quantity(R / 2, original_unit)
+        xc_initial = Quantity(0, original_unit)
+        yc_initial = Quantity(0, original_unit)
+
     taubin_error = R * 0.1
-    xc = 0
-    yc = 0
 
     # minimization method
     fit = Minuit(
-        make_taubin_loss_function(x_masked, y_masked), xc=xc, yc=yc, r=taubin_r_initial
+        make_taubin_loss_function(x_masked, y_masked, weights_masked),
+        xc=xc_initial.to_value(original_unit),
+        yc=yc_initial.to_value(original_unit),
+        r=taubin_r_initial.to_value(original_unit),
     )
     fit.errordef = Minuit.LEAST_SQUARES
 
@@ -105,7 +121,7 @@ def taubin_circle_fit(x, y, mask):
     return radius, center_x, center_y
 
 
-def make_taubin_loss_function(x, y):
+def make_taubin_loss_function(x, y, w):
     """closure around taubin_loss_function to make
     surviving pixel positions availaboe inside.
 
@@ -117,9 +133,9 @@ def make_taubin_loss_function(x, y):
         """taubin fit formula
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
         """
-        upper_term = (((x - xc) ** 2 + (y - yc) ** 2 - r**2) ** 2).sum()
+        upper_term = ((w * ((x - xc) ** 2 + (y - yc) ** 2 - r**2)) ** 2).sum()
 
-        lower_term = ((x - xc) ** 2 + (y - yc) ** 2).sum()
+        lower_term = (w * ((x - xc) ** 2 + (y - yc) ** 2)).sum()
 
         return np.abs(upper_term) / np.abs(lower_term)
 
