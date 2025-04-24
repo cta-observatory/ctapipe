@@ -378,14 +378,26 @@ class RingGaussian(ImageModel):
     Simplified model for a muon ring. With asymmetry in both the x and y directions.
     """
 
-    def __init__(self, x, y, radius, sigma, asymmetry_slope_x=0, asymmetry_slope_y=0):
+    def __init__(
+        self,
+        x,
+        y,
+        radius,
+        sigma,
+        asymmetry_magnitude=0,
+        asymmetry_orientation_angle_deg=0,
+    ):
         self.unit = x.unit
         self.x = x
         self.y = y
         self.sigma = sigma
         self.radius = radius
-        self.asymmetry_slope_x = asymmetry_slope_x
-        self.asymmetry_slope_y = asymmetry_slope_y
+        self.asymmetry_slope_x = asymmetry_magnitude * np.cos(
+            np.deg2rad(asymmetry_orientation_angle_deg)
+        )
+        self.asymmetry_slope_y = asymmetry_magnitude * np.sin(
+            np.deg2rad(asymmetry_orientation_angle_deg)
+        )
         self.dist = norm(
             self.radius.to_value(self.unit), self.sigma.to_value(self.unit)
         )
