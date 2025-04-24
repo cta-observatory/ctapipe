@@ -51,7 +51,7 @@ class MuonRingFitter(Component):
 
     fit_method = traits.CaselessStrEnum(
         list(FIT_METHOD_BY_NAME.keys()),
-        default_value=kundu_chaudhuri_taubin,
+        default_value="kundu_chaudhuri_taubin",
     ).tag(config=True)
 
     def __call__(self, fov_lon, fov_lat, img, mask):
