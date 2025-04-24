@@ -54,25 +54,55 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
 
 
 def taubin_circle_fit(
-    x, y, mask, weights=None, taubin_r_initial=None, xc_initial=None, yc_initial=None
+    x, y, mask, weights=None, r_initial=None, xc_initial=None, yc_initial=None
 ):
     """
-    reference : Barcelona_Muons_TPA_final.pdf (slide 6)
-    updated with weight
+    Perform a Taubin circle fit with weights (optional).
+    The minimized loss function in this method tends to
+    maximize the radius of the ring, whereas using a simple
+    ring equation systematically results in a smaller radius.
+    Adding weights mitigates both effects and yields a more accurate fit.
 
     Parameters
     ----------
-    x: array-like or astropy quantity
-        x coordinates of the points
-    y: array-like or astropy quantity
-        y coordinates of the points
-    mask: array-like boolean
-        true for pixels surviving the cleaning
-    weights: array-like float
-    taubin_r_initial: astropy quantity - initial r
-    xc_initial: astropy quantity - initial xc (center of the ring)
-    yc_initial: astropy quantity - initial yc (center of the ring)
+    x : array-like or astropy.units.Quantity
+        x-coordinates of the points.
+    y : array-like or astropy.units.Quantity
+        y-coordinates of the points.
+    mask : array-like of bool
+        Boolean mask indicating which pixels survive the cleaning process.
+    weights : array-like of float, optional
+        Weights for the points. If not provided, all points are assigned equal weights (1).
+    r_initial : astropy.units.Quantity, optional
+        Initial guess for the radius of the circle. If not provided, it defaults to 1.1 deg.
+        1.1 deg. is the approximate Cherenkov photon angle produced by muons in the atmosphere
+        at La Palma altitude (2426 m a.s.l.), with momentum greater than 15 GeV.
+    xc_initial : astropy.units.Quantity, optional
+        Initial guess for the x-coordinate of the circle center. Defaults to 0.
+    yc_initial : astropy.units.Quantity, optional
+        Initial guess for the y-coordinate of the circle center. Defaults to 0.
+    Returns
+    -------
+    radius : astropy.units.Quantity
+        Fitted radius of the circle.
+    center_x : astropy.units.Quantity
+        Fitted x-coordinate of the circle center.
+    center_y : astropy.units.Quantity
+        Fitted y-coordinate of the circle center.
+    Raises
+    ------
+    OptionalDependencyMissing
+        If the `iminuit` package is not installed.
+    Notes
+    -----
+    The Taubin circle fit minimizes a specific loss function that balances the
+    squared residuals of the points from the circle with the weights. This method
+    is particularly useful for fitting circles to noisy data.
+    References
+    ----------
+    - Barcelona_Muons_TPA_final.pdf (slide 6)
     """
+
     if Minuit is None:
         raise OptionalDependencyMissing("iminuit")
 
@@ -87,30 +117,31 @@ def taubin_circle_fit(
     else:
         weights_masked = weights[mask]
 
-    R = x.max()  # x.max() just happens to be identical with R in many cases.
-    if taubin_r_initial is None or xc_initial is None or yc_initial is None:
-        taubin_r_initial = Quantity(R / 2, original_unit)
-        xc_initial = Quantity(0, original_unit)
-        yc_initial = Quantity(0, original_unit)
-
-    taubin_error = R * 0.1
+    r_initial = 1.1 * original_unit if r_initial is None else r_initial
+    xc_initial = 0 * original_unit if xc_initial is None else xc_initial
+    yc_initial = 0 * original_unit if yc_initial is None else yc_initial
 
     # minimization method
     fit = Minuit(
         make_taubin_loss_function(x_masked, y_masked, weights_masked),
         xc=xc_initial.to_value(original_unit),
         yc=yc_initial.to_value(original_unit),
-        r=taubin_r_initial.to_value(original_unit),
+        r=r_initial.to_value(original_unit),
     )
     fit.errordef = Minuit.LEAST_SQUARES
 
+    max_fov = x.max()
+
+    # set initial parameters uncertainty to a big value
+    taubin_error = max_fov * 0.1
     fit.errors["xc"] = taubin_error
     fit.errors["yc"] = taubin_error
     fit.errors["r"] = taubin_error
 
-    fit.limits["xc"] = (-2 * R, 2 * R)
-    fit.limits["yc"] = (-2 * R, 2 * R)
-    fit.limits["r"] = (0, R)
+    # set wide rage for the minimisation
+    fit.limits["xc"] = (-2 * max_fov, 2 * max_fov)
+    fit.limits["yc"] = (-2 * max_fov, 2 * max_fov)
+    fit.limits["r"] = (0, 2 * max_fov)
 
     fit.migrad()
 
@@ -127,6 +158,7 @@ def make_taubin_loss_function(x, y, w):
 
     x, y: positions of pixels surviving the cleaning
         should not be quantities
+    w : array-like of float, weights for the points
     """
 
     def taubin_loss_function(xc, yc, r):
