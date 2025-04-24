@@ -410,7 +410,8 @@ class RingGaussian(ImageModel):
         Parameters
         ----------
         var : u.Quantity[length, shape(n, )]
-              A random variable with a linearly increasing or decreasing probability density function.
+              A random variable with a linearly increasing or decreasing probability
+              density function.
         linear_slope: linear slope
 
         Returns
@@ -423,7 +424,7 @@ class RingGaussian(ImageModel):
             return 1
 
         if len(var) < 2:
-            return 0
+            raise ValueError("The var array is too short.")
 
         min_var = np.nanmin(var)
         max_var = np.nanmax(var)
