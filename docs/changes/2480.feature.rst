@@ -1,3 +1,0 @@
-The muon ring fitter needs to be improved.
-The existing toy tests for muons are overly simplified.
-Realistic simulations reveal significant discrepancies between the true ring and the fitted result.
