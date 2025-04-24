@@ -165,9 +165,10 @@ def make_taubin_loss_function(x, y, w):
         """taubin fit formula
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
         """
-        upper_term = ((w * ((x - xc) ** 2 + (y - yc) ** 2 - r**2)) ** 2).sum()
 
-        lower_term = (w * ((x - xc) ** 2 + (y - yc) ** 2)).sum()
+        distance_squared = (x - xc) ** 2 + (y - yc) ** 2
+        upper_term = ((w * (distance_squared - r**2)) ** 2).sum()
+        lower_term = (w * distance_squared).sum()
 
         return np.abs(upper_term) / np.abs(lower_term)
 
