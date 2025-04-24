@@ -25,7 +25,6 @@ def taubin(fov_lon, fov_lat, weights, mask):
 def kundu_chaudhuri_taubin(fov_lon, fov_lat, weights, mask):
     """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface
     with initial parameters provided by kundu_chaudhuri"""
-    print("kundu_chaudhuri_taubin")
     taubin_r_initial, xc_initial, yc_initial = kundu_chaudhuri(
         fov_lon, fov_lat, weights, mask
     )
@@ -50,11 +49,9 @@ __all__ = ["MuonRingFitter"]
 class MuonRingFitter(Component):
     """Different ring fit algorithms for muon rings"""
 
-    FIT_COUNTER = 0
-
     fit_method = traits.CaselessStrEnum(
         list(FIT_METHOD_BY_NAME.keys()),
-        default_value=list(FIT_METHOD_BY_NAME.keys())[2],
+        default_value=kundu_chaudhuri_taubin,
     ).tag(config=True)
 
     def __call__(self, fov_lon, fov_lat, img, mask):
