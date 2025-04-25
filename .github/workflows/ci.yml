@@ -103,6 +103,12 @@ jobs:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data-desy
 
+      - name: cache astropy data
+        uses: actions/cache@v4
+        with:
+          path: ~/.astropy/cache
+          key: astropy-cache
+
       - name: Prepare mamba installation
         if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
