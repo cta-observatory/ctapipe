@@ -385,7 +385,7 @@ class RingGaussian(ImageModel):
         radius,
         sigma,
         asymmetry_magnitude=0,
-        asymmetry_orientation_angle_deg=0,
+        asymmetry_orientation_angle_deg=0 * u.rad,
     ):
         self.unit = x.unit
         self.x = x
@@ -438,11 +438,11 @@ class RingGaussian(ImageModel):
         if len(var) < 2:
             raise ValueError("The var array is too short.")
 
-        min_var = np.nanmin(var)
-        max_var = np.nanmax(var)
-
         if np.isnan(var).any():
             raise ValueError("array contains nans.")
+
+        min_var = np.nanmin(var)
+        max_var = np.nanmax(var)
 
         delta_var = (max_var - min_var).to_value(self.unit)
         mean_var = (max_var + min_var).to_value(self.unit) / 2
