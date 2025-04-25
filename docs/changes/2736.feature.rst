@@ -1,0 +1,18 @@
+Fix units (absence of) for skewness and excess kurtosis in muon analysis
+
+Motivation:
+The muon ring fitter needs to be improved.
+The existing toy tests for muons are overly simplified.
+
+Changes:
+1) Upgrade the taubin_circle_fit with weights to avoid bias toward rings with larger radii.
+Additionally, the function may use the defined initial parameters (xc, yc, R): center (xc, yc) and radius R of the fitted circle).
+The function is backward compatible.
+
+2) Add a combined ring fitting method (kundu_chaudhuri_taubin)
+We use the Chaudhuri-Kundu formula to calculate the initial muon ring parameters and feed them into the modified Taubin fit with weights.
+
+3) Updated the test with an additional fitting method, each method is tested separately. Enhance the toy model for muon ring simulation by incorporating user-defined asymmetry in both the x and y directions. Updating the muon ring fitter test to include ring asymmetry. It is noticeable that a ring with less asymmetry can still be fitted using the Chaudhuri-Kundu method (not a true fit), while a ring with larger asymmetry can only be accurately fitted using the updated Taubin circle fit and the newly introduced method.
+A ring fitter testfunction is backward compatible.
+
+4) Removing the support functions. Please ignore them while reviewing the code.
