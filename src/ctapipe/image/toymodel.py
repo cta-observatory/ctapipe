@@ -441,6 +441,9 @@ class RingGaussian(ImageModel):
         min_var = np.nanmin(var)
         max_var = np.nanmax(var)
 
+        if np.isnan(var).any():
+            raise ValueError("array contains nans.")
+
         delta_var = (max_var - min_var).to_value(self.unit)
         mean_var = (max_var + min_var).to_value(self.unit) / 2
         d_var = delta_var / (len(var) - 1)
