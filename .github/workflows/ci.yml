@@ -103,6 +103,10 @@ jobs:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data-desy
 
+      - name: check cache
+        run: |
+          find ~/.cache/ctapipe -type f
+
       - name: Prepare mamba installation
         if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
