@@ -113,7 +113,7 @@ def taubin_circle_fit(
     x_masked = x[mask]
     y_masked = y[mask]
 
-    max_fov = x.max()
+    max_fov = 2 * x.max()
 
     if weights is None:
         weights_masked = np.ones(len(x_masked))
@@ -123,7 +123,7 @@ def taubin_circle_fit(
     if original_unit == u.deg:
         r_initial = 1.1 * original_unit if r_initial is None else r_initial
     else:
-        r_initial = max_fov / 2.0 * original_unit if r_initial is None else r_initial
+        r_initial = max_fov / 4.0 * original_unit if r_initial is None else r_initial
 
     xc_initial = 0 * original_unit if xc_initial is None else xc_initial
     yc_initial = 0 * original_unit if yc_initial is None else yc_initial
@@ -144,9 +144,9 @@ def taubin_circle_fit(
     fit.errors["r"] = taubin_error
 
     # set wide rage for the minimisation
-    fit.limits["xc"] = (-2 * max_fov, 2 * max_fov)
-    fit.limits["yc"] = (-2 * max_fov, 2 * max_fov)
-    fit.limits["r"] = (0, 2 * max_fov)
+    fit.limits["xc"] = (-max_fov, max_fov)
+    fit.limits["yc"] = (-max_fov, max_fov)
+    fit.limits["r"] = (0, max_fov)
 
     fit.migrad()
 
