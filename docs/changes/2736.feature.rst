@@ -1,4 +1,4 @@
-The muon ring fitter needs to be improved.
+The algorithms for muon ring fitting have been improved
 
 - Upgrade the taubin_circle_fit with weights to avoid bias toward rings with larger radii.
 - the function may use the defined initial parameters : ring center and radius
