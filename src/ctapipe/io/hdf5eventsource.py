@@ -773,6 +773,10 @@ class HDF5EventSource(EventSource):
         obs_id = event.index.obs_id
         ob = self.observation_blocks[obs_id]
         frame = ob.subarray_pointing_frame
+
+        if np.isnan(ob.subarray_pointing_lon) or np.isnan(ob.subarray_pointing_lat):
+            return
+
         if frame is CoordinateFrameType.ALTAZ:
             event.pointing.array_azimuth = ob.subarray_pointing_lon
             event.pointing.array_altitude = ob.subarray_pointing_lat
