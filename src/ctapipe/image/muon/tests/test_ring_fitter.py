@@ -12,15 +12,18 @@ def test_MuonRingFitter_has_methods():
 
 
 @pytest.mark.parametrize(
-    "method, ringAsymmetry_slope_x, ringAsymmetry_slope_y",
+    "method, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle_deg",
     [
-        (MuonRingFitter.fit_method.values[0], 1.3, 1.3),
-        (MuonRingFitter.fit_method.values[1], 1.7, 1.7),
-        (MuonRingFitter.fit_method.values[2], 1.7, 1.7),
+        (MuonRingFitter.fit_method.values[0], 1.3, 90 * u.deg),
+        (MuonRingFitter.fit_method.values[1], 1.7, 90 * u.deg),
+        (MuonRingFitter.fit_method.values[2], 1.7, 90 * u.deg),
     ],
 )
 def test_MuonRingFitter(
-    method, ringAsymmetry_slope_x, ringAsymmetry_slope_y, prod5_mst_flashcam
+    method,
+    ring_asymmetry_magnitude,
+    ring_asymmetry_orientation_angle_deg,
+    prod5_mst_flashcam,
 ):
     """test MuonRingFitter"""
 
@@ -37,8 +40,8 @@ def test_MuonRingFitter(
         y=center_ys,
         radius=radius,
         sigma=width,
-        asymmetry_slope_x=ringAsymmetry_slope_x,
-        asymmetry_slope_y=ringAsymmetry_slope_y,
+        asymmetry_magnitude=ring_asymmetry_magnitude,
+        asymmetry_orientation_angle_deg=ring_asymmetry_orientation_angle_deg,
     )
 
     # testing with flashcam
