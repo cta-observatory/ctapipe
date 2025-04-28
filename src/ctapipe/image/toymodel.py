@@ -408,14 +408,14 @@ class RingGaussian(ImageModel):
         uniform_ring_pdf = self.dist.pdf(r)
         asymmetric_ring_pdf = (
             uniform_ring_pdf
-            * self.linear_pdf(x, self.asymmetry_slope_x)
-            * self.linear_pdf(y, self.asymmetry_slope_y)
+            * self.linear_pdf(x, self.x, self.asymmetry_slope_x)
+            * self.linear_pdf(y, self.y, self.asymmetry_slope_y)
         )
         return (
             asymmetric_ring_pdf / np.sum(asymmetric_ring_pdf) * np.sum(uniform_ring_pdf)
         )
 
-    def linear_pdf(self, var, linear_slope=0):
+    def linear_pdf(self, var, var_shift, linear_slope=0):
         """This is a function that generates a probability density
         function (pdf) with a linear increase/decrease and a given slope in 1D.
 
@@ -425,6 +425,7 @@ class RingGaussian(ImageModel):
               A random variable with a linearly increasing or decreasing probability
               density function.
         linear_slope: linear slope
+        var_shift: Allow the PDF to have a shift.
 
         Returns
         -------
@@ -448,7 +449,11 @@ class RingGaussian(ImageModel):
         mean_var = (max_var + min_var).to_value(self.unit) / 2
         d_var = delta_var / (len(var) - 1)
 
-        intercept = 1 / delta_var - mean_var * linear_slope
+        intercept = (
+            1 / delta_var
+            - mean_var * linear_slope
+            - var_shift.to_value(self.unit) * linear_slope
+        )
 
         pdf = linear_slope * var.to_value(self.unit) + intercept
         pdf = np.nan_to_num(pdf, nan=0.0)
