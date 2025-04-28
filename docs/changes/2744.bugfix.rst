@@ -1,2 +1,0 @@
-Fix ``HDF5EventSource`` raising an exception in case of missing
-subarray pointing in the input file.

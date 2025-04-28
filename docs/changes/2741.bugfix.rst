@@ -1,2 +1,0 @@
-Fallback to "Unknown User" in case no username is available
-from the system for provenance.
