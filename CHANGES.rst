@@ -1,3 +1,16 @@
+ctapipe 0.25.1 (2025-04-28)
+===========================
+
+Bug Fixes
+---------
+
+- Fallback to "Unknown User" in case no username is available
+  from the system for provenance. [`#2741 <https://github.com/cta-observatory/ctapipe/pull/2741>`__]
+
+- Fix ``HDF5EventSource`` raising an exception in case of missing
+  subarray pointing in the input file. [`#2744 <https://github.com/cta-observatory/ctapipe/pull/2744>`__]
+
+
 ctapipe 0.25.0 (2025-04-16)
 ===========================
 
