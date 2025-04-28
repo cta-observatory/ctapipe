@@ -1,4 +1,5 @@
 import astropy.units as u
+import numpy as np
 import pytest
 
 from ctapipe.image import tailcuts_clean, toymodel
@@ -12,28 +13,167 @@ def test_MuonRingFitter_has_methods():
 
 
 @pytest.mark.parametrize(
-    "method, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle_deg",
+    "geom_optics_name, method, center_x_deg, center_y_deg, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle_deg",
     [
-        (MuonRingFitter.fit_method.values[0], 1.3, 90 * u.deg),
-        (MuonRingFitter.fit_method.values[1], 1.7, 90 * u.deg),
-        (MuonRingFitter.fit_method.values[2], 1.7, 90 * u.deg),
+        (
+            "LSTCam",
+            MuonRingFitter.fit_method.values[0],
+            -0.3 * u.deg,
+            0.4 * u.deg,
+            1.1,
+            45 * u.deg,
+        ),
+        (
+            "LSTCam",
+            MuonRingFitter.fit_method.values[1],
+            -0.3 * u.deg,
+            0.4 * u.deg,
+            1.4,
+            45 * u.deg,
+        ),
+        (
+            "LSTCam",
+            MuonRingFitter.fit_method.values[2],
+            -0.3 * u.deg,
+            0.4 * u.deg,
+            1.4,
+            45 * u.deg,
+        ),
+        (
+            "FlashCam",
+            MuonRingFitter.fit_method.values[0],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.1,
+            45 * u.deg,
+        ),
+        (
+            "FlashCam",
+            MuonRingFitter.fit_method.values[1],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+        ),
+        (
+            "FlashCam",
+            MuonRingFitter.fit_method.values[2],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+        ),
+        (
+            "NectarCam",
+            MuonRingFitter.fit_method.values[0],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.1,
+            45 * u.deg,
+        ),
+        (
+            "NectarCam",
+            MuonRingFitter.fit_method.values[1],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+        ),
+        (
+            "NectarCam",
+            MuonRingFitter.fit_method.values[2],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+        ),
+        (
+            "CHEC",
+            MuonRingFitter.fit_method.values[0],
+            -2.5 * u.deg,
+            1.3 * u.deg,
+            1.1,
+            45 * u.deg,
+        ),
+        (
+            "CHEC",
+            MuonRingFitter.fit_method.values[1],
+            -2.5 * u.deg,
+            1.3 * u.deg,
+            1.1,
+            45 * u.deg,
+        ),
+        (
+            "CHEC",
+            MuonRingFitter.fit_method.values[2],
+            -2.5 * u.deg,
+            1.3 * u.deg,
+            1.1,
+            45 * u.deg,
+        ),
     ],
 )
 def test_MuonRingFitter(
+    geom_optics_name,
     method,
+    center_x_deg,
+    center_y_deg,
     ring_asymmetry_magnitude,
     ring_asymmetry_orientation_angle_deg,
+    prod5_lst,
     prod5_mst_flashcam,
+    prod5_mst_nectarcam,
+    prod5_sst,
 ):
     """test MuonRingFitter"""
 
     pytest.importorskip("iminuit")
 
-    # flashCam example
-    center_xs = 0.3 * u.m
-    center_ys = 0.6 * u.m
-    radius = 0.3 * u.m
-    width = 0.05 * u.m
+    intensity = 750
+    nsb_level_pe = 3
+    picture_thresh = 7
+    boundary_thresh = 5
+
+    if geom_optics_name == "LSTCam":
+        geom = prod5_lst.camera.geometry
+        optics = prod5_lst.optics
+        intensity = 750
+        nsb_level_pe = 3
+        picture_thresh = 7
+        boundary_thresh = 5
+    elif geom_optics_name == "FlashCam":
+        geom = prod5_mst_flashcam.camera.geometry
+        optics = prod5_mst_flashcam.optics
+        intensity = 400
+        nsb_level_pe = 2
+        picture_thresh = 7
+        boundary_thresh = 5
+    elif geom_optics_name == "NectarCam":
+        geom = prod5_mst_nectarcam.camera.geometry
+        optics = prod5_mst_nectarcam.optics
+        intensity = 400
+        nsb_level_pe = 2
+        picture_thresh = 7
+        boundary_thresh = 5
+    elif geom_optics_name == "CHEC":
+        geom = prod5_sst.camera.geometry
+        optics = prod5_sst.optics
+        intensity = 500
+        nsb_level_pe = 0
+        picture_thresh = 2
+        boundary_thresh = 1
+    else:
+        geom = prod5_lst.camera.geometry
+        optics = prod5_lst.optics
+        intensity = 750
+        nsb_level_pe = 3
+        picture_thresh = 7
+        boundary_thresh = 5
+
+    center_xs = optics.effective_focal_length * np.tan(center_x_deg.to_value(u.rad))
+    center_ys = optics.effective_focal_length * np.tan(center_y_deg.to_value(u.rad))
+    radius = optics.effective_focal_length * np.tan((1.1 * u.deg).to_value(u.rad))
+    width = 0.07 * radius
 
     muon_model = toymodel.RingGaussian(
         x=center_xs,
@@ -44,14 +184,12 @@ def test_MuonRingFitter(
         asymmetry_orientation_angle_deg=ring_asymmetry_orientation_angle_deg,
     )
 
-    # testing with flashcam
-    geom = prod5_mst_flashcam.camera.geometry
     charge, _, _ = muon_model.generate_image(
         geom,
-        intensity=1000,
-        nsb_level_pe=5,
+        intensity=intensity,
+        nsb_level_pe=nsb_level_pe,
     )
-    survivors = tailcuts_clean(geom, charge, 10, 12)
+    survivors = tailcuts_clean(geom, charge, picture_thresh, boundary_thresh)
 
     muonfit = MuonRingFitter(fit_method=method)
     fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
@@ -59,6 +197,6 @@ def test_MuonRingFitter(
     print(fit_result)
     print(center_xs, center_ys, radius)
 
-    assert u.isclose(fit_result.center_fov_lon, center_xs, 5e-2)
-    assert u.isclose(fit_result.center_fov_lat, center_ys, 5e-2)
-    assert u.isclose(fit_result.radius, radius, 5e-2)
+    assert u.isclose(fit_result.center_fov_lon, center_xs, atol=(5e-2 * u.m))
+    assert u.isclose(fit_result.center_fov_lat, center_ys, atol=(5e-2 * u.m))
+    assert u.isclose(fit_result.radius, radius, atol=(5e-2 * u.m))
