@@ -130,7 +130,7 @@ def taubin_circle_fit(
 
     # minimization method
     fit = Minuit(
-        make_taubin_loss_function(x_masked, y_masked, weights_masked),
+        make_loss_function(x_masked, y_masked, weights_masked),
         xc=xc_initial.to_value(original_unit),
         yc=yc_initial.to_value(original_unit),
         r=r_initial.to_value(original_unit),
@@ -157,7 +157,7 @@ def taubin_circle_fit(
     return radius, center_x, center_y
 
 
-def make_taubin_loss_function(x, y, w):
+def make_loss_function(x, y, w, taubin_loss_switch=True):
     """closure around taubin_loss_function to make
     surviving pixel positions availaboe inside.
 
@@ -177,4 +177,23 @@ def make_taubin_loss_function(x, y, w):
 
         return np.abs(upper_term) / np.abs(lower_term)
 
-    return taubin_loss_function
+    def loss_function(xc, yc, r):
+        """
+        The loss function is based on the circle formula with regularization.
+        """
+
+        # Regularization_par : Regularization parameter to penalize (less then -1)
+        # larger radii or to favor larger radii (more then -1).
+        regularization_par = -0.8
+
+        delta_distance_squared = w * ((x - xc) ** 2 + (y - yc) ** 2 - r**2)
+        return np.where(
+            delta_distance_squared < 0,
+            delta_distance_squared * regularization_par,
+            delta_distance_squared,
+        ).sum()
+
+    if taubin_loss_switch:
+        return taubin_loss_function
+    else:
+        return loss_function
