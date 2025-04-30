@@ -14,9 +14,7 @@ from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 
 def kundu_chaudhuri(fov_lon, fov_lat, weights, mask):
     """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface"""
-    return kundu_chaudhuri_circle_fit(
-        fov_lon[mask], fov_lat[mask], weights[mask], dummy_errors_flag=False
-    )
+    return kundu_chaudhuri_circle_fit(fov_lon[mask], fov_lat[mask], weights[mask])
 
 
 def taubin(fov_lon, fov_lat, weights, mask):
@@ -27,8 +25,8 @@ def taubin(fov_lon, fov_lat, weights, mask):
 def kundu_chaudhuri_taubin(fov_lon, fov_lat, weights, mask):
     """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface
     with initial parameters provided by kundu_chaudhuri"""
-    taubin_r_initial, xc_initial, yc_initial, _, _, _ = kundu_chaudhuri(
-        fov_lon, fov_lat, weights, mask
+    taubin_r_initial, xc_initial, yc_initial, _, _, _ = kundu_chaudhuri_circle_fit(
+        fov_lon[mask], fov_lat[mask], weights[mask], dummy_errors_flag=True
     )
     return taubin_circle_fit(
         fov_lon,
