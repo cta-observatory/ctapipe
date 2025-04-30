@@ -13,7 +13,7 @@ except ModuleNotFoundError:
     Minuit = None
 
 
-def kundu_chaudhuri_circle_fit(x, y, weights, dummy_errors_flag=False):
+def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
     """
     Fast and reliable analytical circle fitting method previously used
     in the H.E.S.S. experiment for muon identification
@@ -65,7 +65,7 @@ def kundu_chaudhuri_circle_fit(x, y, weights, dummy_errors_flag=False):
         np.sum(weights * ((center_x - x) ** 2 + (center_y - y) ** 2)) / weights_sum
     )
 
-    if dummy_errors_flag:
+    if nan_errors_flag:
         radius_err = np.nan
         center_x_err = np.nan
         center_y_err = np.nan
