@@ -12,7 +12,7 @@ from ctapipe.core.traits import Bool, Integer, List, Path, classes_with_traits, 
 from ctapipe.io import HDF5Merger, TableLoader, write_table
 from ctapipe.io.astropy_helpers import join_allow_empty, read_table
 from ctapipe.io.tableio import TelListToMaskTransform
-from ctapipe.reco import Reconstructor
+from ctapipe.reco.sklearn import SKLearnReconstructor
 
 __all__ = [
     "ApplyModels",
@@ -127,7 +127,7 @@ class ApplyModels(Tool):
         ),
     }
 
-    classes = [TableLoader] + classes_with_traits(Reconstructor)
+    classes = [TableLoader] + classes_with_traits(SKLearnReconstructor)
 
     def setup(self):
         """
@@ -149,7 +149,9 @@ class ApplyModels(Tool):
 
         self._reconstructors = []
         for path in self.reconstructor_paths:
-            r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            r = SKLearnReconstructor.read(
+                path, parent=self, subarray=self.loader.subarray
+            )
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
             self._reconstructors.append(r)
