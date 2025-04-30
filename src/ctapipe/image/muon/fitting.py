@@ -66,9 +66,9 @@ def kundu_chaudhuri_circle_fit(x, y, weights, dummy_errors_flag=False):
     )
 
     if dummy_errors_flag:
-        radius_err = radius * 0.07
-        center_x_err = radius_err * 2
-        center_y_err = radius_err * 2
+        radius_err = np.nan
+        center_x_err = np.nan
+        center_y_err = np.nan
     else:
         radius_err, center_x_err, center_y_err = naive_circle_fit_error_calculator(
             x, y, weights, radius, center_x, center_y
