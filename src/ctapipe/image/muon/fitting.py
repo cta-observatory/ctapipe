@@ -28,6 +28,20 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
         y coordinates of the points
     weights: array-like
         weights of the points
+    Returns
+    -------
+    radius : astropy.units.Quantity
+        Fitted radius of the circle.
+    center_x : astropy.units.Quantity
+        Fitted x-coordinate of the circle center.
+    center_y : astropy.units.Quantity
+        Fitted y-coordinate of the circle center.
+    radius_err : astropy.units.Quantity
+        Fitted radius of the circle error.
+    center_x_err : astropy.units.Quantity
+        Fitted x-coordinate of the circle center error.
+    center_y_err : astropy.units.Quantity
+        Fitted y-coordinate of the circle center error.
 
     """
 
@@ -51,7 +65,11 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
         np.sum(weights * ((center_x - x) ** 2 + (center_y - y) ** 2)) / weights_sum
     )
 
-    return radius, center_x, center_y
+    radius_err, center_x_err, center_y_err = naive_circle_fit_error_calculator(
+        x, y, weights, radius, center_x, center_y
+    )
+
+    return radius, center_x, center_y, radius_err, center_x_err, center_y_err
 
 
 def taubin_circle_fit(
@@ -90,6 +108,13 @@ def taubin_circle_fit(
         Fitted x-coordinate of the circle center.
     center_y : astropy.units.Quantity
         Fitted y-coordinate of the circle center.
+    radius_err : astropy.units.Quantity
+        Fitted radius of the circle error.
+    center_x_err : astropy.units.Quantity
+        Fitted x-coordinate of the circle center error.
+    center_y_err : astropy.units.Quantity
+        Fitted y-coordinate of the circle center error.
+
     Raises
     ------
     OptionalDependencyMissing
@@ -153,8 +178,11 @@ def taubin_circle_fit(
     radius = Quantity(fit.values["r"], original_unit)
     center_x = Quantity(fit.values["xc"], original_unit)
     center_y = Quantity(fit.values["yc"], original_unit)
+    radius_err = Quantity(fit.errors["r"], original_unit)
+    center_x_err = Quantity(fit.errors["xc"], original_unit)
+    center_y_err = Quantity(fit.errors["yc"], original_unit)
 
-    return radius, center_x, center_y
+    return radius, center_x, center_y, radius_err, center_x_err, center_y_err
 
 
 def make_loss_function(x, y, w):
@@ -178,3 +206,66 @@ def make_loss_function(x, y, w):
         return np.abs(upper_term) / np.abs(lower_term)
 
     return taubin_loss_function
+
+
+def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y):
+    """
+    Simplified error calculator for circular data with weights.
+    In this naive approach, we assume zero correlation between the radius,
+    center_x, and center_y. However, the error in the radius is twice as
+    small as that of center_x and center_y, which are assumed to have equal errors.
+
+    Parameters
+    ----------
+    x: array-like or astropy quantity
+        x coordinates of the points
+    y: array-like or astropy quantity
+        y coordinates of the points
+    weights: array-like
+        weights of the points
+    radius : astropy.units.Quantity
+        Fitted radius of the circle.
+    center_x : astropy.units.Quantity
+        Fitted x-coordinate of the circle center.
+    center_y : astropy.units.Quantity
+        Fitted y-coordinate of the circle center.
+    Returns
+    -------
+    radius_err : astropy.units.Quantity
+        Fitted radius of the circle error.
+    center_x_err : astropy.units.Quantity
+        Fitted x-coordinate of the circle center error.
+    center_y_err : astropy.units.Quantity
+        Fitted y-coordinate of the circle center error.
+    """
+
+    weights_sum = np.sum(weights)
+    radius_squared = (x - center_x) ** 2 + (y - center_y) ** 2
+    delta = radius_squared - radius**2
+    partial_derivative = np.sqrt(radius_squared + radius**2 / 4)
+
+    delta_weighted_mean = np.average(delta, weights=weights)
+    partial_derivative_weighted_mean = np.average(partial_derivative, weights=weights)
+
+    delta_weighted_variance = np.average(
+        (delta - delta_weighted_mean) ** 2,
+        weights=weights,
+    )
+    partial_derivative_weighted_variance = np.average(
+        (partial_derivative - partial_derivative_weighted_mean) ** 2,
+        weights=weights,
+    )
+
+    parameter_err = (
+        np.sqrt(delta_weighted_variance)
+        / np.sqrt(partial_derivative_weighted_variance)
+        / weights_sum
+        / 2
+        / np.sqrt(2)
+    )
+
+    radius_err = parameter_err / 2
+    center_x_err = parameter_err
+    center_y_err = parameter_err
+
+    return radius_err, center_x_err, center_y_err
