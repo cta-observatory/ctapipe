@@ -170,10 +170,11 @@ def test_MuonRingFitter(
         picture_thresh = 7
         boundary_thresh = 5
 
-    center_xs = optics.effective_focal_length * np.tan(center_x_deg.to_value(u.rad))
-    center_ys = optics.effective_focal_length * np.tan(center_y_deg.to_value(u.rad))
-    radius = optics.effective_focal_length * np.tan((1.1 * u.deg).to_value(u.rad))
+    center_xs = optics.effective_focal_length * np.tan(center_x_deg)
+    center_ys = optics.effective_focal_length * np.tan(center_y_deg)
+    radius = optics.effective_focal_length * np.tan((1.1 * u.deg))
     width = 0.07 * radius
+    min_error = 0.05 * radius
 
     muon_model = toymodel.RingGaussian(
         x=center_xs,
@@ -194,9 +195,21 @@ def test_MuonRingFitter(
     muonfit = MuonRingFitter(fit_method=method)
     fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
+    print(method)
+    print(geom_optics_name)
     print(fit_result)
     print(center_xs, center_ys, radius)
 
-    assert u.isclose(fit_result.center_fov_lon, center_xs, atol=(5e-2 * u.m))
-    assert u.isclose(fit_result.center_fov_lat, center_ys, atol=(5e-2 * u.m))
-    assert u.isclose(fit_result.radius, radius, atol=(5e-2 * u.m))
+    assert u.isclose(
+        fit_result.center_fov_lon,
+        center_xs,
+        atol=(max(fit_result.center_fov_lon_err, min_error)),
+    )
+    assert u.isclose(
+        fit_result.center_fov_lat,
+        center_ys,
+        atol=(max(fit_result.center_fov_lat_err, min_error)),
+    )
+    assert u.isclose(
+        fit_result.radius, radius, atol=(max(fit_result.radius_err, min_error))
+    )
