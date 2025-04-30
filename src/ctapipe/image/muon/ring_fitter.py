@@ -14,7 +14,9 @@ from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 
 def kundu_chaudhuri(fov_lon, fov_lat, weights, mask):
     """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface"""
-    return kundu_chaudhuri_circle_fit(fov_lon[mask], fov_lat[mask], weights[mask])
+    return kundu_chaudhuri_circle_fit(
+        fov_lon[mask], fov_lat[mask], weights[mask], dummy_errors_flag=False
+    )
 
 
 def taubin(fov_lon, fov_lat, weights, mask):
@@ -59,14 +61,22 @@ class MuonRingFitter(Component):
         MuonRingFitter(fit_method = "name of the fit")
         """
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
-        radius, center_fov_lon, center_fov_lat, _, _, _ = fit_function(
-            fov_lon, fov_lat, img, mask
-        )
+        (
+            radius,
+            center_fov_lon,
+            center_fov_lat,
+            radius_err,
+            center_fov_lon_err,
+            center_fov_lat_err,
+        ) = fit_function(fov_lon, fov_lat, img, mask)
 
         return MuonRingContainer(
             center_fov_lon=center_fov_lon,
             center_fov_lat=center_fov_lat,
             radius=radius,
+            center_fov_lon_err=center_fov_lon_err,
+            center_fov_lat_err=center_fov_lat_err,
+            radius_err=radius_err,
             center_phi=np.arctan2(center_fov_lat, center_fov_lon),
             center_distance=np.sqrt(center_fov_lon**2 + center_fov_lat**2),
         )
