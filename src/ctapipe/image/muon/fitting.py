@@ -13,7 +13,7 @@ except ModuleNotFoundError:
     Minuit = None
 
 
-def kundu_chaudhuri_circle_fit(x, y, weights, dummy_errors_flag=True):
+def kundu_chaudhuri_circle_fit(x, y, weights, dummy_errors_flag=False):
     """
     Fast and reliable analytical circle fitting method previously used
     in the H.E.S.S. experiment for muon identification
