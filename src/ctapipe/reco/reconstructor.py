@@ -1,3 +1,4 @@
+import pathlib
 import weakref
 from abc import abstractmethod
 from enum import Flag, auto
@@ -8,8 +9,8 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import Integer, List
+from ctapipe.core import Component, Provenance, QualityQuery, TelescopeComponent
+from ctapipe.core.traits import Integer, List, Path
 
 from ..coordinates import shower_impact_distance
 
@@ -84,10 +85,24 @@ class Reconstructor(TelescopeComponent):
         help="Number of threads to use for the reconstruction if supported by the reconstructor.",
     ).tag(config=True)
 
+    load_path = Path(
+        default_value=None,
+        allow_none=True,
+        help="If given, load serialized model from this path.",
+    ).tag(config=True)
+
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
-        super().__init__(subarray=subarray, **kwargs)
-        self.quality_query = StereoQualityQuery(parent=self)
-        self.atmosphere_profile = atmosphere_profile
+        # Run the Component __init__ first to handle the configuration
+        # and make `self.load_path` available
+        Component.__init__(self, **kwargs)
+
+        if self.load_path is None:
+            self.subarray = subarray
+            self.quality_query = StereoQualityQuery(parent=self)
+            self.atmosphere_profile = atmosphere_profile
+        else:
+            loaded = self.read(self.load_path, subarray=subarray, **kwargs)
+            self.__dict__.update(loaded.__dict__)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
@@ -105,40 +120,72 @@ class Reconstructor(TelescopeComponent):
             reconstructed stereo geometry and telescope-wise impact position.
         """
 
+    def write(self, dictionary, path, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which should contain all
+        information/settings about an instance of a reconstructor (subclass).
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary to be saved. It can contain as many entries as needed,
+            but must at least include the following:
+            "name": Name of the ``Reconstructor`` subclass,
+            "meta": Additional metadata
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="reconstructor")
+            joblib.dump(dictionary, f, compress=True)
+
     @classmethod
     def read(cls, path, parent=None, subarray=None, **kwargs):
-        """Read a joblib-pickled reconstructor from ``path``
+        """
+        Read a dictionary from ``path`` containing all necessary information
+        to construct an instance of a reconstructor (subclass).
 
         Parameters
         ----------
         path : str or pathlib.Path
-            Path to a Reconstructor instance pickled using joblib
+            Path to a dictionary containing all information about a
+            ``Reconstructor`` (subclass).
         parent : None or Component or Tool
-            Attach a new parent to the loaded class, this will properly
+            Attach a new parent to the loaded class.
         subarray : SubarrayDescription
             Attach a new subarray to the loaded reconstructor
             A warning will be raised if the telescope types of the
             subarray stored in the pickled class do not match with the
             provided subarray.
 
-        **kwargs are set on the loaded instance
+        **kwargs are set on the constructed instance
 
         Returns
         -------
-        Reconstructor instance loaded from file
+        Reconstructor instance
         """
         with open(path, "rb") as f:
-            instance = joblib.load(f)
+            dictionary = joblib.load(f)
 
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
+        meta = dictionary.pop("meta")
+        name = dictionary.pop("name")
+        loaded_subarray = dictionary.pop("subarray")
+        instance = Reconstructor.from_name(name, subarray=loaded_subarray)
 
-        # first deal with kwargs that would need "special" treatmet, parent and subarray
+        for attr, value in dictionary.items():
+            setattr(instance, attr, value)
+
+        # first deal with kwargs that would need "special" treatment, parent and subarray
         if parent is not None:
             instance.parent = weakref.proxy(parent)
-            instance.log = parent.log.getChild(instance.__class__.__name__)
+            instance.log = parent.log.getChild(name)
 
         if subarray is not None:
             if instance.subarray.telescope_types != subarray.telescope_types:
@@ -150,8 +197,7 @@ class Reconstructor(TelescopeComponent):
         for attr, value in kwargs.items():
             setattr(instance, attr, value)
 
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(path, role="reconstructor", add_meta=False)
+        Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
         return instance
 
 

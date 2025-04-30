@@ -1,7 +1,8 @@
 """
 Component Wrappers around sklearn models
 """
-import pathlib
+
+import weakref
 from abc import abstractmethod
 from collections import defaultdict
 from copy import deepcopy
@@ -117,12 +118,6 @@ class SKLearnReconstructor(Reconstructor):
         help="Which stereo combination method to use.",
     ).tag(config=True)
 
-    load_path = traits.Path(
-        default_value=None,
-        allow_none=True,
-        help="If given, load serialized model from this path.",
-    ).tag(config=True)
-
     def __init__(
         self, subarray=None, atmosphere_profile=None, models=None, n_jobs=None, **kwargs
     ):
@@ -162,15 +157,7 @@ class SKLearnReconstructor(Reconstructor):
             )
         else:
             loaded = self.read(self.load_path)
-            if (
-                subarray is not None
-                and loaded.subarray.telescope_types != subarray.telescope_types
-            ):
-                self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
-                )
             self.__dict__.update(loaded.__dict__)
-            self.subarray = subarray
 
             if self.prefix is None:
                 self.prefix = self.model_cls
@@ -206,16 +193,6 @@ class SKLearnReconstructor(Reconstructor):
             Table(s) with predictions, matches the corresponding
             container definition(s)
         """
-
-    def write(self, path, overwrite=False):
-        path = pathlib.Path(path)
-
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            Provenance().add_output_file(path, role="ml-models")
-            joblib.dump(self, f, compress=True)
 
     @lazyproperty
     def instrument_table(self):
@@ -256,6 +233,70 @@ class SKLearnReconstructor(Reconstructor):
         if hasattr(self, "_models"):
             for model in self._models.values():
                 model.n_jobs = n_jobs.new
+
+    @classmethod
+    def read(cls, path, parent=None, subarray=None, **kwargs):
+        """
+        Read a dictionary from ``path`` containing all necessary information
+        to construct an instance of a ``SKLearnReconstructor`` (subclass).
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to a dictionary containing all information about a
+            ``SKLearnReconstructor`` (subclass).
+        parent : None or Component or Tool
+            Attach a new parent to the loaded class.
+        subarray : SubarrayDescription
+            Attach a new subarray to the loaded reconstructor
+            A warning will be raised if the telescope types of the
+            subarray stored in the pickled class do not match with the
+            provided subarray.
+
+        **kwargs are set on the constructed instance
+
+        Returns
+        -------
+        ``SKLearnReconstructor`` (subclass) instance
+        """
+        # Overloading Reconstructor.read() is necessary here,
+        # because model_cls and model_config are needed for __init__
+        # to verify that these settings are valid.
+        with open(path, "rb") as f:
+            dictionary = joblib.load(f)
+
+        meta = dictionary.pop("meta")
+        name = dictionary.pop("name")
+        loaded_subarray = dictionary.pop("subarray")
+        model_cls = dictionary.pop("model_cls")
+        model_config = dictionary.pop("model_config")
+        instance = SKLearnReconstructor.from_name(
+            name=name,
+            subarray=loaded_subarray,
+            model_cls=model_cls,
+            model_config=model_config,
+        )
+
+        for attr, value in dictionary.items():
+            setattr(instance, attr, value)
+
+        # first deal with kwargs that would need "special" treatment, parent and subarray
+        if parent is not None:
+            instance.parent = weakref.proxy(parent)
+            instance.log = parent.log.getChild(name)
+
+        if subarray is not None:
+            if instance.subarray.telescope_types != subarray.telescope_types:
+                instance.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded from file"
+                )
+            instance.subarray = subarray
+
+        for attr, value in kwargs.items():
+            setattr(instance, attr, value)
+
+        Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
+        return instance
 
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
@@ -566,12 +607,6 @@ class DispReconstructor(Reconstructor):
         help="Which stereo combination method to use.",
     ).tag(config=True)
 
-    load_path = traits.Path(
-        default_value=None,
-        allow_none=True,
-        help="If given, load serialized model from this path.",
-    ).tag(config=True)
-
     def __init__(self, subarray=None, atmosphere_profile=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
@@ -604,15 +639,10 @@ class DispReconstructor(Reconstructor):
             )
         else:
             loaded = self.read(self.load_path)
-            if (
-                subarray is not None
-                and loaded.subarray.telescope_types != subarray.telescope_types
-            ):
-                self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
-                )
             self.__dict__.update(loaded.__dict__)
-            self.subarray = subarray
+
+            if self.prefix is None:
+                self.prefix = "disp"
 
     def _new_models(self):
         norm_cfg = self.norm_config
@@ -653,33 +683,6 @@ class DispReconstructor(Reconstructor):
         norm, sign = self._table_to_y(table, mask=valid)
         self._models[key][0].fit(X, norm)
         self._models[key][1].fit(X, sign)
-
-    def write(self, path, overwrite=False):
-        path = pathlib.Path(path)
-
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            Provenance().add_output_file(path, role="ml-models")
-            joblib.dump(self, f, compress=True)
-
-    @classmethod
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(path, role="ml-models", add_meta=False)
-        return instance
 
     @lazyproperty
     def instrument_table(self):
