@@ -1164,6 +1164,13 @@ class MuonRingContainer(Container):
         nan * u.deg, "center (fov_lat) of the fitted muon ring", unit=u.deg
     )
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    center_fov_lon_err = Field(
+        nan * u.deg, "center (fov_lon) of the fitted muon ring error", unit=u.deg
+    )
+    center_fov_lat_err = Field(
+        nan * u.deg, "center (fov_lat) of the fitted muon ring error", unit=u.deg
+    )
+    radius_err = Field(nan * u.deg, "radius of the fitted muon ring error", unit=u.deg)
     center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
     )
