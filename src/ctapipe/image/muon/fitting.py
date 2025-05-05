@@ -107,6 +107,7 @@ def taubin_circle_fit(
         Initial guess for the x-coordinate of the circle center. Defaults to 0.
     yc_initial : astropy.units.Quantity, optional
         Initial guess for the y-coordinate of the circle center. Defaults to 0.
+
     Returns
     -------
     radius : astropy.units.Quantity
@@ -126,11 +127,13 @@ def taubin_circle_fit(
     ------
     OptionalDependencyMissing
         If the iminuit package is not installed.
+
     Notes
     -----
     The Taubin circle fit minimizes a specific loss function that balances the
     squared residuals of the points from the circle with the weights. This method
     is particularly useful for fitting circles to noisy data.
+
     References
     ----------
     - Barcelona_Muons_TPA_final.pdf (slide 6)
