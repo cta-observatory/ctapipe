@@ -195,10 +195,6 @@ def test_MuonRingFitter(
     muonfit = MuonRingFitter(fit_method=method)
     fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
-    print(geom_optics_name)
-    print(fit_result)
-    print(center_xs, center_ys, radius)
-
     assert u.isclose(
         fit_result.center_fov_lon,
         center_xs,
