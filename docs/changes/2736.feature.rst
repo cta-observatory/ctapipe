@@ -1,7 +1,7 @@
 The algorithms for muon ring fitting have been improved
 
 - Upgrade the taubin_circle_fit with weights to avoid bias toward rings with larger radii
-- the function may use the defined initial parameters : ring center and radius.
+- Add the optional initial parameters : ring center and radius.
 - Add a combined ring fitting method (kundu_chaudhuri_taubin).
 - This new combined method is set to be the default method.
 - Updated the test with an additional fitting method, each method is tested separately.
