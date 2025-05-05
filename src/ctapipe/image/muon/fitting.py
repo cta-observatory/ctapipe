@@ -15,8 +15,9 @@ except ModuleNotFoundError:
 
 def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
     """
-    Fast and reliable analytical circle fitting method previously used
-    in the H.E.S.S. experiment for muon identification
+    Fast and reliable analytical circle fitting method.
+
+    Previously used in the H.E.S.S. experiment for muon identification.
 
     Implementation based on :cite:p:`chaudhuri93`
 
@@ -82,6 +83,7 @@ def taubin_circle_fit(
 ):
     """
     Perform a Taubin circle fit with weights (optional).
+
     The minimized loss function in this method tends to
     maximize the radius of the ring, whereas using a simple
     ring equation systematically results in a smaller radius.
