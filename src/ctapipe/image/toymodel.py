@@ -437,8 +437,8 @@ class RingGaussian(ImageModel):
         if linear_slope == 0:
             return 1
 
-        if len(var) < 2:
-            raise ValueError("The var array is too short.")
+        if len(var.shape) != 1:
+            raise ValueError("Array has incorrect dimensions.")
 
         if np.isnan(var).any():
             warnings.warn("Array contains nans.", RuntimeWarning)
@@ -447,6 +447,10 @@ class RingGaussian(ImageModel):
         max_var = np.nanmax(var)
 
         delta_var = (max_var - min_var).to_value(self.unit)
+
+        if delta_var <= 0:
+            raise ValueError("Array has zero range.")
+
         mean_var = (max_var + min_var).to_value(self.unit) / 2
         d_var = delta_var / (len(var) - 1)
 
