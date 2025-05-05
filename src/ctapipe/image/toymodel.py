@@ -385,7 +385,7 @@ class RingGaussian(ImageModel):
         radius,
         sigma,
         asymmetry_magnitude=0,
-        asymmetry_orientation_angle_deg=0 * u.rad,
+        asymmetry_orientation_angle=0 * u.deg,
     ):
         self.unit = x.unit
         self.x = x
@@ -393,10 +393,10 @@ class RingGaussian(ImageModel):
         self.sigma = sigma
         self.radius = radius
         self.asymmetry_slope_x = asymmetry_magnitude * np.cos(
-            asymmetry_orientation_angle_deg.to_value(u.rad)
+            asymmetry_orientation_angle
         )
         self.asymmetry_slope_y = asymmetry_magnitude * np.sin(
-            asymmetry_orientation_angle_deg.to_value(u.rad)
+            asymmetry_orientation_angle
         )
         self.dist = norm(
             self.radius.to_value(self.unit), self.sigma.to_value(self.unit)
