@@ -6,14 +6,14 @@ from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.muon import MuonRingFitter
 
 
-def test_MuonRingFitter_has_methods():
+def test_muon_ring_fitter_has_methods():
     # just to make sure, the test below is running for at least 2 methods
     # basically making sure, we do not test no method at all and always pass
     assert len(MuonRingFitter.fit_method.values) >= 2
 
 
 @pytest.mark.parametrize(
-    "geom_optics_name, method, center_x_deg, center_y_deg, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle",
+    "geom_optics_name, method, center_x, center_y, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle",
     [
         (
             "LSTCam",
@@ -113,11 +113,11 @@ def test_MuonRingFitter_has_methods():
         ),
     ],
 )
-def test_MuonRingFitter(
+def test_muon_ring_fitter(
     geom_optics_name,
     method,
-    center_x_deg,
-    center_y_deg,
+    center_x,
+    center_y,
     ring_asymmetry_magnitude,
     ring_asymmetry_orientation_angle,
     prod5_lst,
@@ -128,11 +128,6 @@ def test_MuonRingFitter(
     """test MuonRingFitter"""
 
     pytest.importorskip("iminuit")
-
-    intensity = 750
-    nsb_level_pe = 3
-    picture_thresh = 7
-    boundary_thresh = 5
 
     if geom_optics_name == "LSTCam":
         geom = prod5_lst.camera.geometry
@@ -163,15 +158,10 @@ def test_MuonRingFitter(
         picture_thresh = 2
         boundary_thresh = 1
     else:
-        geom = prod5_lst.camera.geometry
-        optics = prod5_lst.optics
-        intensity = 750
-        nsb_level_pe = 3
-        picture_thresh = 7
-        boundary_thresh = 5
+        raise ValueError("Camera with the specified name does not exist.")
 
-    center_xs = optics.effective_focal_length * np.tan(center_x_deg)
-    center_ys = optics.effective_focal_length * np.tan(center_y_deg)
+    center_xs = optics.effective_focal_length * np.tan(center_x)
+    center_ys = optics.effective_focal_length * np.tan(center_y)
     radius = optics.effective_focal_length * np.tan((1.1 * u.deg))
     width = 0.07 * radius
     min_error = 0.05 * radius
