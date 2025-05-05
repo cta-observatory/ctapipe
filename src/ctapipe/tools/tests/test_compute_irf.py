@@ -244,7 +244,7 @@ def test_irf_tool_wrong_cuts(
                     "energy_reconstructor": "ExtraTreesRegressor",
                     "geometry_reconstructor": "HillasReconstructor",
                     "gammaness_classifier": "ExtraTreesClassifier",
-                    "EventQualityQuery": {
+                    "EventQualitySelection": {
                         "quality_criteria": [
                             # No criteria for minimum event multiplicity
                             ("valid classifier", "ExtraTreesClassifier_is_valid"),
