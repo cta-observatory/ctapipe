@@ -162,7 +162,6 @@ nitpick_ignore = [
     ("py:meth", "MetaHasDescriptors.__init__"),
     ("py:meth", "HasTraits.__new__"),
     ("py:meth", "BaseDescriptor.instance_init"),
-    ("py:obj", "iminuit"),
 ]
 
 # Sphinx gallery config
