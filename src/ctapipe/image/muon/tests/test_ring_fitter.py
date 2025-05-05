@@ -13,7 +13,7 @@ def test_MuonRingFitter_has_methods():
 
 
 @pytest.mark.parametrize(
-    "geom_optics_name, method, center_x_deg, center_y_deg, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle_deg",
+    "geom_optics_name, method, center_x_deg, center_y_deg, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle",
     [
         (
             "LSTCam",
@@ -119,7 +119,7 @@ def test_MuonRingFitter(
     center_x_deg,
     center_y_deg,
     ring_asymmetry_magnitude,
-    ring_asymmetry_orientation_angle_deg,
+    ring_asymmetry_orientation_angle,
     prod5_lst,
     prod5_mst_flashcam,
     prod5_mst_nectarcam,
@@ -182,7 +182,7 @@ def test_MuonRingFitter(
         radius=radius,
         sigma=width,
         asymmetry_magnitude=ring_asymmetry_magnitude,
-        asymmetry_orientation_angle_deg=ring_asymmetry_orientation_angle_deg,
+        asymmetry_orientation_angle=ring_asymmetry_orientation_angle,
     )
 
     charge, _, _ = muon_model.generate_image(
