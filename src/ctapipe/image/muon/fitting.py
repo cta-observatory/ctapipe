@@ -125,7 +125,7 @@ def taubin_circle_fit(
     Raises
     ------
     OptionalDependencyMissing
-        If the `iminuit` package is not installed.
+        If the iminuit package is not installed.
     Notes
     -----
     The Taubin circle fit minimizes a specific loss function that balances the
