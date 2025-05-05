@@ -440,7 +440,7 @@ class RingGaussian(ImageModel):
             raise ValueError("The var array is too short.")
 
         if np.isnan(var).any():
-            raise ValueError("array contains nans.")
+            raise Warning("array contains nans.")
 
         min_var = np.nanmin(var)
         max_var = np.nanmax(var)
