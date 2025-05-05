@@ -19,6 +19,7 @@ Examples:
     (400,)
 """
 
+import warnings
 from abc import ABCMeta, abstractmethod
 
 import astropy.units as u
@@ -440,7 +441,7 @@ class RingGaussian(ImageModel):
             raise ValueError("The var array is too short.")
 
         if np.isnan(var).any():
-            raise Warning("array contains nans.")
+            warnings.warn("Array contains nans.", RuntimeWarning)
 
         min_var = np.nanmin(var)
         max_var = np.nanmax(var)
