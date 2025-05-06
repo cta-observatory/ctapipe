@@ -150,9 +150,7 @@ def taubin_circle_fit(
     else:
         weights_masked = weights[mask]
 
-    if original_unit == u.deg:
-        r_initial = 1.1 * original_unit if r_initial is None else r_initial
-    elif original_unit == u.rad:
+    if original_unit.is_equivalent(u.deg):
         r_initial = (1.1 * u.deg).to(original_unit) if r_initial is None else r_initial
     else:
         r_initial = max_fov / 4.0 * original_unit if r_initial is None else r_initial
