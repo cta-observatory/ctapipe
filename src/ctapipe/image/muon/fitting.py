@@ -217,7 +217,8 @@ def make_loss_function(x, y, w):
 
 def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y):
     """
-    Simplified error calculator for circular data with weights.
+    Naive (simplified) error calculator for circular data with weights.
+
     In this naive approach, we assume zero correlation between the radius,
     center_x, and center_y. However, the error in the radius is twice as
     small as that of center_x and center_y, which are assumed to have equal errors.
