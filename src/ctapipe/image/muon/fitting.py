@@ -13,7 +13,7 @@ except ModuleNotFoundError:
     Minuit = None
 
 
-def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
+def kundu_chaudhuri_circle_fit(x, y, weights):
     """
     Fast and reliable analytical circle fitting method.
 
@@ -66,14 +66,9 @@ def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
         np.sum(weights * ((center_x - x) ** 2 + (center_y - y) ** 2)) / weights_sum
     )
 
-    if nan_errors_flag:
-        radius_err = np.nan
-        center_x_err = np.nan
-        center_y_err = np.nan
-    else:
-        radius_err, center_x_err, center_y_err = naive_circle_fit_error_calculator(
-            x, y, weights, radius, center_x, center_y
-        )
+    radius_err, center_x_err, center_y_err = naive_circle_fit_error_calculator(
+        x, y, weights, radius, center_x, center_y
+    )
 
     return radius, center_x, center_y, radius_err, center_x_err, center_y_err
 
