@@ -2,7 +2,7 @@
 Component Wrappers around sklearn models
 """
 
-import weakref
+import pathlib
 from abc import abstractmethod
 from collections import defaultdict
 from copy import deepcopy
@@ -118,9 +118,7 @@ class SKLearnReconstructor(Reconstructor):
         help="Which stereo combination method to use.",
     ).tag(config=True)
 
-    def __init__(
-        self, subarray=None, atmosphere_profile=None, models=None, n_jobs=None, **kwargs
-    ):
+    def __init__(self, subarray=None, atmosphere_profile=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -175,7 +173,7 @@ class SKLearnReconstructor(Reconstructor):
         """
 
     @abstractmethod
-    def predict_table(self, key, table: Table) -> Table:
+    def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
         """
         Predict on a table of events.
 
@@ -234,70 +232,6 @@ class SKLearnReconstructor(Reconstructor):
             for model in self._models.values():
                 model.n_jobs = n_jobs.new
 
-    @classmethod
-    def read(cls, path, parent=None, subarray=None, **kwargs):
-        """
-        Read a dictionary from ``path`` containing all necessary information
-        to construct an instance of a ``SKLearnReconstructor`` (subclass).
-
-        Parameters
-        ----------
-        path : str or pathlib.Path
-            Path to a dictionary containing all information about a
-            ``SKLearnReconstructor`` (subclass).
-        parent : None or Component or Tool
-            Attach a new parent to the loaded class.
-        subarray : SubarrayDescription
-            Attach a new subarray to the loaded reconstructor
-            A warning will be raised if the telescope types of the
-            subarray stored in the pickled class do not match with the
-            provided subarray.
-
-        **kwargs are set on the constructed instance
-
-        Returns
-        -------
-        ``SKLearnReconstructor`` (subclass) instance
-        """
-        # Overloading Reconstructor.read() is necessary here,
-        # because model_cls and model_config are needed for __init__
-        # to verify that these settings are valid.
-        with open(path, "rb") as f:
-            dictionary = joblib.load(f)
-
-        meta = dictionary.pop("meta")
-        name = dictionary.pop("name")
-        loaded_subarray = dictionary.pop("subarray")
-        model_cls = dictionary.pop("model_cls")
-        model_config = dictionary.pop("model_config")
-        instance = SKLearnReconstructor.from_name(
-            name=name,
-            subarray=loaded_subarray,
-            model_cls=model_cls,
-            model_config=model_config,
-        )
-
-        for attr, value in dictionary.items():
-            setattr(instance, attr, value)
-
-        # first deal with kwargs that would need "special" treatment, parent and subarray
-        if parent is not None:
-            instance.parent = weakref.proxy(parent)
-            instance.log = parent.log.getChild(name)
-
-        if subarray is not None:
-            if instance.subarray.telescope_types != subarray.telescope_types:
-                instance.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
-                )
-            instance.subarray = subarray
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
-        return instance
-
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
     """Base class for regression tasks."""
@@ -351,6 +285,49 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
 
             return np.log(y)
         return y
+
+    def write(self, path, meta={}, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which contains all
+        information/settings about an instance of a
+        ``SKLearnRegressionReconstructor`` (subclass).
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        meta : dict
+            Metadata
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        dictionary = {
+            "name": self.__class__.__name__,
+            "subarray": self.subarray,
+            "prefix": self.prefix,
+            "log_target": self.log_target,
+            "features": self.features,
+            "model_cls": self.model_cls,
+            "model_config": self.model_config,
+            "models": self._models,
+            "stereo_combiner_cls": self.stereo_combiner_cls,
+            "cls_attributes": {
+                "property": self.property,
+                "target": self.target,
+                "unit": self.unit,
+                "feature_generator": self.feature_generator,
+                "quality_query": self.quality_query,
+            },
+            "meta": meta,
+        }
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-reconstructor")
+            joblib.dump(dictionary, f, compress=True)
 
 
 class SKLearnClassificationReconstructor(SKLearnReconstructor):
@@ -426,6 +403,48 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
 
     def _get_positive_index(self, key):
         return np.nonzero(self._models[key].classes_ == self.positive_class)[0][0]
+
+    def write(self, path, meta={}, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which contains all
+        information/settings about an instance of a
+        ``SKLearnClassificationReconstructor`` (subclass).
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        meta : dict
+            Metadata
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        dictionary = {
+            "name": self.__class__.__name__,
+            "subarray": self.subarray,
+            "prefix": self.prefix,
+            "positive_class": self.positive_class,
+            "features": self.features,
+            "model_cls": self.model_cls,
+            "model_config": self.model_config,
+            "models": self._models,
+            "stereo_combiner_cls": self.stereo_combiner_cls,
+            "cls_attributes": {
+                "property": self.property,
+                "target": self.target,
+                "feature_generator": self.feature_generator,
+                "quality_query": self.quality_query,
+            },
+            "meta": meta,
+        }
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-reconstructor")
+            joblib.dump(dictionary, f, compress=True)
 
 
 class EnergyRegressor(SKLearnRegressionReconstructor):
@@ -559,6 +578,7 @@ class DispReconstructor(Reconstructor):
     """
 
     target = "true_disp"
+    property = ReconstructionProperty.GEOMETRY
 
     prefix = traits.Unicode(
         default_value="disp",
@@ -634,7 +654,7 @@ class DispReconstructor(Reconstructor):
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
-                property=ReconstructionProperty.GEOMETRY,
+                property=self.property,
                 parent=self,
             )
         else:
@@ -872,6 +892,50 @@ class DispReconstructor(Reconstructor):
             for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
+
+    def write(self, path, meta={}, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which contains all
+        information/settings about an instance of a ``DispReconstructor`` .
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        meta : dict
+            Metadata
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        dictionary = {
+            "name": self.__class__.__name__,
+            "subarray": self.subarray,
+            "prefix": self.prefix,
+            "log_target": self.log_target,
+            "features": self.features,
+            "norm_cls": self.norm_cls,
+            "sign_cls": self.sign_cls,
+            "norm_config": self.norm_config,
+            "sign_config": self.sign_config,
+            "models": self._models,
+            "stereo_combiner_cls": self.stereo_combiner_cls,
+            "cls_attributes": {
+                "property": self.property,
+                "target": self.target,
+                "unit": self.unit,
+                "feature_generator": self.feature_generator,
+                "quality_query": self.quality_query,
+            },
+            "meta": meta,
+        }
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-reconstructor")
+            joblib.dump(dictionary, f, compress=True)
 
 
 class CrossValidator(Component):
