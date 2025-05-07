@@ -1,6 +1,7 @@
 """
 Tool for training the ParticleClassifier
 """
+
 import numpy as np
 from astropy.table import vstack
 
@@ -232,7 +233,6 @@ class TrainParticleClassifier(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        self.classifier.n_jobs = None
         self.classifier.write(self.output_path, overwrite=self.overwrite)
         self.signal_loader.close()
         self.background_loader.close()

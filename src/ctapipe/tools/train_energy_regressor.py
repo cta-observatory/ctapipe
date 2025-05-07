@@ -142,23 +142,7 @@ class TrainEnergyRegressor(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        dictionary = {
-            "name": "EnergyRegressor",
-            "subarray": self.regressor.subarray,
-            "prefix": self.regressor.prefix,
-            "property": self.regressor.property,
-            "target": self.regressor.target,
-            "log_target": self.regressor.log_target,
-            "features": self.regressor.features,
-            "model_cls": self.regressor.model_cls,
-            "model_config": self.regressor.model_config,
-            "models": self.regressor._models,
-            "stereo_combiner_cls": self.regressor.stereo_combiner_cls,
-            "feature_generator": self.regressor.feature_generator,
-            "quality_query": self.regressor.quality_query,
-            "meta": {},
-        }
-        self.regressor.write(dictionary, self.output_path, overwrite=self.overwrite)
+        self.regressor.write(self.output_path, overwrite=self.overwrite)
         self.loader.close()
         self.cross_validate.close()
 

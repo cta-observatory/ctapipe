@@ -1,4 +1,3 @@
-import pathlib
 import weakref
 from abc import abstractmethod
 from enum import Flag, auto
@@ -120,32 +119,6 @@ class Reconstructor(TelescopeComponent):
             reconstructed stereo geometry and telescope-wise impact position.
         """
 
-    def write(self, dictionary, path, overwrite=False):
-        """
-        Save a dictionary using joblib-pickle, which should contain all
-        information/settings about an instance of a reconstructor (subclass).
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary to be saved. It can contain as many entries as needed,
-            but must at least include the following:
-            "name": Name of the ``Reconstructor`` subclass,
-            "meta": Additional metadata
-        path : str or pathlib.Path
-            Path to which the dictionary will be saved.
-        overwrite : Bool
-            Whether to overwrite, if ``path`` already exists.
-        """
-        path = pathlib.Path(path)
-
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            Provenance().add_output_file(path, role="reconstructor")
-            joblib.dump(dictionary, f, compress=True)
-
     @classmethod
     def read(cls, path, parent=None, subarray=None, **kwargs):
         """
@@ -174,18 +147,24 @@ class Reconstructor(TelescopeComponent):
         with open(path, "rb") as f:
             dictionary = joblib.load(f)
 
-        meta = dictionary.pop("meta")
-        name = dictionary.pop("name")
-        loaded_subarray = dictionary.pop("subarray")
-        instance = Reconstructor.from_name(name, subarray=loaded_subarray)
+        if dictionary["name"] != cls.__name__:
+            raise TypeError(
+                f"{path} does not contain information about {cls.__name__}, "
+                f"but instead about {dictionary['name']}."
+            )
 
-        for attr, value in dictionary.items():
+        meta = dictionary.pop("meta")
+        cls_attributes = dictionary.pop("cls_attributes")
+        instance = Reconstructor.from_name(**dictionary)
+
+        # set class attributes not handled by __init__
+        for attr, value in cls_attributes.items():
             setattr(instance, attr, value)
 
         # first deal with kwargs that would need "special" treatment, parent and subarray
         if parent is not None:
             instance.parent = weakref.proxy(parent)
-            instance.log = parent.log.getChild(name)
+            instance.log = parent.log.getChild(dictionary["name"])
 
         if subarray is not None:
             if instance.subarray.telescope_types != subarray.telescope_types:
