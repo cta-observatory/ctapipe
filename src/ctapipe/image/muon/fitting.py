@@ -18,7 +18,6 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     Fast and reliable analytical circle fitting method.
 
     Previously used in the H.E.S.S. experiment for muon identification.
-
     Implementation based on :cite:p:`chaudhuri93`
 
     Parameters
@@ -29,6 +28,7 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
         y coordinates of the points
     weights: array-like
         weights of the points
+
     Returns
     -------
     radius : astropy.units.Quantity
@@ -43,7 +43,6 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
         Fitted x-coordinate of the circle center error.
     center_y_err : astropy.units.Quantity
         Fitted y-coordinate of the circle center error.
-
     """
 
     weights_sum = np.sum(weights)
