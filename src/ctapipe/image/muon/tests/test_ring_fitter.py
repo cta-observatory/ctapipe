@@ -13,7 +13,7 @@ def test_muon_ring_fitter_has_methods():
 
 
 @pytest.mark.parametrize(
-    "geom_optics_name, method, center_x, center_y, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle",
+    "geom_optics_name, method, center_x, center_y, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle, intensity, nsb_level_pe, picture_thresh,  boundary_thresh",
     [
         (
             "LSTCam",
@@ -22,6 +22,10 @@ def test_muon_ring_fitter_has_methods():
             0.4 * u.deg,
             1.1,
             45 * u.deg,
+            750,
+            3,
+            7,
+            5,
         ),
         (
             "LSTCam",
@@ -30,6 +34,10 @@ def test_muon_ring_fitter_has_methods():
             0.4 * u.deg,
             1.4,
             45 * u.deg,
+            750,
+            3,
+            7,
+            5,
         ),
         (
             "LSTCam",
@@ -38,6 +46,10 @@ def test_muon_ring_fitter_has_methods():
             0.4 * u.deg,
             1.4,
             45 * u.deg,
+            750,
+            3,
+            7,
+            5,
         ),
         (
             "FlashCam",
@@ -46,6 +58,10 @@ def test_muon_ring_fitter_has_methods():
             1.4 * u.deg,
             1.1,
             45 * u.deg,
+            400,
+            2,
+            7,
+            5,
         ),
         (
             "FlashCam",
@@ -54,6 +70,10 @@ def test_muon_ring_fitter_has_methods():
             1.4 * u.deg,
             1.4,
             45 * u.deg,
+            400,
+            2,
+            7,
+            5,
         ),
         (
             "FlashCam",
@@ -62,6 +82,10 @@ def test_muon_ring_fitter_has_methods():
             1.4 * u.deg,
             1.4,
             45 * u.deg,
+            400,
+            2,
+            7,
+            5,
         ),
         (
             "NectarCam",
@@ -70,6 +94,10 @@ def test_muon_ring_fitter_has_methods():
             1.4 * u.deg,
             1.1,
             45 * u.deg,
+            400,
+            2,
+            7,
+            5,
         ),
         (
             "NectarCam",
@@ -78,6 +106,10 @@ def test_muon_ring_fitter_has_methods():
             1.4 * u.deg,
             1.4,
             45 * u.deg,
+            400,
+            2,
+            7,
+            5,
         ),
         (
             "NectarCam",
@@ -86,6 +118,10 @@ def test_muon_ring_fitter_has_methods():
             1.4 * u.deg,
             1.4,
             45 * u.deg,
+            400,
+            2,
+            7,
+            5,
         ),
         (
             "CHEC",
@@ -94,6 +130,10 @@ def test_muon_ring_fitter_has_methods():
             1.3 * u.deg,
             1.1,
             45 * u.deg,
+            500,
+            0,
+            2,
+            1,
         ),
         (
             "CHEC",
@@ -102,6 +142,10 @@ def test_muon_ring_fitter_has_methods():
             1.3 * u.deg,
             1.1,
             45 * u.deg,
+            500,
+            0,
+            2,
+            1,
         ),
         (
             "CHEC",
@@ -110,6 +154,10 @@ def test_muon_ring_fitter_has_methods():
             1.3 * u.deg,
             1.1,
             45 * u.deg,
+            500,
+            0,
+            2,
+            1,
         ),
     ],
 )
@@ -120,6 +168,10 @@ def test_muon_ring_fitter(
     center_y,
     ring_asymmetry_magnitude,
     ring_asymmetry_orientation_angle,
+    intensity,
+    nsb_level_pe,
+    picture_thresh,
+    boundary_thresh,
     prod5_lst,
     prod5_mst_flashcam,
     prod5_mst_nectarcam,
@@ -132,31 +184,15 @@ def test_muon_ring_fitter(
     if geom_optics_name == "LSTCam":
         geom = prod5_lst.camera.geometry
         optics = prod5_lst.optics
-        intensity = 750
-        nsb_level_pe = 3
-        picture_thresh = 7
-        boundary_thresh = 5
     elif geom_optics_name == "FlashCam":
         geom = prod5_mst_flashcam.camera.geometry
         optics = prod5_mst_flashcam.optics
-        intensity = 400
-        nsb_level_pe = 2
-        picture_thresh = 7
-        boundary_thresh = 5
     elif geom_optics_name == "NectarCam":
         geom = prod5_mst_nectarcam.camera.geometry
         optics = prod5_mst_nectarcam.optics
-        intensity = 400
-        nsb_level_pe = 2
-        picture_thresh = 7
-        boundary_thresh = 5
     elif geom_optics_name == "CHEC":
         geom = prod5_sst.camera.geometry
         optics = prod5_sst.optics
-        intensity = 500
-        nsb_level_pe = 0
-        picture_thresh = 2
-        boundary_thresh = 1
     else:
         raise ValueError("Camera with the specified name does not exist.")
 
