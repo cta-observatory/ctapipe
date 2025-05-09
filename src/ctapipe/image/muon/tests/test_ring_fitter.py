@@ -16,7 +16,7 @@ def test_muon_ring_fitter_has_methods():
     "geom_optics_name, method, center_x, center_y, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle, intensity, nsb_level_pe, picture_thresh,  boundary_thresh",
     [
         (
-            "LSTCam",
+            "prod5_lst",
             MuonRingFitter.fit_method.values[0],
             -0.3 * u.deg,
             0.4 * u.deg,
@@ -28,7 +28,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "LSTCam",
+            "prod5_lst",
             MuonRingFitter.fit_method.values[1],
             -0.3 * u.deg,
             0.4 * u.deg,
@@ -40,7 +40,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "LSTCam",
+            "prod5_lst",
             MuonRingFitter.fit_method.values[2],
             -0.3 * u.deg,
             0.4 * u.deg,
@@ -52,7 +52,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "FlashCam",
+            "prod5_mst_flashcam",
             MuonRingFitter.fit_method.values[0],
             -1.3 * u.deg,
             1.4 * u.deg,
@@ -64,7 +64,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "FlashCam",
+            "prod5_mst_flashcam",
             MuonRingFitter.fit_method.values[1],
             -1.3 * u.deg,
             1.4 * u.deg,
@@ -76,7 +76,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "FlashCam",
+            "prod5_mst_flashcam",
             MuonRingFitter.fit_method.values[2],
             -1.3 * u.deg,
             1.4 * u.deg,
@@ -88,7 +88,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "NectarCam",
+            "prod5_mst_nectarcam",
             MuonRingFitter.fit_method.values[0],
             -1.3 * u.deg,
             1.4 * u.deg,
@@ -100,7 +100,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "NectarCam",
+            "prod5_mst_nectarcam",
             MuonRingFitter.fit_method.values[1],
             -1.3 * u.deg,
             1.4 * u.deg,
@@ -112,7 +112,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "NectarCam",
+            "prod5_mst_nectarcam",
             MuonRingFitter.fit_method.values[2],
             -1.3 * u.deg,
             1.4 * u.deg,
@@ -124,7 +124,7 @@ def test_muon_ring_fitter_has_methods():
             5,
         ),
         (
-            "CHEC",
+            "prod5_sst",
             MuonRingFitter.fit_method.values[0],
             -2.5 * u.deg,
             1.3 * u.deg,
@@ -136,7 +136,7 @@ def test_muon_ring_fitter_has_methods():
             1,
         ),
         (
-            "CHEC",
+            "prod5_sst",
             MuonRingFitter.fit_method.values[1],
             -2.5 * u.deg,
             1.3 * u.deg,
@@ -148,7 +148,7 @@ def test_muon_ring_fitter_has_methods():
             1,
         ),
         (
-            "CHEC",
+            "prod5_sst",
             MuonRingFitter.fit_method.values[2],
             -2.5 * u.deg,
             1.3 * u.deg,
@@ -162,6 +162,7 @@ def test_muon_ring_fitter_has_methods():
     ],
 )
 def test_muon_ring_fitter(
+    request,
     geom_optics_name,
     method,
     center_x,
@@ -172,29 +173,15 @@ def test_muon_ring_fitter(
     nsb_level_pe,
     picture_thresh,
     boundary_thresh,
-    prod5_lst,
-    prod5_mst_flashcam,
-    prod5_mst_nectarcam,
-    prod5_sst,
 ):
     """test MuonRingFitter"""
 
     pytest.importorskip("iminuit")
 
-    if geom_optics_name == "LSTCam":
-        geom = prod5_lst.camera.geometry
-        optics = prod5_lst.optics
-    elif geom_optics_name == "FlashCam":
-        geom = prod5_mst_flashcam.camera.geometry
-        optics = prod5_mst_flashcam.optics
-    elif geom_optics_name == "NectarCam":
-        geom = prod5_mst_nectarcam.camera.geometry
-        optics = prod5_mst_nectarcam.optics
-    elif geom_optics_name == "CHEC":
-        geom = prod5_sst.camera.geometry
-        optics = prod5_sst.optics
-    else:
-        raise ValueError("Camera with the specified name does not exist.")
+    # Dynamically retrieve the fixture for the specified camera
+    camera_fixture = request.getfixturevalue(geom_optics_name)
+    geom = camera_fixture.camera.geometry
+    optics = camera_fixture.optics
 
     center_xs = optics.effective_focal_length * np.tan(center_x)
     center_ys = optics.effective_focal_length * np.tan(center_y)
