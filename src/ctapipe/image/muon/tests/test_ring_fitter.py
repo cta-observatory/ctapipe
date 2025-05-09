@@ -1,49 +1,223 @@
 import astropy.units as u
+import numpy as np
 import pytest
 
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.muon import MuonRingFitter
 
 
-def test_MuonRingFitter_has_methods():
+def test_muon_ring_fitter_has_methods():
     # just to make sure, the test below is running for at least 2 methods
     # basically making sure, we do not test no method at all and always pass
     assert len(MuonRingFitter.fit_method.values) >= 2
 
 
-@pytest.mark.parametrize("method", MuonRingFitter.fit_method.values)
-def test_MuonRingFitter(method, prod5_mst_flashcam):
+@pytest.mark.parametrize(
+    "geom_optics_name, method, center_x, center_y, ring_asymmetry_magnitude, ring_asymmetry_orientation_angle, intensity, nsb_level_pe, picture_thresh,  boundary_thresh",
+    [
+        (
+            "prod5_lst",
+            MuonRingFitter.fit_method.values[0],
+            -0.3 * u.deg,
+            0.4 * u.deg,
+            1.1,
+            45 * u.deg,
+            750,
+            3,
+            7,
+            5,
+        ),
+        (
+            "prod5_lst",
+            MuonRingFitter.fit_method.values[1],
+            -0.3 * u.deg,
+            0.4 * u.deg,
+            1.4,
+            45 * u.deg,
+            750,
+            3,
+            7,
+            5,
+        ),
+        (
+            "prod5_lst",
+            MuonRingFitter.fit_method.values[2],
+            -0.3 * u.deg,
+            0.4 * u.deg,
+            1.4,
+            45 * u.deg,
+            750,
+            3,
+            7,
+            5,
+        ),
+        (
+            "prod5_mst_flashcam",
+            MuonRingFitter.fit_method.values[0],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.1,
+            45 * u.deg,
+            400,
+            2,
+            7,
+            5,
+        ),
+        (
+            "prod5_mst_flashcam",
+            MuonRingFitter.fit_method.values[1],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+            400,
+            2,
+            7,
+            5,
+        ),
+        (
+            "prod5_mst_flashcam",
+            MuonRingFitter.fit_method.values[2],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+            400,
+            2,
+            7,
+            5,
+        ),
+        (
+            "prod5_mst_nectarcam",
+            MuonRingFitter.fit_method.values[0],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.1,
+            45 * u.deg,
+            400,
+            2,
+            7,
+            5,
+        ),
+        (
+            "prod5_mst_nectarcam",
+            MuonRingFitter.fit_method.values[1],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+            400,
+            2,
+            7,
+            5,
+        ),
+        (
+            "prod5_mst_nectarcam",
+            MuonRingFitter.fit_method.values[2],
+            -1.3 * u.deg,
+            1.4 * u.deg,
+            1.4,
+            45 * u.deg,
+            400,
+            2,
+            7,
+            5,
+        ),
+        (
+            "prod5_sst",
+            MuonRingFitter.fit_method.values[0],
+            -2.5 * u.deg,
+            1.3 * u.deg,
+            1.1,
+            45 * u.deg,
+            500,
+            0,
+            2,
+            1,
+        ),
+        (
+            "prod5_sst",
+            MuonRingFitter.fit_method.values[1],
+            -2.5 * u.deg,
+            1.3 * u.deg,
+            1.1,
+            45 * u.deg,
+            500,
+            0,
+            2,
+            1,
+        ),
+        (
+            "prod5_sst",
+            MuonRingFitter.fit_method.values[2],
+            -2.5 * u.deg,
+            1.3 * u.deg,
+            1.1,
+            45 * u.deg,
+            500,
+            0,
+            2,
+            1,
+        ),
+    ],
+)
+def test_muon_ring_fitter(
+    request,
+    geom_optics_name,
+    method,
+    center_x,
+    center_y,
+    ring_asymmetry_magnitude,
+    ring_asymmetry_orientation_angle,
+    intensity,
+    nsb_level_pe,
+    picture_thresh,
+    boundary_thresh,
+):
     """test MuonRingFitter"""
+
     pytest.importorskip("iminuit")
 
-    # flashCam example
-    center_xs = 0.3 * u.m
-    center_ys = 0.6 * u.m
-    radius = 0.3 * u.m
-    width = 0.05 * u.m
+    # Dynamically retrieve the fixture for the specified camera
+    camera_fixture = request.getfixturevalue(geom_optics_name)
+    geom = camera_fixture.camera.geometry
+    optics = camera_fixture.optics
+
+    center_xs = optics.effective_focal_length * np.tan(center_x)
+    center_ys = optics.effective_focal_length * np.tan(center_y)
+    radius = optics.effective_focal_length * np.tan((1.1 * u.deg))
+    width = 0.07 * radius
+    min_error = 0.05 * radius
 
     muon_model = toymodel.RingGaussian(
         x=center_xs,
         y=center_ys,
         radius=radius,
         sigma=width,
+        asymmetry_magnitude=ring_asymmetry_magnitude,
+        asymmetry_orientation_angle=ring_asymmetry_orientation_angle,
     )
 
-    # testing with flashcam
-    geom = prod5_mst_flashcam.camera.geometry
     charge, _, _ = muon_model.generate_image(
         geom,
-        intensity=1000,
-        nsb_level_pe=5,
+        intensity=intensity,
+        nsb_level_pe=nsb_level_pe,
     )
-    survivors = tailcuts_clean(geom, charge, 10, 12)
+    survivors = tailcuts_clean(geom, charge, picture_thresh, boundary_thresh)
 
     muonfit = MuonRingFitter(fit_method=method)
     fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
-    print(fit_result)
-    print(center_xs, center_ys, radius)
-
-    assert u.isclose(fit_result.center_fov_lon, center_xs, 5e-2)
-    assert u.isclose(fit_result.center_fov_lat, center_ys, 5e-2)
-    assert u.isclose(fit_result.radius, radius, 5e-2)
+    assert u.isclose(
+        fit_result.center_fov_lon,
+        center_xs,
+        atol=(max(fit_result.center_fov_lon_err, min_error)),
+    )
+    assert u.isclose(
+        fit_result.center_fov_lat,
+        center_ys,
+        atol=(max(fit_result.center_fov_lat_err, min_error)),
+    )
+    assert u.isclose(
+        fit_result.radius, radius, atol=(max(fit_result.radius_err, min_error))
+    )

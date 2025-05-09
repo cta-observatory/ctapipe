@@ -18,7 +18,7 @@ def test_kundu_chaudhuri():
 
         weights = np.ones_like(x)
 
-        fit_radius, fit_x, fit_y = kundu_chaudhuri_circle_fit(x, y, weights)
+        fit_radius, fit_x, fit_y, _, _, _ = kundu_chaudhuri_circle_fit(x, y, weights)
 
         assert np.isclose(fit_x, center_x)
         assert np.isclose(fit_y, center_y)
@@ -37,7 +37,7 @@ def test_kundu_chaudhuri_with_units():
 
     weights = np.ones_like(x)
 
-    fit_radius, fit_x, fit_y = kundu_chaudhuri_circle_fit(x, y, weights)
+    fit_radius, fit_x, fit_y, _, _, _ = kundu_chaudhuri_circle_fit(x, y, weights)
 
     assert fit_x.unit == center_x.unit
     assert fit_y.unit == center_y.unit
