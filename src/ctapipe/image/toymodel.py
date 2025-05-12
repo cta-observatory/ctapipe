@@ -25,6 +25,7 @@ import astropy.units as u
 import numpy as np
 from numpy.random import default_rng
 from scipy.ndimage import convolve1d
+from scipy.special import ellipe
 from scipy.stats import multivariate_normal, norm, skewnorm
 
 from ctapipe.calib.camera.gainselection import GainChannel
@@ -414,6 +415,7 @@ class RingGaussian(ImageModel):
         )
         self.rho = rho
         self.phi0 = phi0.to(u.rad)
+        self.norm = 0.25 / ellipe(self.rho**2)
 
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
@@ -430,8 +432,8 @@ class RingGaussian(ImageModel):
             mask = (phi < phi_max) & (phi > -phi_max)
             pdf = np.zeros(phi.shape)
             radicant = 1 - self.rho**2 * np.sin(phi[mask]) ** 2
-            pdf[mask] = 2.0 * np.sqrt(radicant)
-            return pdf
+            pdf[mask] = 2 * np.sqrt(radicant)
+            return self.norm * pdf
         else:
             radicant = 1 - self.rho**2 * np.sin(phi) ** 2
-            return np.sqrt(radicant) + self.rho * np.cos(phi)
+            return self.norm * (np.sqrt(radicant) + self.rho * np.cos(phi))
