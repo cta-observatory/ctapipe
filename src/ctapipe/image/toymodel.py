@@ -376,6 +376,23 @@ class RingGaussian(ImageModel):
     """A shower image consisting of a ring with gaussian radial profile.
 
     Simplified model for a muon ring. With asymmetry in both the x and y directions.
+
+    Parameters
+    ----------
+    x : u.Quantity
+        x-coordinate of the ring center
+    y : u.Quantity
+        y-coordinate of the ring center
+    radius : u.Quantity
+        ring radius
+    sigma : u.Quantity
+        std. dev. along the radial axis, i.e. the width of point spread function
+    rho : float
+        Ratio of the muon impact parameter to the mirror radius. A value of
+        0 means a homogeneously illuminated ring, values > 1 result in only
+        partially illuminated rings.
+    phi0 : u.Quantity[angle]
+        Position angle of the muon impact on the mirror.
     """
 
     def __init__(
@@ -384,76 +401,37 @@ class RingGaussian(ImageModel):
         y,
         radius,
         sigma,
-        asymmetry_magnitude=0,
-        asymmetry_orientation_angle=0 * u.deg,
+        rho=0.0,
+        phi0=0 * u.deg,
     ):
         self.unit = x.unit
         self.x = x
         self.y = y
         self.sigma = sigma
         self.radius = radius
-        self.asymmetry_slope_x = asymmetry_magnitude * np.cos(
-            asymmetry_orientation_angle
-        )
-        self.asymmetry_slope_y = asymmetry_magnitude * np.sin(
-            asymmetry_orientation_angle
-        )
-        self.dist = norm(
+        self.r_dist = norm(
             self.radius.to_value(self.unit), self.sigma.to_value(self.unit)
         )
+        self.rho = rho
+        self.phi0 = phi0.to(u.rad)
 
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
-        r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
-        uniform_ring_pdf = self.dist.pdf(r)
-        asymmetric_ring_pdf = (
-            uniform_ring_pdf
-            * self.linear_pdf(x, self.x, self.asymmetry_slope_x)
-            * self.linear_pdf(y, self.y, self.asymmetry_slope_y)
-        )
-        return (
-            asymmetric_ring_pdf / np.sum(asymmetric_ring_pdf) * np.sum(uniform_ring_pdf)
-        )
+        dx = (x - self.x).to_value(self.unit)
+        dy = (y - self.y).to_value(self.unit)
+        r = np.sqrt(dx**2 + dy**2)
+        phi = np.arctan2(dy, dx)
+        return self.r_dist.pdf(r) * self._pdf_phi(phi)
 
-    def linear_pdf(self, var, var_shift, linear_slope=0):
-        """This is a function that generates a probability density
-        function (pdf) with a linear increase/decrease and a given slope in 1D.
-
-        Parameters
-        ----------
-        var : u.Quantity[length, shape(n, )]
-              A random variable with a linearly increasing or decreasing probability
-              density function.
-        linear_slope: linear slope
-        var_shift: Allow the PDF to have a shift.
-
-        Returns
-        -------
-        a pdf shape(n, )
-
-        """
-
-        if linear_slope == 0:
-            return 1
-
-        if len(var.shape) != 1:
-            raise ValueError("Array has incorrect dimensions.")
-
-        min_var = np.min(var)
-        max_var = np.max(var)
-
-        delta_var = (max_var - min_var).to_value(self.unit)
-
-        mean_var = (max_var + min_var).to_value(self.unit) / 2
-        d_var = delta_var / (len(var) - 1)
-
-        intercept = (
-            1 / delta_var
-            - mean_var * linear_slope
-            - var_shift.to_value(self.unit) * linear_slope
-        )
-
-        pdf = linear_slope * var.to_value(self.unit) + intercept
-        pdf[pdf < 0] = 0
-
-        return pdf / (d_var * np.sum(pdf))
+    def _pdf_phi(self, phi):
+        phi = phi + self.phi0.to_value(u.rad)
+        if self.rho >= 1:
+            phi_max = np.arcsin(1 / self.rho)
+            mask = (phi < phi_max) & (phi > -phi_max)
+            pdf = np.zeros(phi.shape)
+            radicant = 1 - self.rho**2 * np.sin(phi[mask]) ** 2
+            pdf[mask] = 2.0 * np.sqrt(radicant)
+            return pdf
+        else:
+            radicant = 1 - self.rho**2 * np.sin(phi) ** 2
+            return np.sqrt(radicant) + self.rho * np.cos(phi)
