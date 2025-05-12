@@ -438,7 +438,7 @@ class RingGaussian(ImageModel):
     def _pdf_phi(self, phi):
         phi = phi + self.phi0.to_value(u.rad)
         if self.rho >= 1:
-            mask = (phi < self.phi_max) & (phi > -self.phi_max)
+            mask = np.abs(phi) < self.phi_max
             pdf = np.zeros(phi.shape)
             pdf[mask] = self._inner_term(phi[mask])
             return self.norm * pdf
