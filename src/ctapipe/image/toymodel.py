@@ -24,6 +24,7 @@ from abc import ABCMeta, abstractmethod
 import astropy.units as u
 import numpy as np
 from numpy.random import default_rng
+from scipy.integrate import quad
 from scipy.ndimage import convolve1d
 from scipy.special import ellipe
 from scipy.stats import multivariate_normal, norm, skewnorm
@@ -415,7 +416,13 @@ class RingGaussian(ImageModel):
         )
         self.rho = rho
         self.phi0 = phi0.to(u.rad)
-        self.norm = 0.25 / ellipe(self.rho**2)
+
+        if rho >= 1:
+            self.phi_max = np.arcsin(1 / self.rho)
+            integral, _ = quad(self._inner_term, 0, self.phi_max)
+            self.norm = 1.0 / (2.0 * integral)
+        else:
+            self.norm = 0.25 / ellipe(self.rho**2)
 
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
@@ -425,15 +432,15 @@ class RingGaussian(ImageModel):
         phi = np.arctan2(dy, dx)
         return self.r_dist.pdf(r) * self._pdf_phi(phi)
 
+    def _inner_term(self, phi):
+        return np.sqrt(1 - self.rho**2 * np.sin(phi) ** 2)
+
     def _pdf_phi(self, phi):
         phi = phi + self.phi0.to_value(u.rad)
         if self.rho >= 1:
-            phi_max = np.arcsin(1 / self.rho)
-            mask = (phi < phi_max) & (phi > -phi_max)
+            mask = (phi < self.phi_max) & (phi > -self.phi_max)
             pdf = np.zeros(phi.shape)
-            radicant = 1 - self.rho**2 * np.sin(phi[mask]) ** 2
-            pdf[mask] = 2 * np.sqrt(radicant)
+            pdf[mask] = self._inner_term(phi[mask])
             return self.norm * pdf
         else:
-            radicant = 1 - self.rho**2 * np.sin(phi) ** 2
-            return self.norm * (np.sqrt(radicant) + self.rho * np.cos(phi))
+            return self.norm * (self._inner_term(phi) + self.rho * np.cos(phi))
