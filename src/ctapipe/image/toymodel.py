@@ -19,7 +19,6 @@ Examples:
     (400,)
 """
 
-import warnings
 from abc import ABCMeta, abstractmethod
 
 import astropy.units as u
@@ -440,16 +439,10 @@ class RingGaussian(ImageModel):
         if len(var.shape) != 1:
             raise ValueError("Array has incorrect dimensions.")
 
-        if np.isnan(var).any():
-            warnings.warn("Array contains nans.", RuntimeWarning)
-
-        min_var = np.nanmin(var)
-        max_var = np.nanmax(var)
+        min_var = np.min(var)
+        max_var = np.max(var)
 
         delta_var = (max_var - min_var).to_value(self.unit)
-
-        if delta_var <= 0:
-            raise ValueError("Array has zero range.")
 
         mean_var = (max_var + min_var).to_value(self.unit) / 2
         d_var = delta_var / (len(var) - 1)
@@ -461,7 +454,6 @@ class RingGaussian(ImageModel):
         )
 
         pdf = linear_slope * var.to_value(self.unit) + intercept
-        pdf = np.nan_to_num(pdf, nan=0.0)
         pdf[pdf < 0] = 0
 
         return pdf / (d_var * np.sum(pdf))
