@@ -238,3 +238,95 @@ def test_muon_ring_fitter(
     assert u.isclose(
         fit_result.radius, radius, atol=(max(fit_result.radius_err, min_error))
     )
+
+
+parameter_names = [
+    "tel_fixture_name",
+    "method",
+    "center_x",
+    "center_y",
+    "radius",
+    "width",
+]
+Parameters = namedtuple("MuonTestParams", parameter_names)
+
+
+@pytest.mark.parametrize(
+    parameter_names,
+    [
+        Parameters(
+            tel_fixture_name="prod5_lst",
+            method=MuonRingFitter.fit_method.values[0],
+            center_x=-0.3 * u.deg,
+            center_y=0.4 * u.deg,
+            radius=1.1 * u.deg,
+            width=0.1 * u.deg,
+        ),
+        Parameters(
+            tel_fixture_name="prod5_lst",
+            method=MuonRingFitter.fit_method.values[1],
+            center_x=-0.3 * u.deg,
+            center_y=0.4 * u.deg,
+            radius=1.1 * u.deg,
+            width=0.1 * u.deg,
+        ),
+        Parameters(
+            tel_fixture_name="prod5_lst",
+            method=MuonRingFitter.fit_method.values[2],
+            center_x=-0.3 * u.deg,
+            center_y=0.4 * u.deg,
+            radius=1.1 * u.deg,
+            width=0.1 * u.deg,
+        ),
+    ],
+)
+def test_muon_ring_fitter_error_calculator(
+    request,
+    tel_fixture_name,
+    method,
+    center_x,
+    center_y,
+    radius,
+    width,
+):
+    """test MuonRingFitter error_calculator"""
+
+    # Dynamically retrieve the fixture for the specified camera
+    tel = request.getfixturevalue(tel_fixture_name)
+    geom = tel.camera.geometry
+    optics = tel.optics
+
+    center_xs = optics.effective_focal_length * np.tan(center_x)
+    center_ys = optics.effective_focal_length * np.tan(center_y)
+    radius = optics.effective_focal_length * np.tan(radius)
+    width = optics.effective_focal_length * np.tan(width)
+
+    muon_model = toymodel.RingGaussian(
+        x=center_xs,
+        y=center_ys,
+        radius=radius,
+        sigma=width,
+        rho=0.5,
+        phi0=40 * u.deg,
+    )
+
+    charge, _, _ = muon_model.generate_image(
+        geom,
+        intensity=1000,
+        nsb_level_pe=0,
+    )
+    survivors = tailcuts_clean(geom, charge, 7, 5)
+
+    muonfit = MuonRingFitter(fit_method=method)
+    fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
+
+    if (0 > fit_result.center_fov_lon_err > width) or np.isnan(
+        fit_result.center_fov_lon_err
+    ):
+        assert False
+    if (0 > fit_result.center_fov_lat_err > width) or np.isnan(
+        fit_result.center_fov_lat_err
+    ):
+        assert False
+    if (0 > fit_result.radius > width) or np.isnan(fit_result.radius):
+        assert False
