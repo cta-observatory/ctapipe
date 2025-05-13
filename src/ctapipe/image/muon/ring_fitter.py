@@ -54,7 +54,7 @@ class MuonRingFitter(Component):
         default_value="kundu_chaudhuri_taubin",
     ).tag(config=True)
 
-    def __call__(self, fov_lon, fov_lat, image, clean_mask):
+    def __call__(self, geom, image, clean_mask):
         """
         Parameters
         -----------
@@ -81,7 +81,7 @@ class MuonRingFitter(Component):
             radius_err,
             center_fov_lon_err,
             center_fov_lat_err,
-        ) = fit_function(fov_lon, fov_lat, image, clean_mask)
+        ) = fit_function(geom.pix_x, geom.pix_y, image, clean_mask)
 
         return MuonRingContainer(
             center_fov_lon=center_fov_lon,
