@@ -54,10 +54,25 @@ class MuonRingFitter(Component):
         default_value="kundu_chaudhuri_taubin",
     ).tag(config=True)
 
-    def __call__(self, fov_lon, fov_lat, img, mask):
-        """allows any fit to be called in form of
-        MuonRingFitter(fit_method = "name of the fit")
+    def __call__(self, fov_lon, fov_lat, image, clean_mask):
         """
+        Parameters
+        -----------
+        fov_lon: array-like of astropy quantity
+        fov_lat: array-like of astropy quantity
+        Defines the pixel coordinates
+        image: np.ndarray[np.float]
+        Image intensity values
+        clean_mask: np.ndarray[np.bool]
+        Boolean mask of clean pixels, where True means the pixel contains signal.
+        This can be generated using a `ctapipe.image.ImageCleaner`.
+
+        Returns
+        --------
+        MuonRingContainers:
+         Results of the ring fit.
+        """
+
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
         (
             radius,
@@ -66,7 +81,7 @@ class MuonRingFitter(Component):
             radius_err,
             center_fov_lon_err,
             center_fov_lat_err,
-        ) = fit_function(fov_lon, fov_lat, img, mask)
+        ) = fit_function(fov_lon, fov_lat, image, clean_mask)
 
         return MuonRingContainer(
             center_fov_lon=center_fov_lon,
