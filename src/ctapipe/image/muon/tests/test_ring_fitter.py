@@ -4,6 +4,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.muon import MuonRingFitter
 
@@ -192,23 +193,19 @@ def test_muon_ring_fitter(
     boundary_thresh,
 ):
     """test MuonRingFitter"""
-
     pytest.importorskip("iminuit")
 
     # Dynamically retrieve the fixture for the specified camera
     tel = request.getfixturevalue(tel_fixture_name)
-    geom = tel.camera.geometry
-    optics = tel.optics
+    geom = tel.camera.geometry.transform_to(TelescopeFrame())
 
-    center_xs = optics.effective_focal_length * np.tan(center_x)
-    center_ys = optics.effective_focal_length * np.tan(center_y)
-    radius = optics.effective_focal_length * np.tan((1.1 * u.deg))
+    radius = 1.1 * u.deg
     width = 0.07 * radius
     min_error = 0.05 * radius
 
     muon_model = toymodel.RingGaussian(
-        x=center_xs,
-        y=center_ys,
+        x=center_x,
+        y=center_y,
         radius=radius,
         sigma=width,
         rho=impact_rho,
@@ -227,12 +224,12 @@ def test_muon_ring_fitter(
 
     assert u.isclose(
         fit_result.center_fov_lon,
-        center_xs,
+        center_x,
         atol=(max(fit_result.center_fov_lon_err, min_error)),
     )
     assert u.isclose(
         fit_result.center_fov_lat,
-        center_ys,
+        center_y,
         atol=(max(fit_result.center_fov_lat_err, min_error)),
     )
     assert u.isclose(
@@ -290,20 +287,15 @@ def test_muon_ring_fitter_error_calculator(
     width,
 ):
     """test MuonRingFitter error_calculator"""
+    pytest.importorskip("iminuit")
 
     # Dynamically retrieve the fixture for the specified camera
     tel = request.getfixturevalue(tel_fixture_name)
-    geom = tel.camera.geometry
-    optics = tel.optics
-
-    center_xs = optics.effective_focal_length * np.tan(center_x)
-    center_ys = optics.effective_focal_length * np.tan(center_y)
-    radius = optics.effective_focal_length * np.tan(radius)
-    width = optics.effective_focal_length * np.tan(width)
+    geom = tel.camera.geometry.transform_to(TelescopeFrame())
 
     muon_model = toymodel.RingGaussian(
-        x=center_xs,
-        y=center_ys,
+        x=center_x,
+        y=center_y,
         radius=radius,
         sigma=width,
         rho=0.5,
