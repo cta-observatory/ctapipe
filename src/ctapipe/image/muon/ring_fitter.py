@@ -58,8 +58,7 @@ class MuonRingFitter(Component):
         """
         Parameters
         -----------
-        fov_lon: array-like of astropy quantity
-        fov_lat: array-like of astropy quantity
+        geom: CameraGeometry
         Defines the pixel coordinates
         image: np.ndarray[np.float]
         Image intensity values
