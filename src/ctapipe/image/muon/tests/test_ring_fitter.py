@@ -312,7 +312,7 @@ def test_muon_ring_fitter_error_calculator(
 
     charge, _, _ = muon_model.generate_image(
         geom,
-        intensity=1000,
+        intensity=3000,
         nsb_level_pe=0,
     )
     survivors = tailcuts_clean(geom, charge, 7, 5)
@@ -320,13 +320,9 @@ def test_muon_ring_fitter_error_calculator(
     muonfit = MuonRingFitter(fit_method=method)
     fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
-    if (0 > fit_result.center_fov_lon_err > width) or np.isnan(
-        fit_result.center_fov_lon_err
-    ):
-        assert False
-    if (0 > fit_result.center_fov_lat_err > width) or np.isnan(
-        fit_result.center_fov_lat_err
-    ):
-        assert False
-    if (0 > fit_result.radius > width) or np.isnan(fit_result.radius):
-        assert False
+    assert np.isfinite(fit_result.center_fov_lon_err)
+    assert np.isfinite(fit_result.center_fov_lat_err)
+    assert np.isfinite(fit_result.radius_err)
+    assert fit_result.center_fov_lon_err > 0
+    assert fit_result.center_fov_lat_err > 0
+    assert fit_result.radius_err > 0
