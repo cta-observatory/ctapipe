@@ -220,7 +220,7 @@ def test_muon_ring_fitter(
     survivors = tailcuts_clean(geom, charge, picture_thresh, boundary_thresh)
 
     muonfit = MuonRingFitter(fit_method=method)
-    fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
+    fit_result = muonfit(geom, charge, survivors)
 
     assert u.isclose(
         fit_result.center_fov_lon,
@@ -310,7 +310,7 @@ def test_muon_ring_fitter_error_calculator(
     survivors = tailcuts_clean(geom, charge, 7, 5)
 
     muonfit = MuonRingFitter(fit_method=method)
-    fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
+    fit_result = muonfit(geom, charge, survivors)
 
     assert np.isfinite(fit_result.center_fov_lon_err)
     assert np.isfinite(fit_result.center_fov_lat_err)
