@@ -193,7 +193,6 @@ def test_muon_ring_fitter(
     boundary_thresh,
 ):
     """test MuonRingFitter"""
-
     pytest.importorskip("iminuit")
 
     # Dynamically retrieve the fixture for the specified camera
@@ -288,6 +287,7 @@ def test_muon_ring_fitter_error_calculator(
     width,
 ):
     """test MuonRingFitter error_calculator"""
+    pytest.importorskip("iminuit")
 
     # Dynamically retrieve the fixture for the specified camera
     tel = request.getfixturevalue(tel_fixture_name)
