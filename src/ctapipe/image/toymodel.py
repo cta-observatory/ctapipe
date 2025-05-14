@@ -377,7 +377,7 @@ class SkewedGaussian(ImageModel):
 class RingGaussian(ImageModel):
     """A shower image consisting of a ring with gaussian radial profile.
 
-    Simplified model for a muon ring. With asymmetry in both the x and y directions.
+    Simplified model for a muon ring, optionally with asymmetry based on the muon impact.
 
     Parameters
     ----------
