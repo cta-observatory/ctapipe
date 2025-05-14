@@ -8,5 +8,5 @@ The algorithms for muon ring fitting have been improved
 - Realistic muon ring simulation for all camera types implemented in the test with toy model.
 - Include the parameter fit errors in the tolerance metric.
 - Add error fields to the muon container.
-- The modified functions are backward compatible.
+- The API for MuonFitter has been modified.
 - Minor documentation updates.
