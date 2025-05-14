@@ -241,6 +241,7 @@ def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y)
         Fitted x-coordinate of the circle center.
     center_y : astropy.units.Quantity
         Fitted y-coordinate of the circle center.
+
     Returns
     -------
     radius_err : astropy.units.Quantity
