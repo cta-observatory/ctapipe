@@ -63,9 +63,9 @@ class MuonRingFitter(Component):
         geom: CameraGeometry
             Defines the pixel coordinates.
             Must be in the `ctapipe.coordinates.TelescopeFrame`
-        image: np.ndarray[np.float]
+        image: np.ndarray[np.float32]
             Image intensity values
-        clean_mask: np.ndarray[np.bool]
+        clean_mask: np.array([],dtype=bool)
             Boolean mask of clean pixels, where True means the pixel contains signal.
             This can be generated using a `ctapipe.image.ImageCleaner`.
 
