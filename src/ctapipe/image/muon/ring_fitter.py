@@ -56,20 +56,24 @@ class MuonRingFitter(Component):
 
     def __call__(self, geom, image, clean_mask):
         """
+        Allows any fit to be called in form of
+        MuonRingFitter(fit_method = <name of the fit>)
+
         Parameters
         -----------
         geom: CameraGeometry
-        Defines the pixel coordinates
+            Defines the pixel coordinates.
+            Must be in the `ctapipe.coordinates.TelescopeFrame`
         image: np.ndarray[np.float]
-        Image intensity values
+            Image intensity values
         clean_mask: np.ndarray[np.bool]
-        Boolean mask of clean pixels, where True means the pixel contains signal.
-        This can be generated using a `ctapipe.image.ImageCleaner`.
+            Boolean mask of clean pixels, where True means the pixel contains signal.
+            This can be generated using a `ctapipe.image.ImageCleaner`.
 
         Returns
         --------
-        MuonRingContainers:
-         Results of the ring fit.
+        MuonRingContainer:
+            Results of the ring fit.
         """
 
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
