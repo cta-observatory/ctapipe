@@ -182,7 +182,7 @@ class MuonProcessor(TelescopeComponent):
         # First use cleaning pixels, then only pixels close to the ring
         # three iterations seems to be enough for most rings
         for _ in range(3):
-            ring = self.ring_fitter(fov_lon, fov_lat, image, mask)
+            ring = self.ring_fitter(geometry, image, mask)
             dist = np.sqrt(
                 (fov_lon - ring.center_fov_lon) ** 2
                 + (fov_lat - ring.center_fov_lat) ** 2
