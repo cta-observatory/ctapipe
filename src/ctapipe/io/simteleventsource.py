@@ -546,6 +546,14 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
+    subtract_pedestal_baseline = Bool(
+        True,
+        help=(
+            "Subtract the pedestal baseline from the waveform samples."
+            " This is done by default, but can be disabled for calibration events."
+        ),
+    ).tag(config=True)
+
     atmosphere_profile_choice = UseEnum(
         AtmosphereProfileKind,
         default_value=AtmosphereProfileKind.AUTO,
@@ -997,7 +1005,10 @@ class SimTelEventSource(EventSource):
                 data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
 
                 cam_mon = array_event["camera_monitorings"][tel_id]
-                pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
+                if self.subtract_pedestal_baseline:
+                    pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
+                else:
+                    pedestal = np.zeros_like(cam_mon["pedestal"])
                 dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
 
                 # fill dc_to_pe and pedestal_per_sample info into monitoring
