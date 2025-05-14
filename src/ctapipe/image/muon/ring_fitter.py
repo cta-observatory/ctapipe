@@ -56,8 +56,7 @@ class MuonRingFitter(Component):
 
     def __call__(self, geom, image, clean_mask):
         """
-        Allows any fit to be called in form of
-        MuonRingFitter(fit_method = <name of the fit>)
+        Perform a circle fit to ``image`` with the chosen ``fit_method``.
 
         Parameters
         -----------
