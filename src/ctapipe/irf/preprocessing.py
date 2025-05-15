@@ -1,11 +1,13 @@
 """Module containing classes related to event loading and preprocessing"""
 
 from pathlib import Path
+from typing import Any, Dict
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import ICRS, AltAz, EarthLocation, Galactic, SkyCoord
 from astropy.table import Column, QTable, Table, vstack
+from astropy.time import Time, TimeDelta
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import (
     DIFFUSE_FLUX_UNIT,
@@ -13,44 +15,33 @@ from pyirf.spectral import (
     PowerLaw,
     calculate_event_weights,
 )
-from pyirf.utils import calculate_source_fov_offset, calculate_theta
+from pyirf.utils import (
+    calculate_source_fov_offset,
+    calculate_source_fov_position_angle,
+    calculate_theta,
+)
 from tables import NoSuchNodeError
 
+from ..atmosphere import AtmosphereDensityProfile
 from ..compat import COPY_IF_NEEDED
-from ..containers import CoordinateFrameType
+from ..containers import CoordinateFrameType, PointingMode
 from ..coordinates import NominalFrame
-from ..core import Component, QualityQuery
-from ..core.traits import List, Tuple, Unicode
-from ..io import TableLoader
+from ..core import Component
+from ..core.traits import Bool, Unicode
+from ..io import EventSource, TableLoader
+from ..version import version as ctapipe_version
+from .cuts import EventQualitySelection, EventSelection
 from .spectra import SPECTRA, Spectra
 
-__all__ = ["EventLoader", "EventPreprocessor", "EventQualityQuery"]
+__all__ = ["EventLoader", "EventPreprocessor"]
 
-
-class EventQualityQuery(QualityQuery):
-    """
-    Event pre-selection quality criteria for IRF computation with different defaults.
-    """
-
-    quality_criteria = List(
-        Tuple(Unicode(), Unicode()),
-        default_value=[
-            (
-                "multiplicity 4",
-                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-            ),
-            ("valid classifier", "RandomForestClassifier_is_valid"),
-            ("valid geom reco", "HillasReconstructor_is_valid"),
-            ("valid energy reco", "RandomForestRegressor_is_valid"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+from ..io.astropy_helpers import join_allow_empty
 
 
 class EventPreprocessor(Component):
     """Defines pre-selection cuts and the necessary renaming of columns."""
 
-    classes = [EventQualityQuery]
+    classes = [EventQualitySelection, EventSelection]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -67,12 +58,167 @@ class EventPreprocessor(Component):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    irf_pre_processing = Bool(
+        default_value=True,
+        help="If true the pre processing assume the purpose is for IRF production, if false, for DL3 production",
+    ).tag(config=True)
+
+    optional_dl3_columns = Bool(
+        default_value=False, help="If true add optional columns to produce file"
+    ).tag(config=True)
+
+    raise_error_for_optional = Bool(
+        default_value=True,
+        help="If true will raise error in the case optional column are missing",
+    ).tag(config=True)
+
+    def __init__(
+        self, quality_selection_only: bool = True, config=None, parent=None, **kwargs
+    ):
         super().__init__(config=config, parent=parent, **kwargs)
-        self.quality_query = EventQualityQuery(parent=self)
+        if quality_selection_only:
+            self.event_selection = EventQualitySelection(parent=self)
+        else:
+            self.event_selection = EventSelection(parent=self)
+
+    def get_columns_keep_rename_scheme(
+        self, events: Table = None, already_derived: bool = False
+    ):
+        """
+        Function to get the columns to keep, and the scheme for renaming columns
+        """
+        keep_columns = [
+            "obs_id",
+            "event_id",
+        ]
+        if self.irf_pre_processing:
+            keep_columns += [
+                "true_energy",
+                "true_az",
+                "true_alt",
+            ]
+        else:
+            keep_columns += [
+                "time",
+            ]
+
+        if already_derived:
+            rename_from = []
+            rename_to = []
+            keep_columns += ["reco_energy", "reco_az", "reco_alt", "gh_score"]
+
+            if self.irf_pre_processing:
+                keep_columns += [
+                    "pointing_az",
+                    "pointing_alt",
+                    "reco_fov_lat",
+                    "reco_fov_lon",
+                    "theta",
+                    "true_source_fov_offset",
+                    "reco_source_fov_offset",
+                    "weight",
+                ]
+            else:
+                keep_columns += ["reco_ra", "reco_dec"]
+                if self.optional_dl3_columns:
+                    keep_columns_optional = [
+                        "multiplicity",
+                        "reco_glon",
+                        "reco_glat",
+                        "reco_fov_lat",
+                        "reco_fov_lon",
+                        "reco_source_fov_offset",
+                        "reco_source_fov_position_angle",
+                        "reco_energy_uncert",
+                        "reco_dir_uncert",
+                        "reco_core_x",
+                        "reco_core_y",
+                        "reco_core_uncert",
+                        "reco_h_max",
+                        "reco_h_max_uncert",
+                        "reco_x_max",
+                        "reco_x_max_uncert",
+                    ]
+
+                    if self.raise_error_for_optional:
+                        if events is None:
+                            raise ValueError(
+                                "Require events table to assess existence of optional columns"
+                            )
+                        for c in keep_columns_optional:
+                            if c not in events.colnames:
+                                self.log.warning(
+                                    f"Optional column {c} is missing from the events table."
+                                )
+                            else:
+                                keep_columns.append(c)
+                    else:
+                        keep_columns += keep_columns_optional
+
+        else:
+            if self.optional_dl3_columns:
+                keep_columns += [
+                    "tels_with_trigger",
+                ]
+
+            rename_from = [
+                f"{self.energy_reconstructor}_energy",
+                f"{self.geometry_reconstructor}_az",
+                f"{self.geometry_reconstructor}_alt",
+                f"{self.gammaness_classifier}_prediction",
+                "subarray_pointing_lat",
+                "subarray_pointing_lon",
+            ]
+            rename_to = [
+                "reco_energy",
+                "reco_az",
+                "reco_alt",
+                "gh_score",
+                "pointing_alt",
+                "pointing_az",
+            ]
+            if self.optional_dl3_columns:
+                rename_from_optional = [
+                    f"{self.energy_reconstructor}_energy_uncert",
+                    f"{self.geometry_reconstructor}_ang_distance_uncert",
+                    f"{self.geometry_reconstructor}_core_x",
+                    f"{self.geometry_reconstructor}_core_y",
+                    f"{self.geometry_reconstructor}_core_uncert_x",
+                    f"{self.geometry_reconstructor}_core_uncert_y",
+                    f"{self.geometry_reconstructor}_h_max",
+                    f"{self.geometry_reconstructor}_h_max_uncert",
+                ]
+                rename_to_optional = [
+                    "reco_energy_uncert",
+                    "reco_dir_uncert",
+                    "reco_core_x",
+                    "reco_core_y",
+                    "reco_core_uncert_x",
+                    "reco_core_uncert_y",
+                    "reco_h_max",
+                    "reco_h_max_uncert",
+                ]
+                if not self.raise_error_for_optional:
+                    if events is None:
+                        raise ValueError(
+                            "Require events table to assess existence of optional columns"
+                        )
+                    for i, c in enumerate(rename_from_optional):
+                        if c not in events.colnames:
+                            self.log.warning(
+                                f"Optional column {c} is missing from the DL2 file."
+                            )
+                        else:
+                            rename_from.append(rename_from_optional[i])
+                            rename_to.append(rename_to_optional[i])
+                else:
+                    rename_from += rename_from_optional
+                    rename_to += rename_to_optional
+
+        return keep_columns, rename_from, rename_to
 
     def normalise_column_names(self, events: Table) -> QTable:
-        if events["subarray_pointing_lat"].std() > 1e-3:
+        if self.irf_pre_processing and events["subarray_pointing_lat"].std() > 1e-3:
             raise NotImplementedError(
                 "No support for making irfs from varying pointings yet"
             )
@@ -81,29 +227,9 @@ class EventPreprocessor(Component):
                 "At the moment only pointing in altaz is supported."
             )
 
-        keep_columns = [
-            "obs_id",
-            "event_id",
-            "true_energy",
-            "true_az",
-            "true_alt",
-        ]
-        rename_from = [
-            f"{self.energy_reconstructor}_energy",
-            f"{self.geometry_reconstructor}_az",
-            f"{self.geometry_reconstructor}_alt",
-            f"{self.gammaness_classifier}_prediction",
-            "subarray_pointing_lat",
-            "subarray_pointing_lon",
-        ]
-        rename_to = [
-            "reco_energy",
-            "reco_az",
-            "reco_alt",
-            "gh_score",
-            "pointing_alt",
-            "pointing_az",
-        ]
+        keep_columns, rename_from, rename_to = self.get_columns_keep_rename_scheme(
+            events
+        )
         keep_columns.extend(rename_from)
         for c in keep_columns:
             if c not in events.colnames:
@@ -112,11 +238,122 @@ class EventPreprocessor(Component):
                     f"Required column {c} is missing."
                 )
 
-        events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
-        events.rename_columns(rename_from, rename_to)
+        renamed_events = QTable(events, copy=COPY_IF_NEEDED)
+        renamed_events.rename_columns(rename_from, rename_to)
+        return renamed_events
+
+    def keep_necessary_columns_only(self, events: Table) -> QTable:
+        keep_columns, _, _ = self.get_columns_keep_rename_scheme(events, True)
+        for c in keep_columns:
+            if c not in events.colnames:
+                raise ValueError(
+                    f"Required column {c} is missing from the events table."
+                )
+
+        return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
+
+    def make_derived_columns(
+        self,
+        events: QTable,
+        location_subarray: EarthLocation,
+        atmosphere_density_profile: AtmosphereDensityProfile = None,
+    ) -> QTable:
+        """
+        This function compute all the derived columns necessary either to irf production or DL3 file
+        """
+
+        events["gh_score"].unit = u.dimensionless_unscaled
+
+        if self.irf_pre_processing:
+            frame_subarray = AltAz()
+        else:
+            frame_subarray = AltAz(
+                location=location_subarray, obstime=Time(events["time"])
+            )
+        reco = SkyCoord(
+            alt=events["reco_alt"],
+            az=events["reco_az"],
+            frame=frame_subarray,
+        )
+
+        if self.irf_pre_processing or self.optional_dl3_columns:
+            pointing = SkyCoord(
+                alt=events["pointing_alt"],
+                az=events["pointing_az"],
+                frame=frame_subarray,
+            )
+            nominal = NominalFrame(origin=pointing)
+            reco_nominal = reco.transform_to(nominal)
+            events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
+            events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
+            events["reco_source_fov_offset"] = calculate_source_fov_offset(
+                events, prefix="reco"
+            )
+            if not self.irf_pre_processing:
+                events[
+                    "reco_source_fov_position_angle"
+                ] = calculate_source_fov_position_angle(events, prefix="reco")
+
+        if self.irf_pre_processing:
+            events["weight"] = (
+                1.0 * u.dimensionless_unscaled
+            )  # defer calculation of proper weights to later
+            events["theta"] = calculate_theta(
+                events,
+                assumed_source_az=events["true_az"],
+                assumed_source_alt=events["true_alt"],
+            )
+            events["true_source_fov_offset"] = calculate_source_fov_offset(
+                events, prefix="true"
+            )
+        else:
+            reco_icrs = reco.transform_to(ICRS())
+            events["reco_ra"] = u.Quantity(reco_icrs.ra)
+            events["reco_dec"] = u.Quantity(reco_icrs.dec)
+            if self.optional_dl3_columns:
+                reco_gal = reco_icrs.transform_to(Galactic())
+                events["reco_glon"] = u.Quantity(reco_gal.l)
+                events["reco_glat"] = u.Quantity(reco_gal.b)
+
+                events["multiplicity"] = np.sum(events["tels_with_trigger"], axis=1)
+
+                events["reco_core_uncert"] = np.sqrt(
+                    events["reco_core_uncert_x"] ** 2
+                    + events["reco_core_uncert_y"] ** 2
+                )
+
+                try:
+                    events[
+                        "reco_x_max"
+                    ] = atmosphere_density_profile.slant_depth_from_height(
+                        events["reco_h_max"], np.pi * u.rad / 2 - events["reco_alt"]
+                    ).to(u.g / u.cm / u.cm)
+                    uncert_up = (
+                        atmosphere_density_profile.slant_depth_from_height(
+                            events["reco_h_max"] + events["reco_h_max_uncert"],
+                            np.pi * u.rad / 2 - events["reco_alt"],
+                        )
+                        - events["reco_x_max"]
+                    )
+                    uncert_down = events[
+                        "reco_x_max"
+                    ] - atmosphere_density_profile.slant_depth_from_height(
+                        events["reco_h_max"] + events["reco_h_max_uncert"],
+                        np.pi * u.rad / 2 - events["reco_alt"],
+                    )
+                    events["reco_x_max_uncert"] = ((uncert_up + uncert_down) / 2.0).to(
+                        u.g / u.cm / u.cm
+                    )
+                except Exception as e:
+                    if self.raise_error_for_optional:
+                        raise e
+                    else:
+                        events["reco_x_max"] = np.nan * u.g / u.cm / u.cm
+                        events["reco_x_max_uncert"] = np.nan * u.g / u.cm / u.cm
+
         return events
 
-    def make_empty_table(self) -> QTable:
+    def make_empty_table(self, columns_to_use: list[str]) -> QTable:
         """
         This function defines the columns later functions expect to be present
         in the event table.
@@ -124,6 +361,11 @@ class EventPreprocessor(Component):
         columns = [
             Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
             Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+            Time(
+                val=[],
+                scale="tai",
+                format="mjd",
+            ),
             Column(
                 name="true_energy",
                 unit=u.TeV,
@@ -145,6 +387,11 @@ class EventPreprocessor(Component):
                 description="Reconstructed energy",
             ),
             Column(
+                name="reco_energy_uncert",
+                unit=u.TeV,
+                description="Uncertainty on the reconstructed energy",
+            ),
+            Column(
                 name="reco_az",
                 unit=u.deg,
                 description="Reconstructed azimuth",
@@ -153,6 +400,31 @@ class EventPreprocessor(Component):
                 name="reco_alt",
                 unit=u.deg,
                 description="Reconstructed altitude",
+            ),
+            Column(
+                name="reco_dir_uncert",
+                unit=u.deg,
+                description="Uncertainty on the reconstructed direction",
+            ),
+            Column(
+                name="reco_ra",
+                unit=u.deg,
+                description="Reconstructed direction, Right Ascension (ICRS)",
+            ),
+            Column(
+                name="reco_dec",
+                unit=u.deg,
+                description="Reconstructed direction, Declination (ICRS)",
+            ),
+            Column(
+                name="reco_glon",
+                unit=u.deg,
+                description="Reconstructed direction, galactic longitude",
+            ),
+            Column(
+                name="reco_glat",
+                unit=u.deg,
+                description="Reconstructed direction, galactic latitude",
             ),
             Column(
                 name="reco_fov_lat",
@@ -177,9 +449,19 @@ class EventPreprocessor(Component):
                 description="Simulated angular offset from pointing direction",
             ),
             Column(
+                name="true_source_fov_position_angle",
+                unit=u.deg,
+                description="Simulated angular position angle from pointing direction",
+            ),
+            Column(
                 name="reco_source_fov_offset",
                 unit=u.deg,
                 description="Reconstructed angular offset from pointing direction",
+            ),
+            Column(
+                name="reco_source_fov_position_angle",
+                unit=u.deg,
+                description="Reconstructed angular position angle from pointing direction",
             ),
             Column(
                 name="gh_score",
@@ -193,9 +475,71 @@ class EventPreprocessor(Component):
                 unit=u.dimensionless_unscaled,
                 description="Event weight",
             ),
+            Column(
+                name="multiplicity",
+                description="Number of telescopes used for the reconstruction",
+            ),
+            Column(
+                name="reco_core_x",
+                unit=u.m,
+                description="Reconstructed position of the core of the shower, x coordinate",
+            ),
+            Column(
+                name="reco_core_y",
+                unit=u.m,
+                description="Reconstructed position of the core of the shower, y coordinate",
+            ),
+            Column(
+                name="reco_core_uncert",
+                unit=u.m,
+                description="Uncertainty on the reconstructed position of the core of the shower",
+            ),
+            Column(
+                name="reco_h_max",
+                unit=u.m,
+                description="Reconstructed altitude of the maximum of the shower",
+            ),
+            Column(
+                name="reco_h_max_uncert",
+                unit=u.m,
+                description="Uncertainty on the reconstructed altitude of the maximum of the shower",
+            ),
+            Column(
+                name="reco_x_max",
+                unit=u.g / u.cm / u.cm,
+                description="Reconstructed maximum of the shower",
+            ),
+            Column(
+                name="reco_x_max_uncert",
+                unit=u.g / u.cm / u.cm,
+                description="Uncertainty on the maximum of the shower",
+            ),
         ]
 
-        return QTable(columns)
+        # Rearrange in a dict, easier for searching after
+        columns_dict = {}
+        for i in range(len(columns)):
+            if type(columns[i]) is Time:
+                columns_dict["time"] = columns[i]
+            else:
+                columns_dict[columns[i].name] = columns[i]
+
+        # Select only the necessary columns
+        columns_for_keep = []
+        index_time_column = -1
+        for i, c in enumerate(columns_to_use):
+            if c in columns_dict.keys():
+                columns_for_keep.append(columns_dict[c])
+                if c == "time":
+                    index_time_column = i
+            else:
+                raise ValueError(f"Missing columns definition for {c}")
+
+        empty_table = QTable(columns_for_keep)
+        if index_time_column >= 0:
+            empty_table.rename_column("col" + str(index_time_column), "time")
+
+        return empty_table
 
 
 class EventLoader(Component):
@@ -206,93 +550,238 @@ class EventLoader(Component):
 
     classes = [EventPreprocessor]
 
-    def __init__(self, file: Path, target_spectrum: Spectra, **kwargs):
+    def __init__(
+        self,
+        file: Path,
+        target_spectrum: Spectra = None,
+        quality_selection_only: bool = True,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
-        self.epp = EventPreprocessor(parent=self)
-        self.target_spectrum = SPECTRA[target_spectrum]
+        self.epp = EventPreprocessor(
+            quality_selection_only=quality_selection_only, parent=self
+        )
+        if target_spectrum is not None:
+            self.target_spectrum = SPECTRA[target_spectrum]
+        else:
+            self.target_spectrum = None
         self.file = file
+        self.opts_loader = dict(dl2=True, simulated=True, observation_info=True)
 
-    def load_preselected_events(
-        self, chunk_size: int, obs_time: u.Quantity
-    ) -> tuple[QTable, int, dict]:
-        opts = dict(dl2=True, simulated=True, observation_info=True)
-        with TableLoader(self.file, parent=self, **opts) as load:
-            header = self.epp.make_empty_table()
-            sim_info, spectrum = self.get_simulation_information(load, obs_time)
-            meta = {"sim_info": sim_info, "spectrum": spectrum}
+    def load_preselected_events(self, chunk_size: int) -> tuple[QTable, int, dict]:
+        # Load atmosphere density profile
+        atmosphere_density_profile = None
+        if self.epp.optional_dl3_columns:
+            try:
+                with EventSource(self.file) as source:
+                    atmosphere_density_profile = source.atmosphere_density_profile
+            except Exception:
+                self.log.warning("Unable to read atmosphere density profile")
+
+        # Load event
+        with TableLoader(self.file, parent=self, **self.opts_loader) as load:
+            keep_columns, _, _ = self.epp.get_columns_keep_rename_scheme(None, True)
+            header = self.epp.make_empty_table(keep_columns)
             bits = [header]
-            n_raw_events = 0
-            for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
-                selected = events[self.epp.quality_query.get_table_mask(events)]
-                selected = self.epp.normalise_column_names(selected)
-                selected = self.make_derived_columns(selected)
+            for _, _, events in load.read_subarray_events_chunked(
+                chunk_size, **self.opts_loader
+            ):
+                events = self.epp.normalise_column_names(events)
+
+                events = self.epp.make_derived_columns(
+                    events, load.subarray.reference_location, atmosphere_density_profile
+                )
+                events = self.epp.event_selection.calculate_selection(events)
+                selected = events[events["selected"]]
+                selected = self.epp.keep_necessary_columns_only(selected)
                 bits.append(selected)
-                n_raw_events += len(events)
 
             bits.append(header)  # Putting it last ensures the correct metadata is used
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
-            return table, n_raw_events, meta
+            return table
 
-    def get_simulation_information(
-        self, loader: TableLoader, obs_time: u.Quantity
-    ) -> tuple[SimulatedEventsInfo, PowerLaw]:
-        sim = loader.read_simulation_configuration()
-        try:
-            show = loader.read_shower_distribution()
-        except NoSuchNodeError:
-            # Fall back to using the run header
-            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
+    def get_observation_information(self) -> Dict[str, Any]:
+        """
+        Retrieve all useful information on the observation for DL3 production
+        """
+        with TableLoader(self.file, parent=self, **self.opts_loader) as load:
+            # Extract telescope location
+            meta = {}
+            meta["location"] = load.subarray.reference_location
 
-        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(np.unique(sim[itm])) > 1:
-                raise NotImplementedError(
-                    f"Unsupported: '{itm}' differs across simulation runs"
+            # Read observation information
+            obs_info_table = load.read_observation_information()
+            schedule_info_table = load.read_scheduling_blocks()
+            obs_all_info_table = join_allow_empty(
+                obs_info_table, schedule_info_table, "sb_id", "inner"
+            )
+            if len(obs_all_info_table) == 0:
+                self.log.error("No observation information available in the DL2 file")
+                raise ValueError("Missing observation information in the DL2 file")
+            elif len(obs_all_info_table) != len(obs_info_table):
+                self.log.error(
+                    "Scheduling blocks are missing for some observation block"
+                )
+                raise ValueError(
+                    "Scheduling blocks are missing for some observation block"
                 )
 
-        sim_info = SimulatedEventsInfo(
-            n_showers=show["n_entries"].sum(),
-            energy_min=sim["energy_range_min"].quantity[0],
-            energy_max=sim["energy_range_max"].quantity[0],
-            max_impact=sim["max_scatter_range"].quantity[0],
-            spectral_index=sim["spectral_index"][0],
-            viewcone_max=sim["max_viewcone_radius"].quantity[0],
-            viewcone_min=sim["min_viewcone_radius"].quantity[0],
-        )
+            # Check for obs ids
+            if len(np.unique(obs_all_info_table["obs_id"])):
+                self.log.warning(
+                    "Multiple observations included in the DL2 file, only the id of the first observation will be reported in the DL3 file, data from all observations will be included"
+                )
+            meta["obs_id"] = np.unique(obs_all_info_table["obs_id"])[0]
 
-        return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)
+            # Extract GTI
+            list_gti = []
+            mask_nan = np.isnan(obs_all_info_table["actual_duration"])
+            if np.sum(mask_nan) > 0:
+                self.log.warning("Duration of the run is nan, replaced with zero")
+                obs_all_info_table["actual_duration"][mask_nan] = 0.0 * u.s
+            for i in range(len(obs_all_info_table)):
+                start_time = Time(obs_all_info_table["actual_start_time"][i]).tai
+                stop_time = start_time + TimeDelta(
+                    obs_all_info_table["actual_duration"][i]
+                    * obs_all_info_table["actual_duration"].unit
+                )
+                list_gti.append((start_time, stop_time))
+            meta["gti"] = list_gti
 
-    def make_derived_columns(self, events: QTable) -> QTable:
-        events["weight"] = (
-            1.0 * u.dimensionless_unscaled
-        )  # defer calculation of proper weights to later
-        events["gh_score"].unit = u.dimensionless_unscaled
-        events["theta"] = calculate_theta(
-            events,
-            assumed_source_az=events["true_az"],
-            assumed_source_alt=events["true_alt"],
-        )
-        events["true_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="true"
-        )
-        events["reco_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="reco"
-        )
+            # Dead time fraction
+            self.log.warning(
+                "Dead time fraction is not read from the file, a default value of 1 is used"
+            )
+            meta["dead_time_fraction"] = 1.0
 
-        altaz = AltAz()
-        pointing = SkyCoord(
-            alt=events["pointing_alt"], az=events["pointing_az"], frame=altaz
-        )
-        reco = SkyCoord(
-            alt=events["reco_alt"],
-            az=events["reco_az"],
-            frame=altaz,
-        )
-        nominal = NominalFrame(origin=pointing)
-        reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
-        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
-        return events
+            # Extract pointing information
+            if len(np.unique(obs_all_info_table["pointing_mode"])) != 1:
+                self.log.error("Multiple pointing mode are not supported")
+                raise ValueError("Multiple pointing mode are not supported")
+            meta["pointing"] = {}
+            meta["pointing"]["pointing_mode"] = PointingMode(
+                obs_all_info_table["pointing_mode"][0]
+            ).name
+            list_pointing = []
+            for i in range(len(obs_all_info_table)):
+                if (
+                    CoordinateFrameType(
+                        obs_all_info_table["subarray_pointing_frame"][i]
+                    ).name
+                    == "ALTAZ"
+                ):
+                    pointing_start = AltAz(
+                        alt=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        az=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                        location=meta["location"],
+                        obstime=meta["gti"][i][0],
+                    )
+                    pointing_stop = AltAz(
+                        alt=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        az=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                        location=meta["location"],
+                        obstime=meta["gti"][i][1],
+                    )
+                elif (
+                    CoordinateFrameType(
+                        obs_all_info_table["subarray_pointing_frame"][i]
+                    ).name
+                    == "ICRS"
+                ):
+                    pointing_start = ICRS(
+                        dec=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        ra=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                    )
+                    pointing_stop = pointing_start
+                elif (
+                    CoordinateFrameType(
+                        obs_all_info_table["subarray_pointing_frame"][i]
+                    ).name
+                    == "GALACTIC"
+                ):
+                    pointing_start = Galactic(
+                        b=obs_all_info_table["subarray_pointing_lat"][i]
+                        * obs_all_info_table["subarray_pointing_lat"].unit,
+                        l=obs_all_info_table["subarray_pointing_lon"][i]
+                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                    )
+                    pointing_stop = pointing_start
+                list_pointing.append((meta["gti"][i][0], pointing_start))
+                list_pointing.append((meta["gti"][i][1], pointing_stop))
+            meta["pointing"]["pointing_list"] = list_pointing
+
+            # Telescope information
+            self.log.warning(
+                "Name of organisation, array and subarray are not read from the file and are default value"
+            )
+            meta["telescope_information"] = {
+                "organisation": "UNKNOWN",
+                "array": "UNKNOWN",
+                "subarray": "UNKNOWN",
+                "telescope_list": np.array(
+                    load.subarray.get_tel_ids(load.subarray.tel)
+                ),
+            }
+
+            # Target information
+            self.log.warning(
+                "Name of the target, coordinates and observer are not read from the file and are default value"
+            )
+            meta["target"] = {
+                "observer": "UNKNOWN",
+                "object_name": "UNKNOWN",
+                "object_coordinate": ICRS(np.nan * u.deg, np.nan * u.deg),
+            }
+
+            # Software information
+            self.log.warning("Software version are unknown")
+            meta["software_version"] = {
+                "analysis_version": "ctapipe " + ctapipe_version,
+                "calibration_version": "UNKNOWN",
+                "dst_version": "UNKNOWN",
+            }
+
+        return meta
+
+    def get_simulation_information(
+        self, obs_time: u.Quantity
+    ) -> tuple[SimulatedEventsInfo, PowerLaw]:
+        with TableLoader(self.file, parent=self, **self.opts_loader) as load:
+            sim = load.read_simulation_configuration()
+            try:
+                show = load.read_shower_distribution()
+            except NoSuchNodeError:
+                # Fall back to using the run header
+                show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
+
+            for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
+                if len(np.unique(sim[itm])) > 1:
+                    raise NotImplementedError(
+                        f"Unsupported: '{itm}' differs across simulation runs"
+                    )
+
+            sim_info = SimulatedEventsInfo(
+                n_showers=show["n_entries"].sum(),
+                energy_min=sim["energy_range_min"].quantity[0],
+                energy_max=sim["energy_range_max"].quantity[0],
+                max_impact=sim["max_scatter_range"].quantity[0],
+                spectral_index=sim["spectral_index"][0],
+                viewcone_max=sim["max_viewcone_radius"].quantity[0],
+                viewcone_min=sim["min_viewcone_radius"].quantity[0],
+            )
+
+        meta = {
+            "sim_info": sim_info,
+            "spectrum": PowerLaw.from_simulation(sim_info, obstime=obs_time),
+        }
+        return meta
 
     def make_event_weights(
         self,
@@ -301,6 +790,11 @@ class EventLoader(Component):
         kind: str,
         fov_offset_bins: u.Quantity | None = None,
     ) -> QTable:
+        if self.target_spectrum is None:
+            raise Exception(
+                "No spectrum is defined, need a spectrum for events weighting"
+            )
+
         if (
             kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
