@@ -1026,7 +1026,7 @@ class SimTelEventSource(EventSource):
 
                 if self.skip_r1_calibration:
                     # Skip the simtel R1 calibration
-                    r1_waveform = adc_samples
+                    r1_waveform = adc_samples.astype(np.float32)
                     selected_gain_channel = None
                 else:
                     # Apply the simtel R1 calibration and the gain selector if selected
