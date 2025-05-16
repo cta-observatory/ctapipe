@@ -559,7 +559,7 @@ class SimTelEventSource(EventSource):
         default_value=False,
         help=(
             "Skip the simtel category-A calibration. The R1 waveforms "
-            "(in ADC counts) will the same as the R0 waveforms."
+            "(in ADC counts) will be the same as the R0 waveforms."
         ),
     ).tag(config=True)
 
