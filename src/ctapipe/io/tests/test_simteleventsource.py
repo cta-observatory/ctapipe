@@ -236,6 +236,17 @@ def test_calibration_events():
             assert event.index.event_id == expected_id
 
 
+def test_skip_r1_calibration():
+    with SimTelEventSource(
+        input_url=calib_events_path,
+        skip_calibration_events=False,
+        skip_r1_calibration=True,
+        focal_length_choice="EQUIVALENT",
+    ) as reader:
+        for event in reader:
+            assert np.array_equal(event.r0.tel[1].waveform, event.r1.tel[1].waveform)
+
+
 def test_trigger_times():
     source = SimTelEventSource(
         input_url=calib_events_path,
