@@ -172,18 +172,20 @@ class ApplyModels(Tool):
         for path in self.reconstructor_paths:
             r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
 
-            # Init new Reconstructor with config parameters and overwrite the StereoCombiner
+            # Init new Reconstructor with config parameters and
+            # overwrite the StereoCombiner and prefix
             model_keys = ["model_cls", "norm_cls", "sign_cls"]
             model_kwargs = {
                 key: getattr(r, key) for key in model_keys if hasattr(r, key)
             }
-            r.stereo_combiner = Reconstructor.from_name(
+            r_new = Reconstructor.from_name(
                 r.__class__.__name__,
                 subarray=self.loader.subarray,
                 parent=self,
-                prefix=r.prefix,
                 **model_kwargs,
-            ).stereo_combiner
+            )
+            r.stereo_combiner = r_new.stereo_combiner
+            r.prefix = r_new.prefix
 
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
