@@ -9,7 +9,7 @@ from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Component, Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import Integer, List, Path
+from ctapipe.core.traits import Integer, List, Path, classes_with_traits
 
 from ..coordinates import shower_impact_distance
 
@@ -147,10 +147,11 @@ class Reconstructor(TelescopeComponent):
         with open(path, "rb") as f:
             dictionary = joblib.load(f)
 
-        if dictionary["name"] != cls.__name__:
+        if dictionary["name"] not in [c.__name__ for c in classes_with_traits(cls)]:
             raise TypeError(
-                f"{path} does not contain information about {cls.__name__}, "
-                f"but instead about {dictionary['name']}."
+                f"{path} does not contain information about {cls.__name__} or "
+                "one of its subclasses, but instead about "
+                f"{dictionary['name']}."
             )
 
         meta = dictionary.pop("meta")
