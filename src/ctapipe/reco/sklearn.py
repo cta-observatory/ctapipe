@@ -309,20 +309,23 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
         dictionary = {
             "name": self.__class__.__name__,
             "subarray": self.subarray,
-            "prefix": self.prefix,
-            "log_target": self.log_target,
-            "features": self.features,
-            "model_cls": self.model_cls,
-            "model_config": self.model_config,
             "models": self._models,
-            "stereo_combiner_cls": self.stereo_combiner_cls,
-            "cls_attributes": {
-                "property": self.property,
-                "target": self.target,
-                "unit": self.unit,
-                "feature_generator": self.feature_generator,
-                "quality_query": self.quality_query,
+            "config": {
+                self.__class__.__name__: {
+                    "prefix": self.prefix,
+                    "log_target": self.log_target,
+                    "model_cls": self.model_cls,
+                    "model_config": self.model_config,
+                    "features": self.features,
+                    "stereo_combiner_cls": self.stereo_combiner_cls,
+                    "FeatureGenerator": {"features": self.feature_generator.features},
+                    "QualityQuery": {
+                        "quality_criteria": self.quality_query.quality_criteria
+                    },
+                    self.stereo_combiner_cls: {"weights": self.stereo_combiner.weights},
+                }
             },
+            "cls_attributes": {"unit": self.unit},
             "meta": meta,
         }
         with path.open("wb") as f:
@@ -427,19 +430,24 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
         dictionary = {
             "name": self.__class__.__name__,
             "subarray": self.subarray,
-            "prefix": self.prefix,
-            "positive_class": self.positive_class,
-            "features": self.features,
-            "model_cls": self.model_cls,
-            "model_config": self.model_config,
             "models": self._models,
-            "stereo_combiner_cls": self.stereo_combiner_cls,
-            "cls_attributes": {
-                "property": self.property,
-                "target": self.target,
-                "feature_generator": self.feature_generator,
-                "quality_query": self.quality_query,
+            "config": {
+                self.__class__.__name__: {
+                    "prefix": self.prefix,
+                    "invalid_class": self.invalid_class,
+                    "positive_class": self.positive_class,
+                    "model_cls": self.model_cls,
+                    "model_config": self.model_config,
+                    "features": self.features,
+                    "stereo_combiner_cls": self.stereo_combiner_cls,
+                    "FeatureGenerator": {"features": self.feature_generator.features},
+                    "QualityQuery": {
+                        "quality_criteria": self.quality_query.quality_criteria
+                    },
+                    self.stereo_combiner_cls: {"weights": self.stereo_combiner.weights},
+                }
             },
+            "cls_attributes": {"unit": self.unit},
             "meta": meta,
         }
         with path.open("wb") as f:
@@ -512,13 +520,12 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     """Predict dl2 particle classification."""
 
     target = "true_shower_primary_id"
+    property = ReconstructionProperty.PARTICLE_TYPE
 
     positive_class = traits.Integer(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
-
-    property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
@@ -915,22 +922,25 @@ class DispReconstructor(Reconstructor):
         dictionary = {
             "name": self.__class__.__name__,
             "subarray": self.subarray,
-            "prefix": self.prefix,
-            "log_target": self.log_target,
-            "features": self.features,
-            "norm_cls": self.norm_cls,
-            "sign_cls": self.sign_cls,
-            "norm_config": self.norm_config,
-            "sign_config": self.sign_config,
             "models": self._models,
-            "stereo_combiner_cls": self.stereo_combiner_cls,
-            "cls_attributes": {
-                "property": self.property,
-                "target": self.target,
-                "unit": self.unit,
-                "feature_generator": self.feature_generator,
-                "quality_query": self.quality_query,
+            "config": {
+                self.__class__.__name__: {
+                    "prefix": self.prefix,
+                    "log_target": self.log_target,
+                    "norm_cls": self.norm_cls,
+                    "sign_cls": self.sign_cls,
+                    "norm_config": self.norm_config,
+                    "sign_config": self.sign_config,
+                    "features": self.features,
+                    "stereo_combiner_cls": self.stereo_combiner_cls,
+                    "FeatureGenerator": {"features": self.feature_generator.features},
+                    "QualityQuery": {
+                        "quality_criteria": self.quality_query.quality_criteria
+                    },
+                    self.stereo_combiner_cls: {"weights": self.stereo_combiner.weights},
+                }
             },
+            "cls_attributes": {"unit": self.unit},
             "meta": meta,
         }
         with path.open("wb") as f:

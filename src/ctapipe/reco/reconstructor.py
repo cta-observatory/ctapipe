@@ -6,6 +6,7 @@ import astropy.units as u
 import joblib
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
+from traitlets.config import Config
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Component, Provenance, QualityQuery, TelescopeComponent
@@ -147,25 +148,32 @@ class Reconstructor(TelescopeComponent):
         with open(path, "rb") as f:
             dictionary = joblib.load(f)
 
-        if dictionary["name"] not in [c.__name__ for c in classes_with_traits(cls)]:
+        name = dictionary.pop("name")
+        config = Config(dictionary.pop("config"))
+        cls_attributes = dictionary.pop("cls_attributes")
+        meta = dictionary.pop("meta")
+
+        if name not in [c.__name__ for c in classes_with_traits(cls)]:
             raise TypeError(
                 f"{path} does not contain information about {cls.__name__} or "
-                "one of its subclasses, but instead about "
-                f"{dictionary['name']}."
+                f"one of its subclasses, but instead about {name}."
             )
 
-        meta = dictionary.pop("meta")
-        cls_attributes = dictionary.pop("cls_attributes")
-        instance = Reconstructor.from_name(**dictionary)
+        instance = Reconstructor.from_name(
+            name=name,
+            config=config,
+            **dictionary,
+        )
 
-        # set class attributes not handled by __init__
+        # set class attributes not handled by __init__,
+        # e.g. the unit defined during SKLearnReconstructor.fit()
         for attr, value in cls_attributes.items():
             setattr(instance, attr, value)
 
         # first deal with kwargs that would need "special" treatment, parent and subarray
         if parent is not None:
             instance.parent = weakref.proxy(parent)
-            instance.log = parent.log.getChild(dictionary["name"])
+            instance.log = parent.log.getChild(name)
 
         if subarray is not None:
             if instance.subarray.telescope_types != subarray.telescope_types:
