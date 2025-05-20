@@ -198,6 +198,7 @@ class HDF5Merger(Component):
         self.subarray = None
         self.meta = None
         self._merged_obs_ids = set()
+        self._n_merged = 0
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
@@ -215,8 +216,7 @@ class HDF5Merger(Component):
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
-
-        self._n_merged = 0
+            self._n_merged += 1
 
     def __call__(self, other: str | Path | tables.File):
         """

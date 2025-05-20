@@ -209,13 +209,13 @@ def test_duplicated(tmp_path, dl1_file, dl1_proton_file):
         )
 
 
-def test_merge_single_ob(tmp_path, dl1_file):
-    from ctapipe.tools.merge import MergeTool
-
+@pytest.fixture(scope="session")
+def dl1_chunks(tmp_path_factory, dl1_file):
+    outdir = tmp_path_factory.mktemp("dl1_chunks_")
     # write two chunks from the same simulation run, merged result should
     # match initial input
-    path1 = tmp_path / "single_ob_1.dl1.h5"
-    path2 = tmp_path / "single_ob_2.dl1.h5"
+    path1 = outdir / "single_ob_1.dl1.h5"
+    path2 = outdir / "single_ob_2.dl1.h5"
     ctx = ExitStack()
     with ctx:
         source = ctx.enter_context(EventSource(dl1_file))
@@ -227,6 +227,14 @@ def test_merge_single_ob(tmp_path, dl1_file):
             writer = writer1 if event.count < 3 else writer2
             writer(event)
 
+    return path1, path2
+
+
+def test_merge_single_ob(tmp_path, dl1_file, dl1_chunks):
+    from ctapipe.tools.merge import MergeTool
+
+    path1, path2 = dl1_chunks
+
     output = tmp_path / "single_ob.dl1.h5"
     run_tool(
         MergeTool(),
@@ -235,6 +243,44 @@ def test_merge_single_ob(tmp_path, dl1_file):
             str(path2),
             f"--output={output}",
             "--single-ob",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output) as loader:
+        merged_tel_events = loader.read_telescope_events()
+
+    with TableLoader(dl1_file) as loader:
+        initial_tel_events = loader.read_telescope_events()
+
+    assert_table_equal(merged_tel_events, initial_tel_events)
+
+
+def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
+    from ctapipe.tools.merge import MergeTool
+
+    path1, path2 = dl1_chunks
+
+    output = tmp_path / "single_ob.dl1.h5"
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(path1),
+            f"--output={output}",
+            "--single-ob",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(path2),
+            f"--output={output}",
+            "--single-ob",
+            "--append",
         ],
         cwd=tmp_path,
         raises=True,
