@@ -158,6 +158,15 @@ class HDF5Merger(Component):
         True, help="Whether to include processing statistics in merged output"
     ).tag(config=True)
 
+    single_ob = traits.Bool(
+        False,
+        help=(
+            "If true, input files are assumed to be multiple chunks from the same"
+            " observation block and the ob / sb blocks will only be copied from "
+            " the first input file"
+        ),
+    ).tag(config=True)
+
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
         if output_path not in {None, traits.Undefined}:
@@ -189,6 +198,7 @@ class HDF5Merger(Component):
         self.subarray = None
         self.meta = None
         self._merged_obs_ids = set()
+        self._n_merged = 0
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
@@ -206,6 +216,7 @@ class HDF5Merger(Component):
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
+            self._n_merged += 1
 
     def __call__(self, other: str | Path | tables.File):
         """
@@ -217,7 +228,7 @@ class HDF5Merger(Component):
 
         with exit_stack:
             # first file to be merged
-            if self.meta is None:
+            if self._n_merged == 0:
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.product.data_model_version
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
@@ -233,6 +244,7 @@ class HDF5Merger(Component):
                     self.log.info(
                         "Updated required nodes to %s", sorted(self.required_nodes)
                     )
+                self._n_merged += 1
             finally:
                 self._update_meta()
 
@@ -288,10 +300,16 @@ class HDF5Merger(Component):
                 f" check for duplicated obs_ids. Tried: {keys}"
             )
 
-        duplicated = self._merged_obs_ids.intersection(obs_ids)
-        if len(duplicated) > 0:
-            msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
-            raise CannotMerge(msg)
+        if self.single_ob and len(self._merged_obs_ids) > 0:
+            different = self._merged_obs_ids.symmetric_difference(obs_ids)
+            if len(different) > 0:
+                msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
+                raise CannotMerge(msg)
+        else:
+            duplicated = self._merged_obs_ids.intersection(obs_ids)
+            if len(duplicated) > 0:
+                msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
+                raise CannotMerge(msg)
 
         self._merged_obs_ids.update(obs_ids)
 
@@ -301,17 +319,19 @@ class HDF5Merger(Component):
         # Configuration
         self._append_subarray(other)
 
-        config_keys = [
-            "/configuration/observation/scheduling_block",
-            "/configuration/observation/observation_block",
-        ]
-        for key in config_keys:
-            if key in other.root:
-                self._append_table(other, other.root[key])
+        # in case of "single_ob", we only copy sb/ob blocks for the first file
+        if not self.single_ob or self._n_merged == 0:
+            config_keys = [
+                "/configuration/observation/scheduling_block",
+                "/configuration/observation/observation_block",
+            ]
+            for key in config_keys:
+                if key in other.root:
+                    self._append_table(other, other.root[key])
 
         key = "/configuration/telescope/pointing"
         if key in other.root:
-            self._append_table_group(other, other.root[key])
+            self._append_table_group(other, other.root[key], once=self.single_ob)
 
         # Simulation
         simulation_table_keys = [
@@ -429,7 +449,7 @@ class HDF5Merger(Component):
         elif self.subarray != subarray:
             raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
 
-    def _append_table_group(self, file, input_group, filter_columns=None):
+    def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
 
         if not isinstance(input_group, tables.Group):
@@ -439,9 +459,9 @@ class HDF5Merger(Component):
         self._get_or_create_group(node_path)
 
         for table in input_group._f_iter_nodes("Table"):
-            self._append_table(file, table, filter_columns=filter_columns)
+            self._append_table(file, table, filter_columns=filter_columns, once=once)
 
-    def _append_table(self, file, table, filter_columns=None):
+    def _append_table(self, file, table, filter_columns=None, once=False):
         """Append a single table to the output file"""
         if not isinstance(table, tables.Table):
             raise TypeError(f"node must be a `tables.Table`, got {table}")
@@ -450,6 +470,9 @@ class HDF5Merger(Component):
         group_path, _ = split_h5path(table_path)
 
         if table_path in self.h5file:
+            if once:
+                return
+
             output_table = self.h5file.get_node(table_path)
             input_table = table[:]
             if filter_columns is not None:
