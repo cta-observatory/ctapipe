@@ -21,6 +21,7 @@ from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
     EventLoader,
+    EventPreprocessor,
     OptimizationResult,
     Spectra,
     check_bins_in_range,
@@ -30,13 +31,13 @@ from ..irf.benchmarks import (
     EnergyBiasResolutionMakerBase,
     SensitivityMakerBase,
 )
+from ..irf.cuts import EventQualitySelection
 from ..irf.irfs import (
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
     EnergyDispersionMakerBase,
     PSFMakerBase,
 )
-from ..irf.preprocessing import EventQualityQuery
 
 __all__ = ["IrfTool"]
 
@@ -231,6 +232,10 @@ class IrfTool(Tool):
         """
         Initialize components from config and load g/h (and theta) cuts.
         """
+
+        # Force the preprocessing for IRF
+        EventPreprocessor.irf_pre_processing = True
+
         self.opt_result = OptimizationResult.read(self.cuts_file)
         if (
             self.spatial_selection_applied
@@ -471,34 +476,34 @@ class IrfTool(Tool):
                 )
 
             if (
-                loader.epp.quality_query.quality_criteria
-                != self.opt_result.quality_query.quality_criteria
+                loader.epp.event_selection.quality_criteria
+                != self.opt_result.quality_selection.quality_criteria
             ):
                 self.log.warning(
                     "Quality criteria are different from quality criteria used for "
                     "calculating g/h / theta cuts. Provided quality criteria:\n%s. "
                     "\nUsing the same quality criteria as g/h / theta cuts:\n%s. "
                     % (
-                        loader.epp.quality_query.to_table(functions=True)[
+                        loader.epp.event_selection.to_table(functions=True)[
                             "criteria", "func"
                         ],
-                        self.opt_result.quality_query.to_table(functions=True)[
+                        self.opt_result.quality_selection.to_table(functions=True)[
                             "criteria", "func"
                         ],
                     )
                 )
-                loader.epp.quality_query = EventQualityQuery(
+                loader.epp.event_selection = EventQualitySelection(
                     parent=loader,
-                    quality_criteria=self.opt_result.quality_query.quality_criteria,
+                    quality_criteria=self.opt_result.quality_selection.quality_criteria,
                 )
 
             self.log.debug(
                 "%s Quality criteria: %s"
-                % (particle_type, loader.epp.quality_query.quality_criteria)
+                % (particle_type, loader.epp.event_selection.quality_criteria)
             )
-            events, count, meta = loader.load_preselected_events(
-                self.chunk_size, self.obs_time
-            )
+            events = loader.load_preselected_events(self.chunk_size)
+            count = len(events)
+            meta = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:
                 # Sensitivity is only calculated, if do_background is true

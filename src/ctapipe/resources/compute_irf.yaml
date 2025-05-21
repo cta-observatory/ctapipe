@@ -23,7 +23,7 @@ EventPreprocessor:
   geometry_reconstructor: "HillasReconstructor"
   gammaness_classifier: "RandomForestClassifier"
 
-  EventQualityQuery:
+  EventQualitySelection:
     quality_criteria:
       - ["multiplicity 4", "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4"]
       - ["valid classifier", "RandomForestClassifier_is_valid"]
