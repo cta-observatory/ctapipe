@@ -530,6 +530,15 @@ class SimTelEventSource(EventSource):
         GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
+    select_gain = Bool(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Whether to perform gain selection. The default (None) means only"
+            " select gain of physics events, not of calibration events."
+        ),
+    ).tag(config=True)
+
     calib_scale = Float(
         default_value=1.0,
         help=(
@@ -543,6 +552,14 @@ class SimTelEventSource(EventSource):
         help=(
             "Factor to shift the R1 photoelectron samples. "
             "Can be used to simulate mis-calibration."
+        ),
+    ).tag(config=True)
+
+    skip_r1_calibration = Bool(
+        default_value=False,
+        help=(
+            "Skip the simtel category-A calibration. The R1 waveforms "
+            "(in ADC counts) will be the same as the R0 waveforms."
         ),
     ).tag(config=True)
 
@@ -561,15 +578,6 @@ class SimTelEventSource(EventSource):
         default_value=None,
         allow_none=True,
         help="Use the given obs_id instead of the run number from sim_telarray",
-    ).tag(config=True)
-
-    select_gain = Bool(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Whether to perform gain selection. The default (None) means only"
-            " select gain of physics events, not of calibration events."
-        ),
     ).tag(config=True)
 
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
@@ -1016,14 +1024,20 @@ class SimTelEventSource(EventSource):
                 else:
                     gain_selector = None
 
-                r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples,
-                    pedestal,
-                    dc_to_pe,
-                    gain_selector,
-                    self.calib_scale,
-                    self.calib_shift,
-                )
+                if self.skip_r1_calibration:
+                    # Skip the simtel R1 calibration
+                    r1_waveform = adc_samples.astype(np.float32)
+                    selected_gain_channel = None
+                else:
+                    # Apply the simtel R1 calibration and the gain selector if selected
+                    r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
+                        adc_samples,
+                        pedestal,
+                        dc_to_pe,
+                        gain_selector,
+                        self.calib_scale,
+                        self.calib_shift,
+                    )
 
                 pixel_status = self._get_r1_pixel_status(
                     tel_id=tel_id,
