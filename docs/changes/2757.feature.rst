@@ -1,0 +1,3 @@
+Add support for chunked reading over subsets of a file
+by passing ``start=`` and/or ``stop=`` to the
+``TableLoader.read_..._chunked`` methods.
