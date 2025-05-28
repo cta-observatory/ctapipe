@@ -4,6 +4,7 @@ Visualization routines using matplotlib
 """
 import copy
 import logging
+from itertools import product
 
 import numpy as np
 from astropy import units as u
@@ -385,10 +386,14 @@ class CameraDisplay:
 
     def update(self):
         """redraw the display now"""
-        self.axes.figure.canvas.draw()
+        fig = self.axes.figure
+        fig.canvas.draw()
         if self.colorbar is not None:
+            from matplotlib.figure import SubFigure
+
             self.colorbar.update_normal(self.pixels)
-            self.axes.figure.draw_without_rendering()
+            if not isinstance(fig, SubFigure):
+                fig.draw_without_rendering()
 
     def add_colorbar(self, **kwargs):
         """
@@ -475,7 +480,14 @@ class CameraDisplay:
         self._axes_overlays.append(plot)
 
     def overlay_moments(
-        self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
+        self,
+        hillas_parameters,
+        with_label=True,
+        keep_old=False,
+        n_sigma=1,
+        psi_uncertainty=True,
+        psi_uncertainty_length=3.0,
+        **kwargs,
     ):
         """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
@@ -489,6 +501,10 @@ class CameraDisplay:
             If True, to not remove old overlays
         n_sigma: float
             How many sigmas to use for the ellipse
+        psi_uncertainty : bool
+            If true, add wedges that indicates the uncertainty on psi
+        psi_uncertainty_length : float
+            Length of the psi uncertainty wedges as multiple of the hillas_length
         kwargs: key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
@@ -511,20 +527,15 @@ class CameraDisplay:
             **kwargs,
         )
 
-        for sign in (-1, 1):
-            for direction in (-1, 1):
+        if psi_uncertainty:
+            wedge_length = psi_uncertainty_length * params["length"]
+            x = params["cog_x"]
+            y = params["cog_y"]
+            for sign, direction in product((-1, 1), (-1, 1)):
                 angle = params["psi_rad"] + sign * params["psi_uncert_rad"]
                 (line,) = self.axes.plot(
-                    [
-                        params["cog_x"],
-                        params["cog_x"]
-                        + direction * np.cos(angle) * 3 * params["length"],
-                    ],
-                    [
-                        params["cog_y"],
-                        params["cog_y"]
-                        + direction * np.sin(angle) * 3 * params["length"],
-                    ],
+                    [x, x + direction * np.cos(angle) * wedge_length],
+                    [y, y + direction * np.sin(angle) * wedge_length],
                     **kwargs,
                 )
                 self._axes_overlays.append(line)
