@@ -48,6 +48,7 @@ DATA_MODEL_VERSION = "v7.2.0"
 DATA_MODEL_CHANGE_HISTORY = """
 - v7.2.0: - Added new monitoring groups: DL1_TEL_[OPTICAL_PSF, MUON_THROUGHPUT, ILLUMINATOR_THROUGHPUT]_GROUP
             and DL2_SUBARRAY_[MONITORING, INTER_CALIBRATION, CROSS_CALIBRATION]_GROUP
+          - Change field name in ``ReconstructedContainer`` from 'classification' to 'particle_type'.
 - v7.1.0: - Two new fields for the hillas parameters, uncertainties on psi and the transversal cog coordinate.
 - v7.0.0: - Use high resolution timestamps for times. CTAO high resolution times
             are stored as two uint32: seconds and quarter nanoseconds since 1970-01-01T00:00:00 TAI.
@@ -694,7 +695,7 @@ class DataWriter(Component):
     def _write_dl2_stereo_event(self, event: ArrayEventContainer):
         """
         write per-telescope DL2 shower information to e.g.
-        `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
+        `/dl2/event/stereo/{geometry,energy,particle_type}/<algorithm_name>`
         """
         # pylint: disable=no-self-use
         for container_name, algorithm_map in event.dl2.stereo.items():

@@ -89,7 +89,7 @@ logger = logging.getLogger(__name__)
 DL2_CONTAINERS = {
     "energy": ReconstructedEnergyContainer,
     "geometry": ReconstructedGeometryContainer,
-    "classification": ParticleClassificationContainer,
+    "particle_type": ParticleClassificationContainer,
     "impact": TelescopeImpactParameterContainer,
     "disp": DispContainer,
 }
@@ -597,6 +597,9 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
 
             for kind, group in dl2_group._v_children.items():
+                # TODO: Delete if we drop support for older data model versions (< v7.2.0)
+                if kind == "classification":
+                    kind = "particle_type"
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:
@@ -617,6 +620,9 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_TEL_GROUP]
 
             for kind, group in dl2_group._v_children.items():
+                # TODO: Delete if we drop support for older data model versions (< v7.2.0)
+                if kind == "classification":
+                    kind = "particle_type"
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:
