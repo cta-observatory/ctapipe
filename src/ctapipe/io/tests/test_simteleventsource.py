@@ -236,6 +236,34 @@ def test_calibration_events():
             assert event.index.event_id == expected_id
 
 
+def test_skip_r1_calibration():
+    n_expected = 5
+    with SimTelEventSource(
+        input_url=calib_events_path,
+        max_events=n_expected,
+        skip_calibration_events=False,
+        skip_r1_calibration=True,
+        focal_length_choice="EQUIVALENT",
+    ) as reader:
+        n_processed = 0
+        for event in reader:
+            n_processed += 1
+            np.testing.assert_(
+                np.issubdtype(event.r0.tel[1].waveform.dtype, np.uint16),
+                f"R0 waveforms dtype is {event.r0.tel[1].waveform.dtype}, expected uint16.",
+            )
+            np.testing.assert_(
+                np.issubdtype(event.r1.tel[1].waveform.dtype, np.float32),
+                f"R1 waveforms dtype is {event.r1.tel[1].waveform.dtype}, expected float32.",
+            )
+            np.testing.assert_array_equal(
+                event.r0.tel[1].waveform,
+                event.r1.tel[1].waveform,
+                err_msg="R0 and R1 waveforms do not match after skipping the simtel calibration.",
+            )
+    assert n_processed == n_expected
+
+
 def test_trigger_times():
     source = SimTelEventSource(
         input_url=calib_events_path,
