@@ -1,3 +1,50 @@
+ctapipe v0.26.0 (2025-06-05)
+============================
+
+
+API Changes
+-----------
+
+- The algorithms for muon ring fitting have been improved
+
+  - Upgrade the taubin_circle_fit with weights to avoid bias toward rings with larger radii
+  - Add the optional initial parameters : ring center and radius.
+  - Add a combined ring fitting method (kundu_chaudhuri_taubin).
+  - This new combined method is set to be the default method.
+  - Updated the test with an additional fitting method, each method is tested separately.
+  - Realistic muon ring simulation for all camera types implemented in the test with toy model.
+  - Include the parameter fit errors in the tolerance metric.
+  - Add error fields to the muon container.
+  - The API for MuonFitter has been modified.
+  - Minor documentation updates. [`#2736 <https://github.com/cta-observatory/ctapipe/pull/2736>`__]
+
+
+Bug Fixes
+---------
+
+- Fix ``CameraDisplay`` throwing an error when used in a matplotlib
+  subfigure. [`#2762 <https://github.com/cta-observatory/ctapipe/pull/2762>`__]
+
+
+Data Model Changes
+------------------
+
+- Add error fields to the muon container.
+
+
+New Features
+------------
+
+- Add option ``single_ob`` to the ``HDF5Merger`` to support merging
+  chunks of the same observation block into the same. [`#2436 <https://github.com/cta-observatory/ctapipe/pull/2436>`__]
+
+- Add option to skip the simtel R1 calibration [`#2753 <https://github.com/cta-observatory/ctapipe/pull/2753>`__]
+
+- Add support for chunked reading over subsets of a file
+  by passing ``start=`` and/or ``stop=`` to the
+  ``TableLoader.read_..._chunked`` methods. [`#2757 <https://github.com/cta-observatory/ctapipe/pull/2757>`__]
+
+
 ctapipe 0.25.1 (2025-04-28)
 ===========================
 

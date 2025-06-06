@@ -1,2 +1,0 @@
-Fix ``CameraDisplay`` throwing an error when used in a matplotlib
-subfigure.

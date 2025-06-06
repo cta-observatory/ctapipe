@@ -232,4 +232,3 @@ def test_no_cross_validation(tmp_path):
         ],
     )
     assert ret == 0
-    return out_file
