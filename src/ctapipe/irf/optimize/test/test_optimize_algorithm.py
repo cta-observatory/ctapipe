@@ -1,45 +1,9 @@
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.table import QTable
 
-from ctapipe.core import QualityQuery, non_abstract_children
-from ctapipe.irf.optimize import CutOptimizerBase
-
-
-def test_optimization_result(tmp_path, irf_event_loader_test_config):
-    from ctapipe.irf import (
-        EventPreprocessor,
-        OptimizationResult,
-        ResultValidRange,
-    )
-
-    result_path = tmp_path / "result.h5"
-    epp = EventPreprocessor(irf_event_loader_test_config)
-    gh_cuts = QTable(
-        data=[[0.2, 0.8, 1.5] * u.TeV, [0.8, 1.5, 10] * u.TeV, [0.82, 0.91, 0.88]],
-        names=["low", "high", "cut"],
-    )
-    result = OptimizationResult(
-        quality_query=epp.quality_query,
-        gh_cuts=gh_cuts,
-        clf_prefix="ExtraTreesClassifier",
-        valid_energy_min=0.2 * u.TeV,
-        valid_energy_max=10 * u.TeV,
-        valid_offset_min=0 * u.deg,
-        valid_offset_max=np.inf * u.deg,
-        spatial_selection_table=None,
-    )
-    result.write(result_path)
-    assert result_path.exists()
-
-    loaded = OptimizationResult.read(result_path)
-    assert isinstance(loaded, OptimizationResult)
-    assert isinstance(loaded.quality_query, QualityQuery)
-    assert isinstance(loaded.valid_energy, ResultValidRange)
-    assert isinstance(loaded.valid_offset, ResultValidRange)
-    assert isinstance(loaded.gh_cuts, QTable)
-    assert loaded.clf_prefix == "ExtraTreesClassifier"
+from ctapipe.core import non_abstract_children
+from ctapipe.irf.optimize.algorithm import CutOptimizerBase
 
 
 def test_gh_percentile_cut_calculator():
@@ -90,28 +54,22 @@ def test_cut_optimizer(
     from ctapipe.irf import EventLoader, OptimizationResult, Spectra
 
     gamma_loader = EventLoader(
-        config=irf_event_loader_test_config,
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
-    )
-    gamma_events, _, _ = gamma_loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
-    proton_loader = EventLoader(
         config=irf_event_loader_test_config,
+    )
+    gamma_events = gamma_loader.load_preselected_events(chunk_size=10000)
+    proton_loader = EventLoader(
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,
+        config=irf_event_loader_test_config,
     )
-    proton_events, _, _ = proton_loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
+    proton_events = proton_loader.load_preselected_events(chunk_size=10000)
 
     optimizer = Optimizer()
     result = optimizer(
         events={"signal": gamma_events, "background": proton_events},
-        quality_query=gamma_loader.epp.quality_query,  # identical qualityquery for all particle types
+        quality_query=gamma_loader.epp.event_selection,  # identical qualityquery for all particle types
         clf_prefix="ExtraTreesClassifier",
     )
     assert isinstance(result, OptimizationResult)

@@ -4,7 +4,8 @@ import astropy.units as u
 import pytest
 from astropy.table import QTable
 
-from ctapipe.core import QualityQuery, run_tool
+from ctapipe.core import run_tool
+from ctapipe.irf.cuts import EventQualitySelection
 
 pytest.importorskip("pyirf")
 
@@ -36,7 +37,7 @@ def test_cuts_optimization(
 
     result = OptimizationResult.read(output_path)
     assert isinstance(result, OptimizationResult)
-    assert isinstance(result.quality_query, QualityQuery)
+    assert isinstance(result.quality_selection, EventQualitySelection)
     assert isinstance(result.valid_energy, ResultValidRange)
     assert isinstance(result.valid_offset, ResultValidRange)
     assert isinstance(result.gh_cuts, QTable)

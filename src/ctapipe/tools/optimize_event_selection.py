@@ -3,10 +3,11 @@
 import astropy.units as u
 from astropy.table import vstack
 
+from ctapipe.irf.optimize.algorithm import CutOptimizerBase
+
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Integer, classes_with_traits
-from ..irf import EventLoader, Spectra
-from ..irf.optimize import CutOptimizerBase
+from ..irf import EventLoader, EventPreprocessor, Spectra
 
 __all__ = ["EventSelectionOptimizer"]
 
@@ -108,6 +109,10 @@ class EventSelectionOptimizer(Tool):
         """
         Initialize components from config.
         """
+
+        # Force the preprocessing for IRF
+        EventPreprocessor.irf_pre_processing = True
+
         self.optimizer = CutOptimizerBase.from_name(
             self.optimization_algorithm, parent=self
         )
@@ -147,9 +152,9 @@ class EventSelectionOptimizer(Tool):
         """
         reduced_events = dict()
         for particle_type, loader in self.event_loaders.items():
-            events, count, meta = loader.load_preselected_events(
-                self.chunk_size, self.obs_time
-            )
+            events = loader.load_preselected_events(self.chunk_size)
+            count = len(events)
+            meta = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
             if self.optimizer.needs_background:
                 events = loader.make_event_weights(
                     events,
@@ -205,7 +210,7 @@ class EventSelectionOptimizer(Tool):
         self.result = self.optimizer(
             events={"signal": self.signal_events, "background": self.background_events},
             # identical quality_query for all particle types
-            quality_query=self.event_loaders["gammas"].epp.quality_query,
+            quality_query=self.event_loaders["gammas"].epp.event_selection,
             clf_prefix=self.event_loaders["gammas"].epp.gammaness_classifier,
         )
 

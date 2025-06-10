@@ -785,7 +785,7 @@ def irf_event_loader_test_config():
                 "energy_reconstructor": "ExtraTreesRegressor",
                 "geometry_reconstructor": "HillasReconstructor",
                 "gammaness_classifier": "ExtraTreesClassifier",
-                "EventQualityQuery": {
+                "EventQualitySelection": {
                     "quality_criteria": [
                         (
                             "multiplicity 4",
@@ -818,9 +818,17 @@ def irf_events_table():
     N2 = 100
     N = N1 + N2
     epp = EventPreprocessor()
-    tab = epp.make_empty_table()
+    keep_columns, _, _ = epp.get_columns_keep_rename_scheme(None, True)
+    tab = epp.make_empty_table(keep_columns)
 
-    ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
+    ids, bulk, unitless = [], [], []
+    for c in tab.columns:
+        if "id" in c:
+            ids.append(c)
+        elif tab[c].unit == u.dimensionless_unscaled:
+            unitless.append(c)
+        else:
+            bulk.append(c)
 
     id_tab = QTable(
         data=np.zeros((N, len(ids)), dtype=np.uint64),

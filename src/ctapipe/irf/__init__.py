@@ -18,6 +18,7 @@ from .binning import (
     check_bins_in_range,
     make_bins_per_decade,
 )
+from .cuts import EventQualitySelection, EventSelection
 from .irfs import (
     BackgroundRate2dMaker,
     EffectiveArea2dMaker,
@@ -56,4 +57,6 @@ __all__ = [
     "FLUX_UNIT",
     "check_bins_in_range",
     "make_bins_per_decade",
+    "EventSelection",
+    "EventQualitySelection",
 ]
