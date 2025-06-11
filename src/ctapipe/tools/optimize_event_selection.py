@@ -147,6 +147,8 @@ class EventSelectionOptimizer(Tool):
         """
         reduced_events = dict()
         for particle_type, loader in self.event_loaders.items():
+            self.log.info("Loading %s from '%s'", particle_type, loader.file)
+
             events, count, meta = loader.load_preselected_events(
                 self.chunk_size, self.obs_time
             )
@@ -166,6 +168,8 @@ class EventSelectionOptimizer(Tool):
             if particle_type == "gammas":
                 self.sim_info = meta["sim_info"]
                 self.gamma_spectrum = meta["spectrum"]
+
+            self.log.info("Using %8d %s", count, particle_type)
 
         self.signal_events = reduced_events["gammas"]
 
