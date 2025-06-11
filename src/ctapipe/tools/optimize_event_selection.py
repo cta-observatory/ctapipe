@@ -95,10 +95,10 @@ class EventSelectionOptimizer(Tool):
     ).tag(config=True)
 
     aliases = {
-        "gamma-file": "EventSelectionOptimizer.gamma_file",
-        "proton-file": "EventSelectionOptimizer.proton_file",
-        "electron-file": "EventSelectionOptimizer.electron_file",
-        "output": "EventSelectionOptimizer.output_path",
+        ("g", "gamma-file"): "EventSelectionOptimizer.gamma_file",
+        ("p", "proton-file"): "EventSelectionOptimizer.proton_file",
+        ("e", "electron-file"): "EventSelectionOptimizer.electron_file",
+        ("o", "output"): "EventSelectionOptimizer.output_path",
         "chunk_size": "EventSelectionOptimizer.chunk_size",
     }
 
