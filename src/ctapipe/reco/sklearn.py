@@ -421,7 +421,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     def _get_positive_index(self, key):
         return np.nonzero(self._models[key].classes_ == self.positive_class)[0][0]
 
-    def write(self, path, meta={}, overwrite=False):
+    def write(self, path, meta=None, overwrite=False):
         """
         Save a dictionary using joblib-pickle, which contains all
         information/settings about an instance of a
