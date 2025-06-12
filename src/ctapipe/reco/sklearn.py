@@ -118,6 +118,12 @@ class SKLearnReconstructor(Reconstructor):
         help="Which stereo combination method to use.",
     ).tag(config=True)
 
+    load_path = traits.Path(
+        default_value=None,
+        allow_none=True,
+        help="If given, load serialized model from this path.",
+    ).tag(config=True)
+
     def __init__(self, subarray=None, atmosphere_profile=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
@@ -632,6 +638,12 @@ class DispReconstructor(Reconstructor):
         StereoCombiner,
         default_value="StereoMeanCombiner",
         help="Which stereo combination method to use.",
+    ).tag(config=True)
+
+    load_path = traits.Path(
+        default_value=None,
+        allow_none=True,
+        help="If given, load serialized model from this path.",
     ).tag(config=True)
 
     def __init__(self, subarray=None, atmosphere_profile=None, models=None, **kwargs):

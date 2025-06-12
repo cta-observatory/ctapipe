@@ -1,4 +1,3 @@
-import weakref
 from abc import abstractmethod
 from enum import Flag, auto
 
@@ -9,8 +8,13 @@ from astropy.coordinates import AltAz, SkyCoord
 from traitlets.config import Config
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ctapipe.core import Component, Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import Integer, List, Path, classes_with_traits
+from ctapipe.core import (
+    Provenance,
+    QualityQuery,
+    TelescopeComponent,
+    ToolConfigurationError,
+)
+from ctapipe.core.traits import Integer, List, classes_with_traits
 
 from ..coordinates import shower_impact_distance
 
@@ -85,24 +89,10 @@ class Reconstructor(TelescopeComponent):
         help="Number of threads to use for the reconstruction if supported by the reconstructor.",
     ).tag(config=True)
 
-    load_path = Path(
-        default_value=None,
-        allow_none=True,
-        help="If given, load serialized model from this path.",
-    ).tag(config=True)
-
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
-        # Run the Component __init__ first to handle the configuration
-        # and make `self.load_path` available
-        Component.__init__(self, **kwargs)
-
-        if self.load_path is None:
-            self.subarray = subarray
-            self.quality_query = StereoQualityQuery(parent=self)
-            self.atmosphere_profile = atmosphere_profile
-        else:
-            loaded = self.read(self.load_path, subarray=subarray, **kwargs)
-            self.__dict__.update(loaded.__dict__)
+        super().__init__(subarray=subarray, **kwargs)
+        self.quality_query = StereoQualityQuery(parent=self)
+        self.atmosphere_profile = atmosphere_profile
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
@@ -148,10 +138,10 @@ class Reconstructor(TelescopeComponent):
         with open(path, "rb") as f:
             dictionary = joblib.load(f)
 
+        meta = dictionary.pop("meta")
         name = dictionary.pop("name")
         config = Config(dictionary.pop("config"))
         cls_attributes = dictionary.pop("cls_attributes")
-        meta = dictionary.pop("meta")
 
         if name not in [c.__name__ for c in classes_with_traits(cls)]:
             raise TypeError(
@@ -159,21 +149,52 @@ class Reconstructor(TelescopeComponent):
                 f"one of its subclasses, but instead about {name}."
             )
 
-        instance = Reconstructor.from_name(
-            name=name,
-            config=config,
-            **dictionary,
-        )
+        if parent is not None:
+            if name in parent.config.keys():
+                # Some configuration options should not be changed on a trained model.
+                forbidden_changes = [
+                    "model_cls",
+                    "norm_cls",
+                    "sign_cls",
+                    "model_config",
+                    "norm_config",
+                    "sign_config",
+                    "log_target",
+                    "features",
+                ]
+                for trait_name in forbidden_changes:
+                    if trait_name in parent.config[name].keys():
+                        raise ToolConfigurationError(
+                            f"{name}.{trait_name} can not be changed when "
+                            f"a {name} is loaded."
+                        )
+
+                changed_traits = parent.config[name]
+                # add loaded config of reconstructor to current config
+                parent.config.update(config)
+                # re-add changes to config done when the tool is called
+                parent.config[name].update(changed_traits)
+            else:
+                parent.config.update(config)
+
+            instance = Reconstructor.from_name(
+                name=name,
+                parent=parent,
+                subarray=dictionary["subarray"],
+                models=dictionary["models"],
+            )
+        else:
+            instance = Reconstructor.from_name(
+                name=name,
+                config=config,
+                subarray=dictionary["subarray"],
+                models=dictionary["models"],
+            )
 
         # set class attributes not handled by __init__,
         # e.g. the unit defined during SKLearnReconstructor.fit()
         for attr, value in cls_attributes.items():
             setattr(instance, attr, value)
-
-        # first deal with kwargs that would need "special" treatment, parent and subarray
-        if parent is not None:
-            instance.parent = weakref.proxy(parent)
-            instance.log = parent.log.getChild(name)
 
         if subarray is not None:
             if instance.subarray.telescope_types != subarray.telescope_types:
@@ -181,9 +202,6 @@ class Reconstructor(TelescopeComponent):
                     "Supplied subarray has different telescopes than subarray loaded from file"
                 )
             instance.subarray = subarray
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
 
         Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
         return instance
