@@ -1,6 +1,7 @@
 """
 Component Wrappers around sklearn models
 """
+
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
@@ -123,9 +124,7 @@ class SKLearnReconstructor(Reconstructor):
         help="If given, load serialized model from this path.",
     ).tag(config=True)
 
-    def __init__(
-        self, subarray=None, atmosphere_profile=None, models=None, n_jobs=None, **kwargs
-    ):
+    def __init__(self, subarray=None, atmosphere_profile=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -188,7 +187,7 @@ class SKLearnReconstructor(Reconstructor):
         """
 
     @abstractmethod
-    def predict_table(self, key, table: Table) -> Table:
+    def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
         """
         Predict on a table of events.
 
@@ -206,16 +205,6 @@ class SKLearnReconstructor(Reconstructor):
             Table(s) with predictions, matches the corresponding
             container definition(s)
         """
-
-    def write(self, path, overwrite=False):
-        path = pathlib.Path(path)
-
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            Provenance().add_output_file(path, role="ml-models")
-            joblib.dump(self, f, compress=True)
 
     @lazyproperty
     def instrument_table(self):
@@ -311,6 +300,52 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
             return np.log(y)
         return y
 
+    def write(self, path, meta=None, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which contains all
+        information/settings about an instance of a
+        ``SKLearnRegressionReconstructor`` (subclass).
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        meta : dict
+            Metadata
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        dictionary = {
+            "name": self.__class__.__name__,
+            "subarray": self.subarray,
+            "models": self._models,
+            "config": {
+                self.__class__.__name__: {
+                    "prefix": self.prefix,
+                    "log_target": self.log_target,
+                    "model_cls": self.model_cls,
+                    "model_config": self.model_config,
+                    "features": self.features,
+                    "stereo_combiner_cls": self.stereo_combiner_cls,
+                    "FeatureGenerator": {"features": self.feature_generator.features},
+                    "QualityQuery": {
+                        "quality_criteria": self.quality_query.quality_criteria
+                    },
+                    self.stereo_combiner_cls: {"weights": self.stereo_combiner.weights},
+                }
+            },
+            "cls_attributes": {"unit": self.unit},
+            "meta": meta,
+        }
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-reconstructor")
+            joblib.dump(dictionary, f, compress=True)
+
 
 class SKLearnClassificationReconstructor(SKLearnReconstructor):
     """Base class for classification tasks."""
@@ -386,6 +421,53 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     def _get_positive_index(self, key):
         return np.nonzero(self._models[key].classes_ == self.positive_class)[0][0]
 
+    def write(self, path, meta=None, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which contains all
+        information/settings about an instance of a
+        ``SKLearnClassificationReconstructor`` (subclass).
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        meta : dict
+            Metadata
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        dictionary = {
+            "name": self.__class__.__name__,
+            "subarray": self.subarray,
+            "models": self._models,
+            "config": {
+                self.__class__.__name__: {
+                    "prefix": self.prefix,
+                    "invalid_class": self.invalid_class,
+                    "positive_class": self.positive_class,
+                    "model_cls": self.model_cls,
+                    "model_config": self.model_config,
+                    "features": self.features,
+                    "stereo_combiner_cls": self.stereo_combiner_cls,
+                    "FeatureGenerator": {"features": self.feature_generator.features},
+                    "QualityQuery": {
+                        "quality_criteria": self.quality_query.quality_criteria
+                    },
+                    self.stereo_combiner_cls: {"weights": self.stereo_combiner.weights},
+                }
+            },
+            "cls_attributes": {"unit": self.unit},
+            "meta": meta,
+        }
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-reconstructor")
+            joblib.dump(dictionary, f, compress=True)
+
 
 class EnergyRegressor(SKLearnRegressionReconstructor):
     """
@@ -452,13 +534,12 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     """Predict dl2 particle classification."""
 
     target = "true_shower_primary_id"
+    property = ReconstructionProperty.PARTICLE_TYPE
 
     positive_class = traits.Integer(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
-
-    property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
@@ -518,6 +599,7 @@ class DispReconstructor(Reconstructor):
     """
 
     target = "true_disp"
+    property = ReconstructionProperty.GEOMETRY
 
     prefix = traits.Unicode(
         default_value="disp",
@@ -599,7 +681,7 @@ class DispReconstructor(Reconstructor):
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
-                property=ReconstructionProperty.GEOMETRY,
+                property=self.property,
                 parent=self,
             )
         else:
@@ -613,6 +695,9 @@ class DispReconstructor(Reconstructor):
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
+
+            if self.prefix is None:
+                self.prefix = "disp"
 
     def _new_models(self):
         norm_cfg = self.norm_config
@@ -653,33 +738,6 @@ class DispReconstructor(Reconstructor):
         norm, sign = self._table_to_y(table, mask=valid)
         self._models[key][0].fit(X, norm)
         self._models[key][1].fit(X, sign)
-
-    def write(self, path, overwrite=False):
-        path = pathlib.Path(path)
-
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            Provenance().add_output_file(path, role="ml-models")
-            joblib.dump(self, f, compress=True)
-
-    @classmethod
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(path, role="ml-models", add_meta=False)
-        return instance
 
     @lazyproperty
     def instrument_table(self):
@@ -869,6 +927,53 @@ class DispReconstructor(Reconstructor):
             for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
+
+    def write(self, path, meta=None, overwrite=False):
+        """
+        Save a dictionary using joblib-pickle, which contains all
+        information/settings about an instance of a ``DispReconstructor`` .
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to which the dictionary will be saved.
+        meta : dict
+            Metadata
+        overwrite : Bool
+            Whether to overwrite, if ``path`` already exists.
+        """
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise OSError(f"Path {path} exists and overwrite=False")
+
+        dictionary = {
+            "name": self.__class__.__name__,
+            "subarray": self.subarray,
+            "models": self._models,
+            "config": {
+                self.__class__.__name__: {
+                    "prefix": self.prefix,
+                    "log_target": self.log_target,
+                    "norm_cls": self.norm_cls,
+                    "sign_cls": self.sign_cls,
+                    "norm_config": self.norm_config,
+                    "sign_config": self.sign_config,
+                    "features": self.features,
+                    "stereo_combiner_cls": self.stereo_combiner_cls,
+                    "FeatureGenerator": {"features": self.feature_generator.features},
+                    "QualityQuery": {
+                        "quality_criteria": self.quality_query.quality_criteria
+                    },
+                    self.stereo_combiner_cls: {"weights": self.stereo_combiner.weights},
+                }
+            },
+            "cls_attributes": {"unit": self.unit},
+            "meta": meta,
+        }
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-reconstructor")
+            joblib.dump(dictionary, f, compress=True)
 
 
 class CrossValidator(Component):

@@ -1,6 +1,7 @@
 """
 Tool for training the EnergyRegressor
 """
+
 import numpy as np
 
 from ctapipe.core import Tool
@@ -141,7 +142,6 @@ class TrainEnergyRegressor(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        self.regressor.n_jobs = None
         self.regressor.write(self.output_path, overwrite=self.overwrite)
         self.loader.close()
         self.cross_validate.close()
