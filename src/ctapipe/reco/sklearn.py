@@ -300,7 +300,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
             return np.log(y)
         return y
 
-    def write(self, path, meta={}, overwrite=False):
+    def write(self, path, meta=None, overwrite=False):
         """
         Save a dictionary using joblib-pickle, which contains all
         information/settings about an instance of a
@@ -928,7 +928,7 @@ class DispReconstructor(Reconstructor):
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
 
-    def write(self, path, meta={}, overwrite=False):
+    def write(self, path, meta=None, overwrite=False):
         """
         Save a dictionary using joblib-pickle, which contains all
         information/settings about an instance of a ``DispReconstructor`` .
