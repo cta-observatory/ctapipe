@@ -161,7 +161,15 @@ class SKLearnReconstructor(Reconstructor):
             )
         else:
             loaded = self.read(self.load_path)
+            if (
+                subarray is not None
+                and loaded.subarray.telescope_types != subarray.telescope_types
+            ):
+                self.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded from file"
+                )
             self.__dict__.update(loaded.__dict__)
+            self.subarray = subarray
 
             if self.prefix is None:
                 self.prefix = self.model_cls
@@ -678,7 +686,15 @@ class DispReconstructor(Reconstructor):
             )
         else:
             loaded = self.read(self.load_path)
+            if (
+                subarray is not None
+                and loaded.subarray.telescope_types != subarray.telescope_types
+            ):
+                self.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded from file"
+                )
             self.__dict__.update(loaded.__dict__)
+            self.subarray = subarray
 
             if self.prefix is None:
                 self.prefix = "disp"
