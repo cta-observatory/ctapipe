@@ -10,8 +10,9 @@ from astropy.table import vstack
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
-    Bool,
+    CInt,
     Path,
+    Set,
     Unicode,
     classes_with_traits,
     flag,
@@ -38,6 +39,16 @@ class PixelStatisticsCalculatorTool(Tool):
 
     """
 
+    allowed_tels = Set(
+        trait=CInt(),
+        default_value=None,
+        allow_none=True,
+        help=(
+            "List of allowed tel_ids, others will be ignored. "
+            "If None, all telescopes in the input stream will be included."
+        ),
+    ).tag(config=True)
+
     input_column_name = Unicode(
         default_value="image",
         allow_none=False,
@@ -53,10 +64,6 @@ class PixelStatisticsCalculatorTool(Tool):
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
-
-    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
-
-    append = Bool(help="Append to output file if it exists").tag(config=True)
 
     aliases = {
         ("i", "input_url"): "TableLoader.input_url",
@@ -116,14 +123,20 @@ class PixelStatisticsCalculatorTool(Tool):
         self.log.info("Copying to output destination.")
         with HDF5Merger(self.output_path, parent=self) as merger:
             merger(self.input_data.input_url)
+        # Select a new subarray if the allowed_tels configuration is used
+        self.subarray = (
+            self.input_data.subarray
+            if self.allowed_tels is None
+            else self.input_data.subarray.select_subarray(self.allowed_tels)
+        )
         # Initialization of the statistics calculator
         self.stats_calculator = PixelStatisticsCalculator(
-            parent=self, subarray=self.input_data.subarray
+            parent=self, subarray=self.subarray
         )
 
     def start(self):
         # Iterate over the telescope ids and calculate the statistics
-        for tel_id in self.input_data.subarray.tel_ids:
+        for tel_id in self.subarray.tel_ids:
             # Read the whole dl1 images for one particular telescope
             dl1_table = self.input_data.read_telescope_events_by_id(
                 telescopes=[

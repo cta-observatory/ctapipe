@@ -21,6 +21,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     config = Config(
         {
             "PixelStatisticsCalculatorTool": {
+                "allowed_tels": [3],
                 "input_column_name": "image",
                 "output_table_name": "statistics",
             },
@@ -49,8 +50,8 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         argv=[
             f"--input_url={dl1_image_file}",
             f"--output_path={monitoring_file}",
-            "--r0-waveforms",
-            "--r1-waveforms",
+            "--no-r0-waveforms",
+            "--no-r1-waveforms",
             "--dl1-images",
             "--overwrite",
         ],
@@ -70,10 +71,14 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     # Check if the HDF5Merger has merged the input file
     # with the output file correctly
     with TableLoader(dl1_image_file) as loader:
-        initial_tel_events = loader.read_telescope_events()
+        initial_tel_events = loader.read_telescope_events(
+            telescopes=[tel_id], dl1_images=True
+        )
 
     with TableLoader(monitoring_file) as loader:
-        merged_tel_events = loader.read_telescope_events()
+        merged_tel_events = loader.read_telescope_events(
+            telescopes=[tel_id], dl1_images=True
+        )
 
     assert_table_equal(merged_tel_events, initial_tel_events)
 
@@ -123,7 +128,6 @@ def test_tool_config_error(tmp_path, dl1_image_file):
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_failure_chunk_size_file}",
                 "--StatisticsAggregator.chunk_size=2500",
-                "--append",
             ],
             cwd=tmp_path,
             raises=True,
