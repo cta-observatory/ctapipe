@@ -11,14 +11,12 @@ from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
     Bool,
-    CInt,
     Path,
-    Set,
     Unicode,
     classes_with_traits,
+    flag,
 )
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import write_table
+from ctapipe.io import HDF5Merger, write_table
 from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
@@ -40,16 +38,6 @@ class PixelStatisticsCalculatorTool(Tool):
 
     """
 
-    allowed_tels = Set(
-        trait=CInt(),
-        default_value=None,
-        allow_none=True,
-        help=(
-            "List of allowed tel_ids, others will be ignored. "
-            "If None, all telescopes in the input stream will be included."
-        ),
-    ).tag(config=True)
-
     input_column_name = Unicode(
         default_value="image",
         allow_none=False,
@@ -68,6 +56,8 @@ class PixelStatisticsCalculatorTool(Tool):
 
     overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
 
+    append = Bool(help="Append to output file if it exists").tag(config=True)
+
     aliases = {
         ("i", "input_url"): "TableLoader.input_url",
         ("o", "output_path"): "PixelStatisticsCalculatorTool.output_path",
@@ -75,8 +65,30 @@ class PixelStatisticsCalculatorTool(Tool):
 
     flags = {
         "overwrite": (
-            {"PixelStatisticsCalculatorTool": {"overwrite": True}},
+            {"HDF5Merger": {"overwrite": True}},
             "Overwrite existing files",
+        ),
+        "append": (
+            {"HDF5Merger": {"append": True}},
+            "Append to existing files",
+        ),
+        **flag(
+            "r0-waveforms",
+            "HDF5Merger.r0_waveforms",
+            "Include r0 waveforms",
+            "Exclude r0 waveforms",
+        ),
+        **flag(
+            "r1-waveforms",
+            "HDF5Merger.r1_waveforms",
+            "Include r1 waveforms",
+            "Exclude r1 waveforms",
+        ),
+        **flag(
+            "dl1-images",
+            "HDF5Merger.dl1_images",
+            "Include dl1 images",
+            "Exclude dl1 images",
         ),
     }
 
@@ -93,39 +105,40 @@ class PixelStatisticsCalculatorTool(Tool):
                 parent=self,
             )
         )
-        # Check that the input and output files are not the same
-        if self.input_data.input_url == self.output_path:
-            raise ToolConfigurationError(
-                "Input and output files are same. Fix your configuration / cli arguments."
-            )
+        # Check that the DL1 images are selected in the TableLoader
         if "dl1_images" in self.input_data.config.TableLoader:
             if not self.input_data.dl1_images:
                 raise ToolConfigurationError(
                     "The TableLoader must read dl1 images. Set 'dl1_images' to True."
                 )
         self.input_data.dl1_images = True
-        # Load the subarray description from the input file
-        subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
-        # Select a new subarray if the allowed_tels configuration is used
-        self.subarray = (
-            subarray
-            if self.allowed_tels is None
-            else subarray.select_subarray(self.allowed_tels)
-        )
+        # Copy selected tables from the input file to the output file
+        self.log.info("Copying to output destination.")
+        with HDF5Merger(self.output_path, parent=self) as merger:
+            merger(self.input_data.input_url)
         # Initialization of the statistics calculator
         self.stats_calculator = PixelStatisticsCalculator(
-            parent=self, subarray=self.subarray
+            parent=self, subarray=self.input_data.subarray
         )
 
     def start(self):
         # Iterate over the telescope ids and calculate the statistics
-        for tel_id in self.subarray.tel_ids:
+        for tel_id in self.input_data.subarray.tel_ids:
             # Read the whole dl1 images for one particular telescope
             dl1_table = self.input_data.read_telescope_events_by_id(
                 telescopes=[
                     tel_id,
                 ],
-            )[tel_id]
+            )
+            # Check if the dl1 table is empty and skip the telescope if so
+            if len(dl1_table) == 0:
+                self.log.warning(
+                    "No dl1 images found for telescope 'tel_id=%d'. Skipping.",
+                    tel_id,
+                )
+                continue
+            # Get the table for the telescope id
+            dl1_table = dl1_table[tel_id]
             # Check if the chunk size does not exceed the table length of the input data
             if self.stats_calculator.stats_aggregators[
                 self.stats_calculator.stats_aggregator_type.tel[tel_id]
@@ -190,12 +203,6 @@ class PixelStatisticsCalculatorTool(Tool):
         )
 
     def finish(self):
-        # Store the subarray description in the output file
-        self.subarray.to_hdf(self.output_path, overwrite=self.overwrite)
-        self.log.info(
-            "Subarray description was stored in '%s'",
-            self.output_path,
-        )
         self.log.info("Tool is shutting down")
 
 
