@@ -98,13 +98,13 @@ def test_process_apply_classification(
     run_tool(tool, argv=argv, cwd=tmp_path, raises=True)
 
     tel_events = read_table(
-        output, "/dl2/event/telescope/classification/ExtraTreesClassifier/tel_004"
+        output, "/dl2/event/telescope/particle_type/ExtraTreesClassifier/tel_004"
     )
     assert "ExtraTreesClassifier_tel_is_valid" in tel_events.colnames
     assert "ExtraTreesClassifier_tel_prediction" in tel_events.colnames
 
     events = read_table(
-        output, "/dl2/event/subarray/classification/ExtraTreesClassifier"
+        output, "/dl2/event/subarray/particle_type/ExtraTreesClassifier"
     )
     trigger = read_table(output, "/dl1/event/subarray/trigger")
     assert len(events) == len(trigger)
