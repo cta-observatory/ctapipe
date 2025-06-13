@@ -15,7 +15,6 @@ from ctapipe.core.traits import (
     Set,
     Unicode,
     classes_with_traits,
-    flag,
 )
 from ctapipe.io import HDF5Merger, write_table
 from ctapipe.io.tableloader import TableLoader
@@ -79,24 +78,6 @@ class PixelStatisticsCalculatorTool(Tool):
             {"HDF5Merger": {"append": True}},
             "Append to existing files",
         ),
-        **flag(
-            "r0-waveforms",
-            "HDF5Merger.r0_waveforms",
-            "Include r0 waveforms",
-            "Exclude r0 waveforms",
-        ),
-        **flag(
-            "r1-waveforms",
-            "HDF5Merger.r1_waveforms",
-            "Include r1 waveforms",
-            "Exclude r1 waveforms",
-        ),
-        **flag(
-            "dl1-images",
-            "HDF5Merger.dl1_images",
-            "Include dl1 images",
-            "Exclude dl1 images",
-        ),
     }
 
     classes = [
@@ -120,7 +101,15 @@ class PixelStatisticsCalculatorTool(Tool):
                 )
         self.input_data.dl1_images = True
         # Copy selected tables from the input file to the output file
-        self.log.info("Copying to output destination.")
+        self.log.info("Copying to output destination using the HDF5Merger component.")
+        # Disable the copy of waveforms and images in the HDF5Merger
+        self.log.info(
+            "Overwriting the default configuration of the HDF5Merger "
+            "component to disable the copy of waveforms and images."
+        )
+        self.config["HDF5Merger"]["r0_waveforms"] = False
+        self.config["HDF5Merger"]["r1_waveforms"] = False
+        self.config["HDF5Merger"]["dl1_images"] = False
         with HDF5Merger(self.output_path, parent=self) as merger:
             merger(self.input_data.input_url)
         # Select a new subarray if the allowed_tels configuration is used

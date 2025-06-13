@@ -8,8 +8,7 @@ from traitlets.config.loader import Config
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
-from ctapipe.io import TableLoader, read_table
-from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
+from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 
 
@@ -50,9 +49,6 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         argv=[
             f"--input_url={dl1_image_file}",
             f"--output_path={monitoring_file}",
-            "--no-r0-waveforms",
-            "--no-r1-waveforms",
-            "--dl1-images",
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -68,19 +64,6 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         )["mean"].ndim
         == 3
     )
-    # Check if the HDF5Merger has merged the input file
-    # with the output file correctly
-    with TableLoader(dl1_image_file) as loader:
-        initial_tel_events = loader.read_telescope_events(
-            telescopes=[tel_id], dl1_images=True
-        )
-
-    with TableLoader(monitoring_file) as loader:
-        merged_tel_events = loader.read_telescope_events(
-            telescopes=[tel_id], dl1_images=True
-        )
-
-    assert_table_equal(merged_tel_events, initial_tel_events)
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
