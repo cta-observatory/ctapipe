@@ -1,0 +1,1 @@
+Add HDF5Merger to the pix stats tool.
