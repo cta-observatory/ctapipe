@@ -110,6 +110,7 @@ class PixelStatisticsCalculatorTool(Tool):
         self.config["HDF5Merger"]["r0_waveforms"] = False
         self.config["HDF5Merger"]["r1_waveforms"] = False
         self.config["HDF5Merger"]["dl1_images"] = False
+        self.config["HDF5Merger"]["true_images"] = False
         with HDF5Merger(self.output_path, parent=self) as merger:
             merger(self.input_data.input_url)
         # Select a new subarray if the allowed_tels configuration is used
