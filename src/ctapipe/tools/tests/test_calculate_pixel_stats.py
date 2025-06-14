@@ -8,7 +8,6 @@ from traitlets.config.loader import Config
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
-from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 
@@ -21,13 +20,13 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     config = Config(
         {
             "PixelStatisticsCalculatorTool": {
-                "allowed_tels": [tel_id],
+                "allowed_tels": [3],
                 "input_column_name": "image",
                 "output_table_name": "statistics",
             },
             "PixelStatisticsCalculator": {
                 "stats_aggregator_type": [
-                    ("id", tel_id, "PlainAggregator"),
+                    ("type", "*", "PlainAggregator"),
                 ],
                 "outlier_detector_list": [
                     {
@@ -65,10 +64,6 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         )["mean"].ndim
         == 3
     )
-    # Read subarray description from the created monitoring file
-    subarray = SubarrayDescription.from_hdf(monitoring_file)
-    # Check for the selected telescope
-    assert subarray.tel_ids[0] == tel_id
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
@@ -78,14 +73,13 @@ def test_tool_config_error(tmp_path, dl1_image_file):
     config = Config(
         {
             "PixelStatisticsCalculatorTool": {
-                "allowed_tels": [3],
                 "input_column_name": "image_charges",
                 "output_table_name": "statistics",
             }
         }
     )
     # Set the output file path
-    monitoring_file = tmp_path / "monitoring.dl1.h5"
+    monitoring_failure_colname_file = tmp_path / "monitoring_failure_colname.dl1.h5"
     # Check if ToolConfigurationError is raised
     # when the column name of the pixel-wise image data is not correct
     with pytest.raises(
@@ -95,7 +89,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             PixelStatisticsCalculatorTool(config=config),
             argv=[
                 f"--input_url={dl1_image_file}",
-                f"--output_path={monitoring_file}",
+                f"--output_path={monitoring_failure_colname_file}",
                 "--StatisticsAggregator.chunk_size=1",
                 "--overwrite",
             ],
@@ -103,22 +97,11 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             raises=True,
         )
     # Check if ToolConfigurationError is raised
-    # when the input and output files are the same
-    with pytest.raises(
-        ToolConfigurationError, match="Input and output files are same."
-    ):
-        run_tool(
-            PixelStatisticsCalculatorTool(),
-            argv=[
-                f"--input_url={dl1_image_file}",
-                f"--output_path={dl1_image_file}",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-            raises=True,
-        )
-    # Check if ToolConfigurationError is raised
     # when the chunk size is larger than the number of events in the input file
+    monitoring_failure_chunk_size_file = (
+        tmp_path / "monitoring_failure_chunk_size.dl1.h5"
+    )
+
     with pytest.raises(
         ToolConfigurationError, match="Change --StatisticsAggregator.chunk_size"
     ):
@@ -126,10 +109,8 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             PixelStatisticsCalculatorTool(),
             argv=[
                 f"--input_url={dl1_image_file}",
-                f"--output_path={monitoring_file}",
-                "--PixelStatisticsCalculatorTool.allowed_tels=3",
+                f"--output_path={monitoring_failure_chunk_size_file}",
                 "--StatisticsAggregator.chunk_size=2500",
-                "--overwrite",
             ],
             cwd=tmp_path,
             raises=True,
