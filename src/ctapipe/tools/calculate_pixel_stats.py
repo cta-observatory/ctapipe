@@ -101,17 +101,22 @@ class PixelStatisticsCalculatorTool(Tool):
                 )
         self.input_data.dl1_images = True
         # Copy selected tables from the input file to the output file
-        self.log.info("Copying to output destination using the HDF5Merger component.")
-        # Disable the copy of waveforms and images in the HDF5Merger
         self.log.info(
+            "Copying selected data and metadata to output destination using the HDF5Merger component."
+        )
+        # Disable the copy of waveforms and images in the HDF5Merger
+        self.log.debug(
             "Overwriting the default configuration of the HDF5Merger "
             "component to disable the copy of waveforms and images."
         )
-        self.config["HDF5Merger"]["r0_waveforms"] = False
-        self.config["HDF5Merger"]["r1_waveforms"] = False
-        self.config["HDF5Merger"]["dl1_images"] = False
-        self.config["HDF5Merger"]["true_images"] = False
-        with HDF5Merger(self.output_path, parent=self) as merger:
+        with HDF5Merger(
+            parent=self,
+            output_path=self.output_path,
+            r0_waveforms=False,
+            r1_waveforms=False,
+            dl1_images=False,
+            true_images=False,
+        ) as merger:
             merger(self.input_data.input_url)
         # Select a new subarray if the allowed_tels configuration is used
         self.subarray = (
