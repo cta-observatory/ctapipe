@@ -492,8 +492,8 @@ class CameraGeometry:
             )
             rot_x *= x_scale
 
-            pixel_column = np.digitize(rot_x, x_edges) - 1
-            pixel_row = np.digitize(rot_y, y_edges) - 1
+            pixel_row = np.digitize(rot_x, x_edges) - 1
+            pixel_column = np.digitize(rot_y, y_edges) - 1
 
             # flip image so that imshow looks like original camera display
             pixel_row = pixel_row.max() - pixel_row
