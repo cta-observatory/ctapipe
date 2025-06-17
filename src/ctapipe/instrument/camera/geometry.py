@@ -482,7 +482,9 @@ class CameraGeometry:
                 cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
             )
             x_edges, y_edges, _ = get_orthogonal_grid_edges(
-                rot_x.to_value(u.m), rot_y.to_value(u.m)
+                rot_x.to_value(u.m),
+                rot_y.to_value(u.m),
+                scale_aspect=False,
             )
             square_mask = np.histogramdd(
                 [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
@@ -492,13 +494,19 @@ class CameraGeometry:
                 bins=(x_edges, y_edges),
                 weights=np.arange(len(self.pix_y)),
             )[0].astype(int)
+
+            if (hex_to_rect_map >= len(self.pix_x)).any():
+                raise ValueError("Determining pixel coordinates failed")
+
             hex_to_rect_map[~square_mask] = -1
+
             rows_2d = np.zeros(hex_to_rect_map.shape)
             rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
             rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
             rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
                 np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
             )[..., square_mask]
+
             cols_2d = np.zeros(hex_to_rect_map.shape)
             cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
             cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
