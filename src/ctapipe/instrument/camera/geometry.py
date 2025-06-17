@@ -481,40 +481,19 @@ class CameraGeometry:
                 self.pix_y,
                 cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
             )
-            x_edges, y_edges, _ = get_orthogonal_grid_edges(
-                rot_x.to_value(u.m),
-                rot_y.to_value(u.m),
-                scale_aspect=False,
+
+            rot_x = rot_x.to_value(u.m)
+            rot_y = rot_y.to_value(u.m)
+
+            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+                rot_x,
+                rot_y,
+                scale_aspect=True,
             )
-            square_mask = np.histogramdd(
-                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
-            )[0].astype(bool)
-            hex_to_rect_map = np.histogramdd(
-                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
-                bins=(x_edges, y_edges),
-                weights=np.arange(len(self.pix_y)),
-            )[0].astype(int)
+            rot_x *= x_scale
 
-            if (hex_to_rect_map >= len(self.pix_x)).any():
-                raise ValueError("Determining pixel coordinates failed")
-
-            hex_to_rect_map[~square_mask] = -1
-
-            rows_2d = np.zeros(hex_to_rect_map.shape)
-            rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
-            rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
-            rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
-                np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
-            )[..., square_mask]
-
-            cols_2d = np.zeros(hex_to_rect_map.shape)
-            cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
-            cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
-            cols_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
-                np.rollaxis(np.atleast_3d(cols_2d), 2, 0)
-            )[..., square_mask]
-            pixel_row = rows_1d
-            pixel_column = cols_1d
+            pixel_column = np.digitize(rot_x, x_edges) - 1
+            pixel_row = np.digitize(rot_y, y_edges) - 1
 
             # flip image so that imshow looks like original camera display
             pixel_row = pixel_row.max() - pixel_row
