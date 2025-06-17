@@ -1,0 +1,3 @@
+Disable ``scale_aspect`` option of ``get_orthogonal_grid_edges`` in
+``CameraGeometry._pixel_positions_2d`` to fix
+``CameraGeometry.image_to_cartesian_representation`` for the VERITAS camera.
