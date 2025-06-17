@@ -91,15 +91,9 @@ class PixelStatisticsCalculatorTool(Tool):
         self.input_data = self.enter_context(
             TableLoader(
                 parent=self,
+                dl1_images=True,  # Ensure that dl1 images are read
             )
         )
-        # Check that the DL1 images are selected in the TableLoader
-        if "dl1_images" in self.input_data.config.TableLoader:
-            if not self.input_data.dl1_images:
-                raise ToolConfigurationError(
-                    "The TableLoader must read dl1 images. Set 'dl1_images' to True."
-                )
-        self.input_data.dl1_images = True
         # Copy selected tables from the input file to the output file
         self.log.info(
             "Copying selected data and metadata to output destination using the HDF5Merger component."
@@ -133,7 +127,7 @@ class PixelStatisticsCalculatorTool(Tool):
         # Iterate over the telescope ids and calculate the statistics
         for tel_id in self.subarray.tel_ids:
             # Read the whole dl1 images for one particular telescope
-            dl1_table = self.input_data.read_telescope_events_by_id(
+            dl1_table = self.input_data.read_telescope_events(
                 telescopes=[
                     tel_id,
                 ],
@@ -145,8 +139,6 @@ class PixelStatisticsCalculatorTool(Tool):
                     tel_id,
                 )
                 continue
-            # Get the table for the telescope id
-            dl1_table = dl1_table[tel_id]
             # Check if the chunk size does not exceed the table length of the input data
             if self.stats_calculator.stats_aggregators[
                 self.stats_calculator.stats_aggregator_type.tel[tel_id]
