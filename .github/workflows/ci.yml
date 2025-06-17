@@ -101,7 +101,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ctapipe
-          key: ctapipe-test-data-desy
+          key: ctapipe-test-data-desy-1
 
       - name: cache astropy data
         uses: actions/cache@v4
