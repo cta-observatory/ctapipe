@@ -1,11 +1,15 @@
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 from traitlets.config import Config
 
+from ctapipe.containers import SubarrayEventContainer
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import EventSource
 
 
 @pytest.fixture(scope="module")
@@ -92,3 +96,101 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
 
     assert (reduced_waveforms != 0).sum() == (1 + 4 + 14) * n_samples
     assert_array_equal(expected_waveforms, reduced_waveforms)
+
+
+def test_readout_window_reducer(prod5_gamma_simtel_path):
+    from ctapipe.image.reducer import ReadoutWindowReducer
+
+    def check(subarray, event, event_reduced, event_no_op):
+        checked = 0
+        for tel_id, tel_event in event.tel.items():
+            for dl in ("r0", "r1", "dl0"):
+                original_waveform = getattr(tel_event, dl).waveform
+                reduced_waveform = getattr(event_reduced.tel[tel_id], dl).waveform
+                no_op_waveform = getattr(event_no_op.tel[tel_id], dl).waveform
+
+                if original_waveform is None:
+                    assert reduced_waveform is None
+                    assert no_op_waveform is None
+                    continue
+
+                if str(subarray.tel[tel_id]).startswith("LST"):
+                    start = 10
+                    end = 20
+                    n_samples = end - start
+                elif "Nectar" in str(subarray.tel[tel_id]):
+                    start = 15
+                    end = 40
+                    n_samples = end - start
+                else:
+                    start = None
+                    end = None
+                    n_samples = subarray.tel[tel_id].camera.readout.n_samples
+
+                assert reduced_waveform.ndim == 3
+                assert reduced_waveform.shape[-1] == n_samples
+                np.testing.assert_array_equal(original_waveform, no_op_waveform)
+                np.testing.assert_array_equal(
+                    original_waveform[..., start:end], reduced_waveform
+                )
+
+                checked += 1
+        return checked
+
+    with EventSource(prod5_gamma_simtel_path) as source:
+        reducer_no_op = ReadoutWindowReducer(source.subarray)
+        reducer = ReadoutWindowReducer(
+            source.subarray,
+            window_start=[
+                ("type", "*", None),
+                ("type", "LST*", 10),
+                ("type", "*Nectar*", 15),
+            ],
+            window_end=[
+                ("type", "*", None),
+                ("type", "LST*", 20),
+                ("type", "*Nectar*", 40),
+            ],
+        )
+
+        # make sure we didn't modify the original subarray
+        assert source.subarray.tel[1].camera.readout.n_samples == 40
+        assert reducer_no_op.subarray.tel[1].camera.readout.n_samples == 40
+        # new subarray should have reduced window
+        assert reducer.subarray.tel[1].camera.readout.n_samples == 10
+
+        n_checked = 0
+        for event in source:
+            event_no_op = deepcopy(event)
+            event_reduced = deepcopy(event)
+
+            reducer(event_reduced)
+            reducer_no_op(event_no_op)
+
+            n_checked += check(source.subarray, event, event_reduced, event_no_op)
+
+        assert n_checked > 0
+
+
+@pytest.mark.parametrize("data_level", ["r0", "r1", "dl0"])
+def test_readout_window_reducer_data_levels(subarray_lst, data_level):
+    from ctapipe.image.reducer import ReadoutWindowReducer
+
+    subarray, tel_id, _, n_pixels, n_samples = subarray_lst
+    reducer = ReadoutWindowReducer(subarray, window_start=10, window_end=20)
+    event = SubarrayEventContainer()
+    waveform = np.arange(2 * n_pixels * n_samples).reshape(2, n_pixels, n_samples)
+    getattr(event.tel[tel_id], data_level).waveform = waveform
+    # Include a telescope without waveforms at any data level.
+    event.tel[2]
+
+    reducer(event)
+
+    assert set(event.tel) == {tel_id, 2}
+    for current_tel_id, tel_event in event.tel.items():
+        for level in ("r0", "r1", "dl0"):
+            reduced = getattr(tel_event, level).waveform
+            if current_tel_id == tel_id and level == data_level:
+                assert_array_equal(reduced, waveform[..., 10:20])
+            else:
+                assert reduced is None
