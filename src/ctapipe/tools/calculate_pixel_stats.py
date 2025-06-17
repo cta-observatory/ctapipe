@@ -99,6 +99,7 @@ class PixelStatisticsCalculatorTool(Tool):
                 raise ToolConfigurationError(
                     "The TableLoader must read dl1 images. Set 'dl1_images' to True."
                 )
+        self.input_data.dl1_images = True
         # Copy selected tables from the input file to the output file
         self.log.info(
             "Copying selected data and metadata to output destination using the HDF5Merger component."
