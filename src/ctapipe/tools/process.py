@@ -14,6 +14,7 @@ from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..image.muon import MuonProcessor
+from ..image.reducer import ReadoutWindowReducer
 from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
@@ -101,6 +102,11 @@ class ProcessorTool(Tool):
         default_value=[],
     ).tag(config=True)
 
+    reduce_readout_window = Bool(
+        default_value=False,
+        help="If True, use ReadoutWindowReducer on waveforms.",
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("o", "output"): "DataWriter.output_path",
@@ -174,6 +180,7 @@ class ProcessorTool(Tool):
             metadata.Instrument,
             metadata.Contact,
             SoftwareTrigger,
+            ReadoutWindowReducer,
         ]
         + classes_with_traits(EventSource)
         + classes_with_traits(MonitoringSource)
@@ -231,6 +238,14 @@ class ProcessorTool(Tool):
                 raise ToolConfigurationError(msg)
             # Append the monitoring source to the list if it has compatible monitoring types
             self._monitoring_sources.append(mon_source)
+
+        if self.reduce_readout_window:
+            self.readout_window_reducer = ReadoutWindowReducer(
+                subarray=subarray, parent=self
+            )
+            subarray = self.readout_window_reducer.subarray
+        else:
+            self.readout_window_reducer = None
 
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
@@ -355,6 +370,9 @@ class ProcessorTool(Tool):
 
             for mon_source in self._monitoring_sources:
                 mon_source.fill_monitoring_container(event)
+
+            if self.readout_window_reducer is not None:
+                self.readout_window_reducer(event)
 
             if self.should_calibrate:
                 self.calibrate(event)
