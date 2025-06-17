@@ -1,9 +1,15 @@
+from importlib.resources import as_file
+
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.table import QTable
 from numpy.testing import assert_allclose
 
+from ctapipe.coordinates import CameraFrame
 from ctapipe.image.toymodel import Gaussian
+from ctapipe.instrument import CameraGeometry, PixelShape
+from ctapipe.utils.datasets import resource_file
 
 
 def create_mock_image(geom, psi=25 * u.deg):
@@ -34,6 +40,37 @@ def test_single_image(camera_geometry):
     image = create_mock_image(camera_geometry)
     image_2d = camera_geometry.image_to_cartesian_representation(image)
     image_1d = camera_geometry.image_from_cartesian_representation(image_2d)
+    # in general this introduces extra pixels in the 2d array, which are set to nan
+    assert np.nansum(image) == np.nansum(image_2d)
+    assert_allclose(image, image_1d)
+
+
+@pytest.fixture
+def veritas_cam_geom():
+    with as_file(resource_file("veritas_pixel_coordinates.ecsv")) as path:
+        table = QTable.read(path)
+
+    pixel_area = 2 * np.sqrt(3) * table["r"] ** 2
+
+    return CameraGeometry(
+        name="VERITAS",
+        pix_id=table["id"].copy(),
+        pix_x=-table["y"].copy(),
+        pix_y=-table["x"].copy(),
+        pix_area=pixel_area,
+        pix_rotation=30 * u.deg,
+        pix_type=PixelShape.HEXAGON,
+        frame=CameraFrame(),
+    )
+
+
+def test_single_image_veritas(veritas_cam_geom):
+    """
+    Regression test for #2778
+    """
+    image = create_mock_image(veritas_cam_geom)
+    image_2d = veritas_cam_geom.image_to_cartesian_representation(image)
+    image_1d = veritas_cam_geom.image_from_cartesian_representation(image_2d)
     # in general this introduces extra pixels in the 2d array, which are set to nan
     assert np.nansum(image) == np.nansum(image_2d)
     assert_allclose(image, image_1d)
