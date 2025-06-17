@@ -40,6 +40,11 @@ def test_single_image(camera_geometry, image_conversion_path):
 
     from ctapipe.visualization import CameraDisplay
 
+    if len(np.unique(camera_geometry.pix_area)) > 1:
+        pytest.xfail(
+            "Image conversion is not expected to work with heterogeneous geometries"
+        )
+
     image = create_mock_image(camera_geometry)
     image_2d = camera_geometry.image_to_cartesian_representation(image)
     image_1d = camera_geometry.image_from_cartesian_representation(image_2d)
