@@ -355,6 +355,7 @@ class IrfTool(Tool):
             self.opt_result.gh_cuts,
             operator.ge,
         )
+        reduced_events["gammas"]["selected"] = reduced_events["gammas"]["selected_gh"]
         if self.spatial_selection_applied:
             reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
                 reduced_events["gammas"]["theta"],
@@ -362,13 +363,19 @@ class IrfTool(Tool):
                 self.opt_result.spatial_selection_table,
                 operator.le,
             )
-            reduced_events["gammas"]["selected"] = (
-                reduced_events["gammas"]["selected_theta"]
-                & reduced_events["gammas"]["selected_gh"]
+            reduced_events["gammas"]["selected"] &= reduced_events["gammas"][
+                "selected_theta"
+            ]
+
+        if self.opt_result.multiplicity_cuts is not None:
+            reduced_events["gammas"]["selected_multiplicity"] = evaluate_binned_cut(
+                reduced_events["gammas"]["multiplicity"],
+                reduced_events["gammas"]["reco_energy"],
+                self.opt_result.multiplicity_cuts,
+                operator.ge,
             )
-        else:
-            reduced_events["gammas"]["selected"] = reduced_events["gammas"][
-                "selected_gh"
+            reduced_events["gammas"]["selected"] &= reduced_events["gammas"][
+                "selected_multiplicity"
             ]
 
         if self.do_background:
@@ -383,9 +390,23 @@ class IrfTool(Tool):
                     self.opt_result.gh_cuts,
                     operator.ge,
                 )
-                n_sel[bkg_type] = np.count_nonzero(
-                    reduced_events[bkg_type]["selected_gh"]
-                )
+                reduced_events[bkg_type]["selected"] = reduced_events[bkg_type][
+                    "selected_gh"
+                ]
+                if self.opt_result.multiplicity_cuts is not None:
+                    reduced_events[bkg_type][
+                        "selected_multiplicity"
+                    ] = evaluate_binned_cut(
+                        reduced_events[bkg_type]["multiplicity"],
+                        reduced_events[bkg_type]["reco_energy"],
+                        self.opt_result.multiplicity_cuts,
+                        operator.ge,
+                    )
+                    reduced_events[bkg_type]["selected"] &= reduced_events[bkg_type][
+                        "selected_multiplicity"
+                    ]
+
+                n_sel[bkg_type] = np.count_nonzero(reduced_events[bkg_type]["selected"])
 
             self.log.info(
                 "Keeping %d signal, %d proton events, and %d electron events"
