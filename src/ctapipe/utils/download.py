@@ -145,7 +145,7 @@ def download_file_cached(
     path: pathlib.Path
         the full path to the downloaded data.
     """
-    log.debug(f"Fetching '{name}' from cache or remote server.")
+    log.debug("Fetching '%s' from cache or remote server.", name)
 
     base_url = os.environ.get(env_prefix + "URL", default_url).rstrip("/")
     url = base_url + "/" + str(name).lstrip("/")
