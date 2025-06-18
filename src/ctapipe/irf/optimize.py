@@ -8,11 +8,11 @@ import astropy.units as u
 import numpy as np
 from astropy.io import fits
 from astropy.table import QTable, Table
-from pyirf.cut_optimization import optimize_gh_cut
+from pyirf.cut_optimization import optimize_cuts, optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
-from ..core.traits import AstroQuantity, Float, Integer, Path
+from ..core.traits import AstroQuantity, Float, Integer, List, Path
 from ..io.dl2_tables_preprocessing import DL2EventQualityQuery
 from .binning import DefaultRecoEnergyBins, ResultValidRange
 
@@ -21,7 +21,9 @@ __all__ = [
     "GhPercentileCutCalculator",
     "OptimizationResult",
     "PercentileCuts",
+    "PointSourceSensitivityGhOptimizer",
     "PointSourceSensitivityOptimizer",
+    "PointSourceSensitivityOptimizerBase",
     "ThetaPercentileCutCalculator",
 ]
 
@@ -37,8 +39,9 @@ class OptimizationResult:
         valid_offset_max: u.Quantity,
         gh_cuts: QTable,
         clf_prefix: str,
-        spatial_selection_table: QTable | None = None,
         quality_query: QualityQuery | Sequence | None = None,
+        spatial_selection_table: QTable | None = None,
+        multiplicity_cuts: QTable | None = None,
     ) -> None:
         if quality_query:
             if isinstance(quality_query, QualityQuery):
@@ -60,23 +63,23 @@ class OptimizationResult:
         self.gh_cuts = gh_cuts
         self.clf_prefix = clf_prefix
         self.spatial_selection_table = spatial_selection_table
+        self.multiplicity_cuts = multiplicity_cuts
 
     def __repr__(self):
+        repr = f"<OptimizationResult with {len(self.gh_cuts)} G/H bins"
+
         if self.spatial_selection_table is not None:
-            return (
-                f"<OptimizationResult with {len(self.gh_cuts)} G/H bins "
-                f"and {len(self.spatial_selection_table)} theta bins valid "
-                f"between {self.valid_offset.min} to {self.valid_offset.max} "
-                f"and {self.valid_energy.min} to {self.valid_energy.max} "
-                f"with {len(self.quality_query.quality_criteria)} quality criteria>"
-            )
-        else:
-            return (
-                f"<OptimizationResult with {len(self.gh_cuts)} G/H bins valid "
-                f"between {self.valid_offset.min} to {self.valid_offset.max} "
-                f"and {self.valid_energy.min} to {self.valid_energy.max} "
-                f"with {len(self.quality_query.quality_criteria)} quality criteria>"
-            )
+            repr += f", and {len(self.spatial_selection_table)} theta bins"
+
+        if self.multiplicity_cuts is not None:
+            repr += f", and {len(self.multiplicity_cuts)} multiplicity bins"
+
+        repr += (
+            f" valid between {self.valid_offset.min} to {self.valid_offset.max}"
+            f" and {self.valid_energy.min} to {self.valid_energy.max}"
+            f" with {len(self.quality_query.quality_criteria)} quality criteria>"
+        )
+        return repr
 
     def write(self, output_name: Path | str, overwrite: bool = False) -> None:
         """Write an ``OptimizationResult`` to a file in FITS format."""
@@ -109,6 +112,10 @@ class OptimizationResult:
             self.spatial_selection_table.meta["EXTNAME"] = "RAD_MAX"
             results.append(self.spatial_selection_table)
 
+        if self.multiplicity_cuts is not None:
+            self.multiplicity_cuts.meta["EXTNAME"] = "MULTIPLICITY_CUTS"
+            results.append(self.multiplicity_cuts)
+
         primary = fits.PrimaryHDU()
         hdus = [primary]
         for table in results:
@@ -129,7 +136,16 @@ class OptimizationResult:
             gh_cuts = QTable.read(hdul[2])
             valid_energy = QTable.read(hdul[3])
             valid_offset = QTable.read(hdul[4])
-            spatial_selection_table = QTable.read(hdul[5]) if len(hdul) > 5 else None
+            spatial_selection_table = None
+            multiplicity_cuts = None
+            if len(hdul) == 6:
+                if hdul[5].header["EXTNAME"] == "RAD_MAX":
+                    spatial_selection_table = QTable.read(hdul[5])
+                else:
+                    multiplicity_cuts = QTable.read(hdul[5])
+            elif len(hdul) == 7:
+                spatial_selection_table = QTable.read(hdul[5])
+                multiplicity_cuts = QTable.read(hdul[6])
 
         return cls(
             quality_query=quality_query,
@@ -140,6 +156,7 @@ class OptimizationResult:
             gh_cuts=gh_cuts,
             clf_prefix=gh_cuts.meta["CLFNAME"],
             spatial_selection_table=spatial_selection_table,
+            multiplicity_cuts=multiplicity_cuts,
         )
 
 
@@ -148,10 +165,8 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
 
     needs_background = False
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-
     def _check_events(self, events: dict[str, QTable]):
+        """To be called at the start `__call__` in all subclasses."""
         if "signal" not in events.keys():
             raise ValueError(
                 "Calculating G/H and/or spatial selection cuts requires 'signal' "
@@ -295,8 +310,6 @@ class PercentileCuts(CutOptimizerBase):
     events surviving this G/H cut.
     """
 
-    classes = [GhPercentileCutCalculator, ThetaPercentileCutCalculator]
-
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.gh_cut_calculator = GhPercentileCutCalculator(parent=self)
@@ -341,18 +354,14 @@ class PercentileCuts(CutOptimizerBase):
         return result
 
 
-class PointSourceSensitivityOptimizer(CutOptimizerBase):
+class PointSourceSensitivityOptimizerBase(CutOptimizerBase):
     """
-    Optimizes a G/H cut for maximum point source sensitivity and
-    calculates a percentile cut on theta.
+    Base class for optimizers optimizing cuts for maximum point source efficiency.
+    This holds some configurable traits shared between different optimization
+    algorithms implemented in subclasses of this class.
     """
 
     needs_background = True
-    classes = [ThetaPercentileCutCalculator]
-
-    initial_gh_cut_efficency = Float(
-        default_value=0.4, help="Start value of gamma efficiency before optimization"
-    ).tag(config=True)
 
     max_gh_cut_efficiency = Float(
         default_value=0.8, help="Maximum gamma efficiency requested"
@@ -384,6 +393,30 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         ),
         default_value=u.Quantity(5, u.deg),
         physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    def _get_valid_energy_range(self, opt_sensitivity):
+        keep_mask = np.isfinite(opt_sensitivity["significance"])
+
+        count = np.arange(start=0, stop=len(keep_mask), step=1)
+        if all(np.diff(count[keep_mask]) == 1):
+            return [
+                opt_sensitivity["reco_energy_low"][keep_mask][0],
+                opt_sensitivity["reco_energy_high"][keep_mask][-1],
+            ]
+        else:
+            raise ValueError("Optimal significance curve has internal NaN bins")
+
+
+class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
+    """
+    EventDisplay-like procedure of optimizing a G/H cut for maximum point source
+    sensitivity, calculating only a percentile cut on theta, and no cut on
+    multiplicity.
+    """
+
+    initial_gh_cut_efficency = Float(
+        default_value=0.4, help="Start value of gamma efficiency before optimization"
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -466,14 +499,84 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         )
         return result
 
-    def _get_valid_energy_range(self, opt_sensitivity):
-        keep_mask = np.isfinite(opt_sensitivity["significance"])
 
-        count = np.arange(start=0, stop=len(keep_mask), step=1)
-        if all(np.diff(count[keep_mask]) == 1):
-            return [
-                opt_sensitivity["reco_energy_low"][keep_mask][0],
-                opt_sensitivity["reco_energy_high"][keep_mask][-1],
-            ]
-        else:
-            raise ValueError("Optimal significance curve has internal NaN bins")
+class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
+    """
+    Finds the combination of G/H cut, theta cut, and cut on the event-multiplicity
+    for each energy bin with the maximum point source sensitivity in a grid search.
+    """
+
+    theta_min_angle = AstroQuantity(
+        default_value=u.Quantity(-1, u.deg),
+        physical_type=u.physical.angle,
+        help="Smallest angular cut value allowed (-1 means no cut)",
+    ).tag(config=True)
+
+    theta_max_angle = AstroQuantity(
+        default_value=u.Quantity(0.32, u.deg),
+        physical_type=u.physical.angle,
+        help="Largest angular cut value allowed",
+    ).tag(config=True)
+
+    max_theta_cut_efficiency = Float(
+        default_value=0.8, help="Maximum gamma efficiency of the theta cut requested"
+    ).tag(config=True)
+
+    theta_cut_efficiency_step = Float(
+        default_value=0.1,
+        help="Efficiency-stepsize used for scanning after optimal theta cut",
+    ).tag(config=True)
+
+    multiplicity_cuts = List(
+        Integer(),
+        default_value=[2, 4, 6, 8, 10],
+        help="Event-multiplicity cuts used for scanning after optimal cut",
+    ).tag(config=True)
+
+    def __call__(
+        self,
+        events: dict[str, QTable],
+        quality_query: EventQualityQuery,
+        clf_prefix: str,
+    ) -> OptimizationResult:
+        self._check_events(events)
+
+        gh_cut_efficiencies = np.arange(
+            self.gh_cut_efficiency_step,
+            self.max_gh_cut_efficiency + self.gh_cut_efficiency_step / 2,
+            self.gh_cut_efficiency_step,
+        )
+        theta_cut_efficiencies = np.arange(
+            self.theta_cut_efficiency_step,
+            self.max_theta_cut_efficiency + self.theta_cut_efficiency_step / 2,
+            self.theta_cut_efficiency_step,
+        )
+
+        opt_sensitivity, multiplicity_cuts, theta_cuts, gh_cuts = optimize_cuts(
+            events["signal"],
+            events["background"],
+            reco_energy_bins=self.reco_energy_bins,
+            multiplicity_cuts=self.multiplicity_cuts,
+            gh_cut_efficiencies=gh_cut_efficiencies,
+            theta_cut_efficiencies=theta_cut_efficiencies,
+            theta_min_value=self.theta_min_angle,
+            theta_max_value=self.theta_max_angle,
+            alpha=self.alpha,
+            fov_offset_max=self.max_background_fov_offset,
+            fov_offset_min=self.min_background_fov_offset,
+        )
+        valid_energy = self._get_valid_energy_range(opt_sensitivity)
+
+        result = OptimizationResult(
+            quality_query=quality_query,
+            clf_prefix=clf_prefix,
+            gh_cuts=gh_cuts,
+            valid_energy_min=valid_energy[0],
+            valid_energy_max=valid_energy[1],
+            # A single set of cuts is calculated for the whole fov atm
+            valid_offset_min=self.min_background_fov_offset,
+            valid_offset_max=self.max_background_fov_offset,
+            spatial_selection_table=theta_cuts,
+            multiplicity_cuts=multiplicity_cuts,
+        )
+        return result
