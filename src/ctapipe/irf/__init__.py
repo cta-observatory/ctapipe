@@ -28,6 +28,7 @@ from .optimize import (
     GhPercentileCutCalculator,
     OptimizationResult,
     PercentileCuts,
+    PointSourceSensitivityGhOptimizer,
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "EffectiveArea2dMaker",
     "ResultValidRange",
     "OptimizationResult",
+    "PointSourceSensitivityGhOptimizer",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
     "Spectra",
