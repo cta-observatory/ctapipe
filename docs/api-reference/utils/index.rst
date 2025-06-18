@@ -35,9 +35,8 @@ directory path to the requested file. It currently works as follows:
 1. it checks all directories in the CTA_SVC_PATH environment variable
    (which should be a colon-separated list of directories, like PATH)
 
-2. if it doesn't find it there, it checks the ctapipe_resources module (which
-   should be installed already in the package ctapipe-extra), which contains
-   defaults.
+2. if it doesn't find it there, it tries to download the file from the test data
+   server.
 
 Tabular data can be accessed automatically using
 :func:`get_table_dataset(basename) <.get_table_dataset>`,
