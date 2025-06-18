@@ -27,7 +27,7 @@ from traitlets import default
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
-from ..core import Component, QualityQuery
+from ..core import Component, QualityQuery, ToolConfigurationError
 from ..core.traits import Bool, Dict, List, Tuple, Unicode
 from .tableloader import TableLoader
 
@@ -56,8 +56,6 @@ class DL2EventQualityQuery(QualityQuery):
 
 class DL2EventPreprocessor(Component):
     """Defines pre-selection cuts and the necessary renaming of columns."""
-
-    classes = [DL2EventQualityQuery]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -177,6 +175,13 @@ class DL2EventPreprocessor(Component):
 
         fixed_columns = list(set(columns_to_keep) - set(rename_to))
         columns_to_read = fixed_columns + rename_from
+        if self.apply_derived_columns:
+            # read columns needed for "multiplicity"
+            columns_to_read += [
+                f"{self.energy_reconstructor}_telescopes",
+                f"{self.gammaness_classifier}_telescopes",
+                f"{self.geometry_reconstructor}_telescopes",
+            ]
         for col in columns_to_read:
             if col not in events.colnames:
                 raise ValueError(
@@ -230,6 +235,11 @@ class DL2EventPreprocessor(Component):
                         dtype=np.float64,
                         description="Event weight",
                     ),
+                    Column(
+                        name="multiplicity",
+                        dtype=np.int16,
+                        description="Event multiplicity",
+                    ),
                 ]
             )
 
@@ -249,8 +259,6 @@ class DL2EventLoader(Component):
     """
     Component for loading events and simulation metadata, applying preselection and optional derived column logic.
     """
-
-    classes = [DL2EventPreprocessor]
 
     # User-selectable event reading function and kwargs
     event_reader_function = Unicode(
@@ -436,6 +444,35 @@ class DL2EventLoader(Component):
         events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
         events["weight"] = 1.0  # defer calculation of proper weights to later
+        events["multiplicity"] = np.count_nonzero(
+            events[f"{self.epp.energy_reconstructor}_telescopes"], axis=1
+        )
+        if not (
+            np.array_equal(
+                events["multiplicity"],
+                np.count_nonzero(
+                    events[f"{self.epp.geometry_reconstructor}_telescopes"], axis=1
+                ),
+            )
+            and np.array_equal(
+                events["multiplicity"],
+                np.count_nonzero(
+                    events[f"{self.epp.gammaness_classifier}_telescopes"], axis=1
+                ),
+            )
+        ):
+            raise ToolConfigurationError(
+                "There are events for which not all the reconstructions were successful. "
+                "Please check your configuration of the EventQualityQuery."
+            )
+        # delete "_telescope" columns as they are not needed downstream
+        events.remove_columns(
+            [
+                f"{self.epp.energy_reconstructor}_telescopes",
+                f"{self.epp.geometry_reconstructor}_telescopes",
+                f"{self.epp.gammaness_classifier}_telescopes",
+            ]
+        )
         return events
 
     def make_event_weights(
