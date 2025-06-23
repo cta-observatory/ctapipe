@@ -36,9 +36,9 @@ def test_single_image(camera_geometry, image_conversion_path):
     Test if we can transform toy images for different geometries
     and get the same images after transforming back
     """
-    import matplotlib.pyplot as plt
-
     from ctapipe.visualization import CameraDisplay
+
+    plt = pytest.importorskip("matplotlib.pyplot")
 
     image = create_mock_image(camera_geometry)
     image_2d = camera_geometry.image_to_cartesian_representation(image)
