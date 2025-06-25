@@ -1,7 +1,6 @@
 PixelStatisticsCalculatorTool:
   allowed_tels: [1,2,3,4]
   input_column_name: image
-  output_table_name: subarray_image
 
 PixelStatisticsCalculator:
   stats_aggregator_type:
