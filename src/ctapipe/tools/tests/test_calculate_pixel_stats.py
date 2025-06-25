@@ -10,8 +10,10 @@ from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
+from ctapipe.tools.merge import MergeTool
 
 CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/camera"
+DL1_COLUMN_NAMES = ["image", "peak_time"]
 
 
 def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
@@ -23,7 +25,6 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         {
             "PixelStatisticsCalculatorTool": {
                 "allowed_tels": [3],
-                "input_column_name": "image",
             },
             "PixelStatisticsCalculator": {
                 "stats_aggregator_type": [
@@ -42,29 +43,46 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
             },
         }
     )
-    # Set the output file path
+    for col_name in DL1_COLUMN_NAMES:
+        # Run the tool with the configuration and the input file
+        run_tool(
+            PixelStatisticsCalculatorTool(config=config),
+            argv=[
+                f"--input_url={dl1_image_file}",
+                f"--output_path={tmp_path}/SUBARRAY_{col_name}_monitoring.dl1.h5",
+                f"--PixelStatisticsCalculatorTool.input_column_name={col_name}",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+    # Run the merge tool to combine the statistics
+    # from the two files into a single monitoring file
     monitoring_file = tmp_path / "monitoring.dl1.h5"
-    # Run the tool with the configuration and the input file
     run_tool(
-        PixelStatisticsCalculatorTool(config=config),
+        MergeTool(),
         argv=[
-            f"--input_url={dl1_image_file}",
-            f"--output_path={monitoring_file}",
-            "--overwrite",
+            f"{tmp_path}/SUBARRAY_image_monitoring.dl1.h5",
+            f"{tmp_path}/SUBARRAY_peak_time_monitoring.dl1.h5",
+            f"--output={monitoring_file}",
+            "--monitoring",
+            "--single-ob",
         ],
         cwd=tmp_path,
         raises=True,
     )
     # Check that the output file has been created
     assert monitoring_file.exists()
-    # Check if the shape of the aggregated statistic values has three dimension
-    assert (
-        read_table(
-            monitoring_file,
-            path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/SUBARRAY_image/tel_{tel_id:03d}",
-        )["mean"].ndim
-        == 3
-    )
+    # Check if the shape of the aggregated statistic values
+    # has three dimension for both merged tables
+    for col_name in DL1_COLUMN_NAMES:
+        assert (
+            read_table(
+                monitoring_file,
+                path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/SUBARRAY_{col_name}/tel_{tel_id:03d}",
+            )["mean"].ndim
+            == 3
+        )
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
