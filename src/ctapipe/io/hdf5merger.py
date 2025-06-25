@@ -47,32 +47,18 @@ _NODES_TO_CHECK = {
     "/dl1/event/telescope/muon": NodeType.TEL_GROUP,
     "/dl2/event/telescope": NodeType.ITER_TEL_GROUP,
     "/dl2/event/subarray": NodeType.ITER_GROUP,
+    "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
+    "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
+    "/dl1/monitoring/telescope/camera/calibration_coefficients/": NodeType.TEL_GROUP,
 }
 
+# Column names used for the DL1A data
 DL1_COLUMN_NAMES = ["image", "peak_time"]
-
-
-def _contruct_mon_nodes():
-    """Construct monitoring nodes for the checking of merge-ability"""
-    # Default monitoring nodes to check for merge-ability
-    _MON_NODES_TO_CHECK = {
-        "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
-        "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
-        "/dl1/monitoring/telescope/camera/calibration_coefficients/": NodeType.TEL_GROUP,
-    }
-    # Add pixel statistics for each event type and dl1 column
-    for dl1_colname in DL1_COLUMN_NAMES:
-        for event_type in EventType:
-            _MON_NODES_TO_CHECK[
-                f"/dl1/monitoring/telescope/camera/pixel_statistics/{event_type.name}_{dl1_colname}"
-            ] = NodeType.TEL_GROUP
-    return _MON_NODES_TO_CHECK
 
 
 def _get_required_nodes(h5file):
     """Return nodes to be required in a new file for appending to ``h5file``"""
     required_nodes = set()
-    _NODES_TO_CHECK.update(_contruct_mon_nodes())
     for node, node_type in _NODES_TO_CHECK.items():
         if node not in h5file.root:
             continue
@@ -430,6 +416,11 @@ class HDF5Merger(Component):
             self._append_table(other, other.root[key])
 
         key = "/dl1/monitoring/telescope/pointing"
+        if self.monitoring and self.telescope_events and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        # Calibration coefficients monitoring
+        key = "/dl1/monitoring/telescope/camera/calibration_coefficients/"
         if self.monitoring and self.telescope_events and key in other.root:
             self._append_table_group(other, other.root[key])
 
