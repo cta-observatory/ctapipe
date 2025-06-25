@@ -6,10 +6,12 @@ from numpy.testing import assert_array_equal
 from traitlets import TraitError
 from traitlets.config import Config
 
+from ctapipe.containers import CoordinateFrameType
 from ctapipe.core import Component
 from ctapipe.reco import EnergyRegressor, ParticleClassifier
 from ctapipe.reco.reconstructor import ReconstructionProperty
 from ctapipe.reco.sklearn import DispReconstructor
+from ctapipe.utils import get_dataset_path
 
 KEY = "LST_LST_LSTCam"
 
@@ -290,3 +292,23 @@ def test_io_with_parent(example_table, tmp_path, example_subarray):
 
     with pytest.raises(TypeError):
         EnergyRegressor.read(path)
+
+
+def test_disp_fixed_icrs_pointing(disp_reconstructor_path):
+    from ctapipe.io import TableLoader
+    from ctapipe.reco.sklearn import DispReconstructor
+
+    path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+    with TableLoader(path) as loader:
+        events = loader.read_telescope_events([1, 2, 3, 4], stop=20)
+
+    events["subarray_pointing_frame"] = CoordinateFrameType.ICRS.value
+    rng = np.random.default_rng(0)
+    events["ExtraTreesRegressor_energy"] = rng.uniform(1, 10, len(events)) * u.TeV
+    events["ExtraTreesRegressor_tel_energy"] = rng.uniform(1, 10, len(events)) * u.TeV
+
+    disp_reconstructor_path, _ = disp_reconstructor_path
+    disp_model = DispReconstructor.read(disp_reconstructor_path)
+
+    with pytest.raises(NotImplementedError, match="Only AltAz frame supported"):
+        disp_model.predict_table(disp_model.subarray.tel[1], events)
