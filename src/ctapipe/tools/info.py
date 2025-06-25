@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 from importlib.metadata import PackageNotFoundError, requires, version
-from importlib.resources import files
 
 from packaging.markers import default_environment
 from packaging.requirements import Requirement
@@ -180,10 +179,6 @@ def _info_resources():
 
     all_resources = sorted(datasets.find_all_matching_datasets(r"\w.*"))
     home = os.path.expanduser("~")
-    try:
-        resource_dir = files("ctapipe_resources")
-    except ImportError:
-        resource_dir = None
 
     fmt = "{name:<30.30s} : {loc:<30.30s}"
     print(fmt.format(name="RESOURCE NAME", loc="LOCATION"))
@@ -192,8 +187,6 @@ def _info_resources():
         if resource.suffix == ".py" or resource.name.startswith("_"):
             continue
         loc = str(resource)
-        if resource_dir is not None:
-            loc = loc.replace(resource_dir, "[ctapipe_resources]")
         loc = loc.replace(home, "~")
         print(fmt.format(name=resource.name, loc=loc))
 

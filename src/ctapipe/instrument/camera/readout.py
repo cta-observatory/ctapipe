@@ -131,7 +131,7 @@ class CameraReadout:
     def from_name(cls, name="NectarCam", version=None):
         """Construct a CameraReadout using the name of the camera and array.
 
-        This expects that there is a resource accessible ``ctapipe_resources``
+        This expects that there is a resource accessible
         via `~ctapipe.utils.get_table_dataset` called
         ``"[array]-[camera].camreadout.fits.gz"`` or
         ``"[array]-[camera]-[version].camgeom.fits.gz"``.
