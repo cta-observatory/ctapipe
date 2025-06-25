@@ -11,6 +11,8 @@ from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 
+CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/camera"
+
 
 def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     """check statistics calculation from pixel-wise image data files"""
@@ -22,7 +24,6 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
             "PixelStatisticsCalculatorTool": {
                 "allowed_tels": [3],
                 "input_column_name": "image",
-                "output_table_name": "statistics",
             },
             "PixelStatisticsCalculator": {
                 "stats_aggregator_type": [
@@ -60,7 +61,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     assert (
         read_table(
             monitoring_file,
-            path=f"/dl1/monitoring/telescope/statistics/tel_{tel_id:03d}",
+            path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/SUBARRAY_image/tel_{tel_id:03d}",
         )["mean"].ndim
         == 3
     )
@@ -74,7 +75,6 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         {
             "PixelStatisticsCalculatorTool": {
                 "input_column_name": "image_charges",
-                "output_table_name": "statistics",
             }
         }
     )
