@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
 from ctapipe.containers import (
     EventIndexContainer,
@@ -31,7 +32,7 @@ def test_apply_energy_regressor(
             f"--input={input_path}",
             f"--output={output_path}",
             f"--reconstructor={energy_regressor_path}",
-            "--StereoMeanCombiner.weights=konrad",
+            "--StereoMeanCombiner.weights=intensity",
             "--chunk-size=5",  # small chunksize so we test multiple chunks for the test file
         ],
         raises=True,
@@ -72,6 +73,24 @@ def test_apply_energy_regressor(
         assert f"{prefix}_tel_energy" in tel_events.colnames
         assert f"{prefix}_tel_is_valid" in tel_events.colnames
         assert "hillas_intensity" in tel_events.colnames
+
+        event_id = 301
+        valid_mask = tel_events[tel_events["event_id"] == event_id][
+            f"{prefix}_tel_is_valid"
+        ]
+        event_energy = np.average(
+            tel_events[tel_events["event_id"] == event_id][f"{prefix}_tel_energy"][
+                valid_mask
+            ],
+            weights=tel_events[tel_events["event_id"] == event_id]["hillas_intensity"][
+                valid_mask
+            ],
+        )
+        assert_allclose(
+            table[table["event_id"] == event_id][f"{prefix}_energy"].value,
+            event_energy,
+            atol=1e-7,
+        )
 
     trigger = read_table(output_path, "/dl1/event/subarray/trigger")
     energy = read_table(output_path, "/dl2/event/subarray/energy/ExtraTreesRegressor")
