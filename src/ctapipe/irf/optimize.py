@@ -529,7 +529,7 @@ class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
 
     multiplicity_cuts = List(
         Integer(),
-        default_value=[2, 4, 6, 8, 10],
+        default_value=[2, 3, 4, 5, 6, 7, 8, 9, 10],
         help="Event-multiplicity cuts used for scanning after optimal cut",
     ).tag(config=True)
 
