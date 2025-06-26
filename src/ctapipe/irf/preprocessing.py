@@ -85,6 +85,7 @@ class EventPreprocessor(Component):
             "true_energy",
             "true_az",
             "true_alt",
+            # only for calculating event multiplicity below
             f"{self.energy_reconstructor}_telescopes",
             f"{self.geometry_reconstructor}_telescopes",
             f"{self.gammaness_classifier}_telescopes",

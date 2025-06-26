@@ -117,6 +117,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
         "theta",
         "true_source_fov_offset",
         "reco_source_fov_offset",
+        "multiplicity",
     ]
     assert columns.sort() == events.colnames.sort()
 
