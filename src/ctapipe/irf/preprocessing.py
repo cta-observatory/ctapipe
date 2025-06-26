@@ -5,7 +5,7 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import Column, QTable, Table, vstack
+from astropy.table import QTable, Table, vstack
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import (
     DIFFUSE_FLUX_UNIT,
@@ -20,7 +20,7 @@ from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
-from ..core.traits import List, Tuple, Unicode
+from ..core.traits import Dict, List, Tuple, Unicode
 from ..io import TableLoader
 from .spectra import SPECTRA, Spectra
 
@@ -52,26 +52,70 @@ class EventPreprocessor(Component):
 
     classes = [EventQualityQuery]
 
-    energy_reconstructor = Unicode(
-        default_value="RandomForestRegressor",
-        help="Prefix of the reco `_energy` column",
+    energy_reconstructor = Unicode("RandomForestRegressor").tag(config=True)
+    geometry_reconstructor = Unicode("HillasReconstructor").tag(config=True)
+    gammaness_classifier = Unicode("RandomForestClassifier").tag(config=True)
+
+    fixed_columns = List(
+        Unicode(),
+        default_value=["obs_id", "event_id", "true_energy", "true_az", "true_alt"],
+        help="Columns to always keep from the original input",
+    ).tag(config=True)
+    """
+    fixed_columns = List(
+    default_value=[
+        Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
+        Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+        Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
+        Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
+        Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
+        Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
+        Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
+        Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
+        Column(name="reco_fov_lat", unit=u.deg, description="Reconstructed FOV lat"),
+        Column(name="reco_fov_lon", unit=u.deg, description="Reconstructed FOV lon"),
+        Column(name="gh_score", unit=u.dimensionless_unscaled, description="Classifier score"),
+        Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
+        Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
+        Column(name="theta", unit=u.deg, description="Angular offset from source"),
+        Column(name="true_source_fov_offset", unit=u.deg, description="True offset from pointing direction"),
+        Column(name="reco_source_fov_offset", unit=u.deg, description="Reconstructed offset from pointing direction"),
+    ],
+    help="Schema definition for output event QTable, including name, dtype, unit, and description",
+).tag(config=True)
+    """
+    # Optional user override
+    columns_to_rename_override = Dict(
+        key_trait=Unicode(),
+        value_trait=Unicode(),
+        default_value={},
+        help="Override of columns to rename. If empty, they are generated dynamically.",
     ).tag(config=True)
 
-    geometry_reconstructor = Unicode(
-        default_value="HillasReconstructor",
-        help="Prefix of the `_alt` and `_az` reco geometry columns",
-    ).tag(config=True)
-
-    gammaness_classifier = Unicode(
-        default_value="RandomForestClassifier",
-        help="Prefix of the classifier `_prediction` column",
+    output_table_schema = List(
+        default_value=[],
+        help="Schema definition for output event QTable",
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.quality_query = EventQualityQuery(parent=self)
 
-    def normalise_column_names(self, events: Table) -> QTable:
+    @property
+    def columns_to_rename(self) -> dict:
+        if self.columns_to_rename_override:
+            return self.columns_to_rename_override
+
+        return {
+            f"{self.energy_reconstructor}_energy": "reco_energy",
+            f"{self.geometry_reconstructor}_az": "reco_az",
+            f"{self.geometry_reconstructor}_alt": "reco_alt",
+            f"{self.gammaness_classifier}_prediction": "gh_score",
+            "subarray_pointing_lat": "pointing_alt",
+            "subarray_pointing_lon": "pointing_az",
+        }
+
+    def normalise_column_names(self, events: QTable) -> QTable:
         if events["subarray_pointing_lat"].std() > 1e-3:
             raise NotImplementedError(
                 "No support for making irfs from varying pointings yet"
@@ -81,121 +125,26 @@ class EventPreprocessor(Component):
                 "At the moment only pointing in altaz is supported."
             )
 
-        keep_columns = [
-            "obs_id",
-            "event_id",
-            "true_energy",
-            "true_az",
-            "true_alt",
-        ]
-        rename_from = [
-            f"{self.energy_reconstructor}_energy",
-            f"{self.geometry_reconstructor}_az",
-            f"{self.geometry_reconstructor}_alt",
-            f"{self.gammaness_classifier}_prediction",
-            "subarray_pointing_lat",
-            "subarray_pointing_lon",
-        ]
-        rename_to = [
-            "reco_energy",
-            "reco_az",
-            "reco_alt",
-            "gh_score",
-            "pointing_alt",
-            "pointing_az",
-        ]
-        keep_columns.extend(rename_from)
-        for c in keep_columns:
-            if c not in events.colnames:
+        rename_from = list(self.columns_to_rename.keys())
+        rename_to = list(self.columns_to_rename.values())
+
+        keep_columns = self.fixed_columns + rename_from
+        for col in keep_columns:
+            if col not in events.colnames:
                 raise ValueError(
-                    "Input files must conform to the ctapipe DL2 data model. "
-                    f"Required column {c} is missing."
+                    f"Input files must conform to the ctapipe DL2 data model. "
+                    f"Required column {col} is missing."
                 )
 
         events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
         events.rename_columns(rename_from, rename_to)
+
         return events
 
     def make_empty_table(self) -> QTable:
-        """
-        This function defines the columns later functions expect to be present
-        in the event table.
-        """
-        columns = [
-            Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
-            Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-            Column(
-                name="true_energy",
-                unit=u.TeV,
-                description="Simulated energy",
-            ),
-            Column(
-                name="true_az",
-                unit=u.deg,
-                description="Simulated azimuth",
-            ),
-            Column(
-                name="true_alt",
-                unit=u.deg,
-                description="Simulated altitude",
-            ),
-            Column(
-                name="reco_energy",
-                unit=u.TeV,
-                description="Reconstructed energy",
-            ),
-            Column(
-                name="reco_az",
-                unit=u.deg,
-                description="Reconstructed azimuth",
-            ),
-            Column(
-                name="reco_alt",
-                unit=u.deg,
-                description="Reconstructed altitude",
-            ),
-            Column(
-                name="reco_fov_lat",
-                unit=u.deg,
-                description="Reconstructed field of view lat",
-            ),
-            Column(
-                name="reco_fov_lon",
-                unit=u.deg,
-                description="Reconstructed field of view lon",
-            ),
-            Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
-            Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
-            Column(
-                name="theta",
-                unit=u.deg,
-                description="Reconstructed angular offset from source position",
-            ),
-            Column(
-                name="true_source_fov_offset",
-                unit=u.deg,
-                description="Simulated angular offset from pointing direction",
-            ),
-            Column(
-                name="reco_source_fov_offset",
-                unit=u.deg,
-                description="Reconstructed angular offset from pointing direction",
-            ),
-            Column(
-                name="gh_score",
-                unit=u.dimensionless_unscaled,
-                description="prediction of the classifier, defined between [0,1],"
-                " where values close to 1 mean that the positive class"
-                " (e.g. gamma in gamma-ray analysis) is more likely",
-            ),
-            Column(
-                name="weight",
-                unit=u.dimensionless_unscaled,
-                description="Event weight",
-            ),
-        ]
-
-        return QTable(columns)
+        # empty_table = self.normalise_column_namesoriginal_table[:0]
+        print("Do I print something here???????????", self.output_table_schema)
+        return QTable(self.output_table_schema)
 
 
 class EventLoader(Component):
@@ -219,14 +168,18 @@ class EventLoader(Component):
         opts = dict(dl2=True, simulated=True, observation_info=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
+            print("!!!!!HEADER!!!!!!", header)
             sim_info, spectrum = self.get_simulation_information(load, obs_time)
             meta = {"sim_info": sim_info, "spectrum": spectrum}
             bits = [header]
             n_raw_events = 0
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 selected = events[self.epp.quality_query.get_table_mask(events)]
+                # print("selected", selected)
                 selected = self.epp.normalise_column_names(selected)
+                # print("selected", selected)
                 selected = self.make_derived_columns(selected)
+                # print("selected", selected)
                 bits.append(selected)
                 n_raw_events += len(events)
 

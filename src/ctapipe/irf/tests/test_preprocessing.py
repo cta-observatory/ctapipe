@@ -35,7 +35,12 @@ def test_normalise_column_names(dummy_table):
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
     )
+
+    print(dummy_table)
+
     norm_table = epp.normalise_column_names(dummy_table)
+
+    print(norm_table)
 
     needed_cols = [
         "obs_id",
