@@ -340,16 +340,22 @@ class StatisticsInterpolator(ChunkInterpolator):
 class PedestalImageInterpolator(StatisticsInterpolator):
     """Interpolator for pedestal image tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/camera/SKY_PEDESTAL_image"
+    telescope_data_group = (
+        "/dl1/monitoring/telescope/camera/pixel_statistics/SKY_PEDESTAL_image"
+    )
 
 
 class FlatfieldImageInterpolator(StatisticsInterpolator):
     """Interpolator for flatfield image tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/camera/FLATFIELD_image"
+    telescope_data_group = (
+        "/dl1/monitoring/telescope/camera/pixel_statistics/FLATFIELD_image"
+    )
 
 
 class FlatfieldPeakTimeInterpolator(StatisticsInterpolator):
     """Interpolator for flatfield peak time tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/camera/FLATFIELD_peak_time"
+    telescope_data_group = (
+        "/dl1/monitoring/telescope/camera/pixel_statistics/FLATFIELD_peak_time"
+    )
