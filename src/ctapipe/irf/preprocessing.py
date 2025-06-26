@@ -19,7 +19,7 @@ from tables import NoSuchNodeError
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
-from ..core import Component, QualityQuery, ToolConfigurationError
+from ..core import Component, QualityQuery
 from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
 from .spectra import SPECTRA, Spectra
@@ -35,10 +35,6 @@ class EventQualityQuery(QualityQuery):
     quality_criteria = List(
         Tuple(Unicode(), Unicode()),
         default_value=[
-            (
-                "multiplicity 4",
-                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-            ),
             ("valid classifier", "RandomForestClassifier_is_valid"),
             ("valid geom reco", "HillasReconstructor_is_valid"),
             ("valid energy reco", "RandomForestRegressor_is_valid"),
@@ -273,28 +269,22 @@ class EventLoader(Component):
         )  # defer calculation of proper weights to later
         events["gh_score"].unit = u.dimensionless_unscaled
 
-        events["multiplicity"] = np.count_nonzero(
-            events[f"{self.epp.energy_reconstructor}_telescopes"], axis=1
-        )
-        events["multiplicity"].unit = u.dimensionless_unscaled
-        if not (
-            np.array_equal(
-                events["multiplicity"],
+        # define event multiplicity as lowest multiplicity between the 3 reconstructions
+        events["multiplicity"] = np.min(
+            [
+                np.count_nonzero(
+                    events[f"{self.epp.energy_reconstructor}_telescopes"], axis=1
+                ),
                 np.count_nonzero(
                     events[f"{self.epp.geometry_reconstructor}_telescopes"], axis=1
                 ),
-            )
-            and np.array_equal(
-                events["multiplicity"],
                 np.count_nonzero(
                     events[f"{self.epp.gammaness_classifier}_telescopes"], axis=1
                 ),
-            )
-        ):
-            raise ToolConfigurationError(
-                "There are events for which not all the reconstructions were successful. "
-                "Please check your configuration of the EventQualityQuery."
-            )
+            ],
+            axis=0,
+        )
+        events["multiplicity"].unit = u.dimensionless_unscaled
         # delete "_telescope" columns as they are not needed downstream
         events.remove_columns(
             [
