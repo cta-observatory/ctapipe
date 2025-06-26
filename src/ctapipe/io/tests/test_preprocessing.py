@@ -143,6 +143,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
         "true_source_fov_offset",
         "reco_source_fov_offset",
         "weight",
+        "multiplicity",
     ]
 
     assert sorted(columns) == sorted(events.colnames)
