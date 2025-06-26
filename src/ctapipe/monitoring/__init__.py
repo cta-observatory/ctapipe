@@ -4,11 +4,13 @@ Module for handling monitoring data.
 from .aggregator import PlainAggregator, SigmaClippingAggregator, StatisticsAggregator
 from .interpolation import (
     ChunkInterpolator,
-    FlatFieldInterpolator,
+    FlatfieldImageInterpolator,
+    FlatfieldPeakTimeInterpolator,
     LinearInterpolator,
     MonitoringInterpolator,
-    PedestalInterpolator,
+    PedestalImageInterpolator,
     PointingInterpolator,
+    StatisticsInterpolator,
 )
 from .outlier import (
     MedianOutlierDetector,
@@ -29,6 +31,8 @@ __all__ = [
     "LinearInterpolator",
     "PointingInterpolator",
     "ChunkInterpolator",
-    "FlatFieldInterpolator",
-    "PedestalInterpolator",
+    "StatisticsInterpolator",
+    "FlatfieldPeakTimeInterpolator",
+    "FlatfieldImageInterpolator",
+    "PedestalImageInterpolator",
 ]
