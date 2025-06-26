@@ -5,7 +5,7 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import QTable, Table, vstack
+from astropy.table import Column, QTable, Table, vstack
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import (
     DIFFUSE_FLUX_UNIT,
@@ -61,29 +61,7 @@ class EventPreprocessor(Component):
         default_value=["obs_id", "event_id", "true_energy", "true_az", "true_alt"],
         help="Columns to always keep from the original input",
     ).tag(config=True)
-    """
-    fixed_columns = List(
-    default_value=[
-        Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
-        Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-        Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
-        Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
-        Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
-        Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
-        Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
-        Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
-        Column(name="reco_fov_lat", unit=u.deg, description="Reconstructed FOV lat"),
-        Column(name="reco_fov_lon", unit=u.deg, description="Reconstructed FOV lon"),
-        Column(name="gh_score", unit=u.dimensionless_unscaled, description="Classifier score"),
-        Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
-        Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
-        Column(name="theta", unit=u.deg, description="Angular offset from source"),
-        Column(name="true_source_fov_offset", unit=u.deg, description="True offset from pointing direction"),
-        Column(name="reco_source_fov_offset", unit=u.deg, description="Reconstructed offset from pointing direction"),
-    ],
-    help="Schema definition for output event QTable, including name, dtype, unit, and description",
-).tag(config=True)
-    """
+
     # Optional user override
     columns_to_rename_override = Dict(
         key_trait=Unicode(),
@@ -93,7 +71,29 @@ class EventPreprocessor(Component):
     ).tag(config=True)
 
     output_table_schema = List(
-        default_value=[],
+        default_value=[
+            Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
+            Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+            Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
+            Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
+            Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
+            Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
+            Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
+            Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
+            Column(
+                name="reco_fov_lat", unit=u.deg, description="Reconstructed FOV lat"
+            ),
+            Column(
+                name="reco_fov_lon", unit=u.deg, description="Reconstructed FOV lon"
+            ),
+            Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
+            Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
+            Column(name="theta", unit=u.deg, description="Angular offset from source"),
+            Column(name="true_source_fov_offset", unit=u.deg),
+            Column(name="reco_source_fov_offset", unit=u.deg),
+            Column(name="gh_score", unit=u.dimensionless_unscaled),
+            Column(name="weight", unit=u.dimensionless_unscaled),
+        ],
         help="Schema definition for output event QTable",
     ).tag(config=True)
 
@@ -138,12 +138,9 @@ class EventPreprocessor(Component):
 
         events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
         events.rename_columns(rename_from, rename_to)
-
         return events
 
     def make_empty_table(self) -> QTable:
-        # empty_table = self.normalise_column_namesoriginal_table[:0]
-        print("Do I print something here???????????", self.output_table_schema)
         return QTable(self.output_table_schema)
 
 
