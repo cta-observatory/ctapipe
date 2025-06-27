@@ -127,25 +127,21 @@ class OptimizationResult:
         """Read an ``OptimizationResult`` from a file in FITS format."""
 
         with fits.open(file_name) as hdul:
-            cut_expr_tab = Table.read(hdul[1])
+            cut_expr_tab = Table.read(hdul["QUALITY_CUTS_EXPR"])
             cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
             if (" ", " ") in cut_expr_lst:
                 cut_expr_lst.remove((" ", " "))
 
             quality_query = QualityQuery(quality_criteria=cut_expr_lst)
-            gh_cuts = QTable.read(hdul[2])
-            valid_energy = QTable.read(hdul[3])
-            valid_offset = QTable.read(hdul[4])
+            gh_cuts = QTable.read(hdul["GH_CUTS"])
+            valid_energy = QTable.read(hdul["VALID_ENERGY"])
+            valid_offset = QTable.read(hdul["VALID_OFFSET"])
             spatial_selection_table = None
             multiplicity_cuts = None
-            if len(hdul) == 6:
-                if hdul[5].header["EXTNAME"] == "RAD_MAX":
-                    spatial_selection_table = QTable.read(hdul[5])
-                else:
-                    multiplicity_cuts = QTable.read(hdul[5])
-            elif len(hdul) == 7:
-                spatial_selection_table = QTable.read(hdul[5])
-                multiplicity_cuts = QTable.read(hdul[6])
+            if "RAD_MAX" in hdul:
+                spatial_selection_table = QTable.read(hdul["RAD_MAX"])
+            if "MULTIPLICITY_CUTS" in hdul:
+                multiplicity_cuts = QTable.read(hdul["MULTIPLICITY_CUTS"])
 
         return cls(
             quality_query=quality_query,
