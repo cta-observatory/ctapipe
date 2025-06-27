@@ -356,6 +356,9 @@ class IrfTool(Tool):
             operator.ge,
         )
         reduced_events["gammas"]["selected"] = reduced_events["gammas"]["selected_gh"]
+        reduced_events["gammas"]["selected_gh_multiplicity"] = reduced_events["gammas"][
+            "selected_gh"
+        ]
         if self.spatial_selection_applied:
             reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
                 reduced_events["gammas"]["theta"],
@@ -377,6 +380,9 @@ class IrfTool(Tool):
             reduced_events["gammas"]["selected"] &= reduced_events["gammas"][
                 "selected_multiplicity"
             ]
+            reduced_events["gammas"]["selected_gh_multiplicity"] &= reduced_events[
+                "gammas"
+            ]["selected_multiplicity"]
 
         if self.do_background:
             backgrounds = (
@@ -439,7 +445,11 @@ class IrfTool(Tool):
             )
         )
         hdus.append(
-            self.psf_maker(events=self.signal_events[self.signal_events["selected_gh"]])
+            self.psf_maker(
+                events=self.signal_events[
+                    self.signal_events["selected_gh_multiplicity"]
+                ]
+            )
         )
         if self.spatial_selection_applied:
             # TODO: Support fov binning
@@ -474,7 +484,9 @@ class IrfTool(Tool):
         )
         hdus.append(
             self.angular_resolution_maker(
-                events=self.signal_events[self.signal_events["selected_gh"]],
+                events=self.signal_events[
+                    self.signal_events["selected_gh_multiplicity"]
+                ],
             )
         )
         if self.do_background:
@@ -488,7 +500,7 @@ class IrfTool(Tool):
                 self.sensitivity_maker(
                     signal_events=self.signal_events[self.signal_events["selected"]],
                     background_events=self.background_events[
-                        self.background_events["selected_gh"]
+                        self.background_events["selected"]
                     ],
                     spatial_selection_table=self.opt_result.spatial_selection_table,
                     gamma_spectrum=self.gamma_target_spectrum,
@@ -617,7 +629,7 @@ class IrfTool(Tool):
         if self.do_background:
             hdus.append(
                 self.background_maker(
-                    self.background_events[self.background_events["selected_gh"]],
+                    self.background_events[self.background_events["selected"]],
                     self.obs_time,
                 )
             )
@@ -625,7 +637,7 @@ class IrfTool(Tool):
                 hdus.append(
                     self.effective_area_maker(
                         events=reduced_events["protons"][
-                            reduced_events["protons"]["selected_gh"]
+                            reduced_events["protons"]["selected"]
                         ],
                         spatial_selection_applied=self.spatial_selection_applied,
                         signal_is_point_like=False,
@@ -637,7 +649,7 @@ class IrfTool(Tool):
                 hdus.append(
                     self.effective_area_maker(
                         events=reduced_events["electrons"][
-                            reduced_events["electrons"]["selected_gh"]
+                            reduced_events["electrons"]["selected"]
                         ],
                         spatial_selection_applied=self.spatial_selection_applied,
                         signal_is_point_like=False,
