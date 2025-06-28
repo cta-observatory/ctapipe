@@ -1,9 +1,10 @@
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.table import Table
+from astropy.table import Column, QTable, Table
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import PowerLaw
+from traitlets.config import Config
 
 
 @pytest.fixture(scope="module")
@@ -36,11 +37,7 @@ def test_normalise_column_names(dummy_table):
         gammaness_classifier="classifier",
     )
 
-    print(dummy_table)
-
     norm_table = epp.normalise_column_names(dummy_table)
-
-    print(norm_table)
 
     needed_cols = [
         "obs_id",
@@ -98,8 +95,10 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
         "theta",
         "true_source_fov_offset",
         "reco_source_fov_offset",
+        "weight",
     ]
-    assert columns.sort() == events.colnames.sort()
+
+    assert sorted(columns) == sorted(events.colnames)
 
     assert isinstance(count, int)
     assert isinstance(meta["sim_info"], SimulatedEventsInfo)
@@ -109,3 +108,147 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
         events, meta["spectrum"], "gammas", (0 * u.deg, 1 * u.deg)
     )
     assert "weight" in events.colnames
+
+
+def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path):
+    from ctapipe.irf import EventPreprocessor
+
+    # Create a test table with required columns
+    table = QTable(
+        {
+            "obs_id": [1, 1, 2],
+            "event_id": [100, 101, 102],
+            "tel_id": [1, 1, 1],
+            "ExtraTreesRegressor_tel_energy": [1.0, 2.0, 3.0] * u.TeV,
+            "ExtraTreesRegressor_tel_is_valid": [True, False, True],
+            "ExtraTreesRegressor_tel_energy_uncert": [0.1, 0.2, 0.1],
+            "ExtraTreesRegressor_tel_goodness_of_fit": [0.9, 0.8, 0.95],
+            "subarray_pointing_lat": [80.0, 80.0, 80.0] * u.deg,
+            "subarray_pointing_lon": [0.0, 0.0, 0.0] * u.deg,
+            "true_energy": [1.1, 2.1, 3.1] * u.TeV,
+            "true_az": [42.0, 43.0, 44.0] * u.deg,
+            "true_alt": [70.0, 71.0, 72.0] * u.deg,
+        }
+    )
+
+    # Set up config
+    config = {
+        "EventPreprocessor": {
+            "energy_reconstructor": "ExtraTreesRegressor",
+            "fixed_columns": [
+                "obs_id",
+                "event_id",
+                "tel_id",
+                "ExtraTreesRegressor_tel_energy",
+                "ExtraTreesRegressor_tel_energy_uncert",
+            ],
+            "output_table_schema": [
+                Column(
+                    name="obs_id", dtype=np.uint64, description="Observation block ID"
+                ),
+                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy",
+                    unit=u.TeV,
+                    description="Reconstructed energy",
+                ),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy_uncert",
+                    unit=u.TeV,
+                    description="Reconstructed energy uncertainty",
+                ),
+            ],
+            "apply_derived_columns": False,
+            "disable_column_renaming": True,
+            "apply_check_pointing": False,
+        },
+        "EventQualityQuery": {
+            "quality_criteria": [("valid reco", "ExtraTreesRegressor_tel_is_valid")]
+        },
+    }
+
+    # Create preprocessor with config
+    preprocessor = EventPreprocessor(config=Config(config))
+
+    # Apply quality query and preprocessing
+    mask = preprocessor.quality_query.get_table_mask(table)
+    filtered = table[mask]
+
+    # Apply renaming and derived column generation
+    processed = preprocessor.normalise_column_names(filtered)
+
+    # Check expected column names after renaming
+    assert "ExtraTreesRegressor_tel_energy" in processed.colnames
+    assert "obs_id" in processed.colnames  # might exist depending on classifier config
+    assert "tel_id" in processed.colnames
+
+    # Check the number of surviving rows (only valid events)
+    assert len(processed) == 2
+    assert np.all(processed["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
+
+
+def test_loader_tel_table(gamma_diffuse_full_reco_file):
+    from ctapipe.irf import EventLoader, Spectra
+
+    test_config = {
+        "EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
+        "EventPreprocessor": {
+            "energy_reconstructor": "ExtraTreesRegressor",
+            "fixed_columns": [
+                "obs_id",
+                "event_id",
+                "tel_id",
+                "ExtraTreesRegressor_tel_energy",
+                "ExtraTreesRegressor_tel_energy_uncert",
+            ],
+            "output_table_schema": [
+                Column(
+                    name="obs_id", dtype=np.uint64, description="Observation block ID"
+                ),
+                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy",
+                    unit=u.TeV,
+                    description="Reconstructed energy",
+                ),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy_uncert",
+                    unit=u.TeV,
+                    description="Reconstructed energy uncertainty",
+                ),
+            ],
+            "apply_derived_columns": False,
+            "disable_column_renaming": True,
+            "apply_check_pointing": False,
+        },
+        "EventQualityQuery": {
+            "quality_criteria": [
+                ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
+                ("telescope ID", "tel_id == 35.0"),
+            ]
+        },
+    }
+
+    loader = EventLoader(
+        config=Config(test_config),
+        file=gamma_diffuse_full_reco_file,
+        target_spectrum=Spectra.CRAB_HEGRA,
+    )
+    events, count, meta = loader.load_preselected_events(
+        chunk_size=10000,
+        obs_time=u.Quantity(50, u.h),
+    )
+
+    columns = [
+        "obs_id",
+        "event_id",
+        "tel_id",
+        "ExtraTreesRegressor_tel_energy",
+        "ExtraTreesRegressor_tel_energy_uncert",
+    ]
+
+    assert sorted(columns) == sorted(events.colnames)
+    assert np.all(events["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
+    assert np.all(events["tel_id"] == 35.0)

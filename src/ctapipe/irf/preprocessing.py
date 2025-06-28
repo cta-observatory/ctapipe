@@ -20,7 +20,7 @@ from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
-from ..core.traits import Dict, List, Tuple, Unicode
+from ..core.traits import Bool, Dict, List, Tuple, Unicode
 from ..io import TableLoader
 from .spectra import SPECTRA, Spectra
 
@@ -52,9 +52,35 @@ class EventPreprocessor(Component):
 
     classes = [EventQualityQuery]
 
-    energy_reconstructor = Unicode("RandomForestRegressor").tag(config=True)
-    geometry_reconstructor = Unicode("HillasReconstructor").tag(config=True)
-    gammaness_classifier = Unicode("RandomForestClassifier").tag(config=True)
+    energy_reconstructor = Unicode(
+        default_value="RandomForestRegressor",
+        help="Prefix of the reco `_energy` column",
+    ).tag(config=True)
+
+    geometry_reconstructor = Unicode(
+        default_value="HillasReconstructor",
+        help="Prefix of the `_alt` and `_az` reco geometry columns",
+    ).tag(config=True)
+
+    gammaness_classifier = Unicode(
+        default_value="RandomForestClassifier",
+        help="Prefix of the classifier `_prediction` column",
+    ).tag(config=True)
+
+    disable_column_renaming = Bool(
+        default_value=False,
+        help="Disabling the renaming of the columns from"
+        "e.g. from ReconstructorNameRegressor_energy"
+        "to reco_energy.",
+    ).tag(config=True)
+
+    apply_derived_columns = Bool(
+        default_value=True, help="Whether to compute derived columns"
+    ).tag(config=True)
+
+    apply_check_pointing = Bool(
+        default_value=True, help="Accept only pointing in altaz and not divergent."
+    ).tag(config=True)
 
     fixed_columns = List(
         Unicode(),
@@ -103,10 +129,10 @@ class EventPreprocessor(Component):
 
     @property
     def columns_to_rename(self) -> dict:
-        if self.columns_to_rename_override:
-            return self.columns_to_rename_override
+        if self.disable_column_renaming:
+            return {}
 
-        return {
+        default = {
             f"{self.energy_reconstructor}_energy": "reco_energy",
             f"{self.geometry_reconstructor}_az": "reco_az",
             f"{self.geometry_reconstructor}_alt": "reco_alt",
@@ -114,16 +140,20 @@ class EventPreprocessor(Component):
             "subarray_pointing_lat": "pointing_alt",
             "subarray_pointing_lon": "pointing_az",
         }
+        return {**default, **self.columns_to_rename_override}
 
     def normalise_column_names(self, events: QTable) -> QTable:
-        if events["subarray_pointing_lat"].std() > 1e-3:
-            raise NotImplementedError(
-                "No support for making irfs from varying pointings yet"
-            )
-        if any(events["subarray_pointing_frame"] != CoordinateFrameType.ALTAZ.value):
-            raise NotImplementedError(
-                "At the moment only pointing in altaz is supported."
-            )
+        if self.apply_check_pointing:
+            if events["subarray_pointing_lat"].std() > 1e-3:
+                raise NotImplementedError(
+                    "No support for making irfs from varying pointings yet"
+                )
+            if any(
+                events["subarray_pointing_frame"] != CoordinateFrameType.ALTAZ.value
+            ):
+                raise NotImplementedError(
+                    "At the moment only pointing in altaz is supported."
+                )
 
         rename_from = list(self.columns_to_rename.keys())
         rename_to = list(self.columns_to_rename.values())
@@ -137,7 +167,8 @@ class EventPreprocessor(Component):
                 )
 
         events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
-        events.rename_columns(rename_from, rename_to)
+        if rename_from and rename_to:
+            events.rename_columns(rename_from, rename_to)
         return events
 
     def make_empty_table(self) -> QTable:
@@ -146,15 +177,27 @@ class EventPreprocessor(Component):
 
 class EventLoader(Component):
     """
-    Contains functions to load events and simulation information from a file
-    and derive some additional columns needed for irf calculation.
+    Component for loading events and simulation metadata, applying preselection and optional derived column logic.
     """
 
     classes = [EventPreprocessor]
 
+    # User-selectable event reading function and kwargs
+    event_reader_function = Unicode(
+        default_value="read_subarray_events_chunked",
+        help=(
+            "Function of TableLoader used to read event chunks. "
+            "E.g., 'read_subarray_events_chunked' or 'read_telescope_events_chunked'."
+        ),
+    ).tag(config=True)
+
+    event_reader_kwargs = Dict(
+        default_value={},
+        help="Extra keyword arguments passed to the event reading function, e.g., {'path': '/dl2/event/telescope/Reconstructor'}",
+    ).tag(config=True)
+
     def __init__(self, file: Path, target_spectrum: Spectra, **kwargs):
         super().__init__(**kwargs)
-
         self.epp = EventPreprocessor(parent=self)
         self.target_spectrum = SPECTRA[target_spectrum]
         self.file = file
@@ -163,41 +206,40 @@ class EventLoader(Component):
         self, chunk_size: int, obs_time: u.Quantity
     ) -> tuple[QTable, int, dict]:
         opts = dict(dl2=True, simulated=True, observation_info=True)
+
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
-            print("!!!!!HEADER!!!!!!", header)
             sim_info, spectrum = self.get_simulation_information(load, obs_time)
             meta = {"sim_info": sim_info, "spectrum": spectrum}
             bits = [header]
             n_raw_events = 0
-            for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
+            reader_func = getattr(load, self.event_reader_function)
+            table_reader = reader_func(chunk_size, **opts, **self.event_reader_kwargs)
+            for _, _, events in table_reader:
                 selected = events[self.epp.quality_query.get_table_mask(events)]
-                # print("selected", selected)
                 selected = self.epp.normalise_column_names(selected)
-                # print("selected", selected)
-                selected = self.make_derived_columns(selected)
-                # print("selected", selected)
+                if self.epp.apply_derived_columns:
+                    selected = self.make_derived_columns(selected)
                 bits.append(selected)
                 n_raw_events += len(events)
 
-            bits.append(header)  # Putting it last ensures the correct metadata is used
+            bits.append(header)  # Final header ensures consistent metadata
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table, n_raw_events, meta
 
     def get_simulation_information(
-        self, loader: TableLoader, obs_time: u.Quantity
+        self, loader, obs_time: u.Quantity
     ) -> tuple[SimulatedEventsInfo, PowerLaw]:
         sim = loader.read_simulation_configuration()
         try:
             show = loader.read_shower_distribution()
         except NoSuchNodeError:
-            # Fall back to using the run header
-            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
+            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[int])
 
         for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(np.unique(sim[itm])) > 1:
+            if len(set(sim[itm])) > 1:
                 raise NotImplementedError(
-                    f"Unsupported: '{itm}' differs across simulation runs"
+                    f"Simulation parameter '{itm}' varies across runs, which is unsupported."
                 )
 
         sim_info = SimulatedEventsInfo(
@@ -213,9 +255,7 @@ class EventLoader(Component):
         return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)
 
     def make_derived_columns(self, events: QTable) -> QTable:
-        events["weight"] = (
-            1.0 * u.dimensionless_unscaled
-        )  # defer calculation of proper weights to later
+        events["weight"] = 1.0 * u.dimensionless_unscaled
         events["gh_score"].unit = u.dimensionless_unscaled
         events["theta"] = calculate_theta(
             events,
@@ -229,18 +269,13 @@ class EventLoader(Component):
             events, prefix="reco"
         )
 
-        altaz = AltAz()
         pointing = SkyCoord(
-            alt=events["pointing_alt"], az=events["pointing_az"], frame=altaz
+            alt=events["pointing_alt"], az=events["pointing_az"], frame=AltAz()
         )
-        reco = SkyCoord(
-            alt=events["reco_alt"],
-            az=events["reco_az"],
-            frame=altaz,
-        )
+        reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         nominal = NominalFrame(origin=pointing)
         reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
+        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
         return events
 
@@ -260,16 +295,15 @@ class EventLoader(Component):
         ):
             if fov_offset_bins is None:
                 raise ValueError(
-                    "gamma_target_spectrum is point-like, but no fov offset bins "
-                    "for the integration of the simulated diffuse spectrum were given."
+                    "Missing FoV offset bins for point-like gamma spectrum normalization."
                 )
 
             for low, high in zip(fov_offset_bins[:-1], fov_offset_bins[1:]):
-                fov_mask = events["true_source_fov_offset"] >= low
-                fov_mask &= events["true_source_fov_offset"] < high
-
-                events["weight"][fov_mask] = calculate_event_weights(
-                    events[fov_mask]["true_energy"],
+                mask = (events["true_source_fov_offset"] >= low) & (
+                    events["true_source_fov_offset"] < high
+                )
+                events["weight"][mask] = calculate_event_weights(
+                    events[mask]["true_energy"],
                     target_spectrum=self.target_spectrum,
                     simulated_spectrum=spectrum.integrate_cone(low, high),
                 )
