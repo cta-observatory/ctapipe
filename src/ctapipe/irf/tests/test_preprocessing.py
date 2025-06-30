@@ -36,7 +36,6 @@ def test_normalise_column_names(dummy_table):
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
     )
-
     norm_table = epp.normalise_column_names(dummy_table)
 
     needed_cols = [
@@ -226,7 +225,7 @@ def test_loader_tel_table(gamma_diffuse_full_reco_file):
         "EventQualityQuery": {
             "quality_criteria": [
                 ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
-                ("telescope ID", "tel_id == 35.0"),
+                ("telescope ID", "(tel_id == 35.0) | (tel_id == 19.0)"),
             ]
         },
     }
@@ -251,4 +250,4 @@ def test_loader_tel_table(gamma_diffuse_full_reco_file):
 
     assert sorted(columns) == sorted(events.colnames)
     assert np.all(events["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
-    assert np.all(events["tel_id"] == 35.0)
+    assert np.all(np.isin(events["tel_id"], [19, 35]))

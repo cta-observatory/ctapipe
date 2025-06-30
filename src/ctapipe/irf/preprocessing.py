@@ -143,6 +143,26 @@ class EventPreprocessor(Component):
         return {**default, **self.columns_to_rename_override}
 
     def normalise_column_names(self, events: QTable) -> QTable:
+        """
+        Rename column names according to configuration.
+
+        Parameters
+        ----------
+        events : QTable
+            Input event table.
+
+        Returns
+        -------
+        QTable
+            Table with selected and renamed columns.
+
+        Raises
+        ------
+        NotImplementedError
+            If pointing is not AltAz or varies too much.
+        ValueError
+            If required columns are missing.
+        """
         if self.apply_check_pointing:
             if events["subarray_pointing_lat"].std() > 1e-3:
                 raise NotImplementedError(
@@ -172,6 +192,15 @@ class EventPreprocessor(Component):
         return events
 
     def make_empty_table(self) -> QTable:
+        """
+        Create an empty event table based on the configured output schema.
+
+        Returns
+        -------
+        QTable
+            Empty event table with configured schema.
+        """
+
         return QTable(self.output_table_schema)
 
 
@@ -205,6 +234,26 @@ class EventLoader(Component):
     def load_preselected_events(
         self, chunk_size: int, obs_time: u.Quantity
     ) -> tuple[QTable, int, dict]:
+        """
+        Load and filter events from the file.
+
+        Parameters
+        ----------
+        chunk_size : int
+            Size of chunks to read from the file.
+        obs_time : Quantity
+            Observation time to scale weights.
+
+        Returns
+        -------
+        table : QTable
+            Filtered and processed event table.
+        n_raw_events : int
+            Number of events before selection.
+        meta : dict
+            Metadata dictionary with simulation info and input spectrum.
+        """
+
         opts = dict(dl2=True, simulated=True, observation_info=True)
 
         with TableLoader(self.file, parent=self, **opts) as load:
@@ -223,23 +272,45 @@ class EventLoader(Component):
                 bits.append(selected)
                 n_raw_events += len(events)
 
-            bits.append(header)  # Final header ensures consistent metadata
+            bits.append(header)  # Putting it last ensures the correct metadata is used
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table, n_raw_events, meta
 
     def get_simulation_information(
         self, loader, obs_time: u.Quantity
     ) -> tuple[SimulatedEventsInfo, PowerLaw]:
+        """
+        Extract simulation information from the input file.
+
+        Parameters
+        ----------
+        loader : TableLoader
+            Loader object for reading from the input file.
+        obs_time : Quantity
+            Total observation time.
+
+        Returns
+        -------
+        sim_info : SimulatedEventsInfo
+            Metadata about the simulated events.
+        spectrum : PowerLaw
+            Power-law model derived from simulation configuration.
+
+        Raises
+        ------
+        NotImplementedError
+            If simulation parameters vary across runs.
+        """
         sim = loader.read_simulation_configuration()
         try:
             show = loader.read_shower_distribution()
         except NoSuchNodeError:
-            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[int])
+            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
 
         for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(set(sim[itm])) > 1:
+            if len(np.unique(sim[itm])) > 1:
                 raise NotImplementedError(
-                    f"Simulation parameter '{itm}' varies across runs, which is unsupported."
+                    f"Unsupported: '{itm}' differs across simulation runs"
                 )
 
         sim_info = SimulatedEventsInfo(
@@ -255,7 +326,22 @@ class EventLoader(Component):
         return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)
 
     def make_derived_columns(self, events: QTable) -> QTable:
-        events["weight"] = 1.0 * u.dimensionless_unscaled
+        """
+        Add derived quantities (e.g., theta, FOV offsets) to the table.
+
+        Parameters
+        ----------
+        events : QTable
+            Table containing normalized events.
+
+        Returns
+        -------
+        QTable
+            Table with added derived columns.
+        """
+        events["weight"] = (
+            1.0 * u.dimensionless_unscaled
+        )  # defer calculation of proper weights to later
         events["gh_score"].unit = u.dimensionless_unscaled
         events["theta"] = calculate_theta(
             events,
@@ -275,7 +361,7 @@ class EventLoader(Component):
         reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         nominal = NominalFrame(origin=pointing)
         reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)
+        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
         return events
 
@@ -286,6 +372,30 @@ class EventLoader(Component):
         kind: str,
         fov_offset_bins: u.Quantity | None = None,
     ) -> QTable:
+        """
+        Compute event weights to match the target spectrum.
+
+        Parameters
+        ----------
+        events : QTable
+            Input events.
+        spectrum : PowerLaw
+            Spectrum from simulation.
+        kind : str
+            Type of events ("gammas", etc.).
+        fov_offset_bins : Quantity, optional
+            Offset bins for integrating the diffuse flux into point source bins.
+
+        Returns
+        -------
+        QTable
+            Table with updated weights.
+
+        Raises
+        ------
+        ValueError
+            If `fov_offset_bins` is required but not provided.
+        """
         if (
             kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
@@ -295,15 +405,16 @@ class EventLoader(Component):
         ):
             if fov_offset_bins is None:
                 raise ValueError(
-                    "Missing FoV offset bins for point-like gamma spectrum normalization."
+                    "gamma_target_spectrum is point-like, but no fov offset bins "
+                    "for the integration of the simulated diffuse spectrum were given."
                 )
 
             for low, high in zip(fov_offset_bins[:-1], fov_offset_bins[1:]):
-                mask = (events["true_source_fov_offset"] >= low) & (
-                    events["true_source_fov_offset"] < high
-                )
-                events["weight"][mask] = calculate_event_weights(
-                    events[mask]["true_energy"],
+                fov_mask = events["true_source_fov_offset"] >= low
+                fov_mask &= events["true_source_fov_offset"] < high
+
+                events["weight"][fov_mask] = calculate_event_weights(
+                    events[fov_mask]["true_energy"],
                     target_spectrum=self.target_spectrum,
                     simulated_spectrum=spectrum.integrate_cone(low, high),
                 )
