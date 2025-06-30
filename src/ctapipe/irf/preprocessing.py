@@ -394,7 +394,7 @@ class EventLoader(Component):
         Raises
         ------
         ValueError
-            If `fov_offset_bins` is required but not provided.
+            If fov_offset_bins is required but not provided.
         """
         if (
             kind == "gammas"
