@@ -6,6 +6,7 @@ from typing import Any, Dict
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import ICRS, AltAz, EarthLocation, Galactic, SkyCoord
+from astropy.coordinates.erfa_astrom import ErfaAstromInterpolator, erfa_astrom
 from astropy.table import Column, QTable, Table, vstack
 from astropy.time import Time, TimeDelta
 from pyirf.simulations import SimulatedEventsInfo
@@ -71,6 +72,8 @@ class EventPreprocessor(Component):
         default_value=True,
         help="If true will raise error in the case optional column are missing",
     ).tag(config=True)
+
+    time_resolution_erfa_interpolator = 1000.0 * u.s
 
     def __init__(
         self, quality_selection_only: bool = True, config=None, parent=None, **kwargs
@@ -314,7 +317,10 @@ class EventPreprocessor(Component):
                 events, prefix="true"
             )
         else:
-            reco_icrs = reco.transform_to(ICRS())
+            with erfa_astrom.set(
+                ErfaAstromInterpolator(self.time_resolution_erfa_interpolator)
+            ):
+                reco_icrs = reco.transform_to(ICRS())
             events["reco_ra"] = u.Quantity(reco_icrs.ra)
             events["reco_dec"] = u.Quantity(reco_icrs.dec)
             if self.optional_dl3_columns:
