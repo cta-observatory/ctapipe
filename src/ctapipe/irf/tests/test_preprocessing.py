@@ -43,7 +43,7 @@ def test_config():
             ],
             "output_table_schema": [
                 Column(
-                    name="obs_id", dtype=np.uint64, description="Observation block ID"
+                    name="obs_id", dtype=np.uint64, description="Observation Block ID"
                 ),
                 Column(name="event_id", dtype=np.uint64, description="Array event ID"),
                 Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),

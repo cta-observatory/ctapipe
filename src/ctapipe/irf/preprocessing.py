@@ -98,7 +98,7 @@ class EventPreprocessor(Component):
 
     output_table_schema = List(
         default_value=[
-            Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
+            Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
             Column(name="event_id", dtype=np.uint64, description="Array event ID"),
             Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
             Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
@@ -115,10 +115,26 @@ class EventPreprocessor(Component):
             Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
             Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
             Column(name="theta", unit=u.deg, description="Angular offset from source"),
-            Column(name="true_source_fov_offset", unit=u.deg),
-            Column(name="reco_source_fov_offset", unit=u.deg),
-            Column(name="gh_score", unit=u.dimensionless_unscaled),
-            Column(name="weight", unit=u.dimensionless_unscaled),
+            Column(
+                name="true_source_fov_offset",
+                unit=u.deg,
+                description="Simulated angular offset from pointing direction",
+            ),
+            Column(
+                name="reco_source_fov_offset",
+                unit=u.deg,
+                description="Reconstructed angular offset from pointing direction",
+            ),
+            Column(
+                name="gh_score",
+                unit=u.dimensionless_unscaled,
+                description="prediction of the classifier, defined between [0,1],"
+                " where values close to 1 mean that the positive class"
+                " (e.g. gamma in gamma-ray analysis) is more likely",
+            ),
+            Column(
+                name="weight", unit=u.dimensionless_unscaled, description="Event weight"
+            ),
         ],
         help="Schema definition for output event QTable",
     ).tag(config=True)
@@ -394,7 +410,7 @@ class EventLoader(Component):
         Raises
         ------
         ValueError
-            If fov_offset_bins is required but not provided.
+            If ``fov_offset_bins`` is required but not provided.
         """
         if (
             kind == "gammas"
