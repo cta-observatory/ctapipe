@@ -28,6 +28,48 @@ def dummy_table():
     )
 
 
+@pytest.fixture()
+def test_config():
+    return {
+        "EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
+        "EventPreprocessor": {
+            "energy_reconstructor": "ExtraTreesRegressor",
+            "fixed_columns": [
+                "obs_id",
+                "event_id",
+                "tel_id",
+                "ExtraTreesRegressor_tel_energy",
+                "ExtraTreesRegressor_tel_energy_uncert",
+            ],
+            "output_table_schema": [
+                Column(
+                    name="obs_id", dtype=np.uint64, description="Observation block ID"
+                ),
+                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy",
+                    unit=u.TeV,
+                    description="Reconstructed energy",
+                ),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy_uncert",
+                    unit=u.TeV,
+                    description="Reconstructed energy uncertainty",
+                ),
+            ],
+            "apply_derived_columns": False,
+            "disable_column_renaming": True,
+            "apply_check_pointing": False,
+        },
+        "EventQualityQuery": {
+            "quality_criteria": [
+                ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
+            ]
+        },
+    }
+
+
 def test_normalise_column_names(dummy_table):
     from ctapipe.irf import EventPreprocessor
 
@@ -106,10 +148,11 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
     events = loader.make_event_weights(
         events, meta["spectrum"], "gammas", (0 * u.deg, 1 * u.deg)
     )
+
     assert "weight" in events.colnames
 
 
-def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path):
+def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config):
     from ctapipe.irf import EventPreprocessor
 
     # Create a test table with required columns
@@ -131,41 +174,7 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path):
     )
 
     # Set up config
-    config = {
-        "EventPreprocessor": {
-            "energy_reconstructor": "ExtraTreesRegressor",
-            "fixed_columns": [
-                "obs_id",
-                "event_id",
-                "tel_id",
-                "ExtraTreesRegressor_tel_energy",
-                "ExtraTreesRegressor_tel_energy_uncert",
-            ],
-            "output_table_schema": [
-                Column(
-                    name="obs_id", dtype=np.uint64, description="Observation block ID"
-                ),
-                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
-                Column(
-                    name="ExtraTreesRegressor_tel_energy",
-                    unit=u.TeV,
-                    description="Reconstructed energy",
-                ),
-                Column(
-                    name="ExtraTreesRegressor_tel_energy_uncert",
-                    unit=u.TeV,
-                    description="Reconstructed energy uncertainty",
-                ),
-            ],
-            "apply_derived_columns": False,
-            "disable_column_renaming": True,
-            "apply_check_pointing": False,
-        },
-        "EventQualityQuery": {
-            "quality_criteria": [("valid reco", "ExtraTreesRegressor_tel_is_valid")]
-        },
-    }
+    config = test_config
 
     # Create preprocessor with config
     preprocessor = EventPreprocessor(config=Config(config))
@@ -187,48 +196,15 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path):
     assert np.all(processed["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
 
 
-def test_loader_tel_table(gamma_diffuse_full_reco_file):
+def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
     from ctapipe.irf import EventLoader, Spectra
 
-    test_config = {
-        "EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
-        "EventPreprocessor": {
-            "energy_reconstructor": "ExtraTreesRegressor",
-            "fixed_columns": [
-                "obs_id",
-                "event_id",
-                "tel_id",
-                "ExtraTreesRegressor_tel_energy",
-                "ExtraTreesRegressor_tel_energy_uncert",
-            ],
-            "output_table_schema": [
-                Column(
-                    name="obs_id", dtype=np.uint64, description="Observation block ID"
-                ),
-                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
-                Column(
-                    name="ExtraTreesRegressor_tel_energy",
-                    unit=u.TeV,
-                    description="Reconstructed energy",
-                ),
-                Column(
-                    name="ExtraTreesRegressor_tel_energy_uncert",
-                    unit=u.TeV,
-                    description="Reconstructed energy uncertainty",
-                ),
-            ],
-            "apply_derived_columns": False,
-            "disable_column_renaming": True,
-            "apply_check_pointing": False,
-        },
-        "EventQualityQuery": {
-            "quality_criteria": [
-                ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
-                ("telescope ID", "(tel_id == 35.0) | (tel_id == 19.0)"),
-            ]
-        },
-    }
+    test_config["EventLoader"][
+        "event_reader_function"
+    ] = "read_telescope_events_chunked"
+    test_config["EventQualityQuery"]["quality_criteria"].append(
+        ("telescope ID", "(tel_id == 35.0) | (tel_id == 19.0)"),
+    )
 
     loader = EventLoader(
         config=Config(test_config),

@@ -277,7 +277,7 @@ class EventLoader(Component):
             return table, n_raw_events, meta
 
     def get_simulation_information(
-        self, loader, obs_time: u.Quantity
+        self, loader: TableLoader, obs_time: u.Quantity
     ) -> tuple[SimulatedEventsInfo, PowerLaw]:
         """
         Extract simulation information from the input file.
