@@ -252,17 +252,24 @@ class EventPreprocessor(Component):
 
         return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
 
-    def make_derived_columns(
+    def make_derived_columns_pre_selection(self, events: QTable) -> QTable:
+        """
+        This function compute all the derived columns necessary for the cuts
+        """
+
+        events["gh_score"].unit = u.dimensionless_unscaled
+
+        return events
+
+    def make_derived_columns_post_selection(
         self,
         events: QTable,
         location_subarray: EarthLocation,
         atmosphere_density_profile: AtmosphereDensityProfile = None,
     ) -> QTable:
         """
-        This function compute all the derived columns necessary either to irf production or DL3 file
+        This function compute all the derived columns necessary for IRF or DL3 computation
         """
-
-        events["gh_score"].unit = u.dimensionless_unscaled
 
         if self.irf_pre_processing:
             frame_subarray = AltAz()
@@ -589,10 +596,12 @@ class EventLoader(Component):
             ):
                 events = self.epp.normalise_column_names(events)
 
-                events = self.epp.make_derived_columns(
+                events = self.epp.make_derived_columns_pre_selection(events)
+                events = self.epp.event_selection.calculate_selection(events)
+                events = self.epp.make_derived_columns_post_selection(
                     events, load.subarray.reference_location, atmosphere_density_profile
                 )
-                events = self.epp.event_selection.calculate_selection(events)
+
                 selected = events[events["selected"]]
                 selected = self.epp.keep_necessary_columns_only(selected)
                 bits.append(selected)

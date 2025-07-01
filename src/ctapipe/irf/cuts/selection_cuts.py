@@ -1,6 +1,6 @@
 import operator
 
-from astropy.table import Table
+from astropy.table import QTable, Table
 from pyirf.cuts import evaluate_binned_cut
 
 from ...core.traits import Path
@@ -26,20 +26,22 @@ class EventSelection(EventQualitySelection):
         super().__init__(config=config, parent=parent, **kwargs)
         self.cuts = OptimizationResult.read(self.cuts_file)
 
-    def calculate_selection(self, events: Table, apply_spatial_selection: bool = False):
+    def calculate_selection(
+        self, events: QTable, apply_spatial_selection: bool = False
+    ) -> QTable:
         """
         Add the selection columns to the events
 
         Parameters
         ----------
-        events: Table
+        events: QTable
             The table containing the events on which selection need to be applied
         apply_spatial_selection: bool
             True if the theta cuts should be applied
 
         Returns
         -------
-        Table
+        QTable
             events with selection columns added.
         """
         events = self.calculate_quality_selection(events)
