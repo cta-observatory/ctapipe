@@ -156,7 +156,10 @@ class EventPreprocessor(Component):
             "subarray_pointing_lat": "pointing_alt",
             "subarray_pointing_lon": "pointing_az",
         }
-        return {**default, **self.columns_to_rename_override}
+        if not self.columns_to_rename_override:
+            return default
+        else:
+            return self.columns_to_rename_override
 
     def normalise_column_names(self, events: QTable) -> QTable:
         """

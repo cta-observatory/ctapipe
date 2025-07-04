@@ -227,3 +227,25 @@ def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
     assert sorted(columns) == sorted(events.colnames)
     assert np.all(events["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
     assert np.all(np.isin(events["tel_id"], [19, 35]))
+
+
+def test_name_overriding(dummy_table):
+    from ctapipe.irf import EventPreprocessor
+
+    epp = EventPreprocessor(
+        energy_reconstructor="dummy",
+        geometry_reconstructor="geom",
+        gammaness_classifier="classifier",
+        disable_column_renaming=False,
+        fixed_columns=["obs_id", "event_id", "true_az", "true_alt"],
+        columns_to_rename_override={"true_energy": "false_energy"},
+    )
+    norm_table = epp.normalise_column_names(dummy_table)
+    columns = [
+        "obs_id",
+        "event_id",
+        "false_energy",
+        "true_az",
+        "true_alt",
+    ]
+    assert sorted(columns) == sorted(norm_table.colnames)
