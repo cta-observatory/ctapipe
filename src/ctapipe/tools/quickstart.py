@@ -182,13 +182,15 @@ class QuickStartTool(Tool):
                 continue
 
             copy_with_transforms(config, destination, transforms=self.transforms)
-            Provenance().add_output_file(destination, role="ctapipe-process config")
+            Provenance().add_output_file(
+                destination, role="ctapipe-process config", add_meta=False
+            )
 
         # also generate a README file
         readme = self.workdir / "README.md"
         if not readme.exists():
             readme.write_text(README_TEXT)
-            Provenance().add_output_file(readme, role="README")
+            Provenance().add_output_file(readme, role="README", add_meta=False)
 
     def finish(self):
         print(f"Generated examples in {self.workdir}")
