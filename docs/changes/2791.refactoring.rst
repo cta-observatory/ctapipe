@@ -1,3 +1,0 @@
-Currently, for telescope cross calibration we have implemented our own table filtering. However similar functionality has been implemented in IRF tools. Our idea is to reuse the existing functionality from IRF tools for cross calibration. The added benefits is increased maintainability. Moreover, cross calibration memory efficiency will be improved by reading data by chunks. Finally, this can potentially benefit other usecases that load DL2 tables.
-
-In order to do that, we will propose some modifications in irf/preprocessing. However we should ensure that the default behaviour stays the same.
