@@ -1,1 +1,1 @@
-Generalise the DL2 table processing implemented in IRF tools in order to be used by the telescope cross-calibration usecase and potentially other usecases that ingest, filter and merge DL2 tables.
+Generalise the DL2 table processing implemented in IRF tools in order to be used by other usecases that ingest, filter and merge DL2 tables.
