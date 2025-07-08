@@ -54,6 +54,7 @@ _NODES_TO_CHECK = {
 
 # Column names used for the DL1A data
 DL1_COLUMN_NAMES = ["image", "peak_time"]
+CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
 
 def _get_required_nodes(h5file):
@@ -420,14 +421,14 @@ class HDF5Merger(Component):
             self._append_table_group(other, other.root[key])
 
         # Calibration coefficients monitoring
-        key = "/dl1/monitoring/telescope/camera/calibration_coefficients/"
+        key = f"{CAMERA_MONITORING_GROUP}/coefficients/"
         if self.monitoring and self.telescope_events and key in other.root:
             self._append_table_group(other, other.root[key])
 
         # Pixel statistics monitoring
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
-                key = f"/dl1/monitoring/telescope/camera/pixel_statistics/{event_type.name}_{dl1_colname}"
+                key = f"{CAMERA_MONITORING_GROUP}/pixel_statistics/{event_type.name.lower()}_{dl1_colname}"
                 if self.monitoring and self.telescope_events and key in other.root:
                     self._append_table_group(other, other.root[key])
 

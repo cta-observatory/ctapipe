@@ -12,7 +12,7 @@ from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 from ctapipe.tools.merge import MergeTool
 
-CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/camera"
+CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 DL1_COLUMN_NAMES = ["image", "peak_time"]
 
 
@@ -49,7 +49,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
             PixelStatisticsCalculatorTool(config=config),
             argv=[
                 f"--input_url={dl1_image_file}",
-                f"--output_path={tmp_path}/SUBARRAY_{col_name}_monitoring.dl1.h5",
+                f"--output_path={tmp_path}/subarray_{col_name}_monitoring.dl1.h5",
                 f"--PixelStatisticsCalculatorTool.input_column_name={col_name}",
                 "--overwrite",
             ],
@@ -62,8 +62,8 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     run_tool(
         MergeTool(),
         argv=[
-            f"{tmp_path}/SUBARRAY_image_monitoring.dl1.h5",
-            f"{tmp_path}/SUBARRAY_peak_time_monitoring.dl1.h5",
+            f"{tmp_path}/subarray_image_monitoring.dl1.h5",
+            f"{tmp_path}/subarray_peak_time_monitoring.dl1.h5",
             f"--output={monitoring_file}",
             "--monitoring",
             "--single-ob",
@@ -79,7 +79,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         assert (
             read_table(
                 monitoring_file,
-                path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/SUBARRAY_{col_name}/tel_{tel_id:03d}",
+                path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/subarray_{col_name}/tel_{tel_id:03d}",
             )["mean"].ndim
             == 3
         )

@@ -80,7 +80,7 @@ class PixelStatisticsCalculatorTool(Tool):
     ] + classes_with_traits(PixelStatisticsCalculator)
 
     DL1_COLUMN_NAMES = ["image", "peak_time"]
-    CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/camera"
+    CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
     def setup(self):
         # Read the input data with the 'TableLoader'
@@ -183,10 +183,7 @@ class PixelStatisticsCalculatorTool(Tool):
                         tel_id,
                     )
             # Cnstruct the output table name based on the event type and the selected column name
-            output_table_name = (
-                f"{EventType(dl1_table['event_type'][0]).name}_{self.input_column_name}"
-            )
-            self.log.info(f"{output_table_name}")
+            output_table_name = f"{EventType(dl1_table['event_type'][0]).name.lower()}_{self.input_column_name}"
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
                 aggregated_stats,
