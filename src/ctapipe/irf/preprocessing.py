@@ -15,6 +15,7 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from tables import NoSuchNodeError
+from traitlets import Any
 
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
@@ -67,13 +68,6 @@ class EventPreprocessor(Component):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-    disable_column_renaming = Bool(
-        default_value=False,
-        help="Disabling the renaming of the columns from"
-        "e.g. from ReconstructorNameRegressor_energy"
-        "to reco_energy.",
-    ).tag(config=True)
-
     apply_derived_columns = Bool(
         default_value=True, help="Whether to compute derived columns"
     ).tag(config=True)
@@ -85,15 +79,16 @@ class EventPreprocessor(Component):
     fixed_columns = List(
         Unicode(),
         default_value=["obs_id", "event_id", "true_energy", "true_az", "true_alt"],
-        help="Columns to always keep from the original input",
+        help="Columns to keep from the input table without renaming.",
     ).tag(config=True)
 
-    # Optional user override
-    columns_to_rename_override = Dict(
-        key_trait=Unicode(),
-        value_trait=Unicode(),
-        default_value={},
-        help="Override of columns to rename. If empty, they are generated dynamically.",
+    columns_to_rename_override = Any(
+        default_value=None,
+        help=(
+            "Dictionary of columns to rename. "
+            "Set to None to apply default renaming. "
+            "Set to {} to disable renaming entirely."
+        ),
     ).tag(config=True)
 
     output_table_schema = List(
@@ -145,21 +140,17 @@ class EventPreprocessor(Component):
 
     @property
     def columns_to_rename(self) -> dict:
-        if self.disable_column_renaming:
-            return {}
+        if self.columns_to_rename_override is None:
+            return {
+                f"{self.energy_reconstructor}_energy": "reco_energy",
+                f"{self.geometry_reconstructor}_az": "reco_az",
+                f"{self.geometry_reconstructor}_alt": "reco_alt",
+                f"{self.gammaness_classifier}_prediction": "gh_score",
+                "subarray_pointing_lat": "pointing_alt",
+                "subarray_pointing_lon": "pointing_az",
+            }
 
-        default = {
-            f"{self.energy_reconstructor}_energy": "reco_energy",
-            f"{self.geometry_reconstructor}_az": "reco_az",
-            f"{self.geometry_reconstructor}_alt": "reco_alt",
-            f"{self.gammaness_classifier}_prediction": "gh_score",
-            "subarray_pointing_lat": "pointing_alt",
-            "subarray_pointing_lon": "pointing_az",
-        }
-        if not self.columns_to_rename_override:
-            return default
-        else:
-            return self.columns_to_rename_override
+        return self.columns_to_rename_override
 
     def normalise_column_names(self, events: QTable) -> QTable:
         """

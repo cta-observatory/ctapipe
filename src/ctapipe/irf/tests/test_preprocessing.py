@@ -34,6 +34,7 @@ def test_config():
         "EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
         "EventPreprocessor": {
             "energy_reconstructor": "ExtraTreesRegressor",
+            "gammaness_classifier": "ExtraTreesClassifier",
             "fixed_columns": [
                 "obs_id",
                 "event_id",
@@ -41,6 +42,7 @@ def test_config():
                 "ExtraTreesRegressor_tel_energy",
                 "ExtraTreesRegressor_tel_energy_uncert",
             ],
+            "columns_to_rename_override": {},
             "output_table_schema": [
                 Column(
                     name="obs_id", dtype=np.uint64, description="Observation Block ID"
@@ -59,7 +61,7 @@ def test_config():
                 ),
             ],
             "apply_derived_columns": False,
-            "disable_column_renaming": True,
+            # "disable_column_renaming": True,
             "apply_check_pointing": False,
         },
         "EventQualityQuery": {
@@ -236,7 +238,6 @@ def test_name_overriding(dummy_table):
         energy_reconstructor="dummy",
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
-        disable_column_renaming=False,
         fixed_columns=["obs_id", "event_id", "true_az", "true_alt"],
         columns_to_rename_override={"true_energy": "false_energy"},
     )
