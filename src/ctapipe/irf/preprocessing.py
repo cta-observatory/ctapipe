@@ -15,7 +15,7 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from tables import NoSuchNodeError
-from traitlets import Any
+from traitlets import default
 
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
@@ -82,12 +82,14 @@ class EventPreprocessor(Component):
         help="Columns to keep from the input table without renaming.",
     ).tag(config=True)
 
-    columns_to_rename_override = Any(
-        default_value=None,
+    columns_to_rename = Dict(
+        key_trait=Unicode(),
+        value_trait=Unicode(),
         help=(
             "Dictionary of columns to rename. "
-            "Set to None to apply default renaming. "
-            "Set to {} to disable renaming entirely."
+            "Leave unset to apply default renaming. "
+            "Set to an empty dictionary to disable renaming entirely. "
+            "Set to a partial dictionary to override only some names."
         ),
     ).tag(config=True)
 
@@ -138,19 +140,16 @@ class EventPreprocessor(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self.quality_query = EventQualityQuery(parent=self)
 
-    @property
-    def columns_to_rename(self) -> dict:
-        if self.columns_to_rename_override is None:
-            return {
-                f"{self.energy_reconstructor}_energy": "reco_energy",
-                f"{self.geometry_reconstructor}_az": "reco_az",
-                f"{self.geometry_reconstructor}_alt": "reco_alt",
-                f"{self.gammaness_classifier}_prediction": "gh_score",
-                "subarray_pointing_lat": "pointing_alt",
-                "subarray_pointing_lon": "pointing_az",
-            }
-
-        return self.columns_to_rename_override
+    @default("columns_to_rename")
+    def _default_columns_to_rename(self):
+        return {
+            f"{self.energy_reconstructor}_energy": "reco_energy",
+            f"{self.geometry_reconstructor}_az": "reco_az",
+            f"{self.geometry_reconstructor}_alt": "reco_alt",
+            f"{self.gammaness_classifier}_prediction": "gh_score",
+            "subarray_pointing_lat": "pointing_alt",
+            "subarray_pointing_lon": "pointing_az",
+        }
 
     def normalise_column_names(self, events: QTable) -> QTable:
         """
@@ -185,8 +184,9 @@ class EventPreprocessor(Component):
                     "At the moment only pointing in altaz is supported."
                 )
 
-        rename_from = list(self.columns_to_rename.keys())
-        rename_to = list(self.columns_to_rename.values())
+        rename_dict = self.columns_to_rename
+        rename_from = list(rename_dict.keys())
+        rename_to = list(rename_dict.values())
 
         keep_columns = self.fixed_columns + rename_from
         for col in keep_columns:

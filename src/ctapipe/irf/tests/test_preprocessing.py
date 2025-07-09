@@ -42,7 +42,7 @@ def test_config():
                 "ExtraTreesRegressor_tel_energy",
                 "ExtraTreesRegressor_tel_energy_uncert",
             ],
-            "columns_to_rename_override": {},
+            "columns_to_rename": {},
             "output_table_schema": [
                 Column(
                     name="obs_id", dtype=np.uint64, description="Observation Block ID"
@@ -239,7 +239,7 @@ def test_name_overriding(dummy_table):
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
         fixed_columns=["obs_id", "event_id", "true_az", "true_alt"],
-        columns_to_rename_override={"true_energy": "false_energy"},
+        columns_to_rename={"true_energy": "false_energy"},
     )
     norm_table = epp.normalise_column_names(dummy_table)
     columns = [
