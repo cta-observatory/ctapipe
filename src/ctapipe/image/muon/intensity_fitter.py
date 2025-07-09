@@ -485,18 +485,18 @@ class MuonIntensityFitter(TelescopeComponent):
 
         Parameters
         ----------
+        tel_id: int
+            the telescope id
         center_x: Angle quantity
             Initial guess for muon ring center in telescope frame
         center_y: Angle quantity
             Initial guess for muon ring center in telescope frame
         radius: Angle quantity
-            Radius of muon ring from circle fitting
-        pixel_x: ndarray
-            X position of pixels in image from circle fitting
-        pixel_y: ndarray
-            Y position of pixel in image from circle fitting
+            Initial guess for muon ring radius in telescope frame
         image: ndarray
             Amplitude of image pixels
+        pedestal: ndarray
+            Pedestal standard deviation in each pixel
         mask: ndarray
             mask marking the pixels to be used in the likelihood fit
 
