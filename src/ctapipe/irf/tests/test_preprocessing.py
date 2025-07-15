@@ -7,7 +7,7 @@ from pyirf.spectral import PowerLaw
 from traitlets.config import Config
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def dummy_table():
     """Dummy table to test column renaming."""
     return Table(
@@ -28,20 +28,13 @@ def dummy_table():
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def test_config():
     return {
         "EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
         "EventPreprocessor": {
             "energy_reconstructor": "ExtraTreesRegressor",
             "gammaness_classifier": "ExtraTreesClassifier",
-            "fixed_columns": [
-                "obs_id",
-                "event_id",
-                "tel_id",
-                "ExtraTreesRegressor_tel_energy",
-                "ExtraTreesRegressor_tel_energy_uncert",
-            ],
             "columns_to_rename": {},
             "output_table_schema": [
                 Column(
@@ -75,10 +68,30 @@ def test_config():
 def test_normalise_column_names(dummy_table):
     from ctapipe.irf import EventPreprocessor
 
+    output_table_schema = [
+        Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
+        Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+        Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
+        Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
+        Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
+        Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
+        Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
+        Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
+        Column(name="pointing_alt", unit=u.deg, description="Pointing latitude"),
+        Column(name="pointing_az", unit=u.deg, description="Pointing longitude"),
+        Column(
+            name="gh_score",
+            unit=u.dimensionless_unscaled,
+            description="prediction of the classifier, defined between [0,1],"
+            " where values close to 1 mean that the positive class"
+            " (e.g. gamma in gamma-ray analysis) is more likely",
+        ),
+    ]
     epp = EventPreprocessor(
         energy_reconstructor="dummy",
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
+        output_table_schema=output_table_schema,
     )
     norm_table = epp.normalise_column_names(dummy_table)
 
@@ -104,6 +117,7 @@ def test_normalise_column_names(dummy_table):
             energy_reconstructor="dummy",
             geometry_reconstructor="geom",
             gammaness_classifier="classifier",
+            output_table_schema=output_table_schema,
         )
         _ = epp.normalise_column_names(dummy_table)
 
@@ -142,7 +156,6 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
     ]
 
     assert sorted(columns) == sorted(events.colnames)
-
     assert isinstance(count, int)
     assert isinstance(meta["sim_info"], SimulatedEventsInfo)
     assert isinstance(meta["spectrum"], PowerLaw)
@@ -238,8 +251,39 @@ def test_name_overriding(dummy_table):
         energy_reconstructor="dummy",
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
-        fixed_columns=["obs_id", "event_id", "true_az", "true_alt"],
         columns_to_rename={"true_energy": "false_energy"},
+        output_table_schema=[
+            Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
+            Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+            Column(name="false_energy", unit=u.TeV, description="Simulated energy"),
+            Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
+            Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
+            Column(name="dummy_energy", unit=u.TeV, description="Reconstructed energy"),
+            Column(name="geom_az", unit=u.deg, description="Reconstructed azimuth"),
+            Column(name="geom_alt", unit=u.deg, description="Reconstructed altitude"),
+            Column(
+                name="subarray_pointing_frame",
+                unit=u.dimensionless_unscaled,
+                description="Pointing frame",
+            ),
+            Column(
+                name="subarray_pointing_lat",
+                unit=u.deg,
+                description="Pointing latitude",
+            ),
+            Column(
+                name="subarray_pointing_lon",
+                unit=u.deg,
+                description="Pointing longitude",
+            ),
+            Column(
+                name="classifier_prediction",
+                unit=u.dimensionless_unscaled,
+                description="prediction of the classifier, defined between [0,1],"
+                " where values close to 1 mean that the positive class"
+                " (e.g. gamma in gamma-ray analysis) is more likely",
+            ),
+        ],
     )
     norm_table = epp.normalise_column_names(dummy_table)
     columns = [
@@ -248,5 +292,12 @@ def test_name_overriding(dummy_table):
         "false_energy",
         "true_az",
         "true_alt",
+        "dummy_energy",
+        "classifier_prediction",
+        "geom_alt",
+        "geom_az",
+        "subarray_pointing_frame",
+        "subarray_pointing_lat",
+        "subarray_pointing_lon",
     ]
     assert sorted(columns) == sorted(norm_table.colnames)

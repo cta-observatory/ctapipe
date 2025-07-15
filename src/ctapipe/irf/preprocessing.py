@@ -76,12 +76,6 @@ class EventPreprocessor(Component):
         default_value=True, help="Accept only pointing in altaz and not divergent."
     ).tag(config=True)
 
-    fixed_columns = List(
-        Unicode(),
-        default_value=["obs_id", "event_id", "true_energy", "true_az", "true_alt"],
-        help="Columns to keep from the input table without renaming.",
-    ).tag(config=True)
-
     columns_to_rename = Dict(
         key_trait=Unicode(),
         value_trait=Unicode(),
@@ -103,35 +97,8 @@ class EventPreprocessor(Component):
             Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
             Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
             Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
-            Column(
-                name="reco_fov_lat", unit=u.deg, description="Reconstructed FOV lat"
-            ),
-            Column(
-                name="reco_fov_lon", unit=u.deg, description="Reconstructed FOV lon"
-            ),
             Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
             Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
-            Column(name="theta", unit=u.deg, description="Angular offset from source"),
-            Column(
-                name="true_source_fov_offset",
-                unit=u.deg,
-                description="Simulated angular offset from pointing direction",
-            ),
-            Column(
-                name="reco_source_fov_offset",
-                unit=u.deg,
-                description="Reconstructed angular offset from pointing direction",
-            ),
-            Column(
-                name="gh_score",
-                unit=u.dimensionless_unscaled,
-                description="prediction of the classifier, defined between [0,1],"
-                " where values close to 1 mean that the positive class"
-                " (e.g. gamma in gamma-ray analysis) is more likely",
-            ),
-            Column(
-                name="weight", unit=u.dimensionless_unscaled, description="Event weight"
-            ),
         ],
         help="Schema definition for output event QTable",
     ).tag(config=True)
@@ -184,19 +151,24 @@ class EventPreprocessor(Component):
                     "At the moment only pointing in altaz is supported."
                 )
 
+        columns_to_keep = []
+        for col in self.output_table_schema:
+            columns_to_keep.append(col.name)
+
         rename_dict = self.columns_to_rename
         rename_from = list(rename_dict.keys())
         rename_to = list(rename_dict.values())
 
-        keep_columns = self.fixed_columns + rename_from
-        for col in keep_columns:
+        fixed_columns = list(set(columns_to_keep) - set(rename_to))
+        columns_to_read = fixed_columns + rename_from
+        for col in columns_to_read:
             if col not in events.colnames:
                 raise ValueError(
                     f"Input files must conform to the ctapipe DL2 data model. "
                     f"Required column {col} is missing."
                 )
 
-        events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
+        events = QTable(events[columns_to_read], copy=COPY_IF_NEEDED)
         if rename_from and rename_to:
             events.rename_columns(rename_from, rename_to)
         return events
@@ -204,14 +176,60 @@ class EventPreprocessor(Component):
     def make_empty_table(self) -> QTable:
         """
         Create an empty event table based on the configured output schema.
-
-        Returns
-        -------
-        QTable
-            Empty event table with configured schema.
         """
+        schema = list(self.output_table_schema)  # make a copy!
 
-        return QTable(self.output_table_schema)
+        if self.apply_derived_columns:
+            schema.extend(
+                [
+                    Column(
+                        name="reco_fov_lat",
+                        unit=u.deg,
+                        description="Reconstructed FOV lat",
+                    ),
+                    Column(
+                        name="reco_fov_lon",
+                        unit=u.deg,
+                        description="Reconstructed FOV lon",
+                    ),
+                    Column(
+                        name="theta",
+                        unit=u.deg,
+                        description="Angular offset from source",
+                    ),
+                    Column(
+                        name="true_source_fov_offset",
+                        unit=u.deg,
+                        description="Simulated angular offset from pointing direction",
+                    ),
+                    Column(
+                        name="reco_source_fov_offset",
+                        unit=u.deg,
+                        description="Reconstructed angular offset from pointing direction",
+                    ),
+                    Column(
+                        name="gh_score",
+                        unit=u.dimensionless_unscaled,
+                        description="prediction of the classifier, defined between [0,1],"
+                        " where values close to 1 mean that the positive class"
+                        " (e.g. gamma in gamma-ray analysis) is more likely",
+                    ),
+                    Column(
+                        name="weight",
+                        unit=u.dimensionless_unscaled,
+                        description="Event weight",
+                    ),
+                ]
+            )
+
+        return QTable(
+            names=[col.name for col in schema],
+            dtype=[col.dtype for col in schema],
+            units=[col.unit for col in schema]
+            if any(col.unit for col in schema)
+            else None,
+            meta={},
+        )
 
 
 class EventLoader(Component):
@@ -278,6 +296,7 @@ class EventLoader(Component):
                 selected = events[self.epp.quality_query.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 if self.epp.apply_derived_columns:
+                    # header = self.make_derived_columns(header)
                     selected = self.make_derived_columns(selected)
                 bits.append(selected)
                 n_raw_events += len(events)
@@ -349,10 +368,6 @@ class EventLoader(Component):
         QTable
             Table with added derived columns.
         """
-        events["weight"] = (
-            1.0 * u.dimensionless_unscaled
-        )  # defer calculation of proper weights to later
-        events["gh_score"].unit = u.dimensionless_unscaled
         events["theta"] = calculate_theta(
             events,
             assumed_source_az=events["true_az"],
@@ -373,6 +388,10 @@ class EventLoader(Component):
         reco_nominal = reco.transform_to(nominal)
         events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
+        events["weight"] = (
+            1.0 * u.dimensionless_unscaled
+        )  # defer calculation of proper weights to later
+        events["gh_score"].unit = u.dimensionless_unscaled
         return events
 
     def make_event_weights(

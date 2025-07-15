@@ -832,16 +832,21 @@ def irf_events_table():
         names=bulk,
         units={c: tab[c].unit for c in bulk},
     )
-
     # Setting values following pyirf test in pyirf/irf/tests/test_background.py
-    bulk_tab["reco_energy"] = np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
-    bulk_tab["true_energy"] = np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
-    bulk_tab["reco_source_fov_offset"] = (
-        np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
+    bulk_tab.replace_column(
+        "reco_energy", np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
     )
-    bulk_tab["true_source_fov_offset"] = (
-        np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg
+    bulk_tab.replace_column(
+        "true_energy", np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
     )
+    bulk_tab.replace_column(
+        "reco_source_fov_offset", np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
+    )
+    bulk_tab.replace_column(
+        "true_source_fov_offset",
+        np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg,
+    )
+
     for name in unitless:
         bulk_tab.add_column(
             Column(name=name, unit=tab[name].unit, data=np.zeros(N) * np.nan)
