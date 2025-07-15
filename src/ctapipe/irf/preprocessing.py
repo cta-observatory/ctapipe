@@ -151,9 +151,7 @@ class EventPreprocessor(Component):
                     "At the moment only pointing in altaz is supported."
                 )
 
-        columns_to_keep = []
-        for col in self.output_table_schema:
-            columns_to_keep.append(col.name)
+        columns_to_keep = [col.name for col in self.output_table_schema]
 
         rename_dict = self.columns_to_rename
         rename_from = list(rename_dict.keys())
@@ -177,7 +175,9 @@ class EventPreprocessor(Component):
         """
         Create an empty event table based on the configured output schema.
         """
-        schema = list(self.output_table_schema)  # make a copy!
+        schema = list(
+            self.output_table_schema
+        )  # make a shallow copy to extend the schema with derived columns
 
         if self.apply_derived_columns:
             schema.extend(
@@ -296,7 +296,6 @@ class EventLoader(Component):
                 selected = events[self.epp.quality_query.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 if self.epp.apply_derived_columns:
-                    # header = self.make_derived_columns(header)
                     selected = self.make_derived_columns(selected)
                 bits.append(selected)
                 n_raw_events += len(events)
