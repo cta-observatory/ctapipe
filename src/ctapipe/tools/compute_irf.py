@@ -17,6 +17,8 @@ from astropy.table import vstack
 from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
 
+from ctapipe.io.dl2_tables_preprocessing import EventQualityQuery
+
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
@@ -36,7 +38,6 @@ from ..irf.irfs import (
     EnergyDispersionMakerBase,
     PSFMakerBase,
 )
-from ..irf.preprocessing import EventQualityQuery
 
 __all__ = ["IrfTool"]
 

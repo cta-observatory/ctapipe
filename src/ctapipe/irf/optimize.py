@@ -11,10 +11,11 @@ from astropy.table import QTable, Table
 from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
+from ctapipe.io.dl2_tables_preprocessing import EventQualityQuery
+
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer, Path
 from .binning import DefaultRecoEnergyBins, ResultValidRange
-from .preprocessing import EventQualityQuery
 
 __all__ = [
     "CutOptimizerBase",

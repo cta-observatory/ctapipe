@@ -17,13 +17,14 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from tables import NoSuchNodeError
 from traitlets import default
 
+from ctapipe.irf.spectra import SPECTRA, Spectra
+
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
 from ..core.traits import Bool, Dict, List, Tuple, Unicode
 from ..io import TableLoader
-from .spectra import SPECTRA, Spectra
 
 __all__ = ["EventLoader", "EventPreprocessor", "EventQualityQuery"]
 

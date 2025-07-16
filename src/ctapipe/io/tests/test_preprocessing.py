@@ -66,7 +66,7 @@ def test_config():
 
 
 def test_normalise_column_names(dummy_table):
-    from ctapipe.irf import EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
 
     output_table_schema = [
         Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
@@ -123,7 +123,8 @@ def test_normalise_column_names(dummy_table):
 
 
 def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config):
-    from ctapipe.irf import EventLoader, Spectra
+    from ctapipe.io.dl2_tables_preprocessing import EventLoader
+    from ctapipe.irf import Spectra
 
     loader = EventLoader(
         config=irf_event_loader_test_config,
@@ -168,7 +169,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
 
 
 def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config):
-    from ctapipe.irf import EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
 
     # Create a test table with required columns
     table = QTable(
@@ -212,7 +213,8 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config)
 
 
 def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
-    from ctapipe.irf import EventLoader, Spectra
+    from ctapipe.io.dl2_tables_preprocessing import EventLoader
+    from ctapipe.irf import Spectra
 
     test_config["EventLoader"][
         "event_reader_function"
@@ -245,7 +247,7 @@ def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
 
 
 def test_name_overriding(dummy_table):
-    from ctapipe.irf import EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
 
     epp = EventPreprocessor(
         energy_reconstructor="dummy",

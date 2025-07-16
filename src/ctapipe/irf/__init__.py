@@ -8,6 +8,8 @@ if find_spec("pyirf") is None:
     raise OptionalDependencyMissing("pyirf") from None
 
 
+from ctapipe.io.dl2_tables_preprocessing import EventLoader, EventPreprocessor
+
 from .benchmarks import (
     AngularResolution2dMaker,
     EnergyBiasResolution2dMaker,
@@ -31,7 +33,6 @@ from .optimize import (
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
-from .preprocessing import EventLoader, EventPreprocessor
 from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
 
 __all__ = [
