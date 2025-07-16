@@ -19,9 +19,11 @@ from pyirf.io import create_rad_max_hdu
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
-from ..io.dl2_tables_preprocessing import DL2EventQualityQuery
-from ..irf import (
+from ..io.dl2_tables_preprocessing import (
     DL2EventLoader,
+    DL2EventQualityQuery,
+)
+from ..irf import (
     OptimizationResult,
     Spectra,
     check_bins_in_range,
