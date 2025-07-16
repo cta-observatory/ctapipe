@@ -1,1 +1,2 @@
 Generalise the DL2 table processing implemented in IRF tools in order to be used by other usecases that ingest, filter and merge DL2 tables.
+The module was moved from IRF to IO.

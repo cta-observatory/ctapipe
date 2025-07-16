@@ -8,8 +8,7 @@ if find_spec("pyirf") is None:
     raise OptionalDependencyMissing("pyirf") from None
 
 
-from ctapipe.io.dl2_tables_preprocessing import EventLoader, EventPreprocessor
-
+from ..io.dl2_tables_preprocessing import DL2EventLoader, DL2EventPreprocessor
 from .benchmarks import (
     AngularResolution2dMaker,
     EnergyBiasResolution2dMaker,
@@ -47,8 +46,8 @@ __all__ = [
     "OptimizationResult",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
-    "EventLoader",
-    "EventPreprocessor",
+    "DL2EventLoader",
+    "DL2EventPreprocessor",
     "Spectra",
     "GhPercentileCutCalculator",
     "ThetaPercentileCutCalculator",

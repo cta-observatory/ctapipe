@@ -31,8 +31,8 @@ def dummy_table():
 @pytest.fixture(scope="function")
 def test_config():
     return {
-        "EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
-        "EventPreprocessor": {
+        "DL2EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
+        "DL2EventPreprocessor": {
             "energy_reconstructor": "ExtraTreesRegressor",
             "gammaness_classifier": "ExtraTreesClassifier",
             "columns_to_rename": {},
@@ -57,7 +57,7 @@ def test_config():
             # "disable_column_renaming": True,
             "apply_check_pointing": False,
         },
-        "EventQualityQuery": {
+        "DL2EventQualityQuery": {
             "quality_criteria": [
                 ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
             ]
@@ -66,7 +66,7 @@ def test_config():
 
 
 def test_normalise_column_names(dummy_table):
-    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
     output_table_schema = [
         Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
@@ -87,7 +87,7 @@ def test_normalise_column_names(dummy_table):
             " (e.g. gamma in gamma-ray analysis) is more likely",
         ),
     ]
-    epp = EventPreprocessor(
+    epp = DL2EventPreprocessor(
         energy_reconstructor="dummy",
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
@@ -113,7 +113,7 @@ def test_normalise_column_names(dummy_table):
 
     with pytest.raises(ValueError, match="Required column geom_alt is missing."):
         dummy_table.rename_column("geom_alt", "alt_geom")
-        epp = EventPreprocessor(
+        epp = DL2EventPreprocessor(
             energy_reconstructor="dummy",
             geometry_reconstructor="geom",
             gammaness_classifier="classifier",
@@ -123,10 +123,10 @@ def test_normalise_column_names(dummy_table):
 
 
 def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config):
-    from ctapipe.io.dl2_tables_preprocessing import EventLoader
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventLoader
     from ctapipe.irf import Spectra
 
-    loader = EventLoader(
+    loader = DL2EventLoader(
         config=irf_event_loader_test_config,
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
@@ -169,7 +169,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
 
 
 def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config):
-    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
     # Create a test table with required columns
     table = QTable(
@@ -193,7 +193,7 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config)
     config = test_config
 
     # Create preprocessor with config
-    preprocessor = EventPreprocessor(config=Config(config))
+    preprocessor = DL2EventPreprocessor(config=Config(config))
 
     # Apply quality query and preprocessing
     mask = preprocessor.quality_query.get_table_mask(table)
@@ -213,17 +213,17 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config)
 
 
 def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
-    from ctapipe.io.dl2_tables_preprocessing import EventLoader
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventLoader
     from ctapipe.irf import Spectra
 
-    test_config["EventLoader"][
+    test_config["DL2EventLoader"][
         "event_reader_function"
     ] = "read_telescope_events_chunked"
-    test_config["EventQualityQuery"]["quality_criteria"].append(
+    test_config["DL2EventQualityQuery"]["quality_criteria"].append(
         ("telescope ID", "(tel_id == 35.0) | (tel_id == 19.0)"),
     )
 
-    loader = EventLoader(
+    loader = DL2EventLoader(
         config=Config(test_config),
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
@@ -247,9 +247,9 @@ def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
 
 
 def test_name_overriding(dummy_table):
-    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
-    epp = EventPreprocessor(
+    epp = DL2EventPreprocessor(
         energy_reconstructor="dummy",
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",

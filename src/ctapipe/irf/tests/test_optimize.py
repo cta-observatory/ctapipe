@@ -8,14 +8,14 @@ from ctapipe.irf.optimize import CutOptimizerBase
 
 
 def test_optimization_result(tmp_path, irf_event_loader_test_config):
-    from ctapipe.irf import (
-        EventPreprocessor,
+    from ctapipe.io import (
+        DL2EventPreprocessor,
         OptimizationResult,
         ResultValidRange,
     )
 
     result_path = tmp_path / "result.h5"
-    epp = EventPreprocessor(irf_event_loader_test_config)
+    epp = DL2EventPreprocessor(irf_event_loader_test_config)
     gh_cuts = QTable(
         data=[[0.2, 0.8, 1.5] * u.TeV, [0.8, 1.5, 10] * u.TeV, [0.82, 0.91, 0.88]],
         names=["low", "high", "cut"],
@@ -87,9 +87,9 @@ def test_cut_optimizer(
     proton_full_reco_file,
     irf_event_loader_test_config,
 ):
-    from ctapipe.irf import EventLoader, OptimizationResult, Spectra
+    from ctapipe.io import DL2EventLoader, OptimizationResult, Spectra
 
-    gamma_loader = EventLoader(
+    gamma_loader = DL2EventLoader(
         config=irf_event_loader_test_config,
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
@@ -98,7 +98,7 @@ def test_cut_optimizer(
         chunk_size=10000,
         obs_time=u.Quantity(50, u.h),
     )
-    proton_loader = EventLoader(
+    proton_loader = DL2EventLoader(
         config=irf_event_loader_test_config,
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,

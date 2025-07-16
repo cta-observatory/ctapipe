@@ -17,19 +17,17 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from tables import NoSuchNodeError
 from traitlets import default
 
-from ctapipe.irf.spectra import SPECTRA, Spectra
-
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
 from ..core.traits import Bool, Dict, List, Tuple, Unicode
-from ..io import TableLoader
+from .tableloader import TableLoader
 
-__all__ = ["EventLoader", "EventPreprocessor", "EventQualityQuery"]
+__all__ = ["DL2EventLoader", "DL2EventPreprocessor", "DL2EventQualityQuery"]
 
 
-class EventQualityQuery(QualityQuery):
+class DL2EventQualityQuery(QualityQuery):
     """
     Event pre-selection quality criteria for IRF computation with different defaults.
     """
@@ -49,10 +47,10 @@ class EventQualityQuery(QualityQuery):
     ).tag(config=True)
 
 
-class EventPreprocessor(Component):
+class DL2EventPreprocessor(Component):
     """Defines pre-selection cuts and the necessary renaming of columns."""
 
-    classes = [EventQualityQuery]
+    classes = [DL2EventQualityQuery]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -106,7 +104,7 @@ class EventPreprocessor(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
-        self.quality_query = EventQualityQuery(parent=self)
+        self.quality_query = DL2EventQualityQuery(parent=self)
 
     @default("columns_to_rename")
     def _default_columns_to_rename(self):
@@ -233,12 +231,12 @@ class EventPreprocessor(Component):
         )
 
 
-class EventLoader(Component):
+class DL2EventLoader(Component):
     """
     Component for loading events and simulation metadata, applying preselection and optional derived column logic.
     """
 
-    classes = [EventPreprocessor]
+    classes = [DL2EventPreprocessor]
 
     # User-selectable event reading function and kwargs
     event_reader_function = Unicode(
@@ -254,9 +252,11 @@ class EventLoader(Component):
         help="Extra keyword arguments passed to the event reading function, e.g., {'path': '/dl2/event/telescope/Reconstructor'}",
     ).tag(config=True)
 
-    def __init__(self, file: Path, target_spectrum: Spectra, **kwargs):
+    def __init__(self, file: Path, target_spectrum: "Spectra", **kwargs):  # noqa: F821
+        from ..irf.spectra import SPECTRA
+
         super().__init__(**kwargs)
-        self.epp = EventPreprocessor(parent=self)
+        self.epp = DL2EventPreprocessor(parent=self)
         self.target_spectrum = SPECTRA[target_spectrum]
         self.file = file
 
