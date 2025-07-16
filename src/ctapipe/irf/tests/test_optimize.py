@@ -8,8 +8,8 @@ from ctapipe.irf.optimize import CutOptimizerBase
 
 
 def test_optimization_result(tmp_path, irf_event_loader_test_config):
-    from ctapipe.io import (
-        DL2EventPreprocessor,
+    from ctapipe.io import DL2EventPreprocessor
+    from ctapipe.irf import (
         OptimizationResult,
         ResultValidRange,
     )
@@ -87,7 +87,8 @@ def test_cut_optimizer(
     proton_full_reco_file,
     irf_event_loader_test_config,
 ):
-    from ctapipe.io import DL2EventLoader, OptimizationResult, Spectra
+    from ctapipe.io import DL2EventLoader
+    from ctapipe.irf import OptimizationResult, Spectra
 
     gamma_loader = DL2EventLoader(
         config=irf_event_loader_test_config,

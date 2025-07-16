@@ -33,6 +33,25 @@ def dummy_cuts_file(
     return output_path
 
 
+"""
+@pytest.fixture(scope="module")
+def test_config():
+    return {
+        "DL2EventPreprocessor": {
+            "energy_reconstructor": "ExtraTreesRegressor",
+            "geometry_reconstructor": "HillasReconstructor",
+            "gammaness_classifier": "ExtraTreesClassifier",
+        },
+        "DL2EventQualityQuery": {
+            "quality_criteria": [
+            ("valid geom reco", "HillasReconstructor_is_valid"),
+                ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+            ]
+        }
+    }
+"""
+
+
 @pytest.mark.parametrize("include_background", (False, True))
 @pytest.mark.parametrize("spatial_selection_applied", (True, False))
 def test_irf_tool(

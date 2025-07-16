@@ -83,7 +83,8 @@ def test_make_2d_ang_res(irf_events_table):
 def test_make_2d_sensitivity(
     gamma_diffuse_full_reco_file, proton_full_reco_file, irf_event_loader_test_config
 ):
-    from ctapipe.io import DL2EventLoader, Sensitivity2dMaker, Spectra
+    from ctapipe.io import DL2EventLoader
+    from ctapipe.irf import Sensitivity2dMaker, Spectra
     from ctapipe.irf.tests.test_irfs import _check_boundaries_in_hdu
 
     gamma_loader = DL2EventLoader(
