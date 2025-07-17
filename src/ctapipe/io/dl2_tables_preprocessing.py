@@ -6,14 +6,26 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import Column, QTable, Table, vstack
-from pyirf.simulations import SimulatedEventsInfo
-from pyirf.spectral import (
-    DIFFUSE_FLUX_UNIT,
-    POINT_SOURCE_FLUX_UNIT,
-    PowerLaw,
-    calculate_event_weights,
-)
-from pyirf.utils import calculate_source_fov_offset, calculate_theta
+
+try:
+    from pyirf.simulations import SimulatedEventsInfo
+    from pyirf.spectral import (
+        DIFFUSE_FLUX_UNIT,
+        POINT_SOURCE_FLUX_UNIT,
+        PowerLaw,
+        calculate_event_weights,
+    )
+    from pyirf.utils import calculate_source_fov_offset, calculate_theta
+except ModuleNotFoundError:
+    SimulatedEventsInfo = None
+    DIFFUSE_FLUX_UNIT = None
+    POINT_SOURCE_FLUX_UNIT = None
+    PowerLaw = None
+    calculate_event_weights = None
+    calculate_source_fov_offset = None
+    calculate_theta = None
+
+
 from tables import NoSuchNodeError
 from traitlets import default
 
@@ -330,6 +342,11 @@ class DL2EventLoader(Component):
         NotImplementedError
             If simulation parameters vary across runs.
         """
+        from ..exceptions import OptionalDependencyMissing
+
+        if SimulatedEventsInfo is None:
+            raise OptionalDependencyMissing("pyirf")
+
         sim = loader.read_simulation_configuration()
         try:
             show = loader.read_shower_distribution()
