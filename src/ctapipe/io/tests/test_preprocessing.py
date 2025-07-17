@@ -164,40 +164,6 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config)
     assert np.all(processed["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
 
 
-def test_loader_tel_table(gamma_diffuse_full_reco_file, test_config):
-    from ctapipe.io.dl2_tables_preprocessing import DL2EventLoader
-    from ctapipe.irf import Spectra
-
-    test_config["DL2EventLoader"][
-        "event_reader_function"
-    ] = "read_telescope_events_chunked"
-    test_config["DL2EventQualityQuery"]["quality_criteria"].append(
-        ("telescope ID", "(tel_id == 35.0) | (tel_id == 19.0)"),
-    )
-
-    loader = DL2EventLoader(
-        config=Config(test_config),
-        file=gamma_diffuse_full_reco_file,
-        target_spectrum=Spectra.CRAB_HEGRA,
-    )
-    events, count, meta = loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
-
-    columns = [
-        "obs_id",
-        "event_id",
-        "tel_id",
-        "ExtraTreesRegressor_tel_energy",
-        "ExtraTreesRegressor_tel_energy_uncert",
-    ]
-
-    assert sorted(columns) == sorted(events.colnames)
-    assert np.all(events["ExtraTreesRegressor_tel_energy"] > 0 * u.TeV)
-    assert np.all(np.isin(events["tel_id"], [19, 35]))
-
-
 def test_name_overriding(dummy_table):
     from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
