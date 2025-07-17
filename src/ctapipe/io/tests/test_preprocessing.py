@@ -26,43 +26,6 @@ def dummy_table():
     )
 
 
-@pytest.fixture(scope="function")
-def test_config():
-    return {
-        "DL2EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
-        "DL2EventPreprocessor": {
-            "energy_reconstructor": "ExtraTreesRegressor",
-            "gammaness_classifier": "ExtraTreesClassifier",
-            "columns_to_rename": {},
-            "output_table_schema": [
-                Column(
-                    name="obs_id", dtype=np.uint64, description="Observation Block ID"
-                ),
-                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
-                Column(
-                    name="ExtraTreesRegressor_tel_energy",
-                    unit=u.TeV,
-                    description="Reconstructed energy",
-                ),
-                Column(
-                    name="ExtraTreesRegressor_tel_energy_uncert",
-                    unit=u.TeV,
-                    description="Reconstructed energy uncertainty",
-                ),
-            ],
-            "apply_derived_columns": False,
-            # "disable_column_renaming": True,
-            "apply_check_pointing": False,
-        },
-        "DL2EventQualityQuery": {
-            "quality_criteria": [
-                ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
-            ]
-        },
-    }
-
-
 def test_normalise_column_names(dummy_table):
     from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
