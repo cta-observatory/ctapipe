@@ -1,13 +1,4 @@
 """Module containing classes related to event loading and preprocessing"""
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import astropy
-    import pyirf
-
-    import ctapipe
 
 from pathlib import Path
 
@@ -15,6 +6,26 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import Column, QTable, Table, vstack
+
+try:
+    from pyirf.simulations import SimulatedEventsInfo
+    from pyirf.spectral import (
+        DIFFUSE_FLUX_UNIT,
+        POINT_SOURCE_FLUX_UNIT,
+        PowerLaw,
+        calculate_event_weights,
+    )
+    from pyirf.utils import calculate_source_fov_offset, calculate_theta
+except ModuleNotFoundError:
+    SimulatedEventsInfo = None
+    DIFFUSE_FLUX_UNIT = None
+    POINT_SOURCE_FLUX_UNIT = None
+    PowerLaw = None
+    calculate_event_weights = None
+    calculate_source_fov_offset = None
+    calculate_theta = None
+
+
 from tables import NoSuchNodeError
 from traitlets import default
 
@@ -307,25 +318,23 @@ class DL2EventLoader(Component):
             return table, n_raw_events, meta
 
     def get_simulation_information(
-        self,
-        loader: ctapipe.io.tableloader.TableLoader,
-        obs_time: astropy.units.Quantity,
-    ) -> tuple[pyirf.simulations.SimulatedEventsInfo, pyirf.spectral.PowerLaw]:
+        self, loader: TableLoader, obs_time: u.Quantity
+    ) -> tuple[SimulatedEventsInfo, PowerLaw]:
         """
         Extract simulation information from the input file.
 
         Parameters
         ----------
-        loader : ctapipe.io.tableloader.TableLoader
+        loader : TableLoader
             Loader object for reading from the input file.
-        obs_time : astropy.units.Quantity
+        obs_time : Quantity
             Total observation time.
 
         Returns
         -------
-        sim_info : pyirf.simulations.SimulatedEventsInfo
+        sim_info : SimulatedEventsInfo
             Metadata about the simulated events.
-        spectrum : pyirf.spectral.PowerLaw
+        spectrum : PowerLaw
             Power-law model derived from simulation configuration.
 
         Raises
@@ -333,9 +342,10 @@ class DL2EventLoader(Component):
         NotImplementedError
             If simulation parameters vary across runs.
         """
+        from ..exceptions import OptionalDependencyMissing
 
-        from pyirf.simulations import SimulatedEventsInfo
-        from pyirf.spectral import PowerLaw
+        if SimulatedEventsInfo is None:
+            raise OptionalDependencyMissing("pyirf")
 
         sim = loader.read_simulation_configuration()
         try:
@@ -375,8 +385,6 @@ class DL2EventLoader(Component):
         QTable
             Table with added derived columns.
         """
-        from pyirf.utils import calculate_source_fov_offset, calculate_theta
-
         events["theta"] = calculate_theta(
             events,
             assumed_source_az=events["true_az"],
@@ -405,28 +413,28 @@ class DL2EventLoader(Component):
 
     def make_event_weights(
         self,
-        events: astropy.table.QTable,
-        spectrum: pyirf.spectral.PowerLaw,
+        events: QTable,
+        spectrum: PowerLaw,
         kind: str,
-        fov_offset_bins: astropy.units.Quantity | None = None,
-    ) -> astropy.table.QTable:
+        fov_offset_bins: u.Quantity | None = None,
+    ) -> QTable:
         """
         Compute event weights to match the target spectrum.
 
         Parameters
         ----------
-        events : astropy.table.QTable
+        events : QTable
             Input events.
-        spectrum : pyirf.spectral.PowerLaw
+        spectrum : PowerLaw
             Spectrum from simulation.
         kind : str
             Type of events ("gammas", etc.).
-        fov_offset_bins : astropy.units.Quantity, optional
+        fov_offset_bins : Quantity, optional
             Offset bins for integrating the diffuse flux into point source bins.
 
         Returns
         -------
-        astropy.table.QTable
+        QTable
             Table with updated weights.
 
         Raises
@@ -434,12 +442,6 @@ class DL2EventLoader(Component):
         ValueError
             If ``fov_offset_bins`` is required but not provided.
         """
-        from pyirf.spectral import (
-            DIFFUSE_FLUX_UNIT,
-            POINT_SOURCE_FLUX_UNIT,
-            calculate_event_weights,
-        )
-
         if (
             kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
