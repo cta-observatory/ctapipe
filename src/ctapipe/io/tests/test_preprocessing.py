@@ -2,8 +2,6 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.table import Column, QTable, Table
-from pyirf.simulations import SimulatedEventsInfo
-from pyirf.spectral import PowerLaw
 from traitlets.config import Config
 
 
@@ -86,6 +84,10 @@ def test_normalise_column_names(dummy_table):
 
 
 def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config):
+    pytest.importorskip("pyirf", reason="pyirf is an optional dependency")
+    from pyirf.simulations import SimulatedEventsInfo
+    from pyirf.spectral import PowerLaw
+
     from ctapipe.io.dl2_tables_preprocessing import DL2EventLoader
     from ctapipe.irf import Spectra
 
