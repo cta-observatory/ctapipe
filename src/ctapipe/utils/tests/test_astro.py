@@ -2,21 +2,23 @@
 """
 This module contains the utils.astro unit tests
 """
+import warnings
 
 import numpy as np
+import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, Angle, EarthLocation, SkyCoord
 from astropy.time import Time
-
-from ..astro import get_bright_stars
+from erfa import ErfaWarning
 
 
 def test_get_bright_stars():
     """
     unit test for utils.astro.get_bright_stars_with_motion().
     """
-    # I will use polaris as a reference
     from astroquery.vizier import Vizier
+
+    from ctapipe.utils import get_bright_stars
 
     vizier = Vizier(
         catalog="Nomad",
@@ -24,6 +26,7 @@ def test_get_bright_stars():
         row_limit=10,
     )
 
+    # use polaris as a reference
     polaris = vizier.query_object("polaris", radius=1 * u.Unit("arcsec"))[0][0]
 
     t = Time("J2024")
@@ -36,7 +39,9 @@ def test_get_bright_stars():
         obstime=Time("J2000"),
     )
 
-    polaris_2024 = polaris.apply_space_motion(t)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ErfaWarning)
+        polaris_2024 = polaris.apply_space_motion(t)
 
     table_yale = get_bright_stars(t, pointing=polaris_2024, radius=1 * u.Unit("arcsec"))
     table_hip = get_bright_stars(
@@ -70,3 +75,24 @@ def test_get_bright_stars():
         lat=28.7616 * u.deg, lon=-17.8914 * u.deg, height=2200 * u.m
     )
     table_yale["ra_dec"].transform_to(AltAz(location=location, obstime=t))
+
+
+@pytest.mark.filterwarnings(
+    "error::astropy.coordinates.errors.NonRotationTransformationWarning"
+)
+@pytest.mark.filterwarnings("error::erfa.core.ErfaWarning")
+def test_warning():
+    """Test that get_bright_stars with radius given does not issue the NonRotationTransformationWarning."""
+    from ctapipe.utils import get_bright_stars
+
+    location = EarthLocation.of_site("Roque de los Muchachos")
+
+    obstime = Time("2025-01-01T23:00", scale="utc")
+    az_tel = 180 * u.deg
+    alt_tel = 70 * u.deg
+
+    horizon_frame = AltAz(location=location, obstime=obstime)
+
+    pointing = SkyCoord(az=az_tel, alt=alt_tel, frame=horizon_frame)
+
+    get_bright_stars(time=obstime, pointing=pointing, radius=3 * u.deg, magnitude_cut=8)
