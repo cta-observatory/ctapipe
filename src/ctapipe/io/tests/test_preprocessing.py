@@ -42,7 +42,7 @@ def test_normalise_column_names(dummy_table):
         Column(name="pointing_az", unit=u.deg, description="Pointing longitude"),
         Column(
             name="gh_score",
-            unit=u.dimensionless_unscaled,
+            dtype=np.float64,
             description="prediction of the classifier, defined between [0,1],"
             " where values close to 1 mean that the positive class"
             " (e.g. gamma in gamma-ray analysis) is more likely",

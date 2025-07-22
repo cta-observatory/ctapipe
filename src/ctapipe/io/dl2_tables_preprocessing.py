@@ -110,6 +110,13 @@ class DL2EventPreprocessor(Component):
             Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
             Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
             Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
+            Column(
+                name="gh_score",
+                dtype=np.float64,
+                description="prediction of the classifier, defined between [0,1],"
+                " where values close to 1 mean that the positive class"
+                " (e.g. gamma in gamma-ray analysis) is more likely",
+            ),
         ],
         help="Schema definition for output event QTable",
     ).tag(config=True)
@@ -219,15 +226,8 @@ class DL2EventPreprocessor(Component):
                         description="Reconstructed angular offset from pointing direction",
                     ),
                     Column(
-                        name="gh_score",
-                        unit=u.dimensionless_unscaled,
-                        description="prediction of the classifier, defined between [0,1],"
-                        " where values close to 1 mean that the positive class"
-                        " (e.g. gamma in gamma-ray analysis) is more likely",
-                    ),
-                    Column(
                         name="weight",
-                        unit=u.dimensionless_unscaled,
+                        dtype=np.float64,
                         description="Event weight",
                     ),
                 ]
@@ -405,10 +405,7 @@ class DL2EventLoader(Component):
         reco_nominal = reco.transform_to(nominal)
         events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
-        events["weight"] = (
-            1.0 * u.dimensionless_unscaled
-        )  # defer calculation of proper weights to later
-        events["gh_score"].unit = u.dimensionless_unscaled
+        events["weight"] = 1.0  # defer calculation of proper weights to later
         return events
 
     def make_event_weights(
