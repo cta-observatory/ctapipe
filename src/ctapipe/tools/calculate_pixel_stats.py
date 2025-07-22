@@ -182,7 +182,7 @@ class PixelStatisticsCalculatorTool(Tool):
                         "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
                         tel_id,
                     )
-            # Cnstruct the output table name based on the event type and the selected column name
+            # Construct the output table name based on the event type and the selected column name
             output_table_name = f"{EventType(dl1_table['event_type'][0]).name.lower()}_{self.input_column_name}"
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
