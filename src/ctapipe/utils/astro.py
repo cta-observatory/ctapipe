@@ -4,8 +4,8 @@ This module is intended to contain astronomy-related helper tools which are
 not provided by external packages and/or to satisfy particular needs of
 usage within ctapipe.
 """
-
 import logging
+import warnings
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
@@ -15,6 +15,7 @@ from astropy.coordinates import Angle, SkyCoord, UnitSphericalCosLatDifferential
 from astropy.table import Table
 from astropy.time import Time
 from astropy.units import Quantity
+from erfa import ErfaWarning
 
 log = logging.getLogger("main")
 
@@ -111,6 +112,7 @@ def select_stars(
 
     if radius is not None:
         if pointing:
+            pointing = pointing.transform_to(stars["ra_dec"].frame)
             stars_["separation"] = stars_["ra_dec"].separation(pointing)
             stars_ = stars_[stars_["separation"] < radius]
         else:
@@ -232,7 +234,14 @@ def get_bright_stars(
         frame=cat.coordinates["frame"],
         obstime=Time(cat.coordinates["epoch"]),
     )
-    stars["ra_dec"] = stars["ra_dec"].apply_space_motion(new_obstime=time)
+
+    with warnings.catch_warnings():
+        # ignore ErfaWarning for apply_space_motion, there is a warning raised
+        # for each star that is missing distance information that it is set to an "infinite distance"
+        # of 10 Mpc. See https://github.com/astropy/astropy/issues/11747
+        warnings.simplefilter("ignore", category=ErfaWarning)
+        stars["ra_dec"] = stars["ra_dec"].apply_space_motion(new_obstime=time)
+
     stars["ra_dec"].data.differentials["s"] = (
         stars["ra_dec"]
         .data.differentials["s"]
