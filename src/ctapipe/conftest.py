@@ -820,7 +820,11 @@ def irf_events_table():
     epp = DL2EventPreprocessor()
     tab = epp.make_empty_table()
 
-    ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
+    ids = ["obs_id", "event_id"]
+    unitless = set(
+        [colname for colname in tab.colnames if tab[colname].unit is None]
+    ) - set(ids)
+    bulk = set(tab.colnames) - set(ids) - set(unitless)
 
     id_tab = QTable(
         data=np.zeros((N, len(ids)), dtype=np.uint64),
