@@ -24,6 +24,9 @@ To read this data, there are two high-level APIs available:
 DL1 Data Format
 ===============
 
+DL1/Event Data format
+---------------------
+
 This describes data that change per-event.
 The following datasets will be written to the group ``/dl1/event/`` in the  output file:
 
@@ -49,6 +52,38 @@ The following datasets will be written to the group ``/dl1/event/`` in the  outp
       - tables of image parameters (one per telescope)
       - :py:class:`~ctapipe.containers.TelEventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`
 
+
+DL1/Monitoring Data Format
+--------------------------
+
+This describes data that change per-telescope, but not per regular physics event.
+This is used to store calibration and monitoring information, such as calibration events pixel statistics,
+pedestal values, and other per-telescope monitoring and calibration information.
+The following datasets will be written to the group ``/dl1/monitoring/`` in the output file:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Group/Dataset
+      - Description
+      - Contents
+    * - ``telescope/``
+      - Per-telescope monitoring information
+      - (group)
+    * - | ``telescope/calibration/camera/``
+        | ``coefficients/tel_{TEL_ID:03d}``
+      - tables of camera calibration coefficients (one per telescope)
+      - (TBU)
+    * - | ``telescope/calibration/camera/``
+        | ``pixel_statistics/{pixel_feature}/``
+        | ``tel_{TEL_ID:03d}``
+      - | feature statistics for each pixel in the camera (one per telescope).
+        | ``{pixel_feature}`` is defined as ``{event_type}_{feature_name}``.
+      - | :py:class:`~ctapipe.containers.EventType`,
+        | :py:class:`~ctapipe.containers.StatisticsContainer`,
+        | :py:class:`~ctapipe.containers.ImageStatisticsContainer`,
+        | :py:class:`~ctapipe.containers.IntensityStatisticsContainer`,
+        | :py:class:`~ctapipe.containers.PeakTimeStatisticsContainer`
 
 DL2 Data Format
 ===============

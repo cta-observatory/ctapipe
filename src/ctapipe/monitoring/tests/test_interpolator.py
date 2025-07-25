@@ -6,8 +6,9 @@ from astropy.table import Table
 from astropy.time import Time
 
 from ctapipe.monitoring.interpolation import (
-    FlatFieldInterpolator,
-    PedestalInterpolator,
+    FlatfieldImageInterpolator,
+    FlatfieldPeakTimeInterpolator,
+    PedestalImageInterpolator,
     PointingInterpolator,
 )
 
@@ -17,41 +18,45 @@ t0 = Time("2022-01-01T00:00:00")
 def test_chunk_selection(camera_geometry):
     table_ff = Table(
         {
-            "start_time": t0 + [0, 1, 2, 6] * u.s,
-            "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "relative_gain": [
-                np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]
-            ],
+            "time_start": t0 + [0, 1, 2, 6] * u.s,
+            "time_end": t0 + [2, 3, 4, 8] * u.s,
+            "mean": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "median": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "std": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
         },
     )
-    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff = FlatfieldImageInterpolator()
     interpolator_ff.add_table(1, table_ff)
 
     val1 = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
     val2 = interpolator_ff(tel_id=1, time=t0 + 1.7 * u.s)
     val3 = interpolator_ff(tel_id=1, time=t0 + 2.2 * u.s)
 
-    assert np.all(np.isclose(val1, np.full((2, len(camera_geometry)), 2)))
-    assert np.all(np.isclose(val2, np.full((2, len(camera_geometry)), 2)))
-    assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
+    for key in ["mean", "median", "std"]:
+        assert np.all(np.isclose(val1[key], np.full((2, len(camera_geometry)), 2)))
+        assert np.all(np.isclose(val2[key], np.full((2, len(camera_geometry)), 2)))
+        assert np.all(np.isclose(val3[key], np.full((2, len(camera_geometry)), 3)))
 
     table_ped = Table(
         {
-            "start_time": t0 + [0, 1, 2, 6] * u.s,
-            "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "pedestal": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "time_start": t0 + [0, 1, 2, 6] * u.s,
+            "time_end": t0 + [2, 3, 4, 8] * u.s,
+            "mean": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "median": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "std": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
         },
     )
-    interpolator_ped = PedestalInterpolator()
+    interpolator_ped = PedestalImageInterpolator()
     interpolator_ped.add_table(1, table_ped)
 
     val1 = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
     val2 = interpolator_ped(tel_id=1, time=t0 + 1.7 * u.s)
     val3 = interpolator_ped(tel_id=1, time=t0 + 2.2 * u.s)
 
-    assert np.all(np.isclose(val1, np.full((2, len(camera_geometry)), 2)))
-    assert np.all(np.isclose(val2, np.full((2, len(camera_geometry)), 2)))
-    assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
+    for key in ["mean", "median", "std"]:
+        assert np.all(np.isclose(val1[key], np.full((2, len(camera_geometry)), 2)))
+        assert np.all(np.isclose(val2[key], np.full((2, len(camera_geometry)), 2)))
+        assert np.all(np.isclose(val3[key], np.full((2, len(camera_geometry)), 3)))
 
 
 def test_nan_switch(camera_geometry):
@@ -63,12 +68,14 @@ def test_nan_switch(camera_geometry):
 
     table_ff = Table(
         {
-            "start_time": t0 + [0, 1, 2, 6] * u.s,
-            "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "relative_gain": data,
+            "time_start": t0 + [0, 1, 2, 6] * u.s,
+            "time_end": t0 + [2, 3, 4, 8] * u.s,
+            "mean": data,
+            "median": data,
+            "std": data,
         },
     )
-    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff = FlatfieldImageInterpolator()
     interpolator_ff.add_table(1, table_ff)
 
     val = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
@@ -78,49 +85,59 @@ def test_nan_switch(camera_geometry):
         0
     ] = 1  # where the nan was introduced before we should now have the value from the earlier chunk
 
-    assert np.all(np.isclose(val, res))
+    for key in ["mean", "median", "std"]:
+        assert np.all(np.isclose(val[key], res))
 
     table_ped = Table(
         {
-            "start_time": t0 + [0, 1, 2, 6] * u.s,
-            "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "pedestal": data,
+            "time_start": t0 + [0, 1, 2, 6] * u.s,
+            "time_end": t0 + [2, 3, 4, 8] * u.s,
+            "mean": data,
+            "median": data,
+            "std": data,
         },
     )
-    interpolator_ped = PedestalInterpolator()
+    interpolator_ped = PedestalImageInterpolator()
     interpolator_ped.add_table(1, table_ped)
 
     val = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
 
-    assert np.all(np.isclose(val, res))
+    for key in ["mean", "median", "std"]:
+        assert np.all(np.isclose(val[key], res))
 
 
 def test_no_valid_chunk():
     table_ff = Table(
         {
-            "start_time": t0 + [0, 1, 2, 6] * u.s,
-            "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "relative_gain": [1, 2, 3, 4],
+            "time_start": t0 + [0, 1, 2, 6] * u.s,
+            "time_end": t0 + [2, 3, 4, 8] * u.s,
+            "mean": [1, 2, 3, 4],
+            "median": [1, 2, 3, 4],
+            "std": [1, 2, 3, 4],
         },
     )
-    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff = FlatfieldPeakTimeInterpolator()
     interpolator_ff.add_table(1, table_ff)
 
     val = interpolator_ff(tel_id=1, time=t0 + 5.2 * u.s)
-    assert np.isnan(val)
+    for key in ["mean", "median", "std"]:
+        assert np.isnan(val[key])
 
     table_ped = Table(
         {
-            "start_time": t0 + [0, 1, 2, 6] * u.s,
-            "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "pedestal": [1, 2, 3, 4],
+            "time_start": t0 + [0, 1, 2, 6] * u.s,
+            "time_end": t0 + [2, 3, 4, 8] * u.s,
+            "mean": [1, 2, 3, 4],
+            "median": [1, 2, 3, 4],
+            "std": [1, 2, 3, 4],
         },
     )
-    interpolator_ped = PedestalInterpolator()
+    interpolator_ped = PedestalImageInterpolator()
     interpolator_ped.add_table(1, table_ped)
 
     val = interpolator_ped(tel_id=1, time=t0 + 5.2 * u.s)
-    assert np.isnan(val)
+    for key in ["mean", "median", "std"]:
+        assert np.isnan(val[key])
 
 
 def test_azimuth_switchover():

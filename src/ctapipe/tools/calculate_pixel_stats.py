@@ -7,6 +7,7 @@ import pathlib
 import numpy as np
 from astropy.table import vstack
 
+from ctapipe.containers import EventType
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
@@ -54,12 +55,6 @@ class PixelStatisticsCalculatorTool(Tool):
         help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
-    output_table_name = Unicode(
-        default_value="statistics",
-        allow_none=False,
-        help="Table name of the output statistics",
-    ).tag(config=True)
-
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
@@ -85,6 +80,7 @@ class PixelStatisticsCalculatorTool(Tool):
     ] + classes_with_traits(PixelStatisticsCalculator)
 
     DL1_COLUMN_NAMES = ["image", "peak_time"]
+    CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
     def setup(self):
         # Read the input data with the 'TableLoader'
@@ -186,20 +182,19 @@ class PixelStatisticsCalculatorTool(Tool):
                         "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
                         tel_id,
                     )
-            # Add metadata to the aggregated statistics
-            aggregated_stats.meta["event_type"] = dl1_table["event_type"][0]
-            aggregated_stats.meta["input_column_name"] = self.input_column_name
+            # Construct the output table name based on the event type and the selected column name
+            output_table_name = f"{EventType(dl1_table['event_type'][0]).name.lower()}_{self.input_column_name}"
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
                 aggregated_stats,
                 self.output_path,
-                f"/dl1/monitoring/telescope/{self.output_table_name}/tel_{tel_id:03d}",
+                f"{self.CAMERA_MONITORING_GROUP}/pixel_statistics/{output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
-            f"/dl1/monitoring/telescope/{self.output_table_name}",
+            f"{self.CAMERA_MONITORING_GROUP}/pixel_statistics/{output_table_name}",
         )
 
     def finish(self):

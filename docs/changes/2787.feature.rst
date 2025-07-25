@@ -1,0 +1,1 @@
+Enable ``ctapipe-merge`` to be used on camera calibration data and pixel statistics aggregation.

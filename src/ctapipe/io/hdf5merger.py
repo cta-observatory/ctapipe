@@ -7,6 +7,7 @@ from pathlib import Path
 import tables
 from astropy.time import Time
 
+from ..containers import EventType
 from ..core import Component, Provenance, traits
 from ..instrument.optics import FocalLengthKind
 from ..instrument.subarray import SubarrayDescription
@@ -20,10 +21,10 @@ class NodeType(enum.Enum):
     TABLE = enum.auto()
     # a group comprising tel_XXX tables
     TEL_GROUP = enum.auto()
-    # a group with children of the form /<property group>/<algorithm table>
-    ALGORITHM_GROUP = enum.auto()
-    # a group with children of the form /<property group>/<algorithm group>/<tel_XXX table>
-    ALGORITHM_TEL_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<iter table>
+    ITER_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<iter group>/<tel_XXX table>
+    ITER_TEL_GROUP = enum.auto()
 
 
 #: nodes to check for merge-ability
@@ -44,11 +45,16 @@ _NODES_TO_CHECK = {
     "/dl1/event/telescope/images": NodeType.TEL_GROUP,
     "/dl1/event/telescope/parameters": NodeType.TEL_GROUP,
     "/dl1/event/telescope/muon": NodeType.TEL_GROUP,
-    "/dl2/event/telescope": NodeType.ALGORITHM_TEL_GROUP,
-    "/dl2/event/subarray": NodeType.ALGORITHM_GROUP,
+    "/dl2/event/telescope": NodeType.ITER_TEL_GROUP,
+    "/dl2/event/subarray": NodeType.ITER_GROUP,
     "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
     "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
+    "/dl1/monitoring/telescope/camera/calibration_coefficients/": NodeType.TEL_GROUP,
 }
+
+# Column names used for the DL1A data
+DL1_COLUMN_NAMES = ["image", "peak_time"]
+CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
 
 def _get_required_nodes(h5file):
@@ -61,15 +67,15 @@ def _get_required_nodes(h5file):
         if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
             required_nodes.add(node)
 
-        elif node_type is NodeType.ALGORITHM_GROUP:
+        elif node_type is NodeType.ITER_GROUP:
             for kind_group in h5file.root[node]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
                     required_nodes.add(table._v_pathname)
 
-        elif node_type is NodeType.ALGORITHM_TEL_GROUP:
+        elif node_type is NodeType.ITER_TEL_GROUP:
             for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    required_nodes.add(algorithm_group._v_pathname)
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    required_nodes.add(iter_group._v_pathname)
         else:
             raise ValueError(f"Unhandled node type: {node_type} of {node}")
 
@@ -396,8 +402,8 @@ class HDF5Merger(Component):
         key = "/dl2/event/telescope"
         if self.telescope_events and self.dl2_telescope and key in other.root:
             for kind_group in other.root[key]._f_iter_nodes("Group"):
-                for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    self._append_table_group(other, algorithm_group)
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    self._append_table_group(other, iter_group)
 
         key = "/dl2/event/subarray"
         if self.dl2_subarray and key in other.root:
@@ -405,7 +411,7 @@ class HDF5Merger(Component):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
 
-        # monitoring
+        # Pointing monitoring
         key = "/dl1/monitoring/subarray/pointing"
         if self.monitoring and key in other.root:
             self._append_table(other, other.root[key])
@@ -413,6 +419,18 @@ class HDF5Merger(Component):
         key = "/dl1/monitoring/telescope/pointing"
         if self.monitoring and self.telescope_events and key in other.root:
             self._append_table_group(other, other.root[key])
+
+        # Calibration coefficients monitoring
+        key = f"{CAMERA_MONITORING_GROUP}/coefficients/"
+        if self.monitoring and self.telescope_events and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        # Pixel statistics monitoring
+        for dl1_colname in DL1_COLUMN_NAMES:
+            for event_type in EventType:
+                key = f"{CAMERA_MONITORING_GROUP}/pixel_statistics/{event_type.name.lower()}_{dl1_colname}"
+                if self.monitoring and self.telescope_events and key in other.root:
+                    self._append_table_group(other, other.root[key])
 
         # quality query statistics
         key = "/dl1/service/image_statistics"
