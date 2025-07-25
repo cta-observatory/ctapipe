@@ -460,6 +460,10 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics of a chunk of images"""
 
+    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
+    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk")
+    event_id_end = Field(None, "event id of the last event of the chunk")
     n_events = Field(-1, "number of events used for the extraction of the statistics")
     mean = Field(
         None,
@@ -475,6 +479,19 @@ class StatisticsContainer(Container):
         None,
         "standard deviation of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    outlier_mask = Field(
+        None,
+        "Boolean mask indicating which pixels are considered outliers."
+        " Shape: (n_channels, n_pixels)",
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if the pixel statistics are valid, False if they are not valid or "
+            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
+            "is detected across the chunk of images."
+        ),
     )
 
 
@@ -593,31 +610,43 @@ class DL1Container(Container):
 
 class DL1CameraCalibrationContainer(Container):
     """
-    Storage of DL1 calibration parameters for the current event
+    Storage of DL1 camera calibration coefficients for a given time period.
     """
 
+    time = Field(
+        NAN_TIME,
+        "validity start time of the camera calibration coefficients.",
+    )
     pedestal_offset = Field(
         None,
         "Residual mean pedestal of the waveforms for each pixel."
         " This value is subtracted from the waveforms of each pixel before"
         " the pulse extraction. Shape: (n_channels, n_pixels)",
     )
-    absolute_factor = Field(
+    factor = Field(
         None,
-        "Multiplicative coefficients for the absolute calibration of extracted charge"
+        "Multiplicative coefficients for the calibration of extracted charge"
         " into physical units (e.g. photoelectrons or photons) for each pixel."
-        " Shape: (n_channels, n_pixels)",
-    )
-    relative_factor = Field(
-        None,
-        "Multiplicative Coefficients for the relative correction between pixels to"
-        " achieve a uniform charge response (post absolute calibration) from a"
-        " uniform illumination. Shape: (n_channels, n_pixels)",
+        " The coefficients include the relative correction between pixels to"
+        " achieve a uniform charge response. Shape: (n_channels, n_pixels)",
     )
     time_shift = Field(
         None,
         "Additive coefficients for the timing correction before charge extraction"
         " for each pixel. Shape: (n_channels, n_pixels)",
+    )
+    outlier_mask = Field(
+        None,
+        "Boolean mask indicating which pixels are considered outliers."
+        " Shape: (n_channels, n_pixels)",
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if the coefficients are valid, False if they are not valid or "
+            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
+            "is detected during the time period."
+        ),
     )
 
 
