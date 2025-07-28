@@ -31,7 +31,6 @@ from .optimize import (
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
-from .preprocessing import EventLoader, EventPreprocessor
 from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
 
 __all__ = [
@@ -46,8 +45,6 @@ __all__ = [
     "OptimizationResult",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
-    "EventLoader",
-    "EventPreprocessor",
     "Spectra",
     "GhPercentileCutCalculator",
     "ThetaPercentileCutCalculator",
