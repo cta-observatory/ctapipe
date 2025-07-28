@@ -1,0 +1,3 @@
+Add support for the full cut optimization introduced in pyirf 0.13.
+This can now be used via the ``PointSourceSensitvityOptimizer``,
+while the previous EventDisplay-like optimization can be used via the ``PointSourceSensitvityGhOptimizer``.

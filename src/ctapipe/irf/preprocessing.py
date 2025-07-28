@@ -35,10 +35,6 @@ class EventQualityQuery(QualityQuery):
     quality_criteria = List(
         Tuple(Unicode(), Unicode()),
         default_value=[
-            (
-                "multiplicity 4",
-                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-            ),
             ("valid classifier", "RandomForestClassifier_is_valid"),
             ("valid geom reco", "HillasReconstructor_is_valid"),
             ("valid energy reco", "RandomForestRegressor_is_valid"),
@@ -49,8 +45,6 @@ class EventQualityQuery(QualityQuery):
 
 class EventPreprocessor(Component):
     """Defines pre-selection cuts and the necessary renaming of columns."""
-
-    classes = [EventQualityQuery]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -87,6 +81,10 @@ class EventPreprocessor(Component):
             "true_energy",
             "true_az",
             "true_alt",
+            # only for calculating event multiplicity below
+            f"{self.energy_reconstructor}_telescopes",
+            f"{self.geometry_reconstructor}_telescopes",
+            f"{self.gammaness_classifier}_telescopes",
         ]
         rename_from = [
             f"{self.energy_reconstructor}_energy",
@@ -193,6 +191,11 @@ class EventPreprocessor(Component):
                 unit=u.dimensionless_unscaled,
                 description="Event weight",
             ),
+            Column(
+                name="multiplicity",
+                unit=u.dimensionless_unscaled,
+                description="Event multiplicity",
+            ),
         ]
 
         return QTable(columns)
@@ -203,8 +206,6 @@ class EventLoader(Component):
     Contains functions to load events and simulation information from a file
     and derive some additional columns needed for irf calculation.
     """
-
-    classes = [EventPreprocessor]
 
     def __init__(self, file: Path, target_spectrum: Spectra, **kwargs):
         super().__init__(**kwargs)
@@ -267,6 +268,32 @@ class EventLoader(Component):
             1.0 * u.dimensionless_unscaled
         )  # defer calculation of proper weights to later
         events["gh_score"].unit = u.dimensionless_unscaled
+
+        # define event multiplicity as lowest multiplicity between the 3 reconstructions
+        events["multiplicity"] = np.min(
+            [
+                np.count_nonzero(
+                    events[f"{self.epp.energy_reconstructor}_telescopes"], axis=1
+                ),
+                np.count_nonzero(
+                    events[f"{self.epp.geometry_reconstructor}_telescopes"], axis=1
+                ),
+                np.count_nonzero(
+                    events[f"{self.epp.gammaness_classifier}_telescopes"], axis=1
+                ),
+            ],
+            axis=0,
+        )
+        events["multiplicity"].unit = u.dimensionless_unscaled
+        # delete "_telescope" columns as they are not needed downstream
+        events.remove_columns(
+            [
+                f"{self.epp.energy_reconstructor}_telescopes",
+                f"{self.epp.geometry_reconstructor}_telescopes",
+                f"{self.epp.gammaness_classifier}_telescopes",
+            ]
+        )
+
         events["theta"] = calculate_theta(
             events,
             assumed_source_az=events["true_az"],
