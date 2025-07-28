@@ -84,7 +84,12 @@ class DL2EventPreprocessor(Component):
     ).tag(config=True)
 
     apply_check_pointing = Bool(
-        default_value=True, help="Accept only pointing in altaz and not divergent."
+        default_value=True,
+        help=(
+            "Check whether the pointing is supported."
+            "For the moment, only pointing in altaz is supported."
+            "Divergent pointing is also not supported."
+        ),
     ).tag(config=True)
 
     columns_to_rename = Dict(
