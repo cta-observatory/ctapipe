@@ -43,12 +43,8 @@ SQRT2 = np.sqrt(2)
 def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
+
     A circular mirror is used for signal, and a circular camera is used for shadowing.
-
-    Source: https://doi.org/10.1016/0927-6505(94)90012-4
-    Equation 6: for effective chord length calculations inside/outside the ring.
-    Equation 7: for filtering out non-physical solutions.
-
 
     Parameters
     ----------
@@ -63,6 +59,14 @@ def chord_length(radius, rho, phi):
     -------
     float or ndarray:
         effective chord length
+
+    References
+    ----------
+    See :cite:p:`vacanti19941`.
+    Equation 6: for effective chord length calculations inside/outside the ring.
+    Equation 7: for filtering out non-physical solutions.
+
+
     """
     discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
     valid = discriminant_norm >= 0
