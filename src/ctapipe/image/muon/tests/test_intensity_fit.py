@@ -18,6 +18,11 @@ def test_chord_length():
     length = chord_length(radius, rho, phi)
     assert np.isclose(length, 0, atol=1e-15)
 
+    rho = 3
+    phi = np.deg2rad(180)
+    length = chord_length(radius, rho, phi)
+    assert np.isclose(length, 0, atol=1e-15)
+
 
 def test_muon_efficiency_fit(prod5_lst, reference_location):
     from ctapipe.coordinates import TelescopeFrame
