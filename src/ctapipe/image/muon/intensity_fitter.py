@@ -70,10 +70,10 @@ def chord_length(radius, rho, phi):
     else:
         # muon did not hit the mirror
         # Filtering out non-physical solutions for phi
-        if np.abs(phi) < np.arcsin(1.0 / rho):
-            chord = 2 * radius * np.sqrt(chord)
-        else:
-            return 0
+        # if np.abs(phi) < np.arcsin(1.0 / rho):
+        chord = 2 * radius * np.sqrt(chord)
+        # else:
+        # return 0
 
     return chord
 
