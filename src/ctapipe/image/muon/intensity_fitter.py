@@ -42,7 +42,12 @@ SQRT2 = np.sqrt(2)
 @vectorize([double(double, double, double)], cache=True)
 def chord_length(radius, rho, phi):
     """
-    Function for integrating the length of a chord across a circle (effective chord length)
+    Function for integrating the length of a chord across a circle (effective chord length).
+    A circular mirror is used for signal, and a circular camera is used for shadowing.
+
+    Source: https://doi.org/10.1016/0927-6505(94)90012-4
+    Equation 6: for effective chord length calculations inside/outside the ring.
+    Equation 7: for filtering out non-physical solutions.
 
 
     Parameters
