@@ -42,7 +42,8 @@ SQRT2 = np.sqrt(2)
 @vectorize([double(double, double, double)], cache=True)
 def chord_length(radius, rho, phi):
     """
-    Function for integrating the length of a chord across a circle
+    Function for integrating the length of a chord across a circle (effective chord length)
+
 
     Parameters
     ----------
@@ -56,7 +57,7 @@ def chord_length(radius, rho, phi):
     Returns
     -------
     float or ndarray:
-        chord length
+        effective chord length
     """
     discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
     valid = discriminant_norm >= 0
@@ -66,16 +67,18 @@ def chord_length(radius, rho, phi):
 
     if rho <= 1.0:
         # muon has hit the mirror
-        chord = radius * (np.sqrt(discriminant_norm) + rho * np.cos(phi))
+        effective_chord_length = radius * (
+            np.sqrt(discriminant_norm) + rho * np.cos(phi)
+        )
     else:
         # muon did not hit the mirror
         # Filtering out non-physical solutions for phi
         if np.abs(phi) < np.arcsin(1.0 / rho):
-            chord = 2 * radius * np.sqrt(discriminant_norm)
+            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
         else:
             return 0
 
-    return chord
+    return effective_chord_length
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
