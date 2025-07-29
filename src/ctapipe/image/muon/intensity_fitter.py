@@ -58,20 +58,20 @@ def chord_length(radius, rho, phi):
     float or ndarray:
         chord length
     """
-    chord = 1 - (rho**2 * np.sin(phi) ** 2)
-    valid = chord >= 0
+    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
+    valid = discriminant_norm >= 0
 
     if not valid:
         return 0
 
     if rho <= 1.0:
         # muon has hit the mirror
-        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        chord = radius * (np.sqrt(discriminant_norm) + rho * np.cos(phi))
     else:
         # muon did not hit the mirror
         # Filtering out non-physical solutions for phi
         if np.abs(phi) < np.arcsin(1.0 / rho):
-            chord = 2 * radius * np.sqrt(chord)
+            chord = 2 * radius * np.sqrt(discriminant_norm)
         else:
             return 0
 
