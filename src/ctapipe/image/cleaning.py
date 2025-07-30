@@ -583,8 +583,7 @@ def nsb_image_cleaning(
         threshold parameters for `tailcuts_clean` considering the current background.
         Has no effect if ``pedestal_std`` is set to None.
     pedestal_std : np.ndarray | None
-        Pedestal standard deviation for each pixel. See
-        `ctapipe.containers.PedestalContainer`. Used to calculate pixelwise picture
+        Pedestal standard deviation for each pixel. Used to calculate pixelwise picture
         threshold parameters for `tailcuts_clean` by multiplying it with ``pedestal_factor``
         and clip (limit) the product with ``picture_thresh_min``. If set to None, only
         ``picture_thresh_min`` is used to set the picture threshold for `tailcuts_clean`.
