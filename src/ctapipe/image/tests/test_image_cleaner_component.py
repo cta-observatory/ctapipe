@@ -43,7 +43,7 @@ def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
     )
 
     monitoring = MonitoringCameraContainer()
-    monitoring.pedestal.charge_std = np.ones(
+    monitoring.pixel_statistics.sky_pedestal_image.std = np.ones(
         prod5_mst_nectarcam.camera.geometry.n_pixels
     )
 

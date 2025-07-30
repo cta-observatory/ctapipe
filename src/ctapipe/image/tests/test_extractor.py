@@ -929,9 +929,7 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
 
                 waveforms = event.r1.tel[tel_id].waveform
                 selected_gain_channel = np.zeros(waveforms.shape[-2], dtype=np.int64)
-                broken_pixels = event.mon.tel[
-                    tel_id
-                ].pixel_status.hardware_failing_pixels
+                broken_pixels = event.calibration.tel[tel_id].dl1.outlier_mask
 
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid
