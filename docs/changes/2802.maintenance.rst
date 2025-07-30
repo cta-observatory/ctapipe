@@ -1,2 +1,2 @@
 - ditch old cam calib containers and classes
-- establish interface camera calibration data from calibpipe 
+- establish interface camera calibration data from calibpipe
