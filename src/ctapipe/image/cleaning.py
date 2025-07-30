@@ -669,7 +669,7 @@ class ImageCleaner(TelescopeComponent):
             image of arrival time (not used in this method)
         monitoring : `ctapipe.containers.MonitoringCameraContainer`
             `ctapipe.containers.MonitoringCameraContainer` to make use of
-            additional parameters from monitoring data e.g. pedestal std.
+            additional parameters from monitoring data e.g. sky pedestal std.
 
         Returns
         -------
@@ -798,7 +798,7 @@ class NSBImageCleaner(TailcutsImageCleaner):
         """
         pedestal_std = None
         if monitoring is not None:
-            pedestal_std = monitoring.pedestal.charge_std
+            pedestal_std = monitoring.pixel_statistics.sky_pedestal_image.std
 
         return nsb_image_cleaning(
             self.subarray.tel[tel_id].camera.geometry,

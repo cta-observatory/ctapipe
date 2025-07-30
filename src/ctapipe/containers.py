@@ -17,7 +17,6 @@ __all__ = [
     "ConcentrationContainer",
     "DL0CameraContainer",
     "DL0Container",
-    "DL1CameraCalibrationContainer",
     "DL1CameraContainer",
     "DL1Container",
     "DL2Container",
@@ -25,11 +24,11 @@ __all__ = [
     "EventCameraCalibrationContainer",
     "EventIndexContainer",
     "EventType",
-    "FlatFieldContainer",
     "HillasParametersContainer",
     "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
+    "MonitoringCameraCalibrationContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
@@ -42,8 +41,7 @@ __all__ = [
     "CameraHillasParametersContainer",
     "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
-    "PedestalContainer",
-    "PixelStatusContainer",
+    "PixelStatisticsContainer",
     "R0CameraContainer",
     "R0Container",
     "R1CameraContainer",
@@ -60,7 +58,6 @@ __all__ = [
     "BaseTimingParametersContainer",
     "TimingParametersContainer",
     "TriggerContainer",
-    "WaveformCalibrationContainer",
     "StatisticsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
@@ -457,44 +454,6 @@ class MorphologyContainer(Container):
     n_large_islands = Field(-1, "Number of > 50 pixel islands")
 
 
-class StatisticsContainer(Container):
-    """Store descriptive statistics of a chunk of images"""
-
-    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
-    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
-    event_id_start = Field(None, "event id of the first event of the chunk")
-    event_id_end = Field(None, "event id of the last event of the chunk")
-    n_events = Field(-1, "number of events used for the extraction of the statistics")
-    mean = Field(
-        None,
-        "mean of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    median = Field(
-        None,
-        "median of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    std = Field(
-        None,
-        "standard deviation of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    outlier_mask = Field(
-        None,
-        "Boolean mask indicating which pixels are considered outliers."
-        " Shape: (n_channels, n_pixels)",
-    )
-    is_valid = Field(
-        False,
-        (
-            "True if the pixel statistics are valid, False if they are not valid or "
-            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
-            "is detected across the chunk of images."
-        ),
-    )
-
-
 class ImageStatisticsContainer(Container):
     """Store descriptive image statistics"""
 
@@ -605,48 +564,6 @@ class DL1Container(Container):
     tel = Field(
         default_factory=partial(Map, DL1CameraContainer),
         description="map of tel_id to DL1CameraContainer",
-    )
-
-
-class DL1CameraCalibrationContainer(Container):
-    """
-    Storage of DL1 camera calibration coefficients for a given time period.
-    """
-
-    time = Field(
-        NAN_TIME,
-        "validity start time of the camera calibration coefficients.",
-    )
-    pedestal_offset = Field(
-        None,
-        "Residual mean pedestal of the waveforms for each pixel."
-        " This value is subtracted from the waveforms of each pixel before"
-        " the pulse extraction. Shape: (n_channels, n_pixels)",
-    )
-    factor = Field(
-        None,
-        "Multiplicative coefficients for the calibration of extracted charge"
-        " into physical units (e.g. photoelectrons or photons) for each pixel."
-        " The coefficients include the relative correction between pixels to"
-        " achieve a uniform charge response. Shape: (n_channels, n_pixels)",
-    )
-    time_shift = Field(
-        None,
-        "Additive coefficients for the timing correction before charge extraction"
-        " for each pixel. Shape: (n_channels, n_pixels)",
-    )
-    outlier_mask = Field(
-        None,
-        "Boolean mask indicating which pixels are considered outliers."
-        " Shape: (n_channels, n_pixels)",
-    )
-    is_valid = Field(
-        False,
-        (
-            "True if the coefficients are valid, False if they are not valid or "
-            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
-            "is detected during the time period."
-        ),
     )
 
 
@@ -815,6 +732,7 @@ class TelescopeImpactParameterContainer(Container):
     distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
 
 
+# Simulation containers
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -960,6 +878,33 @@ class SimulationConfigContainer(Container):
     )
 
 
+class SimulatedShowerDistribution(Container):
+    """
+    2D histogram of simulated number of showers simulated as function of energy and
+    core distance.
+    """
+
+    default_prefix = ""
+
+    obs_id = obs_id_field()
+    hist_id = Field(-1, description="Histogram ID")
+    n_entries = Field(-1, description="Number of entries in the histogram")
+    bins_energy = Field(
+        None,
+        description="array of energy bin lower edges, as in np.histogram",
+        unit=u.TeV,
+    )
+    bins_core_dist = Field(
+        None,
+        description="array of core-distance bin lower edges, as in np.histogram",
+        unit=u.m,
+    )
+    histogram = Field(
+        None, description="array of histogram entries, size (n_bins_x, n_bins_y)"
+    )
+
+
+# Trigger containers
 class TelescopeTriggerContainer(Container):
     default_prefix = ""
     time = Field(NAN_TIME, description="Telescope trigger time")
@@ -984,6 +929,7 @@ class TriggerContainer(Container):
     )
 
 
+# Reconstruction containers
 class ReconstructedGeometryContainer(Container):
     """
     Standard output of algorithms reconstructing shower geometry
@@ -1165,6 +1111,8 @@ class DL2Container(Container):
     )
 
 
+# Calibration containers
+# Pointing containers
 class TelescopePointingContainer(Container):
     """
     Container holding pointing information for a single telescope
@@ -1189,14 +1137,149 @@ class PointingContainer(Container):
     array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
 
 
+# Camera containers
+class CameraCalibrationCoefficientsContainer(Container):
+    """
+    Storage of camera calibration coefficients for the current event
+    """
+
+    pedestal_offset = Field(
+        None,
+        "Residual mean pedestal of the waveforms for each pixel."
+        " This value is subtracted from the waveforms of each pixel before"
+        " the pulse extraction. Shape: (n_channels, n_pixels)",
+    )
+    factor = Field(
+        None,
+        "Multiplicative coefficients for the calibration of extracted charge"
+        " into physical units (e.g. photoelectrons or photons) for each pixel."
+        " The coefficients include the relative correction between pixels to"
+        " achieve a uniform charge response. Shape: (n_channels, n_pixels)",
+    )
+    time_shift = Field(
+        None,
+        "Additive coefficients for the timing correction before charge extraction"
+        " for each pixel. Shape: (n_channels, n_pixels)",
+    )
+    outlier_mask = Field(
+        None,
+        "Boolean mask indicating which pixels are considered outliers."
+        " Shape: (n_channels, n_pixels)",
+    )
+
+
+class MonitoringCameraCalibrationContainer(CameraCalibrationCoefficientsContainer):
+    """
+    Storage of DL1 camera calibration coefficients for a given time period.
+    """
+
+    time = Field(
+        NAN_TIME,
+        "validity start time of the camera calibration coefficients.",
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if the coefficients are valid, False if they are not valid or "
+            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
+            "is detected during the time period."
+        ),
+    )
+
+
+class StatisticsContainer(Container):
+    """Store descriptive statistics of a chunk of images"""
+
+    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
+    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk")
+    event_id_end = Field(None, "event id of the last event of the chunk")
+    n_events = Field(-1, "number of events used for the extraction of the statistics")
+    mean = Field(
+        None,
+        "mean of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    median = Field(
+        None,
+        "median of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    std = Field(
+        None,
+        "standard deviation of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    outlier_masks = Field(
+        None,
+        "Boolean masks indicating which pixels are considered outliers."
+        " Type: dict; Shape: {'outlier_mask': (n_channels, n_pixels),...}",
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if the pixel statistics are valid, False if they are not valid or "
+            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
+            "is detected across the chunk of images."
+        ),
+    )
+
+
+class PixelStatisticsContainer(Container):
+    """
+    Container for pixel statistics from flat-field and sky pedestal events
+    """
+
+    flatfield_image = Field(
+        default_factory=StatisticsContainer,
+        description="Data from flat-field event distributions",
+    )
+    flatfield_peak_time = Field(
+        default_factory=StatisticsContainer,
+        description="Data from flat-field event distributions",
+    )
+    sky_pedestal_image = Field(
+        default_factory=StatisticsContainer,
+        description="Data from sky pedestal event distributions",
+    )
+
+
+class MonitoringCameraContainer(Container):
+    """
+    Container for camera monitoring data
+    """
+
+    pixel_statistics = Field(
+        default_factory=PixelStatisticsContainer,
+        description="Data from flat-field event distributions",
+    )
+
+    coefficients = Field(
+        default_factory=MonitoringCameraCalibrationContainer,
+        description="Container for calibration coefficients",
+    )
+
+
+class MonitoringContainer(Container):
+    """
+    Root container for monitoring data (MON)
+    """
+
+    # create the camera container
+    tel = Field(
+        default_factory=partial(Map, MonitoringCameraContainer),
+        description="map of tel_id to MonitoringCameraContainer",
+    )
+
+
 class EventCameraCalibrationContainer(Container):
     """
-    Container for the calibration coefficients for the current event and camera
+    Container for the camera calibration coefficients for the current event
     """
 
     dl1 = Field(
-        default_factory=DL1CameraCalibrationContainer,
-        description="Container for DL1 calibration coefficients",
+        default_factory=CameraCalibrationCoefficientsContainer,
+        description="Container for DL1 camera calibration coefficients",
     )
 
 
@@ -1212,6 +1295,7 @@ class EventCalibrationContainer(Container):
     )
 
 
+# Muon containers
 class MuonRingContainer(Container):
     """Container for the result of a ring fit in telescope frame"""
 
@@ -1308,210 +1392,7 @@ class MuonContainer(Container):
     )
 
 
-class FlatFieldContainer(Container):
-    """
-    Container for flat-field parameters obtained from a set of
-    [n_events] flat-field events
-    """
-
-    sample_time = Field(
-        0 * u.s, "Time associated to the flat-field event set ", unit=u.s
-    )
-    sample_time_min = Field(
-        nan * u.s, "Minimum time of the flat-field events", unit=u.s
-    )
-    sample_time_max = Field(
-        nan * u.s, "Maximum time of the flat-field events", unit=u.s
-    )
-    n_events = Field(0, "Number of events used for statistics")
-
-    charge_mean = Field(None, "np array of signal charge mean (n_chan, n_pix)")
-    charge_median = Field(None, "np array of signal charge median (n_chan, n_pix)")
-    charge_std = Field(
-        None, "np array of signal charge standard deviation (n_chan, n_pix)"
-    )
-    time_mean = Field(None, "np array of signal time mean (n_chan, n_pix)", unit=u.ns)
-    time_median = Field(
-        None, "np array of signal time median (n_chan, n_pix)", unit=u.ns
-    )
-    time_std = Field(
-        None, "np array of signal time standard deviation (n_chan, n_pix)", unit=u.ns
-    )
-    relative_gain_mean = Field(
-        None, "np array of the relative flat-field coefficient mean (n_chan, n_pix)"
-    )
-    relative_gain_median = Field(
-        None, "np array of the relative flat-field coefficient  median (n_chan, n_pix)"
-    )
-    relative_gain_std = Field(
-        None,
-        "np array of the relative flat-field coefficient standard deviation (n_chan, n_pix)",
-    )
-    relative_time_median = Field(
-        None,
-        "np array of time (median) - time median averaged over camera (n_chan, n_pix)",
-        unit=u.ns,
-    )
-
-    charge_median_outliers = Field(
-        None, "Boolean np array of charge median outliers (n_chan, n_pix)"
-    )
-    charge_std_outliers = Field(
-        None, "Boolean np array of charge std outliers (n_chan, n_pix)"
-    )
-
-    time_median_outliers = Field(
-        None, "Boolean np array of pixel time (median) outliers (n_chan, n_pix)"
-    )
-
-
-class PedestalContainer(Container):
-    """
-    Container for pedestal parameters obtained from a set of
-    [n_pedestal] pedestal events
-    """
-
-    n_events = Field(-1, "Number of events used for statistics")
-    sample_time = Field(
-        nan * u.s, "Time associated to the pedestal event set", unit=u.s
-    )
-    sample_time_min = Field(nan * u.s, "Time of first pedestal event", unit=u.s)
-    sample_time_max = Field(nan * u.s, "Time of last pedestal event", unit=u.s)
-    charge_mean = Field(None, "np array of pedestal average (n_chan, n_pix)")
-    charge_median = Field(None, "np array of the pedestal  median (n_chan, n_pix)")
-    charge_std = Field(
-        None, "np array of the pedestal standard deviation (n_chan, n_pix)"
-    )
-    charge_median_outliers = Field(
-        None, "Boolean np array of the pedestal median outliers (n_chan, n_pix)"
-    )
-    charge_std_outliers = Field(
-        None, "Boolean np array of the pedestal std outliers (n_chan, n_pix)"
-    )
-
-
-class PixelStatusContainer(Container):
-    """
-    Container for pixel status information
-    It contains masks obtained by several data analysis steps
-    At r0/r1 level only the hardware_mask is initialized
-    """
-
-    hardware_failing_pixels = Field(
-        None,
-        "Boolean np array (True = failing pixel) from the hardware pixel status data ("
-        "n_chan, n_pix)",
-    )
-
-    pedestal_failing_pixels = Field(
-        None,
-        "Boolean np array (True = failing pixel) from the pedestal data analysis ("
-        "n_chan, n_pix)",
-    )
-
-    flatfield_failing_pixels = Field(
-        None,
-        "Boolean np array (True = failing pixel) from the flat-field data analysis ("
-        "n_chan, n_pix)",
-    )
-
-
-class WaveformCalibrationContainer(Container):
-    """
-    Container for the pixel calibration coefficients
-    """
-
-    time = Field(nan * u.s, "Time associated to the calibration event", unit=u.s)
-    time_min = Field(
-        nan * u.s, "Earliest time of validity for the calibration event", unit=u.s
-    )
-    time_max = Field(
-        nan * u.s, "Latest time of validity for the calibration event", unit=u.s
-    )
-
-    dc_to_pe = Field(
-        None,
-        "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)",
-    )
-
-    pedestal_per_sample = Field(
-        None,
-        "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
-    )
-
-    time_correction = Field(None, "np array of time correction values (n_chan, n_pix)")
-
-    n_pe = Field(
-        None, "np array of photo-electrons in calibration signal (n_chan, n_pix)"
-    )
-
-    unusable_pixels = Field(
-        None,
-        "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)",
-    )
-
-
-class MonitoringCameraContainer(Container):
-    """
-    Container for camera monitoring data
-    """
-
-    flatfield = Field(
-        default_factory=FlatFieldContainer,
-        description="Data from flat-field event distributions",
-    )
-    pedestal = Field(
-        default_factory=PedestalContainer,
-        description="Data from pedestal event distributions",
-    )
-    pixel_status = Field(
-        default_factory=PixelStatusContainer,
-        description="Container for masks with pixel status",
-    )
-    calibration = Field(
-        default_factory=WaveformCalibrationContainer,
-        description="Container for calibration coefficients",
-    )
-
-
-class MonitoringContainer(Container):
-    """
-    Root container for monitoring data (MON)
-    """
-
-    # create the camera container
-    tel = Field(
-        default_factory=partial(Map, MonitoringCameraContainer),
-        description="map of tel_id to MonitoringCameraContainer",
-    )
-
-
-class SimulatedShowerDistribution(Container):
-    """
-    2D histogram of simulated number of showers simulated as function of energy and
-    core distance.
-    """
-
-    default_prefix = ""
-
-    obs_id = obs_id_field()
-    hist_id = Field(-1, description="Histogram ID")
-    n_entries = Field(-1, description="Number of entries in the histogram")
-    bins_energy = Field(
-        None,
-        description="array of energy bin lower edges, as in np.histogram",
-        unit=u.TeV,
-    )
-    bins_core_dist = Field(
-        None,
-        description="array of core-distance bin lower edges, as in np.histogram",
-        unit=u.m,
-    )
-    histogram = Field(
-        None, description="array of histogram entries, size (n_bins_x, n_bins_y)"
-    )
-
-
+# Top-level array event container
 class ArrayEventContainer(Container):
     """Top-level container for all event information"""
 

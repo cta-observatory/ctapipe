@@ -149,19 +149,17 @@ def test_dl1_variance_calib(example_subarray):
         random = np.random.default_rng(1)
         y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
 
-        absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
-        y *= absolute[..., np.newaxis]
-
-        relative = random.normal(1, 0.01, (n_channels, n_pixels))
-        y /= relative[..., np.newaxis]
+        factor = random.normal(1, 0.01, (n_channels, n_pixels)) / random.uniform(
+            100, 1000, (n_channels, n_pixels)
+        ).astype("float32")
+        y /= factor[..., np.newaxis]
 
         pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
         y += pedestal[..., np.newaxis]
 
         event.dl0.tel[tel_id].waveform = y
         event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-        event.calibration.tel[tel_id].dl1.absolute_factor = absolute
-        event.calibration.tel[tel_id].dl1.relative_factor = relative
+        event.calibration.tel[tel_id].dl1.factor = factor
         event.dl0.tel[tel_id].selected_gain_channel = None
         event.r1.tel[tel_id].selected_gain_channel = None
 
@@ -209,13 +207,11 @@ def test_dl1_charge_calib(example_subarray):
             "float32"
         )
 
-        # Define absolute calibration coefficients
-        absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
-        y *= absolute[..., np.newaxis]
-
-        # Define relative coefficients
-        relative = random.normal(1, 0.01, (n_channels, n_pixels))
-        y /= relative[..., np.newaxis]
+        # Define multiplicative factor for calibration coefficients
+        factor = random.normal(1, 0.01, (n_channels, n_pixels)) / random.uniform(
+            100, 1000, (n_channels, n_pixels)
+        ).astype("float32")
+        y /= factor[..., np.newaxis]
 
         # Define pedestal
         pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
@@ -240,8 +236,10 @@ def test_dl1_charge_calib(example_subarray):
         )
 
         event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-        event.calibration.tel[tel_id].dl1.absolute_factor = absolute
-        event.calibration.tel[tel_id].dl1.relative_factor = relative
+        event.calibration.tel[tel_id].dl1.factor = factor
+        event.calibration.tel[tel_id].dl1.outlier_mask = np.zeros(
+            (n_channels, n_pixels), dtype=bool
+        )
 
         # Test without timing corrections
         calibrator(event)
@@ -357,7 +355,7 @@ def test_invalid_pixels(example_event, example_subarray):
     camera = example_subarray.tel[tel_id].camera
     sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
 
-    event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
+    event.calibration.tel[tel_id].dl1.outlier_mask[:, 0] = True
     event.r1.tel[tel_id].waveform.fill(0.0)
     event.r1.tel[tel_id].waveform[:, 1:, 20] = 1.0
     event.r1.tel[tel_id].waveform[:, 0, 10] = 9999
