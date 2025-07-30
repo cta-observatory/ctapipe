@@ -14,6 +14,7 @@ from .core import Container, Field, Map
 
 __all__ = [
     "ArrayEventContainer",
+    "CameraCalibrationCoefficientsContainer",
     "ConcentrationContainer",
     "DL0CameraContainer",
     "DL0Container",
