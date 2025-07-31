@@ -1139,7 +1139,7 @@ class PointingContainer(Container):
 
 
 # Camera containers
-class CameraCalibrationCoefficientsContainer(Container):
+class EventCameraCalibrationContainer(Container):
     """
     Storage of camera calibration coefficients for the current event
     """
@@ -1169,7 +1169,19 @@ class CameraCalibrationCoefficientsContainer(Container):
     )
 
 
-class MonitoringCameraCalibrationContainer(CameraCalibrationCoefficientsContainer):
+class EventCalibrationContainer(Container):
+    """
+    Container for calibration coefficients for the current event
+    """
+
+    # create the camera container
+    tel = Field(
+        default_factory=partial(Map, EventCameraCalibrationContainer),
+        description="map of tel_id to EventCameraCalibrationContainer",
+    )
+
+
+class MonitoringCameraCalibrationContainer(EventCameraCalibrationContainer):
     """
     Storage of DL1 camera calibration coefficients for a given time period.
     """
@@ -1270,29 +1282,6 @@ class MonitoringContainer(Container):
     tel = Field(
         default_factory=partial(Map, MonitoringCameraContainer),
         description="map of tel_id to MonitoringCameraContainer",
-    )
-
-
-class EventCameraCalibrationContainer(Container):
-    """
-    Container for the camera calibration coefficients for the current event
-    """
-
-    dl1 = Field(
-        default_factory=CameraCalibrationCoefficientsContainer,
-        description="Container for DL1 camera calibration coefficients",
-    )
-
-
-class EventCalibrationContainer(Container):
-    """
-    Container for calibration coefficients for the current event
-    """
-
-    # create the camera container
-    tel = Field(
-        default_factory=partial(Map, EventCameraCalibrationContainer),
-        description="map of tel_id to EventCameraCalibrationContainer",
     )
 
 
