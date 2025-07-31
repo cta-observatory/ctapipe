@@ -1,32 +1,57 @@
+from collections import namedtuple
+
 import astropy.units as u
 import numpy as np
 import pytest
 
+parameter_names = [
+    "radius",
+    "rho",
+    "phi",
+    "expected_length",
+]
+Parameters = namedtuple("MuonTestParams", parameter_names)
 
-def test_chord_length():
+
+@pytest.mark.parametrize(
+    parameter_names,
+    [
+        Parameters(
+            radius=12,
+            rho=0.0,
+            phi=0.0 * u.deg,
+            expected_length=12,
+        ),
+        Parameters(
+            radius=12,
+            rho=1.0,
+            phi=90.0 * u.deg,
+            expected_length=0,
+        ),
+        Parameters(
+            radius=12,
+            rho=3.0,
+            phi=180.0 * u.deg,
+            expected_length=0,
+        ),
+        Parameters(
+            radius=12,
+            rho=2.0,
+            phi=0.0 * u.deg,
+            expected_length=24,
+        ),
+    ],
+)
+def test_chord_length(
+    radius,
+    rho,
+    phi,
+    expected_length,
+):
     from ctapipe.image.muon.intensity_fitter import chord_length
 
-    radius = 12
-    rho = 0.0
-    phi = 0
-
-    length = chord_length(radius, rho, phi)
-    assert length == radius
-
-    rho = 1
-    phi = np.deg2rad(90)
-    length = chord_length(radius, rho, phi)
-    assert np.isclose(length, 0, atol=1e-15)
-
-    rho = 3
-    phi = np.deg2rad(180)
-    length = chord_length(radius, rho, phi)
-    assert np.isclose(length, 0, atol=1e-15)
-
-    rho = 2
-    phi = np.deg2rad(0)
-    length = chord_length(radius, rho, phi)
-    assert np.isclose(length, 2 * radius, atol=1e-15)
+    length = chord_length(radius, rho, phi.to_value(u.rad))
+    assert np.isclose(length, expected_length, atol=1e-15)
 
 
 def test_muon_efficiency_fit(prod5_lst, reference_location):
