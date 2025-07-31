@@ -214,8 +214,6 @@ class CameraCalibrator(TelescopeComponent):
         factor = dl1_calib.factor
         time_shift = dl1_calib.time_shift
         if selected_gain_channel is not None:
-            if pedestal is not None:
-                pedestal = pedestal[selected_gain_channel, pixel_index]
             if factor is not None:
                 factor = factor[selected_gain_channel, pixel_index]
             if time_shift is not None:
@@ -225,6 +223,8 @@ class CameraCalibrator(TelescopeComponent):
 
         # subtract any remaining pedestal before extraction
         if pedestal is not None:
+            if selected_gain_channel is not None:
+                pedestal = pedestal[selected_gain_channel, pixel_index]
             # this copies intentionally, we don't want to modify the dl0 data
             # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
             waveforms = waveforms.copy()
