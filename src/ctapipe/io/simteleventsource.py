@@ -21,8 +21,8 @@ from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
-    CameraCalibrationCoefficientsContainer,
     CoordinateFrameType,
+    EventCameraCalibrationContainer,
     EventIndexContainer,
     EventType,
     MonitoringCameraCalibrationContainer,
@@ -682,9 +682,7 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
-        self.mon_container = None
-        if self.monitoring_file is not None:
-            self.mon_container = self._fill_monitoring_container()
+        self.mon_container = self._fill_monitoring_container()
 
         try:
             self._has_true_image = _has_true_image(self.file_.history)
@@ -1117,9 +1115,7 @@ class SimTelEventSource(EventSource):
                         tel_id
                     ].coefficients.outlier_mask[0]
                 # fill the camera calibration coefficients
-                data.calibration.tel[
-                    tel_id
-                ].dl1 = CameraCalibrationCoefficientsContainer(
+                data.calibration.tel[tel_id] = EventCameraCalibrationContainer(
                     time_shift=time_shift,
                     factor=factor,
                     pedestal_offset=pedestal_offset,
@@ -1269,8 +1265,9 @@ class SimTelEventSource(EventSource):
         """
         Fill the monitoring container from the monitoring file.
         """
-        # Create the monitoring container
-        mon_container = MonitoringContainer()
+        # Check if the monitoring file is set
+        if self.monitoring_file is None:
+            return None
         # Read the subarray description from the monitoring file
         mon_subarray = SubarrayDescription.from_hdf(
             self.monitoring_file,
@@ -1287,7 +1284,11 @@ class SimTelEventSource(EventSource):
             )
         # Fill the monitoring container with the camera calibration data
         key = "/dl1/monitoring/telescope/calibration/camera/"
-        if key in self.file_.root:
+        if key not in self.monitoring_file.root:
+            return None
+        else:
+            # Create the monitoring container
+            mon_container = MonitoringContainer()
             for tel_id in mon_subarray.tel_ids:
                 # Create the camera monitoring container and fill it with the data
                 cam_mon_container = MonitoringCameraContainer()
@@ -1317,7 +1318,7 @@ class SimTelEventSource(EventSource):
                     )
                 # Fill the monitoring container with camera-related containers for each telescope
                 mon_container[tel_id] = cam_mon_container
-        return mon_container
+            return mon_container
 
     def _parse_simulation_header(self):
         """

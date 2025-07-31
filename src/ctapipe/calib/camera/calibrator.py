@@ -207,13 +207,13 @@ class CameraCalibrator(TelescopeComponent):
 
         n_channels, n_pixels, n_samples = waveforms.shape
 
-        dl1_calib = event.calibration.tel[tel_id].dl1
+        calib = event.calibration.tel[tel_id]
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
         pixel_index = _get_pixel_index(n_pixels)
 
-        pedestal = dl1_calib.pedestal_offset
-        factor = dl1_calib.factor
-        time_shift = dl1_calib.time_shift
+        pedestal = calib.pedestal_offset
+        factor = calib.factor
+        time_shift = calib.time_shift
         if selected_gain_channel is not None:
             if factor is not None:
                 factor = factor[selected_gain_channel, pixel_index]
@@ -262,7 +262,7 @@ class CameraCalibrator(TelescopeComponent):
                 waveforms,
                 tel_id=tel_id,
                 selected_gain_channel=selected_gain_channel,
-                broken_pixels=dl1_calib.outlier_mask,
+                broken_pixels=calib.outlier_mask,
             )
 
             # correct non-integer remainder of the shift if given
@@ -285,7 +285,7 @@ class CameraCalibrator(TelescopeComponent):
                 tel_id,
                 dl1.image,
                 dl1.peak_time,
-                dl1_calib.outlier_mask,
+                calib.outlier_mask,
             )
 
         # store the results in the event structure

@@ -158,8 +158,8 @@ def test_dl1_variance_calib(example_subarray):
         y += pedestal[..., np.newaxis]
 
         event.dl0.tel[tel_id].waveform = y
-        event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-        event.calibration.tel[tel_id].dl1.factor = factor
+        event.calibration.tel[tel_id].pedestal_offset = pedestal
+        event.calibration.tel[tel_id].factor = factor
         event.dl0.tel[tel_id].selected_gain_channel = None
         event.r1.tel[tel_id].selected_gain_channel = None
 
@@ -235,9 +235,9 @@ def test_dl1_charge_calib(example_subarray):
             event.dl1.tel[tel_id].image, y.sum(-1).squeeze(), rtol=1e-4
         )
 
-        event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-        event.calibration.tel[tel_id].dl1.factor = factor
-        event.calibration.tel[tel_id].dl1.outlier_mask = np.zeros(
+        event.calibration.tel[tel_id].pedestal_offset = pedestal
+        event.calibration.tel[tel_id].factor = factor
+        event.calibration.tel[tel_id].outlier_mask = np.zeros(
             (n_channels, n_pixels), dtype=bool
         )
 
@@ -252,7 +252,7 @@ def test_dl1_charge_calib(example_subarray):
         )
 
         # test with timing corrections
-        event.calibration.tel[tel_id].dl1.time_shift = time_offset / sampling_rate
+        event.calibration.tel[tel_id].time_shift = time_offset / sampling_rate
         calibrator(event)
 
         # more rtol since shifting might lead to reduced integral
@@ -355,7 +355,7 @@ def test_invalid_pixels(example_event, example_subarray):
     camera = example_subarray.tel[tel_id].camera
     sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
 
-    event.calibration.tel[tel_id].dl1.outlier_mask[:, 0] = True
+    event.calibration.tel[tel_id].outlier_mask[:, 0] = True
     event.r1.tel[tel_id].waveform.fill(0.0)
     event.r1.tel[tel_id].waveform[:, 1:, 20] = 1.0
     event.r1.tel[tel_id].waveform[:, 0, 10] = 9999
