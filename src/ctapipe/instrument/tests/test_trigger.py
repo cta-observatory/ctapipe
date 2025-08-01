@@ -119,7 +119,9 @@ def test_software_trigger_simtel(allowed_tels):
         for e, expected_tels in zip(source, expected):
             trigger(e)
             assert_equal(e.trigger.tels_with_trigger, expected_tels)
-            assert_all_tel_keys(e, expected_tels, ignore={"dl0", "dl1", "dl2", "muon"})
+            assert_all_tel_keys(
+                e, expected_tels, ignore={"dl0", "dl1", "dl2", "mon", "muon"}
+            )
 
 
 def test_software_trigger_simtel_single_lsts():
@@ -167,7 +169,9 @@ def test_software_trigger_simtel_single_lsts():
             trigger(e)
             print(e.trigger.tels_with_trigger, expected_tels)
             assert_equal(e.trigger.tels_with_trigger, expected_tels)
-            assert_all_tel_keys(e, expected_tels, ignore={"dl0", "dl1", "dl2", "muon"})
+            assert_all_tel_keys(
+                e, expected_tels, ignore={"dl0", "dl1", "dl2", "mon", "muon"}
+            )
 
 
 def test_software_trigger_simtel_process(tmp_path):
