@@ -83,8 +83,8 @@ class DL2EventPreprocessor(Component):
         default_value=True, help="Whether to compute derived columns"
     ).tag(config=True)
 
-    apply_check_pointing = Bool(
-        default_value=True,
+    allow_unsupported_pointing_frames = Bool(
+        default_value=False,
         help=(
             "Check whether the pointing is supported."
             "For the moment, only pointing in altaz is supported."
@@ -162,7 +162,7 @@ class DL2EventPreprocessor(Component):
         ValueError
             If required columns are missing.
         """
-        if self.apply_check_pointing:
+        if not self.allow_unsupported_pointing_frames:
             if events["subarray_pointing_lat"].std() > 1e-3:
                 raise NotImplementedError(
                     "No support for making irfs from varying pointings yet"

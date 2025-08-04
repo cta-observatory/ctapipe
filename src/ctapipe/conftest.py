@@ -889,7 +889,7 @@ def test_config():
             ],
             "apply_derived_columns": False,
             # "disable_column_renaming": True,
-            "apply_check_pointing": False,
+            "allow_unsupported_pointing_frames": True,
         },
         "DL2EventQualityQuery": {
             "quality_criteria": [
