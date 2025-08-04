@@ -18,12 +18,12 @@ IrfTool:
   energy_bias_resolution_maker_name: "EnergyBiasResolution2dMaker"
   sensitivity_maker_name: "Sensitivity2dMaker"
 
-EventPreprocessor:
+DL2EventPreprocessor:
   energy_reconstructor: "RandomForestRegressor"
   geometry_reconstructor: "HillasReconstructor"
   gammaness_classifier: "RandomForestClassifier"
 
-  EventQualityQuery:
+  DL2EventQualityQuery:
     quality_criteria:
       - ["multiplicity 4", "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4"]
       - ["valid classifier", "RandomForestClassifier_is_valid"]
