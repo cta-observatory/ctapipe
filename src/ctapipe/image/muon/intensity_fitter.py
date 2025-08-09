@@ -42,7 +42,9 @@ SQRT2 = np.sqrt(2)
 @vectorize([double(double, double, double)], cache=True)
 def chord_length(radius, rho, phi):
     """
-    Function for integrating the length of a chord across a circle
+    Function for integrating the length of a chord across a circle (effective chord length).
+
+    A circular mirror is used for signal, and a circular camera is used for shadowing.
 
     Parameters
     ----------
@@ -56,22 +58,36 @@ def chord_length(radius, rho, phi):
     Returns
     -------
     float or ndarray:
-        chord length
+        effective chord length
+
+    References
+    ----------
+    See :cite:p:`vacanti19941`.
+    Equation 6: for effective chord length calculations inside/outside the ring.
+    Equation 7: for filtering out non-physical solutions.
+
+
     """
-    chord = 1 - (rho**2 * np.sin(phi) ** 2)
-    valid = chord >= 0
+    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
+    valid = discriminant_norm >= 0
 
     if not valid:
         return 0
 
     if rho <= 1.0:
         # muon has hit the mirror
-        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        effective_chord_length = radius * (
+            np.sqrt(discriminant_norm) + rho * np.cos(phi)
+        )
     else:
         # muon did not hit the mirror
-        chord = 2 * radius * np.sqrt(chord)
+        # Filtering out non-physical solutions for phi
+        if np.abs(phi) < np.arcsin(1.0 / rho):
+            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
+        else:
+            return 0
 
-    return chord
+    return effective_chord_length
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
@@ -458,11 +474,11 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
-        help="Hole radius of the reflector in m",
+        help="Hole radius of the reflector in m. The radius of the hole in the center of the primary mirror dish, for three telescope types (LST, MST, and SST), has a hexagonal shape (same as a single mirror facets) and is defined by the flat-to-flat distance (LST: 1.51 m, MST: 1.2 m, SST: 0.78 m). We define the hole radius to correspond to the surface area of the hexagon.",
         default_value=[
-            ("type", "LST_*", 0.308),
-            ("type", "MST_*", 0.244),
-            ("type", "SST_1M_*", 0.130),
+            ("type", "LST_*", 0.74),
+            ("type", "MST_*", 0.59),
+            ("type", "SST_1M_*", 0.38),
         ],
     ).tag(config=True)
 
