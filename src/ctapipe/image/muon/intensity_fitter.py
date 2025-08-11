@@ -7,6 +7,7 @@ To do:
     - create container class for output
 
 """
+
 from functools import lru_cache
 from math import erf
 
@@ -100,7 +101,7 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
         Angle along which to integrate mirror
 
     Returns
-    --------
+    -------
     float: length from impact point to mirror edge
 
     """

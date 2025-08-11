@@ -59,7 +59,7 @@ class MuonRingFitter(Component):
         Perform a circle fit to ``image`` with the chosen ``fit_method``.
 
         Parameters
-        -----------
+        ----------
         geom: CameraGeometry
             Defines the pixel coordinates.
             Must be in the `ctapipe.coordinates.TelescopeFrame`
@@ -70,7 +70,7 @@ class MuonRingFitter(Component):
             This can be generated using a `ctapipe.image.ImageCleaner`.
 
         Returns
-        --------
+        -------
         MuonRingContainer:
             Results of the ring fit.
         """

@@ -6,6 +6,12 @@ Muon Image Analysis
 
 Algorithms for detecting and characterizing muon images
 
+.. toctree::
+  :maxdepth: 1
+  :glob:
+  :hidden:
+
+  chord_length
 
 Reference/API
 =============
@@ -17,5 +23,3 @@ Reference/API
 .. automodapi:: ctapipe.image.muon.intensity_fitter
 
 .. automodapi:: ctapipe.image.muon.ring_fitter
-
-.. autofunction:: ctapipe.image.muon.intensity_fitter.chord_length
