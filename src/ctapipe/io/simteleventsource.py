@@ -25,9 +25,6 @@ from ..containers import (
     EventCameraCalibrationContainer,
     EventIndexContainer,
     EventType,
-    MonitoringCameraCalibrationContainer,
-    MonitoringCameraContainer,
-    MonitoringContainer,
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
@@ -44,7 +41,6 @@ from ..containers import (
     SimulatedShowerContainer,
     SimulatedShowerDistribution,
     SimulationConfigContainer,
-    StatisticsContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
@@ -72,9 +68,9 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
+from ..io import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
-from .hdf5tableio import HDF5TableReader
 
 try:
     from eventio import SimTelFile
@@ -682,7 +678,7 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
-        self.mon_container = self._fill_monitoring_container()
+        self.mon_data = self._get_monitoring_data()
 
         try:
             self._has_true_image = _has_true_image(self.file_.history)
@@ -1099,21 +1095,19 @@ class SimTelEventSource(EventSource):
                 factor = None
                 pedestal_offset = None
                 outlier_mask = disabled_pixel_mask
-                if self.mon_container is None:
+                if self.mon_data is None:
                     time_shift = array_event["laser_calibrations"][tel_id]["tm_calib"]
                 else:
-                    # use the first entry of the monitoring container
+                    # use the first entry of the monitoring data
                     # to fill the telescope calibration coefficients
-                    time_shift = self.mon_container.tel[tel_id].coefficients.time_shift[
-                        0
-                    ]
-                    factor = self.mon_container.tel[tel_id].coefficients.factor[0]
-                    pedestal_offset = self.mon_container.tel[
-                        tel_id
-                    ].coefficients.pedestal_offset[0]
-                    outlier_mask = self.mon_container.tel[
-                        tel_id
-                    ].coefficients.outlier_mask[0]
+                    time_shift = self.mon_data[tel_id]["coefficients"]["time_shift"][0]
+                    factor = self.mon_data[tel_id]["coefficients"]["factor"][0]
+                    pedestal_offset = self.mon_data[tel_id]["coefficients"][
+                        "pedestal_offset"
+                    ][0]
+                    outlier_mask = self.mon_data[tel_id]["coefficients"][
+                        "outlier_mask"
+                    ][0]
                 # fill the camera calibration coefficients
                 data.calibration.tel[tel_id] = EventCameraCalibrationContainer(
                     time_shift=time_shift,
@@ -1153,6 +1147,63 @@ class SimTelEventSource(EventSource):
         disabled_pixels[:, disabled_ids] = True
 
         return disabled_pixels
+
+    def _get_monitoring_data(self):
+        """
+        Retrieve the monitoring data from the monitoring file.
+        """
+        # Check if the monitoring file is set
+        if self.monitoring_file is None:
+            return None
+        # Read the subarray description from the monitoring file
+        mon_subarray = SubarrayDescription.from_hdf(
+            self.monitoring_file,
+            focal_length_choice=self.focal_length_choice,
+        )
+        # Select the allowed telescopes
+        if self.allowed_tels:
+            mon_subarray = mon_subarray.select_subarray(self.allowed_tels)
+        # Check if the subarray description matches the reference of simtel
+        if not mon_subarray.__eq__(self.subarray):
+            raise ValueError(
+                f"Subarray description of monitoring file '{self.monitoring_file}' does not match "
+                f"the reference subarray description of the simtel file '{self.input_url}'."
+            )
+        # Fill the monitoring dict with the camera calibration data
+        key = "/dl1/monitoring/telescope/calibration/camera"
+        if key not in self.monitoring_file.root:
+            return None
+        else:
+            # Create the monitoring dict
+            mon_data = {}
+            for tel_id in mon_subarray.tel_ids:
+                # Create the camera monitoring dict and fill it with the data
+                cam_mon_data = {}
+                # Read the the camera monitoring data with the pixel statistics
+                pixel_stats_container = PixelStatisticsContainer()
+                for pixel_stats_table in pixel_stats_container.keys():
+                    pixel_stats_container[pixel_stats_table] = read_table(
+                        self.monitoring_file,
+                        f"{key}/pixel_statistics/{pixel_stats_table}/tel_{tel_id:03d}",
+                    )
+                cam_mon_data["pixel_statistics"] = pixel_stats_container
+                # Read the camera monitoring data with the coefficients
+                cam_mon_data["coefficients"] = read_table(
+                    self.monitoring_file,
+                    f"{key}/coefficients/tel_{tel_id:03d}",
+                )
+                # Check if there are multiple coefficients for the same telescope
+                # and warn the user if so. For simulation, we only use the first one.
+                if len(cam_mon_data["coefficients"]) > 1:
+                    self.log.warning(
+                        "Multiple camera calibration coefficients found for telescope %d in monitoring file %s. "
+                        "In simulation only the first one will be used.",
+                        tel_id,
+                        self.monitoring_file,
+                    )
+                # Fill the monitoring dict with camera-related dicts for each telescope
+                mon_data[tel_id] = cam_mon_data
+            return mon_data
 
     @staticmethod
     def _fill_event_pointing(tracking_position):
@@ -1260,65 +1311,6 @@ class SimTelEventSource(EventSource):
                 array_ra=u.Quantity(ra, u.rad),
                 array_dec=u.Quantity(dec, u.rad),
             )
-
-    def _fill_monitoring_container(self):
-        """
-        Fill the monitoring container from the monitoring file.
-        """
-        # Check if the monitoring file is set
-        if self.monitoring_file is None:
-            return None
-        # Read the subarray description from the monitoring file
-        mon_subarray = SubarrayDescription.from_hdf(
-            self.monitoring_file,
-            focal_length_choice=self.focal_length_choice,
-        )
-        # Select the allowed telescopes
-        if self.allowed_tels:
-            mon_subarray = mon_subarray.select_subarray(self.allowed_tels)
-        # Check if the subarray description matches the reference of simtel
-        if not mon_subarray.__eq__(self.subarray):
-            raise ValueError(
-                f"Subarray description of monitoring file '{self.monitoring_file}' does not match "
-                f"the reference subarray description of the simtel file '{self.input_url}'."
-            )
-        # Fill the monitoring container with the camera calibration data
-        key = "/dl1/monitoring/telescope/calibration/camera/"
-        if key not in self.monitoring_file.root:
-            return None
-        else:
-            # Create the monitoring container
-            mon_container = MonitoringContainer()
-            for tel_id in mon_subarray.tel_ids:
-                # Create the camera monitoring container and fill it with the data
-                cam_mon_container = MonitoringCameraContainer()
-                # Fill the the camera monitoring container with the pixel statistics
-                pixel_stats_container = PixelStatisticsContainer()
-                for pixel_stats_table in pixel_stats_container.keys():
-                    key += f"pixel_statistics/{pixel_stats_table}/tel_{tel_id:03d}"
-                    pixel_stats_container[pixel_stats_table] = HDF5TableReader(
-                        self.monitoring_file
-                    ).read(key, containers=StatisticsContainer)
-                cam_mon_container["pixel_statistics"] = pixel_stats_container
-                # Fill the camera monitoring container with the coefficients
-                cam_mon_container["coefficients"] = HDF5TableReader(
-                    self.monitoring_file
-                ).read(
-                    f"{key}coefficients/tel_{tel_id:03d}",
-                    containers=MonitoringCameraCalibrationContainer,
-                )
-                # Check if there are multiple coefficients for the same telescope
-                # and warn the user if so. For simulation, we only use the first one.
-                if len(cam_mon_container["coefficients"]) > 1:
-                    self.log.warning(
-                        "Multiple camera calibration coefficients found for telescope %d in monitoring file %s. "
-                        "In simulation only the first one will be used.",
-                        tel_id,
-                        self.monitoring_file,
-                    )
-                # Fill the monitoring container with camera-related containers for each telescope
-                mon_container[tel_id] = cam_mon_container
-            return mon_container
 
     def _parse_simulation_header(self):
         """
