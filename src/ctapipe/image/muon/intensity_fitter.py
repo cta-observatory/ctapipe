@@ -481,7 +481,7 @@ class MuonIntensityFitter(TelescopeComponent):
         default_value=[
             ("type", "LST_*", 0.74),
             ("type", "MST_*", 0.59),
-            ("type", "SST_1M_*", 0.38),
+            ("type", "SST_*", 0.38),
         ],
     ).tag(config=True)
 
