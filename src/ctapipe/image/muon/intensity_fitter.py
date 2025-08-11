@@ -474,7 +474,10 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
-        help="The radius of the hole in the center of the primary mirror dish in meters. The hole has hexagonal shape (same as a single mirror facet) and is defined as the flat-to-flat distance (LST: 1.51 m, MST: 1.2 m, SST: 0.78 m). We define the hole radius to correspond to the surface area of the hexagon.",
+        help="The radius of the hole in the center of the primary mirror dish in meters."
+        "The hole has hexagonal shape (same as a single mirror facet)."
+        "It is defined with the flat-to-flat distance (LST: 1.51 m, MST: 1.2 m, SST: 0.78 m)."
+        "We approximate the hexagonal hole with a circle that has the same surface area.",
         default_value=[
             ("type", "LST_*", 0.74),
             ("type", "MST_*", 0.59),
