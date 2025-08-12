@@ -15,7 +15,7 @@ from traitlets.config import Config
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
-from ctapipe.io import DataLevel
+from ctapipe.io import DataLevel, read_table
 from ctapipe.io.simteleventsource import (
     AtmosphereProfileKind,
     SimTelEventSource,
@@ -29,6 +29,13 @@ gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 calib_events_path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
 prod5b_path = get_dataset_path(
     "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
+gamma_prod6_preliminary_path = get_dataset_path("gamma_prod6_preliminary.simtel.zst")
+calibpipe_camcalib_single_chunk_path = get_dataset_path(
+    "calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5"
+)
+calibpipe_camcalib_same_chunks_path = get_dataset_path(
+    "calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5"
 )
 
 
@@ -155,6 +162,82 @@ def test_gamma_file_prod2():
             assert np.isclose(
                 source.subarray.reference_location.geodetic.lon, 0 * u.deg
             )
+
+
+def test_monitoring_file():
+    """Test reading the camera monitoring file with SimTelEventSource"""
+    allowed_tels = {1}
+    source = SimTelEventSource(
+        input_url=gamma_prod6_preliminary_path,
+        allowed_tels=allowed_tels,
+        monitoring_file=calibpipe_camcalib_single_chunk_path,
+        max_events=1,
+    )
+    # Read the camera monitoring data with the coefficients
+    camcalib_coefficients = read_table(
+        calibpipe_camcalib_single_chunk_path,
+        "/dl1/monitoring/telescope/calibration/camera/coefficients/tel_001",
+    )
+    # Check that the camcalib_coefficients match the event calibration data
+    for e in source:
+        np.testing.assert_array_equal(
+            e.calibration.tel[1].factor,
+            camcalib_coefficients["factor"][0],
+            err_msg="Factors do not match after reading the monitoring file through the SimTelEventSource",
+        )
+        np.testing.assert_array_equal(
+            e.calibration.tel[1].pedestal_offset,
+            camcalib_coefficients["pedestal_offset"][0],
+            err_msg="Pedestal offsets do not match after reading the monitoring file through the SimTelEventSource",
+        )
+        np.testing.assert_array_equal(
+            e.calibration.tel[1].time_shift,
+            camcalib_coefficients["time_shift"][0],
+            err_msg="Time shifts do not match after reading the monitoring file through the SimTelEventSource",
+        )
+        np.testing.assert_array_equal(
+            e.calibration.tel[1].outlier_mask,
+            camcalib_coefficients["outlier_mask"][0],
+            err_msg="Outlier masks do not match after reading the monitoring file through the SimTelEventSource",
+        )
+
+
+def test_monitoring_file_exceptions():
+    """Test exception cases for providing the monitoring file"""
+    allowed_tels = {1}
+    # Provide a monitoring file with different telescope IDs
+    with pytest.raises(ValueError, match="Telescope IDs of monitoring file"):
+        SimTelEventSource(
+            gamma_prod6_preliminary_path,
+            monitoring_file=calibpipe_camcalib_single_chunk_path,
+            max_events=1,
+        )
+    # Provide a valid monitoring file with multiple time periods
+    with pytest.warns(UserWarning, match="Multiple camera calibration coefficients"):
+        SimTelEventSource(
+            gamma_prod6_preliminary_path,
+            allowed_tels=allowed_tels,
+            monitoring_file=calibpipe_camcalib_same_chunks_path,
+            max_events=1,
+        )
+    # Provide an invalid monitoring file
+    gamma_diffuse_dl2_train_small = get_dataset_path(
+        "gamma_diffuse_dl2_train_small.dl2.h5"
+    )
+    with pytest.warns(UserWarning, match="No camera monitoring data found"):
+        source = SimTelEventSource(
+            gamma_prod6_preliminary_path,
+            allowed_tels=allowed_tels,
+            monitoring_file=gamma_diffuse_dl2_train_small,
+            max_events=1,
+        )
+    # Still check that mon_data is None
+    assert source.mon_data is None
+    # Check that the time shift was still set but the other parameters are None‚
+    for e in source:
+        assert e.calibration.tel[1].factor is None
+        assert e.calibration.tel[1].pedestal_offset is None
+        assert e.calibration.tel[1].time_shift is not None
 
 
 def test_max_events():
