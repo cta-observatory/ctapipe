@@ -7,6 +7,7 @@ from gzip import GzipFile
 from io import BufferedReader
 
 import numpy as np
+import tables
 from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
 from astropy.table import Table
@@ -28,7 +29,6 @@ from ..containers import (
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
-    PixelStatisticsContainer,
     PixelStatus,
     PointingContainer,
     PointingMode,
@@ -1163,30 +1163,33 @@ class SimTelEventSource(EventSource):
         # Select the allowed telescopes
         if self.allowed_tels:
             mon_subarray = mon_subarray.select_subarray(self.allowed_tels)
-        # Check if the subarray description matches the reference of simtel
-        if not mon_subarray.__eq__(self.subarray):
+        # Check if the telescope IDs match the reference of simtel
+        if not mon_subarray.tels.keys() == self.subarray.tels.keys():
             raise ValueError(
-                f"Subarray description of monitoring file '{self.monitoring_file}' does not match "
-                f"the reference subarray description of the simtel file '{self.input_url}'."
+                f"Telescope IDs of monitoring file '{self.monitoring_file}' do not match "
+                f"the reference telescope IDs of the simtel file '{self.input_url}'."
             )
         # Fill the monitoring dict with the camera calibration data
+        self.monitoring_file_ = tables.open_file(self.monitoring_file)
         key = "/dl1/monitoring/telescope/calibration/camera"
-        if key not in self.monitoring_file.root:
-            return None
-        else:
+        mon_data = None
+        if key in self.monitoring_file_.root:
             # Create the monitoring dict
             mon_data = {}
             for tel_id in mon_subarray.tel_ids:
                 # Create the camera monitoring dict and fill it with the data
                 cam_mon_data = {}
+                cam_mon_data["pixel_statistics"] = {}
                 # Read the the camera monitoring data with the pixel statistics
-                pixel_stats_container = PixelStatisticsContainer()
-                for pixel_stats_table in pixel_stats_container.keys():
-                    pixel_stats_container[pixel_stats_table] = read_table(
+                for pixel_stats_table in self.monitoring_file_.root[
+                    f"{key}/pixel_statistics"
+                ]._f_list_nodes():
+                    cam_mon_data["pixel_statistics"][
+                        pixel_stats_table._v_name
+                    ] = read_table(
                         self.monitoring_file,
-                        f"{key}/pixel_statistics/{pixel_stats_table}/tel_{tel_id:03d}",
+                        f"{key}/pixel_statistics/{pixel_stats_table._v_name}/tel_{tel_id:03d}",
                     )
-                cam_mon_data["pixel_statistics"] = pixel_stats_container
                 # Read the camera monitoring data with the coefficients
                 cam_mon_data["coefficients"] = read_table(
                     self.monitoring_file,
@@ -1195,15 +1198,23 @@ class SimTelEventSource(EventSource):
                 # Check if there are multiple coefficients for the same telescope
                 # and warn the user if so. For simulation, we only use the first one.
                 if len(cam_mon_data["coefficients"]) > 1:
-                    self.log.warning(
-                        "Multiple camera calibration coefficients found for telescope %d in monitoring file %s. "
-                        "In simulation only the first one will be used.",
-                        tel_id,
-                        self.monitoring_file,
+                    msg = (
+                        f"Multiple camera calibration coefficients found for telescope '{tel_id}' "
+                        f"in monitoring file {self.monitoring_file}. "
+                        f"In simulation only the first one will be used."
                     )
+                    self.log.warning(msg)
+                    warnings.warn(msg, UserWarning)
                 # Fill the monitoring dict with camera-related dicts for each telescope
                 mon_data[tel_id] = cam_mon_data
-            return mon_data
+        else:
+            # Warn that there is no camera monitoring data found in the provided monitoring file
+            msg = f"No camera monitoring data found in {self.monitoring_file}."
+            self.log.warning(msg)
+            warnings.warn(msg, UserWarning)
+        # Close the monitoring file
+        self.monitoring_file_.close()
+        return mon_data
 
     @staticmethod
     def _fill_event_pointing(tracking_position):
