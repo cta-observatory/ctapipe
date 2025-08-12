@@ -1244,15 +1244,15 @@ class PixelStatisticsContainer(Container):
 
     flatfield_image = Field(
         default_factory=StatisticsContainer,
-        description="Data from flat-field event distributions",
+        description="Statistical description from the image charge of flat-field event distributions",
     )
     flatfield_peak_time = Field(
         default_factory=StatisticsContainer,
-        description="Data from flat-field event distributions",
+        description="Statistical description from the peak arrival time of flat-field event distributions",
     )
     sky_pedestal_image = Field(
         default_factory=StatisticsContainer,
-        description="Data from sky pedestal event distributions",
+        description="Statistical description from the image charge of sky pedestal event distributions",
     )
 
 
@@ -1263,12 +1263,12 @@ class MonitoringCameraContainer(Container):
 
     pixel_statistics = Field(
         default_factory=PixelStatisticsContainer,
-        description="Data from flat-field event distributions",
+        description="Pixel statistics from the flat-field and sky pedestal events",
     )
 
     coefficients = Field(
         default_factory=MonitoringCameraCalibrationContainer,
-        description="Container for calibration coefficients",
+        description="Camera calibration coefficients calculated from the monitoring data",
     )
 
 

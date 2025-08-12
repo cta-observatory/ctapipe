@@ -1164,7 +1164,7 @@ class SimTelEventSource(EventSource):
         if self.allowed_tels:
             mon_subarray = mon_subarray.select_subarray(self.allowed_tels)
         # Check if the telescope IDs match the reference of simtel
-        if not mon_subarray.tels.keys() == self.subarray.tels.keys():
+        if mon_subarray.tels.keys() != self.subarray.tels.keys():
             raise ValueError(
                 f"Telescope IDs of monitoring file '{self.monitoring_file}' do not match "
                 f"the reference telescope IDs of the simtel file '{self.input_url}'."
