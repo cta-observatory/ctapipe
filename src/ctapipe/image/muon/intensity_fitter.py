@@ -135,6 +135,7 @@ def create_profile(
     phi,
     pixel_diameter,
     oversampling=3,
+    averaging=20,
 ):
     """
     Perform intersection over all angles and return length
@@ -159,8 +160,8 @@ def create_profile(
     ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
-    length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
-    length /= oversampling
+    length = correlate1d(length, np.ones(averaging), mode="wrap", axis=0)
+    length /= averaging
 
     return ang, length
 
@@ -178,6 +179,7 @@ def image_prediction(
     pixel_y,
     pixel_diameter,
     oversampling=3,
+    averaging=20,
     min_lambda=300 * u.nm,
     max_lambda=600 * u.nm,
 ):
@@ -217,6 +219,7 @@ def image_prediction(
         pixel_y.to_value(u.rad),
         pixel_diameter.to_value(u.rad),
         oversampling=oversampling,
+        averaging=averaging,
         min_lambda_m=min_lambda.to_value(u.m),
         max_lambda_m=max_lambda.to_value(u.m),
     )
@@ -257,6 +260,7 @@ def image_prediction_no_units(
     pixel_y_rad,
     pixel_diameter_rad,
     oversampling=3,
+    averaging=20,
     min_lambda_m=300e-9,
     max_lambda_m=600e-9,
 ):
@@ -280,6 +284,7 @@ def image_prediction_no_units(
         phi_rad,
         pixel_diameter_rad,
         oversampling=oversampling,
+        averaging=averaging,
     )
 
     # Produce gaussian weight for each pixel given ring width
@@ -330,6 +335,7 @@ def build_negative_log_likelihood(
     geometry_tel_frame,
     mask,
     oversampling,
+    averaging,
     min_lambda,
     max_lambda,
     spe_width,
@@ -414,6 +420,7 @@ def build_negative_log_likelihood(
             pixel_y_rad=pixel_y,
             pixel_diameter_rad=pixel_diameter,
             oversampling=oversampling,
+            averaging=averaging,
             min_lambda_m=min_lambda,
             max_lambda_m=max_lambda,
         )
@@ -489,6 +496,10 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
+    averaging = IntTelescopeParameter(
+        help="Averaging of the phi. dist.", default_value=20
+    ).tag(config=True)
+
     def __init__(self, subarray, **kwargs):
         if Minuit is None:
             raise OptionalDependencyMissing("iminuit") from None
@@ -536,6 +547,7 @@ class MuonIntensityFitter(TelescopeComponent):
             geometry_tel_frame=self._geometries_tel_frame[tel_id],
             mask=mask,
             oversampling=self.oversampling.tel[tel_id],
+            averaging=self.averaging.tel[tel_id],
             min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
             max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
             spe_width=self.spe_width.tel[tel_id],
