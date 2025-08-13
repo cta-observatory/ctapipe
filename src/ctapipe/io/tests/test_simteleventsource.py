@@ -224,20 +224,13 @@ def test_monitoring_file_exceptions():
     gamma_diffuse_dl2_train_small = get_dataset_path(
         "gamma_diffuse_dl2_train_small.dl2.h5"
     )
-    with pytest.warns(UserWarning, match="No camera monitoring data found"):
-        source = SimTelEventSource(
+    with pytest.raises(IOError, match="No camera monitoring data found"):
+        SimTelEventSource(
             gamma_prod6_preliminary_path,
             allowed_tels=allowed_tels,
             monitoring_file=gamma_diffuse_dl2_train_small,
             max_events=1,
         )
-    # Still check that mon_data is None
-    assert source.mon_data is None
-    # Check that the time shift was still set but the other parameters are None‚
-    for e in source:
-        assert e.calibration.tel[1].factor is None
-        assert e.calibration.tel[1].pedestal_offset is None
-        assert e.calibration.tel[1].time_shift is not None
 
 
 def test_max_events():
