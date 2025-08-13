@@ -1098,8 +1098,11 @@ class SimTelEventSource(EventSource):
                 if self.mon_data is None:
                     time_shift = array_event["laser_calibrations"][tel_id]["tm_calib"]
                 else:
-                    # use the first entry of the monitoring data
-                    # to fill the telescope calibration coefficients
+                    # In simulations, we only use the first entry of the monitoring data
+                    # to fill the telescope calibration coefficients, since there is no
+                    # proper time definition in simulated observing blocks. Besides, the
+                    # simulation toolkit is not varying the observation conditions, e.g.
+                    # raising pedestal noise level, within a given simulation run.
                     time_shift = self.mon_data[tel_id]["coefficients"]["time_shift"][0]
                     factor = self.mon_data[tel_id]["coefficients"]["factor"][0]
                     pedestal_offset = self.mon_data[tel_id]["coefficients"][
