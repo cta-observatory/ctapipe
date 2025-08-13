@@ -1155,6 +1155,24 @@ class SimTelEventSource(EventSource):
         # Check if the monitoring file is set
         if self.monitoring_file is None:
             return None
+        # Check if the monitoring file has the required data
+        with tables.open_file(self.monitoring_file) as mon_file:
+            # Check if the monitoring file has the required camera calibration data
+            if (
+                "/dl1/monitoring/telescope/calibration/camera/coefficients"
+                not in mon_file.root
+            ):
+                raise IOError(
+                    f"No camera monitoring data found in {self.monitoring_file}."
+                )
+            # If the 'coefficients' node is found the 'pixel_statistics' nodes are also available.
+            # Read the pixel statistics node names for further retrieval.
+            pixel_stats_nodenames = [
+                node._v_name
+                for node in mon_file.root[
+                    "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
+                ]._f_list_nodes()
+            ]
         # Read the subarray description from the monitoring file
         mon_subarray = SubarrayDescription.from_hdf(
             self.monitoring_file,
@@ -1170,50 +1188,36 @@ class SimTelEventSource(EventSource):
                 f"the reference telescope IDs of the simtel file '{self.input_url}'."
             )
         # Fill the monitoring dict with the camera calibration data
-        self.monitoring_file_ = tables.open_file(self.monitoring_file)
-        key = "/dl1/monitoring/telescope/calibration/camera"
-        mon_data = None
-        if key in self.monitoring_file_.root:
-            # Create the monitoring dict
-            mon_data = {}
-            for tel_id in mon_subarray.tel_ids:
-                # Create the camera monitoring dict and fill it with the data
-                cam_mon_data = {}
-                cam_mon_data["pixel_statistics"] = {}
-                # Read the the camera monitoring data with the pixel statistics
-                for pixel_stats_table in self.monitoring_file_.root[
-                    f"{key}/pixel_statistics"
-                ]._f_list_nodes():
-                    cam_mon_data["pixel_statistics"][
-                        pixel_stats_table._v_name
-                    ] = read_table(
-                        self.monitoring_file,
-                        f"{key}/pixel_statistics/{pixel_stats_table._v_name}/tel_{tel_id:03d}",
-                    )
-                # Read the camera monitoring data with the coefficients
-                cam_mon_data["coefficients"] = read_table(
+        # Create the monitoring dict
+        mon_data = {}
+        camcalib_key = "/dl1/monitoring/telescope/calibration/camera"
+        for tel_id in mon_subarray.tel_ids:
+            # Create the camera monitoring dict and fill it with the data
+            cam_mon_data = {}
+            cam_mon_data["pixel_statistics"] = {}
+            # Read the the camera monitoring data with the pixel statistics
+            for pixel_stats_nodename in pixel_stats_nodenames:
+                cam_mon_data["pixel_statistics"][pixel_stats_nodename] = read_table(
                     self.monitoring_file,
-                    f"{key}/coefficients/tel_{tel_id:03d}",
+                    f"{camcalib_key}/pixel_statistics/{pixel_stats_nodename}/tel_{tel_id:03d}",
                 )
-                # Check if there are multiple coefficients for the same telescope
-                # and warn the user if so. For simulation, we only use the first one.
-                if len(cam_mon_data["coefficients"]) > 1:
-                    msg = (
-                        f"Multiple camera calibration coefficients found for telescope '{tel_id}' "
-                        f"in monitoring file {self.monitoring_file}. "
-                        f"In simulation only the first one will be used."
-                    )
-                    self.log.warning(msg)
-                    warnings.warn(msg, UserWarning)
-                # Fill the monitoring dict with camera-related dicts for each telescope
-                mon_data[tel_id] = cam_mon_data
-        else:
-            # Warn that there is no camera monitoring data found in the provided monitoring file
-            msg = f"No camera monitoring data found in {self.monitoring_file}."
-            self.log.warning(msg)
-            warnings.warn(msg, UserWarning)
-        # Close the monitoring file
-        self.monitoring_file_.close()
+            # Read the camera monitoring data with the coefficients
+            cam_mon_data["coefficients"] = read_table(
+                self.monitoring_file,
+                f"{camcalib_key}/coefficients/tel_{tel_id:03d}",
+            )
+            # Check if there are multiple coefficients for the same telescope
+            # and warn the user if so. For simulation, we only use the first one.
+            if len(cam_mon_data["coefficients"]) > 1:
+                msg = (
+                    f"Multiple camera calibration coefficients found for telescope '{tel_id}' "
+                    f"in monitoring file {self.monitoring_file}. "
+                    f"In simulation only the first one will be used."
+                )
+                self.log.warning(msg)
+                warnings.warn(msg, UserWarning)
+            # Fill the monitoring dict with camera-related dicts for each telescope
+            mon_data[tel_id] = cam_mon_data
         return mon_data
 
     @staticmethod
