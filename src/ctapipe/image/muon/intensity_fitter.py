@@ -475,11 +475,14 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
-        help="Hole radius of the reflector in m",
+        help="The radius of the hole in the center of the primary mirror dish in meters."
+        "The hole is not circular in shape; however, it can be well approximated as a circle with the same area."
+        "It is defined with the flat-to-flat distance (LST: 1.51 m, MST: 1.2 m, SST: 0.78 m)."
+        "We approximate the hexagonal hole with a circle that has the same surface area.",
         default_value=[
-            ("type", "LST_*", 0.308),
-            ("type", "MST_*", 0.244),
-            ("type", "SST_1M_*", 0.130),
+            ("type", "LST_*", 0.74),
+            ("type", "MST_*", 0.59),
+            ("type", "SST_1M_*", 0.38),
         ],
     ).tag(config=True)
 
