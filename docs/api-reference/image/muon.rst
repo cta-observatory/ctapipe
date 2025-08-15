@@ -11,7 +11,7 @@ Algorithms for detecting and characterizing muon images
   :glob:
   :hidden:
 
-  chord_length
+  muon_chord_length
 
 Reference/API
 =============
