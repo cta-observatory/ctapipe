@@ -5,7 +5,12 @@ from .features import (
     ring_containment,
 )
 from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
-from .intensity_fitter import MuonIntensityFitter  # noqa: F401
+from .intensity_fitter import (  # noqa: F401
+    MuonIntensityFitter,
+    chord_length,
+    image_prediction,
+    intersect_circle,
+)
 from .processor import MuonProcessor  # noqa: F401
 from .ring_fitter import (
     MuonRingFitter,  # noqa: F401
@@ -20,4 +25,7 @@ __all__ = [
     "intensity_ratio_inside_ring",
     "ring_completeness",
     "ring_containment",
+    "image_prediction",
+    "intersect_circle",
+    "chord_length",
 ]
