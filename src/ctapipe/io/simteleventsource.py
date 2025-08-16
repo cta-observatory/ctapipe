@@ -1,12 +1,13 @@
 import enum
+import pathlib
 import warnings
 from contextlib import nullcontext
 from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
-from pathlib import Path
 
 import numpy as np
+import tables
 from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
 from astropy.table import Table
@@ -22,13 +23,13 @@ from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
     CoordinateFrameType,
+    EventCameraCalibrationContainer,
     EventIndexContainer,
     EventType,
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
     PixelStatus,
-    PixelStatusContainer,
     PointingContainer,
     PointingMode,
     R0CameraContainer,
@@ -48,7 +49,7 @@ from ..containers import (
 from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
-from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
+from ..core.traits import Bool, ComponentName, Float, Integer, Path, Undefined, UseEnum
 from ..exceptions import OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
@@ -67,6 +68,7 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
+from ..io import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -302,7 +304,7 @@ def _telescope_from_meta(telescope_meta, mirror_area):
 
 
 def apply_simtel_r1_calibration(
-    r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale=1.0, calib_shift=0.0
+    r0_waveforms, pedestal, factor, gain_selector, calib_scale=1.0, calib_shift=0.0
 ):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
@@ -321,7 +323,7 @@ def apply_simtel_r1_calibration(
     pedestal : ndarray
         Pedestal stored in the simtel file for each gain channel
         Shape: (n_channels, n_pixels)
-    dc_to_pe : ndarray
+    factor : ndarray
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
@@ -346,8 +348,8 @@ def apply_simtel_r1_calibration(
     """
     n_pixels = r0_waveforms.shape[-2]
     ped = pedestal[..., np.newaxis]
-    DC_to_PHE = dc_to_pe[..., np.newaxis]
-    gain = DC_to_PHE * calib_scale
+    factor = factor[..., np.newaxis]
+    gain = factor * calib_scale
 
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
 
@@ -382,7 +384,7 @@ class AtmosphereProfileKind(Enum):
 
 
 def read_atmosphere_profile_from_simtel(
-    simtelfile: str | Path | SimTelFile, kind=AtmosphereProfileKind.AUTO
+    simtelfile: str | pathlib.Path | SimTelFile, kind=AtmosphereProfileKind.AUTO
 ) -> TableAtmosphereDensityProfile | None:
     """Read an atmosphere profile from a SimTelArray file as an astropy Table
 
@@ -410,7 +412,7 @@ def read_atmosphere_profile_from_simtel(
     if kind == AtmosphereProfileKind.NONE:
         return None
 
-    if isinstance(simtelfile, str | Path):
+    if isinstance(simtelfile, str | pathlib.Path):
         context_manager = SimTelFile(simtelfile)
         # FIXME: simtel files currently do not have CTAO reference
         # metadata, should be set to True once we store metadata
@@ -555,6 +557,12 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
+    monitoring_file = Path(
+        default_value=None,
+        allow_none=True,
+        help="Path to the monitoring file to use for the camera calibration.",
+    ).tag(config=True)
+
     skip_r1_calibration = Bool(
         default_value=False,
         help=(
@@ -633,6 +641,8 @@ class SimTelEventSource(EventSource):
         self._atmosphere_density_profile = read_atmosphere_profile_from_simtel(
             self.file_, kind=self.atmosphere_profile_choice
         )
+
+        self.mon_data = self._get_monitoring_data()
 
         try:
             self._has_true_image = _has_true_image(self.file_.history)
@@ -826,7 +836,7 @@ class SimTelEventSource(EventSource):
         except ModuleNotFoundError:
             raise OptionalDependencyMissing("eventio") from None
 
-        path = Path(file_path).expanduser()
+        path = pathlib.Path(file_path).expanduser()
         if not path.is_file():
             return False
         return is_eventio(path)
@@ -1006,14 +1016,8 @@ class SimTelEventSource(EventSource):
 
                 cam_mon = array_event["camera_monitorings"][tel_id]
                 pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
-                dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-
-                # fill dc_to_pe and pedestal_per_sample info into monitoring
-                # container
-                mon = data.mon.tel[tel_id]
-                mon.calibration.dc_to_pe = dc_to_pe
-                mon.calibration.pedestal_per_sample = pedestal
-                mon.pixel_status = self._fill_mon_pixels_status(tel_id)
+                factor = array_event["laser_calibrations"][tel_id]["calib"]
+                disabled_pixel_mask = self._get_disabled_pixel_mask(tel_id)
 
                 select_gain = self.select_gain is True or (
                     self.select_gain is None
@@ -1033,7 +1037,7 @@ class SimTelEventSource(EventSource):
                     r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                         adc_samples,
                         pedestal,
-                        dc_to_pe,
+                        factor,
                         gain_selector,
                         self.calib_scale,
                         self.calib_shift,
@@ -1050,10 +1054,34 @@ class SimTelEventSource(EventSource):
                     pixel_status=pixel_status,
                 )
 
-                # get time_shift from laser calibration
-                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib
+                # Construct the camera calibration coefficients
+                time_shift = None
+                factor = None
+                pedestal_offset = None
+                outlier_mask = disabled_pixel_mask
+                if self.mon_data is None:
+                    time_shift = array_event["laser_calibrations"][tel_id]["tm_calib"]
+                else:
+                    # In simulations, we only use the first entry of the monitoring data
+                    # to fill the telescope calibration coefficients, since there is no
+                    # proper time definition in simulated observing blocks. Besides, the
+                    # simulation toolkit is not varying the observation conditions, e.g.
+                    # raising pedestal noise level, within a given simulation run.
+                    time_shift = self.mon_data[tel_id]["coefficients"]["time_shift"][0]
+                    factor = self.mon_data[tel_id]["coefficients"]["factor"][0]
+                    pedestal_offset = self.mon_data[tel_id]["coefficients"][
+                        "pedestal_offset"
+                    ][0]
+                    outlier_mask = self.mon_data[tel_id]["coefficients"][
+                        "outlier_mask"
+                    ][0]
+                # fill the camera calibration coefficients
+                data.calibration.tel[tel_id] = EventCameraCalibrationContainer(
+                    time_shift=time_shift,
+                    factor=factor,
+                    pedestal_offset=pedestal_offset,
+                    outlier_mask=outlier_mask,
+                )
 
             yield data
 
@@ -1076,7 +1104,7 @@ class SimTelEventSource(EventSource):
 
         return pixel_status
 
-    def _fill_mon_pixels_status(self, tel_id):
+    def _get_disabled_pixel_mask(self, tel_id):
         tel = self.file_.telescope_descriptions[tel_id]
         n_pixels = tel["camera_organization"]["n_pixels"]
         n_gains = tel["camera_organization"]["n_gains"]
@@ -1085,11 +1113,79 @@ class SimTelEventSource(EventSource):
         disabled_pixels = np.zeros((n_gains, n_pixels), dtype=bool)
         disabled_pixels[:, disabled_ids] = True
 
-        return PixelStatusContainer(
-            hardware_failing_pixels=disabled_pixels,
-            pedestal_failing_pixels=disabled_pixels.copy(),
-            flatfield_failing_pixels=disabled_pixels.copy(),
+        return disabled_pixels
+
+    def _get_monitoring_data(self):
+        """
+        Retrieve the monitoring data from the monitoring file.
+        """
+        # Check if the monitoring file is set
+        if self.monitoring_file is None:
+            return None
+        # Check if the monitoring file has the required data
+        with tables.open_file(self.monitoring_file) as mon_file:
+            # Check if the monitoring file has the required camera calibration data
+            if (
+                "/dl1/monitoring/telescope/calibration/camera/coefficients"
+                not in mon_file.root
+            ):
+                raise IOError(
+                    f"No camera monitoring data found in {self.monitoring_file}."
+                )
+            # If the 'coefficients' node is found the 'pixel_statistics' nodes are also available.
+            # Read the pixel statistics node names for further retrieval.
+            pixel_stats_nodenames = [
+                node._v_name
+                for node in mon_file.root[
+                    "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
+                ]._f_list_nodes()
+            ]
+        # Read the subarray description from the monitoring file
+        mon_subarray = SubarrayDescription.from_hdf(
+            self.monitoring_file,
+            focal_length_choice=self.focal_length_choice,
         )
+        # Select the allowed telescopes
+        if self.allowed_tels:
+            mon_subarray = mon_subarray.select_subarray(self.allowed_tels)
+        # Check if the telescope IDs match the reference of simtel
+        if mon_subarray.tels.keys() != self.subarray.tels.keys():
+            raise ValueError(
+                f"Telescope IDs of monitoring file '{self.monitoring_file}' do not match "
+                f"the reference telescope IDs of the simtel file '{self.input_url}'."
+            )
+        # Fill the monitoring dict with the camera calibration data
+        # Create the monitoring dict
+        mon_data = {}
+        camcalib_key = "/dl1/monitoring/telescope/calibration/camera"
+        for tel_id in mon_subarray.tel_ids:
+            # Create the camera monitoring dict and fill it with the data
+            cam_mon_data = {}
+            cam_mon_data["pixel_statistics"] = {}
+            # Read the the camera monitoring data with the pixel statistics
+            for pixel_stats_nodename in pixel_stats_nodenames:
+                cam_mon_data["pixel_statistics"][pixel_stats_nodename] = read_table(
+                    self.monitoring_file,
+                    f"{camcalib_key}/pixel_statistics/{pixel_stats_nodename}/tel_{tel_id:03d}",
+                )
+            # Read the camera monitoring data with the coefficients
+            cam_mon_data["coefficients"] = read_table(
+                self.monitoring_file,
+                f"{camcalib_key}/coefficients/tel_{tel_id:03d}",
+            )
+            # Check if there are multiple coefficients for the same telescope
+            # and warn the user if so. For simulation, we only use the first one.
+            if len(cam_mon_data["coefficients"]) > 1:
+                msg = (
+                    f"Multiple camera calibration coefficients found for telescope '{tel_id}' "
+                    f"in monitoring file {self.monitoring_file}. "
+                    f"In simulation only the first one will be used."
+                )
+                self.log.warning(msg)
+                warnings.warn(msg, UserWarning)
+            # Fill the monitoring dict with camera-related dicts for each telescope
+            mon_data[tel_id] = cam_mon_data
+        return mon_data
 
     @staticmethod
     def _fill_event_pointing(tracking_position):
