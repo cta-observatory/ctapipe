@@ -5,7 +5,8 @@ from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Integer, classes_with_traits
-from ..irf import EventLoader, Spectra
+from ..io import DL2EventLoader
+from ..irf import Spectra
 from ..irf.optimize import CutOptimizerBase
 
 __all__ = ["EventSelectionOptimizer"]
@@ -102,7 +103,7 @@ class EventSelectionOptimizer(Tool):
         "chunk_size": "EventSelectionOptimizer.chunk_size",
     }
 
-    classes = [EventLoader] + classes_with_traits(CutOptimizerBase)
+    classes = [DL2EventLoader] + classes_with_traits(CutOptimizerBase)
 
     def setup(self):
         """
@@ -112,7 +113,7 @@ class EventSelectionOptimizer(Tool):
             self.optimization_algorithm, parent=self
         )
         self.event_loaders = {
-            "gammas": EventLoader(
+            "gammas": DL2EventLoader(
                 parent=self,
                 file=self.gamma_file,
                 target_spectrum=self.gamma_target_spectrum,
@@ -127,13 +128,13 @@ class EventSelectionOptimizer(Tool):
                     f"using {self.optimization_algorithm}."
                 )
 
-            self.event_loaders["protons"] = EventLoader(
+            self.event_loaders["protons"] = DL2EventLoader(
                 parent=self,
                 file=self.proton_file,
                 target_spectrum=self.proton_target_spectrum,
             )
             if self.electron_file and self.electron_file.exists():
-                self.event_loaders["electrons"] = EventLoader(
+                self.event_loaders["electrons"] = DL2EventLoader(
                     parent=self,
                     file=self.electron_file,
                     target_spectrum=self.electron_target_spectrum,
