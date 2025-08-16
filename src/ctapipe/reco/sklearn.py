@@ -1,6 +1,7 @@
 """
 Component Wrappers around sklearn models
 """
+
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
@@ -483,7 +484,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
                 )
 
             container.prefix = f"{self.prefix}_tel"
-            event.dl2.tel[tel_id].classification[self.prefix] = container
+            event.dl2.tel[tel_id].particle_type[self.prefix] = container
 
         self.stereo_combiner(event)
 
