@@ -43,16 +43,14 @@ def get_hdf5_monitoring_types(file: tables.File | str | Path) -> tuple[Monitorin
         if not isinstance(file, tables.File):
             file = stack.enter_context(tables.open_file(file))
 
-        if (
-            "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
-            in file.root
-        ):
+        if "/dl1/monitoring/telescope/calibration/camera/pixel_statistics" in file.root:
             monitoring_types.append(MonitoringTypes.PIXEL_STATISTICS)
 
         if "/dl1/monitoring/telescope/calibration/camera/coefficients" in file.root:
             monitoring_types.append(MonitoringTypes.CAMERA_COEFFICIENTS)
 
     return tuple(monitoring_types)
+
 
 class HDF5MonitoringSource(MonitoringSource):
     """
@@ -74,9 +72,9 @@ class HDF5MonitoringSource(MonitoringSource):
 
     """
 
-    input_url = Path(help="Path to the HDF5 input file containing monitoring data.").tag(
-        config=True
-    )
+    input_url = Path(
+        help="Path to the HDF5 input file containing monitoring data."
+    ).tag(config=True)
 
     enforce_subarray_description = Bool(
         True,
