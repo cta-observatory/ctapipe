@@ -21,7 +21,7 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
 
-from ctapipe.containers import StatisticsContainer
+from ctapipe.containers import ChunkStatisticsContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import Int
 
@@ -122,7 +122,7 @@ class StatisticsAggregator(TelescopeComponent):
         return Table(data, units=units)
 
     @abstractmethod
-    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(self, images, masked_pixels_of_sample) -> ChunkStatisticsContainer:
         pass
 
 
@@ -131,7 +131,7 @@ class PlainAggregator(StatisticsAggregator):
     Compute aggregated statistic values from a chunk of images using numpy functions
     """
 
-    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(self, images, masked_pixels_of_sample) -> ChunkStatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -143,7 +143,7 @@ class PlainAggregator(StatisticsAggregator):
         # Count non-masked events per pixel (for consistency with SigmaClippingAggregator)
         n_events_per_pixel = np.count_nonzero(~masked_images.mask, axis=0)
 
-        return StatisticsContainer(
+        return ChunkStatisticsContainer(
             n_events=n_events_per_pixel,
             mean=pixel_mean,
             median=pixel_median,
@@ -165,7 +165,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(self, images, masked_pixels_of_sample) -> ChunkStatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -188,7 +188,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
         pixel_median = np.ma.median(filtered_data, axis=0).filled(np.nan)
         pixel_std = np.ma.std(filtered_data, axis=0).filled(np.nan)
 
-        return StatisticsContainer(
+        return ChunkStatisticsContainer(
             n_events=n_events_after_clipping,
             mean=pixel_mean,
             median=pixel_median,
