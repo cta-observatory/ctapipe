@@ -26,20 +26,39 @@ from ..monitoring import (
     PedestalImageInterpolator,
 )
 from .astropy_helpers import read_table
-from .metadata.Reference import read_reference_metadata
+from .metadata import read_reference_metadata
 from .monitoringsource import MonitoringSource
 from .monitoringtypes import MonitoringTypes
 
-__all__ = ["DL1MonitoringSource"]
+__all__ = ["HDF5MonitoringSource"]
 
 logger = logging.getLogger(__name__)
 
 
-class DL1MonitoringSource(MonitoringSource):
-    """
-    Class for reading DL1 monitoring data.
+def get_hdf5_monitoring_types(file: tables.File | str | Path) -> tuple[MonitoringTypes]:
+    """Get the monitoring types present in the hdf5 file"""
+    monitoring_types = []
 
-    This class provides a common interface for accessing DL1 monitoring data from different monitoring types.
+    with ExitStack() as stack:
+        if not isinstance(file, tables.File):
+            file = stack.enter_context(tables.open_file(file))
+
+        if (
+            "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
+            in file.root
+        ):
+            monitoring_types.append(MonitoringTypes.PIXEL_STATISTICS)
+
+        if "/dl1/monitoring/telescope/calibration/camera/coefficients" in file.root:
+            monitoring_types.append(MonitoringTypes.CAMERA_COEFFICIENTS)
+
+    return tuple(monitoring_types)
+
+class HDF5MonitoringSource(MonitoringSource):
+    """
+    Class for reading HDF5 monitoring data.
+
+    This class provides a common interface for accessing HDF5 monitoring data from different monitoring types.
     TODO: Fill proper docstring.
 
     Attributes
@@ -54,6 +73,10 @@ class DL1MonitoringSource(MonitoringSource):
         Table to hold camera coefficients
 
     """
+
+    input_url = Path(help="Path to the HDF5 input file containing monitoring data.").tag(
+        config=True
+    )
 
     enforce_subarray_description = Bool(
         True,
@@ -182,24 +205,9 @@ class DL1MonitoringSource(MonitoringSource):
         """
         return "simulation" in self.file_.root
 
-    def _get_monitoring_types(file: tables.File | str | Path) -> tuple[MonitoringTypes]:
-        """Get the monitoring types present in the hdf5 file"""
-        monitoring_types = []
-
-        with ExitStack() as stack:
-            if not isinstance(file, tables.File):
-                file = stack.enter_context(tables.open_file(file))
-
-            if (
-                "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
-                in file.root
-            ):
-                monitoring_types.append(MonitoringTypes.PIXEL_STATISTICS)
-
-            if "/dl1/monitoring/telescope/calibration/camera/coefficients" in file.root:
-                monitoring_types.append(MonitoringTypes.CAMERA_COEFFICIENTS)
-
-        return tuple(monitoring_types)
+    @lazyproperty
+    def monitoring_types(self):
+        return get_hdf5_monitoring_types(self.file_)
 
     @lazyproperty
     def has_camera_coefficients(self):
