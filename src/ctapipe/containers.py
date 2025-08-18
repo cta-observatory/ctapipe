@@ -28,6 +28,7 @@ __all__ = [
     "LeakageContainer",
     "CameraCalibrationContainer",
     "MonitoringCameraContainer",
+    "MonitoringTelescopeContainer",
     "MonitoringContainer",
     "MorphologyContainer",
     "MuonRingContainer",

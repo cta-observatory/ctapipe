@@ -17,6 +17,7 @@ from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
     DataWriter,
+    DL1MonitoringSource,
     EventSource,
     metadata,
     write_table,
@@ -155,6 +156,7 @@ class ProcessorTool(Tool):
             SoftwareTrigger,
         ]
         + classes_with_traits(EventSource)
+        + classes_with_traits(DL1MonitoringSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -187,6 +189,7 @@ class ProcessorTool(Tool):
 
         subarray = self.event_source.subarray
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
+        self.dl1_monitoring_source = DL1MonitoringSource(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(
@@ -308,6 +311,7 @@ class ProcessorTool(Tool):
                 continue
 
             if self.should_calibrate:
+                self.dl1_monitoring_source.fill_monitoring_container(event)
                 self.calibrate(event)
 
             if self.should_compute_dl1:

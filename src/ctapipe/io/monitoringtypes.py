@@ -10,4 +10,3 @@ class MonitoringTypes(Enum):
     CAMERA_COEFFICIENTS = auto()
     #: raw archived data in common format, with optional zero suppression
     POINTING = auto()
-    

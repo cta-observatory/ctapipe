@@ -12,6 +12,8 @@ from .tableio import TableReader, TableWriter
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableloader import TableLoader
 from .hdf5merger import HDF5Merger
+from .dl1monitoringsource import DL1MonitoringSource
+from .monitoringsource import MonitoringSource
 
 from .hdf5eventsource import HDF5EventSource, get_hdf5_datalevels
 from .simteleventsource import SimTelEventSource
@@ -29,6 +31,8 @@ __all__ = [
     "EventSource",
     "SimTelEventSource",
     "HDF5EventSource",
+    "MonitoringSource",
+    "DL1MonitoringSource",
     "DataLevel",
     "read_table",
     "write_table",
