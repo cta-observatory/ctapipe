@@ -20,15 +20,13 @@ __all__ = [
     "DL1CameraContainer",
     "DL1Container",
     "DL2Container",
-    "EventCalibrationContainer",
-    "EventCameraCalibrationContainer",
     "EventIndexContainer",
     "EventType",
     "HillasParametersContainer",
     "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
-    "MonitoringCameraCalibrationContainer",
+    "CameraCalibrationContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
@@ -1138,11 +1136,15 @@ class PointingContainer(Container):
 
 
 # Camera containers
-class EventCameraCalibrationContainer(Container):
+class CameraCalibrationContainer(Container):
     """
-    Storage of camera calibration coefficients for the current event
+    Storage of camera calibration coefficients for a given time.
     """
 
+    time = Field(
+        NAN_TIME,
+        "validity time of the camera calibration coefficients.",
+    )
     pedestal_offset = Field(
         None,
         "Residual mean pedestal of the waveforms for each pixel."
@@ -1166,29 +1168,6 @@ class EventCameraCalibrationContainer(Container):
         "Boolean mask indicating which pixels are considered outliers."
         " Shape: (n_channels, n_pixels)",
     )
-
-
-class EventCalibrationContainer(Container):
-    """
-    Container for calibration coefficients for the current event
-    """
-
-    # create the camera container
-    tel = Field(
-        default_factory=partial(Map, EventCameraCalibrationContainer),
-        description="map of tel_id to EventCameraCalibrationContainer",
-    )
-
-
-class MonitoringCameraCalibrationContainer(EventCameraCalibrationContainer):
-    """
-    Storage of DL1 camera calibration coefficients for a given time period.
-    """
-
-    time = Field(
-        NAN_TIME,
-        "validity start time of the camera calibration coefficients.",
-    )
     is_valid = Field(
         False,
         (
@@ -1200,13 +1179,8 @@ class MonitoringCameraCalibrationContainer(EventCameraCalibrationContainer):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics of a chunk of images"""
+    """Store descriptive statistics of a pixel-wise quantity for each channel"""
 
-    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
-    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
-    event_id_start = Field(None, "event id of the first event of the chunk")
-    event_id_end = Field(None, "event id of the last event of the chunk")
-    n_events = Field(-1, "number of events used for the extraction of the statistics")
     mean = Field(
         None,
         "mean of a pixel-wise quantity for each channel"
@@ -1222,11 +1196,21 @@ class StatisticsContainer(Container):
         "standard deviation of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
     )
-    outlier_masks = Field(
+    outlier_mask = Field(
         None,
-        "Boolean masks indicating which pixels are considered outliers."
-        " Type: dict; Shape: {'outlier_mask': (n_channels, n_pixels),...}",
+        "Boolean mask indicating which pixels are considered outliers."
+        " Shape: (n_channels, n_pixels)",
     )
+
+
+class ChunkStatisticsContainer(StatisticsContainer):
+    """Store descriptive statistics of a chunk of images"""
+
+    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
+    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk")
+    event_id_end = Field(None, "event id of the last event of the chunk")
+    n_events = Field(-1, "number of events used for the extraction of the statistics")
     is_valid = Field(
         False,
         (
@@ -1267,8 +1251,20 @@ class MonitoringCameraContainer(Container):
     )
 
     coefficients = Field(
-        default_factory=MonitoringCameraCalibrationContainer,
+        default_factory=CameraCalibrationContainer,
         description="Camera calibration coefficients calculated from the monitoring data",
+    )
+
+
+class MonitoringTelescopeContainer(Container):
+    """
+    Root container for telescope monitoring data (MON)
+    """
+
+    # create the camera container
+    camera = Field(
+        default_factory=MonitoringCameraContainer,
+        description="Container for monitoring data for camera",
     )
 
 
@@ -1279,8 +1275,8 @@ class MonitoringContainer(Container):
 
     # create the camera container
     tel = Field(
-        default_factory=partial(Map, MonitoringCameraContainer),
-        description="map of tel_id to MonitoringCameraContainer",
+        default_factory=partial(Map, MonitoringTelescopeContainer),
+        description="map of tel_id to MonitoringTelescopeContainer",
     )
 
 
@@ -1406,11 +1402,7 @@ class ArrayEventContainer(Container):
         default_factory=PointingContainer,
         description="Array and telescope pointing positions",
     )
-    calibration = Field(
-        default_factory=EventCalibrationContainer,
-        description="Container for calibration coefficients for the current event",
-    )
-    mon = Field(
+    monitoring = Field(
         default_factory=MonitoringContainer,
         description="container for event-wise monitoring data (MON)",
     )
