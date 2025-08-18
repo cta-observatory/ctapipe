@@ -122,7 +122,9 @@ class StatisticsAggregator(TelescopeComponent):
         return Table(data, units=units)
 
     @abstractmethod
-    def compute_stats(self, images, masked_pixels_of_sample) -> ChunkStatisticsContainer:
+    def compute_stats(
+        self, images, masked_pixels_of_sample
+    ) -> ChunkStatisticsContainer:
         pass
 
 
@@ -131,7 +133,9 @@ class PlainAggregator(StatisticsAggregator):
     Compute aggregated statistic values from a chunk of images using numpy functions
     """
 
-    def compute_stats(self, images, masked_pixels_of_sample) -> ChunkStatisticsContainer:
+    def compute_stats(
+        self, images, masked_pixels_of_sample
+    ) -> ChunkStatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -165,7 +169,9 @@ class SigmaClippingAggregator(StatisticsAggregator):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def compute_stats(self, images, masked_pixels_of_sample) -> ChunkStatisticsContainer:
+    def compute_stats(
+        self, images, masked_pixels_of_sample
+    ) -> ChunkStatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
