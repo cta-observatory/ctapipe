@@ -7,7 +7,6 @@ from gzip import GzipFile
 from io import BufferedReader
 
 import numpy as np
-import tables
 from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
 from astropy.table import Table
@@ -22,8 +21,8 @@ from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
+    CameraCalibrationContainer,
     CoordinateFrameType,
-    EventCameraCalibrationContainer,
     EventIndexContainer,
     EventType,
     ObservationBlockContainer,
@@ -68,7 +67,6 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
-from ..io import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -678,8 +676,6 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
-        self.mon_data = self._get_monitoring_data()
-
         try:
             self._has_true_image = _has_true_image(self.file_.history)
         except Exception:
@@ -1089,34 +1085,13 @@ class SimTelEventSource(EventSource):
                     selected_gain_channel=selected_gain_channel,
                     pixel_status=pixel_status,
                 )
-
-                # Construct the camera calibration coefficients
-                time_shift = None
-                factor = None
-                pedestal_offset = None
-                outlier_mask = disabled_pixel_mask
-                if self.mon_data is None:
-                    time_shift = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                else:
-                    # In simulations, we only use the first entry of the monitoring data
-                    # to fill the telescope calibration coefficients, since there is no
-                    # proper time definition in simulated observing blocks. Besides, the
-                    # simulation toolkit is not varying the observation conditions, e.g.
-                    # raising pedestal noise level, within a given simulation run.
-                    time_shift = self.mon_data[tel_id]["coefficients"]["time_shift"][0]
-                    factor = self.mon_data[tel_id]["coefficients"]["factor"][0]
-                    pedestal_offset = self.mon_data[tel_id]["coefficients"][
-                        "pedestal_offset"
-                    ][0]
-                    outlier_mask = self.mon_data[tel_id]["coefficients"][
-                        "outlier_mask"
-                    ][0]
-                # fill the camera calibration coefficients
-                data.calibration.tel[tel_id] = EventCameraCalibrationContainer(
-                    time_shift=time_shift,
-                    factor=factor,
-                    pedestal_offset=pedestal_offset,
-                    outlier_mask=outlier_mask,
+                # Fill some monitoring information from the simtel file. This can
+                # be overwritten by using a monitoring file during the processing.
+                data.monitoring.tel[
+                    tel_id
+                ].camera.coefficients = CameraCalibrationContainer(
+                    time_shift=array_event["laser_calibrations"][tel_id]["tm_calib"],
+                    outlier_mask=disabled_pixel_mask,
                 )
 
             yield data
@@ -1150,78 +1125,6 @@ class SimTelEventSource(EventSource):
         disabled_pixels[:, disabled_ids] = True
 
         return disabled_pixels
-
-    def _get_monitoring_data(self):
-        """
-        Retrieve the monitoring data from the monitoring file.
-        """
-        # Check if the monitoring file is set
-        if self.monitoring_file is None:
-            return None
-        # Check if the monitoring file has the required data
-        with tables.open_file(self.monitoring_file) as mon_file:
-            # Check if the monitoring file has the required camera calibration data
-            if (
-                "/dl1/monitoring/telescope/calibration/camera/coefficients"
-                not in mon_file.root
-            ):
-                raise IOError(
-                    f"No camera monitoring data found in {self.monitoring_file}."
-                )
-            # If the 'coefficients' node is found the 'pixel_statistics' nodes are also available.
-            # Read the pixel statistics node names for further retrieval.
-            pixel_stats_nodenames = [
-                node._v_name
-                for node in mon_file.root[
-                    "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
-                ]._f_list_nodes()
-            ]
-        # Read the subarray description from the monitoring file
-        mon_subarray = SubarrayDescription.from_hdf(
-            self.monitoring_file,
-            focal_length_choice=self.focal_length_choice,
-        )
-        # Select the allowed telescopes
-        if self.allowed_tels:
-            mon_subarray = mon_subarray.select_subarray(self.allowed_tels)
-        # Check if the telescope IDs match the reference of simtel
-        if mon_subarray.tels.keys() != self.subarray.tels.keys():
-            raise ValueError(
-                f"Telescope IDs of monitoring file '{self.monitoring_file}' do not match "
-                f"the reference telescope IDs of the simtel file '{self.input_url}'."
-            )
-        # Fill the monitoring dict with the camera calibration data
-        # Create the monitoring dict
-        mon_data = {}
-        camcalib_key = "/dl1/monitoring/telescope/calibration/camera"
-        for tel_id in mon_subarray.tel_ids:
-            # Create the camera monitoring dict and fill it with the data
-            cam_mon_data = {}
-            cam_mon_data["pixel_statistics"] = {}
-            # Read the the camera monitoring data with the pixel statistics
-            for pixel_stats_nodename in pixel_stats_nodenames:
-                cam_mon_data["pixel_statistics"][pixel_stats_nodename] = read_table(
-                    self.monitoring_file,
-                    f"{camcalib_key}/pixel_statistics/{pixel_stats_nodename}/tel_{tel_id:03d}",
-                )
-            # Read the camera monitoring data with the coefficients
-            cam_mon_data["coefficients"] = read_table(
-                self.monitoring_file,
-                f"{camcalib_key}/coefficients/tel_{tel_id:03d}",
-            )
-            # Check if there are multiple coefficients for the same telescope
-            # and warn the user if so. For simulation, we only use the first one.
-            if len(cam_mon_data["coefficients"]) > 1:
-                msg = (
-                    f"Multiple camera calibration coefficients found for telescope '{tel_id}' "
-                    f"in monitoring file {self.monitoring_file}. "
-                    f"In simulation only the first one will be used."
-                )
-                self.log.warning(msg)
-                warnings.warn(msg, UserWarning)
-            # Fill the monitoring dict with camera-related dicts for each telescope
-            mon_data[tel_id] = cam_mon_data
-        return mon_data
 
     @staticmethod
     def _fill_event_pointing(tracking_position):

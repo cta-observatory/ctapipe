@@ -4,7 +4,7 @@ Handles reading of monitoring files
 from abc import abstractmethod
 
 from ..containers import ArrayEventContainer
-from ..core.component import TelescopeComponent
+from ..core import TelescopeComponent
 from ..core.traits import Undefined
 from .monitoringtypes import MonitoringTypes
 

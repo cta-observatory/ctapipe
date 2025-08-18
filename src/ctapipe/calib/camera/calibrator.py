@@ -207,7 +207,7 @@ class CameraCalibrator(TelescopeComponent):
 
         n_channels, n_pixels, n_samples = waveforms.shape
 
-        calib = event.calibration.tel[tel_id]
+        calib = event.monitoring.tel[tel_id].camera.coefficients
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
         pixel_index = _get_pixel_index(n_pixels)
 
@@ -244,7 +244,7 @@ class CameraCalibrator(TelescopeComponent):
                 is_valid=True,
             )
         else:
-            # shift waveforms if time_shift calibration is available
+            # shift waveforms if time_shift is available
             remaining_shift = None
             if time_shift is not None:
                 if self.apply_waveform_time_shift.tel[tel_id]:

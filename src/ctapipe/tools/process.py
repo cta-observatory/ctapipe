@@ -190,9 +190,25 @@ class ProcessorTool(Tool):
 
         subarray = self.event_source.subarray
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
-        self.dl1_monitoring_source = HDF5MonitoringSource(
-            parent=self, subarray=subarray
-        )
+
+        # Make monitoring source optional
+        self.monitoring_source = None
+        try:
+            # Check if monitoring file is configured
+            monitoring_source = HDF5MonitoringSource(parent=self, subarray=subarray)
+            if monitoring_source.input_url is not None:
+                self.monitoring_source = monitoring_source
+                self.log.info("Using monitoring file: %s", monitoring_source.input_url)
+            else:
+                self.log.info(
+                    "No monitoring file specified, proceeding without monitoring data"
+                )
+        except Exception as e:
+            self.log.warning(
+                "Failed to setup monitoring source: %s. Proceeding without monitoring data",
+                e,
+            )
+
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(
@@ -314,7 +330,8 @@ class ProcessorTool(Tool):
                 continue
 
             if self.should_calibrate:
-                self.dl1_monitoring_source.fill_monitoring_container(event)
+                if self.monitoring_source is not None:
+                    self.monitoring_source.fill_monitoring_container(event)
                 self.calibrate(event)
 
             if self.should_compute_dl1:
