@@ -2,15 +2,10 @@
 Handles reading of monitoring files
 """
 from abc import abstractmethod
-from collections.abc import Generator
 
-import astropy
-import tables
-from astropy.utils.decorators import lazyproperty
-
-from ..containers import ArrayEventContainer, MonitoringCameraContainer
+from ..containers import ArrayEventContainer
 from ..core.component import TelescopeComponent
-from ..core.traits import Path, Undefined
+from ..core.traits import Undefined
 from .monitoringtypes import MonitoringTypes
 
 __all__ = ["MonitoringSource"]
@@ -31,10 +26,6 @@ class MonitoringSource(TelescopeComponent):
 
     plugin_entry_point = "ctapipe_monitoring"
 
-    input_url = Path(help="Path to the input file containing monitoring data.").tag(
-        config=True
-    )
-
     def __init__(
         self, subarray=None, input_url=None, config=None, parent=None, **kwargs
     ):
@@ -49,24 +40,16 @@ class MonitoringSource(TelescopeComponent):
         self.metadata = dict(is_simulation=False)
         self.log.info(f"INPUT PATH = {self.input_url}")
 
+    @property
     @abstractmethod
-    def _get_monitoring_types(file: tables.File | str | Path) -> tuple[MonitoringTypes]:
-        """Get the monitoring types present in the monitoring file
-
-        Parameters
-        ----------
-        file : tables.File | str | Path
-            The file to check for monitoring types.
+    def monitoring_types(self) -> tuple[MonitoringTypes]:
+        """
+        The monitoring types provided by this monitoring source
 
         Returns
         -------
-        tuple[MonitoringTypes]
-            A tuple of the monitoring types present in the file.
+        tuple[ctapipe.io.MonitoringTypes]
         """
-
-    @lazyproperty
-    def monitoring_types(self):
-        return self._get_monitoring_types(self.file_)
 
     def has_any_monitoring_type(self, monitoring_types) -> bool:
         """
@@ -90,25 +73,11 @@ class MonitoringSource(TelescopeComponent):
             The event to fill the monitoring container for.
         """
 
-    @abstractmethod
-    def get_camera_monitoring_container(
-        self, tel_id: int, time: astropy.time.Time
-    ) -> Generator[MonitoringCameraContainer]:
-        """
-        Get the camera monitoring container for a specific time.
+    def __enter__(self):
+        return self
 
-        Parameters
-        ----------
-        tel_id : int
-            The telescope ID to find the camera monitoring data for.
-        time : astropy.time.Time
-            The target timestamp to find the camera monitoring data for.
-
-        Returns
-        -------
-        Generator[MonitoringCameraContainer]
-            A generator yielding the camera monitoring containers for the specified time.
-        """
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     def close(self):
         """Close this event source.

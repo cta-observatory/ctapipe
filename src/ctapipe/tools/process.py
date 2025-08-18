@@ -17,8 +17,8 @@ from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
     DataWriter,
-    DL1MonitoringSource,
     EventSource,
+    HDF5MonitoringSource,
     metadata,
     write_table,
 )
@@ -82,7 +82,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "monitoring-file": "DL1MonitoringSource.input_url",
+        "monitoring-file": "HDF5MonitoringSource.input_url",
         "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
@@ -157,7 +157,7 @@ class ProcessorTool(Tool):
             SoftwareTrigger,
         ]
         + classes_with_traits(EventSource)
-        + classes_with_traits(DL1MonitoringSource)
+        + classes_with_traits(HDF5MonitoringSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -190,7 +190,9 @@ class ProcessorTool(Tool):
 
         subarray = self.event_source.subarray
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
-        self.dl1_monitoring_source = DL1MonitoringSource(parent=self, subarray=subarray)
+        self.dl1_monitoring_source = HDF5MonitoringSource(
+            parent=self, subarray=subarray
+        )
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(
