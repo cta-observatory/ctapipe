@@ -37,6 +37,7 @@ __all__ = ["HDF5MonitoringSource"]
 logger = logging.getLogger(__name__)
 
 TELESCOPE_CALIBRATION_GROUP = "/dl1/monitoring/telescope/calibration"
+POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
 
 def get_hdf5_monitoring_types(
@@ -61,13 +62,13 @@ def get_hdf5_monitoring_types(
             ]
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
-            if "/dl0/monitoring/telescope/pointing" in h5file.root:
+            if POINTING_GROUP in h5file.root:
                 monitoring_types.append(MonitoringTypes.TELESCOPE_POINTING)
 
         except (KeyError, tables.NoSuchNodeError):
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
-            if "/dl0/monitoring/telescope/pointing" in h5file.root:
+            if POINTING_GROUP in h5file.root:
                 monitoring_types = [MonitoringTypes.TELESCOPE_POINTING]
             else:
                 # Return empty tuple if calibration group doesn't exist
@@ -286,7 +287,7 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         True for files that contain pointing information
         """
-        return "/dl0/monitoring/telescope/pointing" in self.file_.root
+        return POINTING_GROUP in self.file_.root
 
     @property
     def camera_coefficients(self):
