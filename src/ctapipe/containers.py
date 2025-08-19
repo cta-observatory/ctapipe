@@ -58,6 +58,7 @@ __all__ = [
     "TimingParametersContainer",
     "TriggerContainer",
     "StatisticsContainer",
+    "ChunkStatisticsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
