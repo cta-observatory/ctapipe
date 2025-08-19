@@ -462,6 +462,11 @@ class HDF5MonitoringSource(MonitoringSource):
                 f"Out of bounds: Requested timestamp '{time} MJD' is before the "
                 f"validity start '{table['time'][0]} MJD' (first entry in the table)."
             )
+        # Check upper bounds when requested timestamp is after the last entry
+        if idx >= len(table) - 1:
+            # If timestamp is beyond the last entry, return the last row
+            if time >= table["time"][-1]:
+                return table[-1]
         # Check if target falls in interval [idx, idx+1) and return the row of the table
         table_row = None
         if table["time"][idx] <= time < table["time"][idx + 1]:
