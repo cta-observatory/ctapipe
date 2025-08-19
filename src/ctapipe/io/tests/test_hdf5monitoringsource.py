@@ -1,6 +1,6 @@
+import astropy.units as u
 import numpy as np
 import pytest
-import astropy.units as u
 
 from ctapipe.core import ToolConfigurationError
 from ctapipe.io import (
@@ -41,7 +41,9 @@ def test_get_monitoring_types(
     dl1_merged_monitoring_file,
 ):
     # Test with a file that has no monitoring types
-    assert tuple([]) == get_hdf5_monitoring_types(gamma_diffuse_full_reco_file)
+    with pytest.warns(UserWarning, match="No monitoring types found in"):
+        no_monitoring_types = get_hdf5_monitoring_types(gamma_diffuse_full_reco_file)
+        assert tuple([]) == no_monitoring_types
     # Test with a file that has pointing-related monitoring types
     assert tuple([MonitoringTypes.TELESCOPE_POINTING]) == get_hdf5_monitoring_types(
         dl1_mon_pointing_file
@@ -112,12 +114,16 @@ def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_fi
 
 def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_file):
     from ctapipe.io import read_table
+
     tel_id = 1
     # Read the camera monitoring data with the coefficients
-    pointing_time = read_table(
-        dl1_mon_pointing_file,
-        f"/dl1/monitoring/telescope/calibration/pointing/tel_{tel_id:03d}",
-    )["time"][0] + 1 * u.s
+    pointing_time = (
+        read_table(
+            dl1_mon_pointing_file,
+            f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}",
+        )["time"][0]
+        + 1 * u.s
+    )
     allowed_tels = {tel_id}
     with HDF5EventSource(
         input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
@@ -147,6 +153,7 @@ def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_fil
             assert e.monitoring.tel[tel_id].pointing.altitude != old_alt
         # Close the monitoring source
         monitoring_source.close()
+
 
 def test_exceptions(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks):
     # Pass a subarray with more telescopes than available in the monitoring file.

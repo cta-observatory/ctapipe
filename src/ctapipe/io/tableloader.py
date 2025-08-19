@@ -33,7 +33,7 @@ SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
 SCHEDULING_TABLE = "/configuration/observation/scheduling_block"
 FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
-POINTING_GROUP = "/dl1/monitoring/telescope/calibration/pointing"
+POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
