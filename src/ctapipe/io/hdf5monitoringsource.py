@@ -417,7 +417,7 @@ class HDF5MonitoringSource(MonitoringSource):
                     )
         yield cam_mon_container
 
-    def _get_table_row(time: float, table: astropy.table.Table):
+    def _get_table_row(self, time: float, table: astropy.table.Table):
         """
         Retrieve the row of the table that corresponds to the target time.
 
