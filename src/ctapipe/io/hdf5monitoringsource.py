@@ -2,7 +2,6 @@
 Handles reading of monitoring files
 """
 import logging
-from collections.abc import Generator
 from contextlib import ExitStack
 
 import astropy
@@ -310,7 +309,7 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def get_telescope_pointing_container(
         self, tel_id: int, time: astropy.time.Time
-    ) -> Generator[TelescopePointingContainer]:
+    ) -> TelescopePointingContainer:
         """
         Get the telescope pointing container for a given telescope ID and time.
 
@@ -323,17 +322,17 @@ class HDF5MonitoringSource(MonitoringSource):
 
         Returns
         -------
-        Generator[TelescopePointingContainer]
-            A generator yielding the telescope pointing container.
+        TelescopePointingContainer
+            The telescope pointing container.
         """
 
         if self.has_pointings:
             alt, az = self._pointing_interpolator(tel_id, time)
-            yield TelescopePointingContainer(altitude=alt, azimuth=az)
+            return TelescopePointingContainer(altitude=alt, azimuth=az)
 
     def get_camera_monitoring_container(
         self, tel_id: int, time: astropy.time.Time
-    ) -> Generator[MonitoringCameraContainer]:
+    ) -> MonitoringCameraContainer:
         """
         Retrieve the camera monitoring container with interpolated or retrieved data for a given time.
 
@@ -343,6 +342,11 @@ class HDF5MonitoringSource(MonitoringSource):
             The telescope ID to retrieve the monitoring data for.
         time : astropy.time.Time
             Target timestamp to find the camera monitoring data for.
+
+        Returns
+        -------
+        MonitoringCameraContainer
+            The camera monitoring container.
         """
 
         cam_mon_container = MonitoringCameraContainer()
@@ -415,7 +419,7 @@ class HDF5MonitoringSource(MonitoringSource):
                         outlier_mask=table_row["outlier_mask"],
                         is_valid=table_row["is_valid"],
                     )
-        yield cam_mon_container
+        return cam_mon_container
 
     def _get_table_row(self, time: float, table: astropy.table.Table):
         """
