@@ -346,8 +346,8 @@ def test_overlay_coord(tmp_path, subarray_and_event_gamma_off_axis_500_gev):
     calib(event)
 
     pointing = AltAz(
-        alt=event.pointing.array_altitude,
-        az=event.pointing.array_azimuth,
+        alt=event.monitoring.pointing.array_altitude,
+        az=event.monitoring.pointing.array_azimuth,
     )
 
     # add pointing here, so the transform to CameraFrame / TelescopeFrame works
