@@ -164,8 +164,16 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
     camcalib_coefficients = read_table(
         calibpipe_camcalib_same_chunks_obs,
         f"/dl1/monitoring/telescope/calibration/camera/coefficients/tel_{tel_id:03d}",
-    )[5]
-    trigger_time = camcalib_coefficients["time"] + 0.5 * u.s
+    )
+    # Define some usual trigger times
+    # Before the validity range should raise an exception
+    trigger_time_before = camcalib_coefficients["time"][0] - 0.5 * u.s
+    # Inside of the validity range should work smoothly
+    # and values should match to the fifth entry
+    trigger_time_middle = camcalib_coefficients["time"][5] + 0.5 * u.s
+    # After the last validity start of a chunk should also work
+    # and match the last entry.
+    trigger_time_after = camcalib_coefficients["time"][-1] + 0.5 * u.s
     allowed_tels = {tel_id}
     with HDF5EventSource(
         input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
@@ -183,35 +191,42 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
         for e in source:
             # Test exception of interpolating outside the valid range
             with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
-                e.trigger.time = trigger_time - 50 * u.day
+                e.trigger.time = trigger_time_before
                 monitoring_source.fill_monitoring_container(e)
-            # Set the trigger time to the pointing time
-            e.trigger.time = trigger_time
-            # Fill the monitoring container for the event
-            monitoring_source.fill_monitoring_container(e)
-            # Check if the time matches after filling the container
-            assert trigger_time == e.monitoring.tel[tel_id].camera.coefficients["time"]
-            # Check that the values match after filling the container
-            np.testing.assert_array_equal(
-                e.monitoring.tel[tel_id].camera.coefficients["factor"],
-                camcalib_coefficients["factor"],
-                err_msg="Factors do not match after reading the monitoring file through the HDF5MonitoringSource",
-            )
-            np.testing.assert_array_equal(
-                e.monitoring.tel[tel_id].camera.coefficients["pedestal_offset"],
-                camcalib_coefficients["pedestal_offset"],
-                err_msg="Pedestal offsets do not match after reading the monitoring file through the HDF5MonitoringSource",
-            )
-            np.testing.assert_array_equal(
-                e.monitoring.tel[tel_id].camera.coefficients["time_shift"],
-                camcalib_coefficients["time_shift"],
-                err_msg="Time shifts do not match after reading the monitoring file through the HDF5MonitoringSource",
-            )
-            np.testing.assert_array_equal(
-                e.monitoring.tel[tel_id].camera.coefficients["outlier_mask"],
-                camcalib_coefficients["outlier_mask"],
-                err_msg="Outlier masks do not match after reading the monitoring file through the HDF5MonitoringSource",
-            )
+
+            for chunk_bin, trigger_time in {
+                5: trigger_time_middle,
+                -1: trigger_time_after,
+            }.items():
+                # Set the trigger time to the pointing time
+                e.trigger.time = trigger_time
+                # Fill the monitoring container for the event
+                monitoring_source.fill_monitoring_container(e)
+                # Check if the time matches after filling the container
+                assert (
+                    trigger_time == e.monitoring.tel[tel_id].camera.coefficients["time"]
+                )
+                # Check that the values match after filling the container
+                np.testing.assert_array_equal(
+                    e.monitoring.tel[tel_id].camera.coefficients["factor"],
+                    camcalib_coefficients["factor"][chunk_bin],
+                    err_msg="Factors do not match after reading the monitoring file through the HDF5MonitoringSource",
+                )
+                np.testing.assert_array_equal(
+                    e.monitoring.tel[tel_id].camera.coefficients["pedestal_offset"],
+                    camcalib_coefficients["pedestal_offset"][chunk_bin],
+                    err_msg="Pedestal offsets do not match after reading the monitoring file through the HDF5MonitoringSource",
+                )
+                np.testing.assert_array_equal(
+                    e.monitoring.tel[tel_id].camera.coefficients["time_shift"],
+                    camcalib_coefficients["time_shift"][chunk_bin],
+                    err_msg="Time shifts do not match after reading the monitoring file through the HDF5MonitoringSource",
+                )
+                np.testing.assert_array_equal(
+                    e.monitoring.tel[tel_id].camera.coefficients["outlier_mask"],
+                    camcalib_coefficients["outlier_mask"][chunk_bin],
+                    err_msg="Outlier masks do not match after reading the monitoring file through the HDF5MonitoringSource",
+                )
         # Close the monitoring source
         monitoring_source.close()
 
