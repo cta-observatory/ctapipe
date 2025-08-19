@@ -716,11 +716,7 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
 
     for tel_id in subarray.tel:
-        write_table(
-            table,
-            path,
-            f"/dl1/monitoring/telescope/calibration/pointing/tel_{tel_id:03d}",
-        )
+        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
@@ -752,7 +748,7 @@ def dl1_merged_monitoring_file(
             f"--output={output}",
             str(dl1_mon_pointing_file),
             str(calibpipe_camcalib_different_chunks),
-            "--append",
+            # "--append",
             "--monitoring",
             "--single-ob",
         ]

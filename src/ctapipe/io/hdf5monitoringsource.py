@@ -2,6 +2,7 @@
 Handles reading of monitoring files
 """
 import logging
+import warnings
 from contextlib import ExitStack
 
 import astropy
@@ -52,12 +53,26 @@ def get_hdf5_monitoring_types(
             # Iterate over enum values of MonitoringTypes
             monitoring_types = [
                 monitoring_type
-                for monitoring_type in MonitoringTypes
+                for monitoring_type in [
+                    MonitoringTypes.PIXEL_STATISTICS,
+                    MonitoringTypes.CAMERA_COEFFICIENTS,
+                ]
                 if monitoring_type.value in calibration_group
             ]
+            # TODO: Simplify once backwards compatibility is not needed anymore
+            # Check for telescope pointing
+            if "/dl0/monitoring/telescope/pointing" in h5file.root:
+                monitoring_types.append(MonitoringTypes.TELESCOPE_POINTING)
+
         except (KeyError, tables.NoSuchNodeError):
-            # Return empty tuple if calibration group doesn't exist
-            monitoring_types = []
+            # TODO: Simplify once backwards compatibility is not needed anymore
+            # Check for telescope pointing
+            if "/dl0/monitoring/telescope/pointing" in h5file.root:
+                monitoring_types = [MonitoringTypes.TELESCOPE_POINTING]
+            else:
+                # Return empty tuple if calibration group doesn't exist
+                warnings.warn(f"No monitoring types found in '{h5file}'.", UserWarning)
+                monitoring_types = []
 
     return tuple(monitoring_types)
 
@@ -226,7 +241,7 @@ class HDF5MonitoringSource(MonitoringSource):
             for tel_id in self.subarray.tel_ids:
                 self._telescope_pointings[tel_id] = read_table(
                     self.input_url,
-                    f"{TELESCOPE_CALIBRATION_GROUP}/pointing/tel_{tel_id:03d}",
+                    f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}",
                 )
                 # Register the table with the pointing interpolator
                 self._pointing_interpolator.add_table(
@@ -271,7 +286,7 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         True for files that contain pointing information
         """
-        return f"{TELESCOPE_CALIBRATION_GROUP}/pointing" in self.file_.root
+        return "/dl0/monitoring/telescope/pointing" in self.file_.root
 
     @property
     def camera_coefficients(self):

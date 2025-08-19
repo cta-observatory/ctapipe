@@ -48,6 +48,7 @@ _NODES_TO_CHECK = {
     "/dl2/event/telescope": NodeType.ITER_TEL_GROUP,
     "/dl2/event/subarray": NodeType.ITER_GROUP,
     "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
+    "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
 }
 
 # Column names used for the DL1A data
@@ -414,7 +415,11 @@ class HDF5Merger(Component):
         if self.monitoring and key in other.root:
             self._append_table(other, other.root[key])
 
-        key = "/dl1/monitoring/telescope/calibration/pointing"
+        key = "/dl0/monitoring/telescope/pointing"
+        if self.monitoring and self.telescope_events and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        key = "/dl1/monitoring/telescope/pointing"
         if self.monitoring and self.telescope_events and key in other.root:
             self._append_table_group(other, other.root[key])
 
