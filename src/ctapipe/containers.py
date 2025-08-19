@@ -57,6 +57,8 @@ __all__ = [
     "BaseTimingParametersContainer",
     "TimingParametersContainer",
     "TriggerContainer",
+    "TelescopePointingContainer",
+    "ArrayPointingContainer",
     "StatisticsContainer",
     "ChunkStatisticsContainer",
     "ImageStatisticsContainer",
@@ -1126,11 +1128,12 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
-class PointingContainer(Container):
-    tel = Field(
-        default_factory=partial(Map, TelescopePointingContainer),
-        description="Telescope pointing positions",
-    )
+class ArrayPointingContainer(Container):
+    """
+    Container holding pointing information for the combined array
+    after all necessary correction and calibration steps.
+    """
+
     array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
     array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
     array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
@@ -1268,6 +1271,10 @@ class MonitoringTelescopeContainer(Container):
         default_factory=MonitoringCameraContainer,
         description="Container for monitoring data for camera",
     )
+    pointing = Field(
+        default_factory=TelescopePointingContainer,
+        description="Telescope pointing positions",
+    )
 
 
 class MonitoringContainer(Container):
@@ -1279,6 +1286,10 @@ class MonitoringContainer(Container):
     tel = Field(
         default_factory=partial(Map, MonitoringTelescopeContainer),
         description="map of tel_id to MonitoringTelescopeContainer",
+    )
+    pointing = Field(
+        default_factory=ArrayPointingContainer,
+        description="Array pointing positions",
     )
 
 
@@ -1400,10 +1411,6 @@ class ArrayEventContainer(Container):
         default_factory=TriggerContainer, description="central trigger information"
     )
     count = Field(0, description="number of events processed")
-    pointing = Field(
-        default_factory=PointingContainer,
-        description="Array and telescope pointing positions",
-    )
     monitoring = Field(
         default_factory=MonitoringContainer,
         description="container for event-wise monitoring data (MON)",

@@ -187,8 +187,8 @@ class HillasGeometryReconstructor(Reconstructor):
     def _get_telescope_pointings(event):
         return {
             tel_id: SkyCoord(
-                alt=event.pointing.tel[tel_id].altitude,
-                az=event.pointing.tel[tel_id].azimuth,
+                alt=event.monitoring.tel[tel_id].pointing.altitude,
+                az=event.monitoring.tel[tel_id].pointing.azimuth,
                 frame=AltAz(),
             )
             for tel_id in event.dl1.tel.keys()

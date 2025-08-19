@@ -16,6 +16,7 @@ from ..containers import (
     MonitoringCameraContainer,
     PixelStatisticsContainer,
     StatisticsContainer,
+    TelescopePointingContainer,
 )
 from ..core import Provenance, ToolConfigurationError
 from ..core.traits import Bool, Path
@@ -24,6 +25,7 @@ from ..monitoring import (
     FlatfieldImageInterpolator,
     FlatfieldPeakTimeInterpolator,
     PedestalImageInterpolator,
+    PointingInterpolator,
 )
 from .astropy_helpers import read_table
 from .metadata import read_reference_metadata
@@ -34,20 +36,29 @@ __all__ = ["HDF5MonitoringSource"]
 
 logger = logging.getLogger(__name__)
 
+TELESCOPE_CALIBRATION_GROUP = "/dl1/monitoring/telescope/calibration"
 
-def get_hdf5_monitoring_types(file: tables.File | str | Path) -> tuple[MonitoringTypes]:
+
+def get_hdf5_monitoring_types(
+    h5file: tables.File | str | Path,
+) -> tuple[MonitoringTypes]:
     """Get the monitoring types present in the hdf5 file"""
-    monitoring_types = []
 
     with ExitStack() as stack:
-        if not isinstance(file, tables.File):
-            file = stack.enter_context(tables.open_file(file))
+        if not isinstance(h5file, tables.File):
+            h5file = stack.enter_context(tables.open_file(h5file))
 
-        if "/dl1/monitoring/telescope/calibration/camera/pixel_statistics" in file.root:
-            monitoring_types.append(MonitoringTypes.PIXEL_STATISTICS)
-
-        if "/dl1/monitoring/telescope/calibration/camera/coefficients" in file.root:
-            monitoring_types.append(MonitoringTypes.CAMERA_COEFFICIENTS)
+        try:
+            calibration_group = h5file.get_node(TELESCOPE_CALIBRATION_GROUP)
+            # Iterate over enum values of MonitoringTypes
+            monitoring_types = [
+                monitoring_type
+                for monitoring_type in MonitoringTypes
+                if monitoring_type.value in calibration_group
+            ]
+        except (KeyError, tables.NoSuchNodeError):
+            # Return empty tuple if calibration group doesn't exist
+            monitoring_types = []
 
     return tuple(monitoring_types)
 
@@ -74,6 +85,14 @@ class HDF5MonitoringSource(MonitoringSource):
 
     input_url = Path(
         help="Path to the HDF5 input file containing monitoring data."
+    ).tag(config=True)
+
+    overwrite_telescope_pointings = Bool(
+        False,
+        help=(
+            "Flag to overwrite the telescope pointing information from the monitoring data. "
+            "Different EventSource implementations may already provide this information."
+        ),
     ).tag(config=True)
 
     enforce_subarray_description = Bool(
@@ -123,9 +142,11 @@ class HDF5MonitoringSource(MonitoringSource):
             if self.subarray is None:
                 self.subarray = self._subarray_from_file
             # Check if the requested telescopes are available in the file
-            if self.subarray.tel_ids not in self._subarray_from_file.tel_ids:
+            if not set(self.subarray.tel_ids).issubset(
+                set(self._subarray_from_file.tel_ids)
+            ):
                 raise ToolConfigurationError(
-                    f"DL1MonitoringSource: Requested telescopes '{self.subarray.tel_ids}' are not "
+                    f"HDF5MonitoringSource: Requested telescopes '{self.subarray.tel_ids}' are not "
                     f"available in the monitoring file '{self.input_url}'. Available telescopes "
                     f"are: '{self._subarray_from_file.tel_ids}'."
                 )
@@ -134,14 +155,15 @@ class HDF5MonitoringSource(MonitoringSource):
         if self.subarray is None and not self.enforce_subarray_description:
             raise NotImplementedError(
                 "Subarray is not defined, but all implemented monitoring types "
-                "of the DL1MonitoringSource requires a defined subarray."
+                "of the HDF5MonitoringSource requires a defined subarray."
             )
 
         # Open the file and read the metadata
         self.file_ = tables.open_file(self.input_url)
-        meta = read_reference_metadata(self.file_)
         Provenance().add_input_file(
-            str(self.input_url), role="Monitoring", reference_meta=meta
+            str(self.input_url),
+            role="Monitoring",
+            reference_meta=read_reference_metadata(self.input_url),
         )
         # Read the different monitoring types from the file
         # Pixel statistics reading
@@ -162,7 +184,7 @@ class HDF5MonitoringSource(MonitoringSource):
                     # Read the tables from the monitoring file requiring all tables to be present
                     self._pixel_statistics[tel_id][name] = read_table(
                         self.input_url,
-                        f"/dl1/monitoring/telescope/calibration/camera/pixel_statistics/{name}/tel_{tel_id:03d}",
+                        f"{TELESCOPE_CALIBRATION_GROUP}/camera/pixel_statistics/{name}/tel_{tel_id:03d}",
                     )
                     if not self.is_simulation:
                         # Set outliers to NaNs
@@ -183,12 +205,34 @@ class HDF5MonitoringSource(MonitoringSource):
             for tel_id in self.subarray.tel_ids:
                 self._camera_coefficients[tel_id] = read_table(
                     self.input_url,
-                    f"/dl1/monitoring/telescope/calibration/camera/coefficients/tel_{tel_id:03d}",
+                    f"{TELESCOPE_CALIBRATION_GROUP}/camera/coefficients/tel_{tel_id:03d}",
                 )
             # Convert time column to MJD
             self._camera_coefficients[tel_id]["time"] = self._camera_coefficients[
                 tel_id
             ]["time"].to_value("mjd")
+
+        # Telescope pointings reading
+        self._telescope_pointings = {}
+        if not self.has_pointings and self.overwrite_telescope_pointings:
+            self.close()
+            raise ToolConfigurationError(
+                "HDF5MonitoringSource: Telescope pointings are not available in the file, "
+                "but overwriting of the telescope pointings is enforced."
+            )
+        if self.has_pointings and self.overwrite_telescope_pointings:
+            # Instantiate the pointing interpolator
+            self._pointing_interpolator = PointingInterpolator()
+            # Read the pointing data from the file to have the telescope pointings as a property
+            for tel_id in self.subarray.tel_ids:
+                self._telescope_pointings[tel_id] = read_table(
+                    self.input_url,
+                    f"{TELESCOPE_CALIBRATION_GROUP}/pointing/tel_{tel_id:03d}",
+                )
+                # Register the table with the pointing interpolator
+                self._pointing_interpolator.add_table(
+                    tel_id, self._telescope_pointings[tel_id]
+                )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -212,10 +256,7 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         True for files that contain camera calibration coefficients
         """
-        return (
-            "/dl1/monitoring/telescope/calibration/camera/coefficients"
-            in self.file_.root
-        )
+        return f"{TELESCOPE_CALIBRATION_GROUP}/camera/coefficients" in self.file_.root
 
     @lazyproperty
     def has_pixel_statistics(self):
@@ -223,9 +264,15 @@ class HDF5MonitoringSource(MonitoringSource):
         True for files that contain pixel statistics
         """
         return (
-            "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
-            in self.file_.root
+            f"{TELESCOPE_CALIBRATION_GROUP}/camera/pixel_statistics" in self.file_.root
         )
+
+    @lazyproperty
+    def has_pointings(self):
+        """
+        True for files that contain pointing information
+        """
+        return f"{TELESCOPE_CALIBRATION_GROUP}/pointing" in self.file_.root
 
     @property
     def camera_coefficients(self):
@@ -234,6 +281,10 @@ class HDF5MonitoringSource(MonitoringSource):
     @property
     def pixel_statistics(self):
         return self._pixel_statistics
+
+    @property
+    def telescope_pointings(self):
+        return self._telescope_pointings
 
     def fill_monitoring_container(self, event: ArrayEventContainer):
         """
@@ -249,6 +300,36 @@ class HDF5MonitoringSource(MonitoringSource):
             event.monitoring.tel[tel_id].camera = self.get_camera_monitoring_container(
                 tel_id, event.trigger.time
             )
+            # Only overwrite the telescope pointings if explicitly requested
+            if self.overwrite_telescope_pointings:
+                event.monitoring.tel[
+                    tel_id
+                ].pointing = self.get_telescope_pointing_container(
+                    tel_id, event.trigger.time
+                )
+
+    def get_telescope_pointing_container(
+        self, tel_id: int, time: astropy.time.Time
+    ) -> Generator[TelescopePointingContainer]:
+        """
+        Get the telescope pointing container for a given telescope ID and time.
+
+        Parameters
+        ----------
+        tel_id : int
+            The telescope ID to retrieve the monitoring data for.
+        time : astropy.time.Time
+            Target timestamp to find the telescope pointing data for.
+
+        Returns
+        -------
+        Generator[TelescopePointingContainer]
+            A generator yielding the telescope pointing container.
+        """
+
+        if self.has_pointings:
+            alt, az = self._pointing_interpolator(tel_id, time)
+            yield TelescopePointingContainer(altitude=alt, azimuth=az)
 
     def get_camera_monitoring_container(
         self, tel_id: int, time: astropy.time.Time

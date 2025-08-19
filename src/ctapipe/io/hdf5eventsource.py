@@ -800,11 +800,11 @@ class HDF5EventSource(EventSource):
             return
 
         if frame is CoordinateFrameType.ALTAZ:
-            event.pointing.array_azimuth = ob.subarray_pointing_lon
-            event.pointing.array_altitude = ob.subarray_pointing_lat
+            event.monitoring.pointing.array_azimuth = ob.subarray_pointing_lon
+            event.monitoring.pointing.array_altitude = ob.subarray_pointing_lat
         elif frame is CoordinateFrameType.ICRS:
-            event.pointing.array_ra = ob.subarray_pointing_lon
-            event.pointing.array_dec = ob.subarray_pointing_lat
+            event.monitoring.pointing.array_ra = ob.subarray_pointing_lon
+            event.monitoring.pointing.array_dec = ob.subarray_pointing_lat
         else:
             raise ValueError(f"Unsupported pointing frame: {frame}")
 
@@ -815,7 +815,7 @@ class HDF5EventSource(EventSource):
         if tel_pointing_interpolator is not None:
             for tel_id, trigger in event.trigger.tel.items():
                 alt, az = tel_pointing_interpolator(tel_id, trigger.time)
-                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
                     altitude=alt,
                     azimuth=az,
                 )
@@ -826,14 +826,14 @@ class HDF5EventSource(EventSource):
                 tel_pointing := self._constant_telescope_pointing.get(tel_id)
             ) is not None:
                 current = tel_pointing.loc[event.index.obs_id]
-                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
                     altitude=current["telescope_pointing_altitude"],
                     azimuth=current["telescope_pointing_azimuth"],
                 )
             elif (finder := self._legacy_tel_pointing_finders.get(tel_id)) is not None:
                 index = finder.closest(event.trigger.time.mjd)
                 row = self._legacy_tel_pointing_tables[tel_id][index]
-                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
                     altitude=row["altitude"],
                     azimuth=row["azimuth"],
                 )
