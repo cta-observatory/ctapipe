@@ -208,7 +208,7 @@ def test_hdf5(tmp_path):
     )
 
     path = tmp_path / "pointing.h5"
-    write_table(table, path, "/dl0/monitoring/telescope/pointing/tel_001")
+    write_table(table, path, "/dl1/monitoring/telescope/calibration/pointing/tel_001")
     with tables.open_file(path) as h5file:
         interpolator = PointingInterpolator(h5file)
         alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)

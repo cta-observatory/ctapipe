@@ -285,7 +285,7 @@ class ArrayDisplay:
         time_gradient: Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
         angle_offset: Float
-            This should be the ``event.pointing.array_azimuth`` parameter
+            This should be the ``event.monitoring.pointing.array_azimuth`` parameter
 
         """
 

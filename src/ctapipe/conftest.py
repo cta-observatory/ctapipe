@@ -180,6 +180,21 @@ def prod5_proton_simtel_path():
 
 
 @pytest.fixture(scope="session")
+def calibpipe_camcalib_single_chunk():
+    return get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_same_chunks():
+    return get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_different_chunks():
+    return get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
 def prod5_lst(subarray_prod5_paranal):
     return subarray_prod5_paranal.tel[1]
 
@@ -675,18 +690,19 @@ def reference_location():
 
 
 @pytest.fixture(scope="session")
-def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
+def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     from ctapipe.instrument import SubarrayDescription
     from ctapipe.io import read_table, write_table
 
-    path = dl1_tmp_path / "dl1_mon_ponting.dl1.h5"
-    shutil.copy(dl1_file, path)
+    path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
+    shutil.copy(calibpipe_camcalib_same_chunks, path)
 
-    events = read_table(path, "/dl1/event/subarray/trigger")
     subarray = SubarrayDescription.from_hdf(path)
 
     # create some dummy monitoring data
-    time = events["time"]
+    time = read_table(
+        path, "/dl1/monitoring/telescope/calibration/camera/coefficients/tel_001"
+    )["time"]
     start, stop = time[[0, -1]]
     duration = (stop - start).to_value(u.s)
 
@@ -700,13 +716,48 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
     table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
 
     for tel_id in subarray.tel:
-        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+        write_table(
+            table,
+            path,
+            f"/dl1/monitoring/telescope/calibration/pointing/tel_{tel_id:03d}",
+        )
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
+        # Remove the constant pointing
         f.remove_node("/configuration/telescope/pointing", recursive=True)
+        # Remove camera-related monitoring data
+        f.remove_node("/dl1/monitoring/telescope/calibration/camera", recursive=True)
 
     return path
+
+
+@pytest.fixture(scope="session")
+def dl1_merged_monitoring_file(
+    dl1_tmp_path, dl1_mon_pointing_file, calibpipe_camcalib_different_chunks
+):
+    """
+    File containing both camera and pointing monitoring data.
+    """
+    from ctapipe.tools.merge import MergeTool
+
+    output = dl1_tmp_path / "dl1_merged_monitoring_file.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--output={output}",
+            str(dl1_mon_pointing_file),
+            str(calibpipe_camcalib_different_chunks),
+            "--append",
+            "--monitoring",
+            "--single-ob",
+        ]
+        assert run_tool(MergeTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
 
 
 @pytest.fixture

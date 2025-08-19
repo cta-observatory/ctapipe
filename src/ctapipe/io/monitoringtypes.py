@@ -1,12 +1,12 @@
-from enum import Enum, auto
+from enum import Enum
 
 
 class MonitoringTypes(Enum):
     """Enum of the different Monitoring Types"""
 
-    #: Raw data in common format, with preliminary calibration
-    PIXEL_STATISTICS = auto()
+    #: Camera pixel statistics
+    PIXEL_STATISTICS = "camera/pixel_statistics"
     #: Camera calibration coefficients
-    CAMERA_COEFFICIENTS = auto()
-    #: raw archived data in common format, with optional zero suppression
-    POINTING = auto()
+    CAMERA_COEFFICIENTS = "camera/coefficients"
+    #: Telescope pointing information
+    TELESCOPE_POINTING = "pointing"

@@ -21,6 +21,7 @@ from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
+    ArrayPointingContainer,
     CameraCalibrationContainer,
     CoordinateFrameType,
     EventIndexContainer,
@@ -29,7 +30,6 @@ from ..containers import (
     ObservationBlockState,
     ObservingMode,
     PixelStatus,
-    PointingContainer,
     PointingMode,
     R0CameraContainer,
     R1CameraContainer,
@@ -945,11 +945,13 @@ class SimTelEventSource(EventSource):
 
             data = ArrayEventContainer(
                 simulation=SimulatedEventContainer(shower=shower),
-                pointing=self._fill_array_pointing(),
                 index=EventIndexContainer(obs_id=obs_id, event_id=event_id),
                 count=counter,
                 trigger=trigger,
             )
+            # Fill the array pointing in the monitoring
+            data.monitoring.pointing = self._fill_array_pointing()
+            # Fill the metadata
             data.meta["origin"] = "hessio"
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
@@ -1040,7 +1042,7 @@ class SimTelEventSource(EventSource):
                         impact=impact_container,
                     )
 
-                data.pointing.tel[tel_id] = self._fill_event_pointing(
+                data.monitoring.tel[tel_id].pointing = self._fill_event_pointing(
                     tracking_positions[tel_id]
                 )
 
@@ -1222,13 +1224,13 @@ class SimTelEventSource(EventSource):
     def _fill_array_pointing(self):
         if self.file_.header["tracking_mode"] == 0:
             az, alt = self.file_.header["direction"]
-            return PointingContainer(
+            return ArrayPointingContainer(
                 array_altitude=u.Quantity(alt, u.rad),
                 array_azimuth=u.Quantity(az, u.rad),
             )
         else:
             ra, dec = self.file_.header["direction"]
-            return PointingContainer(
+            return ArrayPointingContainer(
                 array_ra=u.Quantity(ra, u.rad),
                 array_dec=u.Quantity(dec, u.rad),
             )
