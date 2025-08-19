@@ -151,7 +151,7 @@ class PointingInterpolator(LinearInterpolator):
     Interpolator for pointing and pointing correction data.
     """
 
-    telescope_data_group = "/dl1/monitoring/telescope/calibration/pointing"
+    telescope_data_group = "/dl0/monitoring/telescope/pointing"
     required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
