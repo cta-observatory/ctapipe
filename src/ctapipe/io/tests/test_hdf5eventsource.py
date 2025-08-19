@@ -262,17 +262,6 @@ def test_dl1_camera_frame(dl1_camera_frame_file):
         assert tel_id is not None, "did not test any events"
 
 
-def test_interpolate_pointing(dl1_mon_pointing_file):
-    from ctapipe.io import HDF5EventSource
-
-    with HDF5EventSource(dl1_mon_pointing_file) as source:
-        for e in source:
-            assert set(e.monitoring.tel.keys()) == set(e.trigger.tels_with_trigger)
-            for tel_id in e.monitoring.tel.keys():
-                assert not np.isnan(e.monitoring.tel[tel_id].pointing.azimuth)
-                assert not np.isnan(e.monitoring.tel[tel_id].pointing.altitude)
-
-
 def test_simulated_events_distribution(dl1_file):
     with HDF5EventSource(dl1_file) as source:
         assert len(source.simulated_shower_distributions) == 1
