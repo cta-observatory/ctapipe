@@ -477,6 +477,30 @@ def test_muon_reconstruction_simtel(tmp_path):
             )
 
 
+def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk):
+    """check we can the process tool with a monitoring file"""
+
+    output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
+
+    assert (
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={output}",
+                "--allowed-tels=1",
+                "--max-events=1",
+                "--overwrite",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+                f"--monitoring-file={calibpipe_camcalib_single_chunk}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+        == 0
+    )
+
+
 def test_plugin_help(capsys):
     ProcessorTool().print_help(classes=True)
     captured = capsys.readouterr()
