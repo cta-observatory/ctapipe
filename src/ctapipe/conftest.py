@@ -729,6 +729,44 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
 
 
 @pytest.fixture(scope="session")
+def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp_path):
+    path = dl1_tmp_path / "calibpipe_camcalib_single_chunk_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_single_chunk, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node("/simulation", recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_path):
+    path = dl1_tmp_path / "calibpipe_camcalib_same_chunks_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_same_chunks, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node("/simulation", recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_different_chunks_obs(
+    calibpipe_camcalib_different_chunks, dl1_tmp_path
+):
+    path = dl1_tmp_path / "calibpipe_camcalib_different_chunks_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_different_chunks, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node("/simulation", recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
 def dl1_merged_monitoring_file(
     dl1_tmp_path, dl1_mon_pointing_file, calibpipe_camcalib_different_chunks
 ):
@@ -748,7 +786,6 @@ def dl1_merged_monitoring_file(
             f"--output={output}",
             str(dl1_mon_pointing_file),
             str(calibpipe_camcalib_different_chunks),
-            # "--append",
             "--monitoring",
             "--single-ob",
         ]

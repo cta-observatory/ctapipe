@@ -421,7 +421,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 # In real data, the coefficients are retrieved based on the timestamp of the event.
                 # Get the table row corresponding to the target time
                 table_row = self._get_table_row(
-                    time.to_value("mjd"), self._camera_coefficients_table[tel_id]
+                    time.to_value("mjd"), self._camera_coefficients[tel_id]
                 )
                 if table_row is None:
                     cam_mon_container["coefficients"] = CameraCalibrationContainer()
