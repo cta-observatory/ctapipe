@@ -101,7 +101,7 @@ class HDF5MonitoringSource(MonitoringSource):
     ... )
     >>> monitoring_source = HDF5MonitoringSource(
     ...    subarray=event_source.subarray,
-    ...    input_url="dataset://calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5"),
+    ...    input_url="dataset://calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5",
     ... )
     >>> for event in event_source:
     ...     # Overwrite the trigger time to the one from the monitoring source.
@@ -111,7 +111,7 @@ class HDF5MonitoringSource(MonitoringSource):
     ...     # Print the monitoring information for the camera calibration
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["time"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["factor"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["pedestal_offsett"])
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["pedestal_offset"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["time_shift"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["outlier_mask"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["is_valid"])
