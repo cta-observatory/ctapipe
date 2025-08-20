@@ -48,7 +48,7 @@ from ..containers import (
 from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
-from ..core.traits import Bool, ComponentName, Float, Integer, Path, Undefined, UseEnum
+from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
 from ..exceptions import OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
@@ -584,12 +584,6 @@ class SimTelEventSource(EventSource):
             "Factor to shift the R1 photoelectron samples. "
             "Can be used to simulate mis-calibration."
         ),
-    ).tag(config=True)
-
-    monitoring_file = Path(
-        default_value=None,
-        allow_none=True,
-        help="Path to the monitoring file to use for the camera calibration.",
     ).tag(config=True)
 
     skip_r1_calibration = Bool(
