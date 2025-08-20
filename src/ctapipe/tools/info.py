@@ -47,6 +47,11 @@ def main(args=None):
         help="Print available EventSource implementations",
     )
     parser.add_argument(
+        "--monitoring-sources",
+        action="store_true",
+        help="Print available MonitoringSource implementations",
+    )
+    parser.add_argument(
         "--reconstructors",
         action="store_true",
         help="Print available Reconstructor implementations",
@@ -71,6 +76,7 @@ def info(
     show_all=False,
     datamodel=False,
     event_sources=False,
+    monitoring_sources=False,
     reconstructors=False,
 ):
     """
@@ -100,7 +106,10 @@ def info(
         _info_plugins()
 
     if event_sources or show_all:
-        _info_sources()
+        _info_event_sources()
+
+    if monitoring_sources or show_all:
+        _info_monitoring_sources()
 
     if reconstructors or show_all:
         _info_reconstructors()
@@ -222,11 +231,23 @@ def _info_plugins():
             print(f"{name:>20s} -- {version}")
 
 
-def _info_sources():
+def _info_event_sources():
     from ctapipe.io import EventSource
 
     print("\n*** ctapipe available EventSource implementations ***\n")
     sources = EventSource.non_abstract_subclasses()
+    maxlen = max(len(source) for source in sources)
+    for source in sources.values():
+        print(
+            f"{source.__name__:>{maxlen}s} -- {source.__module__}.{source.__qualname__}"
+        )
+
+
+def _info_monitoring_sources():
+    from ctapipe.io import MonitoringSource
+
+    print("\n*** ctapipe available MonitoringSource implementations ***\n")
+    sources = MonitoringSource.non_abstract_subclasses()
     maxlen = max(len(source) for source in sources)
     for source in sources.values():
         print(
