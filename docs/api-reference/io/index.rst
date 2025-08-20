@@ -50,15 +50,15 @@ the underlying file type does not support random access.
 Reading Monitoring Data
 =======================
 
-This module provides a set of *monitoring sources* (currently only the `HDF5MonitoringSource`)
+This module provides a set of *monitoring sources* (currently only the `~ctapipe.io.HDF5MonitoringSource`)
 that are `~ctapipe.core.TelescopeComponent` instances, which gather monitoring information for
 different monitoring types from an input file or stream and fill the monitoring information
 in form of a `~ctapipe.containers.MonitoringContainer` class into a provided event following the
-`~ctapipe.containers.ArrayEventContainer`. `MonitoringSource`s are designed such that ctapipe
-can be independent of the file format used for monitoring data, and new formats may be
+`~ctapipe.containers.ArrayEventContainer`. `~ctapipe.io.MonitoringSource` instances are designed such that
+ctapipe can be independent of the file format used for monitoring data, and new formats may be
 supported by simply adding a plug-in.
 
-The underlying mechanism is a set of `~ctapipe.io.MonitoringSource` sub-classes that
+The underlying mechanism is a set of `MonitoringSource` sub-classes that
 read data in various formats, with a common interface and automatic command-line
 configuration parameters. The `HDF5MonitoringSource` can be used in the interplay
 with the `EventSource` as follows:
@@ -83,11 +83,11 @@ with the `EventSource` as follows:
 Creating a New EventSource/MonitoringSource Plugin
 ==================================================
 
-``ctapipe`` uses entry points to discover possible ``EventSource`` or ``MonitoringSource``
+``ctapipe`` uses entry points to discover possible `EventSource` or `MonitoringSource`
 implementations. When using ``EventSource(path)``, all available implementations are tried and
 the first where ``<cls>.is_compatible(path)`` returns ``True`` is returned.
 
-To register an ``EventSource`` or ``MonitoringSource`` implementation, a package needs to add an
+To register an `EventSource` or `MonitoringSource` implementation, a package needs to add an
 ``ctapipe_io`` or ``ctapipe_monitoring`` entry point providing the source implementation, e.g. like
 this in ``setup.cfg``:
 
@@ -99,7 +99,7 @@ this in ``setup.cfg``:
    ctapipe_monitoring =
        MyAwesomeMonitoringSource = ctapipe_monitoring_awesome:MyAwesomeMonitoringSource
 
-A basic example for the ``EventSource`` can be found in the ``test_plugin`` directory.
+A basic example for the `EventSource` can be found in the ``test_plugin`` directory.
 
 
 Container Classes
