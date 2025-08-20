@@ -440,15 +440,15 @@ class HDF5MonitoringSource(MonitoringSource):
                     )
                 else:
                     # In real data, the statistics are retrieved based on the timestamp of the event
-                    # by interpolating the monitoring data with the corresponding ChunkInterpolator
+                    # by interpolating the monitoring data with the corresponding ChunkInterpolator.
+                    # Information about the validity and number of events is lost after the interpolation
+                    # step, and these values can not be filled.
                     stats_data = interpolator(tel_id, time)
                     pixel_stats_container[name] = StatisticsContainer(
                         mean=stats_data["mean"],
                         median=stats_data["median"],
                         std=stats_data["std"],
-                        n_events=stats_data["n_events"],
                         outlier_mask=np.isnan(stats_data["median"]),
-                        is_valid=stats_data["is_valid"],
                     )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if self.has_camera_coefficients:
