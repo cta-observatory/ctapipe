@@ -63,13 +63,13 @@ def get_hdf5_monitoring_types(
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
             if POINTING_GROUP in h5file.root:
-                monitoring_types.append(MonitoringTypes.TELESCOPE_POINTING)
+                monitoring_types.append(MonitoringTypes.TELESCOPE_POINTINGS)
 
         except (KeyError, tables.NoSuchNodeError):
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
             if POINTING_GROUP in h5file.root:
-                monitoring_types = [MonitoringTypes.TELESCOPE_POINTING]
+                monitoring_types = [MonitoringTypes.TELESCOPE_POINTINGS]
             else:
                 # Return empty tuple if calibration group doesn't exist
                 warnings.warn(f"No monitoring types found in '{h5file}'.", UserWarning)

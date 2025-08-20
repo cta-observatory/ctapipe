@@ -51,7 +51,7 @@ class MonitoringSource(TelescopeComponent):
         tuple[ctapipe.io.MonitoringTypes]
         """
 
-    def has_any_monitoring_type(self, monitoring_types) -> bool:
+    def has_any_monitoring_types(self, monitoring_types) -> bool:
         """
         Check if any of `monitoring_types` is in self.monitoring_types
 

@@ -12,6 +12,7 @@ from ctapipe.io import (
 
 
 def test_subarray(calibpipe_camcalib_single_chunk):
+    """test a simple subarray"""
     with HDF5MonitoringSource(input_url=calibpipe_camcalib_single_chunk) as source:
         assert source.subarray.telescope_types
         assert source.subarray.camera_types
@@ -19,6 +20,7 @@ def test_subarray(calibpipe_camcalib_single_chunk):
 
 
 def test_passing_subarray(dl1_file, calibpipe_camcalib_same_chunks):
+    """test the functionality of passing a subarray from an EventSource"""
     allowed_tels = {1}
     with HDF5EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         monitoring_source = HDF5MonitoringSource(
@@ -40,12 +42,13 @@ def test_get_monitoring_types(
     calibpipe_camcalib_different_chunks,
     dl1_merged_monitoring_file,
 ):
+    """test the retrieval of monitoring types from HDF5 files"""
     # Test with a file that has no monitoring types
     with pytest.warns(UserWarning, match="No monitoring types found in"):
         no_monitoring_types = get_hdf5_monitoring_types(gamma_diffuse_full_reco_file)
         assert tuple([]) == no_monitoring_types
     # Test with a file that has pointing-related monitoring types
-    assert tuple([MonitoringTypes.TELESCOPE_POINTING]) == get_hdf5_monitoring_types(
+    assert tuple([MonitoringTypes.TELESCOPE_POINTINGS]) == get_hdf5_monitoring_types(
         dl1_mon_pointing_file
     )
     # Test with a file that has camera-related monitoring types
@@ -57,12 +60,13 @@ def test_get_monitoring_types(
         [
             MonitoringTypes.PIXEL_STATISTICS,
             MonitoringTypes.CAMERA_COEFFICIENTS,
-            MonitoringTypes.TELESCOPE_POINTING,
+            MonitoringTypes.TELESCOPE_POINTINGS,
         ]
     ) == get_hdf5_monitoring_types(dl1_merged_monitoring_file)
 
 
 def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_file):
+    """test the monitoring filling for the camera calibration coefficients"""
     from ctapipe.io import read_table
 
     tel_id = 1
@@ -103,6 +107,7 @@ def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_fi
 
 
 def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_file):
+    """test the monitoring filling for the telescope pointings"""
     from ctapipe.io import read_table
 
     tel_id = 1
@@ -146,6 +151,7 @@ def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_fil
 
 
 def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks_obs):
+    """test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
     from ctapipe.io import read_table
 
     tel_id = 1
@@ -215,6 +221,7 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
 
 
 def test_exceptions(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks):
+    """test the exceptions of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
     # This should raise a ToolConfigurationError.
     with HDF5EventSource(input_url=gamma_diffuse_full_reco_file) as source:
