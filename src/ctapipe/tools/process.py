@@ -7,7 +7,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool
+from ..core import QualityQuery, Tool, ToolConfigurationError
 from ..core.traits import Bool, classes_with_traits, flag
 from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
@@ -19,6 +19,7 @@ from ..io import (
     DataWriter,
     EventSource,
     HDF5MonitoringSource,
+    MonitoringTypes,
     metadata,
     write_table,
 )
@@ -32,6 +33,13 @@ COMPATIBLE_DATALEVELS = [
     DataLevel.DL1_IMAGES,
     DataLevel.DL1_PARAMETERS,
 ]
+
+COMPATIBLE_MONITORINGTYPES = [
+    MonitoringTypes.PIXEL_STATISTICS,
+    MonitoringTypes.CAMERA_COEFFICIENTS,
+    MonitoringTypes.TELESCOPE_POINTINGS,
+]
+
 
 __all__ = ["ProcessorTool"]
 
@@ -168,6 +176,7 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
+<<<<<<< HEAD
         # setup components:
         try:
             self.event_source = self.enter_context(EventSource(parent=self))
@@ -176,6 +185,10 @@ class ProcessorTool(Tool):
                 "Specifying EventSource.input_url is required (via -i, --input or a config file)."
             )
             self.exit(1)
+=======
+        # Setup components:
+        self.event_source = self.enter_context(EventSource(parent=self))
+>>>>>>> 61ef5c5d (improved io handling of the process tool for monitoring files)
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
@@ -189,26 +202,30 @@ class ProcessorTool(Tool):
             sys.exit(1)
 
         subarray = self.event_source.subarray
-        self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
 
-        # Make monitoring source optional
+        # Setup the monitoring source
         self.monitoring_source = None
-        try:
+        if "HDF5MonitoringSource" in self.config:
             # Check if monitoring file is configured
-            monitoring_source = HDF5MonitoringSource(parent=self, subarray=subarray)
-            if monitoring_source.input_url is not None:
-                self.monitoring_source = monitoring_source
-                self.log.info("Using monitoring file: %s", monitoring_source.input_url)
-            else:
-                self.log.info(
-                    "No monitoring file specified, proceeding without monitoring data"
-                )
-        except Exception as e:
-            self.log.warning(
-                "Failed to setup monitoring source: %s. Proceeding without monitoring data",
-                e,
+            monitoring_source = self.enter_context(
+                HDF5MonitoringSource(parent=self, subarray=subarray)
             )
+            if not monitoring_source.has_any_monitoring_types(
+                COMPATIBLE_MONITORINGTYPES
+            ):
+                self.log.critical(
+                    "%s  needs the MonitoringSource to provide at least "
+                    "one of these monitoring types: %s, %s provides only %s",
+                    self.name,
+                    COMPATIBLE_MONITORINGTYPES,
+                    monitoring_source,
+                    monitoring_source.monitoring_types,
+                )
+                raise ToolConfigurationError("Failed to setup monitoring source!")
+            self.monitoring_source = monitoring_source
+            self.log.info("Using monitoring file: %s", self.monitoring_source.input_url)
 
+        self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(

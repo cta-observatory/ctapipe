@@ -9,4 +9,4 @@ class MonitoringTypes(Enum):
     #: Camera calibration coefficients
     CAMERA_COEFFICIENTS = "camera/coefficients"
     #: Telescope pointing information
-    TELESCOPE_POINTING = "pointing"
+    TELESCOPE_POINTINGS = "pointing"
