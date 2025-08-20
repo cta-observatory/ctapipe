@@ -13,15 +13,29 @@ __all__ = ["MonitoringSource"]
 
 class MonitoringSource(TelescopeComponent):
     """
-    Parent class for MonitoringSource.
+    Parent class for ``MonitoringSource``.
 
-    MonitoringSources read input files and fill `~ctapipe.containers.ArrayEventContainer`
-    instances with monitoring data.
+    ``MonitoringSource`` read input files and fill `~ctapipe.containers.ArrayEventContainer`
+    instances with corresponding monitoring data based on the event trigger time.
 
-    Parameters
-    ----------
-    input_url : str | Path
-        Path to the input monitoring file.
+    A new ``MonitoringSource`` should be created for each type of monitoring file read
+    into ctapipe, e.g. HDF5 files are read by the `~ctapipe.io.HDF5MonitoringSource`.
+
+    ``MonitoringSource`` provides a common high-level interface for accessing monitoring
+    information from different data sources. Creating an ``MonitoringSource`` for a new
+    file format or other monitoring source ensures that data can be accessed in a common way,
+    regardless of the file format or data origin.
+
+    ``MonitoringSource`` itself is an abstract class, but will create an
+    appropriate subclass if a compatible source is found for the given
+    ``input_url``.
+
+    An ``MonitoringSource`` can also be created through the configuration system,
+    by passing ``config`` or ``parent`` as appropriate.
+    E.g. if using ``MonitoringSource`` inside of a ``Tool``, you would do:
+
+    >>> self.monitoring_source = MonitoringSource(parent=self) # doctest: +SKIP
+
     """
 
     plugin_entry_point = "ctapipe_monitoring"
