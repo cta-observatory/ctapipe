@@ -80,10 +80,32 @@ def get_hdf5_monitoring_types(
 
 class HDF5MonitoringSource(MonitoringSource):
     """
-    Class for reading HDF5 monitoring data.
+    Class for reading HDF5 monitoring data as a `~ctapipe.io.MonitoringSource`.
 
-    This class provides a common interface for accessing HDF5 monitoring data from different monitoring types.
-    TODO: Fill proper docstring.
+    This class provides a common interface for accessing HDF5 monitoring data
+    from different monitoring types. An event following the ArrayEventContainer
+    is passed to the `~ctapipe.io.HDF5MonitoringSource.fill_monitoring_container()`
+    method and the different monitoring types are filled into a MonitoringContainer
+    instance. See `~ctapipe.containers.MonitoringContainer` for details.
+
+    A basic example on how to use the `~ctapipe.io.HDF5MonitoringSource`:
+
+    >>> tel_id = 1
+    >>> event_source = EventSource(
+    ...    input_url="dataset://gamma_test_large.simtel.gz",
+    ...    allowed_tels={tel_id},
+    ...    max_events=2)
+    >>> monitoring_source = HDF5MonitoringSource(
+    ...    subarray=event_source.subarray,
+    ...    input_url="dataset://calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5"),
+    ... )
+    >>> for event in event_source:
+    ...     # Overwrite the trigger time to the one from the monitoring source.
+    ...     # Only needed here because the simulated test data is not synchronized.
+    ...     event.trigger.time = monitoring_source.camera_coefficients["time"][0]
+    ...     monitoring_source.fill_monitoring_container(event)
+    ...     print(event.monitoring.tel[tel_id])
+
 
     Attributes
     ----------
@@ -93,8 +115,10 @@ class HDF5MonitoringSource(MonitoringSource):
         File object
     pixel_statistics: dict
         Dictionary to hold pixel statistics tables
-    camera_coefficients: astropy.table.Table
-        Table to hold camera coefficients
+    camera_coefficients: dict
+        Dictionary to hold camera coefficients
+    telescope_pointings: dict
+        Dictionary to hold telescope pointing information
 
     """
 
