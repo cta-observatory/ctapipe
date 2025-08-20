@@ -106,7 +106,7 @@ class HDF5MonitoringSource(MonitoringSource):
     >>> for event in event_source:
     ...     # Overwrite the trigger time to the one from the monitoring source.
     ...     # Only needed here because the simulated test data is not synchronized.
-    ...     event.trigger.time = monitoring_source.camera_coefficients["time"][0]
+    ...     event.trigger.time = monitoring_source.camera_coefficients[tel_id]["time"][0]
     ...     monitoring_source.fill_monitoring_container(event)
     ...     # Print the monitoring information for the camera calibration
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["time"])

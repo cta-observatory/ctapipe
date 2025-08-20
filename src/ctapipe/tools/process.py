@@ -88,9 +88,10 @@ class ProcessorTool(Tool):
     monitoring_sources = List(
         ComponentName(MonitoringSource),
         help=(
-            "List of monitoring sources to use during processing. "
-            "Later MonitoringSource instances overwrite earlier ones "
-            "if MonitoringTypes of the different instances overlap."
+            "List of monitoring sources to use during processing "
+            "if the calibration of the data is requested. Later "
+            "MonitoringSource instances overwrite earlier ones if "
+            "the MonitoringTypes of the different instances overlap."
         ),
         default_value=[],
     ).tag(config=True)
@@ -100,7 +101,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "monitoring_sources": "ProcessorTool.monitoring_sources",
+        "monitoring-source": "ProcessorTool.monitoring_sources",
         "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
@@ -349,11 +350,11 @@ class ProcessorTool(Tool):
                 )
                 continue
 
-            for mon_source in self._monitoring_sources:
-                self.log.debug("Filling monitoring container for '%s'", mon_source)
-                mon_source.fill_monitoring_container(event)
-
             if self.should_calibrate:
+                # Fill monitoring containers needed for the calibration
+                for mon_source in self._monitoring_sources:
+                    self.log.debug("Filling monitoring container for '%s'", mon_source)
+                    mon_source.fill_monitoring_container(event)
                 self.calibrate(event)
 
             if self.should_compute_dl1:
