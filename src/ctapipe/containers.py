@@ -1201,10 +1201,19 @@ class StatisticsContainer(Container):
         "standard deviation of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
     )
+    n_events = Field(-1, "number of events used for the extraction of the statistics")
     outlier_mask = Field(
         None,
         "Boolean mask indicating which pixels are considered outliers."
         " Shape: (n_channels, n_pixels)",
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if the pixel statistics are valid, False if they are not valid or "
+            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
+            "is detected across the chunk of images."
+        ),
     )
 
 
@@ -1215,15 +1224,6 @@ class ChunkStatisticsContainer(StatisticsContainer):
     time_end = Field(NAN_TIME, "high resolution end time of the chunk")
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
-    n_events = Field(-1, "number of events used for the extraction of the statistics")
-    is_valid = Field(
-        False,
-        (
-            "True if the pixel statistics are valid, False if they are not valid or "
-            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
-            "is detected across the chunk of images."
-        ),
-    )
 
 
 class PixelStatisticsContainer(Container):

@@ -432,9 +432,11 @@ class HDF5MonitoringSource(MonitoringSource):
                         mean=self._pixel_statistics[tel_id][name]["mean"][0],
                         median=self._pixel_statistics[tel_id][name]["median"][0],
                         std=self._pixel_statistics[tel_id][name]["std"][0],
+                        n_events=self._pixel_statistics[tel_id][name]["n_events"][0],
                         outlier_mask=self._pixel_statistics[tel_id][name][
                             "outlier_mask"
                         ][0],
+                        is_valid=self._pixel_statistics[tel_id][name]["is_valid"][0],
                     )
                 else:
                     # In real data, the statistics are retrieved based on the timestamp of the event
@@ -444,7 +446,9 @@ class HDF5MonitoringSource(MonitoringSource):
                         mean=stats_data["mean"],
                         median=stats_data["median"],
                         std=stats_data["std"],
+                        n_events=stats_data["n_events"],
                         outlier_mask=np.isnan(stats_data["median"]),
+                        is_valid=stats_data["is_valid"],
                     )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if self.has_camera_coefficients:
