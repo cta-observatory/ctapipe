@@ -90,12 +90,15 @@ class HDF5MonitoringSource(MonitoringSource):
 
     A basic example on how to use the `~ctapipe.io.HDF5MonitoringSource`:
 
-    >>> from ctapipe.io import EventSource, HDF5MonitoringSource
+    >>> from ctapipe.io import SimTelEventSource, HDF5MonitoringSource
     >>> tel_id = 1
-    >>> event_source = EventSource(
+    >>> event_source = SimTelEventSource(
     ...    input_url="dataset://gamma_test_large.simtel.gz",
     ...    allowed_tels={tel_id},
-    ...    max_events=2)
+    ...    max_events=1,
+    ...    focal_length_choice='EQUIVALENT',
+    ...    skip_r1_calibration=True,
+    ... )
     >>> monitoring_source = HDF5MonitoringSource(
     ...    subarray=event_source.subarray,
     ...    input_url="dataset://calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5"),
@@ -105,8 +108,13 @@ class HDF5MonitoringSource(MonitoringSource):
     ...     # Only needed here because the simulated test data is not synchronized.
     ...     event.trigger.time = monitoring_source.camera_coefficients["time"][0]
     ...     monitoring_source.fill_monitoring_container(event)
-    ...     print(event.monitoring.tel[tel_id])
-
+    ...     # Print the monitoring information for the camera calibration
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["time"])
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["factor"])
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["pedestal_offsett"])
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["time_shift"])
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["outlier_mask"])
+    ...     print(event.monitoring.tel[tel_id].camera.coefficients["is_valid"])
 
     Attributes
     ----------
