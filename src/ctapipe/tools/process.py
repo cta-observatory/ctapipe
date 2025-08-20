@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool, ToolConfigurationError
-from ..core.traits import Bool, classes_with_traits, flag
+from ..core.traits import Bool, ComponentName, List, classes_with_traits, flag
 from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
@@ -18,7 +18,7 @@ from ..io import (
     DataLevel,
     DataWriter,
     EventSource,
-    HDF5MonitoringSource,
+    MonitoringSource,
     MonitoringTypes,
     metadata,
     write_table,
@@ -85,12 +85,22 @@ class ProcessorTool(Tool):
         default_value=False,
     ).tag(config=True)
 
+    monitoring_sources = List(
+        ComponentName(MonitoringSource),
+        help=(
+            "List of monitoring sources to use during processing. "
+            "Later MonitoringSource instances overwrite earlier ones "
+            "if MonitoringTypes of the different instances overlap."
+        ),
+        default_value=[],
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "monitoring-file": "HDF5MonitoringSource.input_url",
+        "monitoring_sources": "ProcessorTool.monitoring_sources",
         "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
@@ -165,7 +175,7 @@ class ProcessorTool(Tool):
             SoftwareTrigger,
         ]
         + classes_with_traits(EventSource)
-        + classes_with_traits(HDF5MonitoringSource)
+        + classes_with_traits(MonitoringSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -176,7 +186,6 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
-<<<<<<< HEAD
         # setup components:
         try:
             self.event_source = self.enter_context(EventSource(parent=self))
@@ -185,10 +194,6 @@ class ProcessorTool(Tool):
                 "Specifying EventSource.input_url is required (via -i, --input or a config file)."
             )
             self.exit(1)
-=======
-        # Setup components:
-        self.event_source = self.enter_context(EventSource(parent=self))
->>>>>>> 61ef5c5d (improved io handling of the process tool for monitoring files)
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
@@ -203,27 +208,25 @@ class ProcessorTool(Tool):
 
         subarray = self.event_source.subarray
 
-        # Setup the monitoring source
-        self.monitoring_source = None
-        if "HDF5MonitoringSource" in self.config:
-            # Check if monitoring file is configured
-            monitoring_source = self.enter_context(
-                HDF5MonitoringSource(parent=self, subarray=subarray)
+        # Setup the monitoring sources
+        self._monitoring_sources = []
+        for name in self.monitoring_sources:
+            mon_source = self.enter_context(
+                MonitoringSource.from_name(name, subarray=subarray, parent=self)
             )
-            if not monitoring_source.has_any_monitoring_types(
-                COMPATIBLE_MONITORINGTYPES
-            ):
+            # Check if monitoring source has compatible monitoring types
+            if not mon_source.has_any_monitoring_types(COMPATIBLE_MONITORINGTYPES):
                 self.log.critical(
                     "%s  needs the MonitoringSource to provide at least "
                     "one of these monitoring types: %s, %s provides only %s",
                     self.name,
                     COMPATIBLE_MONITORINGTYPES,
-                    monitoring_source,
-                    monitoring_source.monitoring_types,
+                    mon_source,
+                    mon_source.monitoring_types,
                 )
                 raise ToolConfigurationError("Failed to setup monitoring source!")
-            self.monitoring_source = monitoring_source
-            self.log.info("Using monitoring file: %s", self.monitoring_source.input_url)
+            # Append the monitoring source to the list if it has compatible monitoring types
+            self._monitoring_sources.append(mon_source)
 
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
@@ -346,9 +349,11 @@ class ProcessorTool(Tool):
                 )
                 continue
 
+            for mon_source in self._monitoring_sources:
+                self.log.debug("Filling monitoring container for '%s'", mon_source)
+                mon_source.fill_monitoring_container(event)
+
             if self.should_calibrate:
-                if self.monitoring_source is not None:
-                    self.monitoring_source.fill_monitoring_container(event)
                 self.calibrate(event)
 
             if self.should_compute_dl1:
