@@ -333,16 +333,8 @@ class ChunkInterpolator(MonitoringInterpolator):
 class StatisticsInterpolator(ChunkInterpolator):
     """Interpolator for statistics tables."""
 
-    required_columns = frozenset(
-        ["time_start", "time_end", "mean", "median", "std", "is_valid", "n_events"]
-    )
-    expected_units = {
-        "mean": None,
-        "median": None,
-        "std": None,
-        "is_valid": None,
-        "n_events": None,
-    }
+    required_columns = frozenset(["time_start", "time_end", "mean", "median", "std"])
+    expected_units = {"mean": None, "median": None, "std": None}
 
 
 class PedestalImageInterpolator(StatisticsInterpolator):
