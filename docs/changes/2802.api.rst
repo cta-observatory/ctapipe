@@ -1,6 +1,11 @@
-Refactor old camera calibration containers and classes and implement calibpipe-datapipe interface.
+Refactor old containers (breaking changes) and implement calibpipe-datapipe interface using a new ``MonitoringSource()`` mechanism.
 
-* Remove ``DL1CameraCalibrationContainer``, ``FlatFieldContainer``, ``PedestalContainer``, ``PixelStatusContainer``, and ``WaveformCalibrationContainer``
-* Add ``MonitoringCameraCalibrationContainer`` and ``PixelStatisticsContainer``
+* Remove/Add/Modify calib containers ``CameraCalibrationContainer``, ``DL1CameraCalibrationContainer``, ``FlatFieldContainer``, ``PedestalContainer``, ``PixelStatusContainer``, and ``WaveformCalibrationContainer``
+* Remove/Add/Modify monitoring containers ``MonitoringContainer``, ``MonitoringTelescopeContainer``, ``MonitoringCameraContainer``
+* Remove/Add/Modify statistics containers ``StatisticsContainer``, ``ChunkStatisticsContainer``, ``PixelStatisticsContainer``
+* Remove/Add/Modify pointing containers ``PointingContainer``, ``TelescopePointingContainer``, ``ArrayPointingContainer``
+* Move pointing tree of ``ArrayEventContainer`` into the monitoring tree.
+* Implement ``MonitoringSource()`` to handle different monitoring data sources
+* Implement the monitoring sources ``HDF5MonitoringSource`` that handles HDF5 file input
 * Implement Table I/O for camera calibration coefficients following the agreed HDF5 table naming and hierarchy
 * Remove ``ctapipe.calib.camera.flatfield`` and ``ctapipe.calib.camera.pedestal`` modules, which are now implemented in ``ctapipe.monitoring`` module.
