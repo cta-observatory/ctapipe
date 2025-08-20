@@ -259,3 +259,9 @@ Reference/API
 
 .. automodapi:: ctapipe.io.eventseeker
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.io.monitoringsource
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.io.hdf5monitoringsource
+    :no-inheritance-diagram:
