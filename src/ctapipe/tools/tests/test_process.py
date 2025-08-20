@@ -23,6 +23,7 @@ from ctapipe.utils import get_dataset_path, resource_file
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
+FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
 
 
 @pytest.mark.parametrize(
@@ -266,7 +267,7 @@ def test_ml_preprocessing_from_simtel(tmp_path):
             f"--output={output}",
             "--max-events=5",
             "--overwrite",
-            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+            FOCAL_LENGTH_CHOICE,
         ],
         cwd=tmp_path,
         raises=True,
@@ -439,7 +440,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         argv=[
             f"--input={LST_MUONS}",
             f"--output={muon_simtel_output_file}",
-            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+            FOCAL_LENGTH_CHOICE,
             "--overwrite",
             "--write-muon-parameters",
         ],
@@ -491,7 +492,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk)
                 "--allowed-tels=1",
                 "--max-events=1",
                 "--overwrite",
-                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+                FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
                 f"--HDF5MonitoringSource.input_url={calibpipe_camcalib_single_chunk}",
             ],
@@ -519,7 +520,7 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
                 "--allowed-tels=1",
                 "--max-events=1",
                 "--overwrite",
-                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+                FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
                 f"--HDF5MonitoringSource.input_url={dl1_image_file}",
             ],
