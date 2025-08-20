@@ -89,7 +89,8 @@ class HDF5MonitoringSource(MonitoringSource):
     instance. See `~ctapipe.containers.MonitoringContainer` for details.
 
     A basic example on how to use the `~ctapipe.io.HDF5MonitoringSource`:
-
+    
+    >>> from ctapipe.io import EventSource, HDF5MonitoringSource
     >>> tel_id = 1
     >>> event_source = EventSource(
     ...    input_url="dataset://gamma_test_large.simtel.gz",
