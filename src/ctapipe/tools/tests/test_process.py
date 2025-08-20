@@ -13,7 +13,7 @@ import pytest
 import tables
 from numpy.testing import assert_allclose, assert_array_equal
 
-from ctapipe.core import run_tool
+from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import EventSource, TableLoader, read_table
 from ctapipe.io.tests.test_event_source import DummyEventSource
@@ -478,7 +478,7 @@ def test_muon_reconstruction_simtel(tmp_path):
 
 
 def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk):
-    """check we can the process tool with a monitoring file"""
+    """check we can use the process tool with a monitoring file"""
 
     output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
 
@@ -499,6 +499,31 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk)
         )
         == 0
     )
+
+
+def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
+    """check we can not use the process tool with an invalid monitoring file"""
+
+    output = tmp_path / "test_process_with_invalid_monitoring_file.dl1.h5"
+
+    with pytest.raises(
+        ToolConfigurationError,
+        match="Failed to setup monitoring source!",
+    ):
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={output}",
+                "--allowed-tels=1",
+                "--max-events=1",
+                "--overwrite",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+                f"--monitoring-file={dl1_image_file}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
 
 
 def test_plugin_help(capsys):
