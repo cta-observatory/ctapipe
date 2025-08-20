@@ -29,7 +29,7 @@ configuration parameters. These are generally constructed in a generic way by
 using ``EventSource(file_or_url)`` which will construct the
 appropriate `EventSource` subclass based on the input file's type.
 
-The resulting `EventSource`  then works like a python collection and can be
+The resulting `EventSource` then works like a python collection and can be
 looped over, providing data for each subsequent event. If looped over
 multiple times, each will start at the beginning of the file (except in
 the case of streams that cannot be restarted):
@@ -47,15 +47,48 @@ index* or *event_id*. This may not be efficient for some `EventSources <ctapipe.
 the underlying file type does not support random access.
 
 
-Creating a New EventSource Plugin
-=================================
+Reading Monitoring Data
+=======================
 
-``ctapipe`` uses entry points to discover possible ``EventSource`` implementations.
-When using ``EventSource(path)``, all available implementations are tried and
+This module provides a set of *monitoring sources* (currently only the `HDF5MonitoringSource`)
+that are `~ctapipe.core.TelescopeComponent`s, which gather monitoring information for different
+monitoring types from an input file or stream and fill the monitoring information in form of
+a `~ctapipe.containers.MonitoringContainer` class into a provided event following the
+`~ctapipe.containers.ArrayEventContainer`. `MonitoringSource`s are designed such that ctapipe
+can be independent of the file format used for monitoring data, and new formats may be
+supported by simply adding a plug-in.
+
+The underlying mechanism is a set of `~ctapipe.io.MonitoringSource` sub-classes that
+read data in various formats, with a common interface and automatic command-line
+configuration parameters. The `HDF5MonitoringSource` can be used in the interplay
+with the `EventSource` as follows:
+
+.. code-block:: python3
+
+  from ctapipe.io import EventSource, HDF5MonitoringSource
+
+  with EventSource(input_url="file.simtel.gz") as event_source:
+      monitoring_source = HDF5MonitoringSource(
+        input_url="monitoring_file.h5",
+        subarray=event_source.subarray,
+      )
+      for event in event_source:
+        do_something_with_event(event)
+        monitoring_source.fill_monitoring_container(event)
+        do_something_else_with_event(event)
+
+      monitoring_source.close()
+
+
+Creating a New EventSource/MonitoringSource Plugin
+==================================================
+
+``ctapipe`` uses entry points to discover possible ``EventSource`` or ``MonitoringSource``
+implementations. When using ``EventSource(path)``, all available implementations are tried and
 the first where ``<cls>.is_compatible(path)`` returns ``True`` is returned.
 
-To register an ``EventSource`` implementation, a package needs to add an
-``ctapipe_io`` entry point providing the source implementation, e.g. like
+To register an ``EventSource`` or ``MonitoringSource`` implementation, a package needs to add an
+``ctapipe_io`` or ``ctapipe_monitoring`` entry point providing the source implementation, e.g. like
 this in ``setup.cfg``:
 
 .. code::
@@ -63,8 +96,10 @@ this in ``setup.cfg``:
    [options.entry_points]
    ctapipe_io =
        MyAwesomeEventSource = ctapipe_io_awesome:MyAwesomeEventSource
+   ctapipe_monitoring =
+       MyAwesomeMonitoringSource = ctapipe_monitoring_awesome:MyAwesomeMonitoringSource
 
-A basic example can be found in the ``test_plugin`` directory.
+A basic example for the ``EventSource`` can be found in the ``test_plugin`` directory.
 
 
 Container Classes

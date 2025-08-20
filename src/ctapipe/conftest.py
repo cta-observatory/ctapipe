@@ -51,6 +51,8 @@ collect_ignore = []
 if importlib.util.find_spec("pyirf") is None:
     collect_ignore.append("irf")
 
+SIMULATION_GROUP = "/simulation"
+
 
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
@@ -735,7 +737,7 @@ def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        f.remove_node("/simulation", recursive=True)
+        f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
 
@@ -747,7 +749,7 @@ def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_p
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        f.remove_node("/simulation", recursive=True)
+        f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
 
@@ -761,7 +763,7 @@ def calibpipe_camcalib_different_chunks_obs(
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        f.remove_node("/simulation", recursive=True)
+        f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
 
