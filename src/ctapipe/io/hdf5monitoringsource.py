@@ -115,6 +115,20 @@ class HDF5MonitoringSource(MonitoringSource):
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["time_shift"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["outlier_mask"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["is_valid"])
+    40587.000000011576
+    [[0.01539444 0.01501589 0.0158232  ... 0.01514254 0.01504862 0.01497081]
+     [0.25207437 0.24654945 0.25933876 ... 0.24859268 0.24722679 0.24587582]]
+    [[399.5        398.66666667 399.5        ... 399.25       398.41666667
+      399.        ]
+     [400.08333333 400.41666667 399.91666667 ... 400.25       399.5
+      399.66666667]]
+    [[ 0.01000023  0.1800003  -0.09000015 ... -0.12999916  0.1800003
+       0.07999992]
+     [ 0.2800007  -0.27000046  0.11000061 ...  0.04000092 -0.19000053
+      -0.4699993 ]]
+    [[False False False ... False False False]
+     [False False False ... False False False]]
+    True
 
     Attributes
     ----------
