@@ -85,7 +85,7 @@ class ProcessorTool(Tool):
         default_value=False,
     ).tag(config=True)
 
-    monitoring_sources = List(
+    monitoring_source_list = List(
         ComponentName(MonitoringSource),
         help=(
             "List of monitoring sources to use during processing "
@@ -101,7 +101,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "monitoring-source": "ProcessorTool.monitoring_sources",
+        "monitoring-source": "ProcessorTool.monitoring_source_list",
         "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
@@ -211,7 +211,7 @@ class ProcessorTool(Tool):
 
         # Setup the monitoring sources
         self._monitoring_sources = []
-        for name in self.monitoring_sources:
+        for name in self.monitoring_source_list:
             mon_source = self.enter_context(
                 MonitoringSource.from_name(name, subarray=subarray, parent=self)
             )
