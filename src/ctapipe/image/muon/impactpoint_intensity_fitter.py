@@ -75,13 +75,6 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
     """
     Fit muon ring images with a theoretical model to estimate optical efficiency.
 
-    Function for producing the expected image for a given set of trial
-    muon parameters without using astropy units but expecting the input to
-    be in the correct ones.
-
-    The image prediction function is currently modeled after :cite:p:`chalmecalvet2013`.
-
-    For more information, also see :cite:p:`muon-review`.
     """
 
     spe_width = FloatTelescopeParameter(
