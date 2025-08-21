@@ -3,6 +3,7 @@ Class description to be added.
 
 """
 
+import astropy.units as u
 import numpy as np
 
 from ...containers import MuonEfficiencyContainer
@@ -10,6 +11,7 @@ from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter
 from ...exceptions import OptionalDependencyMissing
+from ...utils.quantities import all_to_value
 
 try:
     from iminuit import Minuit
@@ -69,6 +71,107 @@ def chord_length_loss_function(radius, rho, phi):
             return 0
 
     return effective_chord_length
+
+
+def muon_ring_phi_distribution_fit(
+    x, y, mask, image, amplitude_initial=None, rho_initial=None, phi0_initial=None
+):
+    """
+    muon_ring_phi_distribution_fit.
+
+
+    Parameters
+    ----------
+    x : array-like or astropy.units.Quantity
+        x-coordinates of the points.
+    y : array-like or astropy.units.Quantity
+        y-coordinates of the points.
+    mask : array-like of bool
+        Boolean mask indicating which pixels survive the cleaning process.
+    weights : array-like of float
+        Weights for the points. If not provided, all points are assigned equal weights (1).
+    amplitude_initial : unitless float, optional
+    rho_initial : astropy.units.Quantity, optional
+    phi0_initial : astropy.units.Quantity, optional
+
+    Returns
+    -------
+    amplitude : astropy.units.Quantity
+        Fitted amplitude.
+    rho : astropy.units.Quantity
+        Fitted rho.
+    phi0 : astropy.units.Quantity
+        Fitted phi0.
+    amplitude_err : astropy.units.Quantity
+        Fitted radius of the circle error.
+    rho_err : astropy.units.Quantity
+        Fitted x-coordinate of the circle center error.
+    phi0_err : astropy.units.Quantity
+        Fitted y-coordinate of the circle center error.
+
+    Raises
+    ------
+    OptionalDependencyMissing
+        If the iminuit package is not installed.
+
+    Notes
+    -----
+    The Taubin circle fit minimizes a specific loss function that balances the
+    squared residuals of the points from the circle with the weights. This method
+    is particularly useful for fitting circles to noisy data.
+
+    References
+    ----------
+    - Barcelona_Muons_TPA_final.pdf (slide 6)
+    """
+
+    if Minuit is None:
+        raise OptionalDependencyMissing("iminuit")
+
+    original_unit = x.unit
+    x, y = all_to_value(x, y, unit=original_unit)
+
+    # x_masked = x[mask]
+    # y_masked = y[mask]
+    # image_masked = image[mask]
+
+    # minimization method
+    # fit = Minuit(
+    #    make_loss_function(x_masked, y_masked, weights_masked),
+    #    xc=xc_initial.to_value(original_unit),
+    #    yc=yc_initial.to_value(original_unit),
+    #    r=r_initial.to_value(original_unit),
+    # )
+    # fit.errordef = Minuit.LEAST_SQUARES
+
+    # set initial parameters uncertainty to a big value
+    # taubin_error = max_fov * 0.1
+    # fit.errors["xc"] = taubin_error
+    # fit.errors["yc"] = taubin_error
+    # fit.errors["r"] = taubin_error
+
+    # set wide rage for the minimisation
+    # fit.limits["xc"] = (-max_fov, max_fov)
+    # fit.limits["yc"] = (-max_fov, max_fov)
+    # fit.limits["r"] = (0, max_fov)
+
+    # fit.migrad()
+
+    # radius = Quantity(fit.values["r"], original_unit)
+    # center_x = Quantity(fit.values["xc"], original_unit)
+    # center_y = Quantity(fit.values["yc"], original_unit)
+    # radius_err = Quantity(fit.errors["r"], original_unit)
+    # center_x_err = Quantity(fit.errors["xc"], original_unit)
+    # center_y_err = Quantity(fit.errors["yc"], original_unit)
+
+    amplitude = np.nan
+    rho = np.nan * original_unit
+    phi0 = np.nan * u.deg
+    amplitude_err = np.nan
+    rho_err = np.nan * original_unit
+    phi0_err = np.nan * u.deg
+
+    return amplitude, rho, phi0, amplitude_err, rho_err, phi0_err
 
 
 class MuonImpactpointIntensityFitter(TelescopeComponent):
@@ -137,5 +240,18 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
                 "Currently only single mirror telescopes"
                 f" are supported in {self.__class__.__name__}"
             )
+
+        geometry = telescope.camera.geometry.transform_to(TelescopeFrame())
+
+        # results_phi_dist = muon_ring_phi_distribution_fit(
+        muon_ring_phi_distribution_fit(
+            geometry.pix_x,
+            geometry.pix_y,
+            mask,
+            image,
+            amplitude_initial=None,
+            rho_initial=None,
+            phi0_initial=None,
+        )
 
         return MuonEfficiencyContainer()
