@@ -138,13 +138,4 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
                 f" are supported in {self.__class__.__name__}"
             )
 
-        return MuonEfficiencyContainer(
-            impact=None,
-            impact_x=None,
-            impact_y=None,
-            width=None,
-            optical_efficiency=None,
-            is_valid=False,
-            parameters_at_limit=True,
-            likelihood_value=None,
-        )
+        return MuonEfficiencyContainer()
