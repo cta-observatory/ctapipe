@@ -14,7 +14,7 @@ def test_dummy(prod5_lst, reference_location):
     tel_id = 1
     telescope = prod5_lst
     subarray = SubarrayDescription(
-        name="LSTMono",
+        name="LST",
         tel_positions={tel_id: [0, 0, 0] * u.m},
         tel_descriptions={tel_id: telescope},
         reference_location=reference_location,
