@@ -55,6 +55,7 @@ jobs:
           repository: ${{ github.event.workflow_run.head_repository.full_name }}
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
+          clean: false
 
       - name: Checkout Pull Request merge result
         uses: actions/checkout@v5
@@ -62,6 +63,7 @@ jobs:
         with:
           ref: refs/pull/${{ env.PR_NUMBER }}/merge
           fetch-depth: 0
+          clean: false
 
       - name: Check artifact
         run: |
@@ -75,7 +77,16 @@ jobs:
           git log -n 5 --oneline
           ls -l coverage
 
-      - name: Sonarqube Scan
+      - name: Sonarqube Scan Branch
+        if: github.event.workflow_run.event != 'pull_request'
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CTAO }}
+          SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
+
+      - name: Sonarqube Scan PR
+        if: github.event.workflow_run.event == 'pull_request'
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
