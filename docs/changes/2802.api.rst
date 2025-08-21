@@ -1,6 +1,6 @@
 Refactor old containers (breaking changes) and implement calibpipe-datapipe interface using a new ``MonitoringSource()`` mechanism.
 
-* Remove containers , ``DL1CameraCalibrationContainer``, ``FlatFieldContainer``, ``PedestalContainer``, ``PixelStatusContainer``, and ``WaveformCalibrationContainer``
+* Remove containers ``DL1CameraCalibrationContainer``, ``FlatFieldContainer``, ``PedestalContainer``, ``PixelStatusContainer``, and ``WaveformCalibrationContainer``
 * Add containers ``CameraCalibrationContainer``, ``MonitoringTelescopeContainer``, ``ChunkStatisticsContainer``, ``PixelStatisticsContainer``, and ``ArrayPointingContainer``
 * Modify containers ``MonitoringContainer``, ``MonitoringCameraContainer``, ``PointingContainer``, ``TelescopePointingContainer``, and ``StatisticsContainer``,
 * Move pointing tree of ``ArrayEventContainer`` into the monitoring tree.
