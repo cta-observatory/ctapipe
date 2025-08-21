@@ -28,6 +28,12 @@ from ..monitoring import (
     PointingInterpolator,
 )
 from .astropy_helpers import read_table
+from .hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_CAMERA_COEFFICIENTS_GROUP,
+    DL1_PIXEL_STATISTICS_GROUP,
+    DL1_TEL_CALIBRATION_GROUP,
+)
 from .metadata import read_reference_metadata
 from .monitoringsource import MonitoringSource
 from .monitoringtypes import MonitoringTypes
@@ -35,9 +41,6 @@ from .monitoringtypes import MonitoringTypes
 __all__ = ["HDF5MonitoringSource"]
 
 logger = logging.getLogger(__name__)
-
-TELESCOPE_CALIBRATION_GROUP = "/dl1/monitoring/telescope/calibration"
-POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
 
 def get_hdf5_monitoring_types(
@@ -50,7 +53,7 @@ def get_hdf5_monitoring_types(
             h5file = stack.enter_context(tables.open_file(h5file))
 
         try:
-            calibration_group = h5file.get_node(TELESCOPE_CALIBRATION_GROUP)
+            calibration_group = h5file.get_node(DL1_TEL_CALIBRATION_GROUP)
             # Iterate over enum values of MonitoringTypes
             monitoring_types = [
                 monitoring_type
@@ -62,13 +65,13 @@ def get_hdf5_monitoring_types(
             ]
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
-            if POINTING_GROUP in h5file.root:
+            if DL0_TEL_POINTING_GROUP in h5file.root:
                 monitoring_types.append(MonitoringTypes.TELESCOPE_POINTINGS)
 
         except (KeyError, tables.NoSuchNodeError):
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
-            if POINTING_GROUP in h5file.root:
+            if DL0_TEL_POINTING_GROUP in h5file.root:
                 monitoring_types = [MonitoringTypes.TELESCOPE_POINTINGS]
             else:
                 # Return empty tuple if calibration group doesn't exist
@@ -246,7 +249,7 @@ class HDF5MonitoringSource(MonitoringSource):
                     # Read the tables from the monitoring file requiring all tables to be present
                     self._pixel_statistics[tel_id][name] = read_table(
                         self.input_url,
-                        f"{TELESCOPE_CALIBRATION_GROUP}/camera/pixel_statistics/{name}/tel_{tel_id:03d}",
+                        f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}",
                     )
                     if not self.is_simulation:
                         # Set outliers to NaNs
@@ -267,7 +270,7 @@ class HDF5MonitoringSource(MonitoringSource):
             for tel_id in self.subarray.tel_ids:
                 self._camera_coefficients[tel_id] = read_table(
                     self.input_url,
-                    f"{TELESCOPE_CALIBRATION_GROUP}/camera/coefficients/tel_{tel_id:03d}",
+                    f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
                 )
             # Convert time column to MJD
             self._camera_coefficients[tel_id]["time"] = self._camera_coefficients[
@@ -289,7 +292,7 @@ class HDF5MonitoringSource(MonitoringSource):
             for tel_id in self.subarray.tel_ids:
                 self._telescope_pointings[tel_id] = read_table(
                     self.input_url,
-                    f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}",
+                    f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
                 )
                 # Register the table with the pointing interpolator
                 self._pointing_interpolator.add_table(
@@ -318,23 +321,21 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         True for files that contain camera calibration coefficients
         """
-        return f"{TELESCOPE_CALIBRATION_GROUP}/camera/coefficients" in self.file_.root
+        return DL1_CAMERA_COEFFICIENTS_GROUP in self.file_.root
 
     @lazyproperty
     def has_pixel_statistics(self):
         """
         True for files that contain pixel statistics
         """
-        return (
-            f"{TELESCOPE_CALIBRATION_GROUP}/camera/pixel_statistics" in self.file_.root
-        )
+        return DL1_PIXEL_STATISTICS_GROUP in self.file_.root
 
     @lazyproperty
     def has_pointings(self):
         """
         True for files that contain pointing information
         """
-        return POINTING_GROUP in self.file_.root
+        return DL0_TEL_POINTING_GROUP in self.file_.root
 
     @property
     def camera_coefficients(self):
