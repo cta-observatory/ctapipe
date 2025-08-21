@@ -77,14 +77,14 @@ def test_telescope_parameter_lookup_by_type(subarray_prod5_paranal):
     assert lookup["LST_LST_LSTCam"] == 100
 
     with pytest.raises(KeyError, match="no parameter value"):
-        assert lookup["MST_MST_NectarCam"]
+        lookup["MST_MST_NectarCam"]
 
     with pytest.raises(ValueError, match="Unknown telescope"):
-        assert lookup["Foo"]
+        lookup["Foo"]
 
     with pytest.raises(ValueError, match="Unknown telescope"):
         # sst
-        assert lookup[subarray_prod5_paranal.tel[30]]
+        lookup[subarray_prod5_paranal.tel[30]]
 
 
 def test_telescope_parameter_patterns(mock_subarray):

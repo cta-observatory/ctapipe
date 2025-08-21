@@ -1,11 +1,5 @@
 """
-Class for performing a HESS style 2D fit of muon images
-
-To do:
-    - Deal with astropy untis better, currently stripped and no checks made
-    - unit tests
-    - create container class for output
-
+Muon Ring fitting to determine optical efficiency.
 """
 
 from functools import lru_cache
@@ -183,6 +177,8 @@ def image_prediction(
     max_lambda=600 * u.nm,
 ):
     """
+    Predict muon ring image from given parameters.
+
     Parameters
     ----------
     impact_parameter: quantity[length]
@@ -452,10 +448,6 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
 class MuonIntensityFitter(TelescopeComponent):
     """
     Fit muon ring images with a theoretical model to estimate optical efficiency.
-
-    Function for producing the expected image for a given set of trial
-    muon parameters without using astropy units but expecting the input to
-    be in the correct ones.
 
     The image prediction function is currently modeled after :cite:p:`chalmecalvet2013`.
 

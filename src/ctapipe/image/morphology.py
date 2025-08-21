@@ -12,7 +12,7 @@ def _n_islands_sparse_indices(indices, indptr, mask):
     labels = np.zeros(len(mask), dtype=np.int16)
     labels[mask] = -1
 
-    cleaning_pixels = np.where(mask)[0]
+    cleaning_pixels = np.nonzero(mask)[0]
     n_cleaning_pixels = len(cleaning_pixels)
     current_island = 0
 

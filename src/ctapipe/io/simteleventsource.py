@@ -780,7 +780,7 @@ class SimTelEventSource(EventSource):
                 camera=camera,
             )
 
-            tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
+            tel_idx = np.nonzero(header["tel_id"] == tel_id)[0][0]
             self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 

@@ -113,7 +113,7 @@ def download_file_cached(
     cache_name="ctapipe",
     auth=None,
     env_prefix="CTAPIPE_DATA_",
-    default_url="http://cccta-dataserver.in2p3.fr/data/",
+    default_url="https://minio-cta.zeuthen.desy.de/dpps-testdata-public/data/",
     progress=False,
 ):
     """

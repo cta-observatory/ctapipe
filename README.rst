@@ -5,11 +5,11 @@
 .. |ci| image:: https://github.com/cta-observatory/ctapipe/actions/workflows/ci.yml/badge.svg?branch=main
     :target: https://github.com/cta-observatory/ctapipe/actions/workflows/ci.yml
     :alt: Test Status
-.. |sonarqube_quality| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=alert_status&token=sqb_a533204f382b350568e922385cab7c2394587458
-    :target: https://sonar-cta-dpps.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
+.. |sonarqube_quality| image:: https://sonar-ctao.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_6122e87b-83f3-4db1-8287-457e752adf01&metric=alert_status&token=sqb_3fa6e5337b8d7a2b09fd616cc5424a2e77d4be06
+    :target: https://sonar-ctao.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_6122e87b-83f3-4db1-8287-457e752adf01&codeScope=overall
     :alt: sonarqube quality gate
-.. |sonarqube_coverage| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=coverage&token=sqb_a533204f382b350568e922385cab7c2394587458
-    :target: https://sonar-cta-dpps.zeuthen.desy.de/component_measures?metric=coverage&selected=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs%3Asrc%2Fctapipe&view=treemap&id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
+.. |sonarqube_coverage| image:: https://sonar-ctao.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_6122e87b-83f3-4db1-8287-457e752adf01&metric=coverage&token=sqb_3fa6e5337b8d7a2b09fd616cc5424a2e77d4be06
+    :target: https://sonar-ctao.zeuthen.desy.de/component_measures?id=cta-observatory_ctapipe_6122e87b-83f3-4db1-8287-457e752adf01&metric=coverage&view=list
     :alt: sonarqube code coverage
 .. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
