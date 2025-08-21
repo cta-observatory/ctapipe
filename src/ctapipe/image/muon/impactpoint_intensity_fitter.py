@@ -8,7 +8,7 @@ import numpy as np
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
-from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ...core.traits import FloatTelescopeParameter
 from ...exceptions import OptionalDependencyMissing
 
 try:
@@ -77,10 +77,6 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
 
     """
 
-    spe_width = FloatTelescopeParameter(
-        help="Width of a single photo electron distribution", default_value=0.5
-    ).tag(config=True)
-
     min_lambda_m = FloatTelescopeParameter(
         help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
     ).tag(config=True)
@@ -99,10 +95,6 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             ("type", "MST_*", 0.59),
             ("type", "SST_1M_*", 0.38),
         ],
-    ).tag(config=True)
-
-    oversampling = IntTelescopeParameter(
-        help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
