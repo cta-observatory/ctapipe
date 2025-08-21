@@ -180,6 +180,8 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
 
     """
 
+    _call_counter = 0
+
     min_lambda_m = FloatTelescopeParameter(
         help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
     ).tag(config=True)
@@ -234,12 +236,20 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
         -------
         MuonEfficiencyContainer
         """
+
+        MuonImpactpointIntensityFitter._call_counter += 1
+
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.n_mirrors != 1:
             raise NotImplementedError(
                 "Currently only single mirror telescopes"
                 f" are supported in {self.__class__.__name__}"
             )
+
+        print(
+            "call_counter_increment = ",
+            MuonImpactpointIntensityFitter.call_counter_increment(),
+        )
 
         geometry = telescope.camera.geometry.transform_to(TelescopeFrame())
 
@@ -255,3 +265,7 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
         )
 
         return MuonEfficiencyContainer()
+
+    @staticmethod
+    def call_counter_increment():
+        return MuonImpactpointIntensityFitter._call_counter
