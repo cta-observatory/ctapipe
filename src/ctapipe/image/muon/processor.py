@@ -154,6 +154,8 @@ class MuonProcessor(TelescopeComponent):
         event_index = event.index
         event_id = event_index.event_id
 
+        print("-----> START event_id : ", event_id)
+
         if self.subarray.tel[tel_id].optics.n_mirrors != 1:
             self.log.warning(
                 f"Skipping non-single mirror telescope {tel_id},"
@@ -173,9 +175,21 @@ class MuonProcessor(TelescopeComponent):
 
         checks = self.dl1_query(dl1_params=dl1.parameters)
 
+        print(
+            "dl1.parameters.morphology.n_pixels = ", dl1.parameters.morphology.n_pixels
+        )
+        print("dl1.parameters.hillas.intensity    = ", dl1.parameters.hillas.intensity)
+        print("self.dl1_query")
+        rrrr = 0
         if not all(checks):
             event.muon.tel[tel_id] = INVALID
+            print("self.dl1_query --> NOT OK")
+            rrrr = 1
+            print("-----> STOP event_id : ", event_id)
+            print(" ")
             return
+
+        print("rrrr --> ", rrrr)
 
         geometry = self.geometries[tel_id]
         fov_lon = geometry.pix_x
@@ -201,6 +215,9 @@ class MuonProcessor(TelescopeComponent):
             event.muon.tel[tel_id] = MuonTelescopeContainer(
                 parameters=parameters, ring=ring
             )
+            print("self.ring_query --> NOT OK")
+            print("-----> STOP event_id : ", event_id)
+            print(" ")
             return
 
         efficiency = self.intensity_fitter(
@@ -222,6 +239,9 @@ class MuonProcessor(TelescopeComponent):
         event.muon.tel[tel_id] = MuonTelescopeContainer(
             ring=ring, efficiency=efficiency, parameters=parameters
         )
+
+        print("-----> STOP event_id : ", event_id)
+        print(" ")
 
     def _calculate_muon_parameters(
         self, tel_id, image, clean_mask, ring
