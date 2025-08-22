@@ -19,6 +19,12 @@ from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
 from ctapipe.io import SimTelEventSource
+from ctapipe.io.hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_CAMERA_COEFFICIENTS_GROUP,
+    DL1_CAMERA_MONITORING_GROUP,
+    FIXED_POINTING_GROUP,
+)
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
 from ctapipe.utils.filelock import FileLock
@@ -693,18 +699,14 @@ def reference_location():
 
 @pytest.fixture(scope="session")
 def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
-    from ctapipe.instrument import SubarrayDescription
     from ctapipe.io import read_table, write_table
 
     path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
     shutil.copy(calibpipe_camcalib_same_chunks, path)
 
-    subarray = SubarrayDescription.from_hdf(path)
-
+    tel_id = 1
     # create some dummy monitoring data
-    time = read_table(
-        path, "/dl1/monitoring/telescope/calibration/camera/coefficients/tel_001"
-    )["time"]
+    time = read_table(path, f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}")["time"]
     start, stop = time[[0, -1]]
     duration = (stop - start).to_value(u.s)
 
@@ -716,16 +718,14 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     az = (180 + 5 * dt / dt[-1]) * u.deg
 
     table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
-
-    for tel_id in subarray.tel:
-        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+    write_table(table, path, f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}")
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
         # Remove the constant pointing
-        f.remove_node("/configuration/telescope/pointing", recursive=True)
+        f.remove_node(FIXED_POINTING_GROUP, recursive=True)
         # Remove camera-related monitoring data
-        f.remove_node("/dl1/monitoring/telescope/calibration/camera", recursive=True)
+        f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
 
     return path
 

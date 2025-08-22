@@ -24,6 +24,10 @@ from ..io import (
     write_table,
 )
 from ..io.datawriter import DATA_MODEL_VERSION
+from ..io.hdf5dataformat import (
+    DL1_IMAGE_STATISTICS_TABLE,
+    DL2_EVENT_STATISTICS_GROUP,
+)
 from ..reco import Reconstructor, ShowerProcessor
 from ..utils import EventTypeFilter
 
@@ -304,7 +308,7 @@ class ProcessorTool(Tool):
             write_table(
                 image_stats,
                 self.write.output_path,
-                path="/dl1/service/image_statistics",
+                path=DL1_IMAGE_STATISTICS_TABLE,
                 append=True,
             )
 
@@ -317,7 +321,7 @@ class ProcessorTool(Tool):
                 write_table(
                     reconstructor.quality_query.to_table(functions=True),
                     self.write.output_path,
-                    f"/dl2/service/tel_event_statistics/{reconstructor_name}",
+                    f"{DL2_EVENT_STATISTICS_GROUP}/{reconstructor_name}",
                     append=True,
                 )
 

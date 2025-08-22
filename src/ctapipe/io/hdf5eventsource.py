@@ -55,26 +55,28 @@ from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5dataformat import (
-    ATMOSPHERE_DENSITY_PROFILE_GROUP,
-    CONFIG_TEL_POINTING_GROUP,
+    ATMOSPHERE_DENSITY_PROFILE_TABLE,
     DL0_TEL_POINTING_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
     DL1_TEL_PARAMETERS_GROUP,
     DL1_TEL_POINTING_GROUP,
-    DL1_TEL_TRIGGER_GROUP,
+    DL1_TEL_TRIGGER_TABLE,
     DL2_GROUP,
     DL2_SUBARRAY_GROUP,
     DL2_TEL_GROUP,
-    OBSERVATION_BLOCK_GROUP,
+    FIXED_POINTING_GROUP,
+    OBSERVATION_BLOCK_TABLE,
     R1_TEL_GROUP,
-    SCHEDULING_BLOCK_GROUP,
-    SHOWER_DISTRIBUTION_GROUP,
+    SCHEDULING_BLOCK_TABLE,
+    SHOWER_DISTRIBUTION_TABLE,
     SIMULATION_GROUP,
     SIMULATION_IMPACT_GROUP,
     SIMULATION_PARAMETERS_GROUP,
-    SIMULATION_RUN_GROUP,
-    SIMULATION_SHOWER_GROUP,
+    SIMULATION_RUN_TABLE,
+    SIMULATION_SHOWER_TABLE,
+    SIMULATION_TEL_TABLE,
 )
 from .hdf5tableio import HDF5TableReader, get_column_attrs
 from .metadata import _read_reference_metadata_hdf5
@@ -131,7 +133,7 @@ def get_hdf5_datalevels(h5file: tables.File | str | Path):
 
 
 def read_atmosphere_density_profile(
-    h5file: tables.File, path=ATMOSPHERE_DENSITY_PROFILE_GROUP
+    h5file: tables.File, path=ATMOSPHERE_DENSITY_PROFILE_TABLE
 ):
     """return a subclass of AtmosphereDensityProfile by
     reading a table in a h5 file
@@ -259,7 +261,7 @@ class HDF5EventSource(EventSource):
         self._obs_ids = tuple(
             self.file_.root.configuration.observation.observation_block.col("obs_id")
         )
-        pointing_key = CONFIG_TEL_POINTING_GROUP
+        pointing_key = FIXED_POINTING_GROUP
         # for ctapipe <0.21
         legacy_pointing_key = DL1_TEL_POINTING_GROUP
         self._legacy_tel_pointing_finders = {}
@@ -289,11 +291,11 @@ class HDF5EventSource(EventSource):
         )
 
     def _read_simulated_shower_distributions(self):
-        if SHOWER_DISTRIBUTION_GROUP not in self.file_.root:
+        if SHOWER_DISTRIBUTION_TABLE not in self.file_.root:
             return {}
 
         reader = HDF5TableReader(self.file_).read(
-            SHOWER_DISTRIBUTION_GROUP, containers=SimulatedShowerDistribution
+            SHOWER_DISTRIBUTION_TABLE, containers=SimulatedShowerDistribution
         )
         return {dist.obs_id: dist for dist in reader}
 
@@ -342,8 +344,8 @@ class HDF5EventSource(EventSource):
 
             # we can now read both R1 and DL1
             has_muons = DL1_TEL_MUON_GROUP in f.root
-            has_sim = "/simulation/event/telescope" in f.root
-            has_trigger = "/simulation/event/telescope" in f.root
+            has_sim = SIMULATION_TEL_TABLE in f.root
+            has_trigger = SIMULATION_TEL_TABLE in f.root
 
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
             datalevels = (
@@ -445,7 +447,7 @@ class HDF5EventSource(EventSource):
 
         if SIMULATION_GROUP in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
-                SIMULATION_RUN_GROUP,
+                SIMULATION_RUN_TABLE,
                 containers=(SimulationConfigContainer, ObsIdContainer),
             )
             return {index.obs_id: config for (config, index) in reader}
@@ -456,14 +458,14 @@ class HDF5EventSource(EventSource):
         """read Observation and Scheduling block configurations"""
 
         sb_reader = HDF5TableReader(self.file_).read(
-            SCHEDULING_BLOCK_GROUP,
+            SCHEDULING_BLOCK_TABLE,
             containers=SchedulingBlockContainer,
         )
 
         scheduling_blocks = {sb.sb_id: sb for sb in sb_reader}
 
         ob_reader = HDF5TableReader(self.file_).read(
-            OBSERVATION_BLOCK_GROUP,
+            OBSERVATION_BLOCK_TABLE,
             containers=ObservationBlockContainer,
         )
         observation_blocks = {ob.obs_id: ob for ob in ob_reader}
@@ -651,7 +653,7 @@ class HDF5EventSource(EventSource):
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
-                SIMULATION_SHOWER_GROUP,
+                SIMULATION_SHOWER_TABLE,
                 SimulatedShowerContainer,
                 prefixes="true",
             )
@@ -667,12 +669,12 @@ class HDF5EventSource(EventSource):
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
-            DL1_TEL_TRIGGER_GROUP,
+            DL1_SUBARRAY_TRIGGER_TABLE,
             [TriggerContainer, EventIndexContainer],
             ignore_columns={"tel"},
         )
         telescope_trigger_reader = HDF5TableReader(self.file_).read(
-            DL1_TEL_TRIGGER_GROUP,
+            DL1_TEL_TRIGGER_TABLE,
             [TelEventIndexContainer, TelescopeTriggerContainer],
             ignore_columns={"trigger_pixels"},
         )

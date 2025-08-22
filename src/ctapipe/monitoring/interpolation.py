@@ -9,6 +9,12 @@ from astropy.time import Time
 from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
+from ctapipe.io.hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_FLATFIELD_IMAGE_GROUP,
+    DL1_FLATFIELD_PEAK_TIME_GROUP,
+    DL1_SKY_PEDESTAL_IMAGE_GROUP,
+)
 
 __all__ = [
     "MonitoringInterpolator",
@@ -151,7 +157,7 @@ class PointingInterpolator(LinearInterpolator):
     Interpolator for pointing and pointing correction data.
     """
 
-    telescope_data_group = "/dl0/monitoring/telescope/pointing"
+    telescope_data_group = DL0_TEL_POINTING_GROUP
     required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
@@ -340,18 +346,16 @@ class StatisticsInterpolator(ChunkInterpolator):
 class PedestalImageInterpolator(StatisticsInterpolator):
     """Interpolator for pedestal image tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/sky_pedestal_image"
+    telescope_data_group = DL1_SKY_PEDESTAL_IMAGE_GROUP
 
 
 class FlatfieldImageInterpolator(StatisticsInterpolator):
     """Interpolator for flatfield image tables."""
 
-    telescope_data_group = (
-        "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_image"
-    )
+    telescope_data_group = DL1_FLATFIELD_IMAGE_GROUP
 
 
 class FlatfieldPeakTimeInterpolator(StatisticsInterpolator):
     """Interpolator for flatfield peak time tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_peak_time"
+    telescope_data_group = DL1_FLATFIELD_PEAK_TIME_GROUP

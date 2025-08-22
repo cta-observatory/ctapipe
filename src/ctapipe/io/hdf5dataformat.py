@@ -7,30 +7,37 @@ __all__ = [
     "DL1_GROUP",
     "DL2_GROUP",
     "SIMULATION_GROUP",
+    "SIMULATION_TEL_TABLE",
     "CONFIG_GROUP",
-    "SCHEDULING_BLOCK_GROUP",
-    "OBSERVATION_BLOCK_GROUP",
-    "SIMULATION_RUN_GROUP",
-    "CONFIG_TEL_POINTING_GROUP",
-    "ATMOSPHERE_DENSITY_PROFILE_GROUP",
-    "DL1_IMAGE_STATISTICS_GROUP",
+    "SCHEDULING_BLOCK_TABLE",
+    "OBSERVATION_BLOCK_TABLE",
+    "SIMULATION_RUN_TABLE",
+    "FIXED_POINTING_GROUP",
+    "ATMOSPHERE_DENSITY_PROFILE_TABLE",
+    "DL1_IMAGE_STATISTICS_TABLE",
     "DL2_EVENT_STATISTICS_GROUP",
-    "SHOWER_DISTRIBUTION_GROUP",
-    "SIMULATION_SHOWER_GROUP",
+    "SHOWER_DISTRIBUTION_TABLE",
+    "SIMULATION_SHOWER_TABLE",
     "SIMULATION_IMPACT_GROUP",
     "SIMULATION_IMAGES_GROUP",
     "SIMULATION_PARAMETERS_GROUP",
     "R0_TEL_GROUP",
     "R1_TEL_GROUP",
     "DL1_SUBARRAY_GROUP",
-    "DL1_SUBARRAY_TRIGGER_GROUP",
+    "DL1_SUBARRAY_TRIGGER_TABLE",
     "DL1_TEL_GROUP",
-    "DL1_TEL_TRIGGER_GROUP",
+    "DL1_TEL_TRIGGER_TABLE",
     "DL1_TEL_IMAGES_GROUP",
     "DL1_TEL_PARAMETERS_GROUP",
     "DL1_TEL_MUON_GROUP",
-    "DL2_TEL_GROUP",
     "DL2_SUBARRAY_GROUP",
+    "DL2_SUBARRAY_GEOMETRY_GROUP",
+    "DL2_SUBARRAY_ENERGY_GROUP",
+    "DL2_SUBARRAY_PARTICLETYPE_GROUP",
+    "DL2_TEL_GROUP",
+    "DL2_TEL_GEOMETRY_GROUP",
+    "DL2_TEL_ENERGY_GROUP",
+    "DL2_TEL_PARTICLETYPE_GROUP",
     "DL0_TEL_POINTING_GROUP",
     "DL1_SUBARRAY_POINTING_GROUP",
     "DL1_TEL_POINTING_GROUP",
@@ -46,16 +53,17 @@ __all__ = [
 
 # Configuration, service, and simulation group
 CONFIG_GROUP = "/configuration"
-SCHEDULING_BLOCK_GROUP = "/configuration/observation/scheduling_block"
-OBSERVATION_BLOCK_GROUP = "/configuration/observation/observation_block"
-SIMULATION_RUN_GROUP = "/configuration/simulation/run"
-CONFIG_TEL_POINTING_GROUP = "/configuration/telescope/pointing"
-DL1_IMAGE_STATISTICS_GROUP = "/dl1/service/image_statistics"
+SCHEDULING_BLOCK_TABLE = "/configuration/observation/scheduling_block"
+OBSERVATION_BLOCK_TABLE = "/configuration/observation/observation_block"
+SIMULATION_RUN_TABLE = "/configuration/simulation/run"
+FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
+DL1_IMAGE_STATISTICS_TABLE = "/dl1/service/image_statistics"
 DL2_EVENT_STATISTICS_GROUP = "/dl2/service/tel_event_statistics"
 SIMULATION_GROUP = "/simulation"
-ATMOSPHERE_DENSITY_PROFILE_GROUP = "/simulation/service/atmosphere_density_profile"
-SHOWER_DISTRIBUTION_GROUP = "/simulation/service/shower_distribution"
-SIMULATION_SHOWER_GROUP = "/simulation/event/subarray/shower"
+SIMULATION_TEL_TABLE = "/simulation/event/telescope"
+ATMOSPHERE_DENSITY_PROFILE_TABLE = "/simulation/service/atmosphere_density_profile"
+SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
+SIMULATION_SHOWER_TABLE = "/simulation/event/subarray/shower"
 SIMULATION_IMPACT_GROUP = "/simulation/event/telescope/impact"
 SIMULATION_IMAGES_GROUP = "/simulation/event/telescope/images"
 SIMULATION_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
@@ -68,15 +76,22 @@ R1_TEL_GROUP = "/r1/event/telescope"
 DL0_GROUP = "/dl0"
 DL1_GROUP = "/dl1"
 DL1_SUBARRAY_GROUP = "/dl1/event/subarray"
-DL1_SUBARRAY_TRIGGER_GROUP = "/dl1/event/subarray/trigger"
+DL1_SUBARRAY_TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 DL1_TEL_GROUP = "/dl1/event/telescope"
-DL1_TEL_TRIGGER_GROUP = "/dl1/event/telescope/trigger"
+DL1_TEL_TRIGGER_TABLE = "/dl1/event/telescope/trigger"
 DL1_TEL_IMAGES_GROUP = "/dl1/event/telescope/images"
 DL1_TEL_PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 DL1_TEL_MUON_GROUP = "/dl1/event/telescope/muon"
 DL2_TEL_GROUP = "/dl2/event/telescope"
+DL2_TEL_GEOMETRY_GROUP = "/dl2/event/telescope/geometry"
+DL2_TEL_ENERGY_GROUP = "/dl2/event/telescope/energy"
+DL2_TEL_PARTICLETYPE_GROUP = "/dl2/event/telescope/particle_type"
+
 DL2_GROUP = "/dl2"
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
+DL2_SUBARRAY_GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
+DL2_SUBARRAY_ENERGY_GROUP = "/dl2/event/subarray/energy"
+DL2_SUBARRAY_PARTICLETYPE_GROUP = "/dl2/event/subarray/particle_type"
 
 # Monitoring group
 DL0_TEL_POINTING_GROUP = "/dl0/monitoring/telescope/pointing"

@@ -14,34 +14,33 @@ from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
 from .hdf5dataformat import (
-    CONFIG_TEL_POINTING_GROUP,
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
-    DL1_CAMERA_MONITORING_GROUP,
     DL1_COLUMN_NAMES,
-    DL1_IMAGE_STATISTICS_GROUP,
+    DL1_IMAGE_STATISTICS_TABLE,
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
-    DL1_SUBARRAY_TRIGGER_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
     DL1_TEL_PARAMETERS_GROUP,
     DL1_TEL_POINTING_GROUP,
-    DL1_TEL_TRIGGER_GROUP,
+    DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
     DL2_SUBARRAY_GROUP,
     DL2_TEL_GROUP,
-    OBSERVATION_BLOCK_GROUP,
+    FIXED_POINTING_GROUP,
+    OBSERVATION_BLOCK_TABLE,
     R0_TEL_GROUP,
     R1_TEL_GROUP,
-    SCHEDULING_BLOCK_GROUP,
-    SHOWER_DISTRIBUTION_GROUP,
+    SCHEDULING_BLOCK_TABLE,
+    SHOWER_DISTRIBUTION_TABLE,
     SIMULATION_GROUP,
     SIMULATION_IMAGES_GROUP,
     SIMULATION_IMPACT_GROUP,
     SIMULATION_PARAMETERS_GROUP,
-    SIMULATION_RUN_GROUP,
-    SIMULATION_SHOWER_GROUP,
+    SIMULATION_RUN_TABLE,
+    SIMULATION_SHOWER_TABLE,
 )
 from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
 
@@ -59,20 +58,20 @@ class NodeType(enum.Enum):
 
 #: nodes to check for merge-ability
 _NODES_TO_CHECK = {
-    SCHEDULING_BLOCK_GROUP: NodeType.TABLE,
-    OBSERVATION_BLOCK_GROUP: NodeType.TABLE,
-    SIMULATION_RUN_GROUP: NodeType.TABLE,
-    CONFIG_TEL_POINTING_GROUP: NodeType.TEL_GROUP,
+    SCHEDULING_BLOCK_TABLE: NodeType.TABLE,
+    OBSERVATION_BLOCK_TABLE: NodeType.TABLE,
+    SIMULATION_RUN_TABLE: NodeType.TABLE,
+    FIXED_POINTING_GROUP: NodeType.TEL_GROUP,
     SIMULATION_GROUP: NodeType.TABLE,
-    SHOWER_DISTRIBUTION_GROUP: NodeType.TABLE,
-    SIMULATION_SHOWER_GROUP: NodeType.TABLE,
+    SHOWER_DISTRIBUTION_TABLE: NodeType.TABLE,
+    SIMULATION_SHOWER_TABLE: NodeType.TABLE,
     SIMULATION_IMPACT_GROUP: NodeType.TEL_GROUP,
     SIMULATION_IMAGES_GROUP: NodeType.TEL_GROUP,
     SIMULATION_PARAMETERS_GROUP: NodeType.TEL_GROUP,
     R0_TEL_GROUP: NodeType.TEL_GROUP,
     R1_TEL_GROUP: NodeType.TEL_GROUP,
-    DL1_SUBARRAY_TRIGGER_GROUP: NodeType.TABLE,
-    DL1_TEL_TRIGGER_GROUP: NodeType.TABLE,
+    DL1_SUBARRAY_TRIGGER_TABLE: NodeType.TABLE,
+    DL1_TEL_TRIGGER_TABLE: NodeType.TABLE,
     DL1_TEL_IMAGES_GROUP: NodeType.TEL_GROUP,
     DL1_TEL_PARAMETERS_GROUP: NodeType.TEL_GROUP,
     DL1_TEL_MUON_GROUP: NodeType.TEL_GROUP,
@@ -80,7 +79,6 @@ _NODES_TO_CHECK = {
     DL2_SUBARRAY_GROUP: NodeType.ITER_GROUP,
     DL1_SUBARRAY_POINTING_GROUP: NodeType.TABLE,
     DL1_TEL_POINTING_GROUP: NodeType.TEL_GROUP,
-    DL1_CAMERA_MONITORING_GROUP: NodeType.TEL_GROUP,
 }
 
 
@@ -318,7 +316,7 @@ class HDF5Merger(Component):
                 )
 
     def _check_obs_ids(self, other):
-        keys = [OBSERVATION_BLOCK_GROUP, DL1_SUBARRAY_TRIGGER_GROUP]
+        keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
         for key in keys:
             if key in other.root:
                 obs_ids = other.root[key].col("obs_id")
@@ -350,21 +348,21 @@ class HDF5Merger(Component):
 
         # in case of "single_ob", we only copy sb/ob blocks for the first file
         if not self.single_ob or self._n_merged == 0:
-            config_keys = [SCHEDULING_BLOCK_GROUP, OBSERVATION_BLOCK_GROUP]
+            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
             for key in config_keys:
                 if key in other.root:
                     self._append_table(other, other.root[key])
 
-        if CONFIG_TEL_POINTING_GROUP in other.root:
+        if FIXED_POINTING_GROUP in other.root:
             self._append_table_group(
-                other, other.root[CONFIG_TEL_POINTING_GROUP], once=self.single_ob
+                other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
             )
 
         # Simulation
         simulation_table_keys = [
-            SIMULATION_RUN_GROUP,
-            SHOWER_DISTRIBUTION_GROUP,
-            SIMULATION_SHOWER_GROUP,
+            SIMULATION_RUN_TABLE,
+            SHOWER_DISTRIBUTION_TABLE,
+            SIMULATION_SHOWER_TABLE,
         ]
         for key in simulation_table_keys:
             if self.simulation and key in other.root:
@@ -404,11 +402,11 @@ class HDF5Merger(Component):
             self._append_table_group(other, other.root[R1_TEL_GROUP])
 
         # DL1
-        if DL1_SUBARRAY_TRIGGER_GROUP in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_GROUP])
+        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
+            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
-        if self.telescope_events and DL1_TEL_TRIGGER_GROUP in other.root:
-            self._append_table(other, other.root[DL1_TEL_TRIGGER_GROUP])
+        if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
+            self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
 
         if (
             self.telescope_events
@@ -472,11 +470,9 @@ class HDF5Merger(Component):
                     self._append_table_group(other, other.root[key])
 
         # quality query statistics
-        key = "/dl1/service/image_statistics"
-        if DL1_IMAGE_STATISTICS_GROUP in other.root:
-            self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_GROUP])
+        if DL1_IMAGE_STATISTICS_TABLE in other.root:
+            self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
 
-        key = "/dl2/service/tel_event_statistics"
         if DL2_EVENT_STATISTICS_GROUP in other.root:
             for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
                 self._add_statistics_table(other, node)
