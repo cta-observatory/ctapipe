@@ -49,7 +49,6 @@ from ..core.traits import UseEnum
 from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
-from ..monitoring.interpolation import PointingInterpolator
 from ..utils import IndexFinder
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
@@ -681,6 +680,8 @@ class HDF5EventSource(EventSource):
 
         pointing_interpolator = None
         if DL0_TEL_POINTING_GROUP in self.file_.root:
+            from ..monitoring.interpolation import PointingInterpolator
+
             pointing_interpolator = PointingInterpolator(
                 h5file=self.file_,
                 parent=self,

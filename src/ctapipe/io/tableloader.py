@@ -15,7 +15,6 @@ from astropy.utils.decorators import lazyproperty
 from ..core import Component, Provenance, traits
 from ..exceptions import InputMissing
 from ..instrument import FocalLengthKind, SubarrayDescription
-from ..monitoring.interpolation import PointingInterpolator
 from .astropy_helpers import join_allow_empty, read_table
 from .hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
@@ -244,6 +243,8 @@ class TableLoader(Component):
     ).tag(config=True)
 
     def __init__(self, input_url=None, h5file=None, **kwargs):
+        from ..monitoring.interpolation import PointingInterpolator
+
         self._should_close = False
         # enable using input_url as posarg
         if input_url not in {None, traits.Undefined}:
