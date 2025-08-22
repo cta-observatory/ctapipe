@@ -1,6 +1,7 @@
 """
 Handles reading of monitoring files
 """
+
 import logging
 import warnings
 from contextlib import ExitStack
@@ -21,12 +22,6 @@ from ..containers import (
 from ..core import Provenance, ToolConfigurationError
 from ..core.traits import Bool, Path
 from ..instrument import SubarrayDescription
-from ..monitoring import (
-    FlatfieldImageInterpolator,
-    FlatfieldPeakTimeInterpolator,
-    PedestalImageInterpolator,
-    PointingInterpolator,
-)
 from .astropy_helpers import read_table
 from .hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
@@ -197,6 +192,12 @@ class HDF5MonitoringSource(MonitoringSource):
             config=config,
             parent=parent,
             **kwargs,
+        )
+        from ..monitoring import (
+            FlatfieldImageInterpolator,
+            FlatfieldPeakTimeInterpolator,
+            PedestalImageInterpolator,
+            PointingInterpolator,
         )
 
         # Check if the reading from the input file is enforced
