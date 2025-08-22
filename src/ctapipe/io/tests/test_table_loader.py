@@ -6,6 +6,7 @@ from astropy.table import Table
 
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.io.hdf5dataformat import DL1_SUBARRAY_TRIGGER_TABLE, DL1_TEL_TRIGGER_TABLE
 from ctapipe.utils.datasets import get_dataset_path
 
 
@@ -177,7 +178,7 @@ def test_table_loader_keeps_original_order(dl2_merged_file):
     from ctapipe.io.tableloader import TableLoader
 
     # check that the order is the same as in the file itself
-    trigger = read_table(dl2_merged_file, "/dl1/event/subarray/trigger")
+    trigger = read_table(dl2_merged_file, DL1_SUBARRAY_TRIGGER_TABLE)
     # check we actually have unsorted input
     assert not np.all(np.diff(trigger["obs_id"]) >= 0)
 
@@ -262,7 +263,7 @@ def test_chunked(dl2_shower_geometry_file):
     """Test chunked reading"""
     from ctapipe.io.tableloader import TableLoader, read_table
 
-    trigger = read_table(dl2_shower_geometry_file, "/dl1/event/subarray/trigger")
+    trigger = read_table(dl2_shower_geometry_file, DL1_SUBARRAY_TRIGGER_TABLE)
     n_events = len(trigger)
     n_read = 0
 
@@ -365,7 +366,7 @@ def test_chunked_with_stop(dl2_shower_geometry_file, loader_kwargs):
     stop = loader_kwargs.get("stop")
     chunk_size = loader_kwargs["chunk_size"]
 
-    trigger = read_table(dl2_shower_geometry_file, "/dl1/event/subarray/trigger")[
+    trigger = read_table(dl2_shower_geometry_file, DL1_SUBARRAY_TRIGGER_TABLE)[
         start:stop
     ]
     n_events = len(trigger)
@@ -461,8 +462,8 @@ def test_order_merged():
 
     path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
 
-    trigger = read_table(path, "/dl1/event/subarray/trigger")
-    tel_trigger = read_table(path, "/dl1/event/telescope/trigger")
+    trigger = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)
+    tel_trigger = read_table(path, DL1_TEL_TRIGGER_TABLE)
     with TableLoader(path) as loader:
         events = loader.read_subarray_events(dl2=True, observation_info=True)
         check_equal_array_event_order(events, trigger)
@@ -479,7 +480,7 @@ def test_order_merged():
             check_equal_array_event_order(table, tel_trigger[mask])
 
 
-def test_interpolate_pointing(dl1_mon_pointing_file, tmp_path):
+def test_interpolate_pointing(dl1_mon_pointing_file):
     from ctapipe.io import TableLoader
 
     with TableLoader(dl1_mon_pointing_file, pointing=True) as loader:
