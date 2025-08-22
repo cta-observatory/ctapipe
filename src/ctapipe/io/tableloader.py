@@ -455,20 +455,19 @@ class TableLoader(Component):
             )
             table = _merge_subarray_tables(table, showers)
 
-        if dl2:
-            if DL2_SUBARRAY_GROUP in self.h5file:
-                for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
-                    group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
-                    group = self.h5file.root[group_path]
+        if dl2 and DL2_SUBARRAY_GROUP in self.h5file:
+            for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
+                group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
+                group = self.h5file.root[group_path]
 
-                    for algorithm in group._v_children:
-                        dl2 = read_table(
-                            self.h5file,
-                            f"{group_path}/{algorithm}",
-                            start=start,
-                            stop=stop,
-                        )
-                        table = _merge_subarray_tables(table, dl2)
+                for algorithm in group._v_children:
+                    dl2 = read_table(
+                        self.h5file,
+                        f"{group_path}/{algorithm}",
+                        start=start,
+                        stop=stop,
+                    )
+                    table = _merge_subarray_tables(table, dl2)
 
         if observation_info:
             table = self._join_observation_info(table)
@@ -588,22 +587,21 @@ class TableLoader(Component):
             )
             table = _merge_telescope_tables(table, images)
 
-        if dl2:
-            if DL2_TEL_GROUP in self.h5file:
-                dl2_tel_group = self.h5file.root[DL2_TEL_GROUP]
-                for group_name in dl2_tel_group._v_children:
-                    group_path = f"{DL2_TEL_GROUP}/{group_name}"
-                    group = self.h5file.root[group_path]
+        if dl2 and DL2_TEL_GROUP in self.h5file:
+            dl2_tel_group = self.h5file.root[DL2_TEL_GROUP]
+            for group_name in dl2_tel_group._v_children:
+                group_path = f"{DL2_TEL_GROUP}/{group_name}"
+                group = self.h5file.root[group_path]
 
-                    for algorithm in group._v_children:
-                        path = f"{group_path}/{algorithm}"
-                        dl2 = self._read_telescope_table(
-                            path, tel_id, start=tel_start, stop=tel_stop
-                        )
-                        if len(dl2) == 0:
-                            continue
+                for algorithm in group._v_children:
+                    path = f"{group_path}/{algorithm}"
+                    dl2 = self._read_telescope_table(
+                        path, tel_id, start=tel_start, stop=tel_stop
+                    )
+                    if len(dl2) == 0:
+                        continue
 
-                        table = _merge_telescope_tables(table, dl2)
+                    table = _merge_telescope_tables(table, dl2)
 
         if true_images:
             true_images = self._read_telescope_table(
