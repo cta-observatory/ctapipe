@@ -18,6 +18,7 @@ from ctapipe.core.traits import (
     classes_with_traits,
 )
 from ctapipe.io import HDF5Merger, write_table
+from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES, DL1_PIXEL_STATISTICS_GROUP
 from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
@@ -78,9 +79,6 @@ class PixelStatisticsCalculatorTool(Tool):
     classes = [
         TableLoader,
     ] + classes_with_traits(PixelStatisticsCalculator)
-
-    DL1_COLUMN_NAMES = ["image", "peak_time"]
-    CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
     def setup(self):
         # Read the input data with the 'TableLoader'
@@ -151,7 +149,7 @@ class PixelStatisticsCalculatorTool(Tool):
                     f"in the input data for telescope 'tel_id={tel_id}'."
                 )
             # Check if the dl1 data is gain selected and add an extra dimension for n_channels
-            for col_name in self.DL1_COLUMN_NAMES:
+            for col_name in DL1_COLUMN_NAMES:
                 if col_name in dl1_table.colnames and dl1_table[col_name].ndim == 2:
                     dl1_table[col_name] = dl1_table[col_name][:, np.newaxis]
             # Perform the first pass of the statistics calculation
@@ -188,13 +186,13 @@ class PixelStatisticsCalculatorTool(Tool):
             write_table(
                 aggregated_stats,
                 self.output_path,
-                f"{self.CAMERA_MONITORING_GROUP}/pixel_statistics/{output_table_name}/tel_{tel_id:03d}",
+                f"{DL1_PIXEL_STATISTICS_GROUP}/{output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
-            f"{self.CAMERA_MONITORING_GROUP}/pixel_statistics/{output_table_name}",
+            f"{DL1_PIXEL_STATISTICS_GROUP}/{output_table_name}",
         )
 
     def finish(self):

@@ -5,6 +5,7 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
+from ctapipe.io.hdf5dataformat import DL0_TEL_POINTING_GROUP
 from ctapipe.monitoring.interpolation import (
     FlatfieldImageInterpolator,
     FlatfieldPeakTimeInterpolator,
@@ -208,7 +209,7 @@ def test_hdf5(tmp_path):
     )
 
     path = tmp_path / "pointing.h5"
-    write_table(table, path, "/dl0/monitoring/telescope/pointing/tel_001")
+    write_table(table, path, f"{DL0_TEL_POINTING_GROUP}/tel_001")
     with tables.open_file(path) as h5file:
         interpolator = PointingInterpolator(h5file)
         alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)

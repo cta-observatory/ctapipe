@@ -7,8 +7,8 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool
-from ..core.traits import Bool, classes_with_traits, flag
+from ..core import QualityQuery, Tool, ToolConfigurationError
+from ..core.traits import Bool, ComponentName, List, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..image.muon import MuonProcessor
@@ -17,10 +17,16 @@ from ..io import (
     DataLevel,
     DataWriter,
     EventSource,
+    MonitoringSource,
+    MonitoringTypes,
     metadata,
     write_table,
 )
 from ..io.datawriter import DATA_MODEL_VERSION
+from ..io.hdf5dataformat import (
+    DL1_IMAGE_STATISTICS_TABLE,
+    DL2_EVENT_STATISTICS_GROUP,
+)
 from ..reco import Reconstructor, ShowerProcessor
 from ..utils import EventTypeFilter
 
@@ -30,6 +36,13 @@ COMPATIBLE_DATALEVELS = [
     DataLevel.DL1_IMAGES,
     DataLevel.DL1_PARAMETERS,
 ]
+
+COMPATIBLE_MONITORINGTYPES = [
+    MonitoringTypes.PIXEL_STATISTICS,
+    MonitoringTypes.CAMERA_COEFFICIENTS,
+    MonitoringTypes.TELESCOPE_POINTINGS,
+]
+
 
 __all__ = ["ProcessorTool"]
 
@@ -75,11 +88,23 @@ class ProcessorTool(Tool):
         default_value=False,
     ).tag(config=True)
 
+    monitoring_source_list = List(
+        ComponentName(MonitoringSource),
+        help=(
+            "List of monitoring sources to use during processing "
+            "if the calibration of the data is requested. Later "
+            "MonitoringSource instances overwrite earlier ones if "
+            "the MonitoringTypes of the different instances overlap."
+        ),
+        default_value=[],
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
+        "monitoring-source": "ProcessorTool.monitoring_source_list",
         "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
@@ -154,6 +179,7 @@ class ProcessorTool(Tool):
             SoftwareTrigger,
         ]
         + classes_with_traits(EventSource)
+        + classes_with_traits(MonitoringSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -164,7 +190,7 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
-        # setup components:
+        # Setup components:
         self.event_source = self.enter_context(EventSource(parent=self))
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
@@ -179,6 +205,27 @@ class ProcessorTool(Tool):
             sys.exit(1)
 
         subarray = self.event_source.subarray
+
+        # Setup the monitoring sources
+        self._monitoring_sources = []
+        for name in self.monitoring_source_list:
+            mon_source = self.enter_context(
+                MonitoringSource.from_name(name, subarray=subarray, parent=self)
+            )
+            # Check if monitoring source has compatible monitoring types
+            if not mon_source.has_any_monitoring_types(COMPATIBLE_MONITORINGTYPES):
+                self.log.critical(
+                    "%s  needs the MonitoringSource to provide at least "
+                    "one of these monitoring types: %s, %s provides only %s",
+                    self.name,
+                    COMPATIBLE_MONITORINGTYPES,
+                    mon_source,
+                    mon_source.monitoring_types,
+                )
+                raise ToolConfigurationError("Failed to setup monitoring source!")
+            # Append the monitoring source to the list if it has compatible monitoring types
+            self._monitoring_sources.append(mon_source)
+
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
@@ -254,7 +301,7 @@ class ProcessorTool(Tool):
             write_table(
                 image_stats,
                 self.write.output_path,
-                path="/dl1/service/image_statistics",
+                path=DL1_IMAGE_STATISTICS_TABLE,
                 append=True,
             )
 
@@ -267,7 +314,7 @@ class ProcessorTool(Tool):
                 write_table(
                     reconstructor.quality_query.to_table(functions=True),
                     self.write.output_path,
-                    f"/dl2/service/tel_event_statistics/{reconstructor_name}",
+                    f"{DL2_EVENT_STATISTICS_GROUP}/{reconstructor_name}",
                     append=True,
                 )
 
@@ -301,6 +348,10 @@ class ProcessorTool(Tool):
                 continue
 
             if self.should_calibrate:
+                # Fill monitoring containers needed for the calibration
+                for mon_source in self._monitoring_sources:
+                    self.log.debug("Filling monitoring container for '%s'", mon_source)
+                    mon_source.fill_monitoring_container(event)
                 self.calibrate(event)
 
             if self.should_compute_dl1:
