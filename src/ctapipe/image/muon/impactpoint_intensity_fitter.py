@@ -6,6 +6,9 @@ Class description to be added.
 import astropy.units as u
 import numpy as np
 
+# dev to be removed
+import pandas as pd
+
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
@@ -73,8 +76,30 @@ def chord_length_loss_function(radius, rho, phi):
     return effective_chord_length
 
 
+def save_histogram_to_csv(hist, csvName):
+    df = pd.DataFrame(
+        {
+            "x": ((np.roll(hist[1], 1) + hist[1]) / 2.0)[1:],
+            "y": hist[0],
+        }
+    )
+
+    df.to_csv(csvName, sep=" ", index=False)
+
+    return
+
+
 def muon_ring_phi_distribution_fit(
-    x, y, mask, image, amplitude_initial=None, rho_initial=None, phi0_initial=None
+    x,
+    y,
+    mask,
+    image,
+    ring_center_x,
+    ring_center_y,
+    call_counter,
+    amplitude_initial=None,
+    rho_initial=None,
+    phi0_initial=None,
 ):
     """
     muon_ring_phi_distribution_fit.
@@ -128,12 +153,35 @@ def muon_ring_phi_distribution_fit(
     if Minuit is None:
         raise OptionalDependencyMissing("iminuit")
 
-    original_unit = x.unit
-    x, y = all_to_value(x, y, unit=original_unit)
+    camera_unit = x.unit
+    ring_center_unit = ring_center_x.unit
+    x, y, ring_center_x, ring_center_y = all_to_value(
+        x, y, ring_center_x, ring_center_y, unit=camera_unit
+    )
+    print("------------------")
+    print("len(x)            = ", len(x))
+    print("len(x_masked)     = ", len(x[mask]))
+    print("len(y_masked)     = ", len(y[mask]))
+    print("len(image_masked) = ", len(image[mask]))
+    print("ring_center_x     = ", ring_center_x)
+    print("ring_center_y     = ", ring_center_y)
+    print("camera_unit       = ", camera_unit)
+    print("ring_center_unit  = ", ring_center_unit)
+    print("++++++++++++++++++")
 
-    # x_masked = x[mask]
-    # y_masked = y[mask]
-    # image_masked = image[mask]
+    hist_phi = np.histogram(
+        np.arctan2(
+            y[mask] - ring_center_y,
+            x[mask] - ring_center_x,
+        ),
+        weights=image[mask],
+        bins=np.linspace(-np.pi, np.pi, 31),
+    )
+    hist_phi_csvName = f"hist_phi_csvName{call_counter}.csv"
+    save_histogram_to_csv(hist_phi, hist_phi_csvName)
+
+    # print("np.max(phi_masked)/np.pi = ", np.max(phi_masked)/np.pi)
+    # print("np.min(phi_masked)/np.pi = ", np.min(phi_masked)/np.pi)
 
     # minimization method
     # fit = Minuit(
@@ -165,10 +213,10 @@ def muon_ring_phi_distribution_fit(
     # center_y_err = Quantity(fit.errors["yc"], original_unit)
 
     amplitude = np.nan
-    rho = np.nan * original_unit
+    rho = np.nan * camera_unit
     phi0 = np.nan * u.deg
     amplitude_err = np.nan
-    rho_err = np.nan * original_unit
+    rho_err = np.nan * camera_unit
     phi0_err = np.nan * u.deg
 
     return amplitude, rho, phi0, amplitude_err, rho_err, phi0_err
@@ -259,6 +307,9 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             geometry.pix_y,
             mask,
             image,
+            center_x,
+            center_y,
+            MuonImpactpointIntensityFitter._call_counter,
             amplitude_initial=None,
             rho_initial=None,
             phi0_initial=None,
