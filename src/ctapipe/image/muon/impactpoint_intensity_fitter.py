@@ -3,6 +3,8 @@ Class description to be added.
 
 """
 
+import os
+
 import astropy.units as u
 import numpy as np
 
@@ -76,9 +78,13 @@ def chord_length_loss_function(radius, rho, phi):
     return effective_chord_length
 
 
-def save_histogram_to_csv(hist, csvName):
+def save_histogram_to_csv(hist, csvName, event_id):
+    # print("event_id => ", event_id)
+    # print(type(event_id))
+    # print(len(hist[0]))
     df = pd.DataFrame(
         {
+            "event_id": event_id,
             "x": ((np.roll(hist[1], 1) + hist[1]) / 2.0)[1:],
             "y": hist[0],
         }
@@ -97,6 +103,7 @@ def muon_ring_phi_distribution_fit(
     ring_center_x,
     ring_center_y,
     call_counter,
+    event_id,
     amplitude_initial=None,
     rho_initial=None,
     phi0_initial=None,
@@ -177,9 +184,11 @@ def muon_ring_phi_distribution_fit(
         weights=image[mask],
         bins=np.linspace(-np.pi, np.pi, 31),
     )
-    hist_phi_csvName = f"hist_phi_csvName{call_counter}.csv"
-    save_histogram_to_csv(hist_phi, hist_phi_csvName)
-
+    outdir_id = int(call_counter // 1000)
+    os.makedirs(f"./outdir_{outdir_id}", exist_ok=True)
+    # os.mkdir(f"./outdir_{outdir_id}",exist_ok=True)
+    hist_phi_csvName = f"./outdir_{outdir_id}/hist_phi_csvName{call_counter}.csv"
+    save_histogram_to_csv(hist_phi, hist_phi_csvName, event_id)
     # print("np.max(phi_masked)/np.pi = ", np.max(phi_masked)/np.pi)
     # print("np.min(phi_masked)/np.pi = ", np.min(phi_masked)/np.pi)
 
@@ -260,7 +269,17 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             for tel_id, tel in subarray.tel.items()
         }
 
-    def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
+    def __call__(
+        self,
+        tel_id,
+        center_x,
+        center_y,
+        radius,
+        image,
+        pedestal,
+        mask=None,
+        event_id=None,
+    ):
         """
 
         Parameters
@@ -310,6 +329,7 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             center_x,
             center_y,
             MuonImpactpointIntensityFitter._call_counter,
+            event_id,
             amplitude_initial=None,
             rho_initial=None,
             phi0_initial=None,
