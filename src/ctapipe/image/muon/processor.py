@@ -198,13 +198,21 @@ class MuonProcessor(TelescopeComponent):
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
         # three iterations seems to be enough for most rings
+        ring_fitter_counter = 0
         for _ in range(3):
+            print("ring_fitter_counter --> ", ring_fitter_counter)
+            ring_fitter_counter = ring_fitter_counter + 1
             ring = self.ring_fitter(geometry, image, mask)
             dist = np.sqrt(
                 (fov_lon - ring.center_fov_lon) ** 2
                 + (fov_lat - ring.center_fov_lat) ** 2
             )
             mask = np.abs(dist - ring.radius) / ring.radius < 0.4
+            print("ring_fitter_counter --> np.sum(mask)           = ", np.sum(mask))
+            print(
+                "ring_fitter_counter --> np.sum(dl1.image_mask) = ",
+                np.sum(dl1.image_mask),
+            )
 
         parameters = self._calculate_muon_parameters(
             tel_id, image, dl1.image_mask, ring
