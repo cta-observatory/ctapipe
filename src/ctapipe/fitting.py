@@ -2,6 +2,7 @@ import numpy as np
 from numba import njit
 
 EPS = 2 * np.finfo(np.float64).eps
+FIT_RNG = np.random.default_rng(0)
 
 
 @njit(cache=True)
@@ -72,9 +73,25 @@ def residuals(X, y, beta):
 
 
 @njit(cache=True)
-def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
+def choose_two_without_replacement(rng, n):
+    values = np.empty(2, dtype=np.int64)
+
+    # we need to draw two distinct integers in [0, n)
+    # first sample can just be draw uniform:
+    values[0] = rng.integers(0, n)
+    # we draw the second sample in 0, n - 1 and shift by 1
+    # if it's >= the first value, this means we draw uniform
+    # in [0, ) with the exception of the first value
+    values[1] = rng.integers(0, n - 1)
+    if values[1] >= values[0]:
+        values[1] += 1
+    return values
+
+
+@njit(cache=True)
+def _lts_single_sample(X, y, sample_size, max_iterations, rng, eps=1e-12):
     # randomly draw 2 points for the initial fit
-    sample = np.random.choice(len(y), 2, replace=False)
+    sample = choose_two_without_replacement(rng, len(y))
 
     # perform the initial fit
     beta = linear_regression(X[sample], y[sample])
@@ -102,9 +119,14 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
     return beta, error
 
 
-@njit()
 def lts_linear_regression(
-    x, y, samples=20, relative_sample_size=0.85, max_iterations=20, eps=1e-12
+    x,
+    y,
+    samples=20,
+    relative_sample_size=0.85,
+    max_iterations=20,
+    eps=1e-12,
+    rng=FIT_RNG,
 ):
     """
     Perform a Least Trimmed Squares regression based on algorithm (2) described in [lts_regression]_
@@ -133,6 +155,8 @@ def lts_linear_regression(
         The fit should converge much faster (normally after < 10 iterations)
     eps: float
         differences in residual sum of squares at which the iteration will be stopped
+    rng: numpy.random.Generator
+        Random generator for drawing fit samples
 
     Returns
     -------
@@ -141,10 +165,29 @@ def lts_linear_regression(
     error: float
         Residual sum of squares of the best fit
     """
-    # this will only affect the seed in numba code,
-    # see https://numba.pydata.org/numba-doc/latest/reference/numpysupported.html#random
-    np.random.seed(0)
+    # numba currently does not support passing rng via default, so we have a
+    # pure python wrapper that calls the numba jitted function with he defaults filled in
+    return _lts_linear_regression(
+        x,
+        y,
+        rng,
+        samples=samples,
+        relative_sample_size=relative_sample_size,
+        max_iterations=max_iterations,
+        eps=eps,
+    )
 
+
+@njit(cache=True)
+def _lts_linear_regression(
+    x,
+    y,
+    rng,
+    samples,
+    relative_sample_size,
+    max_iterations,
+    eps,
+):
     X = design_matrix(x)
     sample_size = np.int64(relative_sample_size * len(x))
 
@@ -152,7 +195,9 @@ def lts_linear_regression(
     best_error = np.inf
 
     for _ in range(samples):
-        beta, error = _lts_single_sample(X, y, sample_size, max_iterations, eps)
+        beta, error = _lts_single_sample(
+            X, y, sample_size, max_iterations, rng, eps=eps
+        )
         if error < best_error:
             best_error = error
             best_beta[:] = beta
