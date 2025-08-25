@@ -323,8 +323,6 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
     Compare the reconstruction in the telescope
     and camera frame.
     """
-    np.random.seed(42)
-
     geom = prod5_lst.camera.geometry
     telescope_frame = TelescopeFrame()
     camera_frame = geom.frame
