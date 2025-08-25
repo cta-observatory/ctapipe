@@ -940,24 +940,30 @@ class CameraGeometry:
 
     def position_to_pix_index(self, x, y):
         """
-        Return the index of a camera pixel which contains a given position (x,y)
-        in the camera frame. The (x,y) coordinates can be arrays (of equal length),
-        for which the methods returns an array of pixel ids. A warning is raised if the
-        position falls outside the camera.
+        Convert a position  to the corresponding pixel index.
+
+        Returns the index of a camera pixel which contains a given position (x, y)
+        in the geometry's frame. The (x, y) coordinates can be arrays (of equal length),
+        for which the methods returns an array of pixel ids.
+
+        The method returns ``INT64_MIN=-9223372036854775808`` for coordinates not covered
+        by any pixel.
 
         Parameters
         ----------
-        x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame
-        y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame
+        x : astropy.units.Quantity
+           x coordinates of the position(s), must be in frame of the geometry
+        y : astropy.units.Quantity
+           y coordinates of the position(s), must be in frame of the geometry
 
         Returns
         -------
-        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
-                    outside camera
+        pix_indices: Pixel index or array of pixel indices. Returns INT64_MIN=-9223372036854775808
+            if position is not inside a pixel.
         """
         if not self._all_pixel_areas_equal:
             logger.warning(
-                " Method not implemented for cameras with varying pixel sizes"
+                "Method not implemented for cameras with varying pixel sizes"
             )
         unit = x.unit
         scalar = x.ndim == 0
@@ -971,7 +977,7 @@ class CameraGeometry:
         del dist
         pix_indices = pix_indices.flatten()
 
-        invalid = np.iinfo(pix_indices.dtype).min
+        invalid = np.iinfo(np.int64).min
         # 1. Mark all points outside pixel circumeference as lying outside camera
         pix_indices[pix_indices == self.n_pixels] = invalid
 
