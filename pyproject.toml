@@ -40,7 +40,7 @@ dependencies = [
     "pyyaml >=5.1",
     "requests",
     "scikit-learn !=1.4.0", # 1.4.0 breaks with astropy tables, before and after works
-    "scipy ~=1.10",
+    "scipy ~=1.15",
     "tables ~=3.4",
     "tqdm >=4.32",
     "traitlets ~=5.6",
