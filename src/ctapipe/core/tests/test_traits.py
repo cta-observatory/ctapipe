@@ -1,10 +1,8 @@
-import os
 import pathlib
 import sys
 import tempfile
 from abc import ABCMeta, abstractmethod
 from subprocess import CalledProcessError
-from unittest import mock
 
 import astropy.units as u
 import pytest
@@ -179,8 +177,12 @@ def test_path_url():
     assert c.thepath == get_dataset_path("optics.ecsv.txt")
 
 
-@mock.patch.dict(os.environ, {"ANALYSIS_DIR": "/home/foo"})
-def test_path_envvars():
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Absolute path check using unix path"
+)
+def test_path_envvars(monkeypatch):
+    monkeypatch.setenv("ANALYSIS_DIR", "/home/foo")
+
     class C(Component):
         thepath = Path()
 
