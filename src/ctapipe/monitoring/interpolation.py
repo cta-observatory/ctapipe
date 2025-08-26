@@ -262,11 +262,10 @@ class ChunkInterpolator(MonitoringInterpolator):
             self._read_parameter_table(tel_id)
 
         result = {}
-        mjd = time.to_value("mjd")
         for column in self.columns:
-            result[column] = self._interpolate_chunk(tel_id, column, mjd)
+            result[column] = self._interpolate_chunk(tel_id, column, time)
 
-        if len(result) == 1:
+        if len(self.columns) == 1:
             return result[self.columns[0]]
         return result
 
@@ -297,7 +296,7 @@ class ChunkInterpolator(MonitoringInterpolator):
         for column in self.columns:
             self.values[tel_id][column] = input_table[column]
 
-    def _interpolate_chunk(self, tel_id, column, mjd: float) -> float:
+    def _interpolate_chunk(self, tel_id, column, time: Time) -> float | list[float]:
         """
         Interpolates overlapping chunks of data preferring earlier chunks if valid
 
@@ -305,35 +304,46 @@ class ChunkInterpolator(MonitoringInterpolator):
         ----------
         tel_id : int
             tel_id for which data is to be interpolated
-        mjd : float
+        time : astropy.time.Time
             Time for which to interpolate the data.
         """
 
         time_start = self.time_start[tel_id]
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]
+        mjd_times = time.to_value("mjd")
         # Find the index of the closest preceding start time
-        preceding_index = np.searchsorted(time_start, mjd, side="right") - 1
+        preceding_indices = np.searchsorted(time_start, mjd_times, side="right") - 1
 
-        if preceding_index < 0:
-            return np.nan
+        # Check if scalar and convert to list to make them iterable
+        if np.isscalar(preceding_indices):
+            preceding_indices = [preceding_indices]
+            mjd_times = [mjd_times]
 
-        value = np.nan
+        interpolated_values = []
+        for mjd, preceding_index in zip(mjd_times, preceding_indices):
+            if preceding_index < 0:
+                value = np.nan
+                continue
 
-        # Check if the time is within the valid range of the chunk
-        if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
-            value = values[preceding_index]
+            value = np.nan
 
-        # If an element in the closest preceding chunk has nan, check the next closest chunk
+            # Check if the time is within the valid range of the chunk
+            if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
+                value = values[preceding_index]
 
-        for i in range(preceding_index - 1, -1, -1):
-            if time_start[i] <= mjd <= time_end[i]:
-                if value is np.nan:
-                    value = values[i]
-                else:
-                    value = np.where(np.isnan(value), values[i], value)
+            # If an element in the closest preceding chunk has nan, check the next closest chunk
 
-        return value
+            for i in range(preceding_index - 1, -1, -1):
+                if time_start[i] <= mjd <= time_end[i]:
+                    if value is np.nan:
+                        value = values[i]
+                    else:
+                        value = np.where(np.isnan(value), values[i], value)
+            interpolated_values.append(value)
+        if len(interpolated_values) == 1:
+            interpolated_values = interpolated_values[0]
+        return interpolated_values
 
 
 class StatisticsInterpolator(ChunkInterpolator):

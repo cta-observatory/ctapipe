@@ -277,6 +277,8 @@ class HDF5MonitoringSource(MonitoringSource):
             self._camera_coefficients[tel_id]["time"] = self._camera_coefficients[
                 tel_id
             ]["time"].to_value("mjd")
+            # Add index for the retrieval later on
+            self._camera_coefficients[tel_id].add_index("time")
 
         # Telescope pointings reading
         self._telescope_pointings = {}
@@ -361,9 +363,18 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         # Fill the monitoring container for the event
         for tel_id in self.subarray.tel_ids:
-            event.monitoring.tel[tel_id].camera = self.get_camera_monitoring_container(
-                tel_id, event.trigger.time
-            )
+            if self.is_simulation:
+                event.monitoring.tel[
+                    tel_id
+                ].camera = self.get_camera_monitoring_container(
+                    tel_id,
+                )
+            else:
+                event.monitoring.tel[
+                    tel_id
+                ].camera = self.get_camera_monitoring_container(
+                    tel_id, event.trigger.time
+                )
             # Only overwrite the telescope pointings if explicitly requested
             if self.overwrite_telescope_pointings:
                 event.monitoring.tel[
@@ -396,24 +407,31 @@ class HDF5MonitoringSource(MonitoringSource):
             return TelescopePointingContainer(altitude=alt, azimuth=az)
 
     def get_camera_monitoring_container(
-        self, tel_id: int, time: astropy.time.Time
+        self, tel_id: int, time=None
     ) -> MonitoringCameraContainer:
         """
-        Retrieve the camera monitoring container with interpolated or retrieved data for a given time.
+        Retrieve the camera monitoring container with interpolated or retrieved data.
 
         Parameters
         ----------
         tel_id : int
             The telescope ID to retrieve the monitoring data for.
-        time : astropy.time.Time
-            Target timestamp to find the camera monitoring data for.
+        time : astropy.time.Time or None
+            Optional target timestamp(s) to find the camera monitoring data for.
 
         Returns
         -------
         MonitoringCameraContainer
             The camera monitoring container.
         """
-
+        if not self.is_simulation and time is None:
+            raise ValueError(
+                "Function argument 'time' must be provided for monitoring data from real observations."
+            )
+        if self.is_simulation and time is not None:
+            raise ValueError(
+                "Do not provide the function argument 'time' in the monitoring source of simulation."
+            )
         cam_mon_container = MonitoringCameraContainer()
         if self.has_pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
@@ -474,54 +492,74 @@ class HDF5MonitoringSource(MonitoringSource):
             else:
                 # In real data, the coefficients are retrieved based on the timestamp of the event.
                 # Get the table row corresponding to the target time
-                table_row = self._get_table_row(
-                    time.to_value("mjd"), self._camera_coefficients[tel_id]
+                table_rows = self._get_table_rows(
+                    time, self._camera_coefficients[tel_id]
                 )
-                if table_row is None:
+                if table_rows is None:
                     cam_mon_container["coefficients"] = CameraCalibrationContainer()
                 else:
                     cam_mon_container["coefficients"] = CameraCalibrationContainer(
                         time=time,
-                        pedestal_offset=table_row["pedestal_offset"],
-                        factor=table_row["factor"],
-                        time_shift=table_row["time_shift"],
-                        outlier_mask=table_row["outlier_mask"],
-                        is_valid=table_row["is_valid"],
+                        pedestal_offset=table_rows["pedestal_offset"].data,
+                        factor=table_rows["factor"].data,
+                        time_shift=table_rows["time_shift"].data,
+                        outlier_mask=table_rows["outlier_mask"].data,
+                        is_valid=table_rows["is_valid"].data,
                     )
         return cam_mon_container
 
-    def _get_table_row(self, time: float, table: astropy.table.Table):
+    def _get_table_rows(self, time: astropy.time.Time, table: astropy.table.Table):
         """
-        Retrieve the row of the table that corresponds to the target time.
+        Retrieve the rows of the table that corresponds to the target time.
 
         Parameters
         ----------
-        time : float
-            Target timestamp in MJD to find the interval.
+        time : astropy.time.Time
+            Target timestamp to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
 
         Returns
         -------
-        table_row : astropy.table.Row or None
-            The row of the table that corresponds to the target time, or None
+        table_rows : astropy.table.Row or None
+            The rows of the table that corresponds to the target time, or None
             if the target time is not within the lower bound of the table.
         """
-        # Find the index of the closest timestamp
-        idx = np.searchsorted(table["time"], time, side="right") - 1
-        # Check lower bounds when requested timestamp is before the validity start
-        if idx < 0:
-            raise ValueError(
-                f"Out of bounds: Requested timestamp '{time} MJD' is before the "
-                f"validity start '{table['time'][0]} MJD' (first entry in the table)."
-            )
-        # Check upper bounds when requested timestamp is after the last entry
-        if idx >= len(table) - 1:
-            # If timestamp is beyond the last entry, return the last row
-            if time >= table["time"][-1]:
-                return table[-1]
-        # Check if target falls in interval [idx, idx+1) and return the row of the table
-        table_row = None
-        if table["time"][idx] <= time < table["time"][idx + 1]:
-            table_row = table[idx]
-        return table_row
+
+        mjd_times = time.to_value("mjd")
+        # Find the index of the closest preceding start time
+        preceding_indices = np.searchsorted(table["time"], mjd_times, side="right") - 1
+
+        # Check if scalar and convert to list to make them iterable
+        if np.isscalar(preceding_indices):
+            preceding_indices = [preceding_indices]
+            mjd_times = [mjd_times]
+
+        time_idx = []
+        for mjd, preceding_index in zip(mjd_times, preceding_indices):
+            # Check lower bounds when requested timestamp is before the validity start
+            if preceding_index < 0:
+                raise ValueError(
+                    f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
+                    f"validity start '{table['time'][0]} MJD' (first entry in the table). "
+                )
+            # Check upper bounds when requested timestamp is after the last entry
+            if preceding_index >= len(table) - 1:
+                # If timestamp is beyond the last entry, append the last index
+                if mjd >= table["time"][-1]:
+                    time_idx.append(table["time"][-1])
+                    continue
+            # Check if target falls in interval [idx, idx+1) and append the index of the row
+            if (
+                table["time"][preceding_index]
+                <= mjd
+                < table["time"][preceding_index + 1]
+            ):
+                time_idx.append(table["time"][preceding_index])
+            else:
+                raise ValueError(
+                    f"Out of bounds: Requested timestamp '{mjd} MJD' is not within the "
+                    f"validity interval '{table['time'][preceding_index]} MJD' - "
+                    f"'{table['time'][preceding_index + 1]} MJD'."
+                )
+        return table.loc[time_idx]
