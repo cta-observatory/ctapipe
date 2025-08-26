@@ -166,8 +166,9 @@ def test_path_url():
     assert c.thepath == (pathlib.Path() / "foo.hdf5").absolute()
 
     # test absolute
-    c.thepath = "file:///foo.hdf5"
-    assert c.thepath == pathlib.Path("/foo.hdf5")
+    if sys.platform != "win32":
+        c.thepath = "file:///foo.hdf5"
+        assert c.thepath == pathlib.Path("/foo.hdf5")
 
     # test http downloading
     c.thepath = DEFAULT_URL + "optics.ecsv.txt"
