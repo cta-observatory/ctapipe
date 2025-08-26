@@ -124,7 +124,7 @@ jobs:
 
       - name: mamba setup
         if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v2.0.5
         with:
           environment-file: environment.yml
           cache-downloads: true
