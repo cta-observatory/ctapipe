@@ -127,6 +127,9 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
         calibpipe_camcalib_same_chunks,
         f"{DL1_SKY_PEDESTAL_IMAGE_GROUP}/tel_{tel_id:03d}",
     )
+    # Set outliers to NaNs
+    for col in ["mean", "median", "std"]:
+        sky_pedestal_image[col][sky_pedestal_image["outlier_mask"].data] = np.nan
     with HDF5MonitoringSource(
         input_url=calibpipe_camcalib_same_chunks
     ) as monitoring_source:
@@ -170,9 +173,9 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
         unique_timestamps = Time(
             [t_start + 1.2 * u.s, t_start + 1.7 * u.s, t_start + 20 * u.day]
         )
-        with pytest.raises(
-            ValueError,
-            match="Do not provide the function argument 'time' in the monitoring source of simulation.",
+        with pytest.warns(
+            UserWarning,
+            match="The function argument 'time' is provided, but the monitoring source is of simulation data.",
         ):
             cam_mon_con = monitoring_source.get_camera_monitoring_container(
                 tel_id, unique_timestamps

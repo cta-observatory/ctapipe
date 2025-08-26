@@ -105,14 +105,13 @@ class HDF5MonitoringSource(MonitoringSource):
     ...     # Fill the event data with the monitoring container
     ...     monitoring_source.fill_monitoring_container(event)
     ...     # Print the monitoring information for the camera calibration
-    ...     # The time is 'None' because we use here the monitoring source of simulation.
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["time"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["factor"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["pedestal_offset"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["time_shift"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["outlier_mask"])
     ...     print(event.monitoring.tel[tel_id].camera.coefficients["is_valid"])
-    None
+    40587.000000011576
     [[0.01539444 0.01501589 0.0158232  ... 0.01514254 0.01504862 0.01497081]
      [0.25207437 0.24654945 0.25933876 ... 0.24859268 0.24722679 0.24587582]]
     [[399.5        398.66666667 399.5        ... 399.25       398.41666667
@@ -251,18 +250,13 @@ class HDF5MonitoringSource(MonitoringSource):
                         self.input_url,
                         f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}",
                     )
-                    if not self.is_simulation:
-                        # Set outliers to NaNs
-                        for col in ["mean", "median", "std"]:
-                            self._pixel_statistics[tel_id][name][col][
-                                self._pixel_statistics[tel_id][name][
-                                    "outlier_mask"
-                                ].data
-                            ] = np.nan
-                        # Register the table with the interpolator
-                        interpolator.add_table(
-                            tel_id, self._pixel_statistics[tel_id][name]
-                        )
+                    # Set outliers to NaNs
+                    for col in ["mean", "median", "std"]:
+                        self._pixel_statistics[tel_id][name][col][
+                            self._pixel_statistics[tel_id][name]["outlier_mask"].data
+                        ] = np.nan
+                    # Register the table with the interpolator
+                    interpolator.add_table(tel_id, self._pixel_statistics[tel_id][name])
         # Camera coefficients reading
         self._camera_coefficients = {}
         if self.has_camera_coefficients:
@@ -409,14 +403,17 @@ class HDF5MonitoringSource(MonitoringSource):
         self, tel_id: int, time=None
     ) -> MonitoringCameraContainer:
         """
-        Retrieve the camera monitoring container with interpolated or retrieved data.
+        Retrieve the camera monitoring container with interpolated data.
 
         Parameters
         ----------
         tel_id : int
             The telescope ID to retrieve the monitoring data for.
         time : astropy.time.Time or None
-            Optional target timestamp(s) to find the camera monitoring data for.
+            Optional target timestamp(s) to find the camera monitoring data for. The target
+            timestamp(s) are required to interpolate the monitoring data of observation.
+            For monitoring data of simulation, the first entry of the monitoring data is typically
+            used if no timestamp is provided.
 
         Returns
         -------
@@ -428,9 +425,15 @@ class HDF5MonitoringSource(MonitoringSource):
                 "Function argument 'time' must be provided for monitoring data from real observations."
             )
         if self.is_simulation and time is not None:
-            raise ValueError(
-                "Do not provide the function argument 'time' in the monitoring source of simulation."
+            msg = (
+                "The function argument 'time' is provided, but the monitoring source is of simulated data. "
+                "In simulations, we typically use the first entry of the monitoring data by not providing a timestamp. "
+                "There is no proper time definition in simulated observing blocks. Besides, the simulation toolkit is not "
+                "varying the observation conditions, e.g. raising pedestal noise level, within a given simulation run."
             )
+            self.log.warning(msg)
+            warnings.warn(msg, UserWarning)
+
         cam_mon_container = MonitoringCameraContainer()
         if self.has_pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
@@ -440,89 +443,52 @@ class HDF5MonitoringSource(MonitoringSource):
                 ("flatfield_image", self._flatfield_image_interpolator),
                 ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
             ):
-                # Fill the pixel statistics container
-                if self.is_simulation:
-                    # In simulations, we only use the first entry of the monitoring data
-                    # to fill the pixel statistics, since there is no proper time definition
-                    # in simulated observing blocks. Besides, the simulation toolkit is not
-                    # varying the observation conditions, e.g. raising pedestal noise level,
-                    # within a given simulation run.
-                    pixel_stats_container[name] = StatisticsContainer(
-                        mean=self._pixel_statistics[tel_id][name]["mean"][0],
-                        median=self._pixel_statistics[tel_id][name]["median"][0],
-                        std=self._pixel_statistics[tel_id][name]["std"][0],
-                        n_events=self._pixel_statistics[tel_id][name]["n_events"][0],
-                        outlier_mask=self._pixel_statistics[tel_id][name][
-                            "outlier_mask"
-                        ][0],
-                        is_valid=self._pixel_statistics[tel_id][name]["is_valid"][0],
-                    )
-                else:
-                    # In real data, the statistics are retrieved based on the timestamp of the event
-                    # by interpolating the monitoring data with the corresponding ChunkInterpolator.
-                    # Information about the validity and number of events is lost after the interpolation
-                    # step, and these values can not be filled.
-                    stats_data = interpolator(tel_id, time)
-                    pixel_stats_container[name] = StatisticsContainer(
-                        mean=stats_data["mean"],
-                        median=stats_data["median"],
-                        std=stats_data["std"],
-                        outlier_mask=np.isnan(stats_data["median"]),
-                    )
+                # Set the timestamp to the first entry if it is not provided
+                # and monitoring is from simulation.
+                if self.is_simulation and time is None:
+                    time = self._pixel_statistics[tel_id][name]["time_start"][0]
+
+                stats_data = interpolator(tel_id, time)
+                pixel_stats_container[name] = StatisticsContainer(
+                    mean=stats_data["mean"],
+                    median=stats_data["median"],
+                    std=stats_data["std"],
+                )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if self.has_camera_coefficients:
-            # Fill the camera calibration container
-            if self.is_simulation:
-                # In simulations, we only use the first entry of the monitoring data
-                # to fill the telescope calibration coefficients, since there is no
-                # proper time definition in simulated observing blocks. Besides, the
-                # simulation toolkit is not varying the observation conditions, e.g.
-                # raising pedestal noise level, within a given simulation run.
-                cam_mon_container["coefficients"] = CameraCalibrationContainer(
-                    time=time,
-                    pedestal_offset=self._camera_coefficients[tel_id][
-                        "pedestal_offset"
-                    ][0],
-                    factor=self._camera_coefficients[tel_id]["factor"][0],
-                    time_shift=self._camera_coefficients[tel_id]["time_shift"][0],
-                    outlier_mask=self._camera_coefficients[tel_id]["outlier_mask"][0],
-                    is_valid=self._camera_coefficients[tel_id]["is_valid"][0],
-                )
-            else:
-                # In real data, the coefficients are retrieved based on the timestamp of the event.
-                # Get the table row corresponding to the target time
-                table_rows = self._get_table_rows(
-                    time, self._camera_coefficients[tel_id]
-                )
-                if table_rows is None:
-                    cam_mon_container["coefficients"] = CameraCalibrationContainer()
-                else:
-                    cam_mon_container["coefficients"] = CameraCalibrationContainer(
-                        time=time,
-                        pedestal_offset=table_rows["pedestal_offset"].data,
-                        factor=table_rows["factor"].data,
-                        time_shift=table_rows["time_shift"].data,
-                        outlier_mask=table_rows["outlier_mask"].data,
-                        is_valid=table_rows["is_valid"].data,
-                    )
+            # Set the timestamp to the first entry if it is not provided
+            # and monitoring is from simulation.
+            if self.is_simulation and time is None:
+                time = self._camera_coefficients[tel_id]["pedestal_offset"][0]
+            table_rows = self._get_table_rows(time, self._camera_coefficients[tel_id])
+            cam_mon_container["coefficients"] = CameraCalibrationContainer(
+                time=time,
+                pedestal_offset=table_rows["pedestal_offset"],
+                factor=table_rows["factor"],
+                time_shift=table_rows["time_shift"],
+                outlier_mask=table_rows["outlier_mask"],
+                is_valid=table_rows["is_valid"],
+            )
         return cam_mon_container
 
-    def _get_table_rows(self, time: astropy.time.Time, table: astropy.table.Table):
+    def _get_table_rows(
+        self, time: astropy.time.Time, table: astropy.table.Table
+    ) -> dict:
         """
         Retrieve the rows of the table that corresponds to the target time.
 
         Parameters
         ----------
         time : astropy.time.Time
-            Target timestamp to find the interval.
+            Target timestamp(s) to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
 
         Returns
         -------
-        table_rows : astropy.table.Row or None
-            The rows of the table that corresponds to the target time, or None
-            if the target time is not within the lower bound of the table.
+        table_rows : dict
+            Dictionary containing the column of the original input table as keys and
+            the corresponding data for the requested time(s) as values.
         """
 
         mjd_times = time.to_value("mjd")
@@ -561,4 +527,11 @@ class HDF5MonitoringSource(MonitoringSource):
                     f"validity interval '{table['time'][preceding_index]} MJD' - "
                     f"'{table['time'][preceding_index + 1]} MJD'."
                 )
-        return table.loc[time_idx]
+        # Get table row(s)
+        table_rows = table.loc[time_idx]
+        # Return a dictionary representation of the table rows for easy access afterwards
+        if len(time_idx) == 1:
+            table_dict = {col: table_rows[col] for col in table_rows.colnames}
+        else:
+            table_dict = {col: table_rows[col].data for col in table_rows.colnames}
+        return table_dict
