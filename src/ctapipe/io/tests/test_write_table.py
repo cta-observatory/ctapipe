@@ -75,3 +75,38 @@ def test_invalid_input():
     with pytest.raises(TypeError):
         invalid_path = 5
         write_table(Table({"a": [1, 2, 3]}), invalid_path, "/temp")
+
+
+def test_column_meta(tmp_path):
+    from ctapipe.core import Container, Field
+    from ctapipe.io import read_table, write_table
+    from ctapipe.io.hdf5tableio import HDF5TableReader
+
+    class TestContainer(Container):
+        default_prefix = ""
+
+        foo = Field(-1)
+        bar = Field(-1)
+
+    table = Table({"test_foo": [1, 2, 3], "test_bar": [4, 5, 6]})
+
+    table["test_foo"].meta["NAME"] = "foo"
+    table["test_bar"].meta["NAME"] = "bar"
+
+    path = tmp_path / "table.h5"
+    write_table(table, h5file=path, path="/test")
+
+    out_read_table = read_table(path, "/test")
+    assert out_read_table["test_foo"].meta["NAME"] == "foo"
+    assert out_read_table["test_bar"].meta["NAME"] == "bar"
+
+    with HDF5TableReader(path) as h5reader:
+        reader = h5reader.read("/test", containers=TestContainer)
+
+        n_read = 0
+        for i, c in enumerate(reader):
+            assert c.foo == i + 1
+            assert c.bar == i + 4
+            n_read += 1
+
+        assert n_read == 3
