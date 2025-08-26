@@ -10,6 +10,7 @@ import numpy as np
 
 # dev to be removed
 import pandas as pd
+from scipy.ndimage import correlate1d
 
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
@@ -78,7 +79,7 @@ def chord_length_loss_function(radius, rho, phi):
     return effective_chord_length
 
 
-def save_histogram_to_csv(hist, csvName, event_id):
+def save_histogram_to_csv(hist, csvName, event_id, hist_phi_smooth):
     # print("event_id => ", event_id)
     # print(type(event_id))
     # print(len(hist[0]))
@@ -86,7 +87,7 @@ def save_histogram_to_csv(hist, csvName, event_id):
         {
             "event_id": event_id,
             "x": ((np.roll(hist[1], 1) + hist[1]) / 2.0)[1:],
-            "y": hist[0],
+            "y": hist_phi_smooth,
         }
     )
 
@@ -182,13 +183,15 @@ def muon_ring_phi_distribution_fit(
             x[mask] - ring_center_x,
         ),
         weights=image[mask],
-        bins=np.linspace(-np.pi, np.pi, 31),
+        bins=np.linspace(-np.pi, np.pi, 19),
     )
+    hist_phi_smooth = (correlate1d(hist_phi[0], np.ones(2), mode="wrap", axis=0) / 2,)
+
     outdir_id = int(call_counter // 1000)
     os.makedirs(f"./outdir_{outdir_id}", exist_ok=True)
     # os.mkdir(f"./outdir_{outdir_id}",exist_ok=True)
     hist_phi_csvName = f"./outdir_{outdir_id}/hist_phi_csvName{call_counter}.csv"
-    save_histogram_to_csv(hist_phi, hist_phi_csvName, event_id)
+    save_histogram_to_csv(hist_phi, hist_phi_csvName, event_id, hist_phi_smooth[0])
     # print("np.max(phi_masked)/np.pi = ", np.max(phi_masked)/np.pi)
     # print("np.min(phi_masked)/np.pi = ", np.min(phi_masked)/np.pi)
 
