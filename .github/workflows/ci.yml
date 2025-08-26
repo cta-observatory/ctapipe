@@ -122,6 +122,11 @@ jobs:
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
+      - name: Force UTF-8
+        if: runner.os == "Windows"
+        run: chcp 65001
+        shell: cmd
+
       - name: mamba setup
         if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         uses: mamba-org/setup-micromamba@v2
