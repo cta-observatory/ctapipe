@@ -1,5 +1,6 @@
 import os
 import pathlib
+import sys
 import tempfile
 from abc import ABCMeta, abstractmethod
 from subprocess import CalledProcessError
@@ -100,8 +101,12 @@ def test_bytes():
         p = Path(exists=False)
 
     c1 = C1()
-    c1.p = b"/home/foo"
-    assert c1.p == pathlib.Path("/home/foo")
+    if sys.platform == "win32":
+        c1.p = rb"C:\home\foo"
+        assert c1.p == pathlib.Path(r"C:\home\foo")
+    else:
+        c1.p = b"/home/foo"
+        assert c1.p == pathlib.Path("/home/foo")
 
 
 def test_path_directory_ok():
