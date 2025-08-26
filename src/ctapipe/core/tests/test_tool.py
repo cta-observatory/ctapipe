@@ -611,6 +611,7 @@ class InterruptTestTool(Tool):
         signal.pause()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Test involving posix signals")
 def test_exit_status_interrupted(tmp_path, provenance):
     """check that the config is correctly in the provenance"""
 
