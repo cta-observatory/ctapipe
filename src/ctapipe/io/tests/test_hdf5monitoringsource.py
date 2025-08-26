@@ -145,7 +145,7 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
                 sky_pedestal_image[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the sky pedestal image.",
+                    "through the HDF5MonitoringSource for the sky pedestal image."
                 ),
             )
         for column in [
@@ -159,7 +159,7 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
                 camcalib_coefficients[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration.",
+                    "through the HDF5MonitoringSource for the camera calibration."
                 ),
             )
         # Check exceptions when requesting the camera monitoring container with unique
@@ -229,7 +229,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
                 camcalib_coefficients[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration.",
+                    "through the HDF5MonitoringSource for the camera calibration."
                 ),
             )
         for column in [
@@ -242,7 +242,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
                 flatfield_peak_time[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the flatfield peak time.",
+                    "through the HDF5MonitoringSource for the flatfield peak time."
                 ),
             )
         # Set the unique timestamps within the validity range
@@ -266,7 +266,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
                 camcalib_coefficients[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration.",
+                    "through the HDF5MonitoringSource for the camera calibration."
                 ),
             )
         # Check that the second coefficients match the expected values (last entry)
@@ -281,7 +281,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
                 camcalib_coefficients[column][-1],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration.",
+                    "through the HDF5MonitoringSource for the camera calibration."
                 ),
             )
 
@@ -393,7 +393,7 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
                         camcalib_coefficients[column][chunk_bin],
                         err_msg=(
                             f"'{column}' do not match after reading the monitoring file "
-                            "through the HDF5MonitoringSource.",
+                            "through the HDF5MonitoringSource."
                         ),
                     )
         # Close the monitoring source
