@@ -175,7 +175,7 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
         )
         with pytest.warns(
             UserWarning,
-            match="The function argument 'time' is provided, but the monitoring source is of simulation data.",
+            match="The function argument 'time' is provided, but the monitoring source is of simulated data.",
         ):
             cam_mon_con = monitoring_source.get_camera_monitoring_container(
                 tel_id, unique_timestamps
@@ -213,11 +213,11 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
         t_end = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
             "time_end"
         ][-1]
-        # Set the unique timestamps
-        unique_timestamps = Time([t_start + 0.2 * u.s, t_start + 0.7 * u.s])
+        # Set the unique timestamp
+        unique_timestamp = t_start + 0.2 * u.s
         # Get the camera monitoring container for the given unique timestamps
         cam_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamps
+            tel_id, unique_timestamp
         )
         # Validate the returned container
         cam_mon_con.validate()
@@ -228,7 +228,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
             "outlier_mask",
         ]:
             np.testing.assert_array_equal(
-                cam_mon_con.coefficients[column][0],
+                cam_mon_con.coefficients[column],
                 camcalib_coefficients[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
@@ -241,7 +241,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
             "std",
         ]:
             np.testing.assert_array_equal(
-                cam_mon_con.pixel_statistics.flatfield_peak_time[column][0],
+                cam_mon_con.pixel_statistics.flatfield_peak_time[column],
                 flatfield_peak_time[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
@@ -380,10 +380,6 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
                 e.trigger.time = trigger_time
                 # Fill the monitoring container for the event
                 monitoring_source.fill_monitoring_container(e)
-                # Check if the time matches after filling the container
-                assert (
-                    trigger_time == e.monitoring.tel[tel_id].camera.coefficients["time"]
-                )
                 # Check that the values match after filling the container
                 for column in [
                     "factor",

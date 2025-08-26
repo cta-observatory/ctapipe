@@ -359,9 +359,7 @@ class HDF5MonitoringSource(MonitoringSource):
             if self.is_simulation:
                 event.monitoring.tel[
                     tel_id
-                ].camera = self.get_camera_monitoring_container(
-                    tel_id,
-                )
+                ].camera = self.get_camera_monitoring_container(tel_id)
             else:
                 event.monitoring.tel[
                     tel_id
@@ -459,10 +457,10 @@ class HDF5MonitoringSource(MonitoringSource):
             # Set the timestamp to the first entry if it is not provided
             # and monitoring is from simulation.
             if self.is_simulation and time is None:
-                time = self._camera_coefficients[tel_id]["pedestal_offset"][0]
+                time = self._camera_coefficients[tel_id]["time"][0]
             table_rows = self._get_table_rows(time, self._camera_coefficients[tel_id])
             cam_mon_container["coefficients"] = CameraCalibrationContainer(
-                time=time,
+                time=table_rows["time"],
                 pedestal_offset=table_rows["pedestal_offset"],
                 factor=table_rows["factor"],
                 time_shift=table_rows["time_shift"],
@@ -531,7 +529,7 @@ class HDF5MonitoringSource(MonitoringSource):
         table_rows = table.loc[time_idx]
         # Return a dictionary representation of the table rows for easy access afterwards
         if len(time_idx) == 1:
-            table_dict = {col: table_rows[col] for col in table_rows.colnames}
+            table_dict = {col: table_rows[col][0] for col in table_rows.colnames}
         else:
             table_dict = {col: table_rows[col].data for col in table_rows.colnames}
         return table_dict
