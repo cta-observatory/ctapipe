@@ -9,6 +9,7 @@ from contextlib import ExitStack
 import astropy
 import numpy as np
 import tables
+from astropy.table import Row, Table
 from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
@@ -529,6 +530,9 @@ class HDF5MonitoringSource(MonitoringSource):
         table_rows = table.loc[time_idx]
         # Return a dictionary representation of the table rows for easy access afterwards
         if len(time_idx) == 1:
+            # Needed for python 3.10 support
+            if isinstance(table_rows, Row):
+                table_rows = Table(rows=[table_rows], names=table.colnames)
             table_dict = {col: table_rows[col][0] for col in table_rows.colnames}
         else:
             table_dict = {col: table_rows[col].data for col in table_rows.colnames}
