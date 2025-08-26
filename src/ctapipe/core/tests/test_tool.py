@@ -3,7 +3,6 @@ import logging
 import os
 import signal
 import sys
-import tempfile
 from multiprocessing import Barrier, Process
 from pathlib import Path
 
@@ -290,17 +289,17 @@ def test_tool_logging_setlevel(capsys):
     assert "test-critical" in log[1]
 
 
-def test_tool_logging_file(capsys):
+def test_tool_logging_file(capsys, tmp_path):
     tool = MyLogTool()
 
-    with tempfile.NamedTemporaryFile("w+") as f:
-        run_tool(tool, ["--log-file", f.name])
-        log = str(f.read())
+    log_file = tmp_path / "test.log"
+    run_tool(tool, ["--log-file", str(log_file)])
+    log = log_file.read_text()
 
-        assert len(log) > 0
-        assert "test-debug" not in log
-        assert "test-info" in log
-        assert "test-warn" in log
+    assert len(log) > 0
+    assert "test-debug" not in log
+    assert "test-info" in log
+    assert "test-warn" in log
 
     # split lines and skip last empty line
     log = capsys.readouterr().err.split("\n")[:-1]
