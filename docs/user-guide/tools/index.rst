@@ -29,6 +29,8 @@ Data Processing Tools
   Calculate gamma/hadron and direction cuts (e.g. for IRF calculation).
 * `ctapipe-compute-irf <ctapipe.tools.compute_irf.IrfTool>`: Calculate an IRF with or without applying a direction cut
   and optionally benchmarks.
+* `ctapipe-store-astropy-cache <ctapipe.tools.store_astropy_cache.main>`: Store astropy downloadable data
+  in a given directory. Useful to run ctapipe in clusters where worker nodes might not have internet access.
 
 File Management Tools:
 ======================
