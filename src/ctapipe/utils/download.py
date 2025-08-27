@@ -74,7 +74,9 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
 
     url = urlparse(url)
 
-    path = os.path.join(url.netloc.rstrip("/"), url.path.lstrip("/"))
+    # : is illegal in paths on windows
+    netloc = url.netloc.replace(":", "___")
+    path = os.path.join(netloc.rstrip("/"), url.path.lstrip("/"))
     path = base / path
     return path
 
