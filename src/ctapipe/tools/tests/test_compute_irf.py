@@ -194,7 +194,7 @@ def test_point_like_irf_no_theta_cut(
 
     with pytest.raises(
         ToolConfigurationError,
-        match=rf"{gh_cuts_path} does not contain any direction cut",
+        match=r".* does not contain any direction cut",
     ):
         run_tool(
             IrfTool(),

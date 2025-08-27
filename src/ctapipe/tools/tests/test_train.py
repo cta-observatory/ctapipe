@@ -150,7 +150,7 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     # test overwrite of cv results works
     with pytest.raises(
         ToolConfigurationError,
-        match=f"Output path {energy_cv_out_file} exists, but overwrite=False",
+        match="Output path .* exists, but overwrite=False",
     ):
         run_tool(
             tool,
