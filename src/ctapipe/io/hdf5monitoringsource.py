@@ -146,14 +146,6 @@ class HDF5MonitoringSource(MonitoringSource):
         help="Path to the HDF5 input file containing monitoring data."
     ).tag(config=True)
 
-    overwrite_telescope_pointings = Bool(
-        False,
-        help=(
-            "Flag to overwrite the telescope pointing information from the monitoring data. "
-            "Different EventSource implementations may already provide this information."
-        ),
-    ).tag(config=True)
-
     enforce_subarray_description = Bool(
         True,
         help=(
@@ -202,7 +194,7 @@ class HDF5MonitoringSource(MonitoringSource):
         # Check if the reading from the input file is enforced
         if self.enforce_subarray_description:
             # Read the subarray description from the file if required
-            self._subarray_from_file = SubarrayDescription.read(self.input_url)
+            self._subarray_from_file = SubarrayDescription.from_hdf(self.input_url)
             # Overwrite the provided subarray if it is not set
             if self.subarray is None:
                 self.subarray = self._subarray_from_file
@@ -276,13 +268,14 @@ class HDF5MonitoringSource(MonitoringSource):
 
         # Telescope pointings reading
         self._telescope_pointings = {}
-        if not self.has_pointings and self.overwrite_telescope_pointings:
-            self.close()
-            raise ToolConfigurationError(
-                "HDF5MonitoringSource: Telescope pointings are not available in the file, "
-                "but overwriting of the telescope pointings is enforced."
+        if self.has_pointings and self.is_simulation:
+            msg = (
+                "HDF5MonitoringSource: Telescope pointings are available, but will be ignored. "
+                f"The monitoring file '{self.input_url}' is from simulated data."
             )
-        if self.has_pointings and self.overwrite_telescope_pointings:
+            self.log.warning(msg)
+            warnings.warn(msg, UserWarning)
+        if self.has_pointings and not self.is_simulation:
             # Instantiate the pointing interpolator
             self._pointing_interpolator = PointingInterpolator()
             # Read the pointing data from the file to have the telescope pointings as a property
@@ -367,8 +360,8 @@ class HDF5MonitoringSource(MonitoringSource):
                 ].camera = self.get_camera_monitoring_container(
                     tel_id, event.trigger.time
                 )
-            # Only overwrite the telescope pointings if explicitly requested
-            if self.overwrite_telescope_pointings:
+            # Only overwrite the telescope pointings for observation data
+            if self.has_pointings and not self.is_simulation:
                 event.monitoring.tel[
                     tel_id
                 ].pointing = self.get_telescope_pointing_container(
@@ -393,10 +386,8 @@ class HDF5MonitoringSource(MonitoringSource):
         TelescopePointingContainer
             The telescope pointing container.
         """
-
-        if self.has_pointings:
-            alt, az = self._pointing_interpolator(tel_id, time)
-            return TelescopePointingContainer(altitude=alt, azimuth=az)
+        alt, az = self._pointing_interpolator(tel_id, time)
+        return TelescopePointingContainer(altitude=alt, azimuth=az)
 
     def get_camera_monitoring_container(
         self, tel_id: int, time=None
