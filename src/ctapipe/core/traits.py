@@ -3,6 +3,8 @@ Traitlet implementations for ctapipe
 """
 import os
 import pathlib
+import re
+import sys
 from collections.abc import Mapping
 from urllib.parse import urlparse
 
@@ -249,6 +251,9 @@ class Path(TraitType):
                 value = get_dataset_path(value.partition("dataset://")[2])
             elif url.scheme in ("", "file"):
                 value = pathlib.Path(url.netloc, url.path)
+            elif sys.platform == "win32" and re.match(r"^[A-Z]:\\", value):
+                # looks like a windows drive letter, so assume it is
+                value = pathlib.Path(value)
             else:
                 self.error(obj, value)
 

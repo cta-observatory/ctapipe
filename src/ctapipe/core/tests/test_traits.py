@@ -1,9 +1,8 @@
-import os
 import pathlib
+import sys
 import tempfile
 from abc import ABCMeta, abstractmethod
 from subprocess import CalledProcessError
-from unittest import mock
 
 import astropy.units as u
 import pytest
@@ -100,8 +99,12 @@ def test_bytes():
         p = Path(exists=False)
 
     c1 = C1()
-    c1.p = b"/home/foo"
-    assert c1.p == pathlib.Path("/home/foo")
+    if sys.platform == "win32":
+        c1.p = rb"C:\home\foo"
+        assert c1.p == pathlib.Path(r"C:\home\foo")
+    else:
+        c1.p = b"/home/foo"
+        assert c1.p == pathlib.Path("/home/foo")
 
 
 def test_path_directory_ok():
@@ -161,8 +164,9 @@ def test_path_url():
     assert c.thepath == (pathlib.Path() / "foo.hdf5").absolute()
 
     # test absolute
-    c.thepath = "file:///foo.hdf5"
-    assert c.thepath == pathlib.Path("/foo.hdf5")
+    if sys.platform != "win32":
+        c.thepath = "file:///foo.hdf5"
+        assert c.thepath == pathlib.Path("/foo.hdf5")
 
     # test http downloading
     c.thepath = DEFAULT_URL + "optics.ecsv.txt"
@@ -173,8 +177,12 @@ def test_path_url():
     assert c.thepath == get_dataset_path("optics.ecsv.txt")
 
 
-@mock.patch.dict(os.environ, {"ANALYSIS_DIR": "/home/foo"})
-def test_path_envvars():
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Absolute path check using unix path"
+)
+def test_path_envvars(monkeypatch):
+    monkeypatch.setenv("ANALYSIS_DIR", "/home/foo")
+
     class C(Component):
         thepath = Path()
 

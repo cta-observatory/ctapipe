@@ -87,6 +87,11 @@ jobs:
             install-method: mamba
             extras: tests,all
 
+          - os: windows-latest
+            python-version: "3.12"
+            install-method: mamba
+            extras: tests,all
+
     defaults:
       run:
         # We need login shells (-l) for micromamba to work.
@@ -117,10 +122,16 @@ jobs:
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
+      - name: Force UTF-8
+        if: runner.os == 'Windows'
+        run: chcp 65001
+        shell: cmd
+
       - name: mamba setup
         if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         uses: mamba-org/setup-micromamba@v2
         with:
+          micromamba-version: '2.3.1-0'
           environment-file: environment.yml
           cache-downloads: true
 
@@ -147,7 +158,9 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
           EXTRAS: ${{ matrix.extras }}
         run: |
-          python --version | grep "Python ${PYTHON_VERSION}"
+          which python
+          python --version
+          python --version | grep "Python $PYTHON_VERSION"
           pip install -e ".[${EXTRAS}]"
           pip install ./test_plugin
           pip freeze
@@ -174,6 +187,7 @@ jobs:
           ctapipe-info --version
 
       - name: Store info for sonar
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
