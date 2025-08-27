@@ -795,6 +795,18 @@ def dl1_merged_monitoring_file(
         return output
 
 
+@pytest.fixture(scope="session")
+def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
+    path = dl1_tmp_path / "dl1_merged_monitoring_file_obs.dl1.h5"
+    shutil.copy(dl1_merged_monitoring_file, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
 @pytest.fixture
 def provenance(monkeypatch):
     from ctapipe.core import Provenance
