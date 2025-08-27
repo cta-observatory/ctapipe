@@ -1,7 +1,6 @@
 """
 Common test fixtures for the instrument module
 """
-import os
 import shutil
 
 import pytest
@@ -33,11 +32,7 @@ def instrument_dir(tmp_path_factory):
 
 
 @pytest.fixture(scope="function")
-def svc_path(instrument_dir):
-    before = os.getenv("CTAPIPE_SVC_PATH")
-    os.environ["CTAPIPE_SVC_PATH"] = str(instrument_dir.absolute())
-    yield
-    if before is None:
-        del os.environ["CTAPIPE_SVC_PATH"]
-    else:
-        os.environ["CTAPIPE_SVC_PATH"] = before
+def svc_path(instrument_dir, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv("CTAPIPE_SVC_PATH", str(instrument_dir.absolute()))
+        yield

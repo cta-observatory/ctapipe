@@ -1,6 +1,5 @@
 import json
 import os
-from pathlib import Path
 
 import pytest
 import yaml
@@ -29,13 +28,15 @@ def test_datasets_in_custom_path(tmpdir_factory, monkeypatch):
     tmpdir1 = tmpdir_factory.mktemp("datasets1")
     tmpdir2 = tmpdir_factory.mktemp("datasets2")
 
-    monkeypatch.setenv("CTAPIPE_SVC_PATH",  os.pathsep.join([str(tmpdir1), str(tmpdir2)]))
+    monkeypatch.setenv(
+        "CTAPIPE_SVC_PATH", os.pathsep.join([str(tmpdir1), str(tmpdir2)])
+    )
 
     # create a dummy dataset to search for:
 
     dataset_name = "test_dataset_1.txt"
     dataset_path = tmpdir1.join(dataset_name)
-    dataset_path.write_text("test test test", encoding='utf-8')
+    dataset_path.write_text("test test test", encoding="utf-8")
 
     # try to find dummy dataset
     path = datasets.get_dataset_path(dataset_name)

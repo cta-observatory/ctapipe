@@ -49,7 +49,9 @@ def get_searchpath_dirs(searchpath=None, url=None):
     if searchpath == "" or searchpath is None:
         searchpaths = []
     else:
-        searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(os.pathsep)]
+        searchpaths = [
+            Path(p) for p in os.path.expandvars(searchpath).split(os.pathsep)
+        ]
     searchpaths.append(get_cache_path(url))
     return searchpaths
 
