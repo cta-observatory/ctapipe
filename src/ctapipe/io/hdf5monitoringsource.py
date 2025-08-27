@@ -9,7 +9,7 @@ from contextlib import ExitStack
 import astropy
 import numpy as np
 import tables
-from astropy.table import Row, Table
+from astropy.table import Row
 from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
@@ -490,14 +490,10 @@ class HDF5MonitoringSource(MonitoringSource):
             the corresponding data for the requested time(s) as values.
         """
 
-        mjd_times = time.to_value("mjd")
+        mjd_times = np.atleast_1d(time.to_value("mjd"))
+        table_times = table["time"]
         # Find the index of the closest preceding start time
-        preceding_indices = np.searchsorted(table["time"], mjd_times, side="right") - 1
-
-        # Check if scalar and convert to list to make them iterable
-        if np.isscalar(preceding_indices):
-            preceding_indices = [preceding_indices]
-            mjd_times = [mjd_times]
+        preceding_indices = np.searchsorted(table_times, mjd_times, side="right") - 1
 
         time_idx = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
@@ -509,31 +505,17 @@ class HDF5MonitoringSource(MonitoringSource):
                 )
             # Check upper bounds when requested timestamp is after the last entry
             if preceding_index >= len(table) - 1:
-                # If timestamp is beyond the last entry, append the last index
-                if mjd >= table["time"][-1]:
-                    time_idx.append(table["time"][-1])
-                    continue
-            # Check if target falls in interval [idx, idx+1) and append the index of the row
-            if (
-                table["time"][preceding_index]
-                <= mjd
-                < table["time"][preceding_index + 1]
-            ):
-                time_idx.append(table["time"][preceding_index])
-            else:
-                raise ValueError(
-                    f"Out of bounds: Requested timestamp '{mjd} MJD' is not within the "
-                    f"validity interval '{table['time'][preceding_index]} MJD' - "
-                    f"'{table['time'][preceding_index + 1]} MJD'."
-                )
-        # Get table row(s)
+                time_idx.append(table["time"][-1])
+                continue
+            time_idx.append(table["time"][preceding_index])
+        # Get table row(s) and convert to dictionary
         table_rows = table.loc[time_idx]
-        # Return a dictionary representation of the table rows for easy access afterwards
         if len(time_idx) == 1:
-            # Needed for python 3.10 support
-            if isinstance(table_rows, Row):
-                table_rows = Table(rows=[table_rows], names=table.colnames)
-            table_dict = {col: table_rows[col][0] for col in table_rows.colnames}
+            table_dict = (
+                {col: table_rows[col] for col in table_rows.colnames}
+                if isinstance(table_rows, Row)
+                else {col: table_rows[col][0] for col in table_rows.colnames}
+            )
         else:
             table_dict = {col: table_rows[col].data for col in table_rows.colnames}
         return table_dict

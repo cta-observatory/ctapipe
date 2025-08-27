@@ -311,35 +311,29 @@ class ChunkInterpolator(MonitoringInterpolator):
         time_start = self.time_start[tel_id]
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]
-        mjd_times = time.to_value("mjd")
+        mjd_times = np.atleast_1d(time.to_value("mjd"))
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(time_start, mjd_times, side="right") - 1
 
-        # Check if scalar and convert to list to make them iterable
-        if np.isscalar(preceding_indices):
-            preceding_indices = [preceding_indices]
-            mjd_times = [mjd_times]
-
         interpolated_values = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
-            if preceding_index < 0:
-                value = np.nan
-                continue
-
             value = np.nan
-
+            if preceding_index < 0:
+                continue
             # Check if the time is within the valid range of the chunk
             if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
                 value = values[preceding_index]
-
-            # If an element in the closest preceding chunk has nan, check the next closest chunk
-
-            for i in range(preceding_index - 1, -1, -1):
-                if time_start[i] <= mjd <= time_end[i]:
-                    if value is np.nan:
-                        value = values[i]
-                    else:
-                        value = np.where(np.isnan(value), values[i], value)
+            # Fill NaN values from earlier overlapping chunks
+            valid_earlier = np.where(
+                (time_start[:preceding_index] <= mjd)
+                & (mjd <= time_end[:preceding_index])
+            )[0]
+            for i in reversed(valid_earlier):
+                value = (
+                    values[i]
+                    if value is np.nan
+                    else np.where(np.isnan(value), values[i], value)
+                )
             interpolated_values.append(value)
         if len(interpolated_values) == 1:
             interpolated_values = interpolated_values[0]

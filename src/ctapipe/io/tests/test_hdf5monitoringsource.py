@@ -177,9 +177,7 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
             UserWarning,
             match="The function argument 'time' is provided, but the monitoring source is of simulated data.",
         ):
-            cam_mon_con = monitoring_source.get_camera_monitoring_container(
-                tel_id, unique_timestamps
-            )
+            monitoring_source.get_camera_monitoring_container(tel_id, unique_timestamps)
 
 
 def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs):
@@ -203,7 +201,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
             ValueError,
             match="Function argument 'time' must be provided for monitoring data from real observations.",
         ):
-            cam_mon_con = monitoring_source.get_camera_monitoring_container(
+            monitoring_source.get_camera_monitoring_container(
                 tel_id,
             )
         # Read start and end times from the flatfield image container
