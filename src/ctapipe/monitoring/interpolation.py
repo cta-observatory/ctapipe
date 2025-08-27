@@ -324,7 +324,7 @@ class ChunkInterpolator(MonitoringInterpolator):
             if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
                 value = values[preceding_index]
             # Fill NaN values from earlier overlapping chunks
-            valid_earlier = np.where(
+            valid_earlier = np.nonzero(
                 (time_start[:preceding_index] <= mjd)
                 & (mjd <= time_end[:preceding_index])
             )[0]
