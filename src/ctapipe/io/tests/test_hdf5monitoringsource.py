@@ -89,7 +89,6 @@ def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_fi
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
             input_url=dl1_merged_monitoring_file,
-            overwrite_telescope_pointings=False,
         )
         assert monitoring_source.is_simulation
         assert monitoring_source.pixel_statistics
@@ -195,7 +194,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
         f"{DL1_FLATFIELD_PEAK_TIME_GROUP}/tel_{tel_id:03d}",
     )
     with HDF5MonitoringSource(
-        input_url=calibpipe_camcalib_same_chunks_obs
+        subarray=None, input_url=calibpipe_camcalib_same_chunks_obs
     ) as monitoring_source:
         with pytest.raises(
             ValueError,
@@ -287,7 +286,9 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
             )
 
 
-def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_file):
+def test_tel_pointing_filling(
+    gamma_diffuse_full_reco_file, dl1_merged_monitoring_file_obs
+):
     """test the monitoring filling for the telescope pointings"""
     from ctapipe.io import read_table
 
@@ -295,7 +296,7 @@ def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_fil
     # Read the camera monitoring data with the coefficients
     pointing_time = (
         read_table(
-            dl1_mon_pointing_file,
+            dl1_merged_monitoring_file_obs,
             f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
         )["time"][0]
         + 1 * u.s
@@ -306,12 +307,11 @@ def test_tel_pointing_filling(gamma_diffuse_full_reco_file, dl1_mon_pointing_fil
     ) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
-            input_url=dl1_mon_pointing_file,
-            overwrite_telescope_pointings=True,
+            input_url=dl1_merged_monitoring_file_obs,
         )
-        assert monitoring_source.is_simulation
-        assert not monitoring_source.pixel_statistics
-        assert not monitoring_source.camera_coefficients
+        assert not monitoring_source.is_simulation
+        assert monitoring_source.pixel_statistics
+        assert monitoring_source.camera_coefficients
         assert monitoring_source.telescope_pointings
         for e in source:
             # Test exception of interpolating outside the valid range
@@ -357,7 +357,6 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
             input_url=calibpipe_camcalib_same_chunks_obs,
-            overwrite_telescope_pointings=False,
         )
         assert not monitoring_source.is_simulation
         assert monitoring_source.pixel_statistics
@@ -397,10 +396,10 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
         monitoring_source.close()
 
 
-def test_common_exceptions(
-    gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks
+def test_hdf5_monitoring_source_exceptions_and_warnings(
+    gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks, dl1_mon_pointing_file
 ):
-    """test the common exceptions of the HDF5MonitoringSource"""
+    """test the common exceptions and warnings of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
     # This should raise a ToolConfigurationError.
     with HDF5EventSource(input_url=gamma_diffuse_full_reco_file) as source:
@@ -414,16 +413,17 @@ def test_common_exceptions(
     # This should raise a NotImplementedError.
     with pytest.raises(NotImplementedError, match="Subarray is not defined"):
         HDF5MonitoringSource(
+            subarray=None,
             input_url=calibpipe_camcalib_same_chunks,
             enforce_subarray_description=False,
         )
-    # Request to overwrite the telescope pointings, but none are available.
-    # This should raise a ToolConfigurationError.
-    with pytest.raises(
-        ToolConfigurationError,
-        match="HDF5MonitoringSource: Telescope pointings are not available",
+    # Warns if telescope pointings are available but
+    # the monitoring source is from simulated data.
+    with pytest.warns(
+        UserWarning,
+        match="HDF5MonitoringSource: Telescope pointings are available, but will be ignored.",
     ):
         HDF5MonitoringSource(
-            input_url=calibpipe_camcalib_same_chunks,
-            overwrite_telescope_pointings=True,
+            subarray=None,
+            input_url=dl1_mon_pointing_file,
         )
