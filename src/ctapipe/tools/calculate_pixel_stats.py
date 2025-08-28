@@ -17,6 +17,7 @@ from ctapipe.core.traits import (
     Unicode,
     classes_with_traits,
 )
+from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
 from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
@@ -83,13 +84,26 @@ class PixelStatisticsCalculatorTool(Tool):
     CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
     def setup(self):
-        # Read the input data with the 'TableLoader'
-        self.input_data = self.enter_context(
-            TableLoader(
-                parent=self,
-                dl1_images=True,  # Ensure that dl1 images are read
+        if self.output_path is None:
+            self.log.critical(
+                "Setting output_path is required (via -o, --output or a config file)."
             )
-        )
+            self.exit(1)
+
+        # Read the input data with the 'TableLoader'
+        try:
+            self.input_data = self.enter_context(
+                TableLoader(
+                    parent=self,
+                    dl1_images=True,  # Ensure that dl1 images are read
+                )
+            )
+        except InputMissing:
+            self.log.critical(
+                "Specifying TableLoader.input_url is required (via -i, --input or a config file)."
+            )
+            self.exit(1)
+
         # Copy selected tables from the input file to the output file
         self.log.info(
             "Copying selected data and metadata to output destination using the HDF5Merger component."

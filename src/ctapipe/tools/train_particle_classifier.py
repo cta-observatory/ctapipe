@@ -37,22 +37,18 @@ class TrainParticleClassifier(Tool):
     """
 
     input_url_signal = Path(
-        default_value=None,
-        allow_none=False,
+        exists=True,
         directory_ok=False,
         help="Input dl1b/dl2 file for the signal class.",
     ).tag(config=True)
 
     input_url_background = Path(
-        default_value=None,
-        allow_none=False,
+        exists=True,
         directory_ok=False,
         help="Input dl1b/dl2 file for the background class.",
     ).tag(config=True)
 
     output_path = Path(
-        default_value=None,
-        allow_none=False,
         directory_ok=False,
         help=(
             "Output file for the trained reconstructor."
@@ -118,6 +114,24 @@ class TrainParticleClassifier(Tool):
         """
         Initialize components from config.
         """
+        if self.input_url_signal is None:
+            self.log.critical(
+                "Setting input_url_signal is required (via --signal or a config file)."
+            )
+            self.exit(1)
+
+        if self.input_url_background is None:
+            self.log.critical(
+                "Setting input_url_background is required (via --background or a config file)."
+            )
+            self.exit(1)
+
+        if self.output_path is None:
+            self.log.critical(
+                "Setting output_path is required (via -o, --output or a config file)."
+            )
+            self.exit(1)
+
         self.signal_loader = self.enter_context(
             TableLoader(
                 parent=self,

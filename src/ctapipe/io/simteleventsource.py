@@ -49,7 +49,7 @@ from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
-from ..exceptions import OptionalDependencyMissing
+from ..exceptions import InputMissing, OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -601,6 +601,11 @@ class SimTelEventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
         if SimTelFile is None:
             raise OptionalDependencyMissing("eventio")
+
+        if self.input_url is None:
+            raise InputMissing(
+                "Specifying input_url directly or via config is required."
+            )
 
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
