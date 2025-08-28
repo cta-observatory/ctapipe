@@ -5,7 +5,6 @@ from abc import abstractmethod
 
 from ..containers import ArrayEventContainer
 from ..core import TelescopeComponent
-from ..core.traits import Undefined
 from .monitoringtypes import MonitoringTypes
 
 __all__ = ["MonitoringSource"]
@@ -27,11 +26,8 @@ class MonitoringSource(TelescopeComponent):
     regardless of the file format or data origin.
 
     ``MonitoringSource`` itself is an abstract class, but will create an
-    appropriate subclass if a compatible source is found for the given
-    ``input_url``.
-
-    An ``MonitoringSource`` can also be created through the configuration system,
-    by passing ``config`` or ``parent`` as appropriate.
+    appropriate subclass. An ``MonitoringSource`` can also be created through the
+    configuration system, by passing ``config`` or ``parent`` as appropriate.
     E.g. if using ``MonitoringSource`` inside of a ``Tool``, you would do:
 
     >>> self.monitoring_source = MonitoringSource(parent=self) # doctest: +SKIP
@@ -40,19 +36,9 @@ class MonitoringSource(TelescopeComponent):
 
     plugin_entry_point = "ctapipe_monitoring"
 
-    def __init__(
-        self, subarray=None, input_url=None, config=None, parent=None, **kwargs
-    ):
-        # traitlets differentiates between not getting the kwarg
-        # and getting the kwarg with a None value.
-        # the latter overrides the value in the config with None, the former
-        # enables getting it from the config.
-        if input_url not in {None, Undefined}:
-            kwargs["input_url"] = input_url
-
+    def __init__(self, subarray=None, config=None, parent=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.metadata = dict(is_simulation=False)
-        self.log.info(f"INPUT PATH = {self.input_url}")
 
     @property
     @abstractmethod

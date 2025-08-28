@@ -3,6 +3,7 @@ Handles reading of monitoring files
 """
 
 import logging
+import pathlib
 import warnings
 from contextlib import ExitStack
 
@@ -21,7 +22,7 @@ from ..containers import (
     TelescopePointingContainer,
 )
 from ..core import Provenance, ToolConfigurationError
-from ..core.traits import Bool, Path
+from ..core.traits import Bool, List, Path
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
 from .hdf5dataformat import (
@@ -90,6 +91,7 @@ class HDF5MonitoringSource(MonitoringSource):
     A basic example on how to use the `~ctapipe.io.HDF5MonitoringSource`:
 
     >>> from ctapipe.io import SimTelEventSource, HDF5MonitoringSource
+    >>> from ctapipe.utils import get_dataset_path
     >>> tel_id = 1
     >>> event_source = SimTelEventSource(
     ...    input_url="dataset://gamma_test_large.simtel.gz",
@@ -98,9 +100,10 @@ class HDF5MonitoringSource(MonitoringSource):
     ...    focal_length_choice='EQUIVALENT',
     ...    skip_r1_calibration=True,
     ... )
+    >>> file = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
     >>> monitoring_source = HDF5MonitoringSource(
     ...    subarray=event_source.subarray,
-    ...    input_url="dataset://calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5",
+    ...    input_files=file,
     ... )
     >>> for event in event_source:
     ...     # Fill the event data with the monitoring container
@@ -129,10 +132,8 @@ class HDF5MonitoringSource(MonitoringSource):
 
     Attributes
     ----------
-    input_url: str
-        Path to the input monitoring file.
-    file: tables.File
-        File object
+    input_files: list of Paths
+        Paths to the input monitoring files.
     pixel_statistics: dict
         Dictionary to hold pixel statistics tables
     camera_coefficients: dict
@@ -142,20 +143,22 @@ class HDF5MonitoringSource(MonitoringSource):
 
     """
 
-    input_url = Path(
-        help="Path to the HDF5 input file containing monitoring data."
+    input_files = List(
+        Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="List of paths to the HDF5 input files containing monitoring data",
     ).tag(config=True)
 
     enforce_subarray_description = Bool(
         True,
         help=(
             "Force the reading of the subarray description "
-            "from the input file if the subarray is not provided."
+            "from the input files if the subarray is not provided."
         ),
     ).tag(config=True)
 
     def __init__(
-        self, subarray=None, input_url=None, config=None, parent=None, **kwargs
+        self, subarray=None, input_files=None, config=None, parent=None, **kwargs
     ):
         """
         MonitoringSource for monitoring files in the standard HDF5 data format
@@ -166,8 +169,9 @@ class HDF5MonitoringSource(MonitoringSource):
             Description of the subarray to use. If not provided, the subarray
             will be read from the input file. The 'enforce_subarray_description' flag
             determines whether a subarray description is required.
-        input_url : str
-            Path of the file to load
+        input_files : Path, or list of Paths, optional
+            Path(s) of the files to load. Can be a single Path, or a list of Paths.
+            These will be added to any files already configured via the configuration system.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -179,7 +183,6 @@ class HDF5MonitoringSource(MonitoringSource):
 
         super().__init__(
             subarray=subarray,
-            input_url=input_url,
             config=config,
             parent=parent,
             **kwargs,
@@ -191,141 +194,190 @@ class HDF5MonitoringSource(MonitoringSource):
             PointingInterpolator,
         )
 
-        # Check if the reading from the input file is enforced
-        if self.enforce_subarray_description:
-            # Read the subarray description from the file if required
-            self._subarray_from_file = SubarrayDescription.from_hdf(self.input_url)
-            # Overwrite the provided subarray if it is not set
-            if self.subarray is None:
-                self.subarray = self._subarray_from_file
-            # Check if the requested telescopes are available in the file
-            if not set(self.subarray.tel_ids).issubset(
-                set(self._subarray_from_file.tel_ids)
-            ):
-                raise ToolConfigurationError(
-                    f"HDF5MonitoringSource: Requested telescopes '{self.subarray.tel_ids}' are not "
-                    f"available in the monitoring file '{self.input_url}'. Available telescopes "
-                    f"are: '{self._subarray_from_file.tel_ids}'."
-                )
+        self.subarray = subarray
 
-        # Raise an error that the all the current monitoring types need a subarray to be defined
-        if self.subarray is None and not self.enforce_subarray_description:
-            raise NotImplementedError(
-                "Subarray is not defined, but all implemented monitoring types "
-                "of the HDF5MonitoringSource requires a defined subarray."
+        # Handle additional input_files parameter - extend the existing list
+        if input_files is not None:
+            if isinstance(input_files, (list, tuple)):
+                self.input_files.extend([pathlib.Path(f) for f in input_files])
+            else:
+                self.input_files.append(pathlib.Path(input_files))
+        # Check if input_files list is empty
+        if not self.input_files:
+            raise IOError(
+                "No input files provided. Please specify input files "
+                "via configuration or input_files parameter."
             )
-
-        # Open the file and read the metadata
-        self.file_ = tables.open_file(self.input_url)
-        Provenance().add_input_file(
-            str(self.input_url),
-            role="Monitoring",
-            reference_meta=read_reference_metadata(self.input_url),
+        # Log the input file paths
+        for file in self.input_files:
+            self.log.info("INPUT PATH = %s", str(file))
+        # Initialize monitoring types and other useful attributes
+        self._monitoring_types = set()
+        self._is_simulation = None
+        self._camera_coefficients, self._pixel_statistics, self._telescope_pointings = (
+            {},
+            {},
+            {},
         )
-        # Read the different monitoring types from the file
-        # Pixel statistics reading
-        self._pixel_statistics = {}
-        if self.has_pixel_statistics:
-            # Instantiate the chunk interpolators for each table
-            self._pedestal_image_interpolator = PedestalImageInterpolator()
-            self._flatfield_image_interpolator = FlatfieldImageInterpolator()
-            self._flatfield_peak_time_interpolator = FlatfieldPeakTimeInterpolator()
-            # Process the tables and interpolate the data
-            for tel_id in self.subarray.tel_ids:
-                self._pixel_statistics[tel_id] = {}
-                for name, interpolator in (
-                    ("sky_pedestal_image", self._pedestal_image_interpolator),
-                    ("flatfield_image", self._flatfield_image_interpolator),
-                    ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
+        # Loop over the input files
+        for file in self.input_files:
+            if self.enforce_subarray_description:
+                # Check if the reading from the input file is enforced
+                # Read the subarray description from the file if required
+                subarray_from_file = SubarrayDescription.from_hdf(file)
+                # Overwrite the provided subarray if it is not set
+                if self.subarray is None:
+                    self.subarray = subarray_from_file
+                # Check if the requested telescopes are available in the file
+                if not set(self.subarray.tel_ids).issubset(
+                    set(subarray_from_file.tel_ids)
                 ):
-                    # Read the tables from the monitoring file requiring all tables to be present
-                    self._pixel_statistics[tel_id][name] = read_table(
-                        self.input_url,
-                        f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}",
+                    raise ToolConfigurationError(
+                        f"HDF5MonitoringSource: Requested telescopes '{self.subarray.tel_ids}' are not "
+                        f"available in the monitoring file '{file}'. Available telescopes "
+                        f"are: '{subarray_from_file.tel_ids}'."
                     )
-                    # Set outliers to NaNs
-                    for col in ["mean", "median", "std"]:
-                        self._pixel_statistics[tel_id][name][col][
-                            self._pixel_statistics[tel_id][name]["outlier_mask"].data
-                        ] = np.nan
-                    # Register the table with the interpolator
-                    interpolator.add_table(tel_id, self._pixel_statistics[tel_id][name])
-        # Camera coefficients reading
-        self._camera_coefficients = {}
-        if self.has_camera_coefficients:
-            # Read the tables from the monitoring file requiring all tables to be present
-            for tel_id in self.subarray.tel_ids:
-                self._camera_coefficients[tel_id] = read_table(
-                    self.input_url,
-                    f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
-                )
-            # Convert time column to MJD
-            self._camera_coefficients[tel_id]["time"] = self._camera_coefficients[
-                tel_id
-            ]["time"].to_value("mjd")
-            # Add index for the retrieval later on
-            self._camera_coefficients[tel_id].add_index("time")
 
-        # Telescope pointings reading
-        self._telescope_pointings = {}
-        if self.has_pointings and self.is_simulation:
-            msg = (
-                "HDF5MonitoringSource: Telescope pointings are available, but will be ignored. "
-                f"The monitoring file '{self.input_url}' is from simulated data."
+            # Add the file to the provenance
+            Provenance().add_input_file(
+                str(file),
+                role="Monitoring",
+                reference_meta=read_reference_metadata(file),
             )
-            self.log.warning(msg)
-            warnings.warn(msg, UserWarning)
-        if self.has_pointings and not self.is_simulation:
-            # Instantiate the pointing interpolator
-            self._pointing_interpolator = PointingInterpolator()
-            # Read the pointing data from the file to have the telescope pointings as a property
-            for tel_id in self.subarray.tel_ids:
-                self._telescope_pointings[tel_id] = read_table(
-                    self.input_url,
-                    f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
-                )
-                # Register the table with the pointing interpolator
-                self._pointing_interpolator.add_table(
-                    tel_id, self._telescope_pointings[tel_id]
-                )
+            with tables.open_file(file) as open_file:
+                # Check if the file is a simulation and if it matches
+                # the expected type from previous files.
+                file_is_simulation = "simulation" in open_file.root
+                if self._is_simulation is None:
+                    self._is_simulation = file_is_simulation
+                else:
+                    if self._is_simulation != file_is_simulation:
+                        raise IOError(
+                            f"HDF5MonitoringSource: Inconsistent simulation flags found in "
+                            f"file '{file}'. Previously processed files have "
+                            f"simulation flag set to {self._is_simulation}, while "
+                            f"current file has it set to {file_is_simulation}."
+                        )
+                # Get all the monitoring types from the file
+                file_monitoring_types = get_hdf5_monitoring_types(open_file)
+                # Check for overlapping monitoring types and warn
+                overlapping_types = set(file_monitoring_types) & self._monitoring_types
+                if overlapping_types:
+                    overlapping_names = [mt.name for mt in overlapping_types]
+                    msg = (
+                        f"File '{file}' contains monitoring types {overlapping_names} "
+                        f"that are already present in previously processed files. "
+                        f"This may indicate duplicate or overlapping monitoring data."
+                    )
+                    self.log.warning(msg)
+                    warnings.warn(msg, UserWarning)
+                # Union of unique types
+                self._monitoring_types.update(file_monitoring_types)
+            # Read the different monitoring types from the file
+            # Pixel statistics reading
+            if MonitoringTypes.PIXEL_STATISTICS in file_monitoring_types:
+                # Instantiate the chunk interpolators for each table
+                self._pedestal_image_interpolator = PedestalImageInterpolator()
+                self._flatfield_image_interpolator = FlatfieldImageInterpolator()
+                self._flatfield_peak_time_interpolator = FlatfieldPeakTimeInterpolator()
+                # Process the tables and interpolate the data
+                for tel_id in self.subarray.tel_ids:
+                    self._pixel_statistics[tel_id] = {}
+                    for name, interpolator in (
+                        ("sky_pedestal_image", self._pedestal_image_interpolator),
+                        ("flatfield_image", self._flatfield_image_interpolator),
+                        ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
+                    ):
+                        # Read the tables from the monitoring file requiring all tables to be present
+                        self._pixel_statistics[tel_id][name] = read_table(
+                            file,
+                            f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}",
+                        )
+                        # Set outliers to NaNs
+                        for col in ["mean", "median", "std"]:
+                            self._pixel_statistics[tel_id][name][col][
+                                self._pixel_statistics[tel_id][name][
+                                    "outlier_mask"
+                                ].data
+                            ] = np.nan
+                        # Register the table with the interpolator
+                        interpolator.add_table(
+                            tel_id, self._pixel_statistics[tel_id][name]
+                        )
+            # Camera coefficients reading
+            if MonitoringTypes.CAMERA_COEFFICIENTS in file_monitoring_types:
+                # Read the tables from the monitoring file requiring all tables to be present
+                for tel_id in self.subarray.tel_ids:
+                    self._camera_coefficients[tel_id] = read_table(
+                        file,
+                        f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
+                    )
+                # Convert time column to MJD
+                self._camera_coefficients[tel_id]["time"] = self._camera_coefficients[
+                    tel_id
+                ]["time"].to_value("mjd")
+                # Add index for the retrieval later on
+                self._camera_coefficients[tel_id].add_index("time")
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    def close(self):
-        self.file_.close()
+            # Telescope pointings reading
+            if (
+                MonitoringTypes.TELESCOPE_POINTINGS in file_monitoring_types
+                and self.is_simulation
+            ):
+                msg = (
+                    "HDF5MonitoringSource: Telescope pointings are available, but will be ignored. "
+                    f"The monitoring file '{file}' is from simulated data."
+                )
+                self.log.warning(msg)
+                warnings.warn(msg, UserWarning)
+            if (
+                MonitoringTypes.TELESCOPE_POINTINGS in file_monitoring_types
+                and not self.is_simulation
+            ):
+                # Instantiate the pointing interpolator
+                self._pointing_interpolator = PointingInterpolator()
+                # Read the pointing data from the file to have the telescope pointings as a property
+                for tel_id in self.subarray.tel_ids:
+                    self._telescope_pointings[tel_id] = read_table(
+                        file,
+                        f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
+                    )
+                    # Register the table with the pointing interpolator
+                    self._pointing_interpolator.add_table(
+                        tel_id, self._telescope_pointings[tel_id]
+                    )
 
     @property
     def is_simulation(self):
         """
         True for files with a simulation group at the root of the file.
         """
-        return "simulation" in self.file_.root
+        return self._is_simulation
 
     @lazyproperty
     def monitoring_types(self):
-        return get_hdf5_monitoring_types(self.file_)
-
-    @lazyproperty
-    def has_camera_coefficients(self):
-        """
-        True for files that contain camera calibration coefficients
-        """
-        return DL1_CAMERA_COEFFICIENTS_GROUP in self.file_.root
+        return self._monitoring_types
 
     @lazyproperty
     def has_pixel_statistics(self):
         """
         True for files that contain pixel statistics
         """
-        return DL1_PIXEL_STATISTICS_GROUP in self.file_.root
+        return MonitoringTypes.PIXEL_STATISTICS in self.monitoring_types
+
+    @lazyproperty
+    def has_camera_coefficients(self):
+        """
+        True for files that contain camera calibration coefficients
+        """
+        return MonitoringTypes.CAMERA_COEFFICIENTS in self.monitoring_types
 
     @lazyproperty
     def has_pointings(self):
         """
         True for files that contain pointing information
         """
-        return DL0_TEL_POINTING_GROUP in self.file_.root
+        return MonitoringTypes.TELESCOPE_POINTINGS in self.monitoring_types
 
     @property
     def camera_coefficients(self):
