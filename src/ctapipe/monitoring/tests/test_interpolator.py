@@ -5,6 +5,7 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
+from ctapipe.io.hdf5dataformat import DL0_TEL_POINTING_GROUP
 from ctapipe.monitoring.interpolation import (
     FlatfieldImageInterpolator,
     FlatfieldPeakTimeInterpolator,
@@ -49,14 +50,13 @@ def test_chunk_selection(camera_geometry):
     interpolator_ped = PedestalImageInterpolator()
     interpolator_ped.add_table(1, table_ped)
 
-    val1 = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
-    val2 = interpolator_ped(tel_id=1, time=t0 + 1.7 * u.s)
-    val3 = interpolator_ped(tel_id=1, time=t0 + 2.2 * u.s)
+    unique_timestamps = Time([t0 + 1.2 * u.s, t0 + 1.7 * u.s, t0 + 2.2 * u.s])
+    vals = interpolator_ped(tel_id=1, time=unique_timestamps)
 
     for key in ["mean", "median", "std"]:
-        assert np.all(np.isclose(val1[key], np.full((2, len(camera_geometry)), 2)))
-        assert np.all(np.isclose(val2[key], np.full((2, len(camera_geometry)), 2)))
-        assert np.all(np.isclose(val3[key], np.full((2, len(camera_geometry)), 3)))
+        assert np.all(np.isclose(vals[key][0], np.full((2, len(camera_geometry)), 2)))
+        assert np.all(np.isclose(vals[key][1], np.full((2, len(camera_geometry)), 2)))
+        assert np.all(np.isclose(vals[key][2], np.full((2, len(camera_geometry)), 3)))
 
 
 def test_nan_switch(camera_geometry):
@@ -208,7 +208,7 @@ def test_hdf5(tmp_path):
     )
 
     path = tmp_path / "pointing.h5"
-    write_table(table, path, "/dl0/monitoring/telescope/pointing/tel_001")
+    write_table(table, path, f"{DL0_TEL_POINTING_GROUP}/tel_001")
     with tables.open_file(path) as h5file:
         interpolator = PointingInterpolator(h5file)
         alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)

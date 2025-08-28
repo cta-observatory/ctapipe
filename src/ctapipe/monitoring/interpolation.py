@@ -9,6 +9,12 @@ from astropy.time import Time
 from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
+from ctapipe.io.hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_FLATFIELD_IMAGE_GROUP,
+    DL1_FLATFIELD_PEAK_TIME_GROUP,
+    DL1_SKY_PEDESTAL_IMAGE_GROUP,
+)
 
 __all__ = [
     "MonitoringInterpolator",
@@ -151,7 +157,7 @@ class PointingInterpolator(LinearInterpolator):
     Interpolator for pointing and pointing correction data.
     """
 
-    telescope_data_group = "/dl0/monitoring/telescope/pointing"
+    telescope_data_group = DL0_TEL_POINTING_GROUP
     required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
@@ -256,11 +262,10 @@ class ChunkInterpolator(MonitoringInterpolator):
             self._read_parameter_table(tel_id)
 
         result = {}
-        mjd = time.to_value("mjd")
         for column in self.columns:
-            result[column] = self._interpolate_chunk(tel_id, column, mjd)
+            result[column] = self._interpolate_chunk(tel_id, column, time)
 
-        if len(result) == 1:
+        if len(self.columns) == 1:
             return result[self.columns[0]]
         return result
 
@@ -291,7 +296,7 @@ class ChunkInterpolator(MonitoringInterpolator):
         for column in self.columns:
             self.values[tel_id][column] = input_table[column]
 
-    def _interpolate_chunk(self, tel_id, column, mjd: float) -> float:
+    def _interpolate_chunk(self, tel_id, column, time: Time) -> float | list[float]:
         """
         Interpolates overlapping chunks of data preferring earlier chunks if valid
 
@@ -299,35 +304,40 @@ class ChunkInterpolator(MonitoringInterpolator):
         ----------
         tel_id : int
             tel_id for which data is to be interpolated
-        mjd : float
+        time : astropy.time.Time
             Time for which to interpolate the data.
         """
 
         time_start = self.time_start[tel_id]
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]
+        mjd_times = np.atleast_1d(time.to_value("mjd"))
         # Find the index of the closest preceding start time
-        preceding_index = np.searchsorted(time_start, mjd, side="right") - 1
+        preceding_indices = np.searchsorted(time_start, mjd_times, side="right") - 1
 
-        if preceding_index < 0:
-            return np.nan
-
-        value = np.nan
-
-        # Check if the time is within the valid range of the chunk
-        if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
-            value = values[preceding_index]
-
-        # If an element in the closest preceding chunk has nan, check the next closest chunk
-
-        for i in range(preceding_index - 1, -1, -1):
-            if time_start[i] <= mjd <= time_end[i]:
-                if value is np.nan:
-                    value = values[i]
-                else:
-                    value = np.where(np.isnan(value), values[i], value)
-
-        return value
+        interpolated_values = []
+        for mjd, preceding_index in zip(mjd_times, preceding_indices):
+            value = np.nan
+            if preceding_index < 0:
+                continue
+            # Check if the time is within the valid range of the chunk
+            if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
+                value = values[preceding_index]
+            # Fill NaN values from earlier overlapping chunks
+            valid_earlier = np.nonzero(
+                (time_start[:preceding_index] <= mjd)
+                & (mjd <= time_end[:preceding_index])
+            )[0]
+            for i in reversed(valid_earlier):
+                value = (
+                    values[i]
+                    if value is np.nan
+                    else np.where(np.isnan(value), values[i], value)
+                )
+            interpolated_values.append(value)
+        if len(interpolated_values) == 1:
+            interpolated_values = interpolated_values[0]
+        return interpolated_values
 
 
 class StatisticsInterpolator(ChunkInterpolator):
@@ -340,18 +350,16 @@ class StatisticsInterpolator(ChunkInterpolator):
 class PedestalImageInterpolator(StatisticsInterpolator):
     """Interpolator for pedestal image tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/sky_pedestal_image"
+    telescope_data_group = DL1_SKY_PEDESTAL_IMAGE_GROUP
 
 
 class FlatfieldImageInterpolator(StatisticsInterpolator):
     """Interpolator for flatfield image tables."""
 
-    telescope_data_group = (
-        "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_image"
-    )
+    telescope_data_group = DL1_FLATFIELD_IMAGE_GROUP
 
 
 class FlatfieldPeakTimeInterpolator(StatisticsInterpolator):
     """Interpolator for flatfield peak time tables."""
 
-    telescope_data_group = "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_peak_time"
+    telescope_data_group = DL1_FLATFIELD_PEAK_TIME_GROUP
