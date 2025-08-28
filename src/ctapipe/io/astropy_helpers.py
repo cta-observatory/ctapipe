@@ -267,6 +267,8 @@ def _parse_hdf5_attrs(table):
         "POSINF_VALUE",
         "NEGINF_VALUE",
         "MAXLEN",
+        "POS",
+        "PREFIX",  # is computed from NAME, not needed
     }
     column_meta = {}
     for col_name, col_attrs in column_attrs.items():
