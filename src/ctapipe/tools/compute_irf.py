@@ -225,10 +225,7 @@ class IrfTool(Tool):
         + classes_with_traits(SensitivityMakerBase)
     )
 
-    def setup(self):
-        """
-        Initialize components from config and load g/h (and theta) cuts.
-        """
+    def _check_config(self):
         if self.gamma_file is None:
             self.log.critical(
                 "Setting gamma_file is required (via --gamma-file or a config file)."
@@ -247,7 +244,14 @@ class IrfTool(Tool):
             )
             self.exit(1)
 
+    def setup(self):
+        """
+        Initialize components from config and load g/h (and theta) cuts.
+        """
+        self._check_config()
+
         self.opt_result = OptimizationResult.read(self.cuts_file)
+
         if (
             self.spatial_selection_applied
             and self.opt_result.spatial_selection_table is None
