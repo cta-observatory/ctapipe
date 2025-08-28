@@ -53,7 +53,7 @@ from ..utils import IndexFinder
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
-from .hdf5tableio import HDF5TableReader
+from .hdf5tableio import HDF5TableReader, get_column_attrs
 from .metadata import _read_reference_metadata_hdf5
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
@@ -597,13 +597,29 @@ class HDF5EventSource(EventSource):
 
                 dl2_tel_readers[kind] = {}
                 for algorithm, algorithm_group in group._v_children.items():
-                    dl2_tel_readers[kind][algorithm] = {
-                        key: HDF5TableReader(self.file_).read(
+                    dl2_tel_readers[kind][algorithm] = {}
+                    for key, table in algorithm_group._v_children.items():
+                        column_attrs = get_column_attrs(table)
+
+                        # workaround for missing prefix-information in tables written
+                        # by apply-models tool before ctapipe v0.27.0
+                        if any(
+                            v.get("PREFIX", "") != "" for v in column_attrs.values()
+                        ):
+                            prefixes = (
+                                None  # prefix are there and will be found by reader
+                            )
+                        else:
+                            # prefix not stored, assume data written by write_table with this prefix
+                            prefixes = algorithm + "_tel"
+
+                        dl2_tel_readers[kind][algorithm][key] = HDF5TableReader(
+                            self.file_
+                        ).read(
                             table._v_pathname,
                             containers=container,
+                            prefixes=prefixes,
                         )
-                        for key, table in algorithm_group._v_children.items()
-                    }
 
         true_impact_readers = {}
         if self.is_simulation:

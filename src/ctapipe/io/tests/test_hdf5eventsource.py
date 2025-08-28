@@ -328,3 +328,24 @@ def test_no_pointing_in_ob(tmp_path):
             assert np.isnan(e.pointing.array_altitude)
             n_read += 1
         assert n_read == n_written
+
+
+def test_read_dl2_tel_ml(gamma_diffuse_full_reco_file):
+    algorithm = "ExtraTreesRegressor"
+
+    with HDF5EventSource(gamma_diffuse_full_reco_file) as s:
+        assert s.datalevels == (DataLevel.DL2,)
+
+        e = next(iter(s))
+        assert algorithm in e.dl2.stereo.energy
+        assert e.dl2.stereo.energy[algorithm].energy is not None
+
+        tel_mask = e.dl2.stereo.energy[algorithm].telescopes
+        tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
+        for tel_id in tel_ids:
+            assert tel_id in e.dl2.tel
+            assert algorithm in e.dl2.tel[tel_id].energy
+            energy = e.dl2.tel[tel_id].energy[algorithm]
+            assert energy.prefix == algorithm + "_tel"
+            assert energy.energy is not None
+            assert np.isfinite(energy.energy)

@@ -385,7 +385,7 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
 @pytest.fixture(scope="session")
 def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
     """
-    DL1 file containing both images and parameters from a gamma simulation set.
+    File only containing dl2 shower information.
     """
     from ctapipe.tools.process import ProcessorTool
 
