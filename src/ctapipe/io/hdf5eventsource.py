@@ -46,6 +46,7 @@ from ..containers import (
 )
 from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
+from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
 from ..monitoring.interpolation import PointingInterpolator
@@ -205,6 +206,11 @@ class HDF5EventSource(EventSource):
         kwargs
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
+
+        if self.input_url is None:
+            raise InputMissing(
+                "Specifying input_url directly or via config is required."
+            )
 
         self.file_ = tables.open_file(self.input_url)
         meta = _read_reference_metadata_hdf5(self.file_)

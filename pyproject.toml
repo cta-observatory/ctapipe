@@ -155,6 +155,7 @@ filterwarnings = [
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
     "error::ctapipe.instrument.FromNameWarning",
+    "error::ctapipe.core.traits.NoneDefaultNotAllowedWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
     "ignore::ctapipe.core.provenance.MissingReferenceMetadata",
 ]

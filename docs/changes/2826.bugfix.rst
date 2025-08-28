@@ -1,0 +1,10 @@
+Fix misleading error messages if a non-existing file is passed
+via the command-line to a Tool that has another configuration option
+that uses ``Path(default_value=None, allow_none=False)``.
+
+This pattern is now deprecated as it results in these hard to understand
+error messages due to behavior deep in traitlets.
+
+A warning will be raised if traitlets are defined like this and
+all ctapipe tools have been adapted to explicitly check
+for None if a ``Path`` is required.

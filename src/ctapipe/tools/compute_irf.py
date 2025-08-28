@@ -67,13 +67,13 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     cuts_file = traits.Path(
-        default_value=None,
+        exists=True,
         directory_ok=False,
         help="Path to optimized cuts input file.",
     ).tag(config=True)
 
     gamma_file = traits.Path(
-        default_value=None, directory_ok=False, help="Gamma input filename and path."
+        exists=True, directory_ok=False, help="Gamma input filename and path."
     ).tag(config=True)
 
     gamma_target_spectrum = traits.UseEnum(
@@ -83,8 +83,7 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     proton_file = traits.Path(
-        default_value=None,
-        allow_none=True,
+        exists=True,
         directory_ok=False,
         help="Proton input filename and path.",
     ).tag(config=True)
@@ -98,6 +97,7 @@ class IrfTool(Tool):
     electron_file = traits.Path(
         default_value=None,
         allow_none=True,
+        exists=True,
         directory_ok=False,
         help="Electron input filename and path.",
     ).tag(config=True)
@@ -115,8 +115,6 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     output_path = traits.Path(
-        default_value=None,
-        allow_none=False,
         directory_ok=False,
         help="Output file",
     ).tag(config=True)
@@ -227,11 +225,33 @@ class IrfTool(Tool):
         + classes_with_traits(SensitivityMakerBase)
     )
 
+    def _check_config(self):
+        if self.gamma_file is None:
+            self.log.critical(
+                "Setting gamma_file is required (via --gamma-file or a config file)."
+            )
+            self.exit(1)
+
+        if self.cuts_file is None:
+            self.log.critical(
+                "Setting cuts_file is required (via --cuts or a config file)."
+            )
+            self.exit(1)
+
+        if self.output_path is None:
+            self.log.critical(
+                "Setting output_path is required (via --output or a config file)."
+            )
+            self.exit(1)
+
     def setup(self):
         """
         Initialize components from config and load g/h (and theta) cuts.
         """
+        self._check_config()
+
         self.opt_result = OptimizationResult.read(self.cuts_file)
+
         if (
             self.spatial_selection_applied
             and self.opt_result.spatial_selection_table is None

@@ -13,3 +13,7 @@ class OptionalDependencyMissing(ModuleNotFoundError):
         self.module = module
         msg = f"'{module}' is required for this functionality of ctapipe"
         super().__init__(msg)
+
+
+class InputMissing(ValueError):
+    """Raised in case an input was not specified."""
