@@ -69,15 +69,13 @@ with the `EventSource` as follows:
 
   with EventSource(input_url="file.simtel.gz") as event_source:
       monitoring_source = HDF5MonitoringSource(
-        input_url="monitoring_file.h5",
+        input_files="monitoring_file.h5",
         subarray=event_source.subarray,
       )
       for event in event_source:
         do_something_with_event(event)
         monitoring_source.fill_monitoring_container(event)
         do_something_else_with_event(event)
-
-      monitoring_source.close()
 
 
 Creating a New EventSource/MonitoringSource Plugin
