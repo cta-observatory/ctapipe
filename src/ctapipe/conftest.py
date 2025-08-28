@@ -24,6 +24,7 @@ from ctapipe.io.hdf5dataformat import (
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_CAMERA_MONITORING_GROUP,
     FIXED_POINTING_GROUP,
+    SIMULATION_GROUP,
 )
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
@@ -56,8 +57,6 @@ collect_ignore = []
 
 if importlib.util.find_spec("pyirf") is None:
     collect_ignore.append("irf")
-
-SIMULATION_GROUP = "/simulation"
 
 
 @pytest.fixture(scope="function", params=camera_names)
@@ -726,6 +725,18 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
         f.remove_node(FIXED_POINTING_GROUP, recursive=True)
         # Remove camera-related monitoring data
         f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
+    path = dl1_tmp_path / "dl1_mon_pointingobs.dl1.h5"
+    shutil.copy(dl1_mon_pointing_file, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
 
