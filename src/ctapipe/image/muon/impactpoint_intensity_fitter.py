@@ -10,6 +10,7 @@ import numpy as np
 
 # dev to be removed
 import pandas as pd
+from astropy.units import Quantity
 from scipy.ndimage import correlate1d
 
 from ...containers import MuonEfficiencyContainer
@@ -110,11 +111,10 @@ def fit_muon_ring_phi_distribution(
     image,
     ring_center_x,
     ring_center_y,
+    optics,
+    shadow_radius,
     call_counter,
     event_id,
-    amplitude_initial=None,
-    rho_initial=None,
-    phi0_initial=None,
 ):
     """
     muon_ring_phi_distribution_fit.
@@ -202,15 +202,22 @@ def fit_muon_ring_phi_distribution(
     )[0]
     phi_y_err = np.sqrt(np.abs(phi_y))
 
-    # weights = phi_y[phi_y > 0].astype(int)
+    weights = (phi_y > 0).astype(int)
 
     phi_x = ((np.roll(hist_phi[1], 1) + hist_phi[1]) / 2.0)[1:]
     phi_x_err = np.ones(len(phi_x)) * np.pi / n_phi_bins
+
+    phi_err = np.sqrt(phi_x_err**2 + phi_y_err**2)
 
     print(phi_y)
     print(phi_y_err)
     print(phi_x)
     print(phi_x_err)
+    print(phi_err)
+    print(weights)
+    print(phi_y)
+    print("shadow_radius       = ", shadow_radius)
+    print("type(shadow_radius) = ", type(shadow_radius))
 
     outdir_id = int(call_counter // 1000)
     os.makedirs(f"./outdir_{outdir_id}", exist_ok=True)
@@ -220,27 +227,57 @@ def fit_muon_ring_phi_distribution(
     # print("np.max(phi_masked)/np.pi = ", np.max(phi_masked)/np.pi)
     # print("np.min(phi_masked)/np.pi = ", np.min(phi_masked)/np.pi)
 
+    # amplitude_initial=None,
+    # rho_initial=None,
+    # phi0_initial=None,
+
     # minimization method
-    # fit = Minuit(
-    #    phi_dist_loss_function(phi_x, phi_y, phi_x_err, phi_y_err, weights),
-    #    xc=xc_initial.to_value(original_unit),
-    #    yc=yc_initial.to_value(original_unit),
-    #    r=r_initial.to_value(original_unit),
-    # )
-    # fit.errordef = Minuit.LEAST_SQUARES
+    fit = Minuit(
+        phi_dist_loss_function(phi_x, phi_y, phi_err, weights),
+        amplitude=12,
+        R_mirror=np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi),
+        R_shadow=shadow_radius.to_value(u.m),
+        rho=5.0,
+        phi0=0.1,
+    )
+    fit.errordef = Minuit.LEAST_SQUARES
+
+    #
+    fit.fixed["R_mirror"] = True
+    fit.fixed["R_shadow"] = True
 
     # set initial parameters uncertainty to a big value
     # taubin_error = max_fov * 0.1
-    # fit.errors["xc"] = taubin_error
-    # fit.errors["yc"] = taubin_error
-    # fit.errors["r"] = taubin_error
+    fit.errors["amplitude"] = 10
+    fit.errors["R_mirror"] = 0.0001
+    fit.errors["R_shadow"] = 0.0001
+    fit.errors["rho"] = 10.0
+    fit.errors["phi0"] = np.pi
 
     # set wide rage for the minimisation
     # fit.limits["xc"] = (-max_fov, max_fov)
     # fit.limits["yc"] = (-max_fov, max_fov)
     # fit.limits["r"] = (0, max_fov)
 
-    # fit.migrad()
+    fit.migrad()
+
+    amplitude = fit.values["amplitude"]
+    R_mirror = Quantity(fit.values["R_mirror"], u.m)
+    R_shadow = Quantity(fit.values["R_shadow"], u.m)
+    rho = Quantity(fit.values["rho"], u.m)
+    phi0 = Quantity(fit.values["phi0"], u.rad)
+
+    amplitude_err = fit.errors["amplitude"]
+    # R_mirror_err = Quantity(fit.errors["R_mirror"], u.m)
+    # R_shadow_err = Quantity(fit.errors["R_shadow"], u.m)
+    rho_err = Quantity(fit.errors["rho"], u.m)
+    phi0_err = Quantity(fit.errors["phi0"], u.rad)
+
+    print("amplitude = ", amplitude)
+    print("R_mirror  = ", R_mirror)
+    print("R_shadow  = ", R_shadow)
+    print("rho       = ", rho)
+    print("phi0      = ", phi0)
 
     # radius = Quantity(fit.values["r"], original_unit)
     # center_x = Quantity(fit.values["xc"], original_unit)
@@ -268,9 +305,9 @@ def phi_dist_loss_function(x, y, err, w):
 
     """
 
-    def loss_function(amplitude, R_mirror, R_camera, rho, phi0):
+    def loss_function(amplitude, R_mirror, R_shadow, rho, phi0):
         signal = amplitude * chord_length(R_mirror, rho, phi0, x)
-        shadow = amplitude * chord_length(R_camera, rho, phi0, x)
+        shadow = amplitude * chord_length(R_shadow, rho, phi0, x)
         diff_squared = ((signal - shadow - y) * w / err) ** 2
 
         return diff_squared.sum()
@@ -375,11 +412,10 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             image,
             center_x,
             center_y,
-            MuonImpactpointIntensityFitter._call_counter,
-            event_id,
-            amplitude_initial=None,
-            rho_initial=None,
-            phi0_initial=None,
+            optics=telescope.optics,
+            shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
+            call_counter=MuonImpactpointIntensityFitter._call_counter,
+            event_id=event_id,
         )
 
         return MuonEfficiencyContainer()
