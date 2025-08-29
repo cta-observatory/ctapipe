@@ -3,7 +3,6 @@ Class description to be added.
 
 """
 
-import os
 
 import astropy.units as u
 import numpy as np
@@ -67,6 +66,7 @@ def chord_length(radius, rho, phi0, phi):
 
         rho_R = rho / radius
         discriminant_norm = 1 - (rho_R**2 * np.sin(phi_modulo) ** 2)
+        discriminant_norm[discriminant_norm < 0] = 0.0
 
         if rho_R <= 1.0:
             # muon has hit the mirror
@@ -75,7 +75,6 @@ def chord_length(radius, rho, phi0, phi):
             )
         else:
             # muon did not hit the mirror
-            discriminant_norm[discriminant_norm < 0] = 0
             effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
             # Filtering out non-physical solutions for phi
             effective_chord_length *= np.where(
@@ -113,8 +112,6 @@ def fit_muon_ring_phi_distribution(
     ring_center_y,
     optics,
     shadow_radius,
-    call_counter,
-    event_id,
 ):
     """
     muon_ring_phi_distribution_fit.
@@ -169,20 +166,10 @@ def fit_muon_ring_phi_distribution(
         raise OptionalDependencyMissing("iminuit")
 
     camera_unit = x.unit
-    ring_center_unit = ring_center_x.unit
+    # ring_center_unit = ring_center_x.unit
     x, y, ring_center_x, ring_center_y = all_to_value(
         x, y, ring_center_x, ring_center_y, unit=camera_unit
     )
-    print("------------------")
-    print("len(x)            = ", len(x))
-    print("len(x_masked)     = ", len(x[mask]))
-    print("len(y_masked)     = ", len(y[mask]))
-    print("len(image_masked) = ", len(image[mask]))
-    print("ring_center_x     = ", ring_center_x)
-    print("ring_center_y     = ", ring_center_y)
-    print("camera_unit       = ", camera_unit)
-    print("ring_center_unit  = ", ring_center_unit)
-    print("++++++++++++++++++")
 
     n_phi_bins = 12
     n_of_smoothing_points = 1  # 1 --> no smoothing
@@ -209,28 +196,6 @@ def fit_muon_ring_phi_distribution(
 
     phi_err = np.sqrt(phi_x_err**2 + phi_y_err**2)
 
-    print(phi_y)
-    print(phi_y_err)
-    print(phi_x)
-    print(phi_x_err)
-    print(phi_err)
-    print(weights)
-    print(phi_y)
-    print("shadow_radius       = ", shadow_radius)
-    print("type(shadow_radius) = ", type(shadow_radius))
-
-    outdir_id = int(call_counter // 1000)
-    os.makedirs(f"./outdir_{outdir_id}", exist_ok=True)
-    # os.mkdir(f"./outdir_{outdir_id}",exist_ok=True)
-    hist_phi_csvName = f"./outdir_{outdir_id}/hist_phi_csvName{call_counter}.csv"
-    save_histogram_to_csv(hist_phi, hist_phi_csvName, event_id, phi_y)
-    # print("np.max(phi_masked)/np.pi = ", np.max(phi_masked)/np.pi)
-    # print("np.min(phi_masked)/np.pi = ", np.min(phi_masked)/np.pi)
-
-    # amplitude_initial=None,
-    # rho_initial=None,
-    # phi0_initial=None,
-
     # minimization method
     fit = Minuit(
         phi_dist_loss_function(phi_x, phi_y, phi_err, weights),
@@ -254,44 +219,24 @@ def fit_muon_ring_phi_distribution(
     fit.errors["rho"] = 10.0
     fit.errors["phi0"] = np.pi
 
-    # set wide rage for the minimisation
-    # fit.limits["xc"] = (-max_fov, max_fov)
-    # fit.limits["yc"] = (-max_fov, max_fov)
-    # fit.limits["r"] = (0, max_fov)
-
     fit.migrad()
 
     amplitude = fit.values["amplitude"]
-    R_mirror = Quantity(fit.values["R_mirror"], u.m)
-    R_shadow = Quantity(fit.values["R_shadow"], u.m)
+    # R_mirror = Quantity(fit.values["R_mirror"], u.m)
+    # R_shadow = Quantity(fit.values["R_shadow"], u.m)
     rho = Quantity(fit.values["rho"], u.m)
     phi0 = Quantity(fit.values["phi0"], u.rad)
 
     amplitude_err = fit.errors["amplitude"]
-    # R_mirror_err = Quantity(fit.errors["R_mirror"], u.m)
-    # R_shadow_err = Quantity(fit.errors["R_shadow"], u.m)
     rho_err = Quantity(fit.errors["rho"], u.m)
     phi0_err = Quantity(fit.errors["phi0"], u.rad)
 
-    print("amplitude = ", amplitude)
-    print("R_mirror  = ", R_mirror)
-    print("R_shadow  = ", R_shadow)
-    print("rho       = ", rho)
-    print("phi0      = ", phi0)
-
-    # radius = Quantity(fit.values["r"], original_unit)
-    # center_x = Quantity(fit.values["xc"], original_unit)
-    # center_y = Quantity(fit.values["yc"], original_unit)
-    # radius_err = Quantity(fit.errors["r"], original_unit)
-    # center_x_err = Quantity(fit.errors["xc"], original_unit)
-    # center_y_err = Quantity(fit.errors["yc"], original_unit)
-
-    amplitude = np.nan
-    rho = np.nan * camera_unit
-    phi0 = np.nan * u.deg
-    amplitude_err = np.nan
-    rho_err = np.nan * camera_unit
-    phi0_err = np.nan * u.deg
+    # amplitude = np.nan
+    # rho = np.nan * camera_unit
+    # phi0 = np.nan * u.deg
+    # amplitude_err = np.nan
+    # rho_err = np.nan * camera_unit
+    # phi0_err = np.nan * u.deg
 
     return amplitude, rho, phi0, amplitude_err, rho_err, phi0_err
 
@@ -320,8 +265,6 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
     Fit muon ring images with a theoretical model to estimate optical efficiency.
 
     """
-
-    _call_counter = 0
 
     min_lambda_m = FloatTelescopeParameter(
         help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
@@ -362,7 +305,6 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
         image,
         pedestal,
         mask=None,
-        event_id=None,
     ):
         """
 
@@ -388,19 +330,12 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
         MuonEfficiencyContainer
         """
 
-        MuonImpactpointIntensityFitter._call_counter += 1
-
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.n_mirrors != 1:
             raise NotImplementedError(
                 "Currently only single mirror telescopes"
                 f" are supported in {self.__class__.__name__}"
             )
-
-        print(
-            "call_counter_increment = ",
-            MuonImpactpointIntensityFitter.call_counter_increment(),
-        )
 
         geometry = telescope.camera.geometry.transform_to(TelescopeFrame())
 
@@ -414,12 +349,6 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             center_y,
             optics=telescope.optics,
             shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
-            call_counter=MuonImpactpointIntensityFitter._call_counter,
-            event_id=event_id,
         )
 
         return MuonEfficiencyContainer()
-
-    @staticmethod
-    def call_counter_increment():
-        return MuonImpactpointIntensityFitter._call_counter
