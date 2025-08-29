@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 
-def chord_length_loss_function(radius, rho, phi):
+def chord_length(radius, rho, phi0, phi):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -37,10 +37,10 @@ def chord_length_loss_function(radius, rho, phi):
 
     Parameters
     ----------
-    radius: float or ndarray
+    radius: float
         radius of circle
-    rho: float or ndarray
-        fractional distance of impact point from circle center
+    rho: float
+        distance of impact point from circle center
     phi: float or ndarray in radians
         rotation angles to calculate length
 
@@ -57,26 +57,33 @@ def chord_length_loss_function(radius, rho, phi):
 
 
     """
-    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
-    valid = discriminant_norm >= 0
 
-    if not valid:
-        return 0
+    if phi0 == 0:
+        if radius <= 0:
+            return np.zero(len(phi))
 
-    if rho <= 1.0:
-        # muon has hit the mirror
-        effective_chord_length = radius * (
-            np.sqrt(discriminant_norm) + rho * np.cos(phi)
-        )
-    else:
-        # muon did not hit the mirror
-        # Filtering out non-physical solutions for phi
-        if np.abs(phi) < np.arcsin(1.0 / rho):
-            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
+        phi_modulo = ((phi + np.pi) % (2 * np.pi) - np.pi) * np.where(phi < -1, -1, 1)
+
+        rho_R = rho / radius
+        discriminant_norm = 1 - (rho_R**2 * np.sin(phi_modulo) ** 2)
+
+        if rho_R <= 1.0:
+            # muon has hit the mirror
+            effective_chord_length = radius * (
+                np.sqrt(discriminant_norm) + rho_R * np.cos(phi_modulo)
+            )
         else:
-            return 0
+            # muon did not hit the mirror
+            discriminant_norm[discriminant_norm < 0] = 0
+            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
+            # Filtering out non-physical solutions for phi
+            effective_chord_length *= np.where(
+                (np.abs(phi_modulo) < np.arcsin(1.0 / rho_R)), 1, 0
+            )
 
-    return effective_chord_length
+        return effective_chord_length
+
+    return chord_length(radius, rho, 0, phi - phi0)
 
 
 def save_histogram_to_csv(hist, csvName, event_id, hist_phi_smooth):
@@ -96,7 +103,7 @@ def save_histogram_to_csv(hist, csvName, event_id, hist_phi_smooth):
     return
 
 
-def muon_ring_phi_distribution_fit(
+def fit_muon_ring_phi_distribution(
     x,
     y,
     mask,
@@ -177,27 +184,45 @@ def muon_ring_phi_distribution_fit(
     print("ring_center_unit  = ", ring_center_unit)
     print("++++++++++++++++++")
 
+    n_phi_bins = 12
+    n_of_smoothing_points = 1  # 1 --> no smoothing
+
     hist_phi = np.histogram(
         np.arctan2(
             y[mask] - ring_center_y,
             x[mask] - ring_center_x,
         ),
         weights=image[mask],
-        bins=np.linspace(-np.pi, np.pi, 19),
+        bins=np.linspace(-np.pi, np.pi, n_phi_bins + 1),
     )
-    hist_phi_smooth = (correlate1d(hist_phi[0], np.ones(2), mode="wrap", axis=0) / 2,)
+
+    phi_y = (
+        correlate1d(hist_phi[0], np.ones(n_of_smoothing_points), mode="wrap", axis=0)
+        / n_of_smoothing_points,
+    )[0]
+    phi_y_err = np.sqrt(np.abs(phi_y))
+
+    # weights = phi_y[phi_y > 0].astype(int)
+
+    phi_x = ((np.roll(hist_phi[1], 1) + hist_phi[1]) / 2.0)[1:]
+    phi_x_err = np.ones(len(phi_x)) * np.pi / n_phi_bins
+
+    print(phi_y)
+    print(phi_y_err)
+    print(phi_x)
+    print(phi_x_err)
 
     outdir_id = int(call_counter // 1000)
     os.makedirs(f"./outdir_{outdir_id}", exist_ok=True)
     # os.mkdir(f"./outdir_{outdir_id}",exist_ok=True)
     hist_phi_csvName = f"./outdir_{outdir_id}/hist_phi_csvName{call_counter}.csv"
-    save_histogram_to_csv(hist_phi, hist_phi_csvName, event_id, hist_phi_smooth[0])
+    save_histogram_to_csv(hist_phi, hist_phi_csvName, event_id, phi_y)
     # print("np.max(phi_masked)/np.pi = ", np.max(phi_masked)/np.pi)
     # print("np.min(phi_masked)/np.pi = ", np.min(phi_masked)/np.pi)
 
     # minimization method
     # fit = Minuit(
-    #    make_loss_function(x_masked, y_masked, weights_masked),
+    #    phi_dist_loss_function(phi_x, phi_y, phi_x_err, phi_y_err, weights),
     #    xc=xc_initial.to_value(original_unit),
     #    yc=yc_initial.to_value(original_unit),
     #    r=r_initial.to_value(original_unit),
@@ -232,6 +257,28 @@ def muon_ring_phi_distribution_fit(
     phi0_err = np.nan * u.deg
 
     return amplitude, rho, phi0, amplitude_err, rho_err, phi0_err
+
+
+def phi_dist_loss_function(x, y, xe, ye, w):
+    """dist_loss_function
+
+    x, y, xe, ye: positions of pixels surviving the cleaning
+        should not be quantities
+    w : array-like of float, weights for the points
+    """
+
+    def taubin_loss_function(xc, yc, r):
+        """taubin fit formula
+        reference : Barcelona_Muons_TPA_final.pdf (slide 6)
+        """
+
+        distance_squared = (x - xc) ** 2 + (y - yc) ** 2
+        upper_term = ((w * (distance_squared - r**2)) ** 2).sum()
+        lower_term = (w * distance_squared).sum()
+
+        return np.abs(upper_term) / np.abs(lower_term)
+
+    return taubin_loss_function
 
 
 class MuonImpactpointIntensityFitter(TelescopeComponent):
@@ -324,7 +371,7 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
         geometry = telescope.camera.geometry.transform_to(TelescopeFrame())
 
         # results_phi_dist = muon_ring_phi_distribution_fit(
-        muon_ring_phi_distribution_fit(
+        fit_muon_ring_phi_distribution(
             geometry.pix_x,
             geometry.pix_y,
             mask,
