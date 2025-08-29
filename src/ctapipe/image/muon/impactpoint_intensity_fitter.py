@@ -259,26 +259,23 @@ def fit_muon_ring_phi_distribution(
     return amplitude, rho, phi0, amplitude_err, rho_err, phi0_err
 
 
-def phi_dist_loss_function(x, y, xe, ye, w):
+def phi_dist_loss_function(x, y, err, w):
     """dist_loss_function
 
-    x, y, xe, ye: positions of pixels surviving the cleaning
+    x, y, err: positions of pixels surviving the cleaning
         should not be quantities
     w : array-like of float, weights for the points
+
     """
 
-    def taubin_loss_function(xc, yc, r):
-        """taubin fit formula
-        reference : Barcelona_Muons_TPA_final.pdf (slide 6)
-        """
+    def loss_function(amplitude, R_mirror, R_camera, rho, phi0):
+        signal = amplitude * chord_length(R_mirror, rho, phi0, x)
+        shadow = amplitude * chord_length(R_camera, rho, phi0, x)
+        diff_squared = ((signal - shadow - y) * w / err) ** 2
 
-        distance_squared = (x - xc) ** 2 + (y - yc) ** 2
-        upper_term = ((w * (distance_squared - r**2)) ** 2).sum()
-        lower_term = (w * distance_squared).sum()
+        return diff_squared.sum()
 
-        return np.abs(upper_term) / np.abs(lower_term)
-
-    return taubin_loss_function
+    return loss_function
 
 
 class MuonImpactpointIntensityFitter(TelescopeComponent):
