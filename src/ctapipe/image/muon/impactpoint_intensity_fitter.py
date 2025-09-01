@@ -166,7 +166,7 @@ def fit_muon_ring_phi_distribution(
         raise OptionalDependencyMissing("iminuit")
 
     camera_unit = x.unit
-    # ring_center_unit = ring_center_x.unit
+    size_impact_point_unit = u.m
     x, y, ring_center_x, ring_center_y = all_to_value(
         x, y, ring_center_x, ring_center_y, unit=camera_unit
     )
@@ -221,24 +221,16 @@ def fit_muon_ring_phi_distribution(
 
     fit.migrad()
 
-    amplitude = fit.values["amplitude"]
-    # R_mirror = Quantity(fit.values["R_mirror"], u.m)
-    # R_shadow = Quantity(fit.values["R_shadow"], u.m)
-    rho = Quantity(fit.values["rho"], u.m)
-    phi0 = Quantity(fit.values["phi0"], u.rad)
+    rho = Quantity(fit.values["rho"], size_impact_point_unit)
 
-    amplitude_err = fit.errors["amplitude"]
-    rho_err = Quantity(fit.errors["rho"], u.m)
-    phi0_err = Quantity(fit.errors["phi0"], u.rad)
-
-    # amplitude = np.nan
-    # rho = np.nan * camera_unit
-    # phi0 = np.nan * u.deg
-    # amplitude_err = np.nan
-    # rho_err = np.nan * camera_unit
-    # phi0_err = np.nan * u.deg
-
-    return amplitude, rho, phi0, amplitude_err, rho_err, phi0_err
+    return MuonEfficiencyContainer(
+        impact=rho,
+        impact_x=rho * np.cos(Quantity(fit.values["phi0"], camera_unit)),
+        impact_y=rho * np.sin(Quantity(fit.values["phi0"], camera_unit)),
+        is_valid=fit.valid,
+        parameters_at_limit=fit.fmin.has_parameters_at_limit,
+        likelihood_value=fit.fval,
+    )
 
 
 def phi_dist_loss_function(x, y, err, w):
@@ -339,8 +331,7 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
 
         geometry = telescope.camera.geometry.transform_to(TelescopeFrame())
 
-        # results_phi_dist = muon_ring_phi_distribution_fit(
-        fit_muon_ring_phi_distribution(
+        mu_eff_container = fit_muon_ring_phi_distribution(
             geometry.pix_x,
             geometry.pix_y,
             mask,
@@ -351,4 +342,15 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
 
-        return MuonEfficiencyContainer()
+        # return MuonEfficiencyContainer(
+        #    impact=result["impact_parameter"] * u.m,
+        #    impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
+        #    impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
+        #    width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
+        #    optical_efficiency=result["optical_efficiency_muon"],
+        #    is_valid=minuit.valid,
+        #    parameters_at_limit=minuit.fmin.has_parameters_at_limit,
+        #    likelihood_value=minuit.fval,
+        # )
+
+        return mu_eff_container
