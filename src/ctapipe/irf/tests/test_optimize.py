@@ -7,14 +7,15 @@ from ctapipe.core import QualityQuery, non_abstract_children
 from ctapipe.irf.optimize import CutOptimizerBase
 
 
-def test_optimization_result(tmp_path, irf_event_loader_test_config):
+@pytest.mark.parametrize("file_format", [".fits", ".fits.gz"])
+def test_optimization_result(tmp_path, irf_event_loader_test_config, file_format):
     from ctapipe.io import DL2EventPreprocessor
     from ctapipe.irf import (
         OptimizationResult,
         ResultValidRange,
     )
 
-    result_path = tmp_path / "result.h5"
+    result_path = tmp_path / f"result{file_format}"
     epp = DL2EventPreprocessor(irf_event_loader_test_config)
     gh_cuts = QTable(
         data=[[0.2, 0.8, 1.5] * u.TeV, [0.8, 1.5, 10] * u.TeV, [0.82, 0.91, 0.88]],
