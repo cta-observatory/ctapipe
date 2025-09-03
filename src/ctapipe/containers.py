@@ -152,11 +152,6 @@ class EventType(enum.Enum):
     """R1/DL0 EventType
 
     Defined in :cite:p:`ctao-r1-event-data-model`.
-
-    This enum currently has additional values that are not defined
-    in the data model:
-    - the data model does not distinguish between types of pedestals
-    - the data model does not define the RANDOM_MONO type
     """
 
     #: Flatfield event
