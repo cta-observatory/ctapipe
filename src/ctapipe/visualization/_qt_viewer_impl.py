@@ -147,10 +147,7 @@ class SubarrayDataWidget(QWidget):
 
         if (sim := event.simulation) is not None and (shower := sim.shower) is not None:
             impact = GroundFrame(shower.core_x, shower.core_y, 0 * u.m)
-            impact = impact.transform_to(self.display.frame)
-            x = impact.easting.to_value(u.m)
-            y = impact.northing.to_value(u.m)
-            self.true_impact.set_data(x, y)
+            self._update_impact(self.true_impact, impact)
 
         for key, reco in event.dl2.stereo.geometry.items():
             if key not in self.reco_impacts:
@@ -167,12 +164,15 @@ class SubarrayDataWidget(QWidget):
                 self.ax.legend(handles=self.display.legend_elements)
 
             impact = GroundFrame(reco.core_x, reco.core_y, 0 * u.m)
-            impact = impact.transform_to(self.display.frame)
-            x = impact.easting.to_value(u.m)
-            y = impact.northing.to_value(u.m)
-            self.reco_impacts[key].set_data(x, y)
+            self._update_impact(self.reco_impacts[key], impact)
 
         self.canvas.draw()
+
+    def _update_impact(self, artist, impact):
+        impact = impact.transform_to(self.display.frame)
+        x = np.atleast_1d(impact.easting.to_value(u.m))
+        y = np.atleast_1d(impact.northing.to_value(u.m))
+        artist.set_data(x, y)
 
 
 class ViewerMainWindow(QMainWindow):
