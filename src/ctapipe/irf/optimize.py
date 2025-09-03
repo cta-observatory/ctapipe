@@ -109,11 +109,11 @@ class OptimizationResult:
             self.spatial_selection_table.meta["EXTNAME"] = "RAD_MAX"
             results.append(self.spatial_selection_table)
 
-        # Overwrite if needed and allowed
-        results[0].write(output_name, format="fits", overwrite=overwrite)
-
-        for table in results[1:]:
-            table.write(output_name, format="fits", append=True)
+        primary = fits.PrimaryHDU()
+        hdus = [primary]
+        for table in results:
+            hdus.append(fits.BinTableHDU(table))
+        fits.HDUList(hdus).writeto(output_name, overwrite=overwrite)
 
     @classmethod
     def read(cls, file_name):
