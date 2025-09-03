@@ -159,12 +159,18 @@ class EventType(enum.Enum):
     - the data model does not define the RANDOM_MONO type
     """
 
-    # calibrations are 0-15
+    #: Flatfield event
     FLATFIELD = 0
+    #: Single PE event
     SINGLE_PE = 1
-    SKY_PEDESTAL = 2
+    #: Generic pedestal, assigned if no further distinction on the type could be made
+    PEDESTAL = 2
+    #: Dark pedestal, taken with HV on, shutter closed.
     DARK_PEDESTAL = 3
+    #: Electronics pedestal, taken with HV off.
     ELECTRONIC_PEDESTAL = 4
+    #: Sky pedestal, taken with HV on, shutter open
+    SKY_PEDESTAL = 5
     OTHER_CALIBRATION = 15
 
     #: Muon event candidate
