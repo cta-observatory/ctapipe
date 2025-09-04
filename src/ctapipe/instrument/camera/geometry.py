@@ -691,7 +691,7 @@ class CameraGeometry:
     @lazyproperty
     def neighbors(self):
         """A list of the neighbors pixel_ids for each pixel"""
-        return [np.where(r)[0].tolist() for r in self.neighbor_matrix]
+        return [np.nonzero(r)[0].tolist() for r in self.neighbor_matrix]
 
     @lazyproperty
     def neighbor_matrix(self):
@@ -991,14 +991,14 @@ class CameraGeometry:
         # presumes all camera pixels being of equal size.
         border_mask = self.get_border_pixel_mask()
         # get all pixels at camera border:
-        borderpix_indices = np.where(border_mask)[0]
+        borderpix_indices = np.nonzero(border_mask)[0]
         borderpix_indices_in_list = np.intersect1d(borderpix_indices, pix_indices)
         if borderpix_indices_in_list.any():
             # Get some pixel not at the border:
-            insidepix_index = np.where(~border_mask)[0][0]
+            insidepix_index = np.nonzero(~border_mask)[0][0]
             # Check in detail whether location is in border pixel or outside camera:
             for borderpix_index in borderpix_indices_in_list:
-                index = np.where(pix_indices == borderpix_index)[0][0]
+                index = np.nonzero(pix_indices == borderpix_index)[0][0]
                 # compare with inside pixel:
                 xprime = (
                     points_searched[0][index, 0]

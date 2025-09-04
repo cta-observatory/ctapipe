@@ -62,10 +62,14 @@ def non_abstract_children(base):
     non_abstract : dict
         dict of all non-abstract subclasses
     """
-    subclasses = base.__subclasses__() + [
-        g for s in base.__subclasses__() for g in non_abstract_children(s)
-    ]
-    non_abstract = [g for g in subclasses if not isabstract(g)]
+    non_abstract = []
+
+    for subcls in base.__subclasses__():
+        if not isabstract(subcls):
+            non_abstract.append(subcls)
+
+        # recurse
+        non_abstract.extend(non_abstract_children(subcls))
 
     return non_abstract
 
