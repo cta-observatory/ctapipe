@@ -134,20 +134,24 @@ def test_before_first_chunk():
             "std": [1, 2, 3, 4],
         },
     )
-    interpolator_ped = PedestalImageInterpolator(timestamp_tolerance=0.25 * u.s)
+    interpolator_ped = PedestalImageInterpolator()
     interpolator_ped.add_table(1, table_ped)
 
-    values_invalid = interpolator_ped(tel_id=1, time=t0 - 5.2 * u.s)
+    values_invalid = interpolator_ped(
+        tel_id=1, time=t0 - 5.2 * u.s, timestamp_tolerance=0.25 * u.s
+    )
     for key in ["mean", "median", "std"]:
         assert np.isnan(values_invalid[key])
 
-    values_valid = interpolator_ped(tel_id=1, time=t0 - 0.15 * u.s)
+    values_valid = interpolator_ped(
+        tel_id=1, time=t0 - 0.15 * u.s, timestamp_tolerance=0.25 * u.s
+    )
     for key in ["mean", "median", "std"]:
         assert values_valid[key] == table_ped[key][0]
 
-    interpolator_ped = PedestalImageInterpolator(timestamp_tolerance=0.04 * u.s)
-    interpolator_ped.add_table(1, table_ped)
-    values_invalid = interpolator_ped(tel_id=1, time=t0 - 0.15 * u.s)
+    values_invalid = interpolator_ped(
+        tel_id=1, time=t0 - 0.15 * u.s, timestamp_tolerance=0.04 * u.s
+    )
     for key in ["mean", "median", "std"]:
         assert np.isnan(values_invalid[key])
 
