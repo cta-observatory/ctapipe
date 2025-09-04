@@ -9,7 +9,6 @@ from astropy.time import Time
 from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
-from ctapipe.core.traits import AstroQuantity
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_FLATFIELD_IMAGE_GROUP,
@@ -233,12 +232,6 @@ class ChunkInterpolator(MonitoringInterpolator):
     Simple interpolator for overlapping chunks of data.
     """
 
-    timestamp_tolerance = AstroQuantity(
-        default_value=u.Quantity(0.1, u.second),
-        physical_type=u.physical.time,
-        help="Time difference in seconds to consider two timestamps equal.",
-    ).tag(config=True)
-
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.time_start = {}
@@ -248,7 +241,9 @@ class ChunkInterpolator(MonitoringInterpolator):
         self.columns.remove("time_start")
         self.columns.remove("time_end")
 
-    def __call__(self, tel_id: int, time: Time) -> float | dict[str, float]:
+    def __call__(
+        self, tel_id: int, time: Time, timestamp_tolerance: u.Quantity = 0.0 * u.s
+    ) -> float | dict[str, float]:
         """
         Interpolate overlapping chunks of data for a given time, tel_id, and column(s).
 
@@ -258,6 +253,8 @@ class ChunkInterpolator(MonitoringInterpolator):
             Telescope id.
         time : astropy.time.Time
             Time for which to interpolate the data.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference in seconds to consider two timestamps equal. Default is 0s.
 
         Returns
         -------
@@ -270,7 +267,9 @@ class ChunkInterpolator(MonitoringInterpolator):
 
         result = {}
         for column in self.columns:
-            result[column] = self._interpolate_chunk(tel_id, column, time)
+            result[column] = self._interpolate_chunk(
+                tel_id, column, time, timestamp_tolerance
+            )
 
         if len(self.columns) == 1:
             return result[self.columns[0]]
@@ -303,7 +302,9 @@ class ChunkInterpolator(MonitoringInterpolator):
         for column in self.columns:
             self.values[tel_id][column] = input_table[column]
 
-    def _interpolate_chunk(self, tel_id, column, time: Time) -> float | list[float]:
+    def _interpolate_chunk(
+        self, tel_id, column, time: Time, timestamp_tolerance: u.Quantity = 0.0 * u.s
+    ) -> float | list[float]:
         """
         Interpolates overlapping chunks of data preferring earlier chunks if valid
 
@@ -313,6 +314,8 @@ class ChunkInterpolator(MonitoringInterpolator):
             tel_id for which data is to be interpolated
         time : astropy.time.Time
             Time for which to interpolate the data.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference in seconds to consider two timestamps equal. Default is 0s.
         """
 
         time_start = self.time_start[tel_id]
@@ -320,7 +323,7 @@ class ChunkInterpolator(MonitoringInterpolator):
         values = self.values[tel_id][column]
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         # Convert timestamp tolerance to MJD days
-        tolerance_mjd = self.timestamp_tolerance.to_value("day")
+        tolerance_mjd = timestamp_tolerance.to_value("day")
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(time_start, mjd_times, side="right") - 1
 
