@@ -10,6 +10,7 @@ import pathlib
 
 from ctapipe.core import Provenance, Tool
 from ctapipe.core.traits import Enum, Path, Unicode
+from ctapipe.exceptions import InputMissing
 from ctapipe.io import EventSource
 
 __all__ = ["DumpInstrumentTool"]
@@ -43,9 +44,15 @@ class DumpInstrumentTool(Tool):
     classes = [EventSource]
 
     def setup(self):
-        with EventSource(parent=self) as source:
-            self.infile = source.input_url
-            self.subarray = source.subarray
+        try:
+            with EventSource(parent=self) as source:
+                self.infile = source.input_url
+                self.subarray = source.subarray
+        except InputMissing:
+            self.log.critical(
+                "Specifying EventSource.input_url is required (via -i, --input or a config file)."
+            )
+            self.exit(1)
 
     def start(self):
         if self.outdir is None:

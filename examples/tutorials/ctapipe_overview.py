@@ -520,22 +520,22 @@ geometry = loader.subarray.tel[1].camera.geometry
 # Let’s create a toy images with several islands;
 #
 
-np.random.seed(42)
+rng = np.random.default_rng(42)
 
 image = np.zeros(geometry.n_pixels)
 
 
 for i in range(9):
     model = toymodel.Gaussian(
-        x=np.random.uniform(-0.8, 0.8) * u.m,
-        y=np.random.uniform(-0.8, 0.8) * u.m,
-        width=np.random.uniform(0.05, 0.075) * u.m,
-        length=np.random.uniform(0.1, 0.15) * u.m,
-        psi=np.random.uniform(0, 2 * np.pi) * u.rad,
+        x=rng.uniform(-0.8, 0.8) * u.m,
+        y=rng.uniform(-0.8, 0.8) * u.m,
+        width=rng.uniform(0.05, 0.075) * u.m,
+        length=rng.uniform(0.1, 0.15) * u.m,
+        psi=rng.uniform(0, 2 * np.pi) * u.rad,
     )
 
     new_image, sig, bg = model.generate_image(
-        geometry, intensity=np.random.uniform(1000, 3000), nsb_level_pe=5
+        geometry, intensity=rng.uniform(1000, 3000), nsb_level_pe=5
     )
     image += new_image
 

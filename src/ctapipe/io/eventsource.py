@@ -16,9 +16,9 @@ from ..containers import (
     SimulatedShowerDistribution,
     SimulationConfigContainer,
 )
-from ..core import ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
+from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
 
@@ -125,7 +125,7 @@ class EventSource(Component):
 
         # check we have at least one of these to be able to determine the subclass
         if input_url in {None, Undefined} and config is None and parent is None:
-            raise ValueError("One of `input_url`, `config`, `parent` is required")
+            raise InputMissing("One of `input_url`, `config`, `parent` is required")
 
         if input_url in {None, Undefined}:
             input_url = cls._find_input_url_in_config(config=config, parent=parent)
@@ -329,7 +329,7 @@ class EventSource(Component):
     @classmethod
     def _find_compatible_source(cls, input_url):
         if input_url == "" or input_url in {None, Undefined}:
-            raise ToolConfigurationError("EventSource: No input_url was specified")
+            raise InputMissing("EventSource: No input_url was specified")
 
         # validate input url with the traitlet validate method
         # to make sure it's compatible and to raise the correct error
@@ -368,27 +368,6 @@ class EventSource(Component):
             )
         )
         raise ValueError(msg)
-
-    @classmethod
-    def from_url(cls, input_url, **kwargs):
-        """
-        Find compatible EventSource for input_url via the `is_compatible`
-        method of the EventSource
-
-        Parameters
-        ----------
-        input_url : str
-            Filename or URL pointing to an event file
-        kwargs
-            Named arguments for the EventSource
-
-        Returns
-        -------
-        instance
-            Instance of a compatible EventSource subclass
-        """
-        subcls = cls._find_compatible_source(input_url)
-        return subcls(input_url=input_url, **kwargs)
 
     @classmethod
     def _find_input_url_in_config(cls, config=None, parent=None):
