@@ -191,7 +191,6 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
-
         # setup components:
         try:
             self.event_source = self.enter_context(EventSource(parent=self))
@@ -199,7 +198,6 @@ class ProcessorTool(Tool):
             self.log.critical(
                 "Specifying EventSource.input_url is required (via -i, --input or a config file)."
             )
-
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
