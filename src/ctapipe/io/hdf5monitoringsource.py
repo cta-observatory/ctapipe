@@ -8,6 +8,7 @@ import warnings
 from contextlib import ExitStack
 
 import astropy
+import astropy.units as u
 import numpy as np
 import tables
 from astropy.table import Row
@@ -442,7 +443,10 @@ class HDF5MonitoringSource(MonitoringSource):
         return TelescopePointingContainer(altitude=alt, azimuth=az)
 
     def get_camera_monitoring_container(
-        self, tel_id: int, time=None
+        self,
+        tel_id: int,
+        time: astropy.time.Time = None,
+        timestamp_tolerance: u.Quantity = 0.0 * u.s,
     ) -> MonitoringCameraContainer:
         """
         Retrieve the camera monitoring container with interpolated data.
@@ -456,6 +460,8 @@ class HDF5MonitoringSource(MonitoringSource):
             timestamp(s) are required to interpolate the monitoring data of observation.
             For monitoring data of simulation, the first entry of the monitoring data is typically
             used if no timestamp is provided.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference to consider two timestamps equal. Default is 0 seconds.
 
         Returns
         -------
@@ -490,7 +496,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 if self.is_simulation and time is None:
                     time = self._pixel_statistics[tel_id][name]["time_start"][0]
 
-                stats_data = interpolator(tel_id, time)
+                stats_data = interpolator(tel_id, time, timestamp_tolerance)
                 pixel_stats_container[name] = StatisticsContainer(
                     mean=stats_data["mean"],
                     median=stats_data["median"],
@@ -502,7 +508,9 @@ class HDF5MonitoringSource(MonitoringSource):
             # and monitoring is from simulation.
             if self.is_simulation and time is None:
                 time = self._camera_coefficients[tel_id]["time"][0]
-            table_rows = self._get_table_rows(time, self._camera_coefficients[tel_id])
+            table_rows = self._get_table_rows(
+                self._camera_coefficients[tel_id], time, timestamp_tolerance
+            )
             cam_mon_container["coefficients"] = CameraCalibrationContainer(
                 time=table_rows["time"],
                 pedestal_offset=table_rows["pedestal_offset"],
@@ -514,7 +522,10 @@ class HDF5MonitoringSource(MonitoringSource):
         return cam_mon_container
 
     def _get_table_rows(
-        self, time: astropy.time.Time, table: astropy.table.Table
+        self,
+        table: astropy.table.Table,
+        time: astropy.time.Time,
+        timestamp_tolerance: u.Quantity = 0.0 * u.s,
     ) -> dict:
         """
         Retrieve the rows of the table that corresponds to the target time.
@@ -525,6 +536,8 @@ class HDF5MonitoringSource(MonitoringSource):
             Target timestamp(s) to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference in seconds to consider two timestamps equal. Default is 0s.
 
         Returns
         -------
@@ -535,17 +548,26 @@ class HDF5MonitoringSource(MonitoringSource):
 
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         table_times = table["time"]
+        # Convert timestamp tolerance to MJD days
+        tolerance_mjd = timestamp_tolerance.to_value("day")
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(table_times, mjd_times, side="right") - 1
 
         time_idx = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
-            # Check lower bounds when requested timestamp is before the validity start
+            # Check if the requested time is before the first chunk
             if preceding_index < 0:
-                raise ValueError(
-                    f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
-                    f"validity start '{table['time'][0]} MJD' (first entry in the table). "
-                )
+                # If the time is before the first chunk and not within tolerance, break
+                if (table_times[0] - tolerance_mjd) > mjd:
+                    raise ValueError(
+                        f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
+                        f"validity start '{table['time'][0]} MJD' (first entry in the table). "
+                        f"Please provide a timestamp within the validity range or increase "
+                        f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
+                    )
+                else:
+                    # Use the first chunk since it's within tolerance
+                    preceding_index = 0
             # Check upper bounds when requested timestamp is after the last entry
             if preceding_index >= len(table) - 1:
                 time_idx.append(table["time"][-1])

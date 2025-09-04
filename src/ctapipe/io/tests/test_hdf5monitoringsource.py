@@ -209,10 +209,18 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
             "time_end"
         ][-1]
         # Set the unique timestamp
-        unique_timestamp = t_start + 0.2 * u.s
+        unique_timestamp = t_start - 0.2 * u.s
+        # Test exception of interpolating outside the valid range
+        with pytest.raises(
+            ValueError,
+            match="Out of bounds: Requested timestamp",
+        ):
+            monitoring_source.get_camera_monitoring_container(
+                tel_id, unique_timestamp, timestamp_tolerance=0.1 * u.s
+            )
         # Get the camera monitoring container for the given unique timestamps
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamp
+            tel_id, unique_timestamp, timestamp_tolerance=0.25 * u.s
         )
         # Validate the returned container
         camera_mon_con.validate()
