@@ -116,3 +116,6 @@ Reference/API
 
 .. automodapi:: ctapipe.tools.calculate_pixel_stats
    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.store_astropy_cache
+   :no-inheritance-diagram:
