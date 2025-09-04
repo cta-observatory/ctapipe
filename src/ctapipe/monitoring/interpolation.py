@@ -9,6 +9,7 @@ from astropy.time import Time
 from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
+from ctapipe.core.traits import AstroQuantity
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_FLATFIELD_IMAGE_GROUP,
@@ -232,6 +233,12 @@ class ChunkInterpolator(MonitoringInterpolator):
     Simple interpolator for overlapping chunks of data.
     """
 
+    timestamp_tolerance = AstroQuantity(
+        default_value=u.Quantity(0.1, u.second),
+        physical_type=u.physical.time,
+        help="Time difference in seconds to consider two timestamps equal.",
+    ).tag(config=True)
+
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.time_start = {}
@@ -312,29 +319,53 @@ class ChunkInterpolator(MonitoringInterpolator):
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]
         mjd_times = np.atleast_1d(time.to_value("mjd"))
+        # Convert timestamp tolerance to MJD days
+        tolerance_mjd = self.timestamp_tolerance.to_value("day")
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(time_start, mjd_times, side="right") - 1
 
         interpolated_values = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
-            value = np.nan
+            # Default value is NaN or array of NaNs
+            value = (
+                np.nan if np.isscalar(values[0]) else np.full_like(values[0], np.nan)
+            )
+            # Check if the requested time is before the first chunk
             if preceding_index < 0:
-                continue
+                # If the time is before the first chunk and not within tolerance, return NaN
+                if (time_start[0] - tolerance_mjd) > mjd:
+                    interpolated_values.append(value)
+                    continue
+                else:
+                    # Use the first chunk since it's within tolerance
+                    preceding_index = 0
+
             # Check if the time is within the valid range of the chunk
-            if time_start[preceding_index] <= mjd <= time_end[preceding_index]:
+            if (
+                (time_start[preceding_index] - tolerance_mjd)
+                <= mjd
+                <= (time_end[preceding_index] + tolerance_mjd)
+            ):
                 value = values[preceding_index]
+                # If no NaN values, we can append immediately and continue
+                if np.all(~np.isnan(value)):
+                    interpolated_values.append(value)
+                    continue
+
             # Fill NaN values from earlier overlapping chunks
-            valid_earlier = np.nonzero(
-                (time_start[:preceding_index] <= mjd)
-                & (mjd <= time_end[:preceding_index])
-            )[0]
-            for i in reversed(valid_earlier):
-                value = (
-                    values[i]
-                    if value is np.nan
-                    else np.where(np.isnan(value), values[i], value)
-                )
+            for i in range(preceding_index - 1, -1, -1):
+                if (
+                    (time_start[i] - tolerance_mjd)
+                    <= mjd
+                    <= (time_end[i] + tolerance_mjd)
+                ):
+                    # Only fill NaN values
+                    value = np.where(np.isnan(value), values[i], value)
+                    # If no NaN values left, we can stop
+                    if np.all(~np.isnan(value)):
+                        break
             interpolated_values.append(value)
+        # If only a single time was provided, return the value directly
         if len(interpolated_values) == 1:
             interpolated_values = interpolated_values[0]
         return interpolated_values
