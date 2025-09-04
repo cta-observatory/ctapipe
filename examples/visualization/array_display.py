@@ -120,8 +120,8 @@ plt.colorbar(ad.telescopes, label="Distance (m)")
 # set of parameters.
 #
 
-np.random.seed(0)
-phis = np.random.uniform(0, 180.0, size=subarray.n_tels) * u.deg
+rng = np.random.default_rng(0)
+phis = rng.uniform(0, 180.0, size=subarray.n_tels) * u.deg
 rhos = np.ones(subarray.n_tels) * 200 * u.m
 
 
