@@ -13,6 +13,7 @@ from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ..core import Component, Provenance, traits
+from ..exceptions import InputMissing
 from ..instrument import FocalLengthKind, SubarrayDescription
 from ..monitoring.interpolation import PointingInterpolator
 from .astropy_helpers import join_allow_empty, read_table
@@ -248,7 +249,7 @@ class TableLoader(Component):
 
         super().__init__(**kwargs)
         if h5file is None and self.input_url is None:
-            raise ValueError("Need to specify either input_url or h5file")
+            raise InputMissing("Need to specify either input_url or h5file")
 
         if h5file is None:
             self.h5file = tables.open_file(self.input_url, mode="r")

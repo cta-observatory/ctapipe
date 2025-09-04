@@ -42,16 +42,12 @@ class ApplyModels(Tool):
     """
 
     input_url = Path(
-        default_value=None,
-        allow_none=False,
         directory_ok=False,
         exists=True,
         help="Input dl1b/dl2 file",
     ).tag(config=True)
 
     output_path = Path(
-        default_value=None,
-        allow_none=False,
         directory_ok=False,
         help="Output file",
     ).tag(config=True)
@@ -133,6 +129,24 @@ class ApplyModels(Tool):
         """
         Initialize components from config
         """
+        if self.input_url is None:
+            self.log.critical(
+                "Setting input_url is required (via -i, --input or a config file)."
+            )
+            self.exit(1)
+
+        if self.output_path is None:
+            self.log.critical(
+                "Setting output_path is required (via -o, --output or a config file)."
+            )
+            self.exit(1)
+
+        if len(self.reconstructor_paths) == 0:
+            self.log.critical(
+                "At least one reconstructor must be given (via -r, --reconstructor or a config file)."
+            )
+            self.exit(1)
+
         self.check_output(self.output_path)
         self.log.info("Copying to output destination.")
 

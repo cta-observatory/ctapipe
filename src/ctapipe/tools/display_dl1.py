@@ -8,7 +8,7 @@ from ..calib import CameraCalibrator
 from ..core import Component, QualityQuery, Tool
 from ..core.tool import ToolConfigurationError
 from ..core.traits import Bool, Int, Path, classes_with_traits, flag
-from ..exceptions import OptionalDependencyMissing
+from ..exceptions import InputMissing, OptionalDependencyMissing
 from ..image.extractor import ImageExtractor
 from ..io import EventSource
 from ..io.datalevels import DataLevel
@@ -179,7 +179,14 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.enter_context(EventSource(parent=self))
+        try:
+            self.eventsource = self.enter_context(EventSource(parent=self))
+        except InputMissing:
+            self.log.critical(
+                "Specifying EventSource.input_url is required (via -i, --input or a config file)."
+            )
+            self.exit(1)
+
         self.quality_query = QualityQuery(parent=self)
 
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
