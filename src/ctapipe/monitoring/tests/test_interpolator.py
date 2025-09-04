@@ -123,6 +123,8 @@ def test_no_valid_chunk():
     for key in ["mean", "median", "std"]:
         assert np.isnan(val[key])
 
+
+def test_before_first_chunk():
     table_ped = Table(
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
@@ -132,12 +134,22 @@ def test_no_valid_chunk():
             "std": [1, 2, 3, 4],
         },
     )
-    interpolator_ped = PedestalImageInterpolator()
+    interpolator_ped = PedestalImageInterpolator(timestamp_tolerance=0.25 * u.s)
     interpolator_ped.add_table(1, table_ped)
 
-    val = interpolator_ped(tel_id=1, time=t0 + 5.2 * u.s)
+    values_invalid = interpolator_ped(tel_id=1, time=t0 - 5.2 * u.s)
     for key in ["mean", "median", "std"]:
-        assert np.isnan(val[key])
+        assert np.isnan(values_invalid[key])
+
+    values_valid = interpolator_ped(tel_id=1, time=t0 - 0.15 * u.s)
+    for key in ["mean", "median", "std"]:
+        assert values_valid[key] == table_ped[key][0]
+
+    interpolator_ped = PedestalImageInterpolator(timestamp_tolerance=0.04 * u.s)
+    interpolator_ped.add_table(1, table_ped)
+    values_invalid = interpolator_ped(tel_id=1, time=t0 - 0.15 * u.s)
+    for key in ["mean", "median", "std"]:
+        assert np.isnan(values_invalid[key])
 
 
 def test_azimuth_switchover():
