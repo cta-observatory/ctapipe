@@ -12,7 +12,7 @@ from astropy import units as u
 from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_array, lil_array
 from scipy.spatial import cKDTree
 
 from ctapipe.coordinates import CameraFrame, get_representation_component_names
@@ -187,12 +187,12 @@ class CameraGeometry:
 
         if neighbors is not None:
             if isinstance(neighbors, list):
-                lil = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
+                lil = lil_array((self.n_pixels, self.n_pixels), dtype=bool)
                 for pix_id, neighbors in enumerate(neighbors):
                     lil[pix_id, neighbors] = True
                 self._neighbors = lil.tocsr()
             else:
-                self._neighbors = csr_matrix(neighbors)
+                self._neighbors = csr_array(neighbors)
 
         if apply_derotation:
             self.rotate(self.cam_rotation)
@@ -719,7 +719,7 @@ class CameraGeometry:
             If rectangular geometry, also add diagonal neighbors
         """
         if self.n_pixels <= 1:
-            return csr_matrix(np.ones((self.n_pixels, self.n_pixels), dtype=bool))
+            return csr_array(np.ones((self.n_pixels, self.n_pixels), dtype=bool))
 
         # assume circle pixels are also on a hex grid
         if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
@@ -759,7 +759,7 @@ class CameraGeometry:
         neighbors = neighbor_candidates[pixels, neigbor_index]
         data = np.ones(len(pixels), dtype=bool)
 
-        neighbor_matrix = csr_matrix((data, (pixels, neighbors)))
+        neighbor_matrix = csr_array((data, (pixels, neighbors)))
 
         # filter annoying deprecation warning from within scipy
         # scipy still uses np.matrix in scipy.sparse, but we do not
@@ -928,7 +928,7 @@ class CameraGeometry:
             warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
             if width == 1:
-                n_neighbors = np.asarray(self.neighbor_matrix_sparse.sum(axis=0))[0]
+                n_neighbors = self.neighbor_matrix_sparse.sum(axis=0)
                 max_neighbors = n_neighbors.max()
                 mask = n_neighbors < max_neighbors
             else:
