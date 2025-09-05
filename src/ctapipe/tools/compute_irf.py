@@ -19,8 +19,11 @@ from pyirf.io import create_rad_max_hdu
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
+from ..io.dl2_tables_preprocessing import (
+    DL2EventLoader,
+    DL2EventQualityQuery,
+)
 from ..irf import (
-    EventLoader,
     OptimizationResult,
     Spectra,
     check_bins_in_range,
@@ -36,7 +39,6 @@ from ..irf.irfs import (
     EnergyDispersionMakerBase,
     PSFMakerBase,
 )
-from ..irf.preprocessing import EventQualityQuery
 
 __all__ = ["IrfTool"]
 
@@ -214,7 +216,7 @@ class IrfTool(Tool):
 
     classes = (
         [
-            EventLoader,
+            DL2EventLoader,
         ]
         + classes_with_traits(BackgroundRateMakerBase)
         + classes_with_traits(EffectiveAreaMakerBase)
@@ -267,7 +269,7 @@ class IrfTool(Tool):
             raise_error=self.range_check_error,
         )
         self.event_loaders = {
-            "gammas": EventLoader(
+            "gammas": DL2EventLoader(
                 parent=self,
                 file=self.gamma_file,
                 target_spectrum=self.gamma_target_spectrum,
@@ -281,13 +283,13 @@ class IrfTool(Tool):
                     "At least a proton file required when specifying `do_background`."
                 )
 
-            self.event_loaders["protons"] = EventLoader(
+            self.event_loaders["protons"] = DL2EventLoader(
                 parent=self,
                 file=self.proton_file,
                 target_spectrum=self.proton_target_spectrum,
             )
             if self.electron_file and self.electron_file.exists():
-                self.event_loaders["electrons"] = EventLoader(
+                self.event_loaders["electrons"] = DL2EventLoader(
                     parent=self,
                     file=self.electron_file,
                     target_spectrum=self.electron_target_spectrum,
@@ -507,7 +509,7 @@ class IrfTool(Tool):
                         ],
                     )
                 )
-                loader.epp.quality_query = EventQualityQuery(
+                loader.epp.quality_query = DL2EventQualityQuery(
                     parent=loader,
                     quality_criteria=self.opt_result.quality_query.quality_criteria,
                 )

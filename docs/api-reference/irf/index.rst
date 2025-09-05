@@ -33,7 +33,6 @@ Submodules
     irfs
     benchmarks
     binning
-    preprocessing
     spectra
 
 

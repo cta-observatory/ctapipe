@@ -13,8 +13,8 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer, Path
+from ..io.dl2_tables_preprocessing import DL2EventQualityQuery
 from .binning import DefaultRecoEnergyBins, ResultValidRange
-from .preprocessing import EventQualityQuery
 
 __all__ = [
     "CutOptimizerBase",
@@ -168,7 +168,7 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: DL2EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         """
@@ -180,7 +180,7 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
         events: dict[str, astropy.table.QTable]
             Dictionary containing tables of events used for calculating cuts.
             This has to include "signal" events and can include "background" events.
-        quality_query: ctapipe.irf.EventPreprocessor
+        quality_query: ctapipe.io.DL2EventPreprocessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events.
         clf_prefix: str
@@ -305,7 +305,7 @@ class PercentileCuts(CutOptimizerBase):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: DL2EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         self._check_events(events)
@@ -393,7 +393,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: DL2EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         self._check_events(events)
