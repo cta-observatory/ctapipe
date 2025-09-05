@@ -741,3 +741,14 @@ def test_has_true_image_first_missing():
             assert event.simulation.tel[1].true_image is not None
             n_found += 1
         assert n_found == 2
+
+
+def test_all_events():
+    n = 0
+    with SimTelEventSource(prod5b_path, skip_non_triggered_events=False) as source:
+        for e in source:
+            n += 1
+
+    config = source.simulation_config[source.obs_id]
+    expected = config.n_showers * config.shower_reuse
+    assert n == expected

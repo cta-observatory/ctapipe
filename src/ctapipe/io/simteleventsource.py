@@ -499,9 +499,16 @@ class SimTelEventSource(EventSource):
     for `ctapipe.instrument.guess_telescope`.
     """
 
-    skip_calibration_events = Bool(True, help="Skip calibration events").tag(
-        config=True
-    )
+    skip_calibration_events = Bool(
+        True,
+        help="Skip calibration events",
+    ).tag(config=True)
+
+    skip_non_triggered_events = Bool(
+        True,
+        help="Skip events that did not trigger",
+    ).tag(config=True)
+
     back_seekable = Bool(
         False,
         help=(
@@ -607,11 +614,17 @@ class SimTelEventSource(EventSource):
                 "Specifying input_url directly or via config is required."
             )
 
+        kwargs = {}
+        # only include it if False, requires eventio 2.0
+        if self.skip_non_triggered_events is False:
+            kwargs["skip_non_triggered"] = False
+
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
             allowed_telescopes=self.allowed_tels,
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
+            **kwargs,
         )
         # TODO: read metadata from simtel metaparams once we have files that
         # actually provide the reference metadata.
@@ -686,7 +699,13 @@ class SimTelEventSource(EventSource):
 
     @property
     def is_stream(self):
-        return not isinstance(self.file_._filehandle, BufferedReader | GzipFile)
+        # eventio 2.0
+        if hasattr(self.file_, "_file"):
+            eventio_file = self.file_._file
+        # older
+        else:
+            eventio_file = self.file_
+        return not isinstance(eventio_file._filehandle, BufferedReader | GzipFile)
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
@@ -900,12 +919,12 @@ class SimTelEventSource(EventSource):
 
             obs_id = self.obs_id
 
-            trigger = self._fill_trigger_info(array_event)
-            if trigger.event_type == EventType.SUBARRAY:
+            if "mc_shower" in array_event:
                 shower = self._fill_simulated_event_information(array_event)
             else:
                 shower = None
 
+            trigger = self._fill_trigger_info(array_event)
             data = ArrayEventContainer(
                 simulation=SimulatedEventContainer(shower=shower),
                 pointing=self._fill_array_pointing(),
@@ -917,150 +936,151 @@ class SimTelEventSource(EventSource):
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
 
-            telescope_events = array_event["telescope_events"]
-            tracking_positions = array_event["tracking_positions"]
-
-            photoelectron_sums = array_event.get("photoelectron_sums")
-            if photoelectron_sums is not None:
-                true_image_sums = photoelectron_sums.get(
-                    "n_pe", np.full(self.n_telescopes_original, np.nan)
-                )
-            else:
-                true_image_sums = np.full(self.n_telescopes_original, np.nan)
-
-            if data.simulation.shower is not None:
-                # compute impact distances of the shower to the telescopes
-                impact_distances = shower_impact_distance(
-                    shower_geom=data.simulation.shower, subarray=self.subarray
-                )
-            else:
-                impact_distances = np.full(len(self.subarray), np.nan) * u.m
-
-            for tel_id, telescope_event in telescope_events.items():
-                if tel_id not in trigger.tels_with_trigger:
-                    # skip additional telescopes that have data but did not
-                    # participate in the subarray trigger decision for this stereo event
-                    # see #2660 for details
-                    self.log.warning(
-                        "Encountered telescope event not present in"
-                        " stereo trigger information, skipping."
-                        " event_id = %d, tel_id = %d, tels_with_trigger: %s",
-                        event_id,
-                        tel_id,
-                        trigger.tels_with_trigger,
-                    )
-                    continue
-
-                adc_samples = telescope_event.get("adc_samples")
-                if adc_samples is None:
-                    adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
-
-                n_gains, n_pixels, n_samples = adc_samples.shape
-                true_image = (
-                    array_event.get("photoelectrons", {})
-                    .get(tel_id - 1, {})
-                    .get("photoelectrons", None)
-                )
-                true_image_sum = true_image_sums[
-                    self.telescope_indices_original[tel_id]
-                ]
-
-                if self._has_true_image and true_image is None:
-                    if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
-                        self.log.warning(
-                            "Encountered extremely bright telescope event with missing true_image in"
-                            "file that has true images: event_id = %d, tel_id = %d."
-                            "event might be truncated, skipping telescope event",
-                            event_id,
-                            tel_id,
-                        )
-                        continue
-                    else:
-                        self.log.info(
-                            "telescope event event_id = %d, tel_id = %d is missing true image",
-                            event_id,
-                            tel_id,
-                        )
-                        true_image = np.full(n_pixels, -1, dtype=np.int32)
-
-                if data.simulation is not None:
-                    if data.simulation.shower is not None:
-                        impact_container = TelescopeImpactParameterContainer(
-                            distance=impact_distances[
-                                self.subarray.tel_index_array[tel_id]
-                            ],
-                            distance_uncert=0 * u.m,
-                            prefix="true_impact",
-                        )
-                    else:
-                        impact_container = TelescopeImpactParameterContainer(
-                            prefix="true_impact",
-                        )
-
-                    data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                        true_image_sum=true_image_sum,
-                        true_image=true_image,
-                        impact=impact_container,
-                    )
-
-                data.pointing.tel[tel_id] = self._fill_event_pointing(
-                    tracking_positions[tel_id]
-                )
-
-                data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
-
-                cam_mon = array_event["camera_monitorings"][tel_id]
-                pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
-                dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-
-                # fill dc_to_pe and pedestal_per_sample info into monitoring
-                # container
-                mon = data.mon.tel[tel_id]
-                mon.calibration.dc_to_pe = dc_to_pe
-                mon.calibration.pedestal_per_sample = pedestal
-                mon.pixel_status = self._fill_mon_pixels_status(tel_id)
-
-                select_gain = self.select_gain is True or (
-                    self.select_gain is None
-                    and trigger.event_type is EventType.SUBARRAY
-                )
-                if select_gain:
-                    gain_selector = self.gain_selector
-                else:
-                    gain_selector = None
-
-                if self.skip_r1_calibration:
-                    # Skip the simtel R1 calibration
-                    r1_waveform = adc_samples.astype(np.float32)
-                    selected_gain_channel = None
-                else:
-                    # Apply the simtel R1 calibration and the gain selector if selected
-                    r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
-                        adc_samples,
-                        pedestal,
-                        dc_to_pe,
-                        gain_selector,
-                        self.calib_scale,
-                        self.calib_shift,
-                    )
-
-                pixel_status = self._get_r1_pixel_status(
-                    tel_id=tel_id,
-                    selected_gain_channel=selected_gain_channel,
-                )
-                data.r1.tel[tel_id] = R1CameraContainer(
-                    event_type=trigger.event_type,
-                    waveform=r1_waveform,
-                    selected_gain_channel=selected_gain_channel,
-                    pixel_status=pixel_status,
-                )
-
-                # get time_shift from laser calibration
-                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib
+            if array_event.get("telescope_events"):
+                self._fill_telescope_data(data, array_event, trigger)
 
             yield data
+
+    def _fill_telescope_data(self, data, array_event, trigger):
+        telescope_events = array_event["telescope_events"]
+        tracking_positions = array_event["tracking_positions"]
+
+        photoelectron_sums = array_event.get("photoelectron_sums")
+        if photoelectron_sums is not None:
+            true_image_sums = photoelectron_sums.get(
+                "n_pe", np.full(self.n_telescopes_original, np.nan)
+            )
+        else:
+            true_image_sums = np.full(self.n_telescopes_original, np.nan)
+
+        if data.simulation.shower is not None:
+            # compute impact distances of the shower to the telescopes
+            impact_distances = shower_impact_distance(
+                shower_geom=data.simulation.shower, subarray=self.subarray
+            )
+        else:
+            impact_distances = np.full(len(self.subarray), np.nan) * u.m
+
+        for tel_id, telescope_event in telescope_events.items():
+            if tel_id not in trigger.tels_with_trigger:
+                # skip additional telescopes that have data but did not
+                # participate in the subarray trigger decision for this stereo event
+                # see #2660 for details
+                self.log.warning(
+                    "Encountered telescope event not present in"
+                    " stereo trigger information, skipping."
+                    " event_id = %d, tel_id = %d, tels_with_trigger: %s",
+                    data.index.event_id,
+                    tel_id,
+                    trigger.tels_with_trigger,
+                )
+                continue
+
+            adc_samples = telescope_event.get("adc_samples")
+            if adc_samples is None:
+                adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
+
+            n_gains, n_pixels, n_samples = adc_samples.shape
+            true_image = (
+                array_event.get("photoelectrons", {})
+                .get(tel_id - 1, {})
+                .get("photoelectrons", None)
+            )
+            true_image_sum = true_image_sums[self.telescope_indices_original[tel_id]]
+
+            if self._has_true_image and true_image is None:
+                if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
+                    self.log.warning(
+                        "Encountered extremely bright telescope event with missing true_image in"
+                        "file that has true images: event_id = %d, tel_id = %d."
+                        "event might be truncated, skipping telescope event",
+                        data.index.event_id,
+                        tel_id,
+                    )
+                    continue
+                else:
+                    self.log.info(
+                        "telescope event event_id = %d, tel_id = %d is missing true image",
+                        data.index.event_id,
+                        tel_id,
+                    )
+                    true_image = np.full(n_pixels, -1, dtype=np.int32)
+
+            if data.simulation is not None:
+                if data.simulation.shower is not None:
+                    impact_container = TelescopeImpactParameterContainer(
+                        distance=impact_distances[
+                            self.subarray.tel_index_array[tel_id]
+                        ],
+                        distance_uncert=0 * u.m,
+                        prefix="true_impact",
+                    )
+                else:
+                    impact_container = TelescopeImpactParameterContainer(
+                        prefix="true_impact",
+                    )
+
+                data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                    true_image_sum=true_image_sum,
+                    true_image=true_image,
+                    impact=impact_container,
+                )
+
+            data.pointing.tel[tel_id] = self._fill_event_pointing(
+                tracking_positions[tel_id]
+            )
+
+            data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
+
+            cam_mon = array_event["camera_monitorings"][tel_id]
+            pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
+            dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
+
+            # fill dc_to_pe and pedestal_per_sample info into monitoring
+            # container
+            mon = data.mon.tel[tel_id]
+            mon.calibration.dc_to_pe = dc_to_pe
+            mon.calibration.pedestal_per_sample = pedestal
+            mon.pixel_status = self._fill_mon_pixels_status(tel_id)
+
+            select_gain = self.select_gain is True or (
+                self.select_gain is None and trigger.event_type is EventType.SUBARRAY
+            )
+            if select_gain:
+                gain_selector = self.gain_selector
+            else:
+                gain_selector = None
+
+            if self.skip_r1_calibration:
+                # Skip the simtel R1 calibration
+                r1_waveform = adc_samples.astype(np.float32)
+                selected_gain_channel = None
+            else:
+                # Apply the simtel R1 calibration and the gain selector if selected
+                r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
+                    adc_samples,
+                    pedestal,
+                    dc_to_pe,
+                    gain_selector,
+                    self.calib_scale,
+                    self.calib_shift,
+                )
+
+            pixel_status = self._get_r1_pixel_status(
+                tel_id=tel_id,
+                selected_gain_channel=selected_gain_channel,
+            )
+            data.r1.tel[tel_id] = R1CameraContainer(
+                event_type=trigger.event_type,
+                waveform=r1_waveform,
+                selected_gain_channel=selected_gain_channel,
+                pixel_status=pixel_status,
+            )
+
+            # get time_shift from laser calibration
+            time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
+            dl1_calib = data.calibration.tel[tel_id].dl1
+            dl1_calib.time_shift = time_calib
 
     def _get_r1_pixel_status(self, tel_id, selected_gain_channel):
         tel_desc = self.file_.telescope_descriptions[tel_id]
@@ -1122,7 +1142,9 @@ class SimTelEventSource(EventSource):
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
     def _fill_trigger_info(self, array_event):
-        trigger = array_event["trigger_information"]
+        trigger = array_event.get("trigger_information")
+        if trigger is None:
+            return
 
         if array_event["type"] == "data":
             event_type = EventType.SUBARRAY
@@ -1296,10 +1318,8 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def _fill_simulated_event_information(array_event):
-        mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
-        if mc_shower is None:
-            return
+        mc_event = array_event["mc_event"]
 
         alt = _clip_altitude_if_close(mc_shower["altitude"])
 
