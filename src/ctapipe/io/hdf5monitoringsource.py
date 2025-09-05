@@ -17,7 +17,7 @@ from astropy.utils.decorators import lazyproperty
 from ..containers import (
     ArrayEventContainer,
     CameraCalibrationContainer,
-    MonitoringCameraContainer,
+    CameraMonitoringContainer,
     PixelStatisticsContainer,
     StatisticsContainer,
     TelescopePointingContainer,
@@ -73,7 +73,9 @@ def get_hdf5_monitoring_types(
                 monitoring_types = [MonitoringTypes.TELESCOPE_POINTINGS]
             else:
                 # Return empty tuple if calibration group doesn't exist
-                warnings.warn(f"No monitoring types found in '{h5file}'.", UserWarning)
+                warnings.warn(
+                    f"No monitoring types found in '{h5file.filename}'.", UserWarning
+                )
                 monitoring_types = []
 
     return tuple(monitoring_types)
@@ -95,10 +97,9 @@ class HDF5MonitoringSource(MonitoringSource):
     >>> from ctapipe.utils import get_dataset_path
     >>> tel_id = 1
     >>> event_source = SimTelEventSource(
-    ...    input_url="dataset://gamma_test_large.simtel.gz",
+    ...    input_url="dataset://gamma_prod6_preliminary.simtel.zst",
     ...    allowed_tels={tel_id},
     ...    max_events=1,
-    ...    focal_length_choice='EQUIVALENT',
     ...    skip_r1_calibration=True,
     ... )
     >>> file = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
@@ -447,7 +448,7 @@ class HDF5MonitoringSource(MonitoringSource):
         tel_id: int,
         time: astropy.time.Time = None,
         timestamp_tolerance: u.Quantity = 0.0 * u.s,
-    ) -> MonitoringCameraContainer:
+    ) -> CameraMonitoringContainer:
         """
         Retrieve the camera monitoring container with interpolated data.
 
@@ -465,7 +466,7 @@ class HDF5MonitoringSource(MonitoringSource):
 
         Returns
         -------
-        MonitoringCameraContainer
+        CameraMonitoringContainer
             The camera monitoring container.
         """
         if not self.is_simulation and time is None:
@@ -482,7 +483,7 @@ class HDF5MonitoringSource(MonitoringSource):
             self.log.warning(msg)
             warnings.warn(msg, UserWarning)
 
-        cam_mon_container = MonitoringCameraContainer()
+        cam_mon_container = CameraMonitoringContainer()
         if self.has_pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
             pixel_stats_container = PixelStatisticsContainer()

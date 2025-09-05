@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from traitlets.config import Config
 
-from ctapipe.containers import MonitoringCameraContainer
+from ctapipe.containers import CameraMonitoringContainer
 from ctapipe.image import ImageCleaner
 from ctapipe.instrument import SubarrayDescription
 
@@ -42,7 +42,7 @@ def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
         reference_location=reference_location,
     )
 
-    monitoring = MonitoringCameraContainer()
+    monitoring = CameraMonitoringContainer()
     monitoring.pixel_statistics.sky_pedestal_image.std = np.ones(
         prod5_mst_nectarcam.camera.geometry.n_pixels
     )
