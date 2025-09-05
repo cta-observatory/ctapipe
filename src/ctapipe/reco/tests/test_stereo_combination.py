@@ -240,3 +240,15 @@ def test_mean_prediction_single_event(weights):
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
     assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(0.6)
+
+
+def test_ReconstructedContainer_warnings():
+    from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
+
+    container = ReconstructedContainer()
+
+    with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
+        _ = container.classification
+
+    with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
+        container.classification = ParticleClassificationContainer()
