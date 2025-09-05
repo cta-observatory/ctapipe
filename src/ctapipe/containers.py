@@ -149,25 +149,40 @@ class CoordinateFrameType(enum.Enum):
 
 
 class EventType(enum.Enum):
-    """Enum of EventTypes as defined in :cite:p:`ctao-r1-event-data-model`"""
+    """R1/DL0 EventType
 
-    # calibrations are 0-15
+    Defined in :cite:p:`ctao-r1-event-data-model`.
+    """
+
+    #: Flatfield event
     FLATFIELD = 0
+    #: Single PE event
     SINGLE_PE = 1
-    SKY_PEDESTAL = 2
+    #: Generic pedestal, assigned if no further distinction on the type could be made
+    PEDESTAL = 2
+    #: Dark pedestal, taken with HV on, shutter closed.
     DARK_PEDESTAL = 3
+    #: Electronics pedestal, taken with HV off.
     ELECTRONIC_PEDESTAL = 4
+    #: Sky pedestal, taken with HV on, shutter open
+    SKY_PEDESTAL = 5
     OTHER_CALIBRATION = 15
 
-    #: For mono-telescope triggers (not used in MC)
+    #: Muon event candidate
     MUON = 16
+    #: (LST) hardware-stereo trigger
     HARDWARE_STEREO = 17
+    #: Random mono trigger, used in simulations to force storage
+    #: of event regardless of subarray trigger for certain studies.
+    RANDOM_MONO = 18
 
     #: ACADA (DAQ) software trigger
     DAQ = 24
 
-    #: Standard Physics  stereo trigger
+    #: Standard Physics trigger
     SUBARRAY = 32
+    #: Standard Physics trigger with extended readout window
+    LONG_EVENT = 33
 
     UNKNOWN = 255
 
@@ -919,6 +934,8 @@ class SimulationConfigContainer(Container):
 class TelescopeTriggerContainer(Container):
     default_prefix = ""
     time = Field(NAN_TIME, description="Telescope trigger time")
+    event_type = Field(EventType.UNKNOWN, description="Event type")
+
     n_trigger_pixels = Field(
         -1, description="Number of trigger groups (sectors) listed"
     )

@@ -1,7 +1,7 @@
 import enum
 import warnings
 from contextlib import nullcontext
-from enum import Enum, auto, unique
+from enum import Enum, IntFlag, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
@@ -101,6 +101,37 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 _half_pi = 0.5 * np.pi
 _half_pi_maxval = (1 + 1e-6) * _half_pi
 _float32_nan = np.float32(np.nan)
+
+
+class SimTelTriggerMask(IntFlag):
+    """sim_telarray trigger type mask (teltrg_type_mask)."""
+
+    ANALOG_MAJORITY = auto()
+    ANALOG_SUM = auto()
+    DIGITAL_SUM = auto()
+    DIGITAL_MAJORITY = auto()
+    RESERVED4 = auto()
+    RESERVED5 = auto()
+    RESERVED6 = auto()
+    RESERVED7 = auto()
+    LONG_EVENT = auto()
+    MUON = auto()
+    RANDOM_MONO = auto()
+
+
+def _trigger_mask_to_event_type(trigger_mask):
+    trigger_mask = SimTelTriggerMask(int(trigger_mask))
+
+    if SimTelTriggerMask.RANDOM_MONO in trigger_mask:
+        return EventType.RANDOM_MONO
+
+    if SimTelTriggerMask.MUON in trigger_mask:
+        return EventType.MUON
+
+    if SimTelTriggerMask.LONG_EVENT in trigger_mask:
+        return EventType.LONG_EVENT
+
+    return EventType.SUBARRAY
 
 
 def _clip_altitude_if_close(altitude):
@@ -1148,8 +1179,10 @@ class SimTelEventSource(EventSource):
         central_time = parse_simtel_time(trigger["gps_time"])
 
         tel = Map(TelescopeTriggerContainer)
-        for tel_id, time in zip(
-            trigger["triggered_telescopes"], trigger["trigger_times"]
+        for tel_id, time, trigger_mask in zip(
+            trigger["triggered_telescopes"],
+            trigger["trigger_times"],
+            trigger["teltrg_type_mask"],
         ):
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
@@ -1176,6 +1209,7 @@ class SimTelEventSource(EventSource):
 
             tel[tel_id] = TelescopeTriggerContainer(
                 time=time,
+                event_type=_trigger_mask_to_event_type(trigger_mask),
                 n_trigger_pixels=n_trigger_pixels,
                 trigger_pixels=trigger_pixels,
             )
