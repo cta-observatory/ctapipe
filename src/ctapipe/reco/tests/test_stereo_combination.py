@@ -242,7 +242,7 @@ def test_mean_prediction_single_event(weights):
     assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(0.6)
 
 
-def test_ReconstructedContainer_warnings():
+def test_reconstructed_container_warning():
     from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
     container = ReconstructedContainer()
