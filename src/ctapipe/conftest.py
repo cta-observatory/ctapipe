@@ -168,6 +168,11 @@ def subarray_and_event_gamma_off_axis_500_gev(
 
 
 @pytest.fixture(scope="session")
+def prod6_gamma_simtel_path():
+    return get_dataset_path("gamma_prod6_preliminary.simtel.zst")
+
+
+@pytest.fixture(scope="session")
 def prod5_gamma_simtel_path():
     return get_dataset_path("gamma_prod5.simtel.zst")
 
@@ -184,6 +189,11 @@ def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
     )
+
+
+@pytest.fixture(scope="session")
+def proton_dl2_train_small_h5():
+    return get_dataset_path("proton_dl2_train_small.dl2.h5")
 
 
 @pytest.fixture(scope="session")
