@@ -5,10 +5,11 @@ from astropy.time import Time
 
 from ctapipe.core import ToolConfigurationError
 from ctapipe.io import (
-    HDF5EventSource,
+    EventSource,
     HDF5MonitoringSource,
     MonitoringTypes,
     get_hdf5_monitoring_types,
+    read_table,
 )
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
@@ -31,7 +32,7 @@ def test_hdf5_monitoring_source_subarray():
 def test_passing_subarray(dl1_file, calibpipe_camcalib_same_chunks):
     """test the functionality of passing a subarray from an EventSource"""
     allowed_tels = {1}
-    with HDF5EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
+    with EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray, input_files=calibpipe_camcalib_same_chunks
         )
@@ -74,7 +75,6 @@ def test_get_monitoring_types(
 
 def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_file):
     """test the monitoring filling for the camera calibration coefficients"""
-    from ctapipe.io import read_table
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
@@ -83,7 +83,7 @@ def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_fi
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )[0]
     allowed_tels = {tel_id}
-    with HDF5EventSource(
+    with EventSource(
         input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
     ) as source:
         monitoring_source = HDF5MonitoringSource(
@@ -112,7 +112,6 @@ def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_fi
 
 def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
     """test the get_camera_monitoring_container method with the monitoring source of simulation"""
-    from ctapipe.io import read_table
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
@@ -179,7 +178,6 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
 
 def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs):
     """test the get_camera_monitoring_container method with the monitoring source of observation"""
-    from ctapipe.io import read_table
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
@@ -296,7 +294,6 @@ def test_tel_pointing_filling(
     gamma_diffuse_full_reco_file, dl1_merged_monitoring_file_obs
 ):
     """test the monitoring filling for the telescope pointings"""
-    from ctapipe.io import read_table
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
@@ -308,7 +305,7 @@ def test_tel_pointing_filling(
         + 1 * u.s
     )
     allowed_tels = {tel_id}
-    with HDF5EventSource(
+    with EventSource(
         input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
     ) as source:
         monitoring_source = HDF5MonitoringSource(
@@ -337,7 +334,6 @@ def test_tel_pointing_filling(
 
 def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks_obs):
     """test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
-    from ctapipe.io import read_table
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
@@ -355,7 +351,7 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
     # and match the last entry.
     trigger_time_after = camcalib_coefficients["time"][-1] + 0.5 * u.s
     allowed_tels = {tel_id}
-    with HDF5EventSource(
+    with EventSource(
         input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
     ) as source:
         monitoring_source = HDF5MonitoringSource(
@@ -402,7 +398,6 @@ def test_hdf5_monitoring_source_multi_files_loading(
     dl1_mon_pointing_file_obs, calibpipe_camcalib_same_chunks_obs
 ):
     """Test loading multiple HDF5 monitoring files in the HDF5MonitoringSource"""
-    from ctapipe.io import read_table
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients for the timestamp
@@ -455,7 +450,7 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
     """test the common exceptions and warnings of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
     # This should raise a ToolConfigurationError.
-    with HDF5EventSource(input_url=gamma_diffuse_full_reco_file) as source:
+    with EventSource(input_url=gamma_diffuse_full_reco_file) as source:
         with pytest.raises(
             ToolConfigurationError, match="HDF5MonitoringSource: Requested telescopes"
         ):

@@ -21,9 +21,9 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
 
-from ctapipe.containers import ChunkStatisticsContainer
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import Int
+from ..containers import ChunkStatisticsContainer
+from ..core import TelescopeComponent
+from ..core.traits import Int
 
 __all__ = [
     "StatisticsAggregator",

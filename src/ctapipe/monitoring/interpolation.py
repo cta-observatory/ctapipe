@@ -8,8 +8,8 @@ from astropy.table import Table
 from astropy.time import Time
 from scipy.interpolate import interp1d
 
-from ctapipe.core import Component, traits
-from ctapipe.io.hdf5dataformat import (
+from ..core import Component, traits
+from ..io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_FLATFIELD_IMAGE_GROUP,
     DL1_FLATFIELD_PEAK_TIME_GROUP,

@@ -27,8 +27,8 @@ __all__ = [
     "ImageParametersContainer",
     "LeakageContainer",
     "CameraCalibrationContainer",
-    "MonitoringCameraContainer",
-    "MonitoringTelescopeContainer",
+    "CameraMonitoringContainer",
+    "TelescopeMonitoringContainer",
     "MonitoringContainer",
     "MorphologyContainer",
     "MuonRingContainer",
@@ -1245,7 +1245,7 @@ class PixelStatisticsContainer(Container):
     )
 
 
-class MonitoringCameraContainer(Container):
+class CameraMonitoringContainer(Container):
     """
     Container for camera monitoring data
     """
@@ -1261,14 +1261,14 @@ class MonitoringCameraContainer(Container):
     )
 
 
-class MonitoringTelescopeContainer(Container):
+class TelescopeMonitoringContainer(Container):
     """
     Root container for telescope monitoring data (MON)
     """
 
     # create the camera container
     camera = Field(
-        default_factory=MonitoringCameraContainer,
+        default_factory=CameraMonitoringContainer,
         description="Container for monitoring data for camera",
     )
     pointing = Field(
@@ -1284,8 +1284,8 @@ class MonitoringContainer(Container):
 
     # create the camera container
     tel = Field(
-        default_factory=partial(Map, MonitoringTelescopeContainer),
-        description="map of tel_id to MonitoringTelescopeContainer",
+        default_factory=partial(Map, TelescopeMonitoringContainer),
+        description="map of tel_id to TelescopeMonitoringContainer",
     )
     pointing = Field(
         default_factory=ArrayPointingContainer,
