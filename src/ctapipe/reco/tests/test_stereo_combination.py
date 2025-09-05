@@ -239,4 +239,4 @@ def test_mean_prediction_single_event(weights):
         assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
-    assert event.dl2.stereo.particle_type["dummy"].prediction == 0.6
+    assert np.isclose(event.dl2.stereo.particle_type["dummy"].prediction, 0.6)
