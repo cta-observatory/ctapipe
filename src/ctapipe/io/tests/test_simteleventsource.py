@@ -278,7 +278,7 @@ def test_time_shift():
     for event in source:
         for tel_id in event.trigger.tel.keys():
             # test time shift is applied correctly
-            assert event.monitoring.tel[tel_id].camera["coefficients"] is not None
+            assert event.monitoring.tel[tel_id].camera.coefficients is not None
 
 
 def test_trigger_times():
