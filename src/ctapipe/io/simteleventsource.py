@@ -1,10 +1,10 @@
 import enum
+import pathlib
 import warnings
 from contextlib import nullcontext
 from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
-from pathlib import Path
 
 import numpy as np
 from astropy import units as u
@@ -21,6 +21,8 @@ from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
+    ArrayPointingContainer,
+    CameraCalibrationContainer,
     CoordinateFrameType,
     EventIndexContainer,
     EventType,
@@ -28,8 +30,6 @@ from ..containers import (
     ObservationBlockState,
     ObservingMode,
     PixelStatus,
-    PixelStatusContainer,
-    PointingContainer,
     PointingMode,
     R0CameraContainer,
     R1CameraContainer,
@@ -302,7 +302,7 @@ def _telescope_from_meta(telescope_meta, mirror_area):
 
 
 def apply_simtel_r1_calibration(
-    r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale=1.0, calib_shift=0.0
+    r0_waveforms, pedestal, factor, gain_selector, calib_scale=1.0, calib_shift=0.0
 ):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
@@ -321,7 +321,7 @@ def apply_simtel_r1_calibration(
     pedestal : ndarray
         Pedestal stored in the simtel file for each gain channel
         Shape: (n_channels, n_pixels)
-    dc_to_pe : ndarray
+    factor : ndarray
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
@@ -346,8 +346,8 @@ def apply_simtel_r1_calibration(
     """
     n_pixels = r0_waveforms.shape[-2]
     ped = pedestal[..., np.newaxis]
-    DC_to_PHE = dc_to_pe[..., np.newaxis]
-    gain = DC_to_PHE * calib_scale
+    factor = factor[..., np.newaxis]
+    gain = factor * calib_scale
 
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
 
@@ -382,7 +382,7 @@ class AtmosphereProfileKind(Enum):
 
 
 def read_atmosphere_profile_from_simtel(
-    simtelfile: str | Path | SimTelFile, kind=AtmosphereProfileKind.AUTO
+    simtelfile: str | pathlib.Path | SimTelFile, kind=AtmosphereProfileKind.AUTO
 ) -> TableAtmosphereDensityProfile | None:
     """Read an atmosphere profile from a SimTelArray file as an astropy Table
 
@@ -410,7 +410,7 @@ def read_atmosphere_profile_from_simtel(
     if kind == AtmosphereProfileKind.NONE:
         return None
 
-    if isinstance(simtelfile, str | Path):
+    if isinstance(simtelfile, str | pathlib.Path):
         context_manager = SimTelFile(simtelfile)
         # FIXME: simtel files currently do not have CTAO reference
         # metadata, should be set to True once we store metadata
@@ -831,7 +831,7 @@ class SimTelEventSource(EventSource):
         except ModuleNotFoundError:
             raise OptionalDependencyMissing("eventio") from None
 
-        path = Path(file_path).expanduser()
+        path = pathlib.Path(file_path).expanduser()
         if not path.is_file():
             return False
         return is_eventio(path)
@@ -908,11 +908,13 @@ class SimTelEventSource(EventSource):
 
             data = ArrayEventContainer(
                 simulation=SimulatedEventContainer(shower=shower),
-                pointing=self._fill_array_pointing(),
                 index=EventIndexContainer(obs_id=obs_id, event_id=event_id),
                 count=counter,
                 trigger=trigger,
             )
+            # Fill the array pointing in the monitoring
+            data.monitoring.pointing = self._fill_array_pointing()
+            # Fill the metadata
             data.meta["origin"] = "hessio"
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
@@ -1003,7 +1005,7 @@ class SimTelEventSource(EventSource):
                         impact=impact_container,
                     )
 
-                data.pointing.tel[tel_id] = self._fill_event_pointing(
+                data.monitoring.tel[tel_id].pointing = self._fill_event_pointing(
                     tracking_positions[tel_id]
                 )
 
@@ -1011,14 +1013,8 @@ class SimTelEventSource(EventSource):
 
                 cam_mon = array_event["camera_monitorings"][tel_id]
                 pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
-                dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-
-                # fill dc_to_pe and pedestal_per_sample info into monitoring
-                # container
-                mon = data.mon.tel[tel_id]
-                mon.calibration.dc_to_pe = dc_to_pe
-                mon.calibration.pedestal_per_sample = pedestal
-                mon.pixel_status = self._fill_mon_pixels_status(tel_id)
+                factor = array_event["laser_calibrations"][tel_id]["calib"]
+                disabled_pixel_mask = self._get_disabled_pixel_mask(tel_id)
 
                 select_gain = self.select_gain is True or (
                     self.select_gain is None
@@ -1038,7 +1034,7 @@ class SimTelEventSource(EventSource):
                     r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                         adc_samples,
                         pedestal,
-                        dc_to_pe,
+                        factor,
                         gain_selector,
                         self.calib_scale,
                         self.calib_shift,
@@ -1054,11 +1050,14 @@ class SimTelEventSource(EventSource):
                     selected_gain_channel=selected_gain_channel,
                     pixel_status=pixel_status,
                 )
-
-                # get time_shift from laser calibration
-                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib
+                # Fill some monitoring information from the simtel file. This can
+                # be overwritten by using a monitoring file during the processing.
+                data.monitoring.tel[
+                    tel_id
+                ].camera.coefficients = CameraCalibrationContainer(
+                    time_shift=array_event["laser_calibrations"][tel_id]["tm_calib"],
+                    outlier_mask=disabled_pixel_mask,
+                )
 
             yield data
 
@@ -1081,7 +1080,7 @@ class SimTelEventSource(EventSource):
 
         return pixel_status
 
-    def _fill_mon_pixels_status(self, tel_id):
+    def _get_disabled_pixel_mask(self, tel_id):
         tel = self.file_.telescope_descriptions[tel_id]
         n_pixels = tel["camera_organization"]["n_pixels"]
         n_gains = tel["camera_organization"]["n_gains"]
@@ -1090,11 +1089,7 @@ class SimTelEventSource(EventSource):
         disabled_pixels = np.zeros((n_gains, n_pixels), dtype=bool)
         disabled_pixels[:, disabled_ids] = True
 
-        return PixelStatusContainer(
-            hardware_failing_pixels=disabled_pixels,
-            pedestal_failing_pixels=disabled_pixels.copy(),
-            flatfield_failing_pixels=disabled_pixels.copy(),
-        )
+        return disabled_pixels
 
     @staticmethod
     def _fill_event_pointing(tracking_position):
@@ -1189,13 +1184,13 @@ class SimTelEventSource(EventSource):
     def _fill_array_pointing(self):
         if self.file_.header["tracking_mode"] == 0:
             az, alt = self.file_.header["direction"]
-            return PointingContainer(
+            return ArrayPointingContainer(
                 array_altitude=u.Quantity(alt, u.rad),
                 array_azimuth=u.Quantity(az, u.rad),
             )
         else:
             ra, dec = self.file_.header["direction"]
-            return PointingContainer(
+            return ArrayPointingContainer(
                 array_ra=u.Quantity(ra, u.rad),
                 array_dec=u.Quantity(dec, u.rad),
             )

@@ -5,8 +5,8 @@ from abc import abstractmethod
 
 import numpy as np
 
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import Float, List
+from ..core import TelescopeComponent
+from ..core.traits import Float, List
 
 __all__ = [
     "OutlierDetector",

@@ -200,8 +200,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
-            az=event.pointing.array_azimuth,
-            alt=event.pointing.array_altitude,
+            az=event.monitoring.pointing.array_azimuth,
+            alt=event.monitoring.pointing.array_altitude,
             frame=AltAz(),
         )
 

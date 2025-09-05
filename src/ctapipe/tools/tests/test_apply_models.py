@@ -11,6 +11,16 @@ from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import TableLoader, read_table
+from ctapipe.io.hdf5dataformat import (
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_TRIGGER_TABLE,
+    DL2_SUBARRAY_ENERGY_GROUP,
+    DL2_SUBARRAY_GEOMETRY_GROUP,
+    DL2_SUBARRAY_PARTICLETYPE_GROUP,
+    DL2_TEL_ENERGY_GROUP,
+    DL2_TEL_GEOMETRY_GROUP,
+    DL2_TEL_PARTICLETYPE_GROUP,
+)
 from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
 from ctapipe.utils.datasets import get_dataset_path
 
@@ -39,7 +49,7 @@ def test_apply_energy_regressor(
     assert ret == 0
     print(output_path)
     prefix = "ExtraTreesRegressor"
-    table = read_table(output_path, f"/dl2/event/subarray/energy/{prefix}")
+    table = read_table(output_path, f"{DL2_SUBARRAY_ENERGY_GROUP}/{prefix}")
     for col in "obs_id", "event_id":
         assert table[col].description == EventIndexContainer.fields[col].description
 
@@ -73,8 +83,8 @@ def test_apply_energy_regressor(
         assert f"{prefix}_tel_is_valid" in tel_events.colnames
         assert "hillas_intensity" in tel_events.colnames
 
-    trigger = read_table(output_path, "/dl1/event/subarray/trigger")
-    energy = read_table(output_path, "/dl2/event/subarray/energy/ExtraTreesRegressor")
+    trigger = read_table(output_path, DL1_SUBARRAY_TRIGGER_TABLE)
+    energy = read_table(output_path, f"{DL2_SUBARRAY_ENERGY_GROUP}/ExtraTreesRegressor")
 
     check_equal_array_event_order(trigger, energy)
 
@@ -136,7 +146,7 @@ def test_apply_all(
     prefix_en = "ExtraTreesRegressor"
     prefix_disp = "disp"
 
-    table = read_table(output_path, f"/dl2/event/subarray/particle_type/{prefix_clf}")
+    table = read_table(output_path, f"{DL2_SUBARRAY_PARTICLETYPE_GROUP}/{prefix_clf}")
     for col in "obs_id", "event_id":
         # test file is produced using 0.17, the descriptions don't match
         # assert table[col].description == EventIndexContainer.fields[col].description
@@ -148,7 +158,7 @@ def test_apply_all(
         # test file is produced using 0.17, the descriptions don't match
         # assert table[colname].description == field.description
 
-    table = read_table(output_path, f"/dl2/event/subarray/geometry/{prefix_disp}")
+    table = read_table(output_path, f"{DL2_SUBARRAY_GEOMETRY_GROUP}/{prefix_disp}")
     for col in "obs_id", "event_id":
         # test file is produced using 0.17, the descriptions don't match
         # assert table[col].description == EventIndexContainer.fields[col].description
@@ -160,24 +170,24 @@ def test_apply_all(
         # test file is produced using 0.17, the descriptions don't match
         # assert table[colname].description == field.description
 
-    trigger = read_table(output_path, "/dl1/event/subarray/trigger")
+    trigger = read_table(output_path, DL1_SUBARRAY_TRIGGER_TABLE)
 
     subarray_tables = (
-        f"/dl2/event/subarray/particle_type/{prefix_clf}",
-        f"/dl2/event/subarray/geometry/{prefix_disp}",
-        f"/dl2/event/subarray/energy/{prefix_en}",
+        f"{DL2_SUBARRAY_PARTICLETYPE_GROUP}/{prefix_clf}",
+        f"{DL2_SUBARRAY_GEOMETRY_GROUP}/{prefix_disp}",
+        f"{DL2_SUBARRAY_ENERGY_GROUP}/{prefix_en}",
     )
     for key in subarray_tables:
         table = read_table(output_path, key)
         check_equal_array_event_order(trigger, table)
 
     subarray = SubarrayDescription.from_hdf(input_path)
-    tel_trigger = read_table(output_path, "/dl1/event/telescope/trigger")
+    tel_trigger = read_table(output_path, DL1_TEL_TRIGGER_TABLE)
     for tel_id in subarray.tel:
         tel_keys = (
-            f"/dl2/event/telescope/particle_type/{prefix_clf}/tel_{tel_id:03d}",
-            f"/dl2/event/telescope/geometry/{prefix_disp}/tel_{tel_id:03d}",
-            f"/dl2/event/telescope/energy/{prefix_en}/tel_{tel_id:03d}",
+            f"{DL2_TEL_PARTICLETYPE_GROUP}/{prefix_clf}/tel_{tel_id:03d}",
+            f"{DL2_TEL_GEOMETRY_GROUP}/{prefix_disp}/tel_{tel_id:03d}",
+            f"{DL2_TEL_ENERGY_GROUP}/{prefix_en}/tel_{tel_id:03d}",
         )
 
         tel_mask = tel_trigger["tel_id"] == tel_id
