@@ -45,7 +45,7 @@ def test_passing_subarray(dl1_file, calibpipe_camcalib_same_chunks):
 
 
 def test_get_monitoring_types(
-    gamma_diffuse_full_reco_file,
+    proton_dl2_train_small_h5,
     dl1_mon_pointing_file,
     calibpipe_camcalib_different_chunks,
     dl1_merged_monitoring_file,
@@ -53,7 +53,7 @@ def test_get_monitoring_types(
     """test the retrieval of monitoring types from HDF5 files"""
     # Test with a file that has no monitoring types
     with pytest.warns(UserWarning, match="No monitoring types found in"):
-        no_monitoring_types = get_hdf5_monitoring_types(gamma_diffuse_full_reco_file)
+        no_monitoring_types = get_hdf5_monitoring_types(proton_dl2_train_small_h5)
         assert tuple([]) == no_monitoring_types
     # Test with a file that has pointing-related monitoring types
     assert tuple([MonitoringTypes.TELESCOPE_POINTINGS]) == get_hdf5_monitoring_types(
@@ -73,7 +73,7 @@ def test_get_monitoring_types(
     ) == get_hdf5_monitoring_types(dl1_merged_monitoring_file)
 
 
-def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_file):
+def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
     """test the monitoring filling for the camera calibration coefficients"""
 
     tel_id = 1
@@ -84,7 +84,7 @@ def test_camcalib_filling(gamma_diffuse_full_reco_file, dl1_merged_monitoring_fi
     )[0]
     allowed_tels = {tel_id}
     with EventSource(
-        input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
+        input_url=prod6_gamma_simtel_path, allowed_tels=allowed_tels, max_events=1
     ) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
@@ -290,9 +290,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
             )
 
 
-def test_tel_pointing_filling(
-    gamma_diffuse_full_reco_file, dl1_merged_monitoring_file_obs
-):
+def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file_obs):
     """test the monitoring filling for the telescope pointings"""
 
     tel_id = 1
@@ -306,7 +304,7 @@ def test_tel_pointing_filling(
     )
     allowed_tels = {tel_id}
     with EventSource(
-        input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
+        input_url=prod6_gamma_simtel_path, allowed_tels=allowed_tels, max_events=1
     ) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
@@ -332,7 +330,7 @@ def test_tel_pointing_filling(
             assert e.monitoring.tel[tel_id].pointing.altitude != old_alt
 
 
-def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chunks_obs):
+def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_same_chunks_obs):
     """test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
 
     tel_id = 1
@@ -352,7 +350,7 @@ def test_camcalib_obs(gamma_diffuse_full_reco_file, calibpipe_camcalib_same_chun
     trigger_time_after = camcalib_coefficients["time"][-1] + 0.5 * u.s
     allowed_tels = {tel_id}
     with EventSource(
-        input_url=gamma_diffuse_full_reco_file, allowed_tels=allowed_tels, max_events=1
+        input_url=prod6_gamma_simtel_path, allowed_tels=allowed_tels, max_events=1
     ) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
@@ -442,7 +440,7 @@ def test_hdf5_monitoring_source_multi_files_loading(
 
 
 def test_hdf5_monitoring_source_exceptions_and_warnings(
-    gamma_diffuse_full_reco_file,
+    prod6_gamma_simtel_path,
     calibpipe_camcalib_same_chunks,
     calibpipe_camcalib_same_chunks_obs,
     dl1_mon_pointing_file,
@@ -450,7 +448,7 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
     """test the common exceptions and warnings of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
     # This should raise a ToolConfigurationError.
-    with EventSource(input_url=gamma_diffuse_full_reco_file) as source:
+    with EventSource(input_url=prod6_gamma_simtel_path) as source:
         with pytest.raises(
             ToolConfigurationError, match="HDF5MonitoringSource: Requested telescopes"
         ):

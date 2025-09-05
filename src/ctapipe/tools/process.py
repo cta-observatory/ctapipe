@@ -216,21 +216,23 @@ class ProcessorTool(Tool):
 
         # Setup the monitoring sources
         self._monitoring_sources = []
-        for name in self.monitoring_source_list:
+        for mon_source_name in self.monitoring_source_list:
             mon_source = self.enter_context(
-                MonitoringSource.from_name(name, subarray=subarray, parent=self)
+                MonitoringSource.from_name(
+                    mon_source_name, subarray=subarray, parent=self
+                )
             )
             # Check if monitoring source has compatible monitoring types
             if not mon_source.has_any_monitoring_types(COMPATIBLE_MONITORINGTYPES):
-                self.log.critical(
-                    "%s  needs the MonitoringSource to provide at least "
-                    "one of these monitoring types: %s, %s provides only %s",
-                    self.name,
-                    COMPATIBLE_MONITORINGTYPES,
-                    mon_source,
-                    mon_source.monitoring_types,
+                msg = (
+                    f"'{mon_source_name}' needs the MonitoringSource to provide at least "
+                    f"one of these monitoring types: {COMPATIBLE_MONITORINGTYPES}, "
+                    f"{mon_source_name} provides only '{mon_source.monitoring_types}'. "
+                    f"Please make sure the '{mon_source_name}' and its input "
+                    f"are suitable for calibrating the data you are processing."
                 )
-                raise ToolConfigurationError("Failed to setup monitoring source!")
+                self.log.critical(msg)
+                raise ToolConfigurationError(msg)
             # Append the monitoring source to the list if it has compatible monitoring types
             self._monitoring_sources.append(mon_source)
 
