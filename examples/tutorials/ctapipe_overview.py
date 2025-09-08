@@ -420,7 +420,7 @@ None
 #
 
 
-angle_offset = plotting_event.pointing.array_azimuth
+angle_offset = plotting_event.monitoring.pointing.array_azimuth
 
 plotting_hillas = {
     tel_id: dl1.parameters.hillas for tel_id, dl1 in plotting_event.dl1.tel.items()
