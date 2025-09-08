@@ -56,7 +56,7 @@ different monitoring types from an input file or stream and fill the monitoring 
 in form of a `~ctapipe.containers.MonitoringContainer` class into a provided event following the
 `~ctapipe.containers.ArrayEventContainer`. `~ctapipe.io.MonitoringSource` instances are designed such that
 ctapipe can be independent of the file format used for monitoring data, and new formats may be
-supported by simply adding a plug-in.
+supported by implementing a new `~ctapipe.io.MonitoringSource` in a plug-in.
 
 The underlying mechanism is a set of `MonitoringSource` sub-classes that
 read data in various formats, with a common interface and automatic command-line
