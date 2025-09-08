@@ -501,7 +501,10 @@ def test_true_image_sum():
 
 
 def test_extracted_calibevents():
-    with SimTelEventSource("dataset://extracted_pedestals.simtel.zst") as s:
+    with SimTelEventSource(
+        "dataset://extracted_pedestals.simtel.zst",
+        skip_calibration_events=False,
+    ) as s:
         i = 0
         for e in s:
             i = e.count
