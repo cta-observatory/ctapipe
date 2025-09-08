@@ -632,8 +632,8 @@ class HDF5EventSource(EventSource):
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
                 "/simulation/event/subarray/shower",
-                SimulatedShowerContainer,
-                prefixes="true",
+                (EventIndexContainer, SimulatedShowerContainer),
+                prefixes=("", "true"),
             )
             if "impact" in self.file_.root.simulation.event.telescope:
                 true_impact_readers = {
@@ -699,7 +699,26 @@ class HDF5EventSource(EventSource):
                 data.trigger.tel[tel_index.tel_id] = tel_trigger
 
             if self.is_simulation:
-                data.simulation.shower = next(mc_shower_reader)
+                shower_index, shower = next(mc_shower_reader)
+
+                if shower_index.obs_id is None:
+                    raise ValueError("Could not read shower obs_id / event_id")
+
+                # in case of reading also non-triggered events, we get more showers than triggered array
+                # events. For now, HDF5EventSource does not support reading the non-triggered events
+                # so we need to skip the untriggered showers.
+                while (
+                    shower_index.obs_id != data.index.obs_id
+                    or shower_index.event_id != data.index.event_id
+                ):
+                    self.log.debug(
+                        "Skipping non-triggered shower: %d, %d",
+                        shower_index.obs_id,
+                        shower_index.event_id,
+                    )
+                    shower_index, shower = next(mc_shower_reader)
+
+                data.simulation.shower = shower
 
             for kind, readers in dl2_readers.items():
                 c = getattr(data.dl2.stereo, kind)

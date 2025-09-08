@@ -38,7 +38,7 @@ class SoftwareTrigger(TelescopeComponent):
     """
 
     min_telescopes = Integer(
-        default_value=1,
+        default_value=0,
         help=(
             "Minimum number of telescopes required globally."
             " Events with fewer telescopes will be filtered out completely."
@@ -83,6 +83,9 @@ class SoftwareTrigger(TelescopeComponent):
         triggered : bool
             Whether or not this event would have triggered the stereo trigger
         """
+        # for events that didn't trigger, only keep them if min_telescopes == 0
+        if event.trigger is None:
+            return self.min_telescopes == 0
 
         tels_removed = set()
         for tel_type, tel_ids in self._ids_by_type.items():

@@ -586,6 +586,9 @@ class DataWriter(Component):
         """
         Write trigger information
         """
+        if event.trigger is None:
+            return
+
         self._writer.write(
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],

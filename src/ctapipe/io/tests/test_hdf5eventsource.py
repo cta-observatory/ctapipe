@@ -349,3 +349,23 @@ def test_read_dl2_tel_ml(gamma_diffuse_full_reco_file):
             assert energy.prefix == algorithm + "_tel"
             assert energy.energy is not None
             assert np.isfinite(energy.energy)
+
+
+def test_including_non_triggered_events(dl1_file, all_showers_file):
+    with HDF5EventSource(dl1_file) as reference, HDF5EventSource(
+        all_showers_file
+    ) as source:
+        it = iter(source)
+        n = 0
+        for reference_event in reference:
+            event = next(it)
+
+            # make sure we picked out the correct shower info for each triggered event
+            assert event.index.as_dict() == reference_event.index.as_dict()
+            assert (
+                event.simulation.shower.as_dict()
+                == reference_event.simulation.shower.as_dict()
+            )
+            n += 1
+
+        assert n == 7
