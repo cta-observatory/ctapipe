@@ -701,9 +701,6 @@ class HDF5EventSource(EventSource):
             if self.is_simulation:
                 shower_index, shower = next(mc_shower_reader)
 
-                if shower_index.obs_id is None:
-                    raise ValueError("Could not read shower obs_id / event_id")
-
                 # in case of reading also non-triggered events, we get more showers than triggered array
                 # events. For now, HDF5EventSource does not support reading the non-triggered events
                 # so we need to skip the untriggered showers.
