@@ -37,27 +37,6 @@ def test_positional_input():
     assert source.input_url == Path(prod5b_path)
 
 
-def test_simtel_event_source_on_gamma_test_one_event():
-    assert SimTelEventSource.is_compatible(gamma_test_large_path)
-
-    with SimTelEventSource(
-        input_url=gamma_test_large_path,
-        back_seekable=True,
-        focal_length_choice="EQUIVALENT",
-    ) as reader:
-        assert not reader.is_stream
-
-        for event in reader:
-            if event.count > 1:
-                break
-
-        with pytest.warns(UserWarning):
-            for event in reader:
-                # Check generator has restarted from beginning
-                assert event.count == 0
-                break
-
-
 def test_that_event_is_not_modified_after_loop():
     dataset = prod5b_path
     with SimTelEventSource(input_url=dataset, max_events=2) as source:

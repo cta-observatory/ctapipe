@@ -2,8 +2,6 @@ import enum
 import warnings
 from contextlib import nullcontext
 from enum import Enum, auto, unique
-from gzip import GzipFile
-from io import BufferedReader
 from pathlib import Path
 
 import numpy as np
@@ -509,15 +507,6 @@ class SimTelEventSource(EventSource):
         help="Skip events that did not trigger",
     ).tag(config=True)
 
-    back_seekable = Bool(
-        False,
-        help=(
-            "Require the event source to be backwards seekable."
-            " This will reduce in slower read speed for gzipped files"
-            " and is not possible for zstd compressed files"
-        ),
-    ).tag(config=True)
-
     focal_length_choice = UseEnum(
         FocalLengthKind,
         default_value=FocalLengthKind.EFFECTIVE,
@@ -623,7 +612,6 @@ class SimTelEventSource(EventSource):
             self.input_url.expanduser(),
             allowed_telescopes=self.allowed_tels,
             skip_calibration=self.skip_calibration_events,
-            zcat=not self.back_seekable,
             **kwargs,
         )
         # TODO: read metadata from simtel metaparams once we have files that
@@ -632,8 +620,6 @@ class SimTelEventSource(EventSource):
             str(self.input_url), role="DL0/Event", add_meta=False
         )
 
-        if self.back_seekable and self.is_stream:
-            raise OSError("back seekable was required but not possible for inputfile")
         (
             self._scheduling_blocks,
             self._observation_blocks,
@@ -699,13 +685,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def is_stream(self):
-        # eventio 2.0
-        if hasattr(self.file_, "_file"):
-            eventio_file = self.file_._file
-        # older
-        else:
-            eventio_file = self.file_
-        return not isinstance(eventio_file._filehandle, BufferedReader | GzipFile)
+        return True
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
@@ -894,10 +874,6 @@ class SimTelEventSource(EventSource):
         return {self.obs_id: container}
 
     def _generator(self):
-        if self.file_.tell() > self.start_pos:
-            self.file_._next_header_pos = 0
-            warnings.warn("Backseeking to start of file.")
-
         try:
             yield from self._generate_events()
         except EOFError:
@@ -919,10 +895,9 @@ class SimTelEventSource(EventSource):
 
             obs_id = self.obs_id
 
+            shower = None
             if "mc_shower" in array_event:
                 shower = self._fill_simulated_event_information(array_event)
-            else:
-                shower = None
 
             trigger = self._fill_trigger_info(array_event)
             data = ArrayEventContainer(
