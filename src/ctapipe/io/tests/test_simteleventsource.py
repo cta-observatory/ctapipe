@@ -727,10 +727,24 @@ def test_has_true_image_first_missing():
 
 def test_all_events():
     n = 0
+    energy = None
     with SimTelEventSource(prod5b_path, skip_non_triggered_events=False) as source:
+        config = source.simulation_config[source.obs_id]
+
         for e in source:
+            shower_number = n // config.shower_reuse + 1
+            reuse = n % config.shower_reuse
+
+            expected_id = 100 * shower_number + reuse
+            assert e.index.event_id == expected_id
+
+            if reuse == 0:
+                # new shower, should have different energy than previous event
+                assert energy != e.simulation.shower.energy
+                energy = e.simulation.shower.energy
+            else:
+                assert energy == e.simulation.shower.energy
             n += 1
 
-    config = source.simulation_config[source.obs_id]
-    expected = config.n_showers * config.shower_reuse
-    assert n == expected
+    expected_showers = config.n_showers * config.shower_reuse
+    assert n == expected_showers
