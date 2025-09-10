@@ -507,6 +507,11 @@ class SimTelEventSource(EventSource):
         help="Skip events that did not trigger",
     ).tag(config=True)
 
+    include_non_triggered_photoelectrons = Bool(
+        default_value=False,
+        help="If True, include true pe information for non-triggered telescopes.",
+    ).tag(config=True)
+
     focal_length_choice = UseEnum(
         FocalLengthKind,
         default_value=FocalLengthKind.EFFECTIVE,
@@ -900,6 +905,7 @@ class SimTelEventSource(EventSource):
                 shower = self._fill_simulated_event_information(array_event)
 
             trigger = self._fill_trigger_info(array_event)
+
             data = ArrayEventContainer(
                 simulation=SimulatedEventContainer(shower=shower),
                 pointing=self._fill_array_pointing(),
@@ -911,15 +917,17 @@ class SimTelEventSource(EventSource):
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
 
-            if array_event.get("telescope_events"):
-                self._fill_telescope_data(data, array_event, trigger)
+            self._fill_telescope_data(data, array_event, trigger)
 
             yield data
 
     def _fill_telescope_data(self, data, array_event, trigger):
-        telescope_events = array_event["telescope_events"]
-        tracking_positions = array_event["tracking_positions"]
+        # these objects are mappings of tel_id to data content
+        photoelectrons = array_event.get("photoelectrons", {})
+        tracking_positions = array_event.get("tracking_positions", {})
+        telescope_events = array_event.get("telescope_events", {})
 
+        # this object contains an array with pe sums for each telescope if present
         photoelectron_sums = array_event.get("photoelectron_sums")
         if photoelectron_sums is not None:
             true_image_sums = photoelectron_sums.get(
@@ -936,7 +944,68 @@ class SimTelEventSource(EventSource):
         else:
             impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
-        for tel_id, telescope_event in telescope_events.items():
+        if self.include_non_triggered_photoelectrons:
+            tel_ids = sorted(
+                set(telescope_events.keys()) | set(k + 1 for k in photoelectrons.keys())
+            )
+        else:
+            tel_ids = telescope_events.keys()
+
+        for tel_id in tel_ids:
+            # the objects coming from CORSIKA have an offset of 1 in the tel_id.
+            true_image = photoelectrons.get(tel_id - 1, {}).get("photoelectrons")
+            true_image_sum = true_image_sums[self.telescope_indices_original[tel_id]]
+
+            # non-triggered events might have photoelectrons but not photoelectron_sums
+            # in this case, we compute the sum from the pixel values
+            if np.isnan(true_image_sum) and true_image is not None:
+                true_image_sum = photoelectrons[tel_id - 1]["n_pe"]
+
+            # perform sanity checks for presence of true images
+            if self._has_true_image and true_image is None:
+                if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
+                    self.log.warning(
+                        "Encountered extremely bright telescope event with missing true_image in"
+                        "file that has true images: event_id = %d, tel_id = %d."
+                        "event might be truncated, skipping telescope event",
+                        data.index.event_id,
+                        tel_id,
+                    )
+                    continue
+                else:
+                    self.log.info(
+                        "telescope event event_id = %d, tel_id = %d is missing true image",
+                        data.index.event_id,
+                        tel_id,
+                    )
+                    n_pixels = self.subarray.tel[tel_id].camera.geometry.n_pixels
+                    true_image = np.full(n_pixels, -1, dtype=np.int32)
+
+            if data.simulation.shower is not None:
+                impact_container = TelescopeImpactParameterContainer(
+                    distance=impact_distances[self.subarray.tel_index_array[tel_id]],
+                    distance_uncert=0 * u.m,
+                    prefix="true_impact",
+                )
+            else:
+                impact_container = TelescopeImpactParameterContainer(
+                    prefix="true_impact",
+                )
+
+            data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                true_image_sum=true_image_sum,
+                true_image=true_image,
+                impact=impact_container,
+            )
+
+            telescope_event = telescope_events.get(tel_id)
+            if telescope_event is None:
+                continue
+
+            data.pointing.tel[tel_id] = self._fill_event_pointing(
+                tracking_positions[tel_id]
+            )
+
             if tel_id not in trigger.tels_with_trigger:
                 # skip additional telescopes that have data but did not
                 # participate in the subarray trigger decision for this stereo event
@@ -954,56 +1023,6 @@ class SimTelEventSource(EventSource):
             adc_samples = telescope_event.get("adc_samples")
             if adc_samples is None:
                 adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
-
-            n_gains, n_pixels, n_samples = adc_samples.shape
-            true_image = (
-                array_event.get("photoelectrons", {})
-                .get(tel_id - 1, {})
-                .get("photoelectrons", None)
-            )
-            true_image_sum = true_image_sums[self.telescope_indices_original[tel_id]]
-
-            if self._has_true_image and true_image is None:
-                if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
-                    self.log.warning(
-                        "Encountered extremely bright telescope event with missing true_image in"
-                        "file that has true images: event_id = %d, tel_id = %d."
-                        "event might be truncated, skipping telescope event",
-                        data.index.event_id,
-                        tel_id,
-                    )
-                    continue
-                else:
-                    self.log.info(
-                        "telescope event event_id = %d, tel_id = %d is missing true image",
-                        data.index.event_id,
-                        tel_id,
-                    )
-                    true_image = np.full(n_pixels, -1, dtype=np.int32)
-
-            if data.simulation is not None:
-                if data.simulation.shower is not None:
-                    impact_container = TelescopeImpactParameterContainer(
-                        distance=impact_distances[
-                            self.subarray.tel_index_array[tel_id]
-                        ],
-                        distance_uncert=0 * u.m,
-                        prefix="true_impact",
-                    )
-                else:
-                    impact_container = TelescopeImpactParameterContainer(
-                        prefix="true_impact",
-                    )
-
-                data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image_sum=true_image_sum,
-                    true_image=true_image,
-                    impact=impact_container,
-                )
-
-            data.pointing.tel[tel_id] = self._fill_event_pointing(
-                tracking_positions[tel_id]
-            )
 
             data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
 
