@@ -14,6 +14,7 @@ from scipy.ndimage import correlate1d
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
+from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 from ...exceptions import OptionalDependencyMissing
 from ..pixel_likelihood import neg_log_likelihood_approx
@@ -34,7 +35,7 @@ CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)], cache=True)
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
@@ -219,7 +220,7 @@ def image_prediction(
     )
 
 
-@vectorize([double(double, double, double)], cache=True)
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def gaussian_cdf(x, mu, sig):
     """
     Function to compute values of a given gaussians
