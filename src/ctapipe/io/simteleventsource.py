@@ -1018,6 +1018,10 @@ class SimTelEventSource(EventSource):
                     tel_id,
                     trigger.tels_with_trigger,
                 )
+                # remove already filled pe in case the option for including
+                # all pe information is not set
+                if not self.include_non_triggered_photoelectrons:
+                    del data.simulation.tel[tel_id]
                 continue
 
             adc_samples = telescope_event.get("adc_samples")
