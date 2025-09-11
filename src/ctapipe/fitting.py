@@ -1,11 +1,13 @@
 import numpy as np
 from numba import njit
 
+from .core.env import CTAPIPE_DISABLE_NUMBA_CACHE
+
 EPS = 2 * np.finfo(np.float64).eps
 FIT_RNG = np.random.default_rng(0)
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def design_matrix(x):
     """
     Build the design matrix for linear regression for
@@ -21,7 +23,7 @@ def design_matrix(x):
     return X
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def linear_regression(X, y):
     """
     Analytical linear regression
@@ -40,7 +42,7 @@ def linear_regression(X, y):
     return np.linalg.inv(mat) @ X.T @ y
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def residual_sum_of_squares(X, y, beta):
     """Calculate the residual sum of squares
 
@@ -56,7 +58,7 @@ def residual_sum_of_squares(X, y, beta):
     return np.sum(residuals(X, y, beta) ** 2)
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def residuals(X, y, beta):
     """Calculate the residuals of a linear regression
 
@@ -72,7 +74,7 @@ def residuals(X, y, beta):
     return y - (X[:, 0] * beta[0] + beta[1])
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def choose_two_without_replacement(rng, n):
     values = np.empty(2, dtype=np.int64)
 
@@ -88,7 +90,7 @@ def choose_two_without_replacement(rng, n):
     return values
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _lts_single_sample(X, y, sample_size, max_iterations, rng, eps=1e-12):
     # randomly draw 2 points for the initial fit
     sample = choose_two_without_replacement(rng, len(y))
@@ -178,7 +180,7 @@ def lts_linear_regression(
     )
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _lts_linear_regression(
     x,
     y,

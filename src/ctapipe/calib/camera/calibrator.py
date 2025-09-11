@@ -11,6 +11,7 @@ from numba import float32, float64, guvectorize, int64
 
 from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
 from ctapipe.core import TelescopeComponent
+from ctapipe.core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
@@ -372,7 +373,7 @@ def shift_waveforms(waveforms, time_shift_samples):
     [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
     "(s),()->(s)",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def _shift_waveforms_by_integer(waveforms, integer_shift, shifted_waveforms):
     n_samples = waveforms.size
