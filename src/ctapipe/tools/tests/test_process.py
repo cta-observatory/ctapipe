@@ -595,3 +595,15 @@ def test_prod6_issues(tmp_path):
         images = loader.read_telescope_events([32], true_images=True)
         images.add_index("event_id")
         np.testing.assert_array_equal(images.loc[1664106]["true_image"], -1)
+
+
+def test_all_showers(all_showers_file):
+    """Test that ctapipe-process works when SimTelEventSource yields also non-triggered events."""
+    from ctapipe.io import read_table
+
+    run_header = read_table(all_showers_file, "/configuration/simulation/run")
+    showers = read_table(all_showers_file, "/simulation/event/subarray/shower")
+
+    shower_reuse = run_header["shower_reuse"][0]
+    n_showers = run_header["n_showers"][0]
+    assert len(showers) == shower_reuse * n_showers
