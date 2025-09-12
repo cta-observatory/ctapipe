@@ -86,18 +86,14 @@ def chord_length(radius, rho, phi0, phi):
     return chord_length(radius, rho, 0, phi - phi0)
 
 
-def save_histogram_to_csv(hist, csvName, event_id, hist_phi_smooth):
-    # print("event_id => ", event_id)
-    # print(type(event_id))
-    # print(len(hist[0]))
+def save_histogram_to_csv(hist):
     df = pd.DataFrame(
         {
-            "event_id": event_id,
             "x": ((np.roll(hist[1], 1) + hist[1]) / 2.0)[1:],
-            "y": hist_phi_smooth,
+            "y": hist[0],
         }
     )
-
+    csvName = str("save_histogram_to_csv" + str(np.random.randint(0, 10000)) + ".csv")
     df.to_csv(csvName, sep=" ", index=False)
 
     return
@@ -147,6 +143,7 @@ def compute_muon_ring_width(
     indices = np.where(hist_ring_radius[0] >= half_max)[0]
     fwhm = bin_centers[indices[-1]] - bin_centers[indices[0]]
     print(fwhm)
+    save_histogram_to_csv(hist_ring_radius)
 
     return fwhm / 2.3548 * camera_unit
 
