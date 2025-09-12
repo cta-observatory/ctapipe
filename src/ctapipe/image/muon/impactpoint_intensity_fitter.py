@@ -124,7 +124,31 @@ def compute_muon_ring_width(
 
     """
 
-    return 0.1 * x.unit
+    radius_bin_resolution = 0.05 * u.deg
+
+    camera_unit = x.unit
+    x, y, ring_center_x, ring_center_y, radius_bin_resolution = all_to_value(
+        x, y, ring_center_x, ring_center_y, radius_bin_resolution, unit=camera_unit
+    )
+
+    max_fov = np.abs(2 * x.max())
+
+    n_ring_radius_bins = int(2 * max_fov / radius_bin_resolution)
+
+    hist_ring_radius = np.histogram(
+        np.sqrt((y[mask] - ring_center_y) ** 2 + (x[mask] - ring_center_x) ** 2),
+        weights=image[mask],
+        bins=np.linspace(-max_fov, max_fov, n_ring_radius_bins + 1),
+    )
+
+    bin_centers = (hist_ring_radius[1][:-1] + hist_ring_radius[1][1:]) / 2
+    max_count = np.max(hist_ring_radius[0])
+    half_max = max_count / 2
+    indices = np.where(hist_ring_radius[0] >= half_max)[0]
+    fwhm = bin_centers[indices[-1]] - bin_centers[indices[0]]
+    print(fwhm)
+
+    return fwhm / 2.3548 * camera_unit
 
 
 def comput_absolute_optical_efficiency_from_muon_ring():
