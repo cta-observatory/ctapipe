@@ -103,6 +103,47 @@ def save_histogram_to_csv(hist, csvName, event_id, hist_phi_smooth):
     return
 
 
+def compute_muon_ring_width(
+    x,
+    y,
+    mask,
+    image,
+    ring_center_x,
+    ring_center_y,
+):
+    """
+    compute_muon_ring_width
+
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+
+    """
+
+    return 0.1 * x.unit
+
+
+def comput_absolute_optical_efficiency_from_muon_ring():
+    """
+    comput_absolute_optical_efficiency_from_muon_ring
+
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+
+    """
+
+    return 0.2
+
+
 def fit_muon_ring_phi_distribution(
     x,
     y,
@@ -338,6 +379,18 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             center_y,
             optics=telescope.optics,
             shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
+        )
+
+        mu_eff_container.width = compute_muon_ring_width(
+            geometry.pix_x,
+            geometry.pix_y,
+            mask,
+            image,
+            center_x,
+            center_y,
+        )
+        mu_eff_container.optical_efficiency = (
+            comput_absolute_optical_efficiency_from_muon_ring()
         )
 
         return mu_eff_container
