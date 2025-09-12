@@ -114,7 +114,7 @@ def fit_muon_ring_phi_distribution(
     shadow_radius,
 ):
     """
-    muon_ring_phi_distribution_fit.
+    fit_muon_ring_phi_distribution
 
 
     Parameters
@@ -125,11 +125,7 @@ def fit_muon_ring_phi_distribution(
         y-coordinates of the points.
     mask : array-like of bool
         Boolean mask indicating which pixels survive the cleaning process.
-    weights : array-like of float
-        Weights for the points. If not provided, all points are assigned equal weights (1).
-    amplitude_initial : unitless float, optional
-    rho_initial : astropy.units.Quantity, optional
-    phi0_initial : astropy.units.Quantity, optional
+    image : array-like of float
 
     Returns
     -------
@@ -146,20 +142,6 @@ def fit_muon_ring_phi_distribution(
     phi0_err : astropy.units.Quantity
         Fitted y-coordinate of the circle center error.
 
-    Raises
-    ------
-    OptionalDependencyMissing
-        If the iminuit package is not installed.
-
-    Notes
-    -----
-    The Taubin circle fit minimizes a specific loss function that balances the
-    squared residuals of the points from the circle with the weights. This method
-    is particularly useful for fitting circles to noisy data.
-
-    References
-    ----------
-    - Barcelona_Muons_TPA_final.pdf (slide 6)
     """
 
     if Minuit is None:
@@ -171,7 +153,7 @@ def fit_muon_ring_phi_distribution(
         x, y, ring_center_x, ring_center_y, unit=camera_unit
     )
 
-    n_phi_bins = 12
+    n_phi_bins = 12  # to be added to configure file as input perameters
     n_of_smoothing_points = 1  # 1 --> no smoothing
 
     hist_phi = np.histogram(
@@ -196,21 +178,37 @@ def fit_muon_ring_phi_distribution(
 
     phi_err = np.sqrt(phi_x_err**2 + phi_y_err**2)
 
+    total_integral = np.sum(phi_y)
+
+    if total_integral <= 0.0:
+        return MuonEfficiencyContainer()
+
+    amplitude_initial = np.nan
+    rho_initial = np.nan
+    phi0_initial = np.nan
+
+    amplitude_initial = total_integral / 110.0
+    rho_initial = 2 * (np.max(phi_y) - np.min(phi_y)) / total_integral * 110.0
+    phi0_initial = phi_x[np.argmax(phi_y)]
+
+    amplitude_initial = 12 if np.isnan(amplitude_initial) else amplitude_initial
+    rho_initial = 8 if np.isnan(rho_initial) is np.nan else rho_initial
+    phi0_initial = 0 if np.isnan(phi0_initial) is np.nan else phi0_initial
+
     # minimization method
     fit = Minuit(
         phi_dist_loss_function(phi_x, phi_y, phi_err, weights),
-        amplitude=12,
+        amplitude=amplitude_initial,
         R_mirror=np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi),
         R_shadow=shadow_radius.to_value(u.m),
-        rho=5.0,
-        phi0=0.1,
+        rho=rho_initial,
+        phi0=phi0_initial,
     )
     fit.errordef = Minuit.LEAST_SQUARES
 
-    #
     fit.fixed["R_mirror"] = True
     fit.fixed["R_shadow"] = True
-
+    #
     # set initial parameters uncertainty to a big value
     # taubin_error = max_fov * 0.1
     fit.errors["amplitude"] = 10
@@ -341,16 +339,5 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             optics=telescope.optics,
             shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
-
-        # return MuonEfficiencyContainer(
-        #    impact=result["impact_parameter"] * u.m,
-        #    impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
-        #    impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
-        #    width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
-        #    optical_efficiency=result["optical_efficiency_muon"],
-        #    is_valid=minuit.valid,
-        #    parameters_at_limit=minuit.fmin.has_parameters_at_limit,
-        #    likelihood_value=minuit.fval,
-        # )
 
         return mu_eff_container
