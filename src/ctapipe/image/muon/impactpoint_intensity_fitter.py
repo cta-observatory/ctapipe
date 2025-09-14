@@ -6,8 +6,6 @@ Class description to be added.
 
 import astropy.units as u
 import numpy as np
-
-# dev to be removed
 from astropy.units import Quantity
 from scipy.constants import alpha
 from scipy.ndimage import correlate1d
