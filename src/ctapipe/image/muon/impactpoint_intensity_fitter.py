@@ -155,8 +155,6 @@ def fit_muon_ring_width(
         bins=np.linspace(-max_fov, max_fov, n_ring_radius_bins + 1),
     )
 
-    save_histogram_to_csv(hist_ring_radius)
-
     ring_radius_y = hist_ring_radius[0]
     ring_radius_y_err = np.sqrt(np.abs(ring_radius_y))
 
