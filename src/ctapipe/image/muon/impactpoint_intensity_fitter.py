@@ -128,24 +128,31 @@ def compute_muon_ring_width(
     )
 
     max_fov = np.abs(2 * x.max())
-
     n_ring_radius_bins = int(2 * max_fov / radius_bin_resolution)
 
-    hist_ring_radius = np.histogram(
-        np.sqrt((y[mask] - ring_center_y) ** 2 + (x[mask] - ring_center_x) ** 2),
-        weights=image[mask],
-        bins=np.linspace(-max_fov, max_fov, n_ring_radius_bins + 1),
+    ring_radius = np.sqrt(
+        (y[mask] - ring_center_y) ** 2 + (x[mask] - ring_center_x) ** 2
+    )
+    weights = image[mask]
+    save_histogram_to_csv(
+        np.histogram(
+            ring_radius,
+            weights=weights,
+            bins=np.linspace(-max_fov, max_fov, n_ring_radius_bins + 1),
+        )
     )
 
-    bin_centers = (hist_ring_radius[1][:-1] + hist_ring_radius[1][1:]) / 2
-    max_count = np.max(hist_ring_radius[0])
-    half_max = max_count / 2
-    indices = np.where(hist_ring_radius[0] >= half_max)[0]
-    fwhm = bin_centers[indices[-1]] - bin_centers[indices[0]]
-    print(fwhm)
-    save_histogram_to_csv(hist_ring_radius)
+    if weights.sum() == 0.0:
+        return 0.0 * u.deg
 
-    return fwhm / 2.3548 * camera_unit
+    weighted_mean = np.average(
+        ring_radius,
+        weights=weights,
+    )
+    weighted_var = np.average((ring_radius - weighted_mean) ** 2, weights=weights)
+    print(np.sqrt(weighted_var) * camera_unit)
+
+    return np.sqrt(weighted_var) * camera_unit
 
 
 def comput_absolute_optical_efficiency_from_muon_ring():
