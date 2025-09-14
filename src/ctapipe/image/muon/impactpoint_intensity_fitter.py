@@ -8,7 +8,6 @@ import astropy.units as u
 import numpy as np
 
 # dev to be removed
-import pandas as pd
 from astropy.units import Quantity
 from scipy.constants import alpha
 from scipy.ndimage import correlate1d
@@ -89,19 +88,6 @@ def chord_length(radius, rho, phi0, phi):
 
 def gauss_pedestal(x, A, mu, sigma, pedestal):
     return A * np.exp(-0.5 * ((x - mu) / sigma) ** 2) + pedestal
-
-
-def save_histogram_to_csv(hist):
-    df = pd.DataFrame(
-        {
-            "x": ((np.roll(hist[1], 1) + hist[1]) / 2.0)[1:],
-            "y": hist[0],
-        }
-    )
-    csvName = str("save_histogram_to_csv" + str(np.random.randint(0, 10000)) + ".csv")
-    df.to_csv(csvName, sep=" ", index=False)
-
-    return
 
 
 def get_measured_pe(
