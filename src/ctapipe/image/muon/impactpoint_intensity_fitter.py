@@ -86,6 +86,10 @@ def chord_length(radius, rho, phi0, phi):
     return chord_length(radius, rho, 0, phi - phi0)
 
 
+def gauss_pedestal(x, A, mu, sigma, pedestal):
+    return A * np.exp(-0.5 * ((x - mu) / sigma) ** 2) + pedestal
+
+
 def save_histogram_to_csv(hist):
     df = pd.DataFrame(
         {
@@ -99,13 +103,14 @@ def save_histogram_to_csv(hist):
     return
 
 
-def compute_muon_ring_width(
+def fit_muon_ring_width(
     x,
     y,
     mask,
     image,
     ring_center_x,
     ring_center_y,
+    radius,
 ):
     """
     compute_muon_ring_width
@@ -120,11 +125,20 @@ def compute_muon_ring_width(
 
     """
 
+    if Minuit is None:
+        raise OptionalDependencyMissing("iminuit")
+
     radius_bin_resolution = 0.05 * u.deg
 
     camera_unit = x.unit
-    x, y, ring_center_x, ring_center_y, radius_bin_resolution = all_to_value(
-        x, y, ring_center_x, ring_center_y, radius_bin_resolution, unit=camera_unit
+    x, y, ring_center_x, ring_center_y, radius, radius_bin_resolution = all_to_value(
+        x,
+        y,
+        ring_center_x,
+        ring_center_y,
+        radius,
+        radius_bin_resolution,
+        unit=camera_unit,
     )
 
     max_fov = np.abs(2 * x.max())
@@ -134,25 +148,41 @@ def compute_muon_ring_width(
         (y[mask] - ring_center_y) ** 2 + (x[mask] - ring_center_x) ** 2
     )
     weights = image[mask]
-    save_histogram_to_csv(
-        np.histogram(
-            ring_radius,
-            weights=weights,
-            bins=np.linspace(-max_fov, max_fov, n_ring_radius_bins + 1),
-        )
-    )
 
-    if weights.sum() == 0.0:
-        return 0.0 * u.deg
-
-    weighted_mean = np.average(
+    hist_ring_radius = np.histogram(
         ring_radius,
         weights=weights,
+        bins=np.linspace(-max_fov, max_fov, n_ring_radius_bins + 1),
     )
-    weighted_var = np.average((ring_radius - weighted_mean) ** 2, weights=weights)
-    print(np.sqrt(weighted_var) * camera_unit)
 
-    return np.sqrt(weighted_var) * camera_unit
+    save_histogram_to_csv(hist_ring_radius)
+
+    ring_radius_y = hist_ring_radius[0]
+    ring_radius_y_err = np.sqrt(np.abs(ring_radius_y))
+
+    ring_radius_x = ((np.roll(hist_ring_radius[1], 1) + hist_ring_radius[1]) / 2.0)[1:]
+    ring_radius_x_err = np.ones(len(ring_radius_x)) * radius_bin_resolution / 2.0
+
+    ring_radius_err = np.sqrt(ring_radius_x_err**2 + ring_radius_y_err**2)
+
+    # minimization method
+    fit = Minuit(
+        ring_width_loss_function(ring_radius_x, ring_radius_y, ring_radius_err),
+        A=np.max(ring_radius_y),
+        mu=radius,
+        sigma=radius_bin_resolution,
+        pedestal=0.0,
+    )
+    fit.errordef = Minuit.LEAST_SQUARES
+    #
+    fit.errors["A"] = 10
+    fit.errors["mu"] = 0.1
+    fit.errors["sigma"] = 0.1
+    fit.errors["pedestal"] = 0.001
+
+    fit.migrad()
+
+    return fit.values["sigma"] * camera_unit
 
 
 def comput_absolute_optical_efficiency_from_muon_ring():
@@ -301,7 +331,7 @@ def fit_muon_ring_phi_distribution(
 
 
 def phi_dist_loss_function(x, y, err, w):
-    """dist_loss_function
+    """phi_dist_loss_function
 
     x, y, err: positions of pixels surviving the cleaning
         should not be quantities
@@ -317,6 +347,21 @@ def phi_dist_loss_function(x, y, err, w):
         return diff_squared.sum()
 
     return loss_function
+
+
+def ring_width_loss_function(x, y, err):
+    """ring_width_loss_function
+
+    x, y, err: positions of pixels surviving the cleaning
+        should not be quantities
+    w : array-like of float, weights for the points
+
+    """
+
+    def loss_function_two(A, mu, sigma, pedestal):
+        return np.sum(((y - gauss_pedestal(x, A, mu, sigma, pedestal)) / err) ** 2)
+
+    return loss_function_two
 
 
 class MuonImpactpointIntensityFitter(TelescopeComponent):
@@ -409,14 +454,16 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
 
-        mu_eff_container.width = compute_muon_ring_width(
+        mu_eff_container.width = fit_muon_ring_width(
             geometry.pix_x,
             geometry.pix_y,
             mask,
             image,
             center_x,
             center_y,
+            radius,
         )
+
         mu_eff_container.optical_efficiency = (
             comput_absolute_optical_efficiency_from_muon_ring()
         )
