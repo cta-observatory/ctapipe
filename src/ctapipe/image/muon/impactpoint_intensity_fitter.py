@@ -10,6 +10,7 @@ import numpy as np
 # dev to be removed
 import pandas as pd
 from astropy.units import Quantity
+from scipy.constants import alpha
 from scipy.ndimage import correlate1d
 
 from ...containers import MuonEfficiencyContainer
@@ -64,7 +65,7 @@ def chord_length(radius, rho, phi0, phi):
 
         phi_modulo = ((phi + np.pi) % (2 * np.pi) - np.pi) * np.where(phi < -1, -1, 1)
 
-        rho_R = rho / radius
+        rho_R = np.abs(rho) / radius
         discriminant_norm = 1 - (rho_R**2 * np.sin(phi_modulo) ** 2)
         discriminant_norm[discriminant_norm < 0] = 0.0
 
@@ -101,6 +102,112 @@ def save_histogram_to_csv(hist):
     df.to_csv(csvName, sep=" ", index=False)
 
     return
+
+
+def get_measured_pe(
+    x,
+    y,
+    mask,
+    image,
+    ring_center_x,
+    ring_center_y,
+    ring_radius,
+    ring_width,
+    integration_window_in_simga,
+):
+    """
+    get_measured_pe
+
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+
+    """
+
+    camera_unit = x.unit
+    x, y, ring_center_x, ring_center_y, ring_radius, ring_width = all_to_value(
+        x,
+        y,
+        ring_center_x,
+        ring_center_y,
+        ring_radius,
+        ring_width,
+        unit=camera_unit,
+    )
+
+    ring_delta_radius = (
+        np.hypot(x[mask] - ring_center_x, y[mask] - ring_center_y) - ring_radius
+    )
+    selection_r = ring_delta_radius >= -ring_width * integration_window_in_simga
+    selection_l = ring_delta_radius <= ring_width * integration_window_in_simga
+
+    # print(np.sum(image[mask][selection_r & selection_l]))
+    # print(np.sum(image[mask]))
+
+    return np.sum(image[mask][selection_r & selection_l])
+
+
+def compute_absolute_optical_efficiency_from_muon_ring(
+    measured_number_pe,
+    radius,
+    min_lambda_m,
+    max_lambda_m,
+    hole_radius_m,
+    optics,
+    rho,
+):
+    """
+    compute_absolute_optical_efficiency_from_muon_ring
+
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+
+    """
+
+    if np.isnan(rho):
+        return np.nan
+
+    # numerical integral of the chord
+    rho = rho.to_value(u.m)
+
+    R_mirror = np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi)
+
+    phi = np.linspace(-np.pi, np.pi, 10000)
+
+    chord = chord_length(R_mirror, rho, 0.0, phi) - chord_length(
+        hole_radius_m.to_value(u.m), rho, 0.0, phi
+    )
+
+    chord_dPhi_integral = np.trapezoid(
+        chord,
+        phi,
+    )
+
+    # Predicted total number of Cherenkov photons falling on the mirror
+    pred_total_Cher_phot = (
+        0.5
+        * alpha
+        * np.sin(2 * radius)
+        * (min_lambda_m.to_value(u.m) ** -1 - max_lambda_m.to_value(u.m) ** -1)
+        * chord_dPhi_integral
+    )
+
+    # print(measured_number_pe)
+    print(measured_number_pe / pred_total_Cher_phot.to_value())
+
+    if pred_total_Cher_phot > 0:
+        return measured_number_pe / pred_total_Cher_phot.to_value()
+
+    return np.nan
 
 
 def fit_muon_ring_width(
@@ -144,9 +251,8 @@ def fit_muon_ring_width(
     max_fov = np.abs(2 * x.max())
     n_ring_radius_bins = int(2 * max_fov / radius_bin_resolution)
 
-    ring_radius = np.sqrt(
-        (y[mask] - ring_center_y) ** 2 + (x[mask] - ring_center_x) ** 2
-    )
+    ring_radius = np.hypot(x[mask] - ring_center_x, y[mask] - ring_center_y)
+
     weights = image[mask]
 
     hist_ring_radius = np.histogram(
@@ -180,24 +286,7 @@ def fit_muon_ring_width(
 
     fit.migrad()
 
-    return fit.values["sigma"] * camera_unit
-
-
-def comput_absolute_optical_efficiency_from_muon_ring():
-    """
-    comput_absolute_optical_efficiency_from_muon_ring
-
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-
-    """
-
-    return 0.2
+    return np.abs(fit.values["sigma"]) * camera_unit
 
 
 def fit_muon_ring_phi_distribution(
@@ -316,7 +405,7 @@ def fit_muon_ring_phi_distribution(
 
     fit.migrad()
 
-    rho = Quantity(fit.values["rho"], size_impact_point_unit)
+    rho = Quantity(np.abs(fit.values["rho"]), size_impact_point_unit)
 
     return MuonEfficiencyContainer(
         impact=rho,
@@ -462,8 +551,28 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             radius,
         )
 
+        measured_number_pe = get_measured_pe(
+            geometry.pix_x,
+            geometry.pix_y,
+            mask,
+            image,
+            center_x,
+            center_y,
+            radius,
+            mu_eff_container.width,
+            integration_window_in_simga=3.5,
+        )
+
         mu_eff_container.optical_efficiency = (
-            comput_absolute_optical_efficiency_from_muon_ring()
+            compute_absolute_optical_efficiency_from_muon_ring(
+                measured_number_pe,
+                radius,
+                self.min_lambda_m.tel[tel_id] * u.m,
+                self.max_lambda_m.tel[tel_id] * u.m,
+                self.hole_radius_m.tel[tel_id] * u.m,
+                telescope.optics,
+                mu_eff_container.impact,
+            )
         )
 
         return mu_eff_container
