@@ -201,9 +201,6 @@ def compute_absolute_optical_efficiency_from_muon_ring(
         * chord_dPhi_integral
     )
 
-    # print(measured_number_pe)
-    print(measured_number_pe / pred_total_Cher_phot.to_value())
-
     if pred_total_Cher_phot > 0:
         return measured_number_pe / pred_total_Cher_phot.to_value()
 
