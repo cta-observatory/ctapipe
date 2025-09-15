@@ -167,9 +167,8 @@ def compute_absolute_optical_efficiency_from_muon_ring(
 
     phi = np.linspace(-np.pi, np.pi, 10000)
 
-    chord = chord_length(R_mirror, rho, 0.0, phi) - chord_length(
-        hole_radius_m.to_value(u.m), rho, 0.0, phi
-    )
+    chord = chord_length(R_mirror, rho, 0.0, phi)
+    chord -= chord_length(hole_radius_m.to_value(u.m), rho, 0.0, phi)
 
     chord_dPhi_integral = np.trapezoid(
         chord,
