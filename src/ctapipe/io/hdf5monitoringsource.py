@@ -152,13 +152,13 @@ class HDF5MonitoringSource(MonitoringSource):
     ).tag(config=True)
 
     use_subarray_from = CaselessStrEnum(
-        ["external", "local", "arbitrary"],
+        ["external", "internal", "arbitrary"],
         default_value="external",
         help=(
             "Set the origin of the subarray description. Options are: "
             "'external': use subarray from an external source (e.g. event source) "
-            "'local': use local subarray description from the monitoring file "
-            "'arbitrary': use arbitrary (external has priority, local second) or no subarray description"
+            "'internal': use local subarray description from the monitoring file "
+            "'arbitrary': use arbitrary (external has priority, internal second) or no subarray description"
         ),
     ).tag(config=True)
 
@@ -172,7 +172,7 @@ class HDF5MonitoringSource(MonitoringSource):
         -----------
         subarray : SubarrayDescription or None
             Description of the subarray to use. If 'use_subarray_from' is set to
-            'external', this must be provided. If set to 'local', the subarray
+            'external', this must be provided. If set to 'internal', the subarray
             will be read from the monitoring files containing a subarray description.
             If set to 'arbitrary', the subarray description can be provided, read
             from the file if available or left as None.
@@ -236,7 +236,7 @@ class HDF5MonitoringSource(MonitoringSource):
         )
         # Loop over the input files
         for file in self.input_files:
-            if self.use_subarray_from == "local":
+            if self.use_subarray_from == "internal":
                 # Read the subarray description from the monitoring file
                 subarray_from_file = SubarrayDescription.from_hdf(file)
                 # Check that the available telescopes from the monitoring file
@@ -249,6 +249,11 @@ class HDF5MonitoringSource(MonitoringSource):
                         f"monitoring file '{file}' are not available in the external subarray description. "
                         f"Available telescopes in the external subarray are: '{self.subarray.tel_ids}'."
                     )
+                # Overwrite the provided subarray description and log a debug message
+                self.log.debug(
+                    f"HDF5MonitoringSource: Using subarray description from monitoring file '{file}'. Subarray contains telescopes: "
+                    f"{subarray_from_file.tel_ids}. Previously provided subarray description is overwritten."
+                )
                 self.subarray = subarray_from_file
             elif self.use_subarray_from == "arbitrary":
                 # Read the subarray description from the file if possible
@@ -257,12 +262,25 @@ class HDF5MonitoringSource(MonitoringSource):
                     # Overwrite the provided subarray if it is not set
                     if self.subarray is None:
                         self.subarray = subarray_from_file
-                except Exception as e:
-                    self.log.debug(
-                        f"HDF5MonitoringSource: Monitoring file '{file}' does not contain "
-                        f"a subarray description. Reading failed: {e}"
+                except tables.exceptions.NoSuchNodeError as node_missing_error:
+                    # Check if the reading failed with an expected error message or not
+                    if (
+                        str(node_missing_error)
+                        == "group ``/`` does not have a child named ``/configuration/instrument/subarray/layout``"
+                    ):
+                        self.log.debug(
+                            f"HDF5MonitoringSource: Monitoring file '{file}' does not contain a subarray description."
+                        )
+                    else:
+                        raise IOError(
+                            f"HDF5MonitoringSource: Unexpected ``tables.exceptions.NoSuchNodeError`` occurred: {node_missing_error} "
+                            f"Could not read subarray description from monitoring file '{file}'."
+                        )
+                except Exception as unexpected_error:
+                    raise IOError(
+                        f"HDF5MonitoringSource: Unexpected error occurred: {unexpected_error}. "
+                        f"Could not read subarray description from monitoring file '{file}'. "
                     )
-
             # Add the file to the provenance
             Provenance().add_input_file(
                 str(file),
