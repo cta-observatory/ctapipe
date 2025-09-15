@@ -23,7 +23,7 @@ from ctapipe.utils import get_dataset_path
 def test_hdf5_monitoring_source_subarray():
     """test a simple subarray"""
     file = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
-    with HDF5MonitoringSource(input_files=file) as source:
+    with HDF5MonitoringSource(input_files=file, use_subarray_from="local") as source:
         assert source.subarray.telescope_types
         assert source.subarray.camera_types
         assert source.subarray.optics_types
@@ -127,7 +127,8 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
     for col in ["mean", "median", "std"]:
         sky_pedestal_image[col][sky_pedestal_image["outlier_mask"].data] = np.nan
     with HDF5MonitoringSource(
-        input_files=calibpipe_camcalib_same_chunks
+        input_files=calibpipe_camcalib_same_chunks,
+        use_subarray_from="local",
     ) as monitoring_source:
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
             tel_id,
@@ -190,7 +191,9 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
         f"{DL1_FLATFIELD_PEAK_TIME_GROUP}/tel_{tel_id:03d}",
     )
     with HDF5MonitoringSource(
-        subarray=None, input_files=calibpipe_camcalib_same_chunks_obs
+        subarray=None,
+        input_files=calibpipe_camcalib_same_chunks_obs,
+        use_subarray_from="local",
     ) as monitoring_source:
         with pytest.raises(
             ValueError,
@@ -405,6 +408,7 @@ def test_hdf5_monitoring_source_multi_files_loading(
     )
     monitoring_source = HDF5MonitoringSource(
         input_files=[calibpipe_camcalib_same_chunks_obs, dl1_mon_pointing_file_obs],
+        use_subarray_from="local",
     )
     assert not monitoring_source.is_simulation
     assert monitoring_source.pixel_statistics
@@ -444,28 +448,42 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
     calibpipe_camcalib_same_chunks,
     calibpipe_camcalib_same_chunks_obs,
     dl1_mon_pointing_file,
+    hdf5_file_no_subarray,
 ):
     """test the common exceptions and warnings of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
     # This should raise a ToolConfigurationError.
-    with EventSource(input_url=prod6_gamma_simtel_path) as source:
+    with EventSource(
+        input_url=prod6_gamma_simtel_path, allowed_tels={2, 3, 4}
+    ) as source:
         with pytest.raises(
-            ToolConfigurationError, match="HDF5MonitoringSource: Requested telescopes"
+            ToolConfigurationError, match="HDF5MonitoringSource: Available telescopes"
         ):
             HDF5MonitoringSource(
-                subarray=source.subarray, input_files=calibpipe_camcalib_same_chunks
+                subarray=source.subarray,
+                input_files=calibpipe_camcalib_same_chunks,
+                use_subarray_from="local",
             )
     # Do not provide an input file. This should raise a IOError.
     with pytest.raises(
         IOError, match="No input files provided. Please specify input files"
     ):
-        HDF5MonitoringSource()
+        HDF5MonitoringSource(use_subarray_from="arbitrary")
+    # Provide an input file without a subarray description. This should raise a NotImplementedError.
+    with pytest.raises(
+        NotImplementedError,
+        match="HDF5MonitoringSource: 'use_subarray_from' is set to 'arbitrary', but no",
+    ):
+        HDF5MonitoringSource(
+            input_files=[hdf5_file_no_subarray], use_subarray_from="arbitrary"
+        )
     # Do not provide an input files with inconsistent simulation flags. This should raise a IOError.
     with pytest.raises(
         IOError, match="HDF5MonitoringSource: Inconsistent simulation flags found in"
     ):
         HDF5MonitoringSource(
-            input_files=[dl1_mon_pointing_file, calibpipe_camcalib_same_chunks_obs]
+            input_files=[dl1_mon_pointing_file, calibpipe_camcalib_same_chunks_obs],
+            use_subarray_from="local",
         )
     # Warns if telescope pointings are available but
     # the monitoring source is from simulated data.
@@ -476,6 +494,7 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         HDF5MonitoringSource(
             subarray=None,
             input_files=dl1_mon_pointing_file,
+            use_subarray_from="local",
         )
     # Warns if overlapping monitoring types are found in multiple input files.
     with pytest.warns(
@@ -488,4 +507,5 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
                 calibpipe_camcalib_same_chunks_obs,
                 calibpipe_camcalib_same_chunks_obs,
             ],
+            use_subarray_from="local",
         )
