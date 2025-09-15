@@ -23,7 +23,7 @@ from ..containers import (
     TelescopePointingContainer,
 )
 from ..core import Provenance, ToolConfigurationError
-from ..core.traits import Bool, List, Path
+from ..core.traits import CaselessStrEnum, List, Path
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
 from .hdf5dataformat import (
@@ -151,11 +151,14 @@ class HDF5MonitoringSource(MonitoringSource):
         help="List of paths to the HDF5 input files containing monitoring data",
     ).tag(config=True)
 
-    enforce_subarray_description = Bool(
-        True,
+    use_subarray_from = CaselessStrEnum(
+        ["external", "local", "arbitrary"],
+        default_value="external",
         help=(
-            "Force the reading of the subarray description "
-            "from the input files if the subarray is not provided."
+            "Set the origin of the subarray description. Options are: "
+            "'external': use subarray from an external source (e.g. event source) "
+            "'local': use local subarray description from the monitoring file "
+            "'arbitrary': use arbitrary (external has priority, local second) or no subarray description"
         ),
     ).tag(config=True)
 
@@ -168,9 +171,11 @@ class HDF5MonitoringSource(MonitoringSource):
         Parameters:
         -----------
         subarray : SubarrayDescription or None
-            Description of the subarray to use. If not provided, the subarray
-            will be read from the input file. The 'enforce_subarray_description' flag
-            determines whether a subarray description is required.
+            Description of the subarray to use. If 'use_subarray_from' is set to
+            'external', this must be provided. If set to 'local', the subarray
+            will be read from the monitoring files containing a subarray description.
+            If set to 'arbitrary', the subarray description can be provided, read
+            from the file if available or left as None.
         input_files : Path, or list of Paths, optional
             Path(s) of the files to load. Can be a single Path, or a list of Paths.
             These will be added to any files already configured via the configuration system.
@@ -196,6 +201,14 @@ class HDF5MonitoringSource(MonitoringSource):
             PointingInterpolator,
         )
 
+        # Check if the subarray is provided when required
+        if self.use_subarray_from == "external" and subarray is None:
+            raise ToolConfigurationError(
+                "HDF5MonitoringSource: 'use_subarray_from' is set to 'external', but no "
+                "subarray description is provided. Please provide a subarray description "
+                "via the 'subarray' argument."
+            )
+        # Set the subarray description
         self.subarray = subarray
 
         # Handle additional input_files parameter - extend the existing list
@@ -223,21 +236,31 @@ class HDF5MonitoringSource(MonitoringSource):
         )
         # Loop over the input files
         for file in self.input_files:
-            if self.enforce_subarray_description:
-                # Check if the reading from the input file is enforced
-                # Read the subarray description from the file if required
+            if self.use_subarray_from == "local":
+                # Read the subarray description from the monitoring file
                 subarray_from_file = SubarrayDescription.from_hdf(file)
-                # Overwrite the provided subarray if it is not set
-                if self.subarray is None:
-                    self.subarray = subarray_from_file
-                # Check if the requested telescopes are available in the file
-                if not set(self.subarray.tel_ids).issubset(
-                    set(subarray_from_file.tel_ids)
-                ):
+                # Check that the available telescopes from the monitoring file
+                # are a subset of the external subarray description if provided
+                if self.subarray is not None and not set(
+                    subarray_from_file.tel_ids
+                ).issubset(set(self.subarray.tel_ids)):
                     raise ToolConfigurationError(
-                        f"HDF5MonitoringSource: Requested telescopes '{self.subarray.tel_ids}' are not "
-                        f"available in the monitoring file '{file}'. Available telescopes "
-                        f"are: '{subarray_from_file.tel_ids}'."
+                        f"HDF5MonitoringSource: Available telescopes '{subarray_from_file.tel_ids}' from "
+                        f"monitoring file '{file}' are not available in the external subarray description. "
+                        f"Available telescopes in the external subarray are: '{self.subarray.tel_ids}'."
+                    )
+                self.subarray = subarray_from_file
+            elif self.use_subarray_from == "arbitrary":
+                # Read the subarray description from the file if possible
+                try:
+                    subarray_from_file = SubarrayDescription.from_hdf(file)
+                    # Overwrite the provided subarray if it is not set
+                    if self.subarray is None:
+                        self.subarray = subarray_from_file
+                except Exception as e:
+                    self.log.debug(
+                        f"HDF5MonitoringSource: Monitoring file '{file}' does not contain "
+                        f"a subarray description. Reading failed: {e}"
                     )
 
             # Add the file to the provenance
@@ -348,6 +371,15 @@ class HDF5MonitoringSource(MonitoringSource):
                     self._pointing_interpolator.add_table(
                         tel_id, self._telescope_pointings[tel_id]
                     )
+
+        # Break with an NotImplementedError if no subarray description is provided in 'arbitrary' mode.
+        if self.subarray is None:
+            raise NotImplementedError(
+                "HDF5MonitoringSource: 'use_subarray_from' is set to 'arbitrary', but no "
+                "subarray description is provided and the provided monitoring files do not "
+                "contain a subarray description. Currently no functionality in the HDF5MonitoringSource "
+                "is implemented to process monitoring data without a subarray description."
+            )
 
     @property
     def is_simulation(self):
