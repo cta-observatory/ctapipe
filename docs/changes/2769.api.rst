@@ -1,0 +1,12 @@
+Update definition of the ``ctapipe.containers.EventType`` enum
+to match an updated definition in the CTAO R1 and DL0 data models.
+
+``SKY_PEDESTAL=2`` is changed to the generic ``PEDESTAL``,
+which is expected from most cameras in real data.
+
+New types added are ``SKY_PEDESTAL=5`` and ``RANDOM_MONO=18``.
+
+These types were previously assigned at the subarray event level
+but in fact are per telescope event in the data model.
+A new field ``event_type`` was added to the ``TelescopeTriggerContainer``
+and will be filled by the ``EventSource``-implementations in ctapipe.
