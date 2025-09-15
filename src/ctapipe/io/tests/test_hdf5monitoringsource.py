@@ -469,14 +469,6 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         IOError, match="No input files provided. Please specify input files"
     ):
         HDF5MonitoringSource(use_subarray_from="arbitrary")
-    # Provide an invalid input file. This should raise an IOError.
-    with pytest.raises(
-        IOError,
-        match="HDF5MonitoringSource: Unexpected error occurred:",
-    ):
-        HDF5MonitoringSource(
-            input_files=[prod6_gamma_simtel_path], use_subarray_from="arbitrary"
-        )
     # Provide an input file without a subarray description. This should raise an NotImplementedError.
     with pytest.raises(
         NotImplementedError,

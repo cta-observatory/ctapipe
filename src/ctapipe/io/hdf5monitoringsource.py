@@ -276,11 +276,6 @@ class HDF5MonitoringSource(MonitoringSource):
                             f"HDF5MonitoringSource: Unexpected ``tables.exceptions.NoSuchNodeError`` occurred: {node_missing_error} "
                             f"Could not read subarray description from monitoring file '{file}'."
                         )
-                except Exception as unexpected_error:
-                    raise IOError(
-                        f"HDF5MonitoringSource: Unexpected error occurred: {unexpected_error}. "
-                        f"Could not read subarray description from monitoring file '{file}'. "
-                    )
             # Add the file to the provenance
             Provenance().add_input_file(
                 str(file),
