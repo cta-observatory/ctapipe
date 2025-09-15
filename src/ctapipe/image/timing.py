@@ -12,6 +12,7 @@ from ..containers import (
     HillasParametersContainer,
     TimingParametersContainer,
 )
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ..fitting import lts_linear_regression
 from ..utils.quantities import all_to_value
 from .hillas import camera_to_shower_coordinates
@@ -19,7 +20,7 @@ from .hillas import camera_to_shower_coordinates
 __all__ = ["timing_parameters"]
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def rmse(truth, prediction):
     """Root mean squared error"""
     return np.sqrt(np.mean((truth - prediction) ** 2))

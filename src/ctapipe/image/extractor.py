@@ -47,6 +47,7 @@ from ctapipe.core.traits import (
 )
 from ctapipe.instrument import CameraDescription
 
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
@@ -62,7 +63,7 @@ from .timing import timing_parameters
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def extract_around_peak(
     waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
@@ -147,7 +148,7 @@ def extract_around_peak(
     ],
     "(s),(),()->(),()",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time):
     """
@@ -215,7 +216,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     peak_time[0] /= sampling_rate_ghz
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def neighbor_average_maximum(
     waveforms, neighbors_indices, neighbors_indptr, local_weight, broken_pixels
 ):
@@ -1500,7 +1501,7 @@ def deconvolve(
     ],
     "(s),(),()->()",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
     """

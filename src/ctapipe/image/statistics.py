@@ -4,6 +4,7 @@ import numpy as np
 from numba import float32, float64, guvectorize, int64, njit
 
 from ..containers import ImageStatisticsContainer
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 
 __all__ = [
     "arg_n_largest",
@@ -15,7 +16,7 @@ __all__ = [
 ]
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def skewness(data, mean=None, std=None):
     """Calculate skewnewss (normalized third central moment)
     with allowing precomputed mean and std.
@@ -48,7 +49,7 @@ def skewness(data, mean=None, std=None):
     return np.mean(((data - mean) / std) ** 3)
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def kurtosis(data, mean=None, std=None, fisher=True):
     """Calculate kurtosis (normalized fourth central moment)
     with allowing precomputed mean and std.
@@ -116,7 +117,7 @@ def n_largest(n, array):
     ],
     "(n),(p)->(n)",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def arg_n_largest_gu(dummy, array, idx):
     """
