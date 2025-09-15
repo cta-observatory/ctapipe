@@ -335,8 +335,30 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--max-events=20",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def all_showers_file(dl1_tmp_path, prod5_gamma_simtel_path):
+    """
+    DL1 file containing data about all simulated showers.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "gamma.showers.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(_lock_file(output)):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--SimTelEventSource.skip_non_triggered_events=False",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output

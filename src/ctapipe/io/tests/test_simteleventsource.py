@@ -37,27 +37,6 @@ def test_positional_input():
     assert source.input_url == Path(prod5b_path)
 
 
-def test_simtel_event_source_on_gamma_test_one_event():
-    assert SimTelEventSource.is_compatible(gamma_test_large_path)
-
-    with SimTelEventSource(
-        input_url=gamma_test_large_path,
-        back_seekable=True,
-        focal_length_choice="EQUIVALENT",
-    ) as reader:
-        assert not reader.is_stream
-
-        for event in reader:
-            if event.count > 1:
-                break
-
-        with pytest.warns(UserWarning):
-            for event in reader:
-                # Check generator has restarted from beginning
-                assert event.count == 0
-                break
-
-
 def test_that_event_is_not_modified_after_loop():
     dataset = prod5b_path
     with SimTelEventSource(input_url=dataset, max_events=2) as source:
@@ -484,7 +463,10 @@ def test_true_image_sum():
 
 
 def test_extracted_calibevents():
-    with SimTelEventSource("dataset://extracted_pedestals.simtel.zst") as s:
+    with SimTelEventSource(
+        "dataset://extracted_pedestals.simtel.zst",
+        skip_calibration_events=False,
+    ) as s:
         i = 0
         for e in s:
             i = e.count
@@ -741,3 +723,105 @@ def test_has_true_image_first_missing():
             assert event.simulation.tel[1].true_image is not None
             n_found += 1
         assert n_found == 2
+
+
+def test_all_events():
+    n = 0
+    energy = None
+    with SimTelEventSource(prod5b_path, skip_non_triggered_events=False) as source:
+        config = source.simulation_config[source.obs_id]
+
+        for e in source:
+            shower_number = n // config.shower_reuse + 1
+            reuse = n % config.shower_reuse
+
+            expected_id = 100 * shower_number + reuse
+            assert e.index.event_id == expected_id
+
+            if reuse == 0:
+                # new shower, should have different energy than previous event
+                assert energy != e.simulation.shower.energy
+                energy = e.simulation.shower.energy
+            else:
+                assert energy == e.simulation.shower.energy
+            n += 1
+
+    expected_showers = config.n_showers * config.shower_reuse
+    assert n == expected_showers
+
+
+def test_include_all_pe():
+    # values determined by looking into simtel file manually using pyeventio
+    expected_pe = {
+        2: 32,
+        3: 91,
+        4: 74,
+        5: 30,
+        8: 41,
+        9: 104,
+        14: 116,
+        15: 28,
+        16: 27,
+        23: 53,
+        24: 36,
+        25: 25,
+        100: 32,
+        103: 42,
+        104: 98,
+        109: 93,
+        111: 35,
+        118: 51,
+        119: 32,
+        127: 27,
+        129: 30,
+        130: 38,
+        137: 13,
+        139: 12,
+    }
+
+    path = "dataset://gamma_prod5.simtel.zst"
+    with SimTelEventSource(path, include_non_triggered_photoelectrons=True) as source:
+        it = iter(source)
+
+        e = next(it)
+        assert e.index.event_id == 4009
+
+        assert e.simulation.tel.keys()
+        for tel_id, expected_true_image_sum in expected_pe.items():
+            assert e.simulation.tel[tel_id].true_image_sum == expected_true_image_sum
+            assert e.simulation.tel[tel_id].true_image.sum() == expected_true_image_sum
+
+        assert list(e.r1.tel.keys()) == [9, 14, 104]
+
+
+def test_include_all_events_all_pe():
+    # values determined by looking into simtel file manually using pyeventio
+
+    path = "dataset://gamma_prod5.simtel.zst"
+    with SimTelEventSource(
+        path,
+        include_non_triggered_photoelectrons=True,
+        skip_non_triggered_events=False,
+    ) as source:
+        it = iter(source)
+
+        e = next(it)
+        # first couple of events have no telescope-wise info at all
+        while e.index.event_id != 404:
+            assert len(e.simulation.tel) == 0
+            e = next(it)
+
+        assert e.index.event_id == 404
+        assert list(e.simulation.tel.keys()) == [4]
+        assert e.simulation.tel[4].true_image_sum == 39
+        assert e.simulation.tel[4].true_image.sum() == 39
+        assert np.count_nonzero(e.simulation.tel[4].true_image) == 17
+
+        e = next(it)
+        while e.index.event_id != 800:
+            assert len(e.simulation.tel) == 0
+            e = next(it)
+
+        assert list(e.simulation.tel.keys()) == [24, 25, 29, 124, 148]
+        assert e.simulation.tel[24].true_image_sum == 26
+        assert np.count_nonzero(e.simulation.tel[24].true_image) == 12
