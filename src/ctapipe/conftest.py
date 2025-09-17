@@ -20,7 +20,6 @@ from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
 from ctapipe.io import SimTelEventSource
 from ctapipe.io.hdf5dataformat import (
-    CONFIG_GROUP,
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_CAMERA_MONITORING_GROUP,
@@ -825,18 +824,6 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
         f.remove_node(SIMULATION_GROUP, recursive=True)
-
-    return path
-
-
-@pytest.fixture(scope="session")
-def hdf5_file_no_subarray(dl1_file, dl1_tmp_path):
-    path = dl1_tmp_path / "hdf5_file_no_subarray.dl1.h5"
-    shutil.copy(dl1_file, path)
-
-    # Remove the configuration group to have a hdf5 file without subarray
-    with tables.open_file(path, "r+") as f:
-        f.remove_node(CONFIG_GROUP, recursive=True)
 
     return path
 
