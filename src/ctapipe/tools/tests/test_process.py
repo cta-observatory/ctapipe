@@ -517,7 +517,7 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
 
     with pytest.raises(
         ToolConfigurationError,
-        match="'HDF5MonitoringSource' needs the MonitoringSource to provide at least one",
+        match="HDF5MonitoringSource: Available telescopes",
     ):
         run_tool(
             ProcessorTool(),
