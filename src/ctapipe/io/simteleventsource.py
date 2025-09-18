@@ -49,7 +49,7 @@ from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
-from ..exceptions import OptionalDependencyMissing
+from ..exceptions import InputMissing, OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
