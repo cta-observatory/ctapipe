@@ -13,7 +13,7 @@ import pytest
 import tables
 from numpy.testing import assert_allclose, assert_array_equal
 
-from ctapipe.core import ToolConfigurationError, run_tool
+from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import EventSource, TableLoader, read_table
 from ctapipe.io.hdf5dataformat import (
@@ -516,8 +516,8 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
     output = tmp_path / "test_process_with_invalid_monitoring_file.dl1.h5"
 
     with pytest.raises(
-        ToolConfigurationError,
-        match="HDF5MonitoringSource: Available telescopes",
+        IOError,
+        match="Incompatible subarray descriptions found in input files.",
     ):
         run_tool(
             ProcessorTool(),

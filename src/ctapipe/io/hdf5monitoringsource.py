@@ -3,7 +3,6 @@ Handles reading of monitoring files
 """
 
 import logging
-import pathlib
 import warnings
 from contextlib import ExitStack
 
@@ -22,8 +21,9 @@ from ..containers import (
     StatisticsContainer,
     TelescopePointingContainer,
 )
-from ..core import Provenance, ToolConfigurationError
+from ..core import Provenance
 from ..core.traits import List, Path
+from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
 from .hdf5dataformat import (
@@ -34,7 +34,7 @@ from .hdf5dataformat import (
 )
 from .metadata import read_reference_metadata
 from .monitoringsource import MonitoringSource
-from .monitoringtypes import MonitoringTypes
+from .monitoringtypes import MonitoringType
 
 __all__ = ["HDF5MonitoringSource"]
 
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 def get_hdf5_monitoring_types(
     h5file: tables.File | str | Path,
-) -> tuple[MonitoringTypes]:
+) -> tuple[MonitoringType]:
     """Get the monitoring types present in the hdf5 file"""
 
     with ExitStack() as stack:
@@ -52,25 +52,25 @@ def get_hdf5_monitoring_types(
 
         try:
             calibration_group = h5file.get_node(DL1_TEL_CALIBRATION_GROUP)
-            # Iterate over enum values of MonitoringTypes
+            # Iterate over enum values of MonitoringType
             monitoring_types = [
                 monitoring_type
                 for monitoring_type in [
-                    MonitoringTypes.PIXEL_STATISTICS,
-                    MonitoringTypes.CAMERA_COEFFICIENTS,
+                    MonitoringType.PIXEL_STATISTICS,
+                    MonitoringType.CAMERA_COEFFICIENTS,
                 ]
                 if monitoring_type.value in calibration_group
             ]
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
             if DL0_TEL_POINTING_GROUP in h5file.root:
-                monitoring_types.append(MonitoringTypes.TELESCOPE_POINTINGS)
+                monitoring_types.append(MonitoringType.TELESCOPE_POINTINGS)
 
         except (KeyError, tables.NoSuchNodeError):
             # TODO: Simplify once backwards compatibility is not needed anymore
             # Check for telescope pointing
             if DL0_TEL_POINTING_GROUP in h5file.root:
-                monitoring_types = [MonitoringTypes.TELESCOPE_POINTINGS]
+                monitoring_types = [MonitoringType.TELESCOPE_POINTINGS]
             else:
                 # Return empty tuple if calibration group doesn't exist
                 warnings.warn(
@@ -105,7 +105,7 @@ class HDF5MonitoringSource(MonitoringSource):
     >>> file = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
     >>> monitoring_source = HDF5MonitoringSource(
     ...    subarray=event_source.subarray,
-    ...    input_files=file,
+    ...    input_files=[file],
     ... )
     >>> for event in event_source:
     ...     # Fill the event data with the monitoring container
@@ -151,20 +151,15 @@ class HDF5MonitoringSource(MonitoringSource):
         help="List of paths to the HDF5 input files containing monitoring data",
     ).tag(config=True)
 
-    def __init__(
-        self, subarray=None, input_files=None, config=None, parent=None, **kwargs
-    ):
+    def __init__(self, subarray=None, config=None, parent=None, **kwargs):
         """
         MonitoringSource for monitoring files in the standard HDF5 data format
 
         Parameters:
         -----------
         subarray : SubarrayDescription or None
-            Description of the subarray to use for compatibility checks. If None,
-            the subarray description is read from the input files and checked for consistency.
-        input_files : Path, or list of Paths, optional
-            Path(s) of the files to load. Can be a single Path, or a list of Paths.
-            These will be added to any files already configured via the configuration system.
+            Optional description of the subarray. If provided, the subarray
+            description should match the one from the monitoring file(s).
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -187,38 +182,27 @@ class HDF5MonitoringSource(MonitoringSource):
             PointingInterpolator,
         )
 
-        # Set the subarray description
-        self.subarray = subarray
-
-        # Handle additional input_files parameter - extend the existing list
-        if input_files is not None:
-            if isinstance(input_files, (list, tuple)):
-                self.input_files.extend([pathlib.Path(f) for f in input_files])
-            else:
-                self.input_files.append(pathlib.Path(input_files))
         # Check if input_files list is empty
         if not self.input_files:
-            raise IOError(
-                "No input files provided. Please specify input files "
-                "via configuration or input_files parameter."
+            raise InputMissing(
+                "No input files provided. Please specify a list of input file(s) "
+                "via configuration by `--HDF5MonitoringSource.input_files` "
+                "or using as an argument <input_files> in the constructor."
             )
         # Loop over the input files to read the subarray description and check for compatibility
         # if a subarray is already provided either externally or via a previous monitoring file.
+        subarray_list = [] if self.subarray is None else [self.subarray]
         for file in self.input_files:
             # Log the input file paths
             self.log.info("INPUT PATH = %s", str(file))
             # Read the subarray description from the monitoring file
-            subarray_from_file = SubarrayDescription.from_hdf(file)
-            if self.subarray is not None and any(
-                self.subarray.tel_ids != subarray_from_file.tel_ids
-            ):
-                raise ToolConfigurationError(
-                    f"HDF5MonitoringSource: Available telescopes '{subarray_from_file.tel_ids}' "
-                    f"from monitoring file '{file}' are not compatible with: '{self.subarray.tel_ids}'."
-                )
-
-            # Overwrite or set the subarray description
-            self.subarray = subarray_from_file
+            subarray_list.append(SubarrayDescription.from_hdf(file))
+        # Check if all subarray descriptions are compatible
+        if not SubarrayDescription.check_matching_subarrays(subarray_list):
+            raise IOError("Incompatible subarray descriptions found in input files.")
+        else:
+            # Set the subarray description
+            self.subarray = subarray_list[0]
 
         # Initialize monitoring types and other useful attributes
         self._monitoring_types = set()
@@ -267,7 +251,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 self._monitoring_types.update(file_monitoring_types)
             # Read the different monitoring types from the file
             # Pixel statistics reading
-            if MonitoringTypes.PIXEL_STATISTICS in file_monitoring_types:
+            if MonitoringType.PIXEL_STATISTICS in file_monitoring_types:
                 # Instantiate the chunk interpolators for each table
                 self._pedestal_image_interpolator = PedestalImageInterpolator()
                 self._flatfield_image_interpolator = FlatfieldImageInterpolator()
@@ -297,7 +281,7 @@ class HDF5MonitoringSource(MonitoringSource):
                             tel_id, self._pixel_statistics[tel_id][name]
                         )
             # Camera coefficients reading
-            if MonitoringTypes.CAMERA_COEFFICIENTS in file_monitoring_types:
+            if MonitoringType.CAMERA_COEFFICIENTS in file_monitoring_types:
                 # Read the tables from the monitoring file requiring all tables to be present
                 for tel_id in self.subarray.tel_ids:
                     self._camera_coefficients[tel_id] = read_table(
@@ -313,7 +297,7 @@ class HDF5MonitoringSource(MonitoringSource):
 
             # Telescope pointings reading
             if (
-                MonitoringTypes.TELESCOPE_POINTINGS in file_monitoring_types
+                MonitoringType.TELESCOPE_POINTINGS in file_monitoring_types
                 and self.is_simulation
             ):
                 msg = (
@@ -323,7 +307,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 self.log.warning(msg)
                 warnings.warn(msg, UserWarning)
             if (
-                MonitoringTypes.TELESCOPE_POINTINGS in file_monitoring_types
+                MonitoringType.TELESCOPE_POINTINGS in file_monitoring_types
                 and not self.is_simulation
             ):
                 # Instantiate the pointing interpolator
@@ -355,21 +339,21 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         True for files that contain pixel statistics
         """
-        return MonitoringTypes.PIXEL_STATISTICS in self.monitoring_types
+        return MonitoringType.PIXEL_STATISTICS in self.monitoring_types
 
     @lazyproperty
     def has_camera_coefficients(self):
         """
         True for files that contain camera calibration coefficients
         """
-        return MonitoringTypes.CAMERA_COEFFICIENTS in self.monitoring_types
+        return MonitoringType.CAMERA_COEFFICIENTS in self.monitoring_types
 
     @lazyproperty
     def has_pointings(self):
         """
         True for files that contain pointing information
         """
-        return MonitoringTypes.TELESCOPE_POINTINGS in self.monitoring_types
+        return MonitoringType.TELESCOPE_POINTINGS in self.monitoring_types
 
     @property
     def camera_coefficients(self):
