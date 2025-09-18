@@ -191,19 +191,14 @@ class HDF5MonitoringSource(MonitoringSource):
             )
         # Loop over the input files to read the subarray description and check for compatibility
         # if a subarray is already provided either externally or via a previous monitoring file.
-        subarray_list = [] if self.subarray is None else [self.subarray]
-        for file in self.input_files:
-            # Log the input file paths
-            self.log.info("INPUT PATH = %s", str(file))
-            # Read the subarray description from the monitoring file
-            subarray_list.append(SubarrayDescription.from_hdf(file))
+        subarrays = ([self.subarray] if self.subarray is not None else []) + [
+            SubarrayDescription.from_hdf(f) for f in self.input_files
+        ]
         # Check if all subarray descriptions are compatible
-        if not SubarrayDescription.check_matching_subarrays(subarray_list):
+        if not SubarrayDescription.check_matching_subarrays(subarrays):
             raise IOError("Incompatible subarray descriptions found in input files.")
-        else:
-            # Set the subarray description
-            self.subarray = subarray_list[0]
-
+        # Set the subarray description
+        self.subarray = subarrays[0]
         # Initialize monitoring types and other useful attributes
         self._monitoring_types = set()
         self._is_simulation = None
