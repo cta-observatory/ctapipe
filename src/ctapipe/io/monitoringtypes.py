@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class MonitoringTypes(Enum):
+class MonitoringType(Enum):
     """Enum of the different Monitoring Types"""
 
     #: Camera pixel statistics

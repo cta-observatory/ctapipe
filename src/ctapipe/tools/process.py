@@ -19,7 +19,7 @@ from ..io import (
     DataWriter,
     EventSource,
     MonitoringSource,
-    MonitoringTypes,
+    MonitoringType,
     metadata,
     write_table,
 )
@@ -39,9 +39,9 @@ COMPATIBLE_DATALEVELS = [
 ]
 
 COMPATIBLE_MONITORINGTYPES = [
-    MonitoringTypes.PIXEL_STATISTICS,
-    MonitoringTypes.CAMERA_COEFFICIENTS,
-    MonitoringTypes.TELESCOPE_POINTINGS,
+    MonitoringType.PIXEL_STATISTICS,
+    MonitoringType.CAMERA_COEFFICIENTS,
+    MonitoringType.TELESCOPE_POINTINGS,
 ]
 
 
@@ -95,7 +95,7 @@ class ProcessorTool(Tool):
             "List of monitoring sources to use during processing "
             "if the calibration of the data is requested. Later "
             "MonitoringSource instances overwrite earlier ones if "
-            "the MonitoringTypes of the different instances overlap."
+            "the monitoring types of the different instances overlap."
         ),
         default_value=[],
     ).tag(config=True)

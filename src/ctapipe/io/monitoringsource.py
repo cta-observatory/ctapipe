@@ -5,7 +5,7 @@ from abc import abstractmethod
 
 from ..containers import ArrayEventContainer
 from ..core import TelescopeComponent
-from .monitoringtypes import MonitoringTypes
+from .monitoringtypes import MonitoringType
 
 __all__ = ["MonitoringSource"]
 
@@ -42,13 +42,13 @@ class MonitoringSource(TelescopeComponent):
 
     @property
     @abstractmethod
-    def monitoring_types(self) -> tuple[MonitoringTypes]:
+    def monitoring_types(self) -> tuple[MonitoringType]:
         """
         The monitoring types provided by this monitoring source
 
         Returns
         -------
-        tuple[ctapipe.io.MonitoringTypes]
+        tuple[ctapipe.io.MonitoringType]
         """
 
     def has_any_monitoring_types(self, monitoring_types) -> bool:

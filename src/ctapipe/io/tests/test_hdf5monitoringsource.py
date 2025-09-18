@@ -3,11 +3,11 @@ import numpy as np
 import pytest
 from astropy.time import Time
 
-from ctapipe.core import ToolConfigurationError
+from ctapipe.exceptions import InputMissing
 from ctapipe.io import (
     EventSource,
     HDF5MonitoringSource,
-    MonitoringTypes,
+    MonitoringType,
     get_hdf5_monitoring_types,
     read_table,
 )
@@ -23,7 +23,7 @@ from ctapipe.utils import get_dataset_path
 def test_hdf5_monitoring_source_subarray():
     """test a simple subarray"""
     file = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
-    with HDF5MonitoringSource(input_files=file) as source:
+    with HDF5MonitoringSource(input_files=[file]) as source:
         assert source.subarray.telescope_types
         assert source.subarray.camera_types
         assert source.subarray.optics_types
@@ -34,7 +34,7 @@ def test_passing_subarray(dl1_file, calibpipe_camcalib_same_chunks):
     allowed_tels = {1}
     with EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         monitoring_source = HDF5MonitoringSource(
-            subarray=source.subarray, input_files=calibpipe_camcalib_same_chunks
+            subarray=source.subarray, input_files=[calibpipe_camcalib_same_chunks]
         )
         assert monitoring_source.subarray.tel_ids == source.subarray.tel_ids
 
@@ -51,19 +51,19 @@ def test_get_monitoring_types(
         no_monitoring_types = get_hdf5_monitoring_types(proton_dl2_train_small_h5)
         assert tuple([]) == no_monitoring_types
     # Test with a file that has pointing-related monitoring types
-    assert tuple([MonitoringTypes.TELESCOPE_POINTINGS]) == get_hdf5_monitoring_types(
+    assert tuple([MonitoringType.TELESCOPE_POINTINGS]) == get_hdf5_monitoring_types(
         dl1_mon_pointing_file
     )
     # Test with a file that has camera-related monitoring types
     assert tuple(
-        [MonitoringTypes.PIXEL_STATISTICS, MonitoringTypes.CAMERA_COEFFICIENTS]
+        [MonitoringType.PIXEL_STATISTICS, MonitoringType.CAMERA_COEFFICIENTS]
     ) == get_hdf5_monitoring_types(calibpipe_camcalib_different_chunks)
     # Test with a file that has all current monitoring types
     assert tuple(
         [
-            MonitoringTypes.PIXEL_STATISTICS,
-            MonitoringTypes.CAMERA_COEFFICIENTS,
-            MonitoringTypes.TELESCOPE_POINTINGS,
+            MonitoringType.PIXEL_STATISTICS,
+            MonitoringType.CAMERA_COEFFICIENTS,
+            MonitoringType.TELESCOPE_POINTINGS,
         ]
     ) == get_hdf5_monitoring_types(dl1_merged_monitoring_file)
 
@@ -122,7 +122,7 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
     for col in ["mean", "median", "std"]:
         sky_pedestal_image[col][sky_pedestal_image["outlier_mask"].data] = np.nan
     with HDF5MonitoringSource(
-        input_files=calibpipe_camcalib_same_chunks
+        input_files=[calibpipe_camcalib_same_chunks]
     ) as monitoring_source:
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
             tel_id,
@@ -186,7 +186,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_same_chunks_obs)
     )
     with HDF5MonitoringSource(
         subarray=None,
-        input_files=calibpipe_camcalib_same_chunks_obs,
+        input_files=[calibpipe_camcalib_same_chunks_obs],
     ) as monitoring_source:
         with pytest.raises(
             ValueError,
@@ -304,7 +304,7 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
     ) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
-            input_files=dl1_merged_monitoring_file_obs,
+            input_files=[dl1_merged_monitoring_file_obs],
         )
         assert not monitoring_source.is_simulation
         assert monitoring_source.pixel_statistics
@@ -350,7 +350,7 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_same_chunks_ob
     ) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
-            input_files=calibpipe_camcalib_same_chunks_obs,
+            input_files=[calibpipe_camcalib_same_chunks_obs],
         )
         assert not monitoring_source.is_simulation
         assert monitoring_source.pixel_statistics
@@ -443,20 +443,21 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
 ):
     """test the common exceptions and warnings of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
-    # This should raise a ToolConfigurationError.
+    # This should raise an IOError.
     with EventSource(
         input_url=prod6_gamma_simtel_path, allowed_tels={2, 3, 4}
     ) as source:
         with pytest.raises(
-            ToolConfigurationError, match="HDF5MonitoringSource: Available telescopes"
+            IOError, match="Incompatible subarray descriptions found in input files."
         ):
             HDF5MonitoringSource(
                 subarray=source.subarray,
-                input_files=calibpipe_camcalib_same_chunks,
+                input_files=[calibpipe_camcalib_same_chunks],
             )
-    # Do not provide an input file. This should raise an IOError.
+    # Do not provide an input file. This should raise an InputMissing.
     with pytest.raises(
-        IOError, match="No input files provided. Please specify input files"
+        InputMissing,
+        match="No input files provided",
     ):
         HDF5MonitoringSource()
     # Do not provide an input files with inconsistent simulation flags. This should raise an IOError.
@@ -474,7 +475,7 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
     ):
         HDF5MonitoringSource(
             subarray=None,
-            input_files=dl1_mon_pointing_file,
+            input_files=[dl1_mon_pointing_file],
         )
     # Warns if overlapping monitoring types are found in multiple input files.
     with pytest.warns(
