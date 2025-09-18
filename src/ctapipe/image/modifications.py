@@ -3,8 +3,16 @@ from numba import njit
 
 from ..core import TelescopeComponent
 from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
-from ..core.traits import BoolTelescopeParameter, FloatTelescopeParameter, Int
+from ..core.traits import (
+    BoolTelescopeParameter,
+    Dict,
+    FloatTelescopeParameter,
+    Int,
+    IntTelescopeParameter,
+    Path,
+)
 from ..instrument import SubarrayDescription
+from ..io import EventSource
 
 __all__ = [
     "ImageModifier",
@@ -98,6 +106,62 @@ def _smear_psf_randomly(
             new_image[neighbor] += neighbor_charges[n]
 
     return new_image
+
+
+class WaveformModifier(TelescopeComponent):
+    """
+    Component to add NSB noise to R1 waveforms (intended in principle to be
+    applied on MC simulations, to make them closer to real data)
+    The noise waveforms are read in from a dedicated sim_telarray file which
+    must be produced with the same telescope array configuration (and other
+    simulation settings) as the file to be modified, but containing only NSB
+    noise (electronic noise should be switched off)
+    """
+
+    nsb_file = Path(
+        default_value=None,
+        help="Path to a dedicated NSB-only sim_telarray file",
+    )
+
+    nsb_level = IntTelescopeParameter(
+        default_value=1,
+        help=(
+            "Number of random instances of the NSB waveforms from the "
+            "NSB file to be added up to the waveform"
+        ),
+    )
+
+    nsb_database = Dict()
+
+    def __init__(
+        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
+    ):
+        """
+
+        Parameters
+        ----------
+        subarray
+        config
+        parent
+        kwargs
+        """
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+
+        source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
+
+        for event in source:
+            for tel_id in event.trigger.tels_with_trigger:
+                if f"{tel_id}" in self.nsb_database:
+                    self.nsb_database[f"{tel_id}"] = np.vstack(
+                        [
+                            self.nsb_database[f"{tel_id}"],
+                            [event.r1.tel[tel_id].waveform],
+                        ]
+                    )
+                else:
+                    self.nsb_database[f"{tel_id}"] = np.array(
+                        [event.r1.tel[tel_id].waveform]
+                    )
 
 
 class ImageModifier(TelescopeComponent):
