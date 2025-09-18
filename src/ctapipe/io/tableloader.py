@@ -291,10 +291,15 @@ class TableLoader(Component):
         return self.h5file.root[TRIGGER_TABLE].shape[0]
 
     def _check_args(self, **kwargs):
-        """Checking args:
-        1) If None, set to default (trait) value.
-        2) If True but correlated group is not included in input file - set to False.
-        returns a dict with new args"""
+        """
+        Validate and update input arguments.
+
+        This method processes a set of keyword arguments by:
+        1. Replacing `None` values with the corresponding default traitlet.
+        2. Setting values to `False` if they are `True` but the required
+        group is missing in the input file.
+        Returns a dictionary of validated and updated arguments.
+        """
         groups = {
             "dl1_parameters": PARAMETERS_GROUP,
             "dl1_images": IMAGES_GROUP,
