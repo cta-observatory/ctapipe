@@ -21,9 +21,9 @@ import numpy as np
 from astropy.stats import sigma_clipped_stats
 from astropy.table import Table
 
-from ctapipe.containers import StatisticsContainer
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import Int
+from ..containers import ChunkStatisticsContainer
+from ..core import TelescopeComponent
+from ..core.traits import Int
 
 __all__ = [
     "StatisticsAggregator",
@@ -122,7 +122,9 @@ class StatisticsAggregator(TelescopeComponent):
         return Table(data, units=units)
 
     @abstractmethod
-    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(
+        self, images, masked_pixels_of_sample
+    ) -> ChunkStatisticsContainer:
         pass
 
 
@@ -131,7 +133,9 @@ class PlainAggregator(StatisticsAggregator):
     Compute aggregated statistic values from a chunk of images using numpy functions
     """
 
-    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(
+        self, images, masked_pixels_of_sample
+    ) -> ChunkStatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -140,7 +144,7 @@ class PlainAggregator(StatisticsAggregator):
         pixel_median = np.ma.median(masked_images, axis=0).filled(np.nan)
         pixel_std = np.ma.std(masked_images, axis=0).filled(np.nan)
 
-        return StatisticsContainer(
+        return ChunkStatisticsContainer(
             n_events=masked_images.shape[0],
             mean=pixel_mean,
             median=pixel_median,
@@ -162,7 +166,9 @@ class SigmaClippingAggregator(StatisticsAggregator):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(
+        self, images, masked_pixels_of_sample
+    ) -> ChunkStatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -175,7 +181,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
             axis=0,
         )
 
-        return StatisticsContainer(
+        return ChunkStatisticsContainer(
             n_events=masked_images.shape[0],
             mean=pixel_mean,
             median=pixel_median,

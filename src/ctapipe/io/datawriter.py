@@ -355,7 +355,7 @@ class DataWriter(Component):
         """
         obs_id = event.index.obs_id
 
-        for tel_id, pointing in event.pointing.tel.items():
+        for tel_id in event.monitoring.tel.keys():
             if tel_id in self._constant_telescope_pointing_written[obs_id]:
                 continue
             index = TelescopeConfigurationIndexContainer(
@@ -363,7 +363,8 @@ class DataWriter(Component):
                 tel_id=tel_id,
             )
             self._writer.write(
-                f"configuration/telescope/pointing/tel_{tel_id:03d}", (index, pointing)
+                f"configuration/telescope/pointing/tel_{tel_id:03d}",
+                (index, event.monitoring.tel[tel_id].pointing),
             )
             self._constant_telescope_pointing_written[obs_id].add(tel_id)
 

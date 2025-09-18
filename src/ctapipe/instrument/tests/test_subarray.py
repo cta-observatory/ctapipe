@@ -303,3 +303,13 @@ def test_subarrays(subarray_prod5_paranal: SubarrayDescription):
     assert subarray.name == "NewArray"
     assert isinstance(subarray.reference_location, EarthLocation)
     assert subarray.reference_location == subarray_prod5_paranal.reference_location
+
+
+def test_check_matchings_subarray(example_subarray, subarray_prod5_paranal):
+    """Test SubarrayDescription.check_matching_subarrays static method"""
+    assert SubarrayDescription.check_matching_subarrays(
+        [example_subarray, example_subarray]
+    )
+    assert not SubarrayDescription.check_matching_subarrays(
+        [example_subarray, subarray_prod5_paranal]
+    )
