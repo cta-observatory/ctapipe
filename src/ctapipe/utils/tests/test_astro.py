@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, Angle, EarthLocation, SkyCoord
+from astropy.table import Table
 from astropy.time import Time
 from erfa import ErfaWarning
 
@@ -96,3 +97,16 @@ def test_warning():
     pointing = SkyCoord(az=az_tel, alt=alt_tel, frame=horizon_frame)
 
     get_bright_stars(time=obstime, pointing=pointing, radius=3 * u.deg, magnitude_cut=8)
+
+
+def test_update_catalogs(tmp_path):
+    from ctapipe.utils.astro import update_star_catalogs
+
+    update_star_catalogs(tmp_path)
+
+    hipparcos = Table.read(tmp_path / "hipparcos_star_catalog.fits.gz")
+    assert "name" in hipparcos.colnames
+    assert "flamsteed" in hipparcos.colnames
+
+    yale = Table.read(tmp_path / "yale_bright_star_catalog.fits.gz")
+    assert "Name" in yale.colnames
