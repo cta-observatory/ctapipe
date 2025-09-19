@@ -18,7 +18,6 @@ from abc import abstractmethod
 from collections import defaultdict
 
 import numpy as np
-from astropy.stats import sigma_clipped_stats
 from astropy.table import Table
 
 from ctapipe.containers import StatisticsContainer
@@ -140,8 +139,11 @@ class PlainAggregator(StatisticsAggregator):
         pixel_median = np.ma.median(masked_images, axis=0).filled(np.nan)
         pixel_std = np.ma.std(masked_images, axis=0).filled(np.nan)
 
+        # Count non-masked events per pixel (for consistency with SigmaClippingAggregator)
+        n_events_per_pixel = np.sum(~masked_images.mask, axis=0)
+
         return StatisticsContainer(
-            n_events=masked_images.shape[0],
+            n_events=n_events_per_pixel,
             mean=pixel_mean,
             median=pixel_median,
             std=pixel_std,
@@ -167,7 +169,10 @@ class SigmaClippingAggregator(StatisticsAggregator):
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
         # Compute the mean, median, and std over the chunk per pixel
-        pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
+        # Use sigma_clip to get the clipped data, then compute stats from it
+        from astropy.stats import sigma_clip
+
+        filtered_data = sigma_clip(
             masked_images,
             sigma=self.max_sigma,
             maxiters=self.iterations,
@@ -175,8 +180,16 @@ class SigmaClippingAggregator(StatisticsAggregator):
             axis=0,
         )
 
+        # Count the number of events remaining after sigma clipping per pixel
+        n_events_after_clipping = np.sum(~filtered_data.mask, axis=0)
+
+        # Compute statistics from the filtered data
+        pixel_mean = np.ma.mean(filtered_data, axis=0).filled(np.nan)
+        pixel_median = np.ma.median(filtered_data, axis=0).filled(np.nan)
+        pixel_std = np.ma.std(filtered_data, axis=0).filled(np.nan)
+
         return StatisticsContainer(
-            n_events=masked_images.shape[0],
+            n_events=n_events_after_clipping,
             mean=pixel_mean,
             median=pixel_median,
             std=pixel_std,
