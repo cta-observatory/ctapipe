@@ -141,7 +141,7 @@ class PlainAggregator(StatisticsAggregator):
         pixel_std = np.ma.std(masked_images, axis=0).filled(np.nan)
 
         # Count non-masked events per pixel (for consistency with SigmaClippingAggregator)
-        n_events_per_pixel = np.sum(~masked_images.mask, axis=0)
+        n_events_per_pixel = np.count_nonzero(~masked_images.mask, axis=0)
 
         return StatisticsContainer(
             n_events=n_events_per_pixel,
