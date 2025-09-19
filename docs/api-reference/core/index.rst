@@ -57,3 +57,6 @@ Reference/API
 
 .. automodapi:: ctapipe.core.container
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.expression_engine
+    :no-inheritance-diagram:
