@@ -18,6 +18,7 @@ from abc import abstractmethod
 from collections import defaultdict
 
 import numpy as np
+from astropy.stats import sigma_clip
 from astropy.table import Table
 
 from ctapipe.containers import StatisticsContainer
@@ -170,7 +171,6 @@ class SigmaClippingAggregator(StatisticsAggregator):
 
         # Compute the mean, median, and std over the chunk per pixel
         # Use sigma_clip to get the clipped data, then compute stats from it
-        from astropy.stats import sigma_clip
 
         filtered_data = sigma_clip(
             masked_images,
