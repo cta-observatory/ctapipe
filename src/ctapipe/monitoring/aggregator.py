@@ -181,7 +181,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
         )
 
         # Count the number of events remaining after sigma clipping per pixel
-        n_events_after_clipping = np.sum(~filtered_data.mask, axis=0)
+        n_events_after_clipping = np.count_nonzero(~filtered_data.mask, axis=0)
 
         # Compute statistics from the filtered data
         pixel_mean = np.ma.mean(filtered_data, axis=0).filled(np.nan)
