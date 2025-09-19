@@ -8,7 +8,6 @@ from ..core.traits import (
     Dict,
     FloatTelescopeParameter,
     Int,
-    IntTelescopeParameter,
     Path,
 )
 from ..instrument import SubarrayDescription
@@ -112,26 +111,42 @@ class WaveformModifier(TelescopeComponent):
     """
     Component to add NSB noise to R1 waveforms (intended in principle to be
     applied on MC simulations, to make them closer to real data)
-    The noise waveforms are read in from a dedicated sim_telarray file which
+    The noise waveforms are read from a dedicated sim_telarray file, which
     must be produced with the same telescope array configuration (and other
-    simulation settings) as the file to be modified, but containing only NSB
-    noise (electronic noise should be switched off)
+    simulation settings) as the file to which the noise is to be added,
+    but containing only NSB noise (electronic noise should be switched off)
+
+    The number of simulated noise events per telescope in the NSB file must
+    be at least twice the number of waveforms ("nsb_level") from that file
+    that we want to add up. If the NSB file is produced with a level of 25%
+    of dark NSB, and we want to simulate 10x dark NSB, then nsb_level=40 (
+    =10/0.25) and the file must contain at least 80 events. This is to
+    guarantee that the different noise waveforms are not too correlated
+
     """
 
     nsb_file = Path(
         default_value=None,
         help="Path to a dedicated NSB-only sim_telarray file",
-    )
+    ).tag(config=True)
 
-    nsb_level = IntTelescopeParameter(
+    nsb_level = Int(
         default_value=1,
         help=(
             "Number of random instances of the NSB waveforms from the "
             "NSB file to be added up to the waveform"
         ),
-    )
+    ).tag(config=True)
 
-    nsb_database = Dict()
+    n_noise_realizations = Int(
+        default_value=100,
+        help=(
+            "Number of different realizations of the total NSB waveform to "
+            "be created per pixel"
+        ),
+    ).tag(config=True)
+
+    total_noise = Dict()
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -140,28 +155,92 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        subarray
-        config
-        parent
-        kwargs
+        subarray: SubarrayDescription
+            Description of the subarray. Provides information about the
+            camera which are useful in calibration. Also required for
+            configuring the TelescopeParameter traitlets.
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            This is mutually exclusive with passing a ``parent``.
+        parent: ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy,
+            this is mutually exclusive with passing ``config``
+
         """
+
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
+        # Read in the waveforms in the NSB-only file. Store in a dictionary
+        # with one key per telescope, containing an array [n_events, n_gains,
+        # n_pixels, n_samples]
         source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
-
+        nsb_database = dict()  # [nevents, ngains, npixels, nsamples]
         for event in source:
             for tel_id in event.trigger.tels_with_trigger:
-                if f"{tel_id}" in self.nsb_database:
-                    self.nsb_database[f"{tel_id}"] = np.vstack(
-                        [
-                            self.nsb_database[f"{tel_id}"],
-                            [event.r1.tel[tel_id].waveform],
-                        ]
+                if f"{tel_id}" in nsb_database:
+                    nsb_database[f"{tel_id}"] = np.vstack(
+                        [nsb_database[f"{tel_id}"], [event.r1.tel[tel_id].waveform]]
                     )
                 else:
-                    self.nsb_database[f"{tel_id}"] = np.array(
+                    nsb_database[f"{tel_id}"] = np.array(
                         [event.r1.tel[tel_id].waveform]
                     )
+
+        # Check that we have enough NSB-only events for all telescopes. We
+        # require that the number of NSB events for any telescope is at
+        # least two times the number of waveforms (=nsb_level) that we will add
+        # up. This is to avoid excessive correlation among the waveforms.
+        stats_ok = True
+        for tel_id in nsb_database:
+            nevents = nsb_database[tel_id].shape[0]
+            if nevents >= 2 * self.nsb_level:
+                continue
+            self.log.error(
+                f"Not enough NSB events available for tel_"
+                f"id {tel_id}. "
+                f"For nsb_level = {self.nsb_level}, at least "
+                f"{2*self.nsb_level} events are needed ({nevents} "
+                f"were found)."
+            )
+            stats_ok = False
+
+        if not stats_ok:
+            raise ValueError("Please use an input nsb_file with more events!")
+
+        # Now shift the waveforms so that they have mean=0 and do not introduce
+        # any bias (just fluctuations). For each telescope and gain we average
+        # all pixels
+        for tel_id in nsb_database:
+            hg_mean = np.mean(nsb_database[tel_id][:, 0, :, :])  # HG
+            lg_mean = np.mean(nsb_database[tel_id][:, 1, :, :])  # LG
+            nsb_database[tel_id][:, 0, :, :] -= hg_mean
+            nsb_database[tel_id][:, 1, :, :] -= lg_mean
+
+        # Now add up waveforms selected at random to obtain different
+        # realizations of the total noise that will be added
+        for tel_id in nsb_database:
+            newshape = np.array(nsb_database[tel_id].shape)
+            newshape[0] = self.n_noise_realizations
+            self.total_noise[tel_id] = np.zeros(shape=newshape)
+            # [n_noise_realizations, ngains, npixels, nsamples]
+
+            nevents = nsb_database[tel_id].shape[0]
+            for jj in range(self.n_noise_realizations):
+                # We take a random combination of a number self.nsb_level of
+                # instances of the noise events. The combination of events is
+                # common to the whole camera (making it different for each
+                # pixel might be better, but it is very slow - and I failed
+                # to do it using numba due to some numba limitations)
+                shuffled_event_indices = np.random.permutation(nevents)[
+                    : self.nsb_level
+                ]
+
+                # Now we add those self.nsb_level waveforms to get the total
+                # desired level of additional noise:
+                self.total_noise[tel_id][jj] = np.sum(
+                    nsb_database[tel_id][shuffled_event_indices], axis=0
+                )
 
 
 class ImageModifier(TelescopeComponent):
