@@ -16,15 +16,10 @@ try:
         calculate_event_weights,
     )
     from pyirf.utils import calculate_source_fov_offset, calculate_theta
-except ModuleNotFoundError:
-    SimulatedEventsInfo = None
-    DIFFUSE_FLUX_UNIT = None
-    POINT_SOURCE_FLUX_UNIT = None
-    PowerLaw = None
-    calculate_event_weights = None
-    calculate_source_fov_offset = None
-    calculate_theta = None
 
+    has_pyirf = True
+except ModuleNotFoundError:
+    has_pyirf = False
 
 from tables import NoSuchNodeError
 from traitlets import default
@@ -302,24 +297,26 @@ class DL2EventLoader(Component):
 
         opts = dict(dl2=True, simulated=True, observation_info=True)
 
-        with TableLoader(self.file, parent=self, **opts) as load:
-            header = self.epp.make_empty_table()
-            sim_info, spectrum = self.get_simulation_information(load, obs_time)
+        with TableLoader(self.file, parent=self, **opts) as loader:
+            table_template = self.epp.make_empty_table()
+            sim_info, spectrum = self.get_simulation_information(loader, obs_time)
             meta = {"sim_info": sim_info, "spectrum": spectrum}
-            bits = [header]
+            event_chunks = [table_template]
             n_raw_events = 0
-            reader_func = getattr(load, self.event_reader_function)
+            reader_func = getattr(loader, self.event_reader_function)
             table_reader = reader_func(chunk_size, **opts, **self.event_reader_kwargs)
             for _, _, events in table_reader:
                 selected = events[self.epp.quality_query.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 if self.epp.apply_derived_columns:
                     selected = self.make_derived_columns(selected)
-                bits.append(selected)
+                event_chunks.append(selected)
                 n_raw_events += len(events)
 
-            bits.append(header)  # Putting it last ensures the correct metadata is used
-            table = vstack(bits, join_type="exact", metadata_conflicts="silent")
+            event_chunks.append(
+                table_template
+            )  # Putting it last ensures the correct metadata is used
+            table = vstack(event_chunks, join_type="exact", metadata_conflicts="silent")
             return table, n_raw_events, meta
 
     def get_simulation_information(
@@ -347,15 +344,17 @@ class DL2EventLoader(Component):
         NotImplementedError
             If simulation parameters vary across runs.
         """
-        from ..exceptions import OptionalDependencyMissing
 
         if SimulatedEventsInfo is None:
-            raise OptionalDependencyMissing("pyirf")
+            raise ImportError("pyirf is required for this functionality")
 
         sim = loader.read_simulation_configuration()
         try:
             show = loader.read_shower_distribution()
         except NoSuchNodeError:
+            self.log.warning(
+                "Simulation distributions were not found in the input files, falling back to estimating the number of showers from the simulation configuration."
+            )
             show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
 
         for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
