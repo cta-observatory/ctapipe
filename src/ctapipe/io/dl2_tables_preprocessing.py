@@ -321,7 +321,7 @@ class DL2EventLoader(Component):
 
     def get_simulation_information(
         self, loader: TableLoader, obs_time: u.Quantity
-    ) -> tuple[SimulatedEventsInfo, PowerLaw]:
+    ) -> tuple["SimulatedEventsInfo", "PowerLaw"]:
         """
         Extract simulation information from the input file.
 
@@ -345,7 +345,7 @@ class DL2EventLoader(Component):
             If simulation parameters vary across runs.
         """
 
-        if SimulatedEventsInfo is None:
+        if not has_pyirf:
             raise ImportError("pyirf is required for this functionality")
 
         sim = loader.read_simulation_configuration()
