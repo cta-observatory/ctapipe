@@ -415,7 +415,7 @@ class DL2EventLoader(Component):
     def make_event_weights(
         self,
         events: QTable,
-        spectrum: PowerLaw,
+        spectrum: "PowerLaw",
         kind: str,
         fov_offset_bins: u.Quantity | None = None,
     ) -> QTable:
