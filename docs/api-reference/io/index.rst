@@ -53,8 +53,8 @@ Reading Monitoring Data
 This module provides a set of *monitoring sources* (currently only the `~ctapipe.io.HDF5MonitoringSource`)
 that are `~ctapipe.core.TelescopeComponent` instances, which gather monitoring information for
 different monitoring types from an input file or stream and fill the monitoring information
-in form of a `~ctapipe.containers.MonitoringContainer` class into a provided event following the
-`~ctapipe.containers.ArrayEventContainer`. `~ctapipe.io.MonitoringSource` instances are designed such that
+as a `~ctapipe.containers.MonitoringContainer` into the provided `~ctapipe.containers.ArrayEventContainer`.
+`~ctapipe.io.MonitoringSource` instances are designed such that
 ctapipe can be independent of the file format used for monitoring data, and new formats may be
 supported by implementing a new `~ctapipe.io.MonitoringSource` in a plug-in.
 
