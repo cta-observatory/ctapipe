@@ -21,7 +21,7 @@ from .features import (
     ring_containment,
     ring_intensity_parameters,
 )
-from .impactpoint_intensity_fitter import MuonImpactpointIntensityFitter
+from .intensity_fitter import MuonIntensityFitter
 from .ring_fitter import MuonRingFitter
 
 INVALID = MuonTelescopeContainer()
@@ -131,10 +131,7 @@ class MuonProcessor(TelescopeComponent):
 
         self.ring_fitter = MuonRingFitter(parent=self)
 
-        # self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
-        self.intensity_fitter = MuonImpactpointIntensityFitter(
-            subarray=subarray, parent=self
-        )
+        self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
 
     def __call__(self, event: ArrayEventContainer):
         for tel_id in event.dl1.tel:
