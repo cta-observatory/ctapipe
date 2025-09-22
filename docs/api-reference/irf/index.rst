@@ -29,8 +29,10 @@ Submodules
 .. toctree::
     :maxdepth: 1
 
-    optimize
+    optimize/index
+    cuts/index
     irfs
+    dl3
     benchmarks
     binning
     preprocessing

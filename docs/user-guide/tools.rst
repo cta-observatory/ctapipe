@@ -23,6 +23,7 @@ Data Processing Tools
 * ``ctapipe-train-particle-classifier``: Train the ML models for the  `ctapipe.reco.ParticleClassifier` (gamma-hadron separation)
 * ``ctapipe-optimize-event-selection``: Calculate gamma/hadron and direction cuts (e.g. for IRF calculation).
 * ``ctapipe-compute-irf``: Calculate an IRF with or without applying a direction cut and optionally benchmarks.
+* ``ctapipe-create-dl3``: Create a DL3 (gamma-like events) from a DL2 HDF5 file, an IRF file and a cuts file.
 
 File Management Tools:
 ======================

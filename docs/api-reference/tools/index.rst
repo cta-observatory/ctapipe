@@ -104,3 +104,6 @@ Reference/API
 
 .. automodapi:: ctapipe.tools.compute_irf
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.create_dl3
+    :no-inheritance-diagram:
