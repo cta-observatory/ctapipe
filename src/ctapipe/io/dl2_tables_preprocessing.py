@@ -344,9 +344,10 @@ class DL2EventLoader(Component):
         NotImplementedError
             If simulation parameters vary across runs.
         """
+        from ..exceptions import OptionalDependencyMissing
 
         if not has_pyirf:
-            raise ImportError("pyirf is required for this functionality")
+            raise OptionalDependencyMissing("pyirf")
 
         sim = loader.read_simulation_configuration()
         try:
