@@ -36,7 +36,7 @@ from .metadata import read_reference_metadata
 from .monitoringsource import MonitoringSource
 from .monitoringtypes import MonitoringType
 
-__all__ = ["HDF5MonitoringSource"]
+__all__ = ["HDF5MonitoringSource", "get_hdf5_monitoring_types"]
 
 logger = logging.getLogger(__name__)
 
