@@ -206,8 +206,8 @@ class MuonProcessor(TelescopeComponent):
             ring.center_fov_lat,
             ring.radius,
             image,
-            pedestal=np.full(mask.shape, self.pedestal.tel[tel_id]),
             mask=mask,
+            pedestal=np.full(mask.shape, self.pedestal.tel[tel_id]),
         )
 
         self.log.debug(
