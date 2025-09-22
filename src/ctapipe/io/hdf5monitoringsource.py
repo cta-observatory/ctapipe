@@ -185,7 +185,11 @@ class HDF5MonitoringSource(MonitoringSource):
             )
 
         # Initialize attributes
-        self._initialize_attributes()
+        self._monitoring_types = set()
+        self._is_simulation = None
+        self._camera_coefficients = {}
+        self._pixel_statistics = {}
+        self._telescope_pointings = {}
 
         # Read and validate subarray descriptions
         self._read_and_validate_subarrays()
@@ -193,14 +197,6 @@ class HDF5MonitoringSource(MonitoringSource):
         # Process all monitoring files
         for file in self.input_files:
             self._process_single_file(file)
-
-    def _initialize_attributes(self):
-        """Initialize attributes used in the class."""
-        self._monitoring_types = set()
-        self._is_simulation = None
-        self._camera_coefficients = {}
-        self._pixel_statistics = {}
-        self._telescope_pointings = {}
 
     def _read_and_validate_subarrays(self):
         """Read subarray descriptions from files and validate compatibility."""
