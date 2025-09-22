@@ -1,10 +1,11 @@
 """
-Class for performing a HESS style 2D fit of muon images
+Class for the muon fit to measure:
+ - the impact point on the plane perpendicular to the telescope optical axis
+ - muon ring width
+ - absolute total optical throughput
 
-To do:
-    - Deal with astropy untis better, currently stripped and no checks made
-    - unit tests
-    - create container class for output
+ The absolute optical throughput takes into account the telescope-related
+ efficiencies and the atmospheric transparency in the vicinity of the telescope.
 
 """
 
