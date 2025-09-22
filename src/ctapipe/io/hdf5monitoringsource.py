@@ -184,8 +184,8 @@ class HDF5MonitoringSource(MonitoringSource):
                 "or using as an argument <input_files> in the constructor."
             )
 
-        # Initialize monitoring data containers
-        self._initialize_containers()
+        # Initialize attributes
+        self._initialize_attributes()
 
         # Read and validate subarray descriptions
         self._read_and_validate_subarrays()
@@ -194,8 +194,8 @@ class HDF5MonitoringSource(MonitoringSource):
         for file in self.input_files:
             self._process_single_file(file)
 
-    def _initialize_containers(self):
-        """Initialize monitoring data containers and attributes."""
+    def _initialize_attributes(self):
+        """Initialize attributes used in the class."""
         self._monitoring_types = set()
         self._is_simulation = None
         self._camera_coefficients = {}
