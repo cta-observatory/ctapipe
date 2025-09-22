@@ -31,3 +31,6 @@ def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
 
         if colname in table.colnames:
             table[colname].description = field.description
+
+        # add column name without prefix to column meta, needed for container reading
+        table[colname].meta["NAME"] = name

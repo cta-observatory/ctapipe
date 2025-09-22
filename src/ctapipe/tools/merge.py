@@ -1,6 +1,7 @@
 """
 Merge multiple ctapipe HDF5 files into one
 """
+
 import sys
 from argparse import ArgumentParser
 from collections import Counter
@@ -16,6 +17,8 @@ from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
 from ..io import HDF5Merger
 from ..io import metadata as meta
+
+__all__ = ["MergeTool"]
 
 
 class MergeTool(Tool):
@@ -78,6 +81,14 @@ class MergeTool(Tool):
     }
 
     flags = {
+        "single-ob": (
+            {"HDF5Merger": {"single_ob": True}},
+            (
+                "By default, the merge tool assumes it is merging multiple"
+                " observation blocks. This option switches to merging multiple"
+                " chunks of events of the same ob."
+            ),
+        ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
@@ -143,6 +154,12 @@ class MergeTool(Tool):
             "HDF5Merger.dl2_subarray",
             "Include dl2 subarray-wise data",
             "Exclude dl2 subarray-wise data",
+        ),
+        **flag(
+            "monitoring",
+            "HDF5Merger.monitoring",
+            "Include monitoring data",
+            "Exclude monitoring data",
         ),
     }
 

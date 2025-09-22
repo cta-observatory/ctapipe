@@ -45,8 +45,11 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v6.0.0"
+DATA_MODEL_VERSION = "v7.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v7.1.0: - Two new fields for the hillas parameters, uncertainties on psi and the transversal cog coordinate.
+- v7.0.0: - Use high resolution timestamps for times. CTAO high resolution times
+            are stored as two uint32: seconds and quarter nanoseconds since 1970-01-01T00:00:00 TAI.
 - v6.0.0: - Change R1- and DL0-waveform shape from (n_pixels, n_samples) to be always
             (n_channels, n_pixels, n_samples).
 - v5.1.0: - Remove redundant 'is_valid' column in ``DispContainer``.
@@ -534,10 +537,14 @@ class DataWriter(Component):
         )
 
         for sb in self.event_source.scheduling_blocks.values():
-            self._writer.write("configuration/observation/scheduling_block", sb)
+            self._writer.write(
+                "configuration/observation/scheduling_block", sb, time_format="mjd"
+            )
 
         for ob in self.event_source.observation_blocks.values():
-            self._writer.write("configuration/observation/observation_block", ob)
+            self._writer.write(
+                "configuration/observation/observation_block", ob, time_format="mjd"
+            )
 
     def _write_simulation_configuration(self):
         """

@@ -46,6 +46,7 @@ from ..containers import (
 )
 from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
+from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
 from ..monitoring.interpolation import PointingInterpolator
@@ -53,7 +54,7 @@ from ..utils import IndexFinder
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
-from .hdf5tableio import HDF5TableReader
+from .hdf5tableio import HDF5TableReader, get_column_attrs
 from .metadata import _read_reference_metadata_hdf5
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
@@ -77,6 +78,8 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v5.0.0",
     "v5.1.0",
     "v6.0.0",
+    "v7.0.0",
+    "v7.1.0",
 ]
 
 
@@ -204,6 +207,11 @@ class HDF5EventSource(EventSource):
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
+        if self.input_url is None:
+            raise InputMissing(
+                "Specifying input_url directly or via config is required."
+            )
+
         self.file_ = tables.open_file(self.input_url)
         meta = _read_reference_metadata_hdf5(self.file_)
         Provenance().add_input_file(
@@ -314,15 +322,24 @@ class HDF5EventSource(EventSource):
 
             # we can now read both R1 and DL1
             has_muons = "/dl1/event/telescope/muon" in f.root
+            has_sim = "/simulation/event/telescope" in f.root
+            has_trigger = "/simulation/event/telescope" in f.root
+
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            datalevels = datalevels & {
-                "R1",
-                "DL1_IMAGES",
-                "DL1_PARAMETERS",
-                "DL2",
-                "DL1_MUON",
-            }
-            if not datalevels and not has_muons:
+            datalevels = (
+                len(
+                    datalevels
+                    & {
+                        "R1",
+                        "DL1_IMAGES",
+                        "DL1_PARAMETERS",
+                        "DL2",
+                        "DL1_MUON",
+                    }
+                )
+                > 0
+            )
+            if not any([datalevels, has_sim, has_trigger, has_muons]):
                 return False
 
         return True
@@ -586,13 +603,29 @@ class HDF5EventSource(EventSource):
 
                 dl2_tel_readers[kind] = {}
                 for algorithm, algorithm_group in group._v_children.items():
-                    dl2_tel_readers[kind][algorithm] = {
-                        key: HDF5TableReader(self.file_).read(
+                    dl2_tel_readers[kind][algorithm] = {}
+                    for key, table in algorithm_group._v_children.items():
+                        column_attrs = get_column_attrs(table)
+
+                        # workaround for missing prefix-information in tables written
+                        # by apply-models tool before ctapipe v0.27.0
+                        if any(
+                            v.get("PREFIX", "") != "" for v in column_attrs.values()
+                        ):
+                            prefixes = (
+                                None  # prefix are there and will be found by reader
+                            )
+                        else:
+                            # prefix not stored, assume data written by write_table with this prefix
+                            prefixes = algorithm + "_tel"
+
+                        dl2_tel_readers[kind][algorithm][key] = HDF5TableReader(
+                            self.file_
+                        ).read(
                             table._v_pathname,
                             containers=container,
+                            prefixes=prefixes,
                         )
-                        for key, table in algorithm_group._v_children.items()
-                    }
 
         true_impact_readers = {}
         if self.is_simulation:
@@ -762,6 +795,10 @@ class HDF5EventSource(EventSource):
         obs_id = event.index.obs_id
         ob = self.observation_blocks[obs_id]
         frame = ob.subarray_pointing_frame
+
+        if np.isnan(ob.subarray_pointing_lon) or np.isnan(ob.subarray_pointing_lat):
+            return
+
         if frame is CoordinateFrameType.ALTAZ:
             event.pointing.array_azimuth = ob.subarray_pointing_lon
             event.pointing.array_altitude = ob.subarray_pointing_lat

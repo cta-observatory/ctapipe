@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from contextlib import ExitStack
 from importlib.resources import files
 from io import StringIO
 from pathlib import Path
@@ -11,7 +12,7 @@ from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
 
 from ctapipe.core import ToolConfigurationError, run_tool
-from ctapipe.io import TableLoader
+from ctapipe.io import DataWriter, EventSource, TableLoader
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 from ctapipe.tools.process import ProcessorTool
@@ -206,3 +207,89 @@ def test_duplicated(tmp_path, dl1_file, dl1_proton_file):
             cwd=tmp_path,
             raises=True,
         )
+
+
+@pytest.fixture(scope="session")
+def dl1_chunks(tmp_path_factory, dl1_file):
+    outdir = tmp_path_factory.mktemp("dl1_chunks_")
+    # write two chunks from the same simulation run, merged result should
+    # match initial input
+    path1 = outdir / "single_ob_1.dl1.h5"
+    path2 = outdir / "single_ob_2.dl1.h5"
+    ctx = ExitStack()
+    with ctx:
+        source = ctx.enter_context(EventSource(dl1_file))
+        writer_kwargs = dict(event_source=source, write_dl1_images=True)
+        writer1 = ctx.enter_context(DataWriter(output_path=path1, **writer_kwargs))
+        writer2 = ctx.enter_context(DataWriter(output_path=path2, **writer_kwargs))
+
+        for event in source:
+            writer = writer1 if event.count < 3 else writer2
+            writer(event)
+
+    return path1, path2
+
+
+def test_merge_single_ob(tmp_path, dl1_file, dl1_chunks):
+    from ctapipe.tools.merge import MergeTool
+
+    path1, path2 = dl1_chunks
+
+    output = tmp_path / "single_ob.dl1.h5"
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(path1),
+            str(path2),
+            f"--output={output}",
+            "--single-ob",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output) as loader:
+        merged_tel_events = loader.read_telescope_events()
+
+    with TableLoader(dl1_file) as loader:
+        initial_tel_events = loader.read_telescope_events()
+
+    assert_table_equal(merged_tel_events, initial_tel_events)
+
+
+def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
+    from ctapipe.tools.merge import MergeTool
+
+    path1, path2 = dl1_chunks
+
+    output = tmp_path / "single_ob.dl1.h5"
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(path1),
+            f"--output={output}",
+            "--single-ob",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(path2),
+            f"--output={output}",
+            "--single-ob",
+            "--append",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output) as loader:
+        merged_tel_events = loader.read_telescope_events()
+
+    with TableLoader(dl1_file) as loader:
+        initial_tel_events = loader.read_telescope_events()
+
+    assert_table_equal(merged_tel_events, initial_tel_events)

@@ -2,9 +2,10 @@ import numpy as np
 from numba import njit
 
 from ..containers import MorphologyContainer
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _n_islands_sparse_indices(indices, indptr, mask):
     # non-signal pixel get label == 0, we marke the cleaning
     # pixels with -1, so we only have to check labels and not labels and mask
@@ -12,7 +13,7 @@ def _n_islands_sparse_indices(indices, indptr, mask):
     labels = np.zeros(len(mask), dtype=np.int16)
     labels[mask] = -1
 
-    cleaning_pixels = np.where(mask)[0]
+    cleaning_pixels = np.nonzero(mask)[0]
     n_cleaning_pixels = len(cleaning_pixels)
     current_island = 0
 

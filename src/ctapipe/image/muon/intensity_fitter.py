@@ -1,12 +1,7 @@
 """
-Class for performing a HESS style 2D fit of muon images
-
-To do:
-    - Deal with astropy untis better, currently stripped and no checks made
-    - unit tests
-    - create container class for output
-
+Muon Ring fitting to determine optical efficiency.
 """
+
 from functools import lru_cache
 from math import erf
 
@@ -19,6 +14,7 @@ from scipy.ndimage import correlate1d
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
+from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 from ...exceptions import OptionalDependencyMissing
 from ..pixel_likelihood import neg_log_likelihood_approx
@@ -39,10 +35,12 @@ CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)], cache=True)
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def chord_length(radius, rho, phi):
     """
-    Function for integrating the length of a chord across a circle
+    Function for integrating the length of a chord across a circle (effective chord length).
+
+    A circular mirror is used for signal, and a circular camera is used for shadowing.
 
     Parameters
     ----------
@@ -56,22 +54,36 @@ def chord_length(radius, rho, phi):
     Returns
     -------
     float or ndarray:
-        chord length
+        effective chord length
+
+    References
+    ----------
+    See :cite:p:`vacanti19941`.
+    Equation 6: for effective chord length calculations inside/outside the ring.
+    Equation 7: for filtering out non-physical solutions.
+
+
     """
-    chord = 1 - (rho**2 * np.sin(phi) ** 2)
-    valid = chord >= 0
+    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
+    valid = discriminant_norm >= 0
 
     if not valid:
         return 0
 
     if rho <= 1.0:
         # muon has hit the mirror
-        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        effective_chord_length = radius * (
+            np.sqrt(discriminant_norm) + rho * np.cos(phi)
+        )
     else:
         # muon did not hit the mirror
-        chord = 2 * radius * np.sqrt(chord)
+        # Filtering out non-physical solutions for phi
+        if np.abs(phi) < np.arcsin(1.0 / rho):
+            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
+        else:
+            return 0
 
-    return chord
+    return effective_chord_length
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
@@ -84,7 +96,7 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
         Angle along which to integrate mirror
 
     Returns
-    --------
+    -------
     float: length from impact point to mirror edge
 
     """
@@ -166,6 +178,8 @@ def image_prediction(
     max_lambda=600 * u.nm,
 ):
     """
+    Predict muon ring image from given parameters.
+
     Parameters
     ----------
     impact_parameter: quantity[length]
@@ -206,7 +220,7 @@ def image_prediction(
     )
 
 
-@vectorize([double(double, double, double)], cache=True)
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def gaussian_cdf(x, mu, sig):
     """
     Function to compute values of a given gaussians
@@ -436,10 +450,6 @@ class MuonIntensityFitter(TelescopeComponent):
     """
     Fit muon ring images with a theoretical model to estimate optical efficiency.
 
-    Function for producing the expected image for a given set of trial
-    muon parameters without using astropy units but expecting the input to
-    be in the correct ones.
-
     The image prediction function is currently modeled after :cite:p:`chalmecalvet2013`.
 
     For more information, also see :cite:p:`muon-review`.
@@ -458,11 +468,14 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
-        help="Hole radius of the reflector in m",
+        help="The radius of the hole in the center of the primary mirror dish in meters."
+        "The hole is not circular in shape; however, it can be well approximated as a circle with the same area."
+        "It is defined with the flat-to-flat distance (LST: 1.51 m, MST: 1.2 m, SST: 0.78 m)."
+        "We approximate the hexagonal hole with a circle that has the same surface area.",
         default_value=[
-            ("type", "LST_*", 0.308),
-            ("type", "MST_*", 0.244),
-            ("type", "SST_1M_*", 0.130),
+            ("type", "LST_*", 0.74),
+            ("type", "MST_*", 0.59),
+            ("type", "SST_1M_*", 0.38),
         ],
     ).tag(config=True)
 
@@ -485,18 +498,18 @@ class MuonIntensityFitter(TelescopeComponent):
 
         Parameters
         ----------
+        tel_id: int
+            the telescope id
         center_x: Angle quantity
             Initial guess for muon ring center in telescope frame
         center_y: Angle quantity
             Initial guess for muon ring center in telescope frame
         radius: Angle quantity
-            Radius of muon ring from circle fitting
-        pixel_x: ndarray
-            X position of pixels in image from circle fitting
-        pixel_y: ndarray
-            Y position of pixel in image from circle fitting
+            Initial guess for muon ring radius in telescope frame
         image: ndarray
             Amplitude of image pixels
+        pedestal: ndarray
+            Pedestal standard deviation in each pixel
         mask: ndarray
             mask marking the pixels to be used in the likelihood fit
 

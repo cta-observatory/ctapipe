@@ -1,11 +1,12 @@
 """
 common pytest fixtures for tests in ctapipe
 """
-
 import importlib
+import importlib.util
 import json
 import shutil
 from copy import deepcopy
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -55,6 +56,10 @@ if importlib.util.find_spec("pyirf") is None:
 def camera_geometry(request):
     with pytest.warns(FromNameWarning):
         return CameraGeometry.from_name(request.param)
+
+
+def _lock_file(path: Path):
+    return path.with_name(path.name + ".lock")
 
 
 @pytest.fixture(scope="session")
@@ -226,7 +231,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
     output = dl2_tmp_path / "gamma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -250,7 +255,7 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
     output = dl2_tmp_path / "gamma_lapalma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -274,7 +279,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
     output = dl2_tmp_path / "proton.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -299,7 +304,7 @@ def dl2_merged_file(dl2_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_
     output = dl2_tmp_path / "merged.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -322,7 +327,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -345,7 +350,7 @@ def dl1_divergent_file(dl1_tmp_path):
     output = dl1_tmp_path / "gamma_divergent.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -368,7 +373,7 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_camera_frame.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -385,14 +390,14 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
 @pytest.fixture(scope="session")
 def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
     """
-    DL1 file containing both images and parameters from a gamma simulation set.
+    File only containing dl2 shower information.
     """
     from ctapipe.tools.process import ProcessorTool
 
     output = dl2_tmp_path / "gamma_no_dl1.dl2.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -418,7 +423,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_images.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -444,7 +449,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_parameters.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -468,7 +473,7 @@ def dl1_muon_file(dl1_tmp_path):
     output = dl1_tmp_path / "muons.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -496,7 +501,7 @@ def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
     pytest.importorskip("iminuit")
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -522,7 +527,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
 
     output = dl1_tmp_path / "proton.dl1.h5"
 
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -547,7 +552,7 @@ def energy_regressor_path(model_tmp_path):
 
     out_file = model_tmp_path / "energy.pkl"
 
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock(_lock_file(out_file)):
         if out_file.is_file():
             return out_file
 
@@ -616,7 +621,7 @@ def particle_classifier_path(model_tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock(_lock_file(out_file)):
         if out_file.is_file():
             return out_file
 
@@ -642,7 +647,8 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
     from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
 
     out_file = model_tmp_path / "disp_reconstructor.pkl"
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    cv_out_file = model_tmp_path / "cv_disp_reconstructor.h5"
+    with FileLock(_lock_file(out_file)):
         if out_file.is_file():
             return out_file
 
@@ -653,12 +659,13 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
             argv=[
                 f"--input={gamma_train_clf}",
                 f"--output={out_file}",
+                f"--cv-output={cv_out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
             ],
         )
         assert ret == 0
-        return out_file
+        return out_file, cv_out_file
 
 
 @pytest.fixture(scope="session")

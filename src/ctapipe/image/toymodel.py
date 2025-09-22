@@ -24,7 +24,9 @@ from abc import ABCMeta, abstractmethod
 import astropy.units as u
 import numpy as np
 from numpy.random import default_rng
+from scipy.integrate import quad
 from scipy.ndimage import convolve1d
+from scipy.special import ellipe
 from scipy.stats import multivariate_normal, norm, skewnorm
 
 from ctapipe.calib.camera.gainselection import GainChannel
@@ -375,20 +377,70 @@ class SkewedGaussian(ImageModel):
 class RingGaussian(ImageModel):
     """A shower image consisting of a ring with gaussian radial profile.
 
-    Simplified model for a muon ring.
+    Simplified model for a muon ring, optionally with asymmetry based on the muon impact.
+
+    Parameters
+    ----------
+    x : u.Quantity
+        x-coordinate of the ring center
+    y : u.Quantity
+        y-coordinate of the ring center
+    radius : u.Quantity
+        ring radius
+    sigma : u.Quantity
+        std. dev. along the radial axis, i.e. the width of point spread function
+    rho : float
+        Ratio of the muon impact parameter to the mirror radius. A value of
+        0 means a homogeneously illuminated ring, values > 1 result in only
+        partially illuminated rings.
+    phi0 : u.Quantity[angle]
+        Position angle of the muon impact on the mirror.
     """
 
-    def __init__(self, x, y, radius, sigma):
+    def __init__(
+        self,
+        x,
+        y,
+        radius,
+        sigma,
+        rho=0.0,
+        phi0=0 * u.deg,
+    ):
         self.unit = x.unit
         self.x = x
         self.y = y
         self.sigma = sigma
         self.radius = radius
-        self.dist = norm(
+        self.r_dist = norm(
             self.radius.to_value(self.unit), self.sigma.to_value(self.unit)
         )
+        self.rho = rho
+        self.phi0 = phi0.to(u.rad)
+
+        if rho >= 1:
+            self.phi_max = np.arcsin(1 / self.rho)
+            integral, _ = quad(self._inner_term, 0, self.phi_max)
+            self.norm = 1.0 / (2.0 * integral)
+        else:
+            self.norm = 0.25 / ellipe(self.rho**2)
 
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
-        r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
-        return self.dist.pdf(r)
+        dx = (x - self.x).to_value(self.unit)
+        dy = (y - self.y).to_value(self.unit)
+        r = np.sqrt(dx**2 + dy**2)
+        phi = np.arctan2(dy, dx)
+        return self.r_dist.pdf(r) * self._pdf_phi(phi)
+
+    def _inner_term(self, phi):
+        return np.sqrt(1 - self.rho**2 * np.sin(phi) ** 2)
+
+    def _pdf_phi(self, phi):
+        phi = phi + self.phi0.to_value(u.rad)
+        if self.rho >= 1:
+            mask = np.abs(phi) < self.phi_max
+            pdf = np.zeros(phi.shape)
+            pdf[mask] = self._inner_term(phi[mask])
+            return self.norm * pdf
+        else:
+            return self.norm * (self._inner_term(phi) + self.rho * np.cos(phi))

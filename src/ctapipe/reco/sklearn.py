@@ -23,6 +23,7 @@ from ctapipe.exceptions import TooFewEvents
 
 from ..containers import (
     ArrayEventContainer,
+    CoordinateFrameType,
     DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
@@ -703,7 +704,7 @@ class DispReconstructor(Reconstructor):
             else:
                 prediction[valid] = valid_norms
 
-            sign_proba = self._models[key][1].predict_proba(X)[:, 0]
+            sign_proba = self._models[key][1].predict_proba(X)[:, 1]
             # proba is [0 and 1] where 0 => very certain -1, 1 => very certain 1
             # and 0.5 means random guessing either. So we transform to a score
             # where 0 means "guessing" and 1 means "very certain"
@@ -796,6 +797,7 @@ class DispReconstructor(Reconstructor):
         altaz_table : `~astropy.table.Table`
             Table with resulting predictions of horizontal coordinates
         """
+
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -825,15 +827,7 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
-        # prefer to use pointing interpolated to event
-        if "telescope_pointing_altitude" in table.colnames:
-            pointing_alt = table["telescope_pointing_altitude"]
-            pointing_az = table["telescope_pointing_azimuth"]
-        else:
-            # fallback to fixed pointing of ob
-            pointing_alt = table["subarray_pointing_lat"]
-            pointing_az = table["subarray_pointing_lon"]
-
+        pointing_alt, pointing_az = self._get_pointing(table)
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,
@@ -869,6 +863,31 @@ class DispReconstructor(Reconstructor):
             for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
+
+    def _get_pointing(self, table):
+        # prefer to use pointing interpolated to event
+        if "telescope_pointing_altitude" in table.colnames:
+            return (
+                table["telescope_pointing_altitude"].quantity,
+                table["telescope_pointing_azimuth"].quantity,
+            )
+
+        # fallback to fixed pointing of ob
+        if len(np.unique(table["subarray_pointing_frame"])) > 1:
+            msg = "Subarray pointing frame must be the same for all events"
+            raise NotImplementedError(msg)
+
+        # for now only allow fixed altaz, real data should have telescope monitoring
+        # pointing and simulations have fixed pointing in alt az
+        frame_type = CoordinateFrameType(table["subarray_pointing_frame"][0])
+        if frame_type is CoordinateFrameType.ALTAZ:
+            return (
+                table["subarray_pointing_lat"].quantity,
+                table["subarray_pointing_lon"].quantity,
+            )
+
+        msg = f"Only AltAz frame supported for fixed subarray pointing, got {frame_type.name}"
+        raise NotImplementedError(msg)
 
 
 class CrossValidator(Component):

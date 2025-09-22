@@ -3,6 +3,8 @@ Traitlet implementations for ctapipe
 """
 import os
 import pathlib
+import warnings
+from collections.abc import Mapping
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -53,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 class PathError:
-    """Signal Non-Existence of a Path"""
+    """Signal configuration error of a Path"""
 
     def __init__(self, path, reason):
         self.path = path
@@ -61,6 +63,10 @@ class PathError:
 
     def __repr__(self):
         return f"'{self.path}': {self.reason}"
+
+
+class NoneDefaultNotAllowedWarning(UserWarning):
+    """For the default_value=None, allow_none=False case."""
 
 
 # Aliases
@@ -112,7 +118,8 @@ class AstroQuantity(TraitType):
                     f" physical type of the default value, {default_type}."
                 )
 
-    def info(self):
+    @property
+    def info_text(self):
         info = "An ``astropy.units.Quantity`` instance"
         if self.allow_none:
             info += "or None"
@@ -120,7 +127,10 @@ class AstroQuantity(TraitType):
 
     def validate(self, obj, value):
         try:
-            quantity = u.Quantity(value)
+            if isinstance(value, Mapping):
+                quantity = u.Quantity(**value)
+            else:
+                quantity = u.Quantity(value)
         except TypeError:
             self.error(obj, value)
         except ValueError:
@@ -149,7 +159,8 @@ class AstroTime(TraitType):
         except ValueError:
             self.error(obj, value)
 
-    def info(self):
+    @property
+    def info_text(self):
         info = "an ISO8601 datestring or Time instance"
         if self.allow_none:
             info += "or None"
@@ -172,18 +183,29 @@ class Path(TraitType):
 
     def __init__(
         self,
-        default_value=Undefined,
+        default_value=None,
+        allow_none=True,
         exists=None,
         directory_ok=True,
         file_ok=True,
         **kwargs,
     ):
-        super().__init__(default_value=default_value, **kwargs)
+        super().__init__(default_value=default_value, allow_none=allow_none, **kwargs)
+
+        if self.default_value is None and not self.allow_none:
+            msg = (
+                "Setting default_value=None and allow_none will result in misleading error messages."
+                " To require an value, set allow_none=True, default_value=None and check later that"
+                " the value is not None"
+            )
+            warnings.warn(msg, NoneDefaultNotAllowedWarning)
+
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
 
-    def info(self):
+    @property
+    def info_text(self):
         info = "a pathlib.Path or non-empty str for "
         if self.exists is True:
             info += "an existing"
@@ -205,52 +227,61 @@ class Path(TraitType):
         return info
 
     def validate(self, obj, value):
-        if isinstance(value, bytes):
-            value = os.fsdecode(value)
-
+        """Validate trait value."""
         if value is None or value is Undefined:
             if self.allow_none:
                 return value
             else:
                 self.error(obj, value)
 
-        if not isinstance(value, str | pathlib.Path):
+        elif isinstance(value, bytes):
+            value = os.fsdecode(value)
+
+        elif not isinstance(value, str | pathlib.Path):
             self.error(obj, value)
 
         # expand any environment variables in the path:
         value = os.path.expandvars(value)
+        value = self._validate_str(obj, value)
 
-        if isinstance(value, str):
-            if value == "":
-                self.error(obj, value)
+        return self._check_path(value)
 
-            try:
-                url = urlparse(value)
-            except ValueError:
-                self.error(obj, value)
+    def _validate_str(self, obj, value):
+        if value == "":
+            self.error(obj, value)
 
-            if url.scheme in ("http", "https"):
-                # here to avoid circular import, since every module imports
-                # from ctapipe.core
-                from ctapipe.utils.download import download_cached
+        try:
+            url = urlparse(value)
+        except ValueError:
+            self.error(obj, value)
 
-                value = download_cached(value, progress=True)
-            elif url.scheme == "dataset":
-                # here to avoid circular import, since every module imports
-                # from ctapipe.core
-                from ctapipe.utils import get_dataset_path
+        if url.scheme in ("http", "https"):
+            # here to avoid circular import, since every module imports
+            # from ctapipe.core
+            from ctapipe.utils.download import download_cached
 
-                value = get_dataset_path(value.partition("dataset://")[2])
-            elif url.scheme in ("", "file"):
-                value = pathlib.Path(url.netloc, url.path)
-            else:
-                self.error(obj, value)
+            value = download_cached(value, progress=True)
+        elif url.scheme == "dataset":
+            # here to avoid circular import, since every module imports
+            # from ctapipe.core
+            from ctapipe.utils import get_dataset_path
 
+            value = get_dataset_path(value.partition("dataset://")[2])
+        elif url.scheme in ("", "file"):
+            value = pathlib.Path(url.netloc, url.path)
+        else:
+            self.error(obj, value)
+
+        return value
+
+    def _check_path(self, value):
         value = value.absolute()
         exists = value.exists()
-        if self.exists is not None:
-            if exists != self.exists:
-                raise TraitError(PathError(value, "does not exist"), self.info(), self)
+
+        if self.exists is not None and exists != self.exists:
+            msg = "does not exist" if self.exists else "exists but must not"
+            raise TraitError(PathError(value, msg), self.info(), self)
+
         if exists:
             if not self.directory_ok and value.is_dir():
                 raise TraitError(PathError(value, "is a directory"), self.info(), self)

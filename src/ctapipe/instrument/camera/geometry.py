@@ -481,32 +481,19 @@ class CameraGeometry:
                 self.pix_y,
                 cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
             )
-            x_edges, y_edges, _ = get_orthogonal_grid_edges(
-                rot_x.to_value(u.m), rot_y.to_value(u.m)
+
+            rot_x = rot_x.to_value(u.m)
+            rot_y = rot_y.to_value(u.m)
+
+            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+                rot_x,
+                rot_y,
+                scale_aspect=True,
             )
-            square_mask = np.histogramdd(
-                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
-            )[0].astype(bool)
-            hex_to_rect_map = np.histogramdd(
-                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
-                bins=(x_edges, y_edges),
-                weights=np.arange(len(self.pix_y)),
-            )[0].astype(int)
-            hex_to_rect_map[~square_mask] = -1
-            rows_2d = np.zeros(hex_to_rect_map.shape)
-            rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
-            rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
-            rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
-                np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
-            )[..., square_mask]
-            cols_2d = np.zeros(hex_to_rect_map.shape)
-            cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
-            cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
-            cols_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
-                np.rollaxis(np.atleast_3d(cols_2d), 2, 0)
-            )[..., square_mask]
-            pixel_row = rows_1d
-            pixel_column = cols_1d
+            rot_x *= x_scale
+
+            pixel_row = np.digitize(rot_x, x_edges) - 1
+            pixel_column = np.digitize(rot_y, y_edges) - 1
 
             # flip image so that imshow looks like original camera display
             pixel_row = pixel_row.max() - pixel_row
@@ -704,7 +691,7 @@ class CameraGeometry:
     @lazyproperty
     def neighbors(self):
         """A list of the neighbors pixel_ids for each pixel"""
-        return [np.where(r)[0].tolist() for r in self.neighbor_matrix]
+        return [np.nonzero(r)[0].tolist() for r in self.neighbor_matrix]
 
     @lazyproperty
     def neighbor_matrix(self):
@@ -953,24 +940,30 @@ class CameraGeometry:
 
     def position_to_pix_index(self, x, y):
         """
-        Return the index of a camera pixel which contains a given position (x,y)
-        in the camera frame. The (x,y) coordinates can be arrays (of equal length),
-        for which the methods returns an array of pixel ids. A warning is raised if the
-        position falls outside the camera.
+        Convert a position  to the corresponding pixel index.
+
+        Returns the index of a camera pixel which contains a given position (x, y)
+        in the geometry's frame. The (x, y) coordinates can be arrays (of equal length),
+        for which the methods returns an array of pixel ids.
+
+        The method returns ``INT64_MIN=-9223372036854775808`` for coordinates not covered
+        by any pixel.
 
         Parameters
         ----------
-        x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame
-        y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame
+        x : astropy.units.Quantity
+           x coordinates of the position(s), must be in frame of the geometry
+        y : astropy.units.Quantity
+           y coordinates of the position(s), must be in frame of the geometry
 
         Returns
         -------
-        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
-                    outside camera
+        pix_indices: Pixel index or array of pixel indices. Returns INT64_MIN=-9223372036854775808
+            if position is not inside a pixel.
         """
         if not self._all_pixel_areas_equal:
             logger.warning(
-                " Method not implemented for cameras with varying pixel sizes"
+                "Method not implemented for cameras with varying pixel sizes"
             )
         unit = x.unit
         scalar = x.ndim == 0
@@ -984,7 +977,7 @@ class CameraGeometry:
         del dist
         pix_indices = pix_indices.flatten()
 
-        invalid = np.iinfo(pix_indices.dtype).min
+        invalid = np.iinfo(np.int64).min
         # 1. Mark all points outside pixel circumeference as lying outside camera
         pix_indices[pix_indices == self.n_pixels] = invalid
 
@@ -998,14 +991,14 @@ class CameraGeometry:
         # presumes all camera pixels being of equal size.
         border_mask = self.get_border_pixel_mask()
         # get all pixels at camera border:
-        borderpix_indices = np.where(border_mask)[0]
+        borderpix_indices = np.nonzero(border_mask)[0]
         borderpix_indices_in_list = np.intersect1d(borderpix_indices, pix_indices)
         if borderpix_indices_in_list.any():
             # Get some pixel not at the border:
-            insidepix_index = np.where(~border_mask)[0][0]
+            insidepix_index = np.nonzero(~border_mask)[0][0]
             # Check in detail whether location is in border pixel or outside camera:
             for borderpix_index in borderpix_indices_in_list:
-                index = np.where(pix_indices == borderpix_index)[0][0]
+                index = np.nonzero(pix_indices == borderpix_index)[0][0]
                 # compare with inside pixel:
                 xprime = (
                     points_searched[0][index, 0]

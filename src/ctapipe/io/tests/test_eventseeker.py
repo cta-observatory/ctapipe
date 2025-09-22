@@ -42,9 +42,9 @@ def test_eventseeker():
         focal_length_choice="EQUIVALENT",
     ) as reader:
         seeker = EventSeeker(event_source=reader)
+
         with pytest.raises(IndexError):
-            event = seeker.get_event_index(5)
-            assert event is not None
+            seeker.get_event_index(5)
 
 
 def test_eventseeker_edit():

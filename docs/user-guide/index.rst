@@ -8,7 +8,7 @@ User Guide
    :maxdepth: 2
 
    getting-started
-   tools
-   data_models/index
+   tools/index
+   data_format/index
    examples_tutorials
    FAQ

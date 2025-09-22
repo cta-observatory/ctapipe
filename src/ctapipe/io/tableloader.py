@@ -13,6 +13,7 @@ from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ..core import Component, Provenance, traits
+from ..exceptions import InputMissing
 from ..instrument import FocalLengthKind, SubarrayDescription
 from ..monitoring.interpolation import PointingInterpolator
 from .astropy_helpers import join_allow_empty, read_table
@@ -76,9 +77,23 @@ class ChunkIterator:
         self.func = func
         self.n_total = n_total
         self.chunk_size = chunk_size
-        self.n_chunks = int(np.ceil(self.n_total / self.chunk_size))
         self.args = args
+
+        self.start = kwargs.pop("start", 0)
+        self.stop = kwargs.pop("stop", None)
         self.kwargs = kwargs
+
+        if self.stop is not None:
+            self.stop = min(n_total, self.stop)
+
+        if self.start > 0 and self.stop is not None:
+            self.n_total = self.stop - self.start
+        elif self.stop is not None:
+            self.n_total = min(self.stop, self.n_total)
+        elif self.start > 0:
+            self.n_total -= self.start
+
+        self.n_chunks = int(np.ceil(self.n_total / self.chunk_size))
 
     def __len__(self):
         return self.n_chunks
@@ -93,8 +108,8 @@ class ChunkIterator:
                 f" of length {len(self)}"
             )
 
-        start = chunk * self.chunk_size
-        stop = min(self.n_total, (chunk + 1) * self.chunk_size)
+        start = self.start + chunk * self.chunk_size
+        stop = min(self.start + self.n_total, start + self.chunk_size)
         return Chunk(
             start, stop, self.func(*self.args, start=start, stop=stop, **self.kwargs)
         )
@@ -234,7 +249,7 @@ class TableLoader(Component):
 
         super().__init__(**kwargs)
         if h5file is None and self.input_url is None:
-            raise ValueError("Need to specify either input_url or h5file")
+            raise InputMissing("Need to specify either input_url or h5file")
 
         if h5file is None:
             self.h5file = tables.open_file(self.input_url, mode="r")

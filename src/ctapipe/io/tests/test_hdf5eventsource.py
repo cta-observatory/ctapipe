@@ -7,6 +7,7 @@ import pytest
 from ctapipe.containers import (
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
+    ObservationBlockContainer,
 )
 from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 
@@ -30,7 +31,7 @@ def test_is_compatible(compatible_file, request):
 def test_metadata(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
-        assert source.datamodel_version == (6, 0, 0)
+        assert source.datamodel_version == (7, 1, 0)
         assert set(source.datalevels) == {
             DataLevel.DL1_IMAGES,
             DataLevel.DL1_PARAMETERS,
@@ -299,3 +300,52 @@ def test_pointing_old_file():
                 assert u.isclose(pointing.azimuth, 0 * u.deg)
             n_read += 1
     assert n_read == 5
+
+
+def test_no_pointing_in_ob(tmp_path):
+    from ctapipe.io import DataWriter
+
+    test_file = "dataset://gamma_prod5.simtel.zst"
+
+    path = tmp_path / "test_no_pointing_in_ob.h5"
+
+    with EventSource(input_url=test_file) as source:
+        # clear everything but the obs_id
+        source.observation_blocks[source.obs_id] = ObservationBlockContainer(
+            obs_id=source.obs_id
+        )
+
+        n_written = 0
+        with DataWriter(source, output_path=path, write_r1_waveforms=True) as writer:
+            for event in source:
+                writer(event)
+                n_written += 1
+
+    with HDF5EventSource(path) as source:
+        n_read = 0
+        for e in source:
+            assert np.isnan(e.pointing.array_azimuth)
+            assert np.isnan(e.pointing.array_altitude)
+            n_read += 1
+        assert n_read == n_written
+
+
+def test_read_dl2_tel_ml(gamma_diffuse_full_reco_file):
+    algorithm = "ExtraTreesRegressor"
+
+    with HDF5EventSource(gamma_diffuse_full_reco_file) as s:
+        assert s.datalevels == (DataLevel.DL2,)
+
+        e = next(iter(s))
+        assert algorithm in e.dl2.stereo.energy
+        assert e.dl2.stereo.energy[algorithm].energy is not None
+
+        tel_mask = e.dl2.stereo.energy[algorithm].telescopes
+        tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
+        for tel_id in tel_ids:
+            assert tel_id in e.dl2.tel
+            assert algorithm in e.dl2.tel[tel_id].energy
+            energy = e.dl2.tel[tel_id].energy[algorithm]
+            assert energy.prefix == algorithm + "_tel"
+            assert energy.energy is not None
+            assert np.isfinite(energy.energy)

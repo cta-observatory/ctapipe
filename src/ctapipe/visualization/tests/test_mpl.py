@@ -388,3 +388,21 @@ def test_array_display_axes(tmp_path, subarray_prod5_paranal, layout):
     subarray_prod5_paranal.peek(ax=ax2)
 
     fig.savefig(tmp_path / "double_peek.png")
+
+
+def test_camera_in_subfigure(tmp_path, prod5_lst_cam):
+    """Test for creating camera displays in subfigures"""
+    from ..mpl_camera import CameraDisplay
+
+    fig = plt.figure(layout="constrained")
+    subfigs = fig.subfigures(1, 2)
+
+    ax1 = subfigs[0].subplots(1, 1)
+    d1 = CameraDisplay(prod5_lst_cam, ax=ax1)
+    d1.add_colorbar()
+
+    ax2 = subfigs[1].subplots(1, 1)
+    d2 = CameraDisplay(prod5_lst_cam, ax=ax2)
+    d2.add_colorbar()
+
+    fig.savefig(tmp_path / "subfigures.png")

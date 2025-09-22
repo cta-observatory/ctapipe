@@ -348,6 +348,52 @@ def test_chunked(dl2_shower_geometry_file):
     assert n_read == n_events
 
 
+@pytest.mark.parametrize(
+    "loader_kwargs",
+    [
+        dict(chunk_size=2, stop=5),
+        dict(chunk_size=5, stop=3),
+        dict(chunk_size=2, start=1, stop=4),
+        dict(chunk_size=2, start=1),
+    ],
+)
+def test_chunked_with_stop(dl2_shower_geometry_file, loader_kwargs):
+    """Test chunked reading with a maximum number of events."""
+    from ctapipe.io.tableloader import TableLoader, read_table
+
+    start = loader_kwargs.get("start")
+    stop = loader_kwargs.get("stop")
+    chunk_size = loader_kwargs["chunk_size"]
+
+    trigger = read_table(dl2_shower_geometry_file, "/dl1/event/subarray/trigger")[
+        start:stop
+    ]
+    n_events = len(trigger)
+    n_chunks = int(np.ceil(n_events / chunk_size))
+    n_tel_events = np.count_nonzero(trigger["tels_with_trigger"])
+
+    with TableLoader(dl2_shower_geometry_file) as table_loader:
+        event_it = table_loader.read_subarray_events_chunked(**loader_kwargs)
+
+        chunks_read = 0
+        events = 0
+        for chunk in event_it:
+            chunks_read += 1
+            events += len(chunk.data)
+        assert chunks_read == n_chunks
+        assert events == n_events
+
+        tel_event_it = table_loader.read_telescope_events_chunked(**loader_kwargs)
+
+        chunks_read = 0
+        tel_events = 0
+        for chunk in tel_event_it:
+            chunks_read += 1
+            tel_events += len(chunk.data)
+        assert chunks_read == n_chunks
+        assert tel_events == n_tel_events
+
+
 def test_read_simulation_config(dl2_merged_file):
     from ctapipe.io import TableLoader
 

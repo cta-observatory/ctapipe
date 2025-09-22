@@ -1,0 +1,1 @@
+In the muon intensity fitting class filters out non-physical solutions for chord vs phi function.

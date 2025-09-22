@@ -1,1 +1,0 @@
-Fix processing gain-selected dl1 data with the ``PixelStatisticsCalculatorTool``.

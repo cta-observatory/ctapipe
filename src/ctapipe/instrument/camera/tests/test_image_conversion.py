@@ -26,14 +26,35 @@ def create_mock_image(geom, psi=25 * u.deg):
     return image
 
 
-def test_single_image(camera_geometry):
+@pytest.fixture(scope="session")
+def image_conversion_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("image_conversion_")
+
+
+def test_single_image(camera_geometry, image_conversion_path):
     """
     Test if we can transform toy images for different geometries
     and get the same images after transforming back
     """
+    from ctapipe.visualization import CameraDisplay
+
+    plt = pytest.importorskip("matplotlib.pyplot")
+
     image = create_mock_image(camera_geometry)
     image_2d = camera_geometry.image_to_cartesian_representation(image)
     image_1d = camera_geometry.image_from_cartesian_representation(image_2d)
+
+    fig, axs = plt.subplots(1, 2, layout="constrained", figsize=(10, 5))
+    CameraDisplay(camera_geometry, ax=axs[0], image=image)
+    axs[1].imshow(image_2d, cmap="inferno")
+
+    fig.savefig(image_conversion_path / f"{camera_geometry.name}.png", dpi=300)
+
+    if len(np.unique(camera_geometry.pix_area)) > 1:
+        pytest.xfail(
+            "Image conversion is not expected to work with heterogeneous geometries"
+        )
+
     # in general this introduces extra pixels in the 2d array, which are set to nan
     assert np.nansum(image) == np.nansum(image_2d)
     assert_allclose(image, image_1d)
@@ -49,6 +70,12 @@ def test_multiple_images(camera_geometry):
     )
     images_2d = camera_geometry.image_to_cartesian_representation(images)
     images_1d = camera_geometry.image_from_cartesian_representation(images_2d)
+
+    if len(np.unique(camera_geometry.pix_area)) > 1:
+        pytest.xfail(
+            "Image conversion is not expected to work with heterogeneous geometries"
+        )
+
     # in general this introduces extra pixels in the 2d array, which are set to nan
     assert np.nansum(images) == np.nansum(images_2d)
     assert_allclose(images, images_1d)

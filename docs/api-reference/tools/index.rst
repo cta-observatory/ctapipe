@@ -82,16 +82,22 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.tools
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.quickstart
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.process
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.merge
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.train_energy_regressor
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.train_particle_classifier
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.train_disp_reconstructor
     :no-inheritance-diagram:
@@ -107,3 +113,12 @@ Reference/API
 
 .. automodapi:: ctapipe.tools.create_dl3
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.dump_instrument
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.calculate_pixel_stats
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.store_astropy_cache
+   :no-inheritance-diagram:

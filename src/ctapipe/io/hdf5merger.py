@@ -7,6 +7,7 @@ from pathlib import Path
 import tables
 from astropy.time import Time
 
+from ..containers import EventType
 from ..core import Component, Provenance, traits
 from ..instrument.optics import FocalLengthKind
 from ..instrument.subarray import SubarrayDescription
@@ -20,10 +21,10 @@ class NodeType(enum.Enum):
     TABLE = enum.auto()
     # a group comprising tel_XXX tables
     TEL_GROUP = enum.auto()
-    # a group with children of the form /<property group>/<algorithm table>
-    ALGORITHM_GROUP = enum.auto()
-    # a group with children of the form /<property group>/<algorithm group>/<tel_XXX table>
-    ALGORITHM_TEL_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<iter table>
+    ITER_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<iter group>/<tel_XXX table>
+    ITER_TEL_GROUP = enum.auto()
 
 
 #: nodes to check for merge-ability
@@ -44,11 +45,16 @@ _NODES_TO_CHECK = {
     "/dl1/event/telescope/images": NodeType.TEL_GROUP,
     "/dl1/event/telescope/parameters": NodeType.TEL_GROUP,
     "/dl1/event/telescope/muon": NodeType.TEL_GROUP,
-    "/dl2/event/telescope": NodeType.ALGORITHM_TEL_GROUP,
-    "/dl2/event/subarray": NodeType.ALGORITHM_GROUP,
+    "/dl2/event/telescope": NodeType.ITER_TEL_GROUP,
+    "/dl2/event/subarray": NodeType.ITER_GROUP,
     "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
     "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
+    "/dl1/monitoring/telescope/camera/calibration_coefficients/": NodeType.TEL_GROUP,
 }
+
+# Column names used for the DL1A data
+DL1_COLUMN_NAMES = ["image", "peak_time"]
+CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 
 
 def _get_required_nodes(h5file):
@@ -61,15 +67,15 @@ def _get_required_nodes(h5file):
         if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
             required_nodes.add(node)
 
-        elif node_type is NodeType.ALGORITHM_GROUP:
+        elif node_type is NodeType.ITER_GROUP:
             for kind_group in h5file.root[node]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
                     required_nodes.add(table._v_pathname)
 
-        elif node_type is NodeType.ALGORITHM_TEL_GROUP:
+        elif node_type is NodeType.ITER_TEL_GROUP:
             for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    required_nodes.add(algorithm_group._v_pathname)
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    required_nodes.add(iter_group._v_pathname)
         else:
             raise ValueError(f"Unhandled node type: {node_type} of {node}")
 
@@ -158,6 +164,15 @@ class HDF5Merger(Component):
         True, help="Whether to include processing statistics in merged output"
     ).tag(config=True)
 
+    single_ob = traits.Bool(
+        False,
+        help=(
+            "If true, input files are assumed to be multiple chunks from the same"
+            " observation block and the ob / sb blocks will only be copied from "
+            " the first input file"
+        ),
+    ).tag(config=True)
+
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
         if output_path not in {None, traits.Undefined}:
@@ -189,6 +204,7 @@ class HDF5Merger(Component):
         self.subarray = None
         self.meta = None
         self._merged_obs_ids = set()
+        self._n_merged = 0
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
@@ -206,6 +222,7 @@ class HDF5Merger(Component):
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
+            self._n_merged += 1
 
     def __call__(self, other: str | Path | tables.File):
         """
@@ -217,7 +234,7 @@ class HDF5Merger(Component):
 
         with exit_stack:
             # first file to be merged
-            if self.meta is None:
+            if self._n_merged == 0:
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.product.data_model_version
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
@@ -233,6 +250,7 @@ class HDF5Merger(Component):
                     self.log.info(
                         "Updated required nodes to %s", sorted(self.required_nodes)
                     )
+                self._n_merged += 1
             finally:
                 self._update_meta()
 
@@ -288,10 +306,16 @@ class HDF5Merger(Component):
                 f" check for duplicated obs_ids. Tried: {keys}"
             )
 
-        duplicated = self._merged_obs_ids.intersection(obs_ids)
-        if len(duplicated) > 0:
-            msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
-            raise CannotMerge(msg)
+        if self.single_ob and len(self._merged_obs_ids) > 0:
+            different = self._merged_obs_ids.symmetric_difference(obs_ids)
+            if len(different) > 0:
+                msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
+                raise CannotMerge(msg)
+        else:
+            duplicated = self._merged_obs_ids.intersection(obs_ids)
+            if len(duplicated) > 0:
+                msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
+                raise CannotMerge(msg)
 
         self._merged_obs_ids.update(obs_ids)
 
@@ -301,17 +325,19 @@ class HDF5Merger(Component):
         # Configuration
         self._append_subarray(other)
 
-        config_keys = [
-            "/configuration/observation/scheduling_block",
-            "/configuration/observation/observation_block",
-        ]
-        for key in config_keys:
-            if key in other.root:
-                self._append_table(other, other.root[key])
+        # in case of "single_ob", we only copy sb/ob blocks for the first file
+        if not self.single_ob or self._n_merged == 0:
+            config_keys = [
+                "/configuration/observation/scheduling_block",
+                "/configuration/observation/observation_block",
+            ]
+            for key in config_keys:
+                if key in other.root:
+                    self._append_table(other, other.root[key])
 
         key = "/configuration/telescope/pointing"
         if key in other.root:
-            self._append_table_group(other, other.root[key])
+            self._append_table_group(other, other.root[key], once=self.single_ob)
 
         # Simulation
         simulation_table_keys = [
@@ -376,8 +402,8 @@ class HDF5Merger(Component):
         key = "/dl2/event/telescope"
         if self.telescope_events and self.dl2_telescope and key in other.root:
             for kind_group in other.root[key]._f_iter_nodes("Group"):
-                for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    self._append_table_group(other, algorithm_group)
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    self._append_table_group(other, iter_group)
 
         key = "/dl2/event/subarray"
         if self.dl2_subarray and key in other.root:
@@ -385,7 +411,7 @@ class HDF5Merger(Component):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
 
-        # monitoring
+        # Pointing monitoring
         key = "/dl1/monitoring/subarray/pointing"
         if self.monitoring and key in other.root:
             self._append_table(other, other.root[key])
@@ -393,6 +419,18 @@ class HDF5Merger(Component):
         key = "/dl1/monitoring/telescope/pointing"
         if self.monitoring and self.telescope_events and key in other.root:
             self._append_table_group(other, other.root[key])
+
+        # Calibration coefficients monitoring
+        key = f"{CAMERA_MONITORING_GROUP}/coefficients/"
+        if self.monitoring and self.telescope_events and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        # Pixel statistics monitoring
+        for dl1_colname in DL1_COLUMN_NAMES:
+            for event_type in EventType:
+                key = f"{CAMERA_MONITORING_GROUP}/pixel_statistics/{event_type.name.lower()}_{dl1_colname}"
+                if self.monitoring and self.telescope_events and key in other.root:
+                    self._append_table_group(other, other.root[key])
 
         # quality query statistics
         key = "/dl1/service/image_statistics"
@@ -429,7 +467,7 @@ class HDF5Merger(Component):
         elif self.subarray != subarray:
             raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
 
-    def _append_table_group(self, file, input_group, filter_columns=None):
+    def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
 
         if not isinstance(input_group, tables.Group):
@@ -439,9 +477,9 @@ class HDF5Merger(Component):
         self._get_or_create_group(node_path)
 
         for table in input_group._f_iter_nodes("Table"):
-            self._append_table(file, table, filter_columns=filter_columns)
+            self._append_table(file, table, filter_columns=filter_columns, once=once)
 
-    def _append_table(self, file, table, filter_columns=None):
+    def _append_table(self, file, table, filter_columns=None, once=False):
         """Append a single table to the output file"""
         if not isinstance(table, tables.Table):
             raise TypeError(f"node must be a `tables.Table`, got {table}")
@@ -450,6 +488,9 @@ class HDF5Merger(Component):
         group_path, _ = split_h5path(table_path)
 
         if table_path in self.h5file:
+            if once:
+                return
+
             output_table = self.h5file.get_node(table_path)
             input_table = table[:]
             if filter_columns is not None:

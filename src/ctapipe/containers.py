@@ -33,6 +33,11 @@ __all__ = [
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
+    "MuonRingContainer",
+    "MuonEfficiencyContainer",
+    "MuonParametersContainer",
+    "MuonTelescopeContainer",
+    "MuonContainer",
     "BaseHillasParametersContainer",
     "CameraHillasParametersContainer",
     "CameraTimingParametersContainer",
@@ -144,25 +149,40 @@ class CoordinateFrameType(enum.Enum):
 
 
 class EventType(enum.Enum):
-    """Enum of EventTypes as defined in :cite:p:`ctao-r1-event-data-model`"""
+    """R1/DL0 EventType
 
-    # calibrations are 0-15
+    Defined in :cite:p:`ctao-r1-event-data-model`.
+    """
+
+    #: Flatfield event
     FLATFIELD = 0
+    #: Single PE event
     SINGLE_PE = 1
-    SKY_PEDESTAL = 2
+    #: Generic pedestal, assigned if no further distinction on the type could be made
+    PEDESTAL = 2
+    #: Dark pedestal, taken with HV on, shutter closed.
     DARK_PEDESTAL = 3
+    #: Electronics pedestal, taken with HV off.
     ELECTRONIC_PEDESTAL = 4
+    #: Sky pedestal, taken with HV on, shutter open
+    SKY_PEDESTAL = 5
     OTHER_CALIBRATION = 15
 
-    #: For mono-telescope triggers (not used in MC)
+    #: Muon event candidate
     MUON = 16
+    #: (LST) hardware-stereo trigger
     HARDWARE_STEREO = 17
+    #: Random mono trigger, used in simulations to force storage
+    #: of event regardless of subarray trigger for certain studies.
+    RANDOM_MONO = 18
 
     #: ACADA (DAQ) software trigger
     DAQ = 24
 
-    #: Standard Physics  stereo trigger
+    #: Standard Physics trigger
     SUBARRAY = 32
+    #: Standard Physics trigger with extended readout window
+    LONG_EVENT = 33
 
     UNKNOWN = 255
 
@@ -184,8 +204,8 @@ class PixelStatus(enum.IntFlag):
     https://redmine.cta-observatory.org/dmsf/files/17552/view
     """
 
-    DVR_STORED_AS_SIGNAL = enum.auto()
-    DVR_STORED_NO_SIGNAL = enum.auto()
+    DVR_0 = enum.auto()
+    DVR_1 = enum.auto()
     HIGH_GAIN_STORED = enum.auto()
     LOW_GAIN_STORED = enum.auto()
     SATURATED = enum.auto()
@@ -193,9 +213,12 @@ class PixelStatus(enum.IntFlag):
     PIXEL_TRIGGER_1 = enum.auto()
     PIXEL_TRIGGER_2 = enum.auto()
 
-    #: DVR status uses two bits
-    #: 0 = not stored, 1 = identified as signal, 2 = stored, not identified as signal
-    DVR_STATUS = DVR_STORED_AS_SIGNAL | DVR_STORED_NO_SIGNAL
+    #: DVR status uses two bits:
+    #: 0 = not stored;
+    #: 1 = stored, passthrough (i.e. no DVR algorithm applied in R1->DL0 step);
+    #: 2 = stored, but not identified as signal (e.g. neighbors of signal pixels);
+    #: 3 = stored, identified as signal;
+    DVR_STATUS = DVR_0 | DVR_1
 
     #: Pixel trigger information, TBD
     PIXEL_TRIGGER = PIXEL_TRIGGER_0 | PIXEL_TRIGGER_1 | PIXEL_TRIGGER_2
@@ -209,8 +232,9 @@ class PixelStatus(enum.IntFlag):
         -------
         dvr_status: int or array[uint8]
             0 = pixel not stored
-            1 = pixel was identified as signal pixel and stored
-            2 = pixel was stored, but not identified as signal
+            1 = stored, passthrough (i.e. no DVR algorithm applied in R1->DL0 step)
+            2 = stored, but not identified as signal (e.g. neighbors of signal pixels)
+            3 = stored, identified as signal
         """
         return pixel_status & PixelStatus.DVR_STATUS
 
@@ -301,6 +325,12 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
+    transverse_cog_uncertainty = Field(
+        nan * u.m,
+        "uncertainty on the center of gravity along the transverse axis of the image",
+        unit=u.m,
+    )
 
 
 class HillasParametersContainer(BaseHillasParametersContainer):
@@ -329,6 +359,12 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
     width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
+    transverse_cog_uncertainty = Field(
+        nan * u.deg,
+        "uncertainty on the center of gravity along the transverse axis of the image",
+        unit=u.deg,
+    )
 
 
 class LeakageContainer(Container):
@@ -898,6 +934,8 @@ class SimulationConfigContainer(Container):
 class TelescopeTriggerContainer(Container):
     default_prefix = ""
     time = Field(NAN_TIME, description="Telescope trigger time")
+    event_type = Field(EventType.UNKNOWN, description="Event type")
+
     n_trigger_pixels = Field(
         -1, description="Number of trigger groups (sectors) listed"
     )
@@ -1155,11 +1193,18 @@ class MuonRingContainer(Container):
         nan * u.deg, "center (fov_lat) of the fitted muon ring", unit=u.deg
     )
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    center_fov_lon_err = Field(
+        nan * u.deg, "center (fov_lon) of the fitted muon ring error", unit=u.deg
+    )
+    center_fov_lat_err = Field(
+        nan * u.deg, "center (fov_lat) of the fitted muon ring error", unit=u.deg
+    )
+    radius_err = Field(nan * u.deg, "radius of the fitted muon ring error", unit=u.deg)
     center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
     )
     center_distance = Field(
-        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
+        nan * u.deg, "Distance from the ring center to camera center", unit=u.deg
     )
 
 
@@ -1188,6 +1233,26 @@ class MuonParametersContainer(Container):
     mean_squared_error = Field(
         nan * u.deg**2,
         "MSE of the deviation of all pixels after cleaning from the ring fit",
+    )
+    ring_intensity = Field(
+        nan, "Sum of the pixel charges inside the integration area around a ring"
+    )
+    intensity_outside_ring = Field(nan, "Sum of the pixel charges outside the ring")
+    n_pixels_in_ring = Field(
+        -1,
+        "Number of pixels inside the ring integration area that passed the cleaning",
+    )
+    mean_intensity_outside_ring = Field(
+        nan,
+        "Mean intensity of pixels inside the region limited by ring integration width and outer ring width.",
+    )
+    radial_std_dev = Field(
+        nan * u.deg,
+        "Standard deviation of the radial light distribution.",
+    )
+    skewness = Field(nan, "Skewness of the light distribution along the ring radius.")
+    excess_kurtosis = Field(
+        nan, "Excess kurtosis of the light distribution along the ring radius."
     )
 
 

@@ -96,10 +96,10 @@ class EventSelectionOptimizer(Tool):
     ).tag(config=True)
 
     aliases = {
-        "gamma-file": "EventSelectionOptimizer.gamma_file",
-        "proton-file": "EventSelectionOptimizer.proton_file",
-        "electron-file": "EventSelectionOptimizer.electron_file",
-        "output": "EventSelectionOptimizer.output_path",
+        ("g", "gamma-file"): "EventSelectionOptimizer.gamma_file",
+        ("p", "proton-file"): "EventSelectionOptimizer.proton_file",
+        ("e", "electron-file"): "EventSelectionOptimizer.electron_file",
+        ("o", "output"): "EventSelectionOptimizer.output_path",
         "chunk_size": "EventSelectionOptimizer.chunk_size",
     }
 
@@ -152,9 +152,11 @@ class EventSelectionOptimizer(Tool):
         """
         reduced_events = dict()
         for particle_type, loader in self.event_loaders.items():
+            self.log.info("Loading %s from '%s'", particle_type, loader.file)
             events = loader.load_preselected_events(self.chunk_size)
             count = len(events)
             meta = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
+
             if self.optimizer.needs_background:
                 events = loader.make_event_weights(
                     events,
@@ -171,6 +173,8 @@ class EventSelectionOptimizer(Tool):
             if particle_type == "gammas":
                 self.sim_info = meta["sim_info"]
                 self.gamma_spectrum = meta["spectrum"]
+
+            self.log.info("Using %8d %s", count, particle_type)
 
         self.signal_events = reduced_events["gammas"]
 

@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
+from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..image.muon import MuonProcessor
@@ -165,7 +166,13 @@ class ProcessorTool(Tool):
 
     def setup(self):
         # setup components:
-        self.event_source = self.enter_context(EventSource(parent=self))
+        try:
+            self.event_source = self.enter_context(EventSource(parent=self))
+        except InputMissing:
+            self.log.critical(
+                "Specifying EventSource.input_url is required (via -i, --input or a config file)."
+            )
+            self.exit(1)
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(

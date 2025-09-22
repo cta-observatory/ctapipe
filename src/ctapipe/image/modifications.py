@@ -2,6 +2,7 @@ import numpy as np
 from numba import njit
 
 from ..core import TelescopeComponent
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ..core.traits import BoolTelescopeParameter, FloatTelescopeParameter, Int
 from ..instrument import SubarrayDescription
 
@@ -27,7 +28,7 @@ def _add_noise(image, noise_level, rng=None, correct_bias=True):
     return noisy_image
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _smear_psf_randomly(
     image, fraction, indices, indptr, smear_probabilities, seed=None
 ):

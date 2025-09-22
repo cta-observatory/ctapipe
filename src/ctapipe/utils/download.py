@@ -81,7 +81,7 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
 
 def download_cached(
     url, cache_name="ctapipe", auth=None, env_prefix="CTAPIPE_DATA_", progress=False
-):
+) -> Path:
     path = get_cache_path(url, cache_name=cache_name)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = path.with_suffix(path.suffix + ".lock")
@@ -113,7 +113,7 @@ def download_file_cached(
     cache_name="ctapipe",
     auth=None,
     env_prefix="CTAPIPE_DATA_",
-    default_url="http://cccta-dataserver.in2p3.fr/data/",
+    default_url="https://minio-cta.zeuthen.desy.de/dpps-testdata-public/data/",
     progress=False,
 ):
     """
@@ -137,13 +137,15 @@ def download_file_cached(
     default_url: str
         The default url from which to download ``name``, can be overridden
         by setting the env variable ``env_prefix + URL``
+    progress: bool
+        Whether or not to show a progress bar for downloads
 
     Returns
     -------
     path: pathlib.Path
         the full path to the downloaded data.
     """
-    log.debug(f"File {name} is not available in cache, downloading.")
+    log.debug("Fetching '%s' from cache or remote server.", name)
 
     base_url = os.environ.get(env_prefix + "URL", default_url).rstrip("/")
     url = base_url + "/" + str(name).lstrip("/")

@@ -84,7 +84,7 @@ def read_table(
             raise OSError(
                 f"Node {path} is a {table.__class__.__name__}, must be a Table"
             )
-        transforms, descriptions, meta = _parse_hdf5_attrs(table)
+        transforms, descriptions, meta, column_meta = _parse_hdf5_attrs(table)
 
         if condition is None:
             array = table.read(start=start, stop=stop, step=step)
@@ -110,6 +110,17 @@ def read_table(
 
             astropy_table[column].description = desc
 
+        # fill column meta
+        for name, column in astropy_table.columns.items():
+            meta = column_meta.get(name, {})
+            # astropy.table.Column directly exposes meta
+            if hasattr(column, "meta"):
+                column.meta.update(meta)
+
+            # quantity and time have it in info, but their meta is None on init
+            elif hasattr(column, "info"):
+                column.info.meta = meta
+
         return astropy_table
 
 
@@ -120,6 +131,7 @@ def write_table(
     append=False,
     overwrite=False,
     mode="a",
+    time_format="ctao_high_res",
     filters=DEFAULT_FILTERS,
 ):
     """Write a table to an HDF5 file
@@ -145,6 +157,9 @@ def write_table(
     mode: str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
+    time_format: str
+        Format to use for storing time columns.
+        Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
     """
     copied = False
     parent, table_name = os.path.split(path)
@@ -173,7 +188,7 @@ def write_table(
                 attrs[f"CTAFIELD_{pos}_DESC"] = column.description
 
             if isinstance(column, Time):
-                transform = TimeColumnTransform(scale="tai", format="mjd")
+                transform = TimeColumnTransform(scale="tai", format=time_format)
                 attrs.update(transform.get_meta(pos))
 
                 if copied is False:
@@ -196,6 +211,18 @@ def write_table(
             elif column.unit is not None:
                 transform = QuantityColumnTransform(column.unit)
                 attrs.update(transform.get_meta(pos))
+
+            col_meta = None
+            # column directly exposes meta
+            if hasattr(column, "meta"):
+                col_meta = column.meta
+            # quantity and time have it in info
+            elif hasattr(column, "info"):
+                col_meta = getattr(column.info, "meta", None)
+
+            if col_meta is not None:
+                for k, v in col_meta.items():
+                    attrs[f"CTAFIELD_{pos}_{k}"] = v
 
         if not already_exists:
             h5_table = h5file.create_table(
@@ -224,7 +251,31 @@ def _parse_hdf5_attrs(table):
     }
     transforms = get_column_transforms(column_attrs)
     meta = get_node_meta(table)
-    return transforms, descriptions, meta
+
+    # extract custom column meta ignoring special transform-related values
+    # or other already handled fields
+    ignore_attrs = {
+        "DESC",
+        "DTYPE",
+        "UNIT",
+        "TIME_FORMAT",
+        "TIME_SCALE",
+        "TRANSFORM",
+        "TRANSFORM_SCALE",
+        "TRANSFORM_OFFSET",
+        "NAN_VALUE",
+        "POSINF_VALUE",
+        "NEGINF_VALUE",
+        "MAXLEN",
+        "POS",
+        "PREFIX",  # is computed from NAME, not needed
+    }
+    column_meta = {}
+    for col_name, col_attrs in column_attrs.items():
+        column_meta[col_name] = {
+            k: v for k, v in col_attrs.items() if k not in ignore_attrs
+        }
+    return transforms, descriptions, meta, column_meta
 
 
 def join_allow_empty(left, right, keys, join_type="left", keep_order=False, **kwargs):

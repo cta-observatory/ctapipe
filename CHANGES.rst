@@ -1,3 +1,196 @@
+ctapipe v0.26.0 (2025-06-05)
+============================
+
+
+API Changes
+-----------
+
+- The algorithms for muon ring fitting have been improved
+
+  - Upgrade the taubin_circle_fit with weights to avoid bias toward rings with larger radii
+  - Add the optional initial parameters : ring center and radius.
+  - Add a combined ring fitting method (kundu_chaudhuri_taubin).
+  - This new combined method is set to be the default method.
+  - Updated the test with an additional fitting method, each method is tested separately.
+  - Realistic muon ring simulation for all camera types implemented in the test with toy model.
+  - Include the parameter fit errors in the tolerance metric.
+  - Add error fields to the muon container.
+  - The API for MuonFitter has been modified.
+  - Minor documentation updates. [`#2736 <https://github.com/cta-observatory/ctapipe/pull/2736>`__]
+
+
+Bug Fixes
+---------
+
+- Fix ``CameraDisplay`` throwing an error when used in a matplotlib
+  subfigure. [`#2762 <https://github.com/cta-observatory/ctapipe/pull/2762>`__]
+
+
+Data Model Changes
+------------------
+
+- Add error fields to the muon container.
+
+
+New Features
+------------
+
+- Add option ``single_ob`` to the ``HDF5Merger`` to support merging
+  chunks of the same observation block into the same. [`#2436 <https://github.com/cta-observatory/ctapipe/pull/2436>`__]
+
+- Add option to skip the simtel R1 calibration [`#2753 <https://github.com/cta-observatory/ctapipe/pull/2753>`__]
+
+- Add support for chunked reading over subsets of a file
+  by passing ``start=`` and/or ``stop=`` to the
+  ``TableLoader.read_..._chunked`` methods. [`#2757 <https://github.com/cta-observatory/ctapipe/pull/2757>`__]
+
+
+ctapipe 0.25.1 (2025-04-28)
+===========================
+
+Bug Fixes
+---------
+
+- Fallback to "Unknown User" in case no username is available
+  from the system for provenance. [`#2741 <https://github.com/cta-observatory/ctapipe/pull/2741>`__]
+
+- Fix ``HDF5EventSource`` raising an exception in case of missing
+  subarray pointing in the input file. [`#2744 <https://github.com/cta-observatory/ctapipe/pull/2744>`__]
+
+
+ctapipe 0.25.0 (2025-04-16)
+===========================
+
+Bug Fixes
+---------
+
+- Fix units (absence of) for skewness and excess kurtosis in muon analysis [`#2732 <https://github.com/cta-observatory/ctapipe/pull/2732>`__]
+
+- Improve heuristic in ``SimTelEventSource`` for when true Cherenkov
+  images are expected to be present in the input file.
+  This fixes missing true images in output files when the first event of a run
+  had missing true images. [`#2735 <https://github.com/cta-observatory/ctapipe/pull/2735>`__]
+
+- Fix inverted sign of ``DispReconstructor`` prediction. [`#2738 <https://github.com/cta-observatory/ctapipe/pull/2738>`__]
+
+
+Data Model Changes
+------------------
+- Two new fields in the Hillas parameters:
+  1. psi_uncertainty (uncertainty on the psi angle of the image)
+  2. transverse_cog_uncertainty (uncertainty on the center of gravity along the transverse axis of the image) [`#2629 <https://github.com/cta-observatory/ctapipe/pull/2629>`__]
+
+
+New Features
+------------
+
+- Add two new fields in the Hillas parameters computations:
+  1. psi_uncertainty (uncertainty on the psi angle of the image)
+  2. transverse_cog_uncertainty (uncertainty on the center of gravity along the transverse axis of the image) [`#2629 <https://github.com/cta-observatory/ctapipe/pull/2629>`__]
+
+
+ctapipe v0.24.0 (2025-03-31)
+============================
+
+
+Bug Fixes
+---------
+
+- Fix ``SubarrayDescription.info()`` in cases
+  of different ``TelescopeDescription`` with the same string representation. [`#2673 <https://github.com/cta-observatory/ctapipe/pull/2673>`__]
+
+- Make sure that the configuration stored in the provenance
+  information actually contains the full configuration
+  and can be used to re-create the application. [`#2688 <https://github.com/cta-observatory/ctapipe/pull/2688>`__]
+
+- Fix the function grouping telescope ids into ranges for
+  the case of unsigned integer telescope ids. [`#2692 <https://github.com/cta-observatory/ctapipe/pull/2692>`__]
+
+- Fix ``Tool`` not exposing all options defined by ``traitlets.Application``
+  by default.
+
+  Fix ``--show-config`` and ``--show-config-json`` by not running ``setup`` and
+  ``finish`` steps in case those options are given. [`#2703 <https://github.com/cta-observatory/ctapipe/pull/2703>`__]
+
+- Fix processing gain-selected dl1 data with the ``PixelStatisticsCalculatorTool``. [`#2715 <https://github.com/cta-observatory/ctapipe/pull/2715>`__]
+
+
+Data Model Changes
+------------------
+- Change definition of DVR bits in PixelStatus to new definition in DL0 data model. [`#2725 <https://github.com/cta-observatory/ctapipe/pull/2725>`__]
+
+- Change format in which event timestamps are written to HDF5 files.
+  Instead of a single float64 MJD value which has ~µs precision,
+  the CTAO high precision time format is used now.
+  This stores the timestamp as two uint32 values: seconds
+  and quarter nanoseconds since ``1970-01-01T00:00:00.0 TAI``.
+
+  This only affects the storage format and the precision,
+  the in-memory API is unchanged as it relies on ``astropy.time.Time``
+  and values are converted when reading/writing from/to HDF5. [`#2707 <https://github.com/cta-observatory/ctapipe/pull/2707>`__]
+
+
+New Features
+------------
+
+- Add a ``ctapipe-optimize-event-selection`` tool to produce cut-selection files,
+  based on a gamma, and optionally a proton and an electron DL2 file.
+  Two components for calculating G/H and optionally theta cuts are added:
+  ``PercentileCuts`` keeps a certain percentage of gamma events in each bin and
+  ``PointSourceSensitivityOptimizer`` optimizes G/H cuts for maximum point source sensitivity and
+  optionally calculates percentile theta cuts.
+
+- Add a ``ctapipe-compute-irf`` tool to produce irfs given a cut-selection file, a gamma,
+  and optionally a proton, and an electron DL2 input file.
+  Given only a gamma file, the energy dispersion, effective area, and point spread function are calculated.
+  Optionally, the bias and resolution of the energy reconstruction and the angular resolution can be calculated
+  and saved in a separate output file.
+  If a proton or a proton and an electron file is also given, a background model can be calculated,
+  as well as the point source sensitivity.
+
+  Irfs can be calculated with and without applying a direction cut.
+  Only radially symmetric parameterizations of the irf components are implemented so far. [`#2473 <https://github.com/cta-observatory/ctapipe/pull/2473>`__]
+
+- Add a generic stats-calculation tool utilizing the PixelStatisticsCalculator. [`#2628 <https://github.com/cta-observatory/ctapipe/pull/2628>`__]
+
+- Add ChunkInterpolator to ctapipe.monitoring.interpolation as a tool to select data from chunks. The planned use for this is to select calibration data. [`#2634 <https://github.com/cta-observatory/ctapipe/pull/2634>`__]
+
+- Adds psf models to ``ctapipe.instrument.optics`` with the parent class ``PSFModel`` and a psf model based on pure coma aberration called ``ComaPSFModel``
+  - The function ``PSFModel.pdf`` gives the value of the PSF in a given location [`#2643 <https://github.com/cta-observatory/ctapipe/pull/2643>`__]
+
+- Add new fields to the MuonParametersContainer.
+
+  Implement the computation of the new features listed below
+  and refactor the code using the existing containers.
+
+  Added fields:
+  - ring_intensity
+  - intensity_outside_ring
+  - n_pixels_in_ring
+  - mean_intensity_outside_ring
+  - radial_std_dev
+  - skeweness
+  - excess_kurtosis [`#2670 <https://github.com/cta-observatory/ctapipe/pull/2670>`__]
+
+- Store also the SubarrayDescription in the camera monitoring data produced by the stats tool [`#2696 <https://github.com/cta-observatory/ctapipe/pull/2696>`__]
+
+- Add a method ``read_scheduling_blocks`` in the ``TableLoader`` class to read scheduling block information. [`#2709 <https://github.com/cta-observatory/ctapipe/pull/2709>`__]
+
+- Adding a ``meta_convention`` option to ``SubarrayDescription.to_table()`` method to choose
+  between hdf and fits conventions mainly for the reference location. Default is set to 'hdf'.
+  In Addition ``TableLoader`` does not join metadata of instrument table when
+  ``instrument=true``. [`#2722 <https://github.com/cta-observatory/ctapipe/pull/2722>`__]
+
+
+Maintenance
+-----------
+
+- Add a tutorial to the docs on how to use the machine learning tools
+  to process dl1b (image parameters) files to dl2 for a mono analysis.
+
+  Perform minor updates to other parts of the api docs and the user-guide. [`#2691 <https://github.com/cta-observatory/ctapipe/pull/2691>`__]
+
+
 ctapipe v0.23.2 (2025-01-21)
 ============================
 

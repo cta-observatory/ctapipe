@@ -1,7 +1,7 @@
 import enum
 import warnings
 from contextlib import nullcontext
-from enum import Enum, auto, unique
+from enum import Enum, IntFlag, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
@@ -49,7 +49,7 @@ from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
-from ..exceptions import OptionalDependencyMissing
+from ..exceptions import InputMissing, OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -103,6 +103,37 @@ _half_pi_maxval = (1 + 1e-6) * _half_pi
 _float32_nan = np.float32(np.nan)
 
 
+class SimTelTriggerMask(IntFlag):
+    """sim_telarray trigger type mask (teltrg_type_mask)."""
+
+    ANALOG_MAJORITY = auto()
+    ANALOG_SUM = auto()
+    DIGITAL_SUM = auto()
+    DIGITAL_MAJORITY = auto()
+    RESERVED4 = auto()
+    RESERVED5 = auto()
+    RESERVED6 = auto()
+    RESERVED7 = auto()
+    LONG_EVENT = auto()
+    MUON = auto()
+    RANDOM_MONO = auto()
+
+
+def _trigger_mask_to_event_type(trigger_mask):
+    trigger_mask = SimTelTriggerMask(int(trigger_mask))
+
+    if SimTelTriggerMask.RANDOM_MONO in trigger_mask:
+        return EventType.RANDOM_MONO
+
+    if SimTelTriggerMask.MUON in trigger_mask:
+        return EventType.MUON
+
+    if SimTelTriggerMask.LONG_EVENT in trigger_mask:
+        return EventType.LONG_EVENT
+
+    return EventType.SUBARRAY
+
+
 def _clip_altitude_if_close(altitude):
     """
     Round absolute values slightly larger than pi/2 in float64 to pi/2
@@ -119,6 +150,57 @@ def _clip_altitude_if_close(altitude):
         return -_half_pi
 
     return altitude
+
+
+def _split_history(history):
+    tel_history = {0: []}
+    tel = 0
+
+    for timestamp, line in history:
+        line = line.decode("utf-8").strip()
+
+        if line.startswith("# Telescope-specific configuration follows"):
+            tel += 1
+            tel_history[tel] = []
+
+        tel_history[tel].append((timestamp, line))
+
+    global_history = tel_history.pop(0)
+    return global_history, tel_history
+
+
+def _has_true_image(history):
+    global_history, tel_history = _split_history(history)
+
+    # merge_simtel does not include photoelectrons, so always missing
+    if "merge_simtel" in global_history[0][1]:
+        return False
+
+    # first, check for global default
+    save_photons = 0
+    global_store_pe = -1
+    for _, line in global_history:
+        if line.lower().startswith("save_photons"):
+            save_photons = int(line.split()[1])
+
+        if line.lower().startswith("store_photoelectrons"):
+            global_store_pe = int(line.split()[1])
+
+    if (save_photons & 0b10) > 0:
+        return True
+
+    if global_store_pe > 0:
+        return True
+
+    # if global default is not set, we still might have true images
+    # via the telescope configuration
+    store_photoelectrons = {}
+    for tel, config in tel_history.items():
+        for _, line in config:
+            if "store_photoelectrons" in line.lower():
+                store_photoelectrons[tel] = int(line.split()[1])
+
+    return any(v > 0 for v in store_photoelectrons.values())
 
 
 @enum.unique
@@ -479,6 +561,15 @@ class SimTelEventSource(EventSource):
         GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
+    select_gain = Bool(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Whether to perform gain selection. The default (None) means only"
+            " select gain of physics events, not of calibration events."
+        ),
+    ).tag(config=True)
+
     calib_scale = Float(
         default_value=1.0,
         help=(
@@ -492,6 +583,14 @@ class SimTelEventSource(EventSource):
         help=(
             "Factor to shift the R1 photoelectron samples. "
             "Can be used to simulate mis-calibration."
+        ),
+    ).tag(config=True)
+
+    skip_r1_calibration = Bool(
+        default_value=False,
+        help=(
+            "Skip the simtel category-A calibration. The R1 waveforms "
+            "(in ADC counts) will be the same as the R0 waveforms."
         ),
     ).tag(config=True)
 
@@ -510,15 +609,6 @@ class SimTelEventSource(EventSource):
         default_value=None,
         allow_none=True,
         help="Use the given obs_id instead of the run number from sim_telarray",
-    ).tag(config=True)
-
-    select_gain = Bool(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Whether to perform gain selection. The default (None) means only"
-            " select gain of physics events, not of calibration events."
-        ),
     ).tag(config=True)
 
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
@@ -542,6 +632,11 @@ class SimTelEventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
         if SimTelFile is None:
             raise OptionalDependencyMissing("eventio")
+
+        if self.input_url is None:
+            raise InputMissing(
+                "Specifying input_url directly or via config is required."
+            )
 
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
@@ -575,7 +670,13 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
-        self._has_true_image = None
+        try:
+            self._has_true_image = _has_true_image(self.file_.history)
+        except Exception:
+            self.log.exception(
+                "Error trying to determine whether file has true_image, assuming yes"
+            )
+            self._has_true_image = True
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -715,7 +816,7 @@ class SimTelEventSource(EventSource):
                 camera=camera,
             )
 
-            tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
+            tel_idx = np.nonzero(header["tel_id"] == tel_id)[0][0]
             self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
@@ -895,9 +996,6 @@ class SimTelEventSource(EventSource):
                     self.telescope_indices_original[tel_id]
                 ]
 
-                if self._has_true_image is None:
-                    self._has_true_image = true_image is not None
-
                 if self._has_true_image and true_image is None:
                     if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
                         self.log.warning(
@@ -962,14 +1060,20 @@ class SimTelEventSource(EventSource):
                 else:
                     gain_selector = None
 
-                r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples,
-                    pedestal,
-                    dc_to_pe,
-                    gain_selector,
-                    self.calib_scale,
-                    self.calib_shift,
-                )
+                if self.skip_r1_calibration:
+                    # Skip the simtel R1 calibration
+                    r1_waveform = adc_samples.astype(np.float32)
+                    selected_gain_channel = None
+                else:
+                    # Apply the simtel R1 calibration and the gain selector if selected
+                    r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
+                        adc_samples,
+                        pedestal,
+                        dc_to_pe,
+                        gain_selector,
+                        self.calib_scale,
+                        self.calib_shift,
+                    )
 
                 pixel_status = self._get_r1_pixel_status(
                     tel_id=tel_id,
@@ -1075,8 +1179,10 @@ class SimTelEventSource(EventSource):
         central_time = parse_simtel_time(trigger["gps_time"])
 
         tel = Map(TelescopeTriggerContainer)
-        for tel_id, time in zip(
-            trigger["triggered_telescopes"], trigger["trigger_times"]
+        for tel_id, time, trigger_mask in zip(
+            trigger["triggered_telescopes"],
+            trigger["trigger_times"],
+            trigger["teltrg_type_mask"],
         ):
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
@@ -1103,6 +1209,7 @@ class SimTelEventSource(EventSource):
 
             tel[tel_id] = TelescopeTriggerContainer(
                 time=time,
+                event_type=_trigger_mask_to_event_type(trigger_mask),
                 n_trigger_pixels=n_trigger_pixels,
                 trigger_pixels=trigger_pixels,
             )

@@ -4,24 +4,15 @@ import logging
 import os
 import re
 from functools import partial
+from importlib.resources import files
 from pathlib import Path
 
 import yaml
 from astropy.table import Table
 from requests.exceptions import HTTPError
 
-from .download import download_file_cached, get_cache_path
-
-try:
-    import ctapipe_resources
-
-    has_resources = True
-except ImportError:
-    has_resources = False
-
-from importlib.resources import files
-
 from ..core import Provenance
+from .download import download_file_cached, get_cache_path
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +62,8 @@ def find_all_matching_datasets(
 ):
     """
     Returns a list of resource names (or substrings) matching the given
-    pattern, searching first in searchpath (a colon-separated list of
-    directories) and then in the ctapipe_resources module)
+    pattern, searching first in CTAPIPE_SVC_PATH (a colon-separated list of
+    directories) and then in the download cache.
 
     Parameters
     ----------
@@ -109,16 +100,6 @@ def find_all_matching_datasets(
                         results.add(match.group(regexp_group))
                     else:
                         results.add(entry)
-
-    # then check resources module
-    if has_resources:
-        for resource in files("ctapipe_resources").iterdir():
-            match = re.match(pattern, resource.name)
-            if match:
-                if regexp_group is not None:
-                    results.add(match.group(regexp_group))
-                else:
-                    results.add(resource)
 
     return list(results)
 
@@ -157,8 +138,7 @@ def get_dataset_path(filename, url=None):
 
     This will first search for the file in directories listed in
     the environment variable CTAPIPE_SVC_PATH (if set), and if not found,
-    will look in the ctapipe_resources module
-    (if installed with the ctapipe-extra package), which contains the defaults.
+    will check the test data server.
 
     Parameters
     ----------
@@ -179,14 +159,6 @@ def get_dataset_path(filename, url=None):
         if filepath:
             return filepath
 
-    if has_resources:
-        logger.debug(
-            "Resource '{}' not found in CTAPIPE_SVC_PATH, looking in "
-            "ctapipe_resources...".format(filename)
-        )
-
-        return Path(ctapipe_resources.get(filename))
-
     # last, try downloading the data
     try:
         return download_file_cached(filename, default_url=url, progress=True)
@@ -196,8 +168,8 @@ def get_dataset_path(filename, url=None):
             raise
 
     raise FileNotFoundError(
-        f"Couldn't find resource: '{filename}',"
-        " You might want to install ctapipe_resources"
+        f"Couldn't find resource: '{filename}' locally, in CTAPIPE_SVC_PATH "
+        "or on the test data server."
     )
 
 

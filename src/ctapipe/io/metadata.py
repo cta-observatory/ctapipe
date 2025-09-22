@@ -73,9 +73,10 @@ def _get_user_name():
         import pwd
 
         return pwd.getpwuid(os.getuid()).pw_gecos
-    except ImportError:
-        # the pwd module is not available on some non-unix systems (Windows), so
-        # here we just fall back to a default name
+    except Exception:
+        # the pwd module is not available on some non-unix systems (Windows)
+        # also, a username might not exist (e.g. in docker containers run with a custom uid)
+        # so here we just fall back to a default name
         return "Unknown User"
 
 

@@ -1,0 +1,1 @@
+Add short-form alternatives to the cli aliases of ``ctapipe-optimize-event-selection``.

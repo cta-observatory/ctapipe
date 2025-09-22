@@ -49,20 +49,6 @@ Hierarchy of InstrumentDescription Classes
   optics
 
 
-Other Instrumental Data
-=======================
-
-
-Atmosphere Profiles
--------------------
-
-With the instrument module you can also load standard atmosphere profiles,
-which are read from tables located in ``ctapipe_resources`` by default
-
-The function `get_atmosphere_profile_functions()` returns two interpolation
-functions that convert between height and atmosphere thickness.
-
-
 Reference/API
 =============
 

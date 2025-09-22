@@ -8,9 +8,12 @@ from traitlets.config.loader import Config
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
-from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
+from ctapipe.tools.merge import MergeTool
+
+CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
+DL1_COLUMN_NAMES = ["image", "peak_time"]
 
 
 def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
@@ -21,13 +24,11 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     config = Config(
         {
             "PixelStatisticsCalculatorTool": {
-                "allowed_tels": [tel_id],
-                "input_column_name": "image",
-                "output_table_name": "statistics",
+                "allowed_tels": [3],
             },
             "PixelStatisticsCalculator": {
                 "stats_aggregator_type": [
-                    ("id", tel_id, "PlainAggregator"),
+                    ("type", "*", "PlainAggregator"),
                 ],
                 "outlier_detector_list": [
                     {
@@ -42,33 +43,46 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
             },
         }
     )
-    # Set the output file path
+    for col_name in DL1_COLUMN_NAMES:
+        # Run the tool with the configuration and the input file
+        run_tool(
+            PixelStatisticsCalculatorTool(config=config),
+            argv=[
+                f"--input_url={dl1_image_file}",
+                f"--output_path={tmp_path}/subarray_{col_name}_monitoring.dl1.h5",
+                f"--PixelStatisticsCalculatorTool.input_column_name={col_name}",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+    # Run the merge tool to combine the statistics
+    # from the two files into a single monitoring file
     monitoring_file = tmp_path / "monitoring.dl1.h5"
-    # Run the tool with the configuration and the input file
     run_tool(
-        PixelStatisticsCalculatorTool(config=config),
+        MergeTool(),
         argv=[
-            f"--input_url={dl1_image_file}",
-            f"--output_path={monitoring_file}",
-            "--overwrite",
+            f"{tmp_path}/subarray_image_monitoring.dl1.h5",
+            f"{tmp_path}/subarray_peak_time_monitoring.dl1.h5",
+            f"--output={monitoring_file}",
+            "--monitoring",
+            "--single-ob",
         ],
         cwd=tmp_path,
         raises=True,
     )
     # Check that the output file has been created
     assert monitoring_file.exists()
-    # Check if the shape of the aggregated statistic values has three dimension
-    assert (
-        read_table(
-            monitoring_file,
-            path=f"/dl1/monitoring/telescope/statistics/tel_{tel_id:03d}",
-        )["mean"].ndim
-        == 3
-    )
-    # Read subarray description from the created monitoring file
-    subarray = SubarrayDescription.from_hdf(monitoring_file)
-    # Check for the selected telescope
-    assert subarray.tel_ids[0] == tel_id
+    # Check if the shape of the aggregated statistic values
+    # has three dimension for both merged tables
+    for col_name in DL1_COLUMN_NAMES:
+        assert (
+            read_table(
+                monitoring_file,
+                path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/subarray_{col_name}/tel_{tel_id:03d}",
+            )["mean"].ndim
+            == 3
+        )
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
@@ -78,14 +92,12 @@ def test_tool_config_error(tmp_path, dl1_image_file):
     config = Config(
         {
             "PixelStatisticsCalculatorTool": {
-                "allowed_tels": [3],
                 "input_column_name": "image_charges",
-                "output_table_name": "statistics",
             }
         }
     )
     # Set the output file path
-    monitoring_file = tmp_path / "monitoring.dl1.h5"
+    monitoring_failure_colname_file = tmp_path / "monitoring_failure_colname.dl1.h5"
     # Check if ToolConfigurationError is raised
     # when the column name of the pixel-wise image data is not correct
     with pytest.raises(
@@ -95,7 +107,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             PixelStatisticsCalculatorTool(config=config),
             argv=[
                 f"--input_url={dl1_image_file}",
-                f"--output_path={monitoring_file}",
+                f"--output_path={monitoring_failure_colname_file}",
                 "--StatisticsAggregator.chunk_size=1",
                 "--overwrite",
             ],
@@ -103,22 +115,11 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             raises=True,
         )
     # Check if ToolConfigurationError is raised
-    # when the input and output files are the same
-    with pytest.raises(
-        ToolConfigurationError, match="Input and output files are same."
-    ):
-        run_tool(
-            PixelStatisticsCalculatorTool(),
-            argv=[
-                f"--input_url={dl1_image_file}",
-                f"--output_path={dl1_image_file}",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-            raises=True,
-        )
-    # Check if ToolConfigurationError is raised
     # when the chunk size is larger than the number of events in the input file
+    monitoring_failure_chunk_size_file = (
+        tmp_path / "monitoring_failure_chunk_size.dl1.h5"
+    )
+
     with pytest.raises(
         ToolConfigurationError, match="Change --StatisticsAggregator.chunk_size"
     ):
@@ -126,10 +127,8 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             PixelStatisticsCalculatorTool(),
             argv=[
                 f"--input_url={dl1_image_file}",
-                f"--output_path={monitoring_file}",
-                "--PixelStatisticsCalculatorTool.allowed_tels=3",
+                f"--output_path={monitoring_failure_chunk_size_file}",
                 "--StatisticsAggregator.chunk_size=2500",
-                "--overwrite",
             ],
             cwd=tmp_path,
             raises=True,
