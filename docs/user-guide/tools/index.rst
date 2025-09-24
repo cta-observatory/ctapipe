@@ -29,6 +29,7 @@ Data Processing Tools
   Calculate gamma/hadron and direction cuts (e.g. for IRF calculation).
 * `ctapipe-compute-irf <ctapipe.tools.compute_irf.IrfTool>`: Calculate an IRF with or without applying a direction cut
   and optionally benchmarks.
+* `ctapipe-create-dl3 <ctapipe.tools.create_dl3.DL3Tool>`: Create a DL3 file (gamma-like events and IRFs) from a DL2 file and an IRF fits file
 * `ctapipe-store-astropy-cache <ctapipe.tools.store_astropy_cache.main>`: Store astropy downloadable data
   in a given directory. Useful to run ctapipe in clusters where worker nodes might not have internet access.
 
@@ -52,3 +53,4 @@ The following pages contain examples on how to use the command-line tools.
 
   dl2_guide
   irf_guide
+  dl3_guide
