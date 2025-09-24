@@ -6,6 +6,7 @@ import pytest
 def test_dummy(prod5_lst, reference_location):
     from ctapipe.image.muon.impactpoint_intensity_fitter import (
         MuonImpactpointIntensityFitter,
+        compute_absolute_optical_efficiency_from_muon_ring,
     )
     from ctapipe.instrument import SubarrayDescription
 
@@ -30,5 +31,18 @@ def test_dummy(prod5_lst, reference_location):
         image=np.zeros(telescope.camera.geometry.n_pixels),
         pedestal=np.zeros(telescope.camera.geometry.n_pixels),
     )
+
+    res0 = compute_absolute_optical_efficiency_from_muon_ring(
+        measured_number_pe=1.0,
+        radius=1.1 * u.deg,
+        min_lambda_m=300e-9 * u.m,
+        max_lambda_m=600e-9 * u.m,
+        hole_radius_m=0.0 * u.m,
+        optics=telescope.optics,
+        rho=0.0 * u.m,
+    )
+
+    print(" ")
+    print("res: ", 0.0, " ", 1.0 / res0)
 
     assert 1
