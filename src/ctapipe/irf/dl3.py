@@ -12,7 +12,6 @@ from astropy.table import QTable
 from astropy.time import Time, TimeDelta
 
 from ctapipe.compat import COPY_IF_NEEDED
-from ctapipe.coordinates.tests.test_coordinates import location
 from ctapipe.core import Component
 from ctapipe.core.traits import AstroTime, Bool
 from ctapipe.version import version as ctapipe_version
@@ -108,7 +107,7 @@ class DL3_Format(Component):
         """
         Parameters
         ----------
-        pointing : QTable
+        pointing : List[Tuple[Time, SkyCoord]]
             A list with for each entry containing the time at which the coordinate where evaluated and the associated coordinates
         """
         if self._pointing is not None:
@@ -144,7 +143,7 @@ class DL3_Format(Component):
         """
         Parameters
         ----------
-        gti : QTable
+        gti : List[Tuple[Time, Time]]
             A list with for each entry containing the time at which the coordinate where evaluated and
         """
         if self._gti is not None:
@@ -249,7 +248,7 @@ class DL3_Format(Component):
         Parameters
         ----------
         dead_time_fraction : float
-            The location of the telescope
+            The dead time fraction fir the observations
         """
         if self.dead_time_fraction is not None:
             self.log.warning(
@@ -724,7 +723,7 @@ class DL3_GADF(DL3_Format):
             time = pointing[0]
             pointing_icrs = pointing[1].transform_to(ICRS())
             pointing_altaz = pointing[1].transform_to(
-                AltAz(location=location, obstime=time)
+                AltAz(location=self.location, obstime=time)
             )
             table_structure["TIME"].append((time.tai - self._reference_time).to(u.s))
             table_structure["RA_PNT"].append(pointing_icrs.ra.to(u.deg))
