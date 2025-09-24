@@ -143,7 +143,7 @@ class EventPreprocessor(Component):
                         "reco_x_max_uncert",
                     ]
 
-                    if self.raise_error_for_optional:
+                    if not self.raise_error_for_optional:
                         if events is None:
                             raise ValueError(
                                 "Require events table to assess existence of optional columns"
@@ -361,6 +361,9 @@ class EventPreprocessor(Component):
                     if self.raise_error_for_optional:
                         raise e
                     else:
+                        self.log.warning(
+                            "Not able to retrieve information for columns X max and X max uncertainty"
+                        )
                         events["reco_x_max"] = np.nan * u.g / u.cm / u.cm
                         events["reco_x_max_uncert"] = np.nan * u.g / u.cm / u.cm
 
