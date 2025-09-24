@@ -58,7 +58,7 @@ def chord_length(radius, rho, phi0, phi):
 
     if phi0 == 0:
         if radius <= 0:
-            return np.zero(len(phi))
+            return np.zeros(len(phi))
 
         phi_modulo = ((phi + np.pi) % (2 * np.pi) - np.pi) * np.where(phi < -1, -1, 1)
 
@@ -259,7 +259,7 @@ def fit_muon_ring_width(
     )
     fit.errordef = Minuit.LEAST_SQUARES
     #
-    fit.errors["A"] = 10
+    fit.errors["A"] = 0.01
     fit.errors["mu"] = 0.1
     fit.errors["sigma"] = 0.1
     fit.errors["pedestal"] = 0.001
@@ -276,6 +276,7 @@ def fit_muon_ring_phi_distribution(
     image,
     ring_center_x,
     ring_center_y,
+    ring_radius,
     optics,
     shadow_radius,
 ):
@@ -319,17 +320,21 @@ def fit_muon_ring_phi_distribution(
         x, y, ring_center_x, ring_center_y, unit=camera_unit
     )
 
-    n_phi_bins = 12  # to be added to configure file as input perameters
-    n_of_smoothing_points = 1  # 1 --> no smoothing
+    if ring_radius.to_value(camera_unit) <= 0.0:
+        return MuonEfficiencyContainer()
+
+    n_phi_bins = 30  # to be added to configure file as input perameters
+    n_of_smoothing_points = 1  # smoothing (1 --> no smoothing)
 
     hist_phi = np.histogram(
         np.arctan2(
             y[mask] - ring_center_y,
             x[mask] - ring_center_x,
         ),
-        weights=image[mask],
+        weights=image[mask] / np.sin(2 * ring_radius.to_value(u.rad)),
         bins=np.linspace(-np.pi, np.pi, n_phi_bins + 1),
     )
+    # weights=image[mask] / np.sin(2 * ring_radius.to_value(u.rad)),
 
     phi_y = (
         correlate1d(hist_phi[0], np.ones(n_of_smoothing_points), mode="wrap", axis=0)
@@ -337,7 +342,8 @@ def fit_muon_ring_phi_distribution(
     )[0]
     phi_y_err = np.sqrt(np.abs(phi_y))
 
-    weights = (phi_y > 0).astype(int)
+    # weights = (phi_y > 0).astype(int)
+    weights = np.ones(len(phi_y))
 
     phi_x = ((np.roll(hist_phi[1], 1) + hist_phi[1]) / 2.0)[1:]
     phi_x_err = np.ones(len(phi_x)) * np.pi / n_phi_bins
@@ -349,51 +355,105 @@ def fit_muon_ring_phi_distribution(
     if total_integral <= 0.0:
         return MuonEfficiencyContainer()
 
-    amplitude_initial = np.nan
-    rho_initial = np.nan
-    phi0_initial = np.nan
+    # amplitude_initial = np.nan
+    # rho_initial = np.nan
+    # phi0_initial = np.nan
 
-    amplitude_initial = total_integral / 110.0
-    rho_initial = 2 * (np.max(phi_y) - np.min(phi_y)) / total_integral * 110.0
+    # amplitude_initial = total_integral / 110.0 * np.sin(2 * ring_radius)
+    # amplitude_initial = total_integral / 110.0
+    amplitude_initial = 344
+    # rho_initial = 3
+    rho_initial = 5
     phi0_initial = phi_x[np.argmax(phi_y)]
 
-    amplitude_initial = 12 if np.isnan(amplitude_initial) else amplitude_initial
-    rho_initial = 8 if np.isnan(rho_initial) is np.nan else rho_initial
-    phi0_initial = 0 if np.isnan(phi0_initial) is np.nan else phi0_initial
+    # minimization method
+    fit1 = Minuit(
+        phi_dist_loss_function(phi_x, phi_y, phi_err, weights),
+        amplitude=amplitude_initial,
+        R_mirror=np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi),
+        R_shadow=0.0,
+        rho=rho_initial,
+        phi0=phi0_initial,
+    )
+    fit1.errordef = Minuit.LEAST_SQUARES
+
+    # fit1.fixed["amplitude"] = True
+    fit1.fixed["R_mirror"] = True
+    fit1.fixed["R_shadow"] = True
+    #
+    # set initial parameters uncertainty to a big value
+    # taubin_error = max_fov * 0.1
+    fit1.errors["amplitude"] = 0.001
+    fit1.errors["R_mirror"] = 0.0001
+    fit1.errors["R_shadow"] = 0.0001
+    fit1.errors["rho"] = 0.001
+    fit1.errors["phi0"] = 0.001
+    fit1.migrad()
 
     # minimization method
-    fit = Minuit(
+    fit2 = Minuit(
         phi_dist_loss_function(phi_x, phi_y, phi_err, weights),
         amplitude=amplitude_initial,
         R_mirror=np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi),
         R_shadow=shadow_radius.to_value(u.m),
-        rho=rho_initial,
-        phi0=phi0_initial,
+        rho=fit1.values["rho"],
+        phi0=fit1.values["phi0"],
     )
-    fit.errordef = Minuit.LEAST_SQUARES
+    fit2.errordef = Minuit.LEAST_SQUARES
 
-    fit.fixed["R_mirror"] = True
-    fit.fixed["R_shadow"] = True
+    fit2.fixed["amplitude"] = True
+    fit2.fixed["R_mirror"] = True
+    fit2.fixed["R_shadow"] = True
     #
     # set initial parameters uncertainty to a big value
     # taubin_error = max_fov * 0.1
-    fit.errors["amplitude"] = 10
-    fit.errors["R_mirror"] = 0.0001
-    fit.errors["R_shadow"] = 0.0001
-    fit.errors["rho"] = 10.0
-    fit.errors["phi0"] = np.pi
+    fit2.errors["amplitude"] = 0.001
+    fit2.errors["R_mirror"] = 0.0001
+    fit2.errors["R_shadow"] = 0.0001
+    fit2.errors["rho"] = 0.001
+    fit2.errors["phi0"] = 0.001
+    fit2.migrad()
 
-    fit.migrad()
-
-    rho = Quantity(np.abs(fit.values["rho"]), size_impact_point_unit)
+    rho = Quantity(np.abs(fit2.values["rho"]), size_impact_point_unit)
 
     return MuonEfficiencyContainer(
         impact=rho,
-        impact_x=rho * np.cos(Quantity(fit.values["phi0"], camera_unit)),
-        impact_y=rho * np.sin(Quantity(fit.values["phi0"], camera_unit)),
-        is_valid=fit.valid,
-        parameters_at_limit=fit.fmin.has_parameters_at_limit,
-        likelihood_value=fit.fval,
+        impact_x=rho * np.cos(Quantity(fit2.values["phi0"], u.rad)),
+        impact_y=rho * np.sin(Quantity(fit2.values["phi0"], u.rad)),
+        chord_fit_ampl=fit2.values["amplitude"],
+        phi_bin_0=phi_y[0],
+        phi_bin_1=phi_y[1],
+        phi_bin_2=phi_y[2],
+        phi_bin_3=phi_y[3],
+        phi_bin_4=phi_y[4],
+        phi_bin_5=phi_y[5],
+        phi_bin_6=phi_y[6],
+        phi_bin_7=phi_y[7],
+        phi_bin_8=phi_y[8],
+        phi_bin_9=phi_y[9],
+        phi_bin_10=phi_y[10],
+        phi_bin_11=phi_y[11],
+        phi_bin_12=phi_y[12],
+        phi_bin_13=phi_y[13],
+        phi_bin_14=phi_y[14],
+        phi_bin_15=phi_y[15],
+        phi_bin_16=phi_y[16],
+        phi_bin_17=phi_y[17],
+        phi_bin_18=phi_y[18],
+        phi_bin_19=phi_y[19],
+        phi_bin_20=phi_y[20],
+        phi_bin_21=phi_y[21],
+        phi_bin_22=phi_y[22],
+        phi_bin_23=phi_y[23],
+        phi_bin_24=phi_y[24],
+        phi_bin_25=phi_y[25],
+        phi_bin_26=phi_y[26],
+        phi_bin_27=phi_y[27],
+        phi_bin_28=phi_y[28],
+        phi_bin_29=phi_y[29],
+        is_valid=fit2.valid,
+        parameters_at_limit=fit2.fmin.has_parameters_at_limit,
+        likelihood_value=fit2.fval,
     )
 
 
@@ -408,6 +468,7 @@ def phi_dist_loss_function(x, y, err, w):
 
     def loss_function(amplitude, R_mirror, R_shadow, rho, phi0):
         signal = amplitude * chord_length(R_mirror, rho, phi0, x)
+        # diff_squared = ((signal - y) * w / err) ** 2
         shadow = amplitude * chord_length(R_shadow, rho, phi0, x)
         diff_squared = ((signal - shadow - y) * w / err) ** 2
 
@@ -517,6 +578,7 @@ class MuonImpactpointIntensityFitter(TelescopeComponent):
             image,
             center_x,
             center_y,
+            radius,
             optics=telescope.optics,
             shadow_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
