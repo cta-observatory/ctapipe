@@ -180,6 +180,7 @@ def image_prediction(
     oversampling=3,
     min_lambda=300 * u.nm,
     max_lambda=600 * u.nm,
+    pix_type=PixelShape.HEXAGON,
 ):
     """
     Predict muon ring image from given parameters.
@@ -221,6 +222,7 @@ def image_prediction(
         oversampling=oversampling,
         min_lambda_m=min_lambda.to_value(u.m),
         max_lambda_m=max_lambda.to_value(u.m),
+        pix_type=pix_type,
     )
 
 
