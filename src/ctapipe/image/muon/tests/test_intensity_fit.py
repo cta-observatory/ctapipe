@@ -148,6 +148,53 @@ def test_scts(prod5_sst, reference_location):
         )
 
 
+def test_normalisation_factor(prod5_lst, reference_location):
+    """Test of the absolute normalization factor."""
+    from ctapipe.coordinates import TelescopeFrame
+    from ctapipe.image.muon.intensity_fitter import (
+        image_prediction,
+    )
+
+    pytest.importorskip("iminuit")
+
+    telescope = prod5_lst
+
+    geom = telescope.camera.geometry.transform_to(TelescopeFrame())
+    mirror_radius = np.sqrt(telescope.optics.mirror_area / np.pi)
+
+    pixel_diameter = geom.pixel_width[0]
+    x = geom.pix_x
+    y = geom.pix_y
+
+    image = image_prediction(
+        mirror_radius,
+        hole_radius=0 * u.m,
+        impact_parameter=0 * u.m,
+        phi=0 * u.rad,
+        center_x=0.0 * u.deg,
+        center_y=0.0 * u.deg,
+        radius=1.1 * u.deg,
+        ring_width=0.05 * u.deg,
+        pixel_x=x,
+        pixel_y=y,
+        pixel_diameter=pixel_diameter,
+        oversampling=3,
+        min_lambda=300 * u.nm,
+        max_lambda=600 * u.nm,
+        pix_type=telescope.camera.geometry.pix_type,
+    )
+
+    measured = np.sum(image)
+    expected = expected_nphot(
+        Rmirror=mirror_radius,
+        theta_cher=1.1 * u.deg,
+        lambda_min=300 * u.nm,
+        lambda_max=600 * u.nm,
+    )
+
+    assert u.isclose(measured, expected, rtol=0.02)
+
+
 def expected_nphot(Rmirror, theta_cher, lambda_min, lambda_max):
     """
     The trivial solution for the number of photons incident on the telescope mirror.
