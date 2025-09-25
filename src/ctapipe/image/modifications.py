@@ -146,7 +146,13 @@ class WaveformModifier(TelescopeComponent):
         ),
     ).tag(config=True)
 
+    rng_seed = Int(default_value=1, help="Seed for the random number generator").tag(
+        config=True
+    )
+
     total_noise = Dict()
+    # One key per tel_id, which is an array of shape
+    # [n_noise_realizations, ngains, npixels, nsamples]
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -170,6 +176,7 @@ class WaveformModifier(TelescopeComponent):
         """
 
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+        self.rng = np.random.default_rng(self.rng_seed)
 
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
@@ -178,14 +185,12 @@ class WaveformModifier(TelescopeComponent):
         nsb_database = dict()  # [nevents, ngains, npixels, nsamples]
         for event in source:
             for tel_id in event.trigger.tels_with_trigger:
-                if f"{tel_id}" in nsb_database:
-                    nsb_database[f"{tel_id}"] = np.vstack(
-                        [nsb_database[f"{tel_id}"], [event.r1.tel[tel_id].waveform]]
+                if tel_id in nsb_database:
+                    nsb_database[tel_id] = np.vstack(
+                        [nsb_database[tel_id], [event.r1.tel[tel_id].waveform]]
                     )
                 else:
-                    nsb_database[f"{tel_id}"] = np.array(
-                        [event.r1.tel[tel_id].waveform]
-                    )
+                    nsb_database[tel_id] = np.array([event.r1.tel[tel_id].waveform])
 
         # Check that we have enough NSB-only events for all telescopes. We
         # require that the number of NSB events for any telescope is at
@@ -232,15 +237,27 @@ class WaveformModifier(TelescopeComponent):
                 # common to the whole camera (making it different for each
                 # pixel might be better, but it is very slow - and I failed
                 # to do it using numba due to some numba limitations)
-                shuffled_event_indices = np.random.permutation(nevents)[
-                    : self.nsb_level
-                ]
+                shuffled_event_indices = self.rng.permutation(nevents)[: self.nsb_level]
 
                 # Now we add those self.nsb_level waveforms to get the total
                 # desired level of additional noise:
                 self.total_noise[tel_id][jj] = np.sum(
                     nsb_database[tel_id][shuffled_event_indices], axis=0
                 )
+
+    def __call__(self, tel_id, waveforms, selected_gain_channel=None):
+        if selected_gain_channel is None:
+            return (
+                waveforms
+                + self.total_noise[tel_id][self.rng.integers(self.n_noise_realizations)]
+            )
+        else:
+            return (
+                waveforms
+                + self.total_noise[tel_id][
+                    self.rng.integers(self.n_noise_realizations), selected_gain_channel
+                ]
+            )
 
 
 class ImageModifier(TelescopeComponent):
