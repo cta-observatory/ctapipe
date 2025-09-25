@@ -13,6 +13,7 @@ from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..image.muon import MuonProcessor
+from ..image.reducer import ReadoutWindowReducer
 from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
@@ -74,6 +75,11 @@ class ProcessorTool(Tool):
     force_recompute_dl2 = Bool(
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
+    ).tag(config=True)
+
+    reduce_readout_window = Bool(
+        default_value=False,
+        help="If True, use ReadoutWindowReducer on waveforms.",
     ).tag(config=True)
 
     aliases = {
@@ -153,6 +159,7 @@ class ProcessorTool(Tool):
             metadata.Instrument,
             metadata.Contact,
             SoftwareTrigger,
+            ReadoutWindowReducer,
         ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
@@ -186,6 +193,15 @@ class ProcessorTool(Tool):
             sys.exit(1)
 
         subarray = self.event_source.subarray
+
+        if self.reduce_readout_window:
+            self.readout_window_reducer = ReadoutWindowReducer(
+                subarray=subarray, parent=self
+            )
+            subarray = self.readout_window_reducer.subarray
+        else:
+            self.readout_window_reducer = None
+
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
@@ -306,6 +322,9 @@ class ProcessorTool(Tool):
                     "Skipping event %i due to software trigger", event.index.event_id
                 )
                 continue
+
+            if self.readout_window_reducer is not None:
+                self.readout_window_reducer(event)
 
             if self.should_calibrate:
                 self.calibrate(event)
