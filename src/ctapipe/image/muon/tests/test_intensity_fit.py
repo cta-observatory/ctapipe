@@ -3,6 +3,7 @@ from collections import namedtuple
 import astropy.units as u
 import numpy as np
 import pytest
+from scipy.constants import alpha
 
 parameter_names = [
     "radius",
@@ -145,3 +146,37 @@ def test_scts(prod5_sst, reference_location):
             image=np.zeros(telescope.camera.geometry.n_pixels),
             pedestal=np.zeros(telescope.camera.geometry.n_pixels),
         )
+
+
+def expected_nphot(Rmirror, theta_cher, lambda_min, lambda_max):
+    """
+    The trivial solution for the number of photons incident on the telescope mirror.
+
+    It is a trivial case, since we assume a muon impact at the center of the dish,
+    with no shadowing and a constant Cherenkov angle.
+    We neglect the light yield attenuation due to atmospheric absorption.
+
+    Parameters
+    ----------
+    Rmirror: quantity[length]
+        mirror radius
+    theta_cher: quantity[angle]
+        Cherenkov angle
+    lambda_min: quantity[length]
+        photon wavelength
+    lambda_max: quantity[length]
+        photon wavelength
+
+    Returns
+    -------
+    float: number of Cherenkov photons
+
+    """
+
+    return (
+        np.pi
+        * alpha
+        * Rmirror.to_value(u.m)
+        * np.sin(2 * theta_cher)
+        * (lambda_min.to_value(u.m) ** -1 - lambda_max.to_value(u.m) ** -1)
+    )
