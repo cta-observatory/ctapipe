@@ -8,6 +8,7 @@ from scipy.constants import alpha
 parameter_names = [
     "radius",
     "rho",
+    "phi0",
     "phi",
     "expected_length",
 ]
@@ -20,24 +21,28 @@ Parameters = namedtuple("MuonTestParams", parameter_names)
         Parameters(
             radius=12,
             rho=0.0,
+            phi0=0.0 * u.deg,
             phi=0.0 * u.deg,
             expected_length=12,
         ),
         Parameters(
             radius=12,
             rho=12,
+            phi0=0.0 * u.deg,
             phi=90.0 * u.deg,
             expected_length=0,
         ),
         Parameters(
             radius=12,
             rho=13,
+            phi0=0.0 * u.deg,
             phi=180.0 * u.deg,
             expected_length=0,
         ),
         Parameters(
             radius=12,
             rho=24.0,
+            phi0=0.0 * u.deg,
             phi=0.0 * u.deg,
             expected_length=24,
         ),
@@ -46,12 +51,13 @@ Parameters = namedtuple("MuonTestParams", parameter_names)
 def test_chord_length(
     radius,
     rho,
+    phi0,
     phi,
     expected_length,
 ):
     from ctapipe.image.muon.intensity_fitter import chord_length
 
-    length = chord_length(radius, rho, phi.to_value(u.rad))
+    length = chord_length(radius, rho, phi0.to_value(u.rad), phi.to_value(u.rad))
     assert np.isclose(length, expected_length, atol=1e-15)
 
 
