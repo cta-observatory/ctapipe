@@ -255,7 +255,9 @@ class WaveformModifier(TelescopeComponent):
             return (
                 waveforms
                 + self.total_noise[tel_id][
-                    self.rng.integers(self.n_noise_realizations), selected_gain_channel
+                    self.rng.integers(self.n_noise_realizations),
+                    selected_gain_channel,
+                    np.arange(waveforms.shape[1]),
                 ]
             )
 
