@@ -25,19 +25,19 @@ Parameters = namedtuple("MuonTestParams", parameter_names)
         ),
         Parameters(
             radius=12,
-            rho=1.0,
+            rho=12,
             phi=90.0 * u.deg,
             expected_length=0,
         ),
         Parameters(
             radius=12,
-            rho=3.0,
+            rho=13,
             phi=180.0 * u.deg,
             expected_length=0,
         ),
         Parameters(
             radius=12,
-            rho=2.0,
+            rho=24.0,
             phi=0.0 * u.deg,
             expected_length=24,
         ),
@@ -103,6 +103,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
         pixel_x=x,
         pixel_y=y,
         pixel_diameter=pixel_diameter,
+        pix_type=telescope.camera.geometry.pix_type,
     )
 
     result = fitter(
