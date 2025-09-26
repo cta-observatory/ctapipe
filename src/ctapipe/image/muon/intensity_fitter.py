@@ -39,8 +39,10 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
-def chord_length(radius, rho, phi):
+@vectorize(
+    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
+)
+def chord_length(radius, rho, phi0, phi):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -72,6 +74,8 @@ def chord_length(radius, rho, phi):
     if radius <= 0:
         return 0
 
+    phi = phi - phi0
+
     phi_modulo = (phi + np.pi) % (2 * np.pi) - np.pi
     if phi < 0:
         phi_modulo *= -1
@@ -101,7 +105,7 @@ def chord_length(radius, rho, phi):
     return 0
 
 
-def intersect_circle(mirror_radius, r, angle, hole_radius=0):
+def intersect_circle(mirror_radius, r, phi0, angle, hole_radius=0):
     """Perform line integration along a given axis in the mirror frame
     given an impact point on the mirror
 
@@ -115,12 +119,12 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
     float: length from impact point to mirror edge
 
     """
-    mirror_length = chord_length(mirror_radius, r, angle)
+    mirror_length = chord_length(mirror_radius, r, phi0, angle)
 
     if hole_radius == 0:
         return mirror_length
 
-    hole_length = chord_length(hole_radius, r, angle)
+    hole_length = chord_length(hole_radius, r, phi0, angle)
     return mirror_length - hole_length
 
 
@@ -167,9 +171,9 @@ def create_profile(
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
+    ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
-    length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
+    length = intersect_circle(mirror_radius, impact_parameter, 0, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
     length /= oversampling
 
@@ -285,7 +289,7 @@ def image_prediction_no_units(
     dy = pixel_y_rad - center_y_rad
     ang = np.arctan2(dy, dx)
     # Add muon rotation angle
-    ang += phi_rad
+    ang -= phi_rad
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
