@@ -51,7 +51,7 @@ def chord_length(radius, rho, phi):
     radius: float or ndarray
         radius of circle
     rho: float or ndarray
-        fractional distance of impact point from circle center
+        distance of impact point from circle center
     phi: float or ndarray in radians
         rotation angles to calculate length
 
@@ -68,26 +68,37 @@ def chord_length(radius, rho, phi):
 
 
     """
-    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
-    valid = discriminant_norm >= 0
 
-    if not valid:
+    if radius <= 0:
         return 0
 
-    if rho <= 1.0:
+    phi_modulo = (phi + np.pi) % (2 * np.pi) - np.pi
+    if phi < 0:
+        phi_modulo *= -1
+
+    rho_R = np.abs(rho) / radius
+    discriminant_norm = 1 - (rho_R**2 * np.sin(phi_modulo) ** 2)
+    if discriminant_norm < 0:
+        return 0
+
+    if rho_R <= 1.0:
         # muon has hit the mirror
         effective_chord_length = radius * (
-            np.sqrt(discriminant_norm) + rho * np.cos(phi)
+            np.sqrt(discriminant_norm) + rho_R * np.cos(phi_modulo)
         )
+
+        return effective_chord_length
+
     else:
         # muon did not hit the mirror
+        effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
         # Filtering out non-physical solutions for phi
-        if np.abs(phi) < np.arcsin(1.0 / rho):
-            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
-        else:
+        if np.abs(phi_modulo) > np.arcsin(1.0 / rho_R):
             return 0
 
-    return effective_chord_length
+        return effective_chord_length
+
+    return 0
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
@@ -104,12 +115,12 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
     float: length from impact point to mirror edge
 
     """
-    mirror_length = chord_length(mirror_radius, (r / mirror_radius), angle)
+    mirror_length = chord_length(mirror_radius, r, angle)
 
     if hole_radius == 0:
         return mirror_length
 
-    hole_length = chord_length(hole_radius, (r / hole_radius), angle)
+    hole_length = chord_length(hole_radius, r, angle)
     return mirror_length - hole_length
 
 
