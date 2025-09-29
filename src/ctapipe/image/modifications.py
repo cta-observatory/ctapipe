@@ -5,7 +5,6 @@ from ..core import TelescopeComponent
 from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ..core.traits import (
     BoolTelescopeParameter,
-    Dict,
     FloatTelescopeParameter,
     Int,
     Path,
@@ -150,8 +149,8 @@ class WaveformModifier(TelescopeComponent):
         config=True
     )
 
-    total_noise = Dict()
-    # One key per tel_id, which is an array of shape
+    total_noise = dict()
+    # One key per tel_id, each of them is an array of shape
     # [n_noise_realizations, ngains, npixels, nsamples]
 
     def __init__(
