@@ -57,7 +57,7 @@ def test_chord_length(
 ):
     from ctapipe.image.muon.intensity_fitter import chord_length
 
-    length = chord_length(radius, rho, phi0.to_value(u.rad), phi.to_value(u.rad))
+    length = chord_length(radius, rho, phi.to_value(u.rad), phi0.to_value(u.rad))
     assert np.isclose(length, expected_length, atol=1e-15)
 
 
