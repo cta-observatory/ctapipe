@@ -102,7 +102,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         self.stats_aggregators = {}
         for _, _, name in self.stats_aggregator_type:
             self.stats_aggregators[name] = StatisticsAggregator.from_name(
-                name, subarray=self.subarray, parent=self
+                name, parent=self
             )
 
         # Initialize the instances of OutlierDetector from the configuration
@@ -134,7 +134,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         self,
         table,
         tel_id,
-        masked_pixels_of_sample=None,
+        masked_elements_of_sample=None,
         col_name="image",
     ) -> Table:
         """
@@ -149,12 +149,12 @@ class PixelStatisticsCalculator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            DL1-like table with images of shape (n_images, n_channels, n_pixels), event IDs and
-            timestamps of shape (n_images, )
+            DL1-like table with event-wise data of shape (n_events, *data_dimensions), event IDs and
+            timestamps of shape (n_events, )
         tel_id : int
             Telescope ID for which the calibration is being performed
-        masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing
+        masked_elements_of_sample : ndarray, optional
+            Boolean array of masked elements of shape (*data_dimensions) that are not available for processing
         col_name : str
             Column name in the table from which the statistics will be aggregated
 
@@ -168,7 +168,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Pass through the whole provided dl1 table
         aggregated_stats = aggregator(
             table=table,
-            masked_pixels_of_sample=masked_pixels_of_sample,
+            masked_elements_of_sample=masked_elements_of_sample,
             col_name=col_name,
             chunk_shift=None,
         )
@@ -186,7 +186,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         table,
         valid_chunks,
         tel_id,
-        masked_pixels_of_sample=None,
+        masked_elements_of_sample=None,
         col_name="image",
     ) -> Table:
         """
@@ -200,14 +200,14 @@ class PixelStatisticsCalculator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            DL1-like table with images of shape (n_images, n_channels, n_pixels), event IDs and timestamps of shape (n_images, ).
+            DL1-like table with event-wise data of shape (n_events, *data_dimensions), event IDs and timestamps of shape (n_events, ).
         valid_chunks : ndarray
             Boolean array indicating the validity of each chunk from the first pass.
             Note: This boolean array can be a ``logical_and`` from multiple first passes of different calibration events.
         tel_id : int
             Telescope ID for which the calibration is being performed.
-        masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing.
+        masked_elements_of_sample : ndarray, optional
+            Boolean array of masked elements of shape (*data_dimensions) that are not available for processing.
         col_name : str
             Column name in the table from which the statistics will be aggregated.
 
@@ -261,7 +261,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 aggregated_stats_secondpass.append(
                     aggregator(
                         table=table_sliced,
-                        masked_pixels_of_sample=masked_pixels_of_sample,
+                        masked_elements_of_sample=masked_elements_of_sample,
                         col_name=col_name,
                         chunk_shift=self.chunk_shift,
                     )

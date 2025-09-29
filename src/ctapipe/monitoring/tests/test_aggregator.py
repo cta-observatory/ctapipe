@@ -10,7 +10,7 @@ from astropy.time import Time
 from ctapipe.monitoring.aggregator import PlainAggregator, SigmaClippingAggregator
 
 
-def test_aggregators(example_subarray):
+def test_aggregators():
     """test basic functionality of the StatisticsAggregators"""
 
     # Create dummy data for testing
@@ -37,15 +37,9 @@ def test_aggregators(example_subarray):
     )
     # Initialize the aggregators
     chunk_size = 2500
-    ped_aggregator = SigmaClippingAggregator(
-        subarray=example_subarray, chunk_size=chunk_size
-    )
-    ff_charge_aggregator = SigmaClippingAggregator(
-        subarray=example_subarray, chunk_size=chunk_size
-    )
-    ff_time_aggregator = PlainAggregator(
-        subarray=example_subarray, chunk_size=chunk_size
-    )
+    ped_aggregator = SigmaClippingAggregator(chunk_size=chunk_size)
+    ff_charge_aggregator = SigmaClippingAggregator(chunk_size=chunk_size)
+    ff_time_aggregator = PlainAggregator(chunk_size=chunk_size)
 
     # Compute the statistical values
     ped_stats = ped_aggregator(table=ped_table)
@@ -92,7 +86,7 @@ def test_aggregators(example_subarray):
     np.testing.assert_allclose(time_stats[0]["std"], 5.0, atol=1.5)
 
 
-def test_chunk_shift(example_subarray):
+def test_chunk_shift():
     """test the chunk shift option and the boundary case for the last chunk"""
 
     # Create dummy data for testing
@@ -108,7 +102,7 @@ def test_chunk_shift(example_subarray):
         names=("time_mono", "event_id", "image"),
     )
     # Initialize the aggregator
-    aggregator = SigmaClippingAggregator(subarray=example_subarray, chunk_size=2500)
+    aggregator = SigmaClippingAggregator(chunk_size=2500)
     # Compute aggregated statistic values
     chunk_stats = aggregator(table=charge_table)
     chunk_stats_shift = aggregator(table=charge_table, chunk_shift=2000)
@@ -124,7 +118,7 @@ def test_chunk_shift(example_subarray):
         _ = aggregator(table=charge_table, chunk_shift=3000)
 
 
-def test_with_outliers(example_subarray):
+def test_with_outliers():
     """test the robustness of the aggregators in the presence of outliers"""
 
     # Create dummy data for testing
@@ -145,10 +139,8 @@ def test_with_outliers(example_subarray):
         names=("time_mono", "event_id", "image"),
     )
     # Initialize the aggregators
-    sigmaclipping_aggregator = SigmaClippingAggregator(
-        subarray=example_subarray, chunk_size=2500
-    )
-    plain_aggregator = PlainAggregator(subarray=example_subarray, chunk_size=2500)
+    sigmaclipping_aggregator = SigmaClippingAggregator(chunk_size=2500)
+    plain_aggregator = PlainAggregator(chunk_size=2500)
 
     # Compute aggregated statistic values
     sigmaclipping_chunk_stats = sigmaclipping_aggregator(table=ped_table)
@@ -176,3 +168,185 @@ def test_with_outliers(example_subarray):
     assert np.all(sigma_n_events[1, :] <= 2500)  # All pixels in gain 1 <= 2500
     # Most pixels without outliers should still have close to 2500 events
     assert np.mean(sigma_n_events) > 0.99 * 2500
+
+
+def test_time_based_chunking():
+    """test time-based chunking functionality"""
+
+    # Create dummy data spanning 10 seconds with uniform time distribution
+    start_time = 60117.911
+    duration_days = 10 / 86400  # 10 seconds in days
+    times = Time(
+        np.linspace(start_time, start_time + duration_days, num=1000),
+        scale="tai",
+        format="mjd",
+    )
+    event_ids = np.arange(1000)
+    rng = np.random.default_rng(42)
+    data = rng.normal(5.0, 1.0, size=(1000, 2, 10))
+
+    # Create table
+    table = Table(
+        [times, event_ids, data],
+        names=("time_mono", "event_id", "image"),
+    )
+
+    # Test time-based chunking with 2-second intervals
+    aggregator_time = PlainAggregator(chunking_mode="time", chunk_size=2)
+    result_time = aggregator_time(table=table)
+
+    # Should create 5 chunks (10 seconds / 2 seconds per chunk)
+    assert len(result_time) == 5
+
+    # Each chunk should span approximately 2 seconds
+    for i in range(len(result_time)):
+        chunk_duration = (
+            result_time[i]["time_end"] - result_time[i]["time_start"]
+        ).to_value("s")
+        assert 1.5 <= chunk_duration <= 2.5, f"Chunk {i} duration: {chunk_duration}s"
+
+    # Test with larger time chunks
+    aggregator_time_5s = PlainAggregator(chunking_mode="time", chunk_size=5)
+    result_time_5s = aggregator_time_5s(table=table)
+
+    # Should create 2 chunks (10 seconds / 5 seconds per chunk)
+    assert len(result_time_5s) == 2
+
+    # Test with entire time range (chunk_size=None)
+    aggregator_time_all = PlainAggregator(chunking_mode="time", chunk_size=None)
+    result_time_all = aggregator_time_all(table=table)
+
+    # Should create 1 chunk containing all data
+    assert len(result_time_all) == 1
+    assert np.all(result_time_all[0]["n_events"] == 1000)
+
+    # Verify statistical calculations are reasonable
+    np.testing.assert_allclose(result_time[0]["mean"], 5.0, atol=0.5)
+    np.testing.assert_allclose(result_time[0]["std"], 1.0, atol=0.1)
+
+
+def test_time_based_chunking_with_shift():
+    """test time-based chunking with overlapping windows (rolling statistics)"""
+
+    # Create dummy data spanning exactly 5 seconds to get cleaner chunks
+    start_time = 60117.911
+    duration_days = 5 / 86400  # 5 seconds in days
+    times = Time(
+        np.linspace(start_time, start_time + duration_days, num=500),
+        scale="tai",
+        format="mjd",
+    )
+    event_ids = np.arange(500)
+    rng = np.random.default_rng(123)
+    data = rng.normal(10.0, 2.0, size=(500, 2, 5))
+
+    # Create table
+    table = Table(
+        [times, event_ids, data],
+        names=("time_mono", "event_id", "image"),
+    )
+
+    # Test overlapping time chunks: 2-second chunks with 1-second shift
+    aggregator_overlap = PlainAggregator(chunking_mode="time", chunk_size=2)
+    result_overlap = aggregator_overlap(table=table, chunk_shift=1)
+
+    # With 5 seconds of data, 2-second chunks with 1-second shift should create:
+    # Chunk 0: [0:2]s, Chunk 1: [1:3]s, Chunk 2: [2:4]s, Chunk 3: [3:5]s = 4 chunks
+    # Each chunk is exactly 2 seconds and we can fit all 4 within the 5-second span
+    assert len(result_overlap) == 4
+
+    # Verify we have overlapping time ranges (at least for first few chunks)
+    if len(result_overlap) >= 2:
+        for i in range(min(2, len(result_overlap) - 1)):
+            current_end = result_overlap[i]["time_end"]
+            next_start = result_overlap[i + 1]["time_start"]
+            # Next chunk should start before current chunk ends (overlap)
+            assert next_start < current_end
+
+    # Test non-overlapping chunks for comparison
+    result_no_overlap = aggregator_overlap(table=table, chunk_shift=None)
+
+    # Should create 3 chunks for 5 seconds with 2-second chunks:
+    # [0:2]s, [2:4]s, and [3:5]s (last chunk overlaps to maintain full duration)
+    assert len(result_no_overlap) == 3
+
+
+def test_time_vs_event_chunking_consistency():
+    """test that time and event chunking modes work consistently"""
+
+    # Create dummy data
+    times = Time(np.linspace(60117.911, 60117.912, num=500), scale="tai", format="mjd")
+    event_ids = np.arange(500)
+    rng = np.random.default_rng(456)
+    data = rng.normal(3.0, 0.5, size=(500, 2, 8))
+
+    # Create table
+    table = Table(
+        [times, event_ids, data],
+        names=("time_mono", "event_id", "image"),
+    )
+
+    # Test event-based chunking (default behavior)
+    aggregator_events = SigmaClippingAggregator(chunking_mode="events", chunk_size=100)
+    result_events = aggregator_events(table=table)
+
+    # Should create 5 chunks (500 events / 100 events per chunk)
+    assert len(result_events) == 5
+
+    # All chunks should have consistent event counts (no clipping expected for normal data)
+    for i in range(len(result_events)):
+        assert np.all(result_events[i]["n_events"] <= 100)
+        assert np.mean(result_events[i]["n_events"]) > 95  # Most events retained
+
+    # Test time-based chunking
+    total_duration = (times[-1] - times[0]).to_value("s")
+    chunk_duration = total_duration / 5  # Same number of chunks as event-based
+
+    aggregator_time = SigmaClippingAggregator(
+        chunking_mode="time", chunk_size=int(chunk_duration)
+    )
+    result_time = aggregator_time(table=table)
+
+    # Should create approximately the same number of chunks
+    assert 3 <= len(result_time) <= 7  # Allow some variation due to time boundaries
+
+    # Statistical results should be similar between chunking methods
+    event_means = [np.mean(chunk["mean"]) for chunk in result_events]
+    time_means = [np.mean(chunk["mean"]) for chunk in result_time]
+
+    # Both should be close to the true mean (3.0)
+    assert np.abs(np.mean(event_means) - 3.0) < 0.5
+    assert np.abs(np.mean(time_means) - 3.0) < 0.5
+
+
+def test_time_chunking_validation():
+    """test error handling for time-based chunking parameters"""
+
+    # Create small test data
+    times = Time(
+        np.linspace(60117.911, 60117.911 + 5 / 86400, num=100),
+        scale="tai",
+        format="mjd",
+    )
+    event_ids = np.arange(100)
+    data = np.random.normal(1.0, 0.1, size=(100, 1, 5))
+
+    table = Table(
+        [times, event_ids, data],
+        names=("time_mono", "event_id", "image"),
+    )
+
+    # Test invalid chunk_shift (larger than chunk_size)
+    aggregator = PlainAggregator(chunking_mode="time", chunk_size=2)
+
+    with pytest.raises(
+        ValueError, match="chunk_shift.*must be smaller than.*chunk_size"
+    ):
+        _ = aggregator(table=table, chunk_shift=3)  # 3 > 2 seconds
+
+    # Test that chunk_size=None works for time mode
+    aggregator_none = PlainAggregator(chunking_mode="time", chunk_size=None)
+    result_none = aggregator_none(table=table)
+
+    assert len(result_none) == 1  # Single chunk with all data
+    assert np.all(result_none[0]["n_events"] == 100)
