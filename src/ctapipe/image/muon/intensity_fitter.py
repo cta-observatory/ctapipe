@@ -39,10 +39,7 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-@vectorize(
-    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
-)
-def chord_length(radius, rho, phi0, phi):
+def chord_length(radius, rho, phi, phi0=0):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -54,10 +51,10 @@ def chord_length(radius, rho, phi0, phi):
         radius of circle
     rho: float or ndarray
         distance of impact point from circle center
-    phi0: float or ndarray in radians
-        direction of impact point from X-axis
     phi: float or ndarray in radians
         rotation angles to calculate length
+    phi0: float or ndarray in radians
+        direction of impact point from X-axis
 
     Returns
     -------
@@ -74,6 +71,13 @@ def chord_length(radius, rho, phi0, phi):
 
     """
 
+    return _chord_length(radius, rho, phi, phi0)
+
+
+@vectorize(
+    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
+)
+def _chord_length(radius, rho, phi, phi0):
     if radius <= 0:
         return 0
 
@@ -120,12 +124,12 @@ def intersect_circle(mirror_radius, r, phi0, angle, hole_radius=0):
     float: length from impact point to mirror edge
 
     """
-    mirror_length = chord_length(mirror_radius, r, phi0, angle)
+    mirror_length = chord_length(mirror_radius, r, angle)
 
     if hole_radius == 0:
         return mirror_length
 
-    hole_length = chord_length(hole_radius, r, phi0, angle)
+    hole_length = chord_length(hole_radius, r, angle)
     return mirror_length - hole_length
 
 
