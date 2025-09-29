@@ -1,1 +1,2 @@
-Fix the normalization for muon analysis to account for different PixelShapes.
+- Fix the normalization for muon analysis to account for different PixelShapes.
+- Fix the modulo 2 pi for chord calculation.
