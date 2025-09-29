@@ -64,6 +64,7 @@ def chord_length(radius, rho, phi0, phi):
     float or ndarray:
         effective chord length
 
+
     References
     ----------
     See :cite:p:`vacanti19941`.
@@ -87,6 +88,8 @@ def chord_length(radius, rho, phi0, phi):
     if discriminant_norm < 0:
         return 0
 
+    effective_chord_length = 0
+
     if rho_R <= 1.0:
         # muon has hit the mirror
         effective_chord_length = radius * (
@@ -102,9 +105,7 @@ def chord_length(radius, rho, phi0, phi):
         if np.abs(phi_modulo) > np.arcsin(1.0 / rho_R):
             return 0
 
-        return effective_chord_length
-
-    return 0
+    return effective_chord_length
 
 
 def intersect_circle(mirror_radius, r, phi0, angle, hole_radius=0):
@@ -346,7 +347,7 @@ def image_prediction_no_units(
     elif pix_type == PixelShape.SQUARE:
         pred *= CIRCLE_SQUARE_AREA_RATIO
     elif pix_type == PixelShape.CIRCLE:
-        pass
+        return pred
 
     return pred
 
