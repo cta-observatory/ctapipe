@@ -193,7 +193,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
 
     measured = np.sum(image)
     expected = expected_nphot(
-        Rmirror=mirror_radius,
+        r_mirror=mirror_radius,
         theta_cher=1.1 * u.deg,
         lambda_min=300 * u.nm,
         lambda_max=600 * u.nm,
@@ -202,7 +202,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
     assert u.isclose(measured, expected, rtol=0.02)
 
 
-def expected_nphot(Rmirror, theta_cher, lambda_min, lambda_max):
+def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
     """
     The trivial solution for the number of photons incident on the telescope mirror.
 
@@ -230,7 +230,7 @@ def expected_nphot(Rmirror, theta_cher, lambda_min, lambda_max):
     return (
         np.pi
         * alpha
-        * Rmirror.to_value(u.m)
+        * r_mirror.to_value(u.m)
         * np.sin(2 * theta_cher)
         * (lambda_min.to_value(u.m) ** -1 - lambda_max.to_value(u.m) ** -1)
     )
