@@ -54,6 +54,8 @@ def chord_length(radius, rho, phi0, phi):
         radius of circle
     rho: float or ndarray
         distance of impact point from circle center
+    phi0: float or ndarray in radians
+        direction of impact point from X-axis
     phi: float or ndarray in radians
         rotation angles to calculate length
 
