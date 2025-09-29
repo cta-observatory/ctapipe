@@ -80,8 +80,6 @@ def chord_length(radius, rho, phi0, phi):
     phi = phi - phi0
 
     phi_modulo = (phi + np.pi) % (2 * np.pi) - np.pi
-    if phi < 0:
-        phi_modulo *= -1
 
     rho_R = np.abs(rho) / radius
     discriminant_norm = 1 - (rho_R**2 * np.sin(phi_modulo) ** 2)
