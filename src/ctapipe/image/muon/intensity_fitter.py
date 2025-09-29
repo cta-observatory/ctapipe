@@ -110,7 +110,7 @@ def _chord_length(radius, rho, phi, phi0):
     return effective_chord_length
 
 
-def intersect_circle(mirror_radius, r, phi0, angle, hole_radius=0):
+def intersect_circle(mirror_radius, r, angle, hole_radius=0):
     """Perform line integration along a given axis in the mirror frame
     given an impact point on the mirror
 
@@ -178,7 +178,7 @@ def create_profile(
 
     ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
-    length = intersect_circle(mirror_radius, impact_parameter, 0, ang, hole_radius)
+    length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
     length /= oversampling
 
