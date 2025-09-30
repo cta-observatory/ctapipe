@@ -329,7 +329,8 @@ def test_time_chunking_validation():
         format="mjd",
     )
     event_ids = np.arange(100)
-    data = np.random.normal(1.0, 0.1, size=(100, 1, 5))
+    rng = np.random.default_rng(0)
+    data = rng.normal(1.0, 0.1, size=(100, 1, 5))
 
     table = Table(
         [times, event_ids, data],

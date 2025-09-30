@@ -21,6 +21,7 @@ __all__ = [
 from abc import abstractmethod
 from collections import defaultdict
 
+import astropy.units as u
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -103,40 +104,19 @@ class StatisticsAggregator(Component):
             table containing the start and end values as timestamps and event IDs
             as well as the aggregated statistic values (mean, median, std) for each chunk
         """
-
-        # Validate chunking parameters based on mode
-        if self.chunking_mode == "events":
-            # Set chunk_size to table length if None (use entire table as one chunk)
-            effective_chunk_size = (
-                self.chunk_size if self.chunk_size is not None else len(table)
+        # Set chunk_size to table length if None (use entire table as one chunk)
+        if self.chunk_size is None:
+            effective_chunk_size = len(table)
+            self.chunking_mode = (
+                "events"  # Force event-based chunking when using entire table
             )
-
-            # Check if the statistics of the table is sufficient to compute at least one complete chunk.
-            if len(table) < effective_chunk_size:
-                raise ValueError(
-                    f"The length of the provided table ({len(table)}) is insufficient to meet the required statistics for a single chunk of size ({effective_chunk_size})."
-                )
-            # Check if the chunk_shift is smaller than the chunk_size
-            if chunk_shift is not None and chunk_shift > effective_chunk_size:
-                raise ValueError(
-                    f"The chunk_shift ({chunk_shift}) must be smaller than the chunk_size ({effective_chunk_size})."
-                )
         else:
-            # For time-based chunking, chunk_size is duration in seconds
-            if self.chunk_size is None:
-                # Use entire time range as one chunk
-                time_range = (table["time_mono"][-1] - table["time_mono"][0]).to_value(
-                    "s"
-                )
-                effective_chunk_size = time_range
-            else:
-                effective_chunk_size = self.chunk_size  # seconds
-
-            # Check if chunk_shift is smaller than chunk_size for time mode
-            if chunk_shift is not None and chunk_shift > effective_chunk_size:
-                raise ValueError(
-                    f"The chunk_shift ({chunk_shift} seconds) must be smaller than the chunk_size ({effective_chunk_size} seconds)."
-                )
+            effective_chunk_size = self.chunk_size
+            self._check_table_length(table, effective_chunk_size)
+        if chunk_shift is not None and chunk_shift > effective_chunk_size:
+            raise ValueError(
+                f"The chunk_shift ({chunk_shift}) must be smaller than the chunk_size ({effective_chunk_size})."
+            )
 
         # Function to split the table into appropriated chunks
         def _get_chunks(table, chunk_shift, effective_chunk_size):
@@ -175,6 +155,26 @@ class StatisticsAggregator(Component):
 
         return result_table
 
+    def _check_table_length(self, table, effective_chunk_size):
+        """Check if the table length is sufficient for at least one chunk."""
+        if self.chunking_mode == "events":
+            if len(table) < effective_chunk_size:
+                raise ValueError(
+                    f"The length of the provided table ({len(table)}) "
+                    f"is insufficient to meet the required statistics "
+                    f"for a single chunk of size ({effective_chunk_size})."
+                )
+        elif self.chunking_mode == "time":
+            times = table["time_mono"]
+            total_duration = (times[-1] - times[0]).to_value("s")
+            if total_duration < effective_chunk_size:
+                raise ValueError(
+                    f"The total duration of the provided table"
+                    f"({total_duration} seconds) is insufficient "
+                    f"to meet the required statistics for a single chunk "
+                    f"of size ({effective_chunk_size} seconds)."
+                )
+
     def _get_event_chunks(self, table, chunk_shift, effective_chunk_size):
         """Generate chunks based on event count."""
         # Calculate the range step: Use chunk_shift if provided, otherwise use chunk_size
@@ -190,8 +190,6 @@ class StatisticsAggregator(Component):
 
     def _get_time_chunks(self, table, chunk_shift, effective_chunk_size):
         """Generate chunks based on time intervals."""
-        import astropy.units as u
-
         times = table["time_mono"]
         start_time = times[0]
         end_time = times[-1]
@@ -200,45 +198,27 @@ class StatisticsAggregator(Component):
         # Calculate time step: Use chunk_shift if provided, otherwise use chunk_size
         time_step = chunk_shift if chunk_shift is not None else effective_chunk_size
 
+        current_time = start_time
+        while True:
+            chunk_end = current_time + effective_chunk_size * u.s
+            # Check if chunk end exceeds our data range (with 0.1s tolerance for floating point)
+            if chunk_end > end_time + 0.1 * u.s:
+                break
+
+            mask = (times >= current_time) & (times < chunk_end)
+            if np.any(mask):
+                yield table[mask]
+            current_time += time_step * u.s
+
         if chunk_shift is None:
-            # Non-overlapping chunks: generate regular chunks, then handle last chunk
-            current_time = start_time
-
-            # Generate non-overlapping chunks that fit completely
-            while (current_time + effective_chunk_size * u.s) <= end_time:
-                chunk_end = current_time + effective_chunk_size * u.s
-                mask = (times >= current_time) & (times < chunk_end)
-                if np.any(mask):
-                    yield table[mask]
-                current_time += effective_chunk_size * u.s
-
             # Add overlapping last chunk if there's remaining data
             remaining_duration = (end_time - current_time).to_value("s")
-            if remaining_duration > 0 and total_duration >= effective_chunk_size:
+            if remaining_duration > 0.1 and total_duration > effective_chunk_size:
                 # Ensure last chunk has full duration by potentially overlapping
                 last_chunk_start = end_time - effective_chunk_size * u.s
                 mask = (times >= last_chunk_start) & (times <= end_time)
                 if np.any(mask):
                     yield table[mask]
-        else:
-            # Overlapping chunks: stop when we can't fit another full chunk
-            current_time = start_time
-
-            while True:
-                # Define chunk boundaries
-                chunk_end = current_time + effective_chunk_size * u.s
-
-                # Check if chunk end exceeds our data range (with 0.1s tolerance for floating point)
-                if chunk_end > end_time + 0.1 * u.s:
-                    break
-
-                # Find events within this time window
-                mask = (times >= current_time) & (times <= chunk_end)
-                if np.any(mask):
-                    yield table[mask]
-
-                # Move to next chunk
-                current_time += time_step * u.s
 
     @abstractmethod
     def compute_stats(
