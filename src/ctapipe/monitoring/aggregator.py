@@ -86,10 +86,10 @@ class StatisticsAggregator(Component):
         Parameters
         ----------
         table : astropy.table.Table
-            table with event-wise data of shape (n_events, *data_dimensions), event IDs and
+            table with event-wise data of shape (n_events, \*data_dimensions), event IDs and
             timestamps of shape (n_events, )
         masked_elements_of_sample : ndarray, optional
-            boolean array of masked elements of shape (*data_dimensions) that are not available for processing
+            boolean array of masked elements of shape (\*data_dimensions) that are not available for processing
         chunk_shift : int, optional
             number of samples to shift between the start of consecutive chunks.
             For event-based chunking: number of events. For time-based chunking: seconds.
@@ -250,9 +250,9 @@ class StatisticsAggregator(Component):
         Parameters
         ----------
         data : ndarray
-            Event-wise data of shape (n_events, *data_dimensions)
+            Event-wise data of shape (n_events, \*data_dimensions)
         masked_elements_of_sample : ndarray, optional
-            Boolean mask of shape (*data_dimensions) for elements to exclude
+            Boolean mask of shape (\*data_dimensions) for elements to exclude
 
         Returns
         -------

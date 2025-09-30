@@ -1,0 +1,5 @@
+Enhanced ``StatisticsAggregator`` classes to support time-based chunking in addition to event-based chunking.
+
+The new ``chunking_mode`` parameter allows aggregating statistics over time intervals (seconds) rather than
+fixed event counts, enabling time-series analysis. The aggregators now work with any N-dimensional event-wise data,
+making them universally applicable across different data types in ctapipe.
