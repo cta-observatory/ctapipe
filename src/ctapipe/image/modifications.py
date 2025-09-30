@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 from numba import njit
 
@@ -181,15 +183,13 @@ class WaveformModifier(TelescopeComponent):
         # with one key per telescope, containing an array [n_events, n_gains,
         # n_pixels, n_samples]
         source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
-        nsb_database = dict()  # [nevents, ngains, npixels, nsamples]
+        nsb_database = defaultdict(list)  # [nevents, ngains, npixels, nsamples]
         for event in source:
             for tel_id in event.trigger.tels_with_trigger:
-                if tel_id in nsb_database:
-                    nsb_database[tel_id] = np.vstack(
-                        [nsb_database[tel_id], [event.r1.tel[tel_id].waveform]]
-                    )
-                else:
-                    nsb_database[tel_id] = np.array([event.r1.tel[tel_id].waveform])
+                nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
+        nsb_database = {
+            tel_id: np.stack(waveforms) for tel_id, waveforms in nsb_database.items()
+        }
 
         # Check that we have enough NSB-only events for all telescopes. We
         # require that the number of NSB events for any telescope is at
