@@ -10,6 +10,7 @@ from ..core.traits import (
     BoolTelescopeParameter,
     FloatTelescopeParameter,
     Int,
+    List,
     Path,
 )
 from ..instrument import SubarrayDescription
@@ -156,7 +157,10 @@ class WaveformModifier(TelescopeComponent):
         config=True
     )
 
-    event_type_filter = EventTypeFilter()
+    nsb_event_types = List(
+        default_value=[EventType.SKY_PEDESTAL],
+        help="List of event types from which to get the " "noise waveforms",
+    ).tag(config=True)
 
     total_noise = dict()
     # One key per tel_id, each of them is an array of shape
@@ -165,7 +169,6 @@ class WaveformModifier(TelescopeComponent):
     def __init__(
         self,
         subarray: SubarrayDescription,
-        allowed_types=[EventType.SKY_PEDESTAL],
         config=None,
         parent=None,
         **kwargs,
@@ -178,9 +181,6 @@ class WaveformModifier(TelescopeComponent):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        allowed_types: list[EventType]
-            Event types from the NSB file that will be used to build the
-            NSB database
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -194,7 +194,7 @@ class WaveformModifier(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
-        self.event_type_filter.allowed_types = allowed_types
+        event_type_filter = EventTypeFilter(allowed_types=self.nsb_event_types)
 
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
@@ -202,7 +202,7 @@ class WaveformModifier(TelescopeComponent):
         source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
         nsb_database = defaultdict(list)  # [nevents, ngains, npixels, nsamples]
         for event in source:
-            if not self.event_type_filter(event):
+            if not event_type_filter(event):
                 continue
             for tel_id in event.trigger.tels_with_trigger:
                 nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
