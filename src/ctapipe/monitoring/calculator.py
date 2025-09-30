@@ -137,7 +137,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         masked_elements_of_sample=None,
         col_name="image",
     ) -> Table:
-        """
+        r"""
         Calculate the monitoring data for a given set of events with non-overlapping aggregation chunks.
 
         This method performs the first pass over the provided data table to calculate
@@ -189,7 +189,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         masked_elements_of_sample=None,
         col_name="image",
     ) -> Table:
-        """
+        r"""
         Conduct a second pass over the data to refine the statistics in regions with a high percentage of faulty pixels.
 
         This method performs a second pass over the data with a refined shift of the chunk in regions where a high percentage

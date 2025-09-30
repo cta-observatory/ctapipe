@@ -71,7 +71,7 @@ class StatisticsAggregator(Component):
         chunk_shift=None,
         col_name="image",
     ) -> Table:
-        """
+        r"""
         Divide table into chunks and compute aggregated statistic values.
 
         This function divides the input table into overlapping or non-overlapping chunks of size ``chunk_size``
@@ -244,7 +244,7 @@ class StatisticsAggregator(Component):
     def compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
-        """
+        r"""
         Compute aggregated statistics for a chunk of data.
 
         Parameters
