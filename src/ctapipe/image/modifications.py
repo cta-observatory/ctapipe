@@ -14,6 +14,7 @@ from ..core.traits import (
 )
 from ..instrument import SubarrayDescription
 from ..io import EventSource
+from ..utils import EventTypeFilter
 
 __all__ = [
     "ImageModifier",
@@ -155,12 +156,19 @@ class WaveformModifier(TelescopeComponent):
         config=True
     )
 
+    event_type_filter = EventTypeFilter()
+
     total_noise = dict()
     # One key per tel_id, each of them is an array of shape
     # [n_noise_realizations, ngains, npixels, nsamples]
 
     def __init__(
-        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
+        self,
+        subarray: SubarrayDescription,
+        allowed_types=[EventType.SKY_PEDESTAL],
+        config=None,
+        parent=None,
+        **kwargs,
     ):
         """
 
@@ -170,6 +178,9 @@ class WaveformModifier(TelescopeComponent):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
+        allowed_types: list[EventType]
+            Event types from the NSB file that will be used to build the
+            NSB database
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -183,13 +194,15 @@ class WaveformModifier(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
+        self.event_type_filter.allowed_types = allowed_types
+
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
         # n_pixels, n_samples]
         source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
         nsb_database = defaultdict(list)  # [nevents, ngains, npixels, nsamples]
         for event in source:
-            if event.trigger.event_type != EventType.SKY_PEDESTAL:
+            if not self.event_type_filter(event):
                 continue
             for tel_id in event.trigger.tels_with_trigger:
                 nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
