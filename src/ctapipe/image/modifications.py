@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 from numba import njit
 
+from ..containers import EventType
 from ..core import TelescopeComponent
 from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ..core.traits import (
@@ -124,11 +125,14 @@ class WaveformModifier(TelescopeComponent):
     =10/0.25) and the file must contain at least 80 events. This is to
     guarantee that the different noise waveforms are not too correlated
 
+    This class can eventually use as NSB file a real data DL0 file which
+    contains pedestal events.
+
     """
 
     nsb_file = Path(
         default_value=None,
-        help="Path to a dedicated NSB-only sim_telarray file",
+        help="Path to a dedicated NSB-only file (e.g. from sim_telarray)",
     ).tag(config=True)
 
     nsb_level = Int(
@@ -185,6 +189,8 @@ class WaveformModifier(TelescopeComponent):
         source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
         nsb_database = defaultdict(list)  # [nevents, ngains, npixels, nsamples]
         for event in source:
+            if event.trigger.event_type != EventType.SKY_PEDESTAL:
+                continue
             for tel_id in event.trigger.tels_with_trigger:
                 nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
         nsb_database = {
