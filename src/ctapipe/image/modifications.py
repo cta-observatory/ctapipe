@@ -159,7 +159,7 @@ class WaveformModifier(TelescopeComponent):
 
     nsb_event_types = List(
         default_value=[EventType.SKY_PEDESTAL],
-        help="List of event types from which to get the " "noise waveforms",
+        help="List of event types from which to get the noise waveforms",
     ).tag(config=True)
 
     total_noise = dict()
