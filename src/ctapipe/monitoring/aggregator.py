@@ -13,12 +13,13 @@ these classes suitable for any N-dimensional event-wise data.
 """
 
 __all__ = [
+    "BaseAggregator",
     "StatisticsAggregator",
     "PlainAggregator",
     "SigmaClippingAggregator",
 ]
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import defaultdict
 
 import astropy.units as u
@@ -30,19 +31,13 @@ from ..containers import ChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import CaselessStrEnum, Int
 
-__all__ = [
-    "StatisticsAggregator",
-    "PlainAggregator",
-    "SigmaClippingAggregator",
-]
 
-
-class StatisticsAggregator(Component):
+class BaseAggregator(Component, ABC):
     """
-    Base component to handle the computation of aggregated statistic values from a table
-    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
+    Base class for aggregators that compute statistics over chunks of data.
 
-    Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
+    Aggregators always return a Table with time windows and computed statistics.
+    Subclasses can add multiple columns by overriding add_result_columns().
     """
 
     chunk_size = Int(
@@ -76,12 +71,12 @@ class StatisticsAggregator(Component):
         Divide table into chunks and compute aggregated statistic values.
 
         This function divides the input table into overlapping or non-overlapping chunks of size ``chunk_size``
-        and call the relevant function of the particular aggregator to compute aggregated statistic values.
+        and calls the relevant function of the particular aggregator to compute aggregated statistic values.
         The chunks are generated in a way that ensures they do not overflow the bounds of the table.
         - If ``chunk_shift`` is None, chunks will not overlap, but the last chunk is ensured to be
         of size ``chunk_size``, even if it means the last two chunks will overlap.
         - If ``chunk_shift`` is provided, it will determine the number of samples to shift between the start
-        of consecutive chunks resulting in an overlap of chunks. Chunks that overflows the bounds
+        of consecutive chunks resulting in an overlap of chunks. Chunks that overflow the bounds
         of the table are not considered.
 
         Parameters
@@ -102,7 +97,7 @@ class StatisticsAggregator(Component):
         -------
         astropy.table.Table
             table containing the start and end values as timestamps and event IDs
-            as well as the aggregated statistic values (mean, median, std) for each chunk
+            as well as the aggregated statistic values for each chunk
         """
         # Set chunk_size to table length if None (use entire table as one chunk)
         if self.chunk_size is None:
@@ -118,42 +113,116 @@ class StatisticsAggregator(Component):
                 f"The chunk_shift ({chunk_shift}) must be smaller than the chunk_size ({effective_chunk_size})."
             )
 
-        # Function to split the table into appropriated chunks
-        def _get_chunks(table, chunk_shift, effective_chunk_size):
-            # If using entire table as one chunk, just yield the whole table
-            if self.chunk_size is None:
-                yield table
-                return
+        # Get chunks using the chunking strategy
+        chunks = self._get_chunks(table, chunk_shift, effective_chunk_size)
 
-            if self.chunking_mode == "events":
-                yield from self._get_event_chunks(
-                    table, chunk_shift, effective_chunk_size
-                )
-            elif self.chunking_mode == "time":
-                yield from self._get_time_chunks(
-                    table, chunk_shift, effective_chunk_size
-                )
+        # Initialize result storage
+        results = defaultdict(list)
 
-        # Compute aggregated statistic values for each chunk of data
-        data = defaultdict(list)
-        for chunk in _get_chunks(table, chunk_shift, effective_chunk_size):
-            stats = self.compute_stats(chunk[col_name].data, masked_elements_of_sample)
-            data["time_start"].append(chunk["time_mono"][0])
-            data["time_end"].append(chunk["time_mono"][-1])
-            data["event_id_start"].append(chunk["event_id"][0])
-            data["event_id_end"].append(chunk["event_id"][-1])
-            data["n_events"].append(stats.n_events)
-            data["mean"].append(stats.mean)
-            data["median"].append(stats.median)
-            data["std"].append(stats.std)
+        # Process each chunk
+        for chunk in chunks:
+            # Add time/event metadata
+            results["time_start"].append(chunk["time_mono"][0])
+            results["time_end"].append(chunk["time_mono"][-1])
+            results["event_id_start"].append(chunk["event_id"][0])
+            results["event_id_end"].append(chunk["event_id"][-1])
 
-        # Create table and set units for statistical columns
-        result_table = Table(data)
+            # Compute aggregator-specific statistics
+            # This method adds columns to results dict (including n_events if applicable)
+            self.add_result_columns(
+                chunk[col_name].data, masked_elements_of_sample, results
+            )
+
+        # Create and return table
+        result_table = Table(results)
+
+        # Preserve units if present
         if hasattr(table[col_name], "unit") and table[col_name].unit is not None:
-            for col in ("mean", "median", "std"):
-                result_table[col].unit = table[col_name].unit
+            self._set_result_units(result_table, table[col_name].unit)
 
         return result_table
+
+    @abstractmethod
+    def add_result_columns(self, data, masked_elements_of_sample, results_dict):
+        """
+        Compute statistics and add columns to results dictionary.
+
+        This method should compute aggregator-specific statistics from the data
+        and append values to appropriate keys in results_dict.
+
+        The base implementation already adds: time_start, time_end, event_id_start, event_id_end.
+        Subclasses should add their specific statistics (e.g., mean, median, std, n_events, etc.).
+
+        Parameters
+        ----------
+        data : array-like
+            Data for this chunk (already extracted from table)
+        masked_elements_of_sample : ndarray, optional
+            Boolean mask of shape (\*data_dimensions) for elements to exclude
+        results_dict : dict
+            Dictionary to which statistic columns should be added.
+            Use results_dict['column_name'].append(value) for each statistic.
+
+        Examples
+        --------
+        # Add mean, median, std columns:
+        results_dict['mean'].append(np.mean(data))
+        results_dict['median'].append(np.median(data))
+        results_dict['std'].append(np.std(data))
+        """
+        pass
+
+    @abstractmethod
+    def _set_result_units(self, table, unit):
+        """
+        Set units for result columns that should inherit from the input data.
+
+        This method is called after the result table is created to assign units
+        to columns that were computed from the input data and should have the same units.
+
+        Parameters
+        ----------
+        table : astropy.table.Table
+            The result table with computed statistics
+        unit : astropy.units.Unit
+            The unit from the input data column
+
+        Examples
+        --------
+        # Set units for specific columns:
+        table['mean'].unit = unit
+        table['median'].unit = unit
+        table['std'].unit = unit
+        """
+        pass
+
+    def _get_chunks(self, table, chunk_shift, effective_chunk_size):
+        """
+        Generate chunks from table based on chunking strategy.
+
+        Parameters
+        ----------
+        table : astropy.table.Table
+            Input table to chunk
+        chunk_shift : int or None
+            Number of events/seconds to shift between chunks
+        effective_chunk_size : int
+            Size of each chunk in events or seconds
+
+        Yields
+        ------
+        astropy.table.Table
+            Chunks of the input table
+        """
+        # If using entire table as one chunk, just yield the whole table
+        if self.chunk_size is None:
+            yield table
+            return
+
+        if self.chunking_mode == "events":
+            yield from self._get_event_chunks(table, chunk_shift, effective_chunk_size)
+        elif self.chunking_mode == "time":
+            yield from self._get_time_chunks(table, chunk_shift, effective_chunk_size)
 
     def _check_table_length(self, table, effective_chunk_size):
         """Check if the table length is sufficient for at least one chunk."""
@@ -219,6 +288,42 @@ class StatisticsAggregator(Component):
                 mask = (times >= last_chunk_start) & (times <= end_time)
                 if np.any(mask):
                     yield table[mask]
+
+
+class StatisticsAggregator(BaseAggregator):
+    """
+    Base component to handle the computation of aggregated statistic values from a table
+    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
+
+    Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
+
+    This class provides backward compatibility by wrapping add_result_columns() to call
+    the existing compute_stats() method.
+    """
+
+    def add_result_columns(self, data, masked_elements_of_sample, results_dict):
+        """
+        Compute statistics using compute_stats and add columns to results dictionary.
+
+        This method provides the bridge between the new BaseAggregator interface
+        and the existing compute_stats() method used by subclasses.
+        """
+        stats = self.compute_stats(data, masked_elements_of_sample)
+        results_dict["n_events"].append(stats.n_events)
+        results_dict["mean"].append(stats.mean)
+        results_dict["median"].append(stats.median)
+        results_dict["std"].append(stats.std)
+
+    def _set_result_units(self, table, unit):
+        """
+        Set units for statistics columns that inherit from the input data.
+
+        For StatisticsAggregator, the mean, median, and std columns
+        should have the same units as the input data.
+        """
+        for col in ("mean", "median", "std"):
+            if col in table.colnames:
+                table[col].unit = unit
 
     @abstractmethod
     def compute_stats(
