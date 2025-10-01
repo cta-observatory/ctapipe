@@ -194,7 +194,9 @@ class WaveformModifier(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
-        event_type_filter = EventTypeFilter(allowed_types=self.nsb_event_types)
+        event_type_filter = EventTypeFilter(
+            allowed_types=self.nsb_event_types, parent=self
+        )
 
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
