@@ -301,7 +301,7 @@ class StatisticsAggregator(BaseAggregator):
     the existing compute_stats() method.
     """
 
-    def add_result_columns(self, data, masked_elements_of_sample, results_dict):
+    def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
         """
         Compute statistics using compute_stats and add columns to results dictionary.
 
