@@ -24,7 +24,7 @@ def test_statistics_calculator(example_subarray):
     # Create tables
     charge_table = Table(
         [times, event_ids, charge_data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
     # Create configuration
     chunk_size = 1000
@@ -97,7 +97,7 @@ def test_outlier_detector(example_subarray):
     # Create table
     ped_table = Table(
         [times, event_ids, ped_data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
     # Create configuration
     config = Config(

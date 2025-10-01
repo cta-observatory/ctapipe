@@ -122,8 +122,8 @@ class BaseAggregator(Component, ABC):
         # Process each chunk
         for chunk in chunks:
             # Add time/event metadata
-            results["time_start"].append(chunk["time_mono"][0])
-            results["time_end"].append(chunk["time_mono"][-1])
+            results["time_start"].append(chunk["time"][0])
+            results["time_end"].append(chunk["time"][-1])
             results["event_id_start"].append(chunk["event_id"][0])
             results["event_id_end"].append(chunk["event_id"][-1])
 
@@ -234,7 +234,7 @@ class BaseAggregator(Component, ABC):
                     f"for a single chunk of size ({effective_chunk_size})."
                 )
         elif self.chunking_mode == "time":
-            times = table["time_mono"]
+            times = table["time"]
             total_duration = (times[-1] - times[0]).to_value("s")
             if total_duration < effective_chunk_size:
                 raise ValueError(
@@ -259,7 +259,7 @@ class BaseAggregator(Component, ABC):
 
     def _get_time_chunks(self, table, chunk_shift, effective_chunk_size):
         """Generate chunks based on time intervals."""
-        times = table["time_mono"]
+        times = table["time"]
         start_time = times[0]
         end_time = times[-1]
         total_duration = (end_time - start_time).to_value("s")

@@ -25,15 +25,15 @@ def test_aggregators():
     # Create tables
     ped_table = Table(
         [times, event_ids, ped_data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
     charge_table = Table(
         [times, event_ids, charge_data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
     time_table = Table(
         [times, event_ids, time_data],
-        names=("time_mono", "event_id", "peak_time"),
+        names=("time", "event_id", "peak_time"),
     )
     # Initialize the aggregators
     chunk_size = 2500
@@ -99,7 +99,7 @@ def test_chunk_shift():
     # Create table
     charge_table = Table(
         [times, event_ids, charge_data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
     # Initialize the aggregator
     aggregator = SigmaClippingAggregator(chunk_size=2500)
@@ -136,7 +136,7 @@ def test_with_outliers():
     # Create table
     ped_table = Table(
         [times, event_ids, ped_data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
     # Initialize the aggregators
     sigmaclipping_aggregator = SigmaClippingAggregator(chunk_size=2500)
@@ -188,7 +188,7 @@ def test_time_based_chunking():
     # Create table
     table = Table(
         [times, event_ids, data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
 
     # Test time-based chunking with 2-second intervals
@@ -243,7 +243,7 @@ def test_time_based_chunking_with_shift():
     # Create table
     table = Table(
         [times, event_ids, data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
 
     # Test overlapping time chunks: 2-second chunks with 1-second shift
@@ -283,7 +283,7 @@ def test_time_vs_event_chunking_consistency():
     # Create table
     table = Table(
         [times, event_ids, data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
 
     # Test event-based chunking (default behavior)
@@ -334,7 +334,7 @@ def test_time_chunking_validation():
 
     table = Table(
         [times, event_ids, data],
-        names=("time_mono", "event_id", "image"),
+        names=("time", "event_id", "image"),
     )
 
     # Test invalid chunk_shift (larger than chunk_size)
