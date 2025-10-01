@@ -129,7 +129,7 @@ class BaseAggregator(Component, ABC):
 
             # Compute aggregator-specific statistics
             # This method adds columns to results dict (including n_events if applicable)
-            self.add_result_columns(
+            self._add_result_columns(
                 chunk[col_name].data, masked_elements_of_sample, results
             )
 
@@ -143,7 +143,7 @@ class BaseAggregator(Component, ABC):
         return result_table
 
     @abstractmethod
-    def add_result_columns(self, data, masked_elements_of_sample, results_dict):
+    def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
         """
         Compute statistics and add columns to results dictionary.
 
