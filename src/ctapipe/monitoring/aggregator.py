@@ -357,8 +357,9 @@ class PlainAggregator(StatisticsAggregator):
     def compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
-        # Mask excluded elements
+        # Mask excluded elements and NaN/inf values
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
+        masked_data = np.ma.masked_invalid(masked_data)
 
         # Compute the mean, median, and std over the event dimension (axis=0)
         element_mean = np.ma.mean(masked_data, axis=0)
@@ -371,7 +372,7 @@ class PlainAggregator(StatisticsAggregator):
         element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
         element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
 
-        # Count non-masked events per element (for consistency with SigmaClippingAggregator)
+        # Count non-masked events per element (excludes both masked and NaN/inf values)
         n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
 
         return ChunkStatisticsContainer(
@@ -402,8 +403,9 @@ class SigmaClippingAggregator(StatisticsAggregator):
     def compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
-        # Mask excluded elements
+        # Mask excluded elements and NaN/inf values
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
+        masked_data = np.ma.masked_invalid(masked_data)
 
         # Use sigma_clip to get the clipped data, then compute stats from it
         # Clipping is performed along axis=0 (event dimension)
@@ -416,6 +418,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
         )
 
         # Count the number of events remaining after sigma clipping per element
+        # (excludes both masked, NaN/inf, and sigma-clipped values)
         n_events_after_clipping = np.count_nonzero(~filtered_data.mask, axis=0)
 
         # Compute statistics from the filtered data along the event dimension

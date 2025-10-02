@@ -386,6 +386,14 @@ def test_1d_data_handling():
     assert plain_stats[0]["std"].shape == ()
     assert plain_stats[0]["n_events"].shape == ()
 
+    # Check that results are not NaN (verify the 1D fix works)
+    assert not np.isnan(plain_stats[0]["mean"])
+    assert not np.isnan(plain_stats[0]["median"])
+    assert not np.isnan(plain_stats[0]["std"])
+    assert not np.isnan(plain_stats[1]["mean"])
+    assert not np.isnan(plain_stats[1]["median"])
+    assert not np.isnan(plain_stats[1]["std"])
+
     # Check that values are reasonable (close to true values)
     np.testing.assert_allclose(plain_stats[0]["mean"], 10.0, atol=1.0)
     np.testing.assert_allclose(plain_stats[0]["std"], 2.0, atol=0.5)
@@ -406,6 +414,14 @@ def test_1d_data_handling():
     assert sigma_stats[0]["median"].shape == ()
     assert sigma_stats[0]["std"].shape == ()
     assert sigma_stats[0]["n_events"].shape == ()
+
+    # Check that results are not NaN (verify the 1D fix works)
+    assert not np.isnan(sigma_stats[0]["mean"])
+    assert not np.isnan(sigma_stats[0]["median"])
+    assert not np.isnan(sigma_stats[0]["std"])
+    assert not np.isnan(sigma_stats[1]["mean"])
+    assert not np.isnan(sigma_stats[1]["median"])
+    assert not np.isnan(sigma_stats[1]["std"])
 
     # Check that values are reasonable
     np.testing.assert_allclose(sigma_stats[0]["mean"], 10.0, atol=1.0)
@@ -428,6 +444,12 @@ def test_1d_data_handling():
     plain_stats_outliers = plain_aggregator(table=table_1d_outliers, col_name="value")
     sigma_stats_outliers = sigma_aggregator(table=table_1d_outliers, col_name="value")
 
+    # Check that results are not NaN even with outliers
+    assert not np.isnan(plain_stats_outliers[0]["mean"])
+    assert not np.isnan(plain_stats_outliers[1]["mean"])
+    assert not np.isnan(sigma_stats_outliers[0]["mean"])
+    assert not np.isnan(sigma_stats_outliers[1]["mean"])
+
     # PlainAggregator should be affected by outliers
     # Mean should be significantly off due to outliers
     assert np.abs(plain_stats_outliers[0]["mean"] - 10.0) > 1.0
@@ -439,3 +461,153 @@ def test_1d_data_handling():
     # Sigma clipping should have removed some events
     assert sigma_stats_outliers[0]["n_events"] < 500
     assert sigma_stats_outliers[1]["n_events"] < 500
+
+
+def test_nan_handling():
+    """test that aggregators properly handle NaN values in input data"""
+
+    # Create test data with NaN values
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=1000), scale="tai", format="mjd"
+    )
+    event_ids = np.arange(1000)
+    rng = np.random.default_rng(123)
+
+    # Test 1D data with NaN values
+    data_1d = rng.normal(10.0, 2.0, size=1000)
+    # Insert NaN values in both chunks
+    data_1d[10] = np.nan
+    data_1d[20] = np.nan
+    data_1d[520] = np.nan
+    data_1d[530] = np.nan
+
+    table_1d = Table(
+        [times, event_ids, data_1d],
+        names=("time", "event_id", "value"),
+    )
+
+    # Test PlainAggregator with NaN values
+    plain_aggregator = PlainAggregator(chunk_size=500)
+    plain_stats = plain_aggregator(table=table_1d, col_name="value")
+
+    assert len(plain_stats) == 2
+
+    # Check that computed statistics are not NaN (NaN values should be masked)
+    assert not np.isnan(plain_stats[0]["mean"])
+    assert not np.isnan(plain_stats[0]["median"])
+    assert not np.isnan(plain_stats[0]["std"])
+    assert not np.isnan(plain_stats[1]["mean"])
+    assert not np.isnan(plain_stats[1]["median"])
+    assert not np.isnan(plain_stats[1]["std"])
+
+    # Check that n_events reflects NaN exclusion
+    # First chunk: 500 events - 2 NaNs = 498
+    # Second chunk: 500 events - 2 NaNs = 498
+    assert plain_stats[0]["n_events"] == 498
+    assert plain_stats[1]["n_events"] == 498
+
+    # Check that statistics are still accurate after excluding NaN
+    np.testing.assert_allclose(plain_stats[0]["mean"], 10.0, atol=1.0)
+    np.testing.assert_allclose(plain_stats[1]["mean"], 10.0, atol=1.0)
+
+    # Test SigmaClippingAggregator with NaN values
+    sigma_aggregator = SigmaClippingAggregator(chunk_size=500)
+    sigma_stats = sigma_aggregator(table=table_1d, col_name="value")
+
+    assert len(sigma_stats) == 2
+
+    # Check that computed statistics are not NaN
+    assert not np.isnan(sigma_stats[0]["mean"])
+    assert not np.isnan(sigma_stats[0]["median"])
+    assert not np.isnan(sigma_stats[0]["std"])
+    assert not np.isnan(sigma_stats[1]["mean"])
+    assert not np.isnan(sigma_stats[1]["median"])
+    assert not np.isnan(sigma_stats[1]["std"])
+
+    # Check that n_events reflects NaN exclusion (and possibly sigma clipping)
+    # Should be <= 498 (NaNs removed, possibly more removed by sigma clipping)
+    assert sigma_stats[0]["n_events"] <= 498
+    assert sigma_stats[1]["n_events"] <= 498
+    # But most events should remain (normal data)
+    assert sigma_stats[0]["n_events"] >= 475
+    assert sigma_stats[1]["n_events"] >= 475
+
+    # Test N-D data (2D camera-like) with NaN values
+    data_2d = rng.normal(5.0, 1.0, size=(1000, 2, 10))
+    # Insert NaN values in various pixels
+    data_2d[15, 0, 3] = np.nan  # First chunk, gain 0, pixel 3
+    data_2d[25, 1, 7] = np.nan  # First chunk, gain 1, pixel 7
+    data_2d[550, 0, 5] = np.nan  # Second chunk, gain 0, pixel 5
+    data_2d[560, 1, 2] = np.nan  # Second chunk, gain 1, pixel 2
+
+    table_2d = Table(
+        [times, event_ids, data_2d],
+        names=("time", "event_id", "image"),
+    )
+
+    plain_stats_2d = plain_aggregator(table=table_2d, col_name="image")
+
+    assert len(plain_stats_2d) == 2
+
+    # Check shapes are correct (2 gains, 10 pixels)
+    assert plain_stats_2d[0]["mean"].shape == (2, 10)
+    assert plain_stats_2d[0]["n_events"].shape == (2, 10)
+
+    # Check that no statistics are NaN (all should be computed)
+    assert not np.any(np.isnan(plain_stats_2d[0]["mean"]))
+    assert not np.any(np.isnan(plain_stats_2d[0]["median"]))
+    assert not np.any(np.isnan(plain_stats_2d[0]["std"]))
+    assert not np.any(np.isnan(plain_stats_2d[1]["mean"]))
+    assert not np.any(np.isnan(plain_stats_2d[1]["median"]))
+    assert not np.any(np.isnan(plain_stats_2d[1]["std"]))
+
+    # Check n_events for specific pixels with NaN values
+    # Pixel [0, 3] in first chunk should have 499 events (1 NaN removed)
+    assert plain_stats_2d[0]["n_events"][0, 3] == 499
+    # Pixel [1, 7] in first chunk should have 499 events (1 NaN removed)
+    assert plain_stats_2d[0]["n_events"][1, 7] == 499
+    # Pixel [0, 5] in second chunk should have 499 events
+    assert plain_stats_2d[1]["n_events"][0, 5] == 499
+    # Pixel [1, 2] in second chunk should have 499 events
+    assert plain_stats_2d[1]["n_events"][1, 2] == 499
+
+    # Pixels without NaN should have full 500 events
+    assert plain_stats_2d[0]["n_events"][0, 0] == 500
+    assert plain_stats_2d[1]["n_events"][1, 9] == 500
+
+    # Check that means are still reasonable
+    np.testing.assert_allclose(plain_stats_2d[0]["mean"], 5.0, atol=1.0)
+    np.testing.assert_allclose(plain_stats_2d[1]["mean"], 5.0, atol=1.0)
+
+    # Test with all NaN in a pixel (edge case)
+    data_all_nan = rng.normal(10.0, 2.0, size=(100, 5))
+    data_all_nan[:, 2] = np.nan  # All values in pixel 2 are NaN
+
+    table_all_nan = Table(
+        [
+            Time(np.linspace(60117.911, 60117.912, num=100), scale="tai", format="mjd"),
+            np.arange(100),
+            data_all_nan,
+        ],
+        names=("time", "event_id", "data"),
+    )
+
+    plain_stats_all_nan = PlainAggregator(chunk_size=None)(
+        table=table_all_nan, col_name="data"
+    )
+
+    # Should have 1 chunk (chunk_size=None means entire table)
+    assert len(plain_stats_all_nan) == 1
+
+    # Pixel 2 should have 0 events and NaN statistics
+    assert plain_stats_all_nan[0]["n_events"][2] == 0
+    assert np.isnan(plain_stats_all_nan[0]["mean"][2])
+    assert np.isnan(plain_stats_all_nan[0]["median"][2])
+    assert np.isnan(plain_stats_all_nan[0]["std"][2])
+
+    # Other pixels should have valid statistics
+    assert plain_stats_all_nan[0]["n_events"][0] == 100
+    assert not np.isnan(plain_stats_all_nan[0]["mean"][0])
+    np.testing.assert_allclose(
+        plain_stats_all_nan[0]["mean"][[0, 1, 3, 4]], 10.0, atol=1.0
+    )
