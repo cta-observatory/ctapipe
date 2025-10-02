@@ -351,3 +351,91 @@ def test_time_chunking_validation():
 
     assert len(result_none) == 1  # Single chunk with all data
     assert np.all(result_none[0]["n_events"] == 100)
+
+
+def test_1d_data_handling():
+    """test that aggregators handle 1D data correctly (single-pixel case)"""
+
+    # Create 1D dummy data (e.g., single pixel or scalar values per event)
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=1000), scale="tai", format="mjd"
+    )
+    event_ids = np.arange(1000)
+    rng = np.random.default_rng(42)
+
+    # 1D data: shape (n_events,) - simulates single pixel or aggregated value
+    data_1d = rng.normal(10.0, 2.0, size=1000)
+
+    # Create table with 1D data
+    table_1d = Table(
+        [times, event_ids, data_1d],
+        names=("time", "event_id", "value"),
+    )
+
+    # Test PlainAggregator with 1D data
+    plain_aggregator = PlainAggregator(chunk_size=500)
+    plain_stats = plain_aggregator(table=table_1d, col_name="value")
+
+    # Should create 2 chunks
+    assert len(plain_stats) == 2
+
+    # Check that statistics are computed correctly
+    # For 1D data, results should be scalar-like (shape ())
+    assert plain_stats[0]["mean"].shape == ()
+    assert plain_stats[0]["median"].shape == ()
+    assert plain_stats[0]["std"].shape == ()
+    assert plain_stats[0]["n_events"].shape == ()
+
+    # Check that values are reasonable (close to true values)
+    np.testing.assert_allclose(plain_stats[0]["mean"], 10.0, atol=1.0)
+    np.testing.assert_allclose(plain_stats[0]["std"], 2.0, atol=0.5)
+
+    # Check n_events is correct for 1D case
+    assert plain_stats[0]["n_events"] == 500
+    assert plain_stats[1]["n_events"] == 500
+
+    # Test SigmaClippingAggregator with 1D data
+    sigma_aggregator = SigmaClippingAggregator(chunk_size=500)
+    sigma_stats = sigma_aggregator(table=table_1d, col_name="value")
+
+    # Should create 2 chunks
+    assert len(sigma_stats) == 2
+
+    # Check that statistics are computed correctly
+    assert sigma_stats[0]["mean"].shape == ()
+    assert sigma_stats[0]["median"].shape == ()
+    assert sigma_stats[0]["std"].shape == ()
+    assert sigma_stats[0]["n_events"].shape == ()
+
+    # Check that values are reasonable
+    np.testing.assert_allclose(sigma_stats[0]["mean"], 10.0, atol=1.0)
+    np.testing.assert_allclose(sigma_stats[0]["std"], 2.0, atol=0.5)
+
+    # For normal data without outliers, sigma clipping should keep most events
+    assert sigma_stats[0]["n_events"] >= 480  # At least 96% of events
+    assert sigma_stats[1]["n_events"] >= 480
+
+    # Test with 1D data containing outliers
+    data_1d_outliers = rng.normal(10.0, 2.0, size=1000)
+    data_1d_outliers[50] = 1000.0  # Add outlier in first chunk
+    data_1d_outliers[600] = -500.0  # Add outlier in second chunk
+
+    table_1d_outliers = Table(
+        [times, event_ids, data_1d_outliers],
+        names=("time", "event_id", "value"),
+    )
+
+    plain_stats_outliers = plain_aggregator(table=table_1d_outliers, col_name="value")
+    sigma_stats_outliers = sigma_aggregator(table=table_1d_outliers, col_name="value")
+
+    # PlainAggregator should be affected by outliers
+    # Mean should be significantly off due to outliers
+    assert np.abs(plain_stats_outliers[0]["mean"] - 10.0) > 1.0
+
+    # SigmaClippingAggregator should be robust to outliers
+    np.testing.assert_allclose(sigma_stats_outliers[0]["mean"], 10.0, atol=1.0)
+    np.testing.assert_allclose(sigma_stats_outliers[1]["mean"], 10.0, atol=1.0)
+
+    # Sigma clipping should have removed some events
+    assert sigma_stats_outliers[0]["n_events"] < 500
+    assert sigma_stats_outliers[1]["n_events"] < 500

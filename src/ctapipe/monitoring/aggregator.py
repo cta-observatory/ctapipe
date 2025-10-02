@@ -361,9 +361,15 @@ class PlainAggregator(StatisticsAggregator):
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
 
         # Compute the mean, median, and std over the event dimension (axis=0)
-        element_mean = np.ma.mean(masked_data, axis=0).filled(np.nan)
-        element_median = np.ma.median(masked_data, axis=0).filled(np.nan)
-        element_std = np.ma.std(masked_data, axis=0).filled(np.nan)
+        element_mean = np.ma.mean(masked_data, axis=0)
+        element_median = np.ma.median(masked_data, axis=0)
+        element_std = np.ma.std(masked_data, axis=0)
+
+        # For 1D data, these operations return scalars (not MaskedArrays)
+        # Convert to array and fill masked values with NaN
+        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
+        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
+        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
 
         # Count non-masked events per element (for consistency with SigmaClippingAggregator)
         n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
@@ -413,9 +419,15 @@ class SigmaClippingAggregator(StatisticsAggregator):
         n_events_after_clipping = np.count_nonzero(~filtered_data.mask, axis=0)
 
         # Compute statistics from the filtered data along the event dimension
-        element_mean = np.ma.mean(filtered_data, axis=0).filled(np.nan)
-        element_median = np.ma.median(filtered_data, axis=0).filled(np.nan)
-        element_std = np.ma.std(filtered_data, axis=0).filled(np.nan)
+        element_mean = np.ma.mean(filtered_data, axis=0)
+        element_median = np.ma.median(filtered_data, axis=0)
+        element_std = np.ma.std(filtered_data, axis=0)
+
+        # For 1D data, these operations return scalars (not MaskedArrays)
+        # Convert to array and fill masked values with NaN
+        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
+        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
+        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
 
         return ChunkStatisticsContainer(
             n_events=n_events_after_clipping,
