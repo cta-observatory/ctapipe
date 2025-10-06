@@ -113,8 +113,10 @@ def _smear_psf_randomly(
 
 class WaveformModifier(TelescopeComponent):
     """
-    Component to add NSB noise to R1 waveforms (intended in principle to be
-    applied on MC simulations, to make them closer to real data)
+    Component to add NSB noise to R1 waveforms.
+
+    This component in principle to be applied on MC simulations, to make them
+    closer to real data in terms of noise level.
     The noise waveforms are read from a dedicated sim_telarray file, which
     must be produced with the same telescope array configuration (and other
     simulation settings) as the file to which the noise is to be added,
