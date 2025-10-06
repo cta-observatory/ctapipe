@@ -201,13 +201,15 @@ class WaveformModifier(TelescopeComponent):
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
         # n_pixels, n_samples]
-        source = EventSource(input_url=self.nsb_file, skip_calibration_events=False)
         nsb_database = defaultdict(list)  # [nevents, ngains, npixels, nsamples]
-        for event in source:
-            if not event_type_filter(event):
-                continue
-            for tel_id in event.trigger.tels_with_trigger:
-                nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
+        with EventSource(
+            input_url=self.nsb_file, skip_calibration_events=False
+        ) as source:
+            for event in source:
+                if not event_type_filter(event):
+                    continue
+                for tel_id in event.trigger.tels_with_trigger:
+                    nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
         nsb_database = {
             tel_id: np.stack(waveforms) for tel_id, waveforms in nsb_database.items()
         }
