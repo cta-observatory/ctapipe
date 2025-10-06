@@ -13,28 +13,29 @@ def test_waveform_modifier():
 
     nsb_only_file = get_dataset_path("only_nsb_LaPalma_Alpha__nsb_x0.25.simtel.zst")
 
-    source = EventSource(nsb_only_file, skip_calibration_events=False)
-    wf_mod = WaveformModifier(
-        subarray=source.subarray, nsb_file=nsb_only_file, nsb_level=3
-    )
-    original_wfs = dict()
-    modified_wfs = dict()
+    with EventSource(nsb_only_file, skip_calibration_events=False) as source:
+        wf_mod = WaveformModifier(
+            subarray=source.subarray, nsb_file=nsb_only_file, nsb_level=3
+        )
+        original_wfs = dict()
+        modified_wfs = dict()
 
-    # We test adding the noise on the same file from which the noise waveforms
-    # are taken:
-    for event in source:
-        for tel_id in event.trigger.tels_with_trigger:
-            if tel_id in original_wfs:
-                original_wfs[tel_id].append(event.r1.tel[tel_id].waveform)
-            else:
-                original_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
+        # We test adding the noise on the same file from which the noise waveforms
+        # are taken:
+        for event in source:
+            for tel_id in event.trigger.tels_with_trigger:
+                if tel_id in original_wfs:
+                    original_wfs[tel_id].append(event.r1.tel[tel_id].waveform)
+                else:
+                    original_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
 
-            if tel_id in modified_wfs:
-                modified_wfs[tel_id].append(
-                    wf_mod(tel_id, event.r1.tel[tel_id].waveform)
-                )
-            else:
-                modified_wfs[tel_id] = [wf_mod(tel_id, event.r1.tel[tel_id].waveform)]
+                if tel_id in modified_wfs:
+                    modified_wfs[tel_id].append(
+                        wf_mod(tel_id, event.r1.tel[tel_id].waveform)
+                    )
+                else:
+                    modified_wfs[tel_id] = [wf_mod(tel_id, event.r1.tel[tel_id].waveform)]
+
 
     for tel_id in original_wfs:
         original_wfs[tel_id] = np.array(original_wfs[tel_id])
