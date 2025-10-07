@@ -240,8 +240,8 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
-            az=event.pointing.array_azimuth,
-            alt=event.pointing.array_altitude,
+            az=event.monitoring.pointing.array_azimuth,
+            alt=event.monitoring.pointing.array_altitude,
             frame=altaz,
         )
 
@@ -262,7 +262,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
         for i, (tel_id, hillas) in enumerate(hillas_dict.items()):
             tel_ids[i] = tel_id
 
-            pointing = event.pointing.tel[tel_id]
+            pointing = event.monitoring.tel[tel_id].pointing
             alt[i] = pointing.altitude.to_value(u.rad)
             az[i] = pointing.azimuth.to_value(u.rad)
 

@@ -16,6 +16,15 @@ from numpy.testing import assert_allclose, assert_array_equal
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import EventSource, TableLoader, read_table
+from ctapipe.io.hdf5dataformat import (
+    DL1_TEL_IMAGES_GROUP,
+    DL1_TEL_MUON_GROUP,
+    DL1_TEL_PARAMETERS_GROUP,
+    DL2_SUBARRAY_GEOMETRY_GROUP,
+    FIXED_POINTING_GROUP,
+    SHOWER_DISTRIBUTION_TABLE,
+    SIMULATION_IMPACT_GROUP,
+)
 from ctapipe.io.tests.test_event_source import DummyEventSource
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
@@ -23,6 +32,7 @@ from ctapipe.utils import get_dataset_path, resource_file
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
+FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
 
 
 @pytest.mark.parametrize(
@@ -97,7 +107,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # check we can read telescope parameters
     dl1_features = pd.read_hdf(
-        dl1b_from_dl1a_file, "/dl1/event/telescope/parameters/tel_025"
+        dl1b_from_dl1a_file, f"{DL1_TEL_PARAMETERS_GROUP}/tel_025"
     )
     features = (
         "obs_id",
@@ -113,7 +123,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     true_impact = read_table(
         dl1b_from_dl1a_file,
-        "/simulation/event/telescope/impact/tel_025",
+        f"{SIMULATION_IMPACT_GROUP}/tel_025",
     )
     assert "true_impact_distance" in true_impact.colnames
 
@@ -185,7 +195,7 @@ def test_stage_2_from_simtel(tmp_path, provenance):
     with tables.open_file(output, mode="r") as testfile:
         dl2 = read_table(
             testfile,
-            "/dl2/event/subarray/geometry/HillasReconstructor",
+            f"{DL2_SUBARRAY_GEOMETRY_GROUP}/HillasReconstructor",
         )
         subarray = SubarrayDescription.from_hdf(testfile)
 
@@ -266,7 +276,7 @@ def test_ml_preprocessing_from_simtel(tmp_path):
             f"--output={output}",
             "--max-events=5",
             "--overwrite",
-            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+            FOCAL_LENGTH_CHOICE,
         ],
         cwd=tmp_path,
         raises=True,
@@ -284,9 +294,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
     produces a file with different images.
     """
 
-    unmodified_images = read_table(
-        dl1_image_file, "/dl1/event/telescope/images/tel_025"
-    )
+    unmodified_images = read_table(dl1_image_file, f"{DL1_TEL_IMAGES_GROUP}/tel_025")
     noise_config = resource_file("image_modification_config.json")
 
     dl1_modified = tmp_path / "dl1_modified.dl1.h5"
@@ -302,7 +310,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
         cwd=tmp_path,
         raises=True,
     )
-    modified_images = read_table(dl1_modified, "/dl1/event/telescope/images/tel_025")
+    modified_images = read_table(dl1_modified, f"{DL1_TEL_IMAGES_GROUP}/tel_025")
     # Test that significantly more light is recorded (bias in dim pixels)
     assert modified_images["image"].sum() / unmodified_images["image"].sum() > 1.5
 
@@ -411,7 +419,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         events_from_dl1 = loader.read_subarray_events()
 
     with tables.open_file(dl2_from_dl1) as f:
-        assert "/simulation/service/shower_distribution" in f.root
+        assert SHOWER_DISTRIBUTION_TABLE in f.root
 
     # both files should contain identical data
     assert_array_equal(events_from_simtel["event_id"], events_from_dl1["event_id"])
@@ -439,7 +447,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         argv=[
             f"--input={LST_MUONS}",
             f"--output={muon_simtel_output_file}",
-            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+            FOCAL_LENGTH_CHOICE,
             "--overwrite",
             "--write-muon-parameters",
         ],
@@ -447,7 +455,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         raises=True,
     )
 
-    table = read_table(muon_simtel_output_file, "/dl1/event/telescope/muon/tel_001")
+    table = read_table(muon_simtel_output_file, f"{DL1_TEL_MUON_GROUP}/tel_001")
     assert len(table) > 20
     assert np.count_nonzero(np.isfinite(table["muonring_radius"])) > 0
     assert np.all(
@@ -475,6 +483,62 @@ def test_muon_reconstruction_simtel(tmp_path):
                 efficiency[event.count],
                 equal_nan=True,
             )
+
+
+def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk):
+    """check we can use the process tool with a monitoring file"""
+    from ctapipe.io import HDF5MonitoringSource
+
+    output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
+    tool = ProcessorTool()
+
+    assert (
+        run_tool(
+            tool,
+            argv=[
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={output}",
+                "--allowed-tels=1",
+                "--max-events=1",
+                "--overwrite",
+                FOCAL_LENGTH_CHOICE,
+                "--monitoring-source=HDF5MonitoringSource",
+                f"--HDF5MonitoringSource.input_files={calibpipe_camcalib_single_chunk}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+        == 0
+    )
+
+    assert len(tool._monitoring_sources) == 1
+    assert isinstance(tool._monitoring_sources[0], HDF5MonitoringSource)
+
+
+def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
+    """check we can not use the process tool with an invalid monitoring file"""
+
+    output = tmp_path / "test_process_with_invalid_monitoring_file.dl1.h5"
+
+    with pytest.raises(
+        IOError,
+        match="Incompatible subarray descriptions found in input files.",
+    ):
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={output}",
+                "--allowed-tels=1",
+                "--max-events=1",
+                "--overwrite",
+                FOCAL_LENGTH_CHOICE,
+                "--monitoring-source=HDF5MonitoringSource",
+                f"--HDF5MonitoringSource.input_files={dl1_image_file}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
 
 
 def test_plugin_help(capsys):
@@ -550,7 +614,7 @@ def test_on_old_file(input_url, args, tmp_path):
     )
 
     with tables.open_file(output_path) as f:
-        assert "/configuration/telescope/pointing" in f.root
+        assert FIXED_POINTING_GROUP in f.root
 
     with TableLoader(output_path) as loader:
         events = loader.read_subarray_events()

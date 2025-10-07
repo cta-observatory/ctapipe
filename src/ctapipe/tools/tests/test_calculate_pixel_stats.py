@@ -9,11 +9,9 @@ from traitlets.config.loader import Config
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io import read_table
+from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES, DL1_PIXEL_STATISTICS_GROUP
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 from ctapipe.tools.merge import MergeTool
-
-CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
-DL1_COLUMN_NAMES = ["image", "peak_time"]
 
 
 def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
@@ -79,7 +77,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         assert (
             read_table(
                 monitoring_file,
-                path=f"{CAMERA_MONITORING_GROUP}/pixel_statistics/subarray_{col_name}/tel_{tel_id:03d}",
+                path=f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_{col_name}/tel_{tel_id:03d}",
             )["mean"].ndim
             == 3
         )

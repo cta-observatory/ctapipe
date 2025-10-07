@@ -154,7 +154,7 @@ def plot_event(event, subarray, ax):
     true and reconstructed impact position overlaid
     """
 
-    event.pointing.array_azimuth
+    event.monitoring.pointing.array_azimuth
     disp = ArrayDisplay(subarray, axes=ax)
 
     hillas_dict = {tid: tel.parameters.hillas for tid, tel in event.dl1.tel.items()}
