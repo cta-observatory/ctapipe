@@ -199,6 +199,46 @@ def test_tool_current_config_subcomponents():
     assert current_config["MyTool"]["userparam"] == 2.0
 
 
+def test_tool_current_config_subcomponents_list():
+    """Check that we can get the full instance configuration for tools that
+    contain lists of subcomponents (which can be tools)"""
+    from ctapipe.core.component import Component
+
+    class SubComponent(Component):
+        param = Int(default_value=3).tag(config=True)
+
+    class SubComponent2(Component):
+        param = Int(default_value=3).tag(config=True)
+
+    class MyComponent(Component):
+        val = Int(default_value=42).tag(config=True)
+
+        def __init__(self, config=None, parent=None):
+            super().__init__(config=config, parent=parent)
+            self.subs = [SubComponent(parent=self), SubComponent2(parent=self)]
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+        def setup(self):
+            self.my_comp = MyComponent(parent=self)
+
+    config = Config()
+    config.MyTool.userparam = 2.0
+    config.MyTool.MyComponent.val = 10
+    config.MyTool.MyComponent.SubComponent.param = -1
+
+    tool = MyTool(config=config)
+    tool.setup()
+
+    current_config = tool.get_current_config()
+    assert current_config["MyTool"]["MyComponent"]["val"] == 10
+    assert current_config["MyTool"]["MyComponent"]["SubComponent"]["param"] == -1
+    assert current_config["MyTool"]["MyComponent"]["SubComponent2"]["param"] == 3
+    assert current_config["MyTool"]["userparam"] == 2.0
+
+
 def test_tool_exit_code():
     """Check that we can get the full instance configuration"""
 
