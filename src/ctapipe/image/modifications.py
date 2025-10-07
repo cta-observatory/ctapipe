@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 from numba import njit
+from traitlets import default
 
 from ..containers import EventType
 from ..core import TelescopeComponent
@@ -10,7 +11,6 @@ from ..core.traits import (
     BoolTelescopeParameter,
     FloatTelescopeParameter,
     Int,
-    List,
     Path,
 )
 from ..instrument import SubarrayDescription
@@ -111,6 +111,17 @@ def _smear_psf_randomly(
     return new_image
 
 
+class NoiseEventTypeFilter(EventTypeFilter):
+    """
+    Event filter to select noise events for MC tuning
+    By default it selects SKY_PEDESTAL events
+    """
+
+    @default("allowed_types")
+    def allowed_types_default(self):
+        return {EventType.SKY_PEDESTAL}
+
+
 class WaveformModifier(TelescopeComponent):
     """
     Component to add NSB noise to R1 waveforms.
@@ -159,11 +170,6 @@ class WaveformModifier(TelescopeComponent):
         config=True
     )
 
-    nsb_event_types = List(
-        default_value=[EventType.SKY_PEDESTAL],
-        help="List of event types from which to get the noise waveforms",
-    ).tag(config=True)
-
     total_noise = dict()
     # One key per tel_id, each of them is an array of shape
     # [n_noise_realizations, ngains, npixels, nsamples]
@@ -196,9 +202,7 @@ class WaveformModifier(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
-        event_type_filter = EventTypeFilter(
-            allowed_types=self.nsb_event_types, parent=self
-        )
+        self.event_type_filter = NoiseEventTypeFilter(parent=self)
 
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
@@ -208,7 +212,7 @@ class WaveformModifier(TelescopeComponent):
             input_url=self.nsb_file, skip_calibration_events=False
         ) as source:
             for event in source:
-                if not event_type_filter(event):
+                if not self.event_type_filter(event):
                     continue
                 for tel_id in event.trigger.tels_with_trigger:
                     nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
