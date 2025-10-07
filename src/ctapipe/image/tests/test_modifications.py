@@ -34,8 +34,9 @@ def test_waveform_modifier():
                         wf_mod(tel_id, event.r1.tel[tel_id].waveform)
                     )
                 else:
-                    modified_wfs[tel_id] = [wf_mod(tel_id, event.r1.tel[tel_id].waveform)]
-
+                    modified_wfs[tel_id] = [
+                        wf_mod(tel_id, event.r1.tel[tel_id].waveform)
+                    ]
 
     for tel_id in original_wfs:
         original_wfs[tel_id] = np.array(original_wfs[tel_id])
@@ -45,7 +46,9 @@ def test_waveform_modifier():
     # fully integrated waveforms:
     for gain in range(2):
         # LSTS 1-4, MSTs 5-13
-        for tel_list in [np.arange(1, 5), np.arange(5, 14)]:
+        for tel_list, expected_ratio in zip(
+            [np.arange(1, 5), np.arange(5, 14)], [2.15, 2.13]
+        ):
             a = np.mean(
                 [
                     np.sum(original_wfs[tel_id][:, gain], axis=2).std()
@@ -58,7 +61,7 @@ def test_waveform_modifier():
                     for tel_id in tel_list
                 ]
             )
-            assert np.allclose(b / a, 2.13, atol=1e-2)
+            assert np.allclose(b / a, expected_ratio, atol=1e-2)
 
 
 def test_add_noise():

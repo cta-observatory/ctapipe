@@ -255,14 +255,16 @@ class WaveformModifier(TelescopeComponent):
             # [n_noise_realizations, ngains, npixels, nsamples]
 
             nevents = nsb_database[tel_id].shape[0]
+
             for jj in range(self.n_noise_realizations):
                 # We take a random combination of a number self.nsb_level of
                 # instances of the noise events. The combination of events is
                 # common to the whole camera (making it different for each
                 # pixel might be better, but it is very slow - and I failed
                 # to do it using numba due to some numba limitations)
-                shuffled_event_indices = self.rng.permutation(nevents)[: self.nsb_level]
-
+                shuffled_event_indices = self.rng.choice(
+                    nevents, replace=False, size=self.nsb_level
+                )
                 # Now we add those self.nsb_level waveforms to get the total
                 # desired level of additional noise:
                 self.total_noise[tel_id][jj] = np.sum(
