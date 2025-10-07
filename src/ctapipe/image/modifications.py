@@ -168,6 +168,10 @@ def build_wf_noise_pixelwise(
         else:
             for pixel in range(n_pixels):
                 chosen = rng.permutation(n_events)[:nsb_level]
+                # The line above is slower (especially for n_events much
+                # larger than nsb_level) than rng.choice(n_events, nsb_level)
+                # Unfortunately rng.choice does not currently work with numba.
+
                 for event in chosen:
                     noise[i, :, pixel] += waveforms[event, :, pixel]
     return noise
