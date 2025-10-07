@@ -152,11 +152,6 @@ class ProcessorTool(Tool):
             "don't DL2/Event parameters in output",
         ),
         **flag(
-            "write-index-tables",
-            "DataWriter.write_index_tables",
-            "generate PyTables index tables for the parameter and image datasets",
-        ),
-        **flag(
             "write-muon-parameters",
             "DataWriter.write_muon_parameters",
             "store DL1/Event/Telescope muon parameters in output",
