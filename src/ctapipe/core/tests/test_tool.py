@@ -178,17 +178,26 @@ def test_tool_current_config_subcomponents():
             super().__init__(config=config, parent=parent)
             self.sub = SubComponent(parent=self)
 
+    class Component1(Component):
+        param = Int(default_value=1).tag(config=True)
+
+    class Component2(Component):
+        param = Int(default_value=2).tag(config=True)
+
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
         def setup(self):
             self.my_comp = MyComponent(parent=self)
+            self._comp_list = [Component1(parent=self), Component2(parent=self)]
 
     config = Config()
     config.MyTool.userparam = 2.0
     config.MyTool.MyComponent.val = 10
     config.MyTool.MyComponent.SubComponent.param = -1
+    config.MyTool.Component1.param = 5
+    config.MyTool.Component2.param = 6
 
     tool = MyTool(config=config)
     tool.setup()
@@ -196,6 +205,8 @@ def test_tool_current_config_subcomponents():
     current_config = tool.get_current_config()
     assert current_config["MyTool"]["MyComponent"]["val"] == 10
     assert current_config["MyTool"]["MyComponent"]["SubComponent"]["param"] == -1
+    assert current_config["MyTool"]["Component1"]["param"] == 5
+    assert current_config["MyTool"]["Component2"]["param"] == 6
     assert current_config["MyTool"]["userparam"] == 2.0
 
 
