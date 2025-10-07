@@ -232,6 +232,11 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         for val in self.__dict__.values():
             if isinstance(val, Component):
                 config[name].update(val.get_current_config())
+            elif (
+                isinstance(val, list) and len(val) > 0 and isinstance(val[0], Component)
+            ):
+                for comp in val:
+                    config[name].update(comp.get_current_config())
 
         return config
 

@@ -453,3 +453,42 @@ def test_logging_hierarchy():
     assert baz.log.name == "ctapipe.baz"
     assert baz.bar.log.name == "ctapipe.baz.Bar"
     assert baz.bar.foo.log.name == "ctapipe.baz.Bar.Foo"
+
+
+def test_get_config_list_of_components():
+    class SubComponent1(Component):
+        param = Int(default_value=1).tag(config=True)
+
+    class SubComponent2(Component):
+        param = Int(default_value=2).tag(config=True)
+
+    class MyComponent(Component):
+        val = Int(default_value=42).tag(config=True)
+
+        def __init__(self, config=None, parent=None):
+            super().__init__(config=config, parent=parent)
+            self._comps = [
+                SubComponent1(parent=self),
+                SubComponent2(parent=self),
+            ]
+
+    comp = MyComponent()
+    assert comp.get_current_config() == {
+        "MyComponent": {
+            "val": 42,
+            "SubComponent1": {"param": 1},
+            "SubComponent2": {"param": 2},
+        }
+    }
+
+    # test round tripping
+    comp = MyComponent()
+    comp.val = 10
+    comp._comps[0].param = -1
+    comp._comps[0].param = -2
+
+    dict_config = comp.get_current_config()
+    config = Config(dict_config)
+    comp_from_config = MyComponent(config=config)
+
+    assert dict_config == comp_from_config.get_current_config()
