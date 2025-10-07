@@ -8,6 +8,7 @@ from ..containers import EventType
 from ..core import TelescopeComponent
 from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ..core.traits import (
+    Bool,
     BoolTelescopeParameter,
     FloatTelescopeParameter,
     Int,
@@ -122,6 +123,56 @@ class NoiseEventTypeFilter(EventTypeFilter):
         return {EventType.SKY_PEDESTAL}
 
 
+@njit
+def build_wf_noise_pixelwise(
+    waveforms, n_noise_realizations, nsb_level, rng, shuffle_full_cameras
+):
+    """
+    Combine "elemental noise waveforms" into total noise waveforms by
+    combining a given number of them, chosen randomly
+
+    Parameters
+    ----------
+    waveforms: array (nevents, ngains, npixels, nsamples), the elemental noise
+    waveforms
+
+    n_noise_realizations: int
+    the number of total noise waveforms we want to generate
+
+    nsb_level: int
+    the number of elemental noise waveforms we combine to produce each total
+    noise waveform
+
+    rng: random number generator
+
+    shuffle_full_cameras: bool
+    if True, the waveform for each pixel in any given noise realization comes
+    from the same combination of the input elemental noise events. If False,
+    each pixel uses a different combination of the events
+
+    Returns
+    -------
+    array (n_noise, ngains, npixels, nsamples), total noise waveforms
+
+    """
+    n_events, n_gains, n_pixels, n_samples = waveforms.shape
+    noise = np.zeros(
+        (n_noise_realizations, n_gains, n_pixels, n_samples), dtype=np.float32
+    )
+
+    for i in range(n_noise_realizations):
+        if shuffle_full_cameras:
+            chosen = rng.permutation(n_events)[:nsb_level]
+            for event in chosen:
+                noise[i] += waveforms[event]
+        else:
+            for pixel in range(n_pixels):
+                chosen = rng.permutation(n_events)[:nsb_level]
+                for event in chosen:
+                    noise[i, :, pixel] += waveforms[event, :, pixel]
+    return noise
+
+
 class WaveformModifier(TelescopeComponent):
     """
     Component to add NSB noise to R1 waveforms.
@@ -166,13 +217,20 @@ class WaveformModifier(TelescopeComponent):
         ),
     ).tag(config=True)
 
+    shuffle_full_cameras = Bool(
+        default_value=False,
+        help=(
+            "If True, full cameras are "
+            "combined to generate noise "
+            "waveforms for all pixels. Else, "
+            "each pixel uses a different random "
+            "combination of the inmput noise events"
+        ),
+    ).tag(config=True)
+
     rng_seed = Int(default_value=1, help="Seed for the random number generator").tag(
         config=True
     )
-
-    total_noise = dict()
-    # One key per tel_id, each of them is an array of shape
-    # [n_noise_realizations, ngains, npixels, nsamples]
 
     def __init__(
         self,
@@ -204,6 +262,10 @@ class WaveformModifier(TelescopeComponent):
 
         self.event_type_filter = NoiseEventTypeFilter(parent=self)
 
+        self.total_noise = dict()
+        # One key per tel_id, and each of them is an array of shape
+        # [n_noise_realizations, ngains, npixels, nsamples]
+
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
         # n_pixels, n_samples]
@@ -214,8 +276,9 @@ class WaveformModifier(TelescopeComponent):
             for event in source:
                 if not self.event_type_filter(event):
                     continue
-                for tel_id in event.trigger.tels_with_trigger:
-                    nsb_database[tel_id].append(event.r1.tel[tel_id].waveform)
+                for tel_id, r1 in event.r1.tel.items():
+                    nsb_database[tel_id].append(r1.waveform)
+
         nsb_database = {
             tel_id: np.stack(waveforms) for tel_id, waveforms in nsb_database.items()
         }
@@ -245,35 +308,20 @@ class WaveformModifier(TelescopeComponent):
         # any bias (just fluctuations). For each telescope and gain we average
         # all pixels
         for tel_id in nsb_database:
-            hg_mean = np.mean(nsb_database[tel_id][:, 0, :, :])  # HG
-            lg_mean = np.mean(nsb_database[tel_id][:, 1, :, :])  # LG
-            nsb_database[tel_id][:, 0, :, :] -= hg_mean
-            nsb_database[tel_id][:, 1, :, :] -= lg_mean
+            for channel in range(nsb_database[tel_id].shape[1]):
+                mean = np.mean(nsb_database[tel_id][:, channel, :, :])
+                nsb_database[tel_id][:, channel, :, :] -= mean
 
         # Now add up waveforms selected at random to obtain different
         # realizations of the total noise that will be added
         for tel_id in nsb_database:
-            newshape = np.array(nsb_database[tel_id].shape)
-            newshape[0] = self.n_noise_realizations
-            self.total_noise[tel_id] = np.zeros(shape=newshape)
-            # [n_noise_realizations, ngains, npixels, nsamples]
-
-            nevents = nsb_database[tel_id].shape[0]
-
-            for jj in range(self.n_noise_realizations):
-                # We take a random combination of a number self.nsb_level of
-                # instances of the noise events. The combination of events is
-                # common to the whole camera (making it different for each
-                # pixel might be better, but it is very slow - and I failed
-                # to do it using numba due to some numba limitations)
-                shuffled_event_indices = self.rng.choice(
-                    nevents, replace=False, size=self.nsb_level
-                )
-                # Now we add those self.nsb_level waveforms to get the total
-                # desired level of additional noise:
-                self.total_noise[tel_id][jj] = np.sum(
-                    nsb_database[tel_id][shuffled_event_indices], axis=0
-                )
+            self.total_noise[tel_id] = build_wf_noise_pixelwise(
+                nsb_database[tel_id],
+                self.n_noise_realizations,
+                self.nsb_level,
+                self.rng,
+                self.shuffle_full_cameras,
+            )
 
     def __call__(self, tel_id, waveforms, selected_gain_channel=None):
         """
