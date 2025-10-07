@@ -487,12 +487,13 @@ def test_muon_reconstruction_simtel(tmp_path):
 
 def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk):
     """check we can use the process tool with a monitoring file"""
-
+ from ctapipe.io import HDF5MonitoringSource
     output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
-
+    tool = ProcessorTool()
+    
     assert (
         run_tool(
-            ProcessorTool(),
+            tool,
             argv=[
                 f"--input={GAMMA_TEST_LARGE}",
                 f"--output={output}",
@@ -509,6 +510,8 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk)
         == 0
     )
 
+    assert len(tool._monitoring_sources) == 1
+    assert isinstance(tool._monitoring_sources[0], HDF5MonitoringSource)
 
 def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
     """check we can not use the process tool with an invalid monitoring file"""
