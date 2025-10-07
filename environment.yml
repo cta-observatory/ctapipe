@@ -3,9 +3,10 @@ name: cta-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - python=3.13
   - pip
   - astropy>=6.1,<8
+  - astroquery
   - black
   - bokeh=3
   - nbsphinx
@@ -31,10 +32,12 @@ dependencies:
   - pytest-cov
   - pytest-runner
   - pytest-astropy-header
+  - pytest-xdist
   - pyyaml
   - scikit-learn
   - scipy
   - setuptools
+  - setuptools-scm
   - sphinx
   - sphinx-gallery
   - sphinx-automodapi
@@ -42,7 +45,6 @@ dependencies:
   - sphinx-design
   - sphinxcontrib-bibtex
   - sphinx_changelog
-  - tomli
   - towncrier
   - tqdm
   - traitlets
@@ -52,3 +54,4 @@ dependencies:
   - zlib
   - eventio>=1.9.1
   - ffmpeg # for making movies in the documentation
+  - ffmpeg-python # for making movies in the documentation
