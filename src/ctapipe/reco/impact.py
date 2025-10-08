@@ -758,7 +758,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             self.spe[i][:] = 0.5
 
         # Set the image mask
-        mask = self.image == 0.0
+        mask = self.image <= 0.0
         self.pixel_x[mask], self.pixel_y[mask] = ma.masked, ma.masked
         self.image[mask] = ma.masked
         self.time[mask] = ma.masked

@@ -6,6 +6,7 @@ from copy import deepcopy
 
 import astropy.units as u
 import numpy as np
+import pytest
 from scipy.stats import norm
 from traitlets.config import Config
 
@@ -367,8 +368,9 @@ def test_invalid_pixels(example_event, example_subarray):
         config=config,
     )
     calibrator(event)
-    assert np.all(event.dl1.tel[tel_id].image == 1.0)
-    assert np.all(event.dl1.tel[tel_id].peak_time == 20.0 / sampling_rate)
+    dl1 = event.dl1.tel[tel_id]
+    np.testing.assert_array_equal(dl1.image, 1.0)
+    np.testing.assert_array_equal(dl1.peak_time, 20.0 / sampling_rate)
 
     # test we can set the invalid pixel handler to None
     config.CameraCalibrator.invalid_pixel_handler_type = None
@@ -378,7 +380,7 @@ def test_invalid_pixels(example_event, example_subarray):
     )
     calibrator(event)
     assert event.dl1.tel[tel_id].image[0] == 9999
-    assert event.dl1.tel[tel_id].peak_time[0] == 10.0 / sampling_rate
+    assert event.dl1.tel[tel_id].peak_time[0] == pytest.approx(10.0 / sampling_rate)
 
 
 def test_no_gain_selection(prod5_gamma_simtel_path):
