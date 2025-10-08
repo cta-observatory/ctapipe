@@ -505,23 +505,7 @@ class Tool(Application):
         """return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
-        conf = {
-            self.__class__.__name__: {
-                k: v.get(self) for k, v in self.traits(config=True).items()
-            }
-        }
-
-        for val in self.__dict__.values():
-            if isinstance(val, (Component, Tool)):
-                conf[self.__class__.__name__].update(val.get_current_config())
-            if isinstance(val, (list, tuple)) and isinstance(val[0], (Component, Tool)):
-                for element in val:
-                    if isinstance(element, (Component, Tool)):
-                        conf[self.__class__.__name__][
-                            element.__class__.__name__
-                        ].update(element.get_current_config())
-
-        return conf
+        return Component.get_current_config(self)
 
     def _repr_html_(self):
         """nice HTML rep, with blue for non-default values"""
