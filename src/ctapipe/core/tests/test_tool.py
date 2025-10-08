@@ -705,3 +705,45 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
     # test correct case:
     tool.load_config_file(good_conf_path)
     assert tool.float_option > 1
+
+
+def test_tool_in_tool():
+    """Check that a Tool that calls other Tools has the right config in the
+    provenance log."""
+
+    class InnerTool(Tool):
+        param1 = traits.Integer(12).tag(config=True)
+
+        def start(self):
+            print(f"started inner: {self.get_current_config()}")
+
+    class CompoundTool(Tool):
+        param1 = traits.Integer(12).tag(config=True)
+        filename = traits.Unicode().tag(config=True)
+
+        classes = [
+            InnerTool,
+        ]
+
+        def setup(self):
+            self._inner = InnerTool(parent=self)
+
+        def start(self):
+            print(f"started calib: {self.get_current_config()}")
+
+            run_tool(self._inner)
+
+    conf = Config()
+    conf.InnerTool.param1 = 6
+    conf.CompoundTool.filename = "test.txt"
+    conf.CompoundTool.param1 = 100
+
+    tool = CompoundTool(config=conf)
+    run_tool(tool, raises=False)  # have to run it for setup()
+
+    assert "InnerTool" in tool.config
+
+    current_config = tool.get_current_config()
+    assert "CompoundTool" in current_config
+    assert "InnerTool" in current_config["CompoundTool"]
+    assert current_config["CompoundTool"]["InnerTool"]["param1"] == 6
