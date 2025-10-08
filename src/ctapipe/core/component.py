@@ -1,4 +1,5 @@
-""" Class to handle configuration for algorithms """
+"""Class to handle configuration for algorithms"""
+
 import html
 import warnings
 import weakref
@@ -233,11 +234,14 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
         for val in self.__dict__.values():
             if isinstance(val, (Component, Tool)):
-                print("FOUND", val)
                 config[name].update(val.get_current_config())
-            if isinstance(val, (list, tuple)) and isinstance(val[0], (Component, Tool)):
+            if (
+                isinstance(val, (list, tuple))
+                and val
+                and isinstance(val[0], (Component, Tool))
+            ):
                 for element in val:
-                    if isinstance(element, Component):
+                    if isinstance(element, (Component, Tool)):
                         config[name].update(element.get_current_config())
 
         return config
