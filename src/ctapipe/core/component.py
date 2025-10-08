@@ -5,7 +5,6 @@ import weakref
 from abc import ABCMeta
 from inspect import cleandoc, isabstract
 from logging import getLogger
-from typing import Iterable
 
 from docutils.core import publish_parts
 from traitlets import TraitError
@@ -233,7 +232,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         for val in self.__dict__.values():
             if isinstance(val, Component):
                 config[name].update(val.get_current_config())
-            if isinstance(val, Iterable):
+            if isinstance(val, (list, tuple)) and isinstance(val[0], Component):
                 for element in val:
                     if isinstance(element, Component):
                         config[name].update(element.get_current_config())

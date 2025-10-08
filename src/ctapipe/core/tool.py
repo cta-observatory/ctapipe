@@ -12,7 +12,6 @@ from contextlib import ExitStack
 from inspect import cleandoc
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
-from typing import Iterable
 
 import yaml
 from docutils.core import publish_parts
@@ -515,7 +514,7 @@ class Tool(Application):
         for val in self.__dict__.values():
             if isinstance(val, (Component, Tool)):
                 conf[self.__class__.__name__].update(val.get_current_config())
-            if isinstance(val, Iterable):
+            if isinstance(val, (list, tuple)) and isinstance(val[0], (Component, Tool)):
                 for element in val:
                     if isinstance(element, (Component, Tool)):
                         conf[self.__class__.__name__][
