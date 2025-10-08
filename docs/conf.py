@@ -396,6 +396,10 @@ man_pages = [("index", project.lower(), project + " Documentation", [author], 1)
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
+description = (
+    "Experimental Data Analysis for the"
+    " Cherenkov Telescope Array Observatory (CTAO)."
+)
 texinfo_documents = [
     (
         master_doc,
@@ -403,8 +407,7 @@ texinfo_documents = [
         "ctapipe Documentation",
         author,
         "ctapipe",
-        "Experimental Data Analysis for the"
-        "Cherenkov Telescope Array Observatory (CTAO).",
+        description,
         "Science",
     )
 ]
