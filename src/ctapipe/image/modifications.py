@@ -181,22 +181,35 @@ class WaveformModifier(TelescopeComponent):
     """
     Component to add NSB noise to R1 waveforms.
 
-    This component in principle to be applied on MC simulations, to make them
-    closer to real data in terms of noise level.
-    The noise waveforms are read from a dedicated sim_telarray file, which
-    must be produced with the same telescope array configuration (and other
-    simulation settings) as the file to which the noise is to be added,
-    but containing only NSB noise (electronic noise should be switched off)
+    This component in principle to be applied on MC shower simulations, to make
+    them closer to real data in terms of noise level.
 
-    The number of simulated noise events per telescope in the NSB file must
-    be at least twice the number of waveforms ("nsb_level") from that file
-    that we want to add up. If the NSB file is produced with a level of 25%
-    of dark NSB, and we want to simulate 10x dark NSB, then nsb_level=40 (
-    =10/0.25) and the file must contain at least 80 events. This is to
-    guarantee that the different noise waveforms are not too correlated
+    There are two possibilities:
+        1. The "showers MC" file has dark-NSB settings and electronic noise (
+        waveform baseline fluctuations), and the input NSB file is a
+        dedicated sim_telarray file, which must be produced with the same
+        telescope array configuration (and other simulation settings) as the
+        showers MC to which the noise is to be added, but containing only NSB
+        noise (electronic fluctuations of the baseline should be switched off)
 
-    This class can eventually use as NSB file a real data DL0 file which
-    contains pedestal events.
+        2. The showers MC file is produced with no noise (baseline
+        fluctuations) of any kind (electronic or NSB), just the Cherenkov
+        signal (with the appropriate single-p.e.-response fluctuations),
+        whereas the nsb file is a real data DL0 file from which only the
+        interleaved pedestals are used (all gain channels must be present
+        for all pixels). In that case, nsb_level must be =1 (to
+        match the MC to the data) and shuffle_full_cameras=True (we do not
+        want e.g. to duplicate stars in the FoV).
+
+
+    In case (1), the number of available noise events per telescope in the NSB
+    file must be at least twice the number of waveforms ("nsb_level") from
+    that file that we want to add up. If the NSB file is produced with a
+    level of 25% of dark NSB, and we want to simulate 10x dark NSB,
+    then nsb_level=40 (=10/0.25) and the file must contain at least 80
+    events. This is to guarantee that the different noise waveforms are not
+    too correlated
+
 
     """
 
@@ -228,7 +241,7 @@ class WaveformModifier(TelescopeComponent):
             "combined to generate noise "
             "waveforms for all pixels. Else, "
             "each pixel uses a different random "
-            "combination of the inmput noise events"
+            "combination of the input noise events"
         ),
     ).tag(config=True)
 
