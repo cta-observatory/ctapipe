@@ -341,8 +341,9 @@ def image_prediction_no_units(
     # [pi*(pixel_diameter/2)**2]/ S. Actually, for the large rings (relative to pixel
     # size) we are concerned with, a good enough approximation is the ratio between a
     # circle's area and that of the square whose side is equal to the circle's
-    # diameter. In any case, since in the end we do a data-MC comparison of the muon
-    # ring analysis outputs, it is not critical that this value is exact.
+    # diameter or flat-to-flat distance for hexagonal pixel.
+    # Please note : in the end we do a data-MC comparison of the muon
+    # ring analysis outputs.
 
     if pix_type == PixelShape.HEXAGON:
         pred *= CIRCLE_HEXAGON_AREA_RATIO
