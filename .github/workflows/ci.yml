@@ -67,10 +67,10 @@ jobs:
             install-method: mamba
             extras: tests,all
 
-          - name: Linux (3.14, pip)
+          - name: Linux (3.14, mamba)
             os: ubuntu-24.04
             python-version: "3.14"
-            install-method: pip
+            install-method: mamba
             extras: tests,all
 
           - name: macos (3.12, arm64, mamba)
