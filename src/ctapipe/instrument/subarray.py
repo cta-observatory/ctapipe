@@ -796,3 +796,15 @@ class SubarrayDescription:
 
         with EventSource(path, **kwargs) as s:
             return s.subarray
+
+    @staticmethod
+    def check_matching_subarrays(subarray_list: list) -> bool:
+        """Check if subarrays are matching
+
+        Currently only checks if the tel_ids are the same in all subarrays.
+        More checks can be added if needed.
+        """
+        return all(
+            set(subarray.tel_ids) == set(subarray_list[0].tel_ids)
+            for subarray in subarray_list
+        )

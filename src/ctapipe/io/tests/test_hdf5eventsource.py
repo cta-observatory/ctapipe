@@ -64,7 +64,7 @@ def test_allowed_tels(dl1_file):
         assert source.allowed_tels == allowed_tels
         for event in source:
             assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
-            assert set(event.pointing.tel).issubset(allowed_tels)
+            assert set(event.monitoring.tel).issubset(allowed_tels)
             assert set(event.dl1.tel).issubset(allowed_tels)
 
 
@@ -138,12 +138,20 @@ def test_dl1_data(dl1_file):
 def test_pointing(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
-            assert np.isclose(event.pointing.array_azimuth.to_value(u.deg), 0)
-            assert np.isclose(event.pointing.array_altitude.to_value(u.deg), 70)
-            assert event.pointing.tel
-            for tel in event.pointing.tel:
-                assert np.isclose(event.pointing.tel[tel].azimuth.to_value(u.deg), 0)
-                assert np.isclose(event.pointing.tel[tel].altitude.to_value(u.deg), 70)
+            assert np.isclose(
+                event.monitoring.pointing.array_azimuth.to_value(u.deg), 0
+            )
+            assert np.isclose(
+                event.monitoring.pointing.array_altitude.to_value(u.deg), 70
+            )
+            assert event.monitoring.tel
+            for tel_id in event.monitoring.tel.keys():
+                assert np.isclose(
+                    event.monitoring.tel[tel_id].pointing.azimuth.to_value(u.deg), 0
+                )
+                assert np.isclose(
+                    event.monitoring.tel[tel_id].pointing.altitude.to_value(u.deg), 70
+                )
 
 
 def test_pointing_divergent(dl1_divergent_file):
@@ -158,22 +166,22 @@ def test_pointing_divergent(dl1_divergent_file):
         for event, simtel_event in zip_longest(source, simtel_source):
             assert event.index.event_id == simtel_event.index.event_id
             assert u.isclose(
-                event.pointing.array_azimuth,
-                simtel_event.pointing.array_azimuth,
+                event.monitoring.pointing.array_azimuth,
+                simtel_event.monitoring.pointing.array_azimuth,
             )
             assert u.isclose(
-                event.pointing.array_altitude,
-                simtel_event.pointing.array_altitude,
+                event.monitoring.pointing.array_altitude,
+                simtel_event.monitoring.pointing.array_altitude,
             )
-            assert event.pointing.tel.keys() == simtel_event.pointing.tel.keys()
-            for tel in event.pointing.tel:
+            assert event.monitoring.tel.keys() == simtel_event.monitoring.tel.keys()
+            for tel_id in event.monitoring.tel.keys():
                 assert u.isclose(
-                    event.pointing.tel[tel].azimuth,
-                    simtel_event.pointing.tel[tel].azimuth,
+                    event.monitoring.tel[tel_id].pointing.azimuth,
+                    simtel_event.monitoring.tel[tel_id].pointing.azimuth,
                 )
                 assert u.isclose(
-                    event.pointing.tel[tel].altitude,
-                    simtel_event.pointing.tel[tel].altitude,
+                    event.monitoring.tel[tel_id].pointing.altitude,
+                    simtel_event.monitoring.tel[tel_id].pointing.altitude,
                 )
 
 
@@ -254,17 +262,6 @@ def test_dl1_camera_frame(dl1_camera_frame_file):
         assert tel_id is not None, "did not test any events"
 
 
-def test_interpolate_pointing(dl1_mon_pointing_file):
-    from ctapipe.io import HDF5EventSource
-
-    with HDF5EventSource(dl1_mon_pointing_file) as source:
-        for e in source:
-            assert set(e.pointing.tel.keys()) == set(e.trigger.tels_with_trigger)
-            for pointing in e.pointing.tel.values():
-                assert not np.isnan(pointing.azimuth)
-                assert not np.isnan(pointing.altitude)
-
-
 def test_simulated_events_distribution(dl1_file):
     with HDF5EventSource(dl1_file) as source:
         assert len(source.simulated_shower_distributions) == 1
@@ -294,10 +291,10 @@ def test_pointing_old_file():
     n_read = 0
     with HDF5EventSource(input_url, max_events=5) as source:
         for e in source:
-            assert e.pointing.tel.keys() == set(e.trigger.tels_with_trigger)
-            for pointing in e.pointing.tel.values():
-                assert u.isclose(pointing.altitude, 70 * u.deg)
-                assert u.isclose(pointing.azimuth, 0 * u.deg)
+            assert e.monitoring.tel.keys() == set(e.trigger.tels_with_trigger)
+            for tel_id in e.monitoring.tel.keys():
+                assert u.isclose(e.monitoring.tel[tel_id].pointing.altitude, 70 * u.deg)
+                assert u.isclose(e.monitoring.tel[tel_id].pointing.azimuth, 0 * u.deg)
             n_read += 1
     assert n_read == 5
 
@@ -324,7 +321,28 @@ def test_no_pointing_in_ob(tmp_path):
     with HDF5EventSource(path) as source:
         n_read = 0
         for e in source:
-            assert np.isnan(e.pointing.array_azimuth)
-            assert np.isnan(e.pointing.array_altitude)
+            assert np.isnan(e.monitoring.pointing.array_azimuth)
+            assert np.isnan(e.monitoring.pointing.array_altitude)
             n_read += 1
         assert n_read == n_written
+
+
+def test_read_dl2_tel_ml(gamma_diffuse_full_reco_file):
+    algorithm = "ExtraTreesRegressor"
+
+    with HDF5EventSource(gamma_diffuse_full_reco_file) as s:
+        assert s.datalevels == (DataLevel.DL2,)
+
+        e = next(iter(s))
+        assert algorithm in e.dl2.stereo.energy
+        assert e.dl2.stereo.energy[algorithm].energy is not None
+
+        tel_mask = e.dl2.stereo.energy[algorithm].telescopes
+        tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
+        for tel_id in tel_ids:
+            assert tel_id in e.dl2.tel
+            assert algorithm in e.dl2.tel[tel_id].energy
+            energy = e.dl2.tel[tel_id].energy[algorithm]
+            assert energy.prefix == algorithm + "_tel"
+            assert energy.energy is not None
+            assert np.isfinite(energy.energy)

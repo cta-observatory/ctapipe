@@ -6,8 +6,8 @@ calculate the montoring data for the camera calibration.
 import numpy as np
 from astropy.table import Table, vstack
 
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import (
+from ..core import TelescopeComponent
+from ..core.traits import (
     ComponentName,
     Dict,
     Float,
@@ -16,8 +16,8 @@ from ctapipe.core.traits import (
     TelescopeParameter,
     TraitError,
 )
-from ctapipe.monitoring.aggregator import StatisticsAggregator
-from ctapipe.monitoring.outlier import OutlierDetector
+from .aggregator import StatisticsAggregator
+from .outlier import OutlierDetector
 
 __all__ = [
     "PixelStatisticsCalculator",

@@ -1,11 +1,12 @@
 """
 common pytest fixtures for tests in ctapipe
 """
-
 import importlib
+import importlib.util
 import json
 import shutil
 from copy import deepcopy
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -18,6 +19,13 @@ from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
 from ctapipe.io import SimTelEventSource
+from ctapipe.io.hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_CAMERA_COEFFICIENTS_GROUP,
+    DL1_CAMERA_MONITORING_GROUP,
+    FIXED_POINTING_GROUP,
+    SIMULATION_GROUP,
+)
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
 from ctapipe.utils.filelock import FileLock
@@ -55,6 +63,10 @@ if importlib.util.find_spec("pyirf") is None:
 def camera_geometry(request):
     with pytest.warns(FromNameWarning):
         return CameraGeometry.from_name(request.param)
+
+
+def _lock_file(path: Path):
+    return path.with_name(path.name + ".lock")
 
 
 @pytest.fixture(scope="session")
@@ -156,6 +168,11 @@ def subarray_and_event_gamma_off_axis_500_gev(
 
 
 @pytest.fixture(scope="session")
+def prod6_gamma_simtel_path():
+    return get_dataset_path("gamma_prod6_preliminary.simtel.zst")
+
+
+@pytest.fixture(scope="session")
 def prod5_gamma_simtel_path():
     return get_dataset_path("gamma_prod5.simtel.zst")
 
@@ -172,6 +189,26 @@ def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
     )
+
+
+@pytest.fixture(scope="session")
+def proton_dl2_train_small_h5():
+    return get_dataset_path("proton_dl2_train_small.dl2.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_single_chunk():
+    return get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_same_chunks():
+    return get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_different_chunks():
+    return get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
@@ -226,7 +263,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
     output = dl2_tmp_path / "gamma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -250,7 +287,7 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
     output = dl2_tmp_path / "gamma_lapalma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -274,7 +311,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
     output = dl2_tmp_path / "proton.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -299,7 +336,7 @@ def dl2_merged_file(dl2_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_
     output = dl2_tmp_path / "merged.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -322,7 +359,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -345,7 +382,7 @@ def dl1_divergent_file(dl1_tmp_path):
     output = dl1_tmp_path / "gamma_divergent.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -368,7 +405,7 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_camera_frame.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -385,14 +422,14 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
 @pytest.fixture(scope="session")
 def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
     """
-    DL1 file containing both images and parameters from a gamma simulation set.
+    File only containing dl2 shower information.
     """
     from ctapipe.tools.process import ProcessorTool
 
     output = dl2_tmp_path / "gamma_no_dl1.dl2.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -418,7 +455,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_images.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -444,7 +481,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_parameters.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -468,7 +505,7 @@ def dl1_muon_file(dl1_tmp_path):
     output = dl1_tmp_path / "muons.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -496,7 +533,7 @@ def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
     pytest.importorskip("iminuit")
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -522,7 +559,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
 
     output = dl1_tmp_path / "proton.dl1.h5"
 
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock(_lock_file(output)):
         if output.is_file():
             return output
 
@@ -547,7 +584,7 @@ def energy_regressor_path(model_tmp_path):
 
     out_file = model_tmp_path / "energy.pkl"
 
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock(_lock_file(out_file)):
         if out_file.is_file():
             return out_file
 
@@ -616,7 +653,7 @@ def particle_classifier_path(model_tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock(_lock_file(out_file)):
         if out_file.is_file():
             return out_file
 
@@ -643,7 +680,7 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
 
     out_file = model_tmp_path / "disp_reconstructor.pkl"
     cv_out_file = model_tmp_path / "cv_disp_reconstructor.h5"
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock(_lock_file(out_file)):
         if out_file.is_file():
             return out_file
 
@@ -670,18 +707,15 @@ def reference_location():
 
 
 @pytest.fixture(scope="session")
-def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
-    from ctapipe.instrument import SubarrayDescription
+def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     from ctapipe.io import read_table, write_table
 
-    path = dl1_tmp_path / "dl1_mon_ponting.dl1.h5"
-    shutil.copy(dl1_file, path)
+    path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
+    shutil.copy(calibpipe_camcalib_same_chunks, path)
 
-    events = read_table(path, "/dl1/event/subarray/trigger")
-    subarray = SubarrayDescription.from_hdf(path)
-
+    tel_id = 1
     # create some dummy monitoring data
-    time = events["time"]
+    time = read_table(path, f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}")["time"]
     start, stop = time[[0, -1]]
     duration = (stop - start).to_value(u.s)
 
@@ -693,13 +727,103 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
     az = (180 + 5 * dt / dt[-1]) * u.deg
 
     table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
-
-    for tel_id in subarray.tel:
-        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+    write_table(table, path, f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}")
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
-        f.remove_node("/configuration/telescope/pointing", recursive=True)
+        # Remove the constant pointing
+        f.remove_node(FIXED_POINTING_GROUP, recursive=True)
+        # Remove camera-related monitoring data
+        f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
+    path = dl1_tmp_path / "dl1_mon_pointingobs.dl1.h5"
+    shutil.copy(dl1_mon_pointing_file, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp_path):
+    path = dl1_tmp_path / "calibpipe_camcalib_single_chunk_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_single_chunk, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_path):
+    path = dl1_tmp_path / "calibpipe_camcalib_same_chunks_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_same_chunks, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_different_chunks_obs(
+    calibpipe_camcalib_different_chunks, dl1_tmp_path
+):
+    path = dl1_tmp_path / "calibpipe_camcalib_different_chunks_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_different_chunks, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def dl1_merged_monitoring_file(
+    dl1_tmp_path, dl1_mon_pointing_file, calibpipe_camcalib_different_chunks
+):
+    """
+    File containing both camera and pointing monitoring data.
+    """
+    from ctapipe.tools.merge import MergeTool
+
+    output = dl1_tmp_path / "dl1_merged_monitoring_file.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--output={output}",
+            str(dl1_mon_pointing_file),
+            str(calibpipe_camcalib_different_chunks),
+            "--monitoring",
+            "--single-ob",
+        ]
+        assert run_tool(MergeTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
+    path = dl1_tmp_path / "dl1_merged_monitoring_file_obs.dl1.h5"
+    shutil.copy(dl1_merged_monitoring_file, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
 

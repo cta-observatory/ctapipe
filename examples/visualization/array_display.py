@@ -120,8 +120,8 @@ plt.colorbar(ad.telescopes, label="Distance (m)")
 # set of parameters.
 #
 
-np.random.seed(0)
-phis = np.random.uniform(0, 180.0, size=subarray.n_tels) * u.deg
+rng = np.random.default_rng(0)
+phis = rng.uniform(0, 180.0, size=subarray.n_tels) * u.deg
 rhos = np.ones(subarray.n_tels) * 200 * u.m
 
 
@@ -154,7 +154,7 @@ def plot_event(event, subarray, ax):
     true and reconstructed impact position overlaid
     """
 
-    event.pointing.array_azimuth
+    event.monitoring.pointing.array_azimuth
     disp = ArrayDisplay(subarray, axes=ax)
 
     hillas_dict = {tid: tel.parameters.hillas for tid, tel in event.dl1.tel.items()}

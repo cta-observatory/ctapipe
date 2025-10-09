@@ -4,17 +4,23 @@ This module is intended to contain astronomy-related helper tools which are
 not provided by external packages and/or to satisfy particular needs of
 usage within ctapipe.
 """
-
+import gzip
 import logging
+import warnings
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
+from io import TextIOWrapper
+from pathlib import Path
 
 import astropy.units as u
 from astropy.coordinates import Angle, SkyCoord, UnitSphericalCosLatDifferential
-from astropy.table import Table
+from astropy.table import Table, join, unique
 from astropy.time import Time
 from astropy.units import Quantity
+from erfa import ErfaWarning
+
+from .download import download_cached
 
 log = logging.getLogger("main")
 
@@ -22,8 +28,28 @@ __all__ = ["get_star_catalog", "get_bright_stars", "StarCatalog", "CatalogInfo"]
 
 # Define a namedtuple to hold the catalog information
 CatalogInfo = namedtuple(
-    "CatalogInfo", ["directory", "coordinates", "columns", "record"]
+    "CatalogInfo", ["directory", "coordinates", "columns", "record", "post_processing"]
 )
+
+
+def _add_star_names_hipparcos(stars):
+    if "HIP" not in stars.colnames:
+        raise ValueError(
+            "stars need to have HIP column to be able to add names from hipparcos catalog"
+        )
+
+    # prefer common name over more cryptic flamsteed notation
+    common_names = _read_hipparcos_ident_file(ident=6)
+    flamsteed_designation = _read_hipparcos_ident_file(ident=4, colname="flamsteed")
+
+    common_names = join(
+        common_names, flamsteed_designation, keys="HIP", join_type="outer"
+    )
+
+    # multiple flamsteed per source, only use one
+    common_names = unique(common_names, keys="HIP")
+    stars = join(stars, common_names, keys="HIP", join_type="left")
+    return stars
 
 
 class StarCatalog(Enum):
@@ -44,6 +70,7 @@ class StarCatalog(Enum):
         A name of the catalog file in the cache.
     """
 
+    #: Yale bright star catalogue
     Yale = CatalogInfo(
         directory="V/50/catalog",
         coordinates={
@@ -53,9 +80,12 @@ class StarCatalog(Enum):
             "DE": {"column": "DEJ2000", "unit": "deg"},
         },
         #: Vmag is mandatory (used for initial magnitude cut)
-        columns=["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "HR"],
+        columns=["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "HR", "Name"],
         record="yale_bright_star_catalog",
-    )  #: Yale bright star catalogue
+        post_processing=[],
+    )
+
+    #: HIPPARCOS catalogue
     Hipparcos = CatalogInfo(
         directory="I/239/hip_main",
         coordinates={
@@ -67,7 +97,8 @@ class StarCatalog(Enum):
         #: Vmag is mandatory (used for initial magnitude cut)
         columns=["RAICRS", "DEICRS", "pmRA", "pmDE", "Vmag", "BTmag", "HIP"],
         record="hipparcos_star_catalog",
-    )  #: HIPPARCOS catalogue
+        post_processing=[_add_star_names_hipparcos],
+    )
 
 
 def select_stars(
@@ -111,6 +142,7 @@ def select_stars(
 
     if radius is not None:
         if pointing:
+            pointing = pointing.transform_to(stars["ra_dec"].frame)
             stars_["separation"] = stars_["ra_dec"].separation(pointing)
             stars_ = stars_[stars_["separation"] < radius]
         else:
@@ -171,7 +203,43 @@ def get_star_catalog(
 
     stars.meta = header
 
+    for func in catalog_info.post_processing:
+        stars = func(stars)
+
     return stars
+
+
+def update_star_catalogs(resource_path=None):
+    """Update bundled star catalog data.
+
+    This function is intended for developers to update the resources files bundled
+    with ctapipe.
+    """
+
+    if resource_path is None:
+        resource_path = Path(__file__).parents[1] / "resources"
+
+    for catalog in StarCatalog:
+        table = get_star_catalog(catalog)
+        file_name = catalog.value.record + ".fits.gz"
+        table.write(resource_path / file_name, overwrite=True)
+
+
+def _read_hipparcos_ident_file(ident: int = 6, colname="name"):
+    """Read hipparcos catalog ident file (mapping HIP to star name)."""
+    name = f"ident{ident}.doc.gz"
+    url = f"https://cdsarc.cds.unistra.fr/ftp/I/239/version_cd/tables/{name}"
+    path = download_cached(url)
+
+    with gzip.open(path, mode="r") as gz:
+        table = {"HIP": [], colname: []}
+
+        for line in TextIOWrapper(gz):
+            name, hip = line.split("|")
+            table["HIP"].append(int(hip.strip()))
+            table[colname].append(name.strip())
+
+    return Table(table)
 
 
 def get_bright_stars(
@@ -232,7 +300,14 @@ def get_bright_stars(
         frame=cat.coordinates["frame"],
         obstime=Time(cat.coordinates["epoch"]),
     )
-    stars["ra_dec"] = stars["ra_dec"].apply_space_motion(new_obstime=time)
+
+    with warnings.catch_warnings():
+        # ignore ErfaWarning for apply_space_motion, there is a warning raised
+        # for each star that is missing distance information that it is set to an "infinite distance"
+        # of 10 Mpc. See https://github.com/astropy/astropy/issues/11747
+        warnings.simplefilter("ignore", category=ErfaWarning)
+        stars["ra_dec"] = stars["ra_dec"].apply_space_motion(new_obstime=time)
+
     stars["ra_dec"].data.differentials["s"] = (
         stars["ra_dec"]
         .data.differentials["s"]

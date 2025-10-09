@@ -105,7 +105,7 @@ class ToyEventSource(TelescopeComponent, EventSource):
             dl2=None,
             simulation=None,
             count=self.event_id,
-            calibration=None,
+            monitoring=None,
         )
 
         for tel_id, telescope in self.subarray.tel.items():

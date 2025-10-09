@@ -7,6 +7,7 @@ import pathlib
 import numpy as np
 from astropy.table import vstack
 
+from ctapipe.containers import EventType
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
@@ -16,7 +17,9 @@ from ctapipe.core.traits import (
     Unicode,
     classes_with_traits,
 )
+from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
+from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES, DL1_PIXEL_STATISTICS_GROUP
 from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
@@ -54,12 +57,6 @@ class PixelStatisticsCalculatorTool(Tool):
         help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
-    output_table_name = Unicode(
-        default_value="statistics",
-        allow_none=False,
-        help="Table name of the output statistics",
-    ).tag(config=True)
-
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
@@ -84,16 +81,27 @@ class PixelStatisticsCalculatorTool(Tool):
         TableLoader,
     ] + classes_with_traits(PixelStatisticsCalculator)
 
-    DL1_COLUMN_NAMES = ["image", "peak_time"]
-
     def setup(self):
-        # Read the input data with the 'TableLoader'
-        self.input_data = self.enter_context(
-            TableLoader(
-                parent=self,
-                dl1_images=True,  # Ensure that dl1 images are read
+        if self.output_path is None:
+            self.log.critical(
+                "Setting output_path is required (via -o, --output or a config file)."
             )
-        )
+            self.exit(1)
+
+        # Read the input data with the 'TableLoader'
+        try:
+            self.input_data = self.enter_context(
+                TableLoader(
+                    parent=self,
+                    dl1_images=True,  # Ensure that dl1 images are read
+                )
+            )
+        except InputMissing:
+            self.log.critical(
+                "Specifying TableLoader.input_url is required (via -i, --input or a config file)."
+            )
+            self.exit(1)
+
         # Copy selected tables from the input file to the output file
         self.log.info(
             "Copying selected data and metadata to output destination using the HDF5Merger component."
@@ -155,7 +163,7 @@ class PixelStatisticsCalculatorTool(Tool):
                     f"in the input data for telescope 'tel_id={tel_id}'."
                 )
             # Check if the dl1 data is gain selected and add an extra dimension for n_channels
-            for col_name in self.DL1_COLUMN_NAMES:
+            for col_name in DL1_COLUMN_NAMES:
                 if col_name in dl1_table.colnames and dl1_table[col_name].ndim == 2:
                     dl1_table[col_name] = dl1_table[col_name][:, np.newaxis]
             # Perform the first pass of the statistics calculation
@@ -186,20 +194,19 @@ class PixelStatisticsCalculatorTool(Tool):
                         "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
                         tel_id,
                     )
-            # Add metadata to the aggregated statistics
-            aggregated_stats.meta["event_type"] = dl1_table["event_type"][0]
-            aggregated_stats.meta["input_column_name"] = self.input_column_name
+            # Construct the output table name based on the event type and the selected column name
+            output_table_name = f"{EventType(dl1_table['event_type'][0]).name.lower()}_{self.input_column_name}"
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
                 aggregated_stats,
                 self.output_path,
-                f"/dl1/monitoring/telescope/{self.output_table_name}/tel_{tel_id:03d}",
+                f"{DL1_PIXEL_STATISTICS_GROUP}/{output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
-            f"/dl1/monitoring/telescope/{self.output_table_name}",
+            f"{DL1_PIXEL_STATISTICS_GROUP}/{output_table_name}",
         )
 
     def finish(self):

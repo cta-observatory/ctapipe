@@ -6,6 +6,12 @@ Muon Image Analysis
 
 Algorithms for detecting and characterizing muon images
 
+.. toctree::
+  :maxdepth: 1
+  :glob:
+  :hidden:
+
+  muon_chord_length
 
 Reference/API
 =============

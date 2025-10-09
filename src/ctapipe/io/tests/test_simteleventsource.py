@@ -177,15 +177,21 @@ def test_pointing():
         focal_length_choice="EQUIVALENT",
     ) as reader:
         for e in reader:
-            assert np.isclose(e.pointing.array_altitude.to_value(u.deg), 70)
-            assert np.isclose(e.pointing.array_azimuth.to_value(u.deg), 0)
-            assert np.isnan(e.pointing.array_ra)
-            assert np.isnan(e.pointing.array_dec)
+            assert np.isclose(e.monitoring.pointing.array_altitude.to_value(u.deg), 70)
+            assert np.isclose(e.monitoring.pointing.array_azimuth.to_value(u.deg), 0)
+            assert np.isnan(e.monitoring.pointing.array_ra)
+            assert np.isnan(e.monitoring.pointing.array_dec)
 
             # normal run, all telescopes point to the array direction
-            for pointing in e.pointing.tel.values():
-                assert u.isclose(e.pointing.array_azimuth, pointing.azimuth)
-                assert u.isclose(e.pointing.array_altitude, pointing.altitude)
+            for tel_id in e.monitoring.tel.keys():
+                assert u.isclose(
+                    e.monitoring.pointing.array_azimuth,
+                    e.monitoring.tel[tel_id].pointing.azimuth,
+                )
+                assert u.isclose(
+                    e.monitoring.pointing.array_altitude,
+                    e.monitoring.tel[tel_id].pointing.altitude,
+                )
 
 
 def test_allowed_telescopes():
@@ -203,7 +209,7 @@ def test_allowed_telescopes():
             assert set(event.r1.tel).issubset(allowed_tels)
             assert set(event.dl0.tel).issubset(allowed_tels)
             assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
-            assert set(event.pointing.tel).issubset(allowed_tels)
+            assert set(event.monitoring.tel).issubset(allowed_tels)
 
 
 def test_calibration_events():
@@ -262,6 +268,17 @@ def test_skip_r1_calibration():
                 err_msg="R0 and R1 waveforms do not match after skipping the simtel calibration.",
             )
     assert n_processed == n_expected
+
+
+def test_time_shift():
+    source = SimTelEventSource(
+        input_url=calib_events_path,
+        focal_length_choice="EQUIVALENT",
+    )
+    for event in source:
+        for tel_id in event.trigger.tel.keys():
+            # test time shift is applied correctly
+            assert event.monitoring.tel[tel_id].camera.coefficients is not None
 
 
 def test_trigger_times():

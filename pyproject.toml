@@ -115,11 +115,14 @@ ctapipe-train-energy-regressor = "ctapipe.tools.train_energy_regressor:main"
 ctapipe-train-particle-classifier = "ctapipe.tools.train_particle_classifier:main"
 ctapipe-train-disp-reconstructor = "ctapipe.tools.train_disp_reconstructor:main"
 ctapipe-apply-models = "ctapipe.tools.apply_models:main"
+ctapipe-store-astropy-cache = "ctapipe.tools.store_astropy_cache:main"
 
 [project.entry-points.ctapipe_io]
 HDF5EventSource = "ctapipe.io.hdf5eventsource:HDF5EventSource"
 SimTelEventSource = "ctapipe.io.simteleventsource:SimTelEventSource"
 
+[project.entry-points.ctapipe_monitoring]
+HDF5MonitoringSource = "ctapipe.io.hdf5monitoringsource:HDF5MonitoringSource"
 
 [project.entry-points.ctapipe_reco]
 HillasIntersection = "ctapipe.reco.hillas_intersection:HillasIntersection"
@@ -155,6 +158,7 @@ filterwarnings = [
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
     "error::ctapipe.instrument.FromNameWarning",
+    "error::ctapipe.core.traits.NoneDefaultNotAllowedWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
     "ignore::ctapipe.core.provenance.MissingReferenceMetadata",
 ]

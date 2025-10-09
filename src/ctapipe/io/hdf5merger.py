@@ -7,11 +7,41 @@ from pathlib import Path
 import tables
 from astropy.time import Time
 
+from ..containers import EventType
 from ..core import Component, Provenance, traits
 from ..instrument.optics import FocalLengthKind
 from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
+from .hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_CAMERA_COEFFICIENTS_GROUP,
+    DL1_COLUMN_NAMES,
+    DL1_IMAGE_STATISTICS_TABLE,
+    DL1_PIXEL_STATISTICS_GROUP,
+    DL1_SUBARRAY_POINTING_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_IMAGES_GROUP,
+    DL1_TEL_MUON_GROUP,
+    DL1_TEL_PARAMETERS_GROUP,
+    DL1_TEL_POINTING_GROUP,
+    DL1_TEL_TRIGGER_TABLE,
+    DL2_EVENT_STATISTICS_GROUP,
+    DL2_SUBARRAY_GROUP,
+    DL2_TEL_GROUP,
+    FIXED_POINTING_GROUP,
+    OBSERVATION_BLOCK_TABLE,
+    R0_TEL_GROUP,
+    R1_TEL_GROUP,
+    SCHEDULING_BLOCK_TABLE,
+    SHOWER_DISTRIBUTION_TABLE,
+    SIMULATION_GROUP,
+    SIMULATION_IMAGES_GROUP,
+    SIMULATION_IMPACT_GROUP,
+    SIMULATION_PARAMETERS_GROUP,
+    SIMULATION_RUN_TABLE,
+    SIMULATION_SHOWER_TABLE,
+)
 from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
 
 
@@ -20,34 +50,35 @@ class NodeType(enum.Enum):
     TABLE = enum.auto()
     # a group comprising tel_XXX tables
     TEL_GROUP = enum.auto()
-    # a group with children of the form /<property group>/<algorithm table>
-    ALGORITHM_GROUP = enum.auto()
-    # a group with children of the form /<property group>/<algorithm group>/<tel_XXX table>
-    ALGORITHM_TEL_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<iter table>
+    ITER_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<iter group>/<tel_XXX table>
+    ITER_TEL_GROUP = enum.auto()
 
 
 #: nodes to check for merge-ability
 _NODES_TO_CHECK = {
-    "/configuration/observation/scheduling_block": NodeType.TABLE,
-    "/configuration/observation/observation_block": NodeType.TABLE,
-    "/configuration/simulation/run": NodeType.TABLE,
-    "/configuration/telescope/pointing": NodeType.TEL_GROUP,
-    "/simulation/service/shower_distribution": NodeType.TABLE,
-    "/simulation/event/subarray/shower": NodeType.TABLE,
-    "/simulation/event/telescope/impact": NodeType.TEL_GROUP,
-    "/simulation/event/telescope/images": NodeType.TEL_GROUP,
-    "/simulation/event/telescope/parameters": NodeType.TEL_GROUP,
-    "/r0/event/telescope": NodeType.TEL_GROUP,
-    "/r1/event/telescope": NodeType.TEL_GROUP,
-    "/dl1/event/subarray/trigger": NodeType.TABLE,
-    "/dl1/event/telescope/trigger": NodeType.TABLE,
-    "/dl1/event/telescope/images": NodeType.TEL_GROUP,
-    "/dl1/event/telescope/parameters": NodeType.TEL_GROUP,
-    "/dl1/event/telescope/muon": NodeType.TEL_GROUP,
-    "/dl2/event/telescope": NodeType.ALGORITHM_TEL_GROUP,
-    "/dl2/event/subarray": NodeType.ALGORITHM_GROUP,
-    "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
-    "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
+    SCHEDULING_BLOCK_TABLE: NodeType.TABLE,
+    OBSERVATION_BLOCK_TABLE: NodeType.TABLE,
+    SIMULATION_RUN_TABLE: NodeType.TABLE,
+    FIXED_POINTING_GROUP: NodeType.TEL_GROUP,
+    SIMULATION_GROUP: NodeType.TABLE,
+    SHOWER_DISTRIBUTION_TABLE: NodeType.TABLE,
+    SIMULATION_SHOWER_TABLE: NodeType.TABLE,
+    SIMULATION_IMPACT_GROUP: NodeType.TEL_GROUP,
+    SIMULATION_IMAGES_GROUP: NodeType.TEL_GROUP,
+    SIMULATION_PARAMETERS_GROUP: NodeType.TEL_GROUP,
+    R0_TEL_GROUP: NodeType.TEL_GROUP,
+    R1_TEL_GROUP: NodeType.TEL_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE: NodeType.TABLE,
+    DL1_TEL_TRIGGER_TABLE: NodeType.TABLE,
+    DL1_TEL_IMAGES_GROUP: NodeType.TEL_GROUP,
+    DL1_TEL_PARAMETERS_GROUP: NodeType.TEL_GROUP,
+    DL1_TEL_MUON_GROUP: NodeType.TEL_GROUP,
+    DL2_TEL_GROUP: NodeType.ITER_TEL_GROUP,
+    DL2_SUBARRAY_GROUP: NodeType.ITER_GROUP,
+    DL1_SUBARRAY_POINTING_GROUP: NodeType.TABLE,
+    DL1_TEL_POINTING_GROUP: NodeType.TEL_GROUP,
 }
 
 
@@ -61,15 +92,15 @@ def _get_required_nodes(h5file):
         if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
             required_nodes.add(node)
 
-        elif node_type is NodeType.ALGORITHM_GROUP:
+        elif node_type is NodeType.ITER_GROUP:
             for kind_group in h5file.root[node]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
                     required_nodes.add(table._v_pathname)
 
-        elif node_type is NodeType.ALGORITHM_TEL_GROUP:
+        elif node_type is NodeType.ITER_TEL_GROUP:
             for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    required_nodes.add(algorithm_group._v_pathname)
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    required_nodes.add(iter_group._v_pathname)
         else:
             raise ValueError(f"Unhandled node type: {node_type} of {node}")
 
@@ -285,11 +316,7 @@ class HDF5Merger(Component):
                 )
 
     def _check_obs_ids(self, other):
-        keys = [
-            "/configuration/observation/observation_block",
-            "/dl1/event/subarray/trigger",
-        ]
-
+        keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
         for key in keys:
             if key in other.root:
                 obs_ids = other.root[key].col("obs_id")
@@ -321,107 +348,133 @@ class HDF5Merger(Component):
 
         # in case of "single_ob", we only copy sb/ob blocks for the first file
         if not self.single_ob or self._n_merged == 0:
-            config_keys = [
-                "/configuration/observation/scheduling_block",
-                "/configuration/observation/observation_block",
-            ]
+            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
             for key in config_keys:
                 if key in other.root:
                     self._append_table(other, other.root[key])
 
-        key = "/configuration/telescope/pointing"
-        if key in other.root:
-            self._append_table_group(other, other.root[key], once=self.single_ob)
+        if FIXED_POINTING_GROUP in other.root:
+            self._append_table_group(
+                other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
+            )
 
         # Simulation
         simulation_table_keys = [
-            "/configuration/simulation/run",
-            "/simulation/service/shower_distribution",
-            "/simulation/event/subarray/shower",
+            SIMULATION_RUN_TABLE,
+            SHOWER_DISTRIBUTION_TABLE,
+            SIMULATION_SHOWER_TABLE,
         ]
         for key in simulation_table_keys:
             if self.simulation and key in other.root:
                 self._append_table(other, other.root[key])
 
-        key = "/simulation/event/telescope/impact"
-        if self.telescope_events and self.simulation and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if (
+            self.telescope_events
+            and self.simulation
+            and SIMULATION_IMPACT_GROUP in other.root
+        ):
+            self._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
 
-        key = "/simulation/event/telescope/images"
-        if self.telescope_events and self.simulation and key in other.root:
+        if (
+            self.telescope_events
+            and self.simulation
+            and SIMULATION_IMAGES_GROUP in other.root
+        ):
             filter_columns = None if self.true_images else ["true_image"]
-            self._append_table_group(other, other.root[key], filter_columns)
+            self._append_table_group(
+                other, other.root[SIMULATION_IMAGES_GROUP], filter_columns
+            )
 
-        key = "/simulation/event/telescope/parameters"
         if (
             self.telescope_events
             and self.simulation
             and self.true_parameters
-            and key in other.root
+            and SIMULATION_PARAMETERS_GROUP in other.root
         ):
-            self._append_table_group(other, other.root[key])
+            self._append_table_group(other, other.root[SIMULATION_PARAMETERS_GROUP])
 
         # R0
-        key = "/r0/event/telescope/"
-        if self.telescope_events and self.r0_waveforms and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if self.telescope_events and self.r0_waveforms and R0_TEL_GROUP in other.root:
+            self._append_table_group(other, other.root[R0_TEL_GROUP])
 
         # R1
-        key = "/r1/event/telescope/"
-        if self.telescope_events and self.r1_waveforms and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if self.telescope_events and self.r1_waveforms and R1_TEL_GROUP in other.root:
+            self._append_table_group(other, other.root[R1_TEL_GROUP])
 
         # DL1
-        key = "/dl1/event/subarray/trigger"
-        if key in other.root:
-            self._append_table(other, other.root[key])
+        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
+            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
-        key = "/dl1/event/telescope/trigger"
-        if self.telescope_events and key in other.root:
-            self._append_table(other, other.root[key])
+        if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
+            self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
 
-        key = "/dl1/event/telescope/images"
-        if self.telescope_events and self.dl1_images and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if (
+            self.telescope_events
+            and self.dl1_images
+            and DL1_TEL_IMAGES_GROUP in other.root
+        ):
+            self._append_table_group(other, other.root[DL1_TEL_IMAGES_GROUP])
 
-        key = "/dl1/event/telescope/parameters"
-        if self.telescope_events and self.dl1_parameters and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if (
+            self.telescope_events
+            and self.dl1_parameters
+            and DL1_TEL_PARAMETERS_GROUP in other.root
+        ):
+            self._append_table_group(other, other.root[DL1_TEL_PARAMETERS_GROUP])
 
-        key = "/dl1/event/telescope/muon"
-        if self.telescope_events and self.dl1_muon and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if self.telescope_events and self.dl1_muon and DL1_TEL_MUON_GROUP in other.root:
+            self._append_table_group(other, other.root[DL1_TEL_MUON_GROUP])
 
         # DL2
-        key = "/dl2/event/telescope"
-        if self.telescope_events and self.dl2_telescope and key in other.root:
-            for kind_group in other.root[key]._f_iter_nodes("Group"):
-                for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    self._append_table_group(other, algorithm_group)
+        if self.telescope_events and self.dl2_telescope and DL2_TEL_GROUP in other.root:
+            for kind_group in other.root[DL2_TEL_GROUP]._f_iter_nodes("Group"):
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    self._append_table_group(other, iter_group)
 
-        key = "/dl2/event/subarray"
-        if self.dl2_subarray and key in other.root:
-            for kind_group in other.root[key]._f_iter_nodes("Group"):
+        if self.dl2_subarray and DL2_SUBARRAY_GROUP in other.root:
+            for kind_group in other.root[DL2_SUBARRAY_GROUP]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
 
-        # monitoring
-        key = "/dl1/monitoring/subarray/pointing"
-        if self.monitoring and key in other.root:
-            self._append_table(other, other.root[key])
+        # Pointing monitoring
+        if self.monitoring and DL1_SUBARRAY_POINTING_GROUP in other.root:
+            self._append_table(other, other.root[DL1_SUBARRAY_POINTING_GROUP])
 
-        key = "/dl1/monitoring/telescope/pointing"
-        if self.monitoring and self.telescope_events and key in other.root:
-            self._append_table_group(other, other.root[key])
+        if (
+            self.monitoring
+            and self.telescope_events
+            and DL0_TEL_POINTING_GROUP in other.root
+        ):
+            self._append_table_group(other, other.root[DL0_TEL_POINTING_GROUP])
+
+        if (
+            self.monitoring
+            and self.telescope_events
+            and DL1_TEL_POINTING_GROUP in other.root
+        ):
+            self._append_table_group(other, other.root[DL1_TEL_POINTING_GROUP])
+
+        # Calibration coefficients monitoring
+        if (
+            self.monitoring
+            and self.telescope_events
+            and DL1_CAMERA_COEFFICIENTS_GROUP in other.root
+        ):
+            self._append_table_group(other, other.root[DL1_CAMERA_COEFFICIENTS_GROUP])
+
+        # Pixel statistics monitoring
+        for dl1_colname in DL1_COLUMN_NAMES:
+            for event_type in EventType:
+                key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
+                if self.monitoring and self.telescope_events and key in other.root:
+                    self._append_table_group(other, other.root[key])
 
         # quality query statistics
-        key = "/dl1/service/image_statistics"
-        if key in other.root:
-            self._add_statistics_table(other, other.root[key])
+        if DL1_IMAGE_STATISTICS_TABLE in other.root:
+            self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
 
-        key = "/dl2/service/tel_event_statistics"
-        if key in other.root:
-            for node in other.root[key]._f_iter_nodes("Table"):
+        if DL2_EVENT_STATISTICS_GROUP in other.root:
+            for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
                 self._add_statistics_table(other, node)
 
     def __enter__(self):

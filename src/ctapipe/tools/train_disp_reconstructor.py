@@ -7,6 +7,7 @@ import numpy as np
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
+from ctapipe.exceptions import InputMissing
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.preprocessing import horizontal_to_telescope
@@ -37,8 +38,6 @@ class TrainDispReconstructor(Tool):
     """
 
     output_path = Path(
-        default_value=None,
-        allow_none=False,
         directory_ok=False,
         help=(
             "Output path for the trained reconstructor."
@@ -95,11 +94,20 @@ class TrainDispReconstructor(Tool):
         """
         Initialize components from config.
         """
-        self.loader = self.enter_context(
-            TableLoader(
-                parent=self,
+        try:
+            self.loader = self.enter_context(TableLoader(parent=self))
+        except InputMissing:
+            self.log.critical(
+                "Specifying TableLoader.input_url is required (via -i, --input or a config file)."
             )
-        )
+            self.exit(1)
+
+        if self.output_path is None:
+            self.log.critical(
+                "setting output_path is required (via -o, --output or a config file)."
+            )
+            self.exit(1)
+
         self.n_events.attach_subarray(self.loader.subarray)
         self.models = DispReconstructor(self.loader.subarray, parent=self)
 

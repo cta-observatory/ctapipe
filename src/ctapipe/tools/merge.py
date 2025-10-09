@@ -155,6 +155,12 @@ class MergeTool(Tool):
             "Include dl2 subarray-wise data",
             "Exclude dl2 subarray-wise data",
         ),
+        **flag(
+            "monitoring",
+            "HDF5Merger.monitoring",
+            "Include monitoring data",
+            "Exclude monitoring data",
+        ),
     }
 
     classes = [HDF5Merger]

@@ -385,7 +385,7 @@ def test_invalid_traits(tmp_path, caplog):
 
     assert run_tool(MyTool(), [f"--config={config}"], raises=False) == 2
     with pytest.raises(ToolConfigurationError):
-        assert run_tool(MyTool(), [f"--config={config}"], raises=True)
+        run_tool(MyTool(), [f"--config={config}"], raises=True)
 
 
 def test_tool_raises():

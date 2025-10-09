@@ -76,8 +76,8 @@ location = EarthLocation.of_site("Roque de los Muchachos")
 altaz = AltAz(location=location, obstime=obstime)
 
 array_pointing = SkyCoord(
-    alt=event.pointing.array_azimuth,
-    az=event.pointing.array_altitude,
+    alt=event.monitoring.pointing.array_azimuth,
+    az=event.monitoring.pointing.array_altitude,
     frame=altaz,
 )
 
@@ -113,8 +113,8 @@ focal_length = source.subarray.tel[tel_id].optics.equivalent_focal_length
 
 ######################################################################
 telescope_pointing = SkyCoord(
-    alt=event.pointing.tel[tel_id].altitude,
-    az=event.pointing.tel[tel_id].azimuth,
+    alt=event.monitoring.tel[tel_id].pointing.altitude,
+    az=event.monitoring.tel[tel_id].pointing.azimuth,
     frame=altaz,
 )
 

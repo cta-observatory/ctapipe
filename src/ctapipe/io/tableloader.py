@@ -13,29 +13,31 @@ from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ..core import Component, Provenance, traits
+from ..exceptions import InputMissing
 from ..instrument import FocalLengthKind, SubarrayDescription
-from ..monitoring.interpolation import PointingInterpolator
 from .astropy_helpers import join_allow_empty, read_table
+from .hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_IMAGES_GROUP,
+    DL1_TEL_MUON_GROUP,
+    DL1_TEL_PARAMETERS_GROUP,
+    DL1_TEL_TRIGGER_TABLE,
+    DL2_SUBARRAY_GROUP,
+    DL2_TEL_GROUP,
+    FIXED_POINTING_GROUP,
+    OBSERVATION_BLOCK_TABLE,
+    SCHEDULING_BLOCK_TABLE,
+    SHOWER_DISTRIBUTION_TABLE,
+    SIMULATION_IMAGES_GROUP,
+    SIMULATION_IMPACT_GROUP,
+    SIMULATION_PARAMETERS_GROUP,
+    SIMULATION_RUN_TABLE,
+    SIMULATION_SHOWER_TABLE,
+)
 
 __all__ = ["TableLoader"]
 
-PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
-IMAGES_GROUP = "/dl1/event/telescope/images"
-MUON_GROUP = "/dl1/event/telescope/muon"
-TRIGGER_TABLE = "/dl1/event/subarray/trigger"
-SHOWER_TABLE = "/simulation/event/subarray/shower"
-TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
-TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
-TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
-SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
-SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
-OBSERVATION_TABLE = "/configuration/observation/observation_block"
-SCHEDULING_TABLE = "/configuration/observation/scheduling_block"
-FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
-POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
-
-DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
-DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
 
 SUBARRAY_EVENT_KEYS = ["obs_id", "event_id"]
 TELESCOPE_EVENT_KEYS = ["obs_id", "event_id", "tel_id"]
@@ -241,6 +243,8 @@ class TableLoader(Component):
     ).tag(config=True)
 
     def __init__(self, input_url=None, h5file=None, **kwargs):
+        from ..monitoring.interpolation import PointingInterpolator
+
         self._should_close = False
         # enable using input_url as posarg
         if input_url not in {None, traits.Undefined}:
@@ -248,7 +252,7 @@ class TableLoader(Component):
 
         super().__init__(**kwargs)
         if h5file is None and self.input_url is None:
-            raise ValueError("Need to specify either input_url or h5file")
+            raise InputMissing("Need to specify either input_url or h5file")
 
         if h5file is None:
             self.h5file = tables.open_file(self.input_url, mode="r")
@@ -287,7 +291,7 @@ class TableLoader(Component):
 
     def __len__(self):
         """Number of subarray events in input file"""
-        return self.h5file.root[TRIGGER_TABLE].shape[0]
+        return self.h5file.root[DL1_SUBARRAY_TRIGGER_TABLE].shape[0]
 
     def _check_args(self, **kwargs):
         """Checking args:
@@ -295,12 +299,12 @@ class TableLoader(Component):
         2) If True but correlated group is not included in input file - set to False.
         returns a dict with new args"""
         groups = {
-            "dl1_parameters": PARAMETERS_GROUP,
-            "dl1_images": IMAGES_GROUP,
-            "dl1_muons": MUON_GROUP,
-            "true_parameters": TRUE_PARAMETERS_GROUP,
-            "true_images": TRUE_IMAGES_GROUP,
-            "observation_info": OBSERVATION_TABLE,
+            "dl1_parameters": DL1_TEL_PARAMETERS_GROUP,
+            "dl1_images": DL1_TEL_IMAGES_GROUP,
+            "dl1_muons": DL1_TEL_MUON_GROUP,
+            "true_parameters": SIMULATION_PARAMETERS_GROUP,
+            "true_images": SIMULATION_IMAGES_GROUP,
+            "observation_info": OBSERVATION_BLOCK_TABLE,
         }
         updated_attributes = {}
         for key, value in kwargs.items():
@@ -335,7 +339,7 @@ class TableLoader(Component):
         """
         table = read_table(
             self.h5file,
-            TRIGGER_TABLE,
+            DL1_SUBARRAY_TRIGGER_TABLE,
             start=start,
             stop=stop,
         )[["obs_id", "event_id"]]
@@ -365,7 +369,7 @@ class TableLoader(Component):
         """
         Read the simulation configuration table
         """
-        return read_table(self.h5file, SIMULATION_CONFIG_TABLE)
+        return read_table(self.h5file, SIMULATION_RUN_TABLE)
 
     def read_shower_distribution(self):
         """
@@ -377,13 +381,13 @@ class TableLoader(Component):
         """
         Read the observation information
         """
-        return read_table(self.h5file, OBSERVATION_TABLE)
+        return read_table(self.h5file, OBSERVATION_BLOCK_TABLE)
 
     def read_scheduling_blocks(self):
         """
         Read the scheduling information
         """
-        return read_table(self.h5file, SCHEDULING_TABLE)
+        return read_table(self.h5file, SCHEDULING_BLOCK_TABLE)
 
     def _join_observation_info(self, table):
         obs_table = self.read_observation_information()
@@ -439,28 +443,31 @@ class TableLoader(Component):
         simulated = updated_args["simulated"]
         observation_info = updated_args["observation_info"]
 
-        table = read_table(self.h5file, TRIGGER_TABLE, start=start, stop=stop)
+        table = read_table(
+            self.h5file, DL1_SUBARRAY_TRIGGER_TABLE, start=start, stop=stop
+        )
         if keep_order:
             self._add_index_if_needed(table)
 
-        if simulated and SHOWER_TABLE in self.h5file:
-            showers = read_table(self.h5file, SHOWER_TABLE, start=start, stop=stop)
+        if simulated and SIMULATION_SHOWER_TABLE in self.h5file:
+            showers = read_table(
+                self.h5file, SIMULATION_SHOWER_TABLE, start=start, stop=stop
+            )
             table = _merge_subarray_tables(table, showers)
 
-        if dl2:
-            if DL2_SUBARRAY_GROUP in self.h5file:
-                for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
-                    group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
-                    group = self.h5file.root[group_path]
+        if dl2 and DL2_SUBARRAY_GROUP in self.h5file:
+            for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
+                group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
+                group = self.h5file.root[group_path]
 
-                    for algorithm in group._v_children:
-                        dl2 = read_table(
-                            self.h5file,
-                            f"{group_path}/{algorithm}",
-                            start=start,
-                            stop=stop,
-                        )
-                        table = _merge_subarray_tables(table, dl2)
+                for algorithm in group._v_children:
+                    dl2 = read_table(
+                        self.h5file,
+                        f"{group_path}/{algorithm}",
+                        start=start,
+                        stop=stop,
+                    )
+                    table = _merge_subarray_tables(table, dl2)
 
         if observation_info:
             table = self._join_observation_info(table)
@@ -556,7 +563,7 @@ class TableLoader(Component):
 
         table = read_table(
             self.h5file,
-            "/dl1/event/telescope/trigger",
+            DL1_TEL_TRIGGER_TABLE,
             condition=f"tel_id == {tel_id}",
             start=trigger_start,
             stop=trigger_stop,
@@ -564,48 +571,47 @@ class TableLoader(Component):
 
         if dl1_parameters:
             parameters = self._read_telescope_table(
-                PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
+                DL1_TEL_PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, parameters)
 
         if dl1_muons:
             muon_parameters = self._read_telescope_table(
-                MUON_GROUP, tel_id, start=tel_start, stop=tel_stop
+                DL1_TEL_MUON_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, muon_parameters)
 
         if dl1_images:
             images = self._read_telescope_table(
-                IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
+                DL1_TEL_IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, images)
 
-        if dl2:
-            if DL2_TELESCOPE_GROUP in self.h5file:
-                dl2_tel_group = self.h5file.root[DL2_TELESCOPE_GROUP]
-                for group_name in dl2_tel_group._v_children:
-                    group_path = f"{DL2_TELESCOPE_GROUP}/{group_name}"
-                    group = self.h5file.root[group_path]
+        if dl2 and DL2_TEL_GROUP in self.h5file:
+            dl2_tel_group = self.h5file.root[DL2_TEL_GROUP]
+            for group_name in dl2_tel_group._v_children:
+                group_path = f"{DL2_TEL_GROUP}/{group_name}"
+                group = self.h5file.root[group_path]
 
-                    for algorithm in group._v_children:
-                        path = f"{group_path}/{algorithm}"
-                        dl2 = self._read_telescope_table(
-                            path, tel_id, start=tel_start, stop=tel_stop
-                        )
-                        if len(dl2) == 0:
-                            continue
+                for algorithm in group._v_children:
+                    path = f"{group_path}/{algorithm}"
+                    dl2 = self._read_telescope_table(
+                        path, tel_id, start=tel_start, stop=tel_stop
+                    )
+                    if len(dl2) == 0:
+                        continue
 
-                        table = _merge_telescope_tables(table, dl2)
+                    table = _merge_telescope_tables(table, dl2)
 
         if true_images:
             true_images = self._read_telescope_table(
-                TRUE_IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
+                SIMULATION_IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, true_images)
 
         if true_parameters:
             true_parameters = self._read_telescope_table(
-                TRUE_PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
+                SIMULATION_PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _join_telescope_events(table, true_parameters)
 
@@ -616,9 +622,9 @@ class TableLoader(Component):
                 table, instrument_table, keys=["tel_id"], join_type="left"
             )
 
-        if simulated and TRUE_IMPACT_GROUP in self.h5file.root:
+        if simulated and SIMULATION_IMPACT_GROUP in self.h5file.root:
             impacts = self._read_telescope_table(
-                TRUE_IMPACT_GROUP,
+                SIMULATION_IMPACT_GROUP,
                 tel_id,
                 start=tel_start,
                 stop=tel_stop,
@@ -627,7 +633,7 @@ class TableLoader(Component):
 
         if len(table) > 0 and pointing:
             # prefer monitoring pointing
-            if POINTING_GROUP in self.h5file.root:
+            if DL0_TEL_POINTING_GROUP in self.h5file.root:
                 alt, az = self._pointing_interpolator(tel_id, table["time"])
                 table["telescope_pointing_altitude"] = alt
                 table["telescope_pointing_azimuth"] = az
@@ -875,7 +881,7 @@ class TableLoader(Component):
         """
         # we need to load the trigger table until "stop" to
         # know which telescopes participated in which events
-        table = self.h5file.root[TRIGGER_TABLE]
+        table = self.h5file.root[DL1_SUBARRAY_TRIGGER_TABLE]
         n_events = table.shape[0]
         n_telescopes = table.coldescrs["tels_with_trigger"].shape[0]
 

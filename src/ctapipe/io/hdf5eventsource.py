@@ -46,16 +46,39 @@ from ..containers import (
 )
 from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
+from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
-from ..monitoring.interpolation import PointingInterpolator
 from ..utils import IndexFinder
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
-from .hdf5tableio import HDF5TableReader
+from .hdf5dataformat import (
+    ATMOSPHERE_DENSITY_PROFILE_TABLE,
+    DL0_TEL_POINTING_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_IMAGES_GROUP,
+    DL1_TEL_MUON_GROUP,
+    DL1_TEL_PARAMETERS_GROUP,
+    DL1_TEL_POINTING_GROUP,
+    DL1_TEL_TRIGGER_TABLE,
+    DL2_GROUP,
+    DL2_SUBARRAY_GROUP,
+    DL2_TEL_GROUP,
+    FIXED_POINTING_GROUP,
+    OBSERVATION_BLOCK_TABLE,
+    R1_TEL_GROUP,
+    SCHEDULING_BLOCK_TABLE,
+    SHOWER_DISTRIBUTION_TABLE,
+    SIMULATION_GROUP,
+    SIMULATION_IMPACT_GROUP,
+    SIMULATION_PARAMETERS_GROUP,
+    SIMULATION_RUN_TABLE,
+    SIMULATION_SHOWER_TABLE,
+    SIMULATION_TEL_TABLE,
+)
+from .hdf5tableio import HDF5TableReader, get_column_attrs
 from .metadata import _read_reference_metadata_hdf5
-from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
 __all__ = ["HDF5EventSource"]
 
@@ -90,26 +113,26 @@ def get_hdf5_datalevels(h5file: tables.File | str | Path):
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
-        if "/r1/event/telescope" in h5file.root:
+        if R1_TEL_GROUP in h5file.root:
             datalevels.append(DataLevel.R1)
 
-        if "/dl1/event/telescope/images" in h5file.root:
+        if DL1_TEL_IMAGES_GROUP in h5file.root:
             datalevels.append(DataLevel.DL1_IMAGES)
 
-        if "/dl1/event/telescope/parameters" in h5file.root:
+        if DL1_TEL_PARAMETERS_GROUP in h5file.root:
             datalevels.append(DataLevel.DL1_PARAMETERS)
 
-        if "/dl1/event/telescope/muon" in h5file.root:
+        if DL1_TEL_MUON_GROUP in h5file.root:
             datalevels.append(DataLevel.DL1_MUON)
 
-        if "/dl2" in h5file.root:
+        if DL2_GROUP in h5file.root:
             datalevels.append(DataLevel.DL2)
 
     return tuple(datalevels)
 
 
 def read_atmosphere_density_profile(
-    h5file: tables.File, path="/simulation/service/atmosphere_density_profile"
+    h5file: tables.File, path=ATMOSPHERE_DENSITY_PROFILE_TABLE
 ):
     """return a subclass of AtmosphereDensityProfile by
     reading a table in a h5 file
@@ -206,6 +229,11 @@ class HDF5EventSource(EventSource):
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
+        if self.input_url is None:
+            raise InputMissing(
+                "Specifying input_url directly or via config is required."
+            )
+
         self.file_ = tables.open_file(self.input_url)
         meta = _read_reference_metadata_hdf5(self.file_)
         Provenance().add_input_file(
@@ -232,9 +260,9 @@ class HDF5EventSource(EventSource):
         self._obs_ids = tuple(
             self.file_.root.configuration.observation.observation_block.col("obs_id")
         )
-        pointing_key = "/configuration/telescope/pointing"
+        pointing_key = FIXED_POINTING_GROUP
         # for ctapipe <0.21
-        legacy_pointing_key = "/dl1/monitoring/telescope/pointing"
+        legacy_pointing_key = DL1_TEL_POINTING_GROUP
         self._legacy_tel_pointing_finders = {}
         self._legacy_tel_pointing_tables = {}
 
@@ -262,12 +290,11 @@ class HDF5EventSource(EventSource):
         )
 
     def _read_simulated_shower_distributions(self):
-        key = "/simulation/service/shower_distribution"
-        if key not in self.file_.root:
+        if SHOWER_DISTRIBUTION_TABLE not in self.file_.root:
             return {}
 
         reader = HDF5TableReader(self.file_).read(
-            key, containers=SimulatedShowerDistribution
+            SHOWER_DISTRIBUTION_TABLE, containers=SimulatedShowerDistribution
         )
         return {dist.obs_id: dist for dist in reader}
 
@@ -315,9 +342,9 @@ class HDF5EventSource(EventSource):
                 return False
 
             # we can now read both R1 and DL1
-            has_muons = "/dl1/event/telescope/muon" in f.root
-            has_sim = "/simulation/event/telescope" in f.root
-            has_trigger = "/simulation/event/telescope" in f.root
+            has_muons = DL1_TEL_MUON_GROUP in f.root
+            has_sim = SIMULATION_TEL_TABLE in f.root
+            has_trigger = SIMULATION_TEL_TABLE in f.root
 
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
             datalevels = (
@@ -343,7 +370,7 @@ class HDF5EventSource(EventSource):
         """
         True for files with a simulation group at the root of the file.
         """
-        return "simulation" in self.file_.root
+        return SIMULATION_GROUP in self.file_.root
 
     @property
     def has_simulated_dl1(self):
@@ -360,7 +387,7 @@ class HDF5EventSource(EventSource):
         """
         True for files that contain muon parameters
         """
-        return "/dl1/event/telescope/muon" in self.file_.root
+        return DL1_TEL_MUON_GROUP in self.file_.root
 
     @property
     def subarray(self):
@@ -417,9 +444,9 @@ class HDF5EventSource(EventSource):
             default_prefix = ""
             obs_id = Field(-1)
 
-        if "simulation" in self.file_.root.configuration:
+        if SIMULATION_GROUP in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
-                "/configuration/simulation/run",
+                SIMULATION_RUN_TABLE,
                 containers=(SimulationConfigContainer, ObsIdContainer),
             )
             return {index.obs_id: config for (config, index) in reader}
@@ -430,14 +457,14 @@ class HDF5EventSource(EventSource):
         """read Observation and Scheduling block configurations"""
 
         sb_reader = HDF5TableReader(self.file_).read(
-            "/configuration/observation/scheduling_block",
+            SCHEDULING_BLOCK_TABLE,
             containers=SchedulingBlockContainer,
         )
 
         scheduling_blocks = {sb.sb_id: sb for sb in sb_reader}
 
         ob_reader = HDF5TableReader(self.file_).read(
-            "/configuration/observation/observation_block",
+            OBSERVATION_BLOCK_TABLE,
             containers=ObservationBlockContainer,
         )
         observation_blocks = {ob.obs_id: ob for ob in ob_reader}
@@ -465,7 +492,7 @@ class HDF5EventSource(EventSource):
         if DataLevel.R1 in self.datalevels:
             waveform_readers = {
                 table.name: self.reader.read(
-                    f"/r1/event/telescope/{table.name}", R1CameraContainer
+                    f"{R1_TEL_GROUP}/{table.name}", R1CameraContainer
                 )
                 for table in self.file_.root.r1.event.telescope
             }
@@ -479,7 +506,7 @@ class HDF5EventSource(EventSource):
 
             image_readers = {
                 table.name: self.reader.read(
-                    f"/dl1/event/telescope/images/{table.name}",
+                    f"{DL1_TEL_IMAGES_GROUP}/{table.name}",
                     DL1CameraContainer,
                     ignore_columns=ignore_columns,
                 )
@@ -507,7 +534,7 @@ class HDF5EventSource(EventSource):
 
             param_readers = {
                 table.name: self.reader.read(
-                    f"/dl1/event/telescope/parameters/{table.name}",
+                    f"{DL1_TEL_PARAMETERS_GROUP}/{table.name}",
                     containers=(
                         hillas_cls,
                         timing_cls,
@@ -532,7 +559,7 @@ class HDF5EventSource(EventSource):
             if self.has_simulated_dl1:
                 simulated_param_readers = {
                     table.name: self.reader.read(
-                        f"/simulation/event/telescope/parameters/{table.name}",
+                        f"{SIMULATION_PARAMETERS_GROUP}/{table.name}",
                         containers=[
                             hillas_cls,
                             LeakageContainer,
@@ -554,7 +581,7 @@ class HDF5EventSource(EventSource):
         if self.has_muon_parameters:
             muon_readers = {
                 table.name: self.reader.read(
-                    f"/dl1/event/telescope/muon/{table.name}",
+                    f"{DL1_TEL_MUON_GROUP}/{table.name}",
                     containers=[
                         MuonRingContainer,
                         MuonParametersContainer,
@@ -585,8 +612,8 @@ class HDF5EventSource(EventSource):
                 }
 
         dl2_tel_readers = {}
-        if DL2_TELESCOPE_GROUP in self.file_.root:
-            dl2_group = self.file_.root[DL2_TELESCOPE_GROUP]
+        if DL2_TEL_GROUP in self.file_.root:
+            dl2_group = self.file_.root[DL2_TEL_GROUP]
 
             for kind, group in dl2_group._v_children.items():
                 try:
@@ -597,26 +624,42 @@ class HDF5EventSource(EventSource):
 
                 dl2_tel_readers[kind] = {}
                 for algorithm, algorithm_group in group._v_children.items():
-                    dl2_tel_readers[kind][algorithm] = {
-                        key: HDF5TableReader(self.file_).read(
+                    dl2_tel_readers[kind][algorithm] = {}
+                    for key, table in algorithm_group._v_children.items():
+                        column_attrs = get_column_attrs(table)
+
+                        # workaround for missing prefix-information in tables written
+                        # by apply-models tool before ctapipe v0.27.0
+                        if any(
+                            v.get("PREFIX", "") != "" for v in column_attrs.values()
+                        ):
+                            prefixes = (
+                                None  # prefix are there and will be found by reader
+                            )
+                        else:
+                            # prefix not stored, assume data written by write_table with this prefix
+                            prefixes = algorithm + "_tel"
+
+                        dl2_tel_readers[kind][algorithm][key] = HDF5TableReader(
+                            self.file_
+                        ).read(
                             table._v_pathname,
                             containers=container,
+                            prefixes=prefixes,
                         )
-                        for key, table in algorithm_group._v_children.items()
-                    }
 
         true_impact_readers = {}
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
-                "/simulation/event/subarray/shower",
+                SIMULATION_SHOWER_TABLE,
                 SimulatedShowerContainer,
                 prefixes="true",
             )
             if "impact" in self.file_.root.simulation.event.telescope:
                 true_impact_readers = {
                     table.name: self.reader.read(
-                        f"/simulation/event/telescope/impact/{table.name}",
+                        f"{SIMULATION_IMPACT_GROUP}/{table.name}",
                         containers=TelescopeImpactParameterContainer,
                         prefixes=["true_impact"],
                     )
@@ -625,18 +668,20 @@ class HDF5EventSource(EventSource):
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
-            "/dl1/event/subarray/trigger",
+            DL1_SUBARRAY_TRIGGER_TABLE,
             [TriggerContainer, EventIndexContainer],
             ignore_columns={"tel"},
         )
         telescope_trigger_reader = HDF5TableReader(self.file_).read(
-            "/dl1/event/telescope/trigger",
+            DL1_TEL_TRIGGER_TABLE,
             [TelEventIndexContainer, TelescopeTriggerContainer],
             ignore_columns={"trigger_pixels"},
         )
 
         pointing_interpolator = None
-        if POINTING_GROUP in self.file_.root:
+        if DL0_TEL_POINTING_GROUP in self.file_.root:
+            from ..monitoring.interpolation import PointingInterpolator
+
             pointing_interpolator = PointingInterpolator(
                 h5file=self.file_,
                 parent=self,
@@ -778,11 +823,11 @@ class HDF5EventSource(EventSource):
             return
 
         if frame is CoordinateFrameType.ALTAZ:
-            event.pointing.array_azimuth = ob.subarray_pointing_lon
-            event.pointing.array_altitude = ob.subarray_pointing_lat
+            event.monitoring.pointing.array_azimuth = ob.subarray_pointing_lon
+            event.monitoring.pointing.array_altitude = ob.subarray_pointing_lat
         elif frame is CoordinateFrameType.ICRS:
-            event.pointing.array_ra = ob.subarray_pointing_lon
-            event.pointing.array_dec = ob.subarray_pointing_lat
+            event.monitoring.pointing.array_ra = ob.subarray_pointing_lon
+            event.monitoring.pointing.array_dec = ob.subarray_pointing_lat
         else:
             raise ValueError(f"Unsupported pointing frame: {frame}")
 
@@ -793,7 +838,7 @@ class HDF5EventSource(EventSource):
         if tel_pointing_interpolator is not None:
             for tel_id, trigger in event.trigger.tel.items():
                 alt, az = tel_pointing_interpolator(tel_id, trigger.time)
-                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
                     altitude=alt,
                     azimuth=az,
                 )
@@ -804,14 +849,14 @@ class HDF5EventSource(EventSource):
                 tel_pointing := self._constant_telescope_pointing.get(tel_id)
             ) is not None:
                 current = tel_pointing.loc[event.index.obs_id]
-                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
                     altitude=current["telescope_pointing_altitude"],
                     azimuth=current["telescope_pointing_azimuth"],
                 )
             elif (finder := self._legacy_tel_pointing_finders.get(tel_id)) is not None:
                 index = finder.closest(event.trigger.time.mjd)
                 row = self._legacy_tel_pointing_tables[tel_id][index]
-                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
                     altitude=row["altitude"],
                     azimuth=row["azimuth"],
                 )
