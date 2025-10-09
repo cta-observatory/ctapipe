@@ -39,7 +39,7 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-def chord_length(radius, impact_point, phi, phi0=0):
+def chord_length(radius, impact_distance, phi, phi0=0):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -49,8 +49,8 @@ def chord_length(radius, impact_point, phi, phi0=0):
     ----------
     radius: float or ndarray
         radius of circle
-    impact_point: float or ndarray
-        distance of impact point from circle center
+    impact_distance: float or ndarray
+        distance of impact distance from circle center
     phi: float or ndarray in radians
         rotation angles to calculate length
     phi0: float or ndarray in radians
@@ -71,13 +71,13 @@ def chord_length(radius, impact_point, phi, phi0=0):
 
     """
 
-    return _chord_length(radius, impact_point, phi, phi0)
+    return _chord_length(radius, impact_distance, phi, phi0)
 
 
 @vectorize(
     [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
 )
-def _chord_length(radius, impact_point, phi, phi0):
+def _chord_length(radius, impact_distance, phi, phi0):
     if radius <= 0:
         return 0
 
@@ -85,7 +85,7 @@ def _chord_length(radius, impact_point, phi, phi0):
 
     phi_modulo = (phi + np.pi) % (2 * np.pi) - np.pi
 
-    rho = np.abs(impact_point) / radius
+    rho = np.abs(impact_distance) / radius
     discriminant_norm = 1 - (rho**2 * np.sin(phi_modulo) ** 2)
     if discriminant_norm < 0:
         return 0
