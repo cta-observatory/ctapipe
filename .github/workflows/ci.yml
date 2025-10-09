@@ -40,16 +40,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: Linux (3.10, mamba, oldest-deps)
+          - name: Linux (3.11, mamba, oldest-deps)
             os: ubuntu-24.04
-            python-version: "3.10"
+            python-version: "3.11"
             install-method: mamba
             extras: tests,all
             extra-args: ["oldest-deps"]
 
-          - name: Linux (3.11, pip, minimal-dependencies)
+          - name: Linux (3.12, pip, minimal-dependencies)
             os: ubuntu-24.04
-            python-version: "3.11"
+            python-version: "3.12"
             install-method: pip
             extras: tests
 
@@ -60,31 +60,30 @@ jobs:
             extra-args: ["codecov"]
             extras: tests,all
 
-          - name: Linux (3.12, mamba)
-            os: ubuntu-24.04
-            python-version: "3.12"
-            install-method: mamba
-            extras: tests,all
-
-          - name: Linux (3.13, pip)
+          - name: Linux (3.13, mamba)
             os: ubuntu-24.04
             python-version: "3.13"
-            install-method: pip
+            install-method: mamba
             extras: tests,all
 
-          # macos-15-intel is x86-based
-          - name: macos (3.10, x86_64, pip)
+          - name: Linux (3.14, mamba)
+            os: ubuntu-24.04
+            python-version: "3.14"
+            install-method: mamba
+            extras: tests,all
+
+          - name: macos (3.12, x86-64, mamba)
             os: macos-15-intel
-            python-version: "3.10"
-            install-method: pip
-            extras: tests,all
-
-          # macos 15 image is arm64 based
-          - name: macos (3.12, arm64, mamba)
-            os: macos-15
             python-version: "3.12"
             install-method: mamba
             extras: tests,all
+
+          - name: macos (3.14, arm64, pip)
+            os: macos-15
+            python-version: "3.14"
+            install-method: pip
+            extras: tests,all
+
 
     defaults:
       run:
