@@ -199,6 +199,46 @@ def test_tool_current_config_subcomponents():
     assert current_config["MyTool"]["userparam"] == 2.0
 
 
+def test_tool_current_config_subcomponents_list():
+    """Check that we can get the full instance configuration for tools that
+    contain lists of subcomponents (which can be tools)"""
+    from ctapipe.core.component import Component
+
+    class SubComponent(Component):
+        param = Int(default_value=3).tag(config=True)
+
+    class SubComponent2(Component):
+        param = Int(default_value=3).tag(config=True)
+
+    class MyComponent(Component):
+        val = Int(default_value=42).tag(config=True)
+
+        def __init__(self, config=None, parent=None):
+            super().__init__(config=config, parent=parent)
+            self.subs = [SubComponent(parent=self), SubComponent2(parent=self)]
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+        def setup(self):
+            self.my_comp = MyComponent(parent=self)
+
+    config = Config()
+    config.MyTool.userparam = 2.0
+    config.MyTool.MyComponent.val = 10
+    config.MyTool.MyComponent.SubComponent.param = -1
+
+    tool = MyTool(config=config)
+    tool.setup()
+
+    current_config = tool.get_current_config()
+    assert current_config["MyTool"]["MyComponent"]["val"] == 10
+    assert current_config["MyTool"]["MyComponent"]["SubComponent"]["param"] == -1
+    assert current_config["MyTool"]["MyComponent"]["SubComponent2"]["param"] == 3
+    assert current_config["MyTool"]["userparam"] == 2.0
+
+
 def test_tool_exit_code():
     """Check that we can get the full instance configuration"""
 
@@ -665,3 +705,45 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
     # test correct case:
     tool.load_config_file(good_conf_path)
     assert tool.float_option > 1
+
+
+def test_tool_in_tool():
+    """Check that a Tool that calls other Tools has the right config in the
+    provenance log."""
+
+    class InnerTool(Tool):
+        param1 = traits.Integer(12).tag(config=True)
+
+        def start(self):
+            print(f"started inner: {self.get_current_config()}")
+
+    class CompoundTool(Tool):
+        param1 = traits.Integer(12).tag(config=True)
+        filename = traits.Unicode().tag(config=True)
+
+        classes = [
+            InnerTool,
+        ]
+
+        def setup(self):
+            self._inner = InnerTool(parent=self)
+
+        def start(self):
+            print(f"started calib: {self.get_current_config()}")
+
+            run_tool(self._inner)
+
+    conf = Config()
+    conf.InnerTool.param1 = 6
+    conf.CompoundTool.filename = "test.txt"
+    conf.CompoundTool.param1 = 100
+
+    tool = CompoundTool(config=conf)
+    run_tool(tool, raises=False)  # have to run it for setup()
+
+    assert "InnerTool" in tool.config
+
+    current_config = tool.get_current_config()
+    assert "CompoundTool" in current_config
+    assert "InnerTool" in current_config["CompoundTool"]
+    assert current_config["CompoundTool"]["InnerTool"]["param1"] == 6
