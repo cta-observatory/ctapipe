@@ -717,7 +717,12 @@ class SimTelEventSource(EventSource):
 
     @property
     def is_stream(self):
-        return not isinstance(self.file_._filehandle, BufferedReader | GzipFile)
+        # eventio 1.x
+        fh = getattr(self.file_, "_filehandle", None)
+        # eventio 2.x
+        if fh is None:
+            fh = self.file_._file._filehandle
+        return not isinstance(fh, BufferedReader | GzipFile)
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
@@ -906,8 +911,16 @@ class SimTelEventSource(EventSource):
         return {self.obs_id: container}
 
     def _generator(self):
-        if self.file_.tell() > self.start_pos:
-            self.file_._next_header_pos = 0
+        # FIXME: just forbid back-seeking.
+        if hasattr(self.file_, "_next_header_pos"):
+            # eventio 1.x
+            eventio_file = self.file_
+        else:
+            # eventio 2.x
+            eventio_file = self.file_._file
+
+        if eventio_file.tell() > self.start_pos:
+            eventio_file._next_header_pos = 0
             warnings.warn("Backseeking to start of file.")
 
         try:
