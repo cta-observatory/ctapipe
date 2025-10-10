@@ -159,6 +159,7 @@ filterwarnings = [
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
     "error::ctapipe.instrument.FromNameWarning",
     "error::ctapipe.core.traits.NoneDefaultNotAllowedWarning",
+    "error::tables.UnclosedFileWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
     "ignore::ctapipe.core.provenance.MissingReferenceMetadata",
 ]

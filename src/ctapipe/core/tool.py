@@ -558,6 +558,13 @@ class Tool(Application):
 
         return "\n".join(lines)
 
+    def __enter__(self):
+        self._exit_stack.__enter__()
+        return self
+
+    def __exit__(self, exc_value, exc_type, traceback):
+        return self._exit_stack.__exit__(exc_value, exc_type, traceback)
+
 
 def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     """
