@@ -1,2 +1,0 @@
-Use the HDF5Merger to add the observation block and scheduling block info
-to the DL1 files produced by ctapipe-calculate-pixel-statistics tool.

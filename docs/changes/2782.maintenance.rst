@@ -1,4 +1,0 @@
-- fixed confusing (and incorrect) debug log message in download.py
-- removed all references to ``ctapipe_resources`` in the code and docs, since
-  that module is no longer supported. Updated documentation to mention the
-  remote test data server when applicable.

@@ -1,2 +1,0 @@
-Fix image conversion to cartesian in case geometry units
-are not in meters.

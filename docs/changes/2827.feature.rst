@@ -1,1 +1,0 @@
-Add common names of stars to table output of ``ctapipe.utils.astro.get_bright_stars``.
