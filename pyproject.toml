@@ -48,11 +48,15 @@ dependencies = [
 
 [project.optional-dependencies]
 
+eventio = [
+    "eventio >=1.9.1,<3.0.0",
+]
+
 # all is with all optional *runtime* dependencies
 # use `dev` to get really all dependencies
 all = [
     "bokeh ~=3.0",
-    "eventio >=1.9.1,<2.0.0",
+    "ctapipe[eventio]",
     "iminuit >=2",
     "matplotlib ~=3.0",
     "pyirf ~=0.13.0"
@@ -61,7 +65,7 @@ all = [
 tests = [
     # at the moment, essentially all tests rely on test data from simtel
     # it doesn't make sense to skip all of these.
-    "eventio >=1.9.1,<2.0.0",
+    "ctapipe[eventio]",
     "h5py",
     "pandas",
     "pytest >= 7.0",
