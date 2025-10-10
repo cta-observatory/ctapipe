@@ -49,7 +49,7 @@ dependencies = [
 [project.optional-dependencies]
 
 eventio = [
-    "eventio >=1.9.1,<3.0.0a0",
+    "eventio >=1.11.6,<3.0.0a0",
 ]
 
 # all is with all optional *runtime* dependencies
