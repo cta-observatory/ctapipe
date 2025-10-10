@@ -34,7 +34,7 @@ dependencies = [
     "docutils",
     "joblib",
     "numba >=0.57",
-    "numpy >=1.24,<3.0.0a0",
+    "numpy >=1.26,<3.0.0a0",
     "packaging",
     "psutil",
     "pyyaml >=5.1",
