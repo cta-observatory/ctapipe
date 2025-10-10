@@ -33,7 +33,7 @@ dependencies = [
     "astropy >=6.1,<8.0.0a0",
     "docutils",
     "joblib",
-    "numba >=0.57",
+    "numba >=0.58.1",
     "numpy >=1.26,<3.0.0a0",
     "packaging",
     "psutil",
