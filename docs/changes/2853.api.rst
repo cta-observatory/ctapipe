@@ -1,4 +1,0 @@
-Remove the option ``DataWriter.write_index_tables`` along with its alias
-in ``ctapipe-process --write-index-tables``.
-The option seems to corrupt output files for large data sizes, is not used
-in ctapipe itself and was not tested.

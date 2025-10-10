@@ -1,3 +1,119 @@
+ctapipe v0.27.0 (2025-10-10)
+============================
+
+This release contains a major breaking change and introduction of a new plugin interface,
+both concerned with how monitoring data is handled in ctapipe.
+
+The existing data structures have been reworked and a new ``MonitoringSource`` Interface
+and plugin entry point are now defined.
+
+See below for details and other smaller new features and bug fixes.
+
+
+API Changes
+-----------
+
+- Update definition of the ``ctapipe.containers.EventType`` enum
+  to match an updated definition in the CTAO R1 and DL0 data models.
+
+  ``SKY_PEDESTAL=2`` is changed to the generic ``PEDESTAL``,
+  which is expected from most cameras in real data.
+
+  New types added are ``SKY_PEDESTAL=5`` and ``RANDOM_MONO=18``.
+
+  These types were previously assigned at the subarray event level
+  but in fact are per telescope event in the data model.
+  A new field ``event_type`` was added to the ``TelescopeTriggerContainer``
+  and will be filled by the ``EventSource``-implementations in ctapipe. [`#2769 <https://github.com/cta-observatory/ctapipe/pull/2769>`__]
+
+- Refactor old containers (breaking changes) and implement calibpipe-datapipe interface using a new ``MonitoringSource()`` mechanism.
+
+  * Remove containers ``DL1CameraCalibrationContainer``, ``FlatFieldContainer``, ``PedestalContainer``, ``PixelStatusContainer``, and ``WaveformCalibrationContainer``
+  * Add containers ``CameraCalibrationContainer``, ``MonitoringTelescopeContainer``, ``ChunkStatisticsContainer``, ``PixelStatisticsContainer``, and ``ArrayPointingContainer``
+  * Modify containers ``MonitoringContainer``, ``MonitoringCameraContainer``, ``PointingContainer``, ``TelescopePointingContainer``, and ``StatisticsContainer``,
+  * Move pointing tree of ``ArrayEventContainer`` into the monitoring tree.
+  * Remove calibration tree of ``ArrayEventContainer``. Information is retrieved from the ``monitoring.tel[tel_id].camera.coefficients`` tree.
+  * Implement ``MonitoringSource()`` to handle different monitoring data sources
+  * Implement the monitoring sources ``HDF5MonitoringSource`` that handles HDF5 file input
+  * Implement Table I/O for camera calibration coefficients following the agreed HDF5 table naming and hierarchy
+  * Remove ``ctapipe.calib.camera.flatfield`` and ``ctapipe.calib.camera.pedestal`` modules. Functionality is implemented in the ``ctapipe.monitoring`` module. [`#2802 <https://github.com/cta-observatory/ctapipe/pull/2802>`__]
+
+- Remove the option ``DataWriter.write_index_tables`` along with its alias
+  in ``ctapipe-process --write-index-tables``.
+  The option seems to corrupt output files for large data sizes, is not used
+  in ctapipe itself and was not tested. [`#2853 <https://github.com/cta-observatory/ctapipe/pull/2853>`__]
+
+
+Bug Fixes
+---------
+
+- Fix image conversion to cartesian in case geometry units
+  are not in meters. [`#2779 <https://github.com/cta-observatory/ctapipe/pull/2779>`__]
+
+- Raise a clear error message in the ``DispReconstructor``
+  in case of non-supported coordinate frames for the pointing
+  directions instead of silently assuming AltAz. [`#2785 <https://github.com/cta-observatory/ctapipe/pull/2785>`__]
+
+- Avoid astropy warnings in ``ctapipe.utils.astro.get_bright_stars``. [`#2801 <https://github.com/cta-observatory/ctapipe/pull/2801>`__]
+
+- In the muon intensity fitting class filters out non-physical solutions for chord vs phi function. [`#2803 <https://github.com/cta-observatory/ctapipe/pull/2803>`__]
+
+- Fix HDF5EventSource not properly reading telescope-wise DL2 fields written by ``ctapipe-apply-models``. [`#2824 <https://github.com/cta-observatory/ctapipe/pull/2824>`__]
+
+- Fix misleading error messages if a non-existing file is passed
+  via the command-line to a Tool that has another configuration option
+  that uses ``Path(default_value=None, allow_none=False)``.
+
+  This pattern is now deprecated as it results in these hard to understand
+  error messages due to behavior deep in traitlets.
+
+  A warning will be raised if traitlets are defined like this and
+  all ctapipe tools have been adapted to explicitly check
+  for None if a ``Path`` is required. [`#2826 <https://github.com/cta-observatory/ctapipe/pull/2826>`__]
+
+- Return the number of events used to compute the statistics in SigmaClippingAggregator. [`#2841 <https://github.com/cta-observatory/ctapipe/pull/2841>`__]
+
+- Fixed bug in `ctapipe.core.Tool.get_current_config` where ``Tools`` containing lists of
+  ``Components`` did not get registered, and thus their configs did not end up in the
+  provenance log. [`#2851 <https://github.com/cta-observatory/ctapipe/pull/2851>`__]
+
+
+New Features
+------------
+
+- Add short-form alternatives to the cli aliases of ``ctapipe-optimize-event-selection``. [`#2770 <https://github.com/cta-observatory/ctapipe/pull/2770>`__]
+
+- Use the HDF5Merger to add the observation block and scheduling block info
+  to the DL1 files produced by ctapipe-calculate-pixel-statistics tool. [`#2776 <https://github.com/cta-observatory/ctapipe/pull/2776>`__]
+
+- Enable ``ctapipe-merge`` to be used on camera calibration data and pixel statistics aggregation. [`#2787 <https://github.com/cta-observatory/ctapipe/pull/2787>`__]
+
+- Generalise the DL2 table processing implemented in IRF tools in order to be used by other usecases that ingest, filter and merge DL2 tables.
+  The module was moved from IRF to IO. [`#2791 <https://github.com/cta-observatory/ctapipe/pull/2791>`__]
+
+- Add new cli tool ``ctapipe-store-astropy-cache`` to download and store
+  astropy data needed for coordinate transformations. [`#2823 <https://github.com/cta-observatory/ctapipe/pull/2823>`__]
+
+- ``ctapipe.io.read_table`` and ``ctapipe.io.write_table`` now support custom column metadata. [`#2824 <https://github.com/cta-observatory/ctapipe/pull/2824>`__]
+
+- Add common names of stars to table output of ``ctapipe.utils.astro.get_bright_stars``. [`#2827 <https://github.com/cta-observatory/ctapipe/pull/2827>`__]
+
+- Add support for disabling numba caching via ``CTAPIPE_DISABLE_NUMBA_CACHE=1`` environment variable.
+  See https://github.com/numba/numba/issues/10128 for why this might be needed. [`#2836 <https://github.com/cta-observatory/ctapipe/pull/2836>`__]
+
+
+Maintenance
+-----------
+
+- - fixed confusing (and incorrect) debug log message in download.py
+  - removed all references to ``ctapipe_resources`` in the code and docs, since
+    that module is no longer supported. Updated documentation to mention the
+    remote test data server when applicable. [`#2782 <https://github.com/cta-observatory/ctapipe/pull/2782>`__]
+
+- Updated the developer environment in environment.yml to be in sync with what is in pyproject.toml. [`#2849 <https://github.com/cta-observatory/ctapipe/pull/2849>`__]
+
+
+
 ctapipe v0.26.0 (2025-06-05)
 ============================
 

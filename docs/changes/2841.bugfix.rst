@@ -1,1 +1,0 @@
-Return the number of events used to compute the statistics in SigmaClippingAggregator.

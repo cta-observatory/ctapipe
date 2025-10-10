@@ -1,1 +1,0 @@
-Updated the developer environment in environment.yml to be in sync with what is in pyproject.toml.

@@ -1,3 +1,0 @@
-Fixed bug in `ctapipe.core.Tool.get_current_config` where ``Tools`` containing lists of
-``Components`` did not get registered, and thus their configs did not end up in the
-provenance log.

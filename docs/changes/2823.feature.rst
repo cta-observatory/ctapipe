@@ -1,2 +1,0 @@
-Add new cli tool ``ctapipe-store-astropy-cache`` to download and store
-astropy data needed for coordinate transformations.

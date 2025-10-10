@@ -1,2 +1,0 @@
-Add support for disabling numba caching via ``CTAPIPE_DISABLE_NUMBA_CACHE=1`` environment variable.
-See https://github.com/numba/numba/issues/10128 for why this might be needed.
