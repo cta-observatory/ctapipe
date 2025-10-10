@@ -281,6 +281,9 @@ Reference/API
 .. automodapi:: ctapipe.io.metadata
     :no-inheritance-diagram:
 
+.. automodapi:: ctapipe.io.dl2_tables_preprocessing
+    :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.io.eventsource
     :no-inheritance-diagram:
 

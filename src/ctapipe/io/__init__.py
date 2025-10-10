@@ -6,6 +6,7 @@ isort:skip_file
 """
 from .astropy_helpers import read_table, write_table  # noqa: I001
 from .datalevels import DataLevel
+from .dl2_tables_preprocessing import DL2EventPreprocessor, DL2EventLoader
 from .eventsource import EventSource
 from .eventseeker import EventSeeker
 from .tableio import TableReader, TableWriter
@@ -41,5 +42,7 @@ __all__ = [
     "DataWriter",
     "DATA_MODEL_VERSION",
     "get_hdf5_datalevels",
+    "DL2EventPreprocessor",
+    "DL2EventLoader",
     "get_hdf5_monitoring_types",
 ]
