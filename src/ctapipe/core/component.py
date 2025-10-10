@@ -8,6 +8,7 @@ from inspect import cleandoc, isabstract
 from logging import getLogger
 
 from docutils.core import publish_parts
+from docutils.writers.html5_polyglot import Writer as HTML5Writer
 from traitlets import TraitError
 from traitlets.config import Configurable
 
@@ -250,12 +251,13 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
-        docstring = (
-            publish_parts(cleandoc(self.__class__.__doc__), writer_name="html")[
-                "html_body"
-            ]
-            or "Undocumented"
-        )
+
+        if not self.__class__.__doc__:
+            docstring = "Undocumented"
+        else:
+            clean_doc = cleandoc(self.__class__.__doc__)
+            writer = HTML5Writer()
+            docstring = publish_parts(clean_doc, writer=writer)["html_body"]
         lines = [
             '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',
             f"<b>{name}</b>",
