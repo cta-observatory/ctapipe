@@ -39,7 +39,8 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-def chord_length(radius, rho, phi, phi0=0):
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
+def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -50,17 +51,14 @@ def chord_length(radius, rho, phi, phi0=0):
     radius: float or ndarray
         radius of circle
     rho: float or ndarray
-        distance of impact point from circle center
+        fractional distance of impact point from circle center
     phi: float or ndarray in radians
         rotation angles to calculate length
-    phi0: float or ndarray in radians
-        direction of impact point from X-axis
 
     Returns
     -------
     float or ndarray:
         effective chord length
-
 
     References
     ----------
@@ -70,41 +68,23 @@ def chord_length(radius, rho, phi, phi0=0):
 
 
     """
+    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
+    valid = discriminant_norm >= 0
 
-    return _chord_length(radius, rho, phi, phi0)
-
-
-@vectorize(
-    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
-)
-def _chord_length(radius, rho, phi, phi0):
-    if radius <= 0:
+    if not valid:
         return 0
 
-    phi = phi - phi0
-
-    phi_modulo = (phi + np.pi) % (2 * np.pi) - np.pi
-
-    rho_r = np.abs(rho) / radius
-    discriminant_norm = 1 - (rho_r**2 * np.sin(phi_modulo) ** 2)
-    if discriminant_norm < 0:
-        return 0
-
-    effective_chord_length = 0
-
-    if rho_r <= 1.0:
+    if rho <= 1.0:
         # muon has hit the mirror
         effective_chord_length = radius * (
-            np.sqrt(discriminant_norm) + rho_r * np.cos(phi_modulo)
+            np.sqrt(discriminant_norm) + rho * np.cos(phi)
         )
-
-        return effective_chord_length
-
     else:
         # muon did not hit the mirror
-        effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
         # Filtering out non-physical solutions for phi
-        if np.abs(phi_modulo) > np.arcsin(1.0 / rho_r):
+        if np.abs(phi) < np.arcsin(1.0 / rho):
+            effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
+        else:
             return 0
 
     return effective_chord_length
@@ -124,12 +104,12 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
     float: length from impact point to mirror edge
 
     """
-    mirror_length = chord_length(mirror_radius, r, angle)
+    mirror_length = chord_length(mirror_radius, (r / mirror_radius), angle)
 
     if hole_radius == 0:
         return mirror_length
 
-    hole_length = chord_length(hole_radius, r, angle)
+    hole_length = chord_length(hole_radius, (r / hole_radius), angle)
     return mirror_length - hole_length
 
 
@@ -176,7 +156,7 @@ def create_profile(
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
+    ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
@@ -294,7 +274,7 @@ def image_prediction_no_units(
     dy = pixel_y_rad - center_y_rad
     ang = np.arctan2(dy, dx)
     # Add muon rotation angle
-    ang -= phi_rad
+    ang += phi_rad
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
@@ -572,6 +552,7 @@ class MuonIntensityFitter(TelescopeComponent):
             pix_type=telescope.camera.geometry.pix_type,
         )
         negative_log_likelihood.errordef = Minuit.LIKELIHOOD
+
         initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
 
         # Create Minuit object with first guesses at parameters
