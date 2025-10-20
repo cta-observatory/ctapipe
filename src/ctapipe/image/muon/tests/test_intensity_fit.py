@@ -25,19 +25,19 @@ Parameters = namedtuple("MuonTestParams", parameter_names)
         ),
         Parameters(
             radius=12,
-            rho=12,
+            rho=1,
             phi=90.0 * u.deg,
             expected_length=0,
         ),
         Parameters(
             radius=12,
-            rho=13,
+            rho=1.1,
             phi=180.0 * u.deg,
             expected_length=0,
         ),
         Parameters(
             radius=12,
-            rho=24.0,
+            rho=2,
             phi=0.0 * u.deg,
             expected_length=24,
         ),
