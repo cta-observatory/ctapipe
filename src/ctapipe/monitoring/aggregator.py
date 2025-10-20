@@ -13,6 +13,9 @@ these classes suitable for any N-dimensional event-wise data.
 """
 
 __all__ = [
+    "BaseChunking",
+    "SizeChunking",
+    "TimeChunking",
     "BaseAggregator",
     "StatisticsAggregator",
     "PlainAggregator",
@@ -21,6 +24,7 @@ __all__ = [
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Generator
 
 import astropy.units as u
 import numpy as np
@@ -29,67 +33,221 @@ from astropy.table import Table
 
 from ..containers import ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import CaselessStrEnum, Int
+from ..core.traits import AstroQuantity, ComponentName, Int
+
+
+class BaseChunking(Component, ABC):
+    """
+    Abstract base class for chunking strategies.
+
+    Chunking components divide tables into overlapping or non-overlapping chunks
+    for processing by aggregators.
+    """
+
+    def __call__(self, table) -> Generator[Table, None, None]:
+        """
+        Generate chunks from the input table.
+
+        Parameters
+        ----------
+        table : astropy.table.Table
+            Input table with 'time' and 'event_id' columns
+
+        Yields
+        ------
+        astropy.table.Table
+            Chunks of the input table
+        """
+        self._validate_table(table)
+        yield from self._generate_chunks(table)
+
+    def _validate_table(self, table):
+        """Validate that table has required columns."""
+        required_cols = ["time", "event_id"]
+        missing = [col for col in required_cols if col not in table.colnames]
+        if missing:
+            raise ValueError(f"Table must have columns: {missing}")
+
+    @abstractmethod
+    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+        """Generate chunks from table. Implemented by subclasses."""
+        pass
+
+
+class SizeChunking(BaseChunking):
+    """Divides tables into chunks based on number of events."""
+
+    chunk_size = Int(
+        default_value=None,
+        allow_none=True,
+        help="Number of events per chunk. If None, use entire table as one chunk.",
+    ).tag(config=True)
+
+    chunk_shift = Int(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Number of events to shift between consecutive chunks. "
+            "If None, chunks do not overlap."
+        ),
+    ).tag(config=True)
+
+    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+        """Generate event-count based chunks."""
+        # Handle case where chunk_size is None (entire table)
+        if self.chunk_size is None:
+            yield table
+            return
+
+        # Validate chunk_size vs table length
+        if len(table) < self.chunk_size:
+            raise ValueError(
+                f"Table length ({len(table)}) is less than chunk_size ({self.chunk_size})"
+            )
+
+        # Calculate step size
+        step = self.chunk_shift if self.chunk_shift is not None else self.chunk_size
+
+        # Generate overlapping/non-overlapping chunks
+        for i in range(0, len(table) - self.chunk_size + 1, step):
+            yield table[i : i + self.chunk_size]
+
+        # Handle last chunk for non-overlapping case
+        if self.chunk_shift is None and len(table) % self.chunk_size != 0:
+            # Ensure last chunk has full size by potentially overlapping
+            yield table[-self.chunk_size :]
+
+
+class TimeChunking(BaseChunking):
+    """Divides tables into chunks based on time intervals."""
+
+    chunk_duration = AstroQuantity(
+        physical_type=u.s,
+        default_value=0 * u.s,
+        help="Duration of each time chunk. If None, use entire table as one chunk.",
+    ).tag(config=True)
+
+    chunk_shift = AstroQuantity(
+        physical_type=u.s,
+        default_value=0 * u.s,
+        allow_none=True,
+        help=("Time shift between consecutive chunks. If None, chunks do not overlap."),
+    ).tag(config=True)
+
+    time_tolerance = AstroQuantity(
+        physical_type=u.s,
+        default_value=0.1 * u.s,
+        help=(
+            "Time tolerance for floating point comparisons when determining "
+            "chunk boundaries. Used bidirectionally: prevents generating chunks "
+            "when within tolerance of the end time, and prevents generating "
+            "additional overlapping chunks when remaining time is within tolerance."
+        ),
+    ).tag(config=True)
+
+    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+        """Generate time-based chunks."""
+        # Handle case where chunk_duration is None (entire table)
+        if self.chunk_duration is None:
+            yield table
+            return
+
+        times = table["time"]
+        start_time = times[0]
+        end_time = times[-1]
+        total_duration = end_time - start_time
+
+        # Validate inputs
+        if total_duration < self.chunk_duration:
+            raise ValueError(
+                f"Total duration ({total_duration}) is less than chunk_duration ({self.chunk_duration})"
+            )
+        if self.chunk_duration == 0 * u.s:
+            raise ValueError("chunk_duration must be greater than zero.")
+
+        # Calculate time step
+        time_step = (
+            self.chunk_shift if self.chunk_shift > 0 * u.s else self.chunk_duration
+        )
+
+        # Generate main sequence of chunks
+        current_time = start_time
+        while True:
+            chunk_end = current_time + self.chunk_duration
+
+            # Check if we've reached the end
+            if chunk_end > end_time + self.time_tolerance:
+                break
+
+            # Create mask for this time window
+            mask = (times >= current_time) & (times < chunk_end)
+            if np.any(mask):
+                yield table[mask]
+
+            current_time += time_step
+
+        # Handle last chunk for non-overlapping case only
+        if self.chunk_shift == 0 * u.s:
+            remaining_duration = end_time - current_time
+
+            # Only generate last chunk if remaining duration is beyond tolerance
+            # This ensures bidirectional tolerance: no chunk if we're close to the end
+            if (
+                remaining_duration > self.time_tolerance
+                and total_duration > self.chunk_duration
+            ):
+                # Ensure last chunk has full duration by potentially overlapping
+                last_chunk_start = end_time - self.chunk_duration
+                mask = (times >= last_chunk_start) & (times <= end_time)
+                if np.any(mask):
+                    yield table[mask]
 
 
 class BaseAggregator(Component, ABC):
     """
     Base class for aggregators that compute statistics over chunks of data.
 
-    Aggregators always return a Table with time windows and computed statistics.
-    Subclasses can add multiple columns by overriding add_result_columns().
+    Aggregators use a chunking strategy to divide input tables and compute
+    aggregated statistics for each chunk.
     """
 
-    chunk_size = Int(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Size of the chunk used for the computation of aggregated statistic values. "
-            "If None, use the entire table as one chunk. "
-            "For event-based chunking: number of events per chunk. "
-            "For time-based chunking: duration in seconds per chunk (integer)."
-        ),
+    chunking_type = ComponentName(
+        BaseChunking,
+        default_value="SizeChunking",
+        help="The chunking strategy to use for dividing data into chunks.",
     ).tag(config=True)
 
-    chunking_mode = CaselessStrEnum(
-        ["events", "time"],
-        default_value="events",
-        help=(
-            "Chunking strategy: 'events' for fixed event count, 'time' for time intervals. "
-            "When 'time', chunk_size and chunk_shift are interpreted as seconds."
-        ),
-    ).tag(config=True)
+    def __init__(self, config=None, parent=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments
+        parent : ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy
+        """
+        super().__init__(config=config, parent=parent, **kwargs)
+
+        # Create the chunking component using ComponentName
+        self.chunking = BaseChunking.from_name(self.chunking_type, parent=self)
 
     def __call__(
         self,
         table,
         masked_elements_of_sample=None,
-        chunk_shift=None,
         col_name="image",
     ) -> Table:
         r"""
         Divide table into chunks and compute aggregated statistic values.
 
-        This function divides the input table into overlapping or non-overlapping chunks of size ``chunk_size``
-        and calls the relevant function of the particular aggregator to compute aggregated statistic values.
-        The chunks are generated in a way that ensures they do not overflow the bounds of the table.
-        - If ``chunk_shift`` is None, chunks will not overlap, but the last chunk is ensured to be
-        of size ``chunk_size``, even if it means the last two chunks will overlap.
-        - If ``chunk_shift`` is provided, it will determine the number of samples to shift between the start
-        of consecutive chunks resulting in an overlap of chunks. Chunks that overflow the bounds
-        of the table are not considered.
-
         Parameters
         ----------
         table : astropy.table.Table
-            table with event-wise data of shape (n_events, \*data_dimensions), event IDs and
-            timestamps of shape (n_events, )
+            table with event-wise data of shape (n_events, \*data_dimensions),
+            event IDs and timestamps of shape (n_events, )
         masked_elements_of_sample : ndarray, optional
-            boolean array of masked elements of shape (\*data_dimensions) that are not available for processing
-        chunk_shift : int, optional
-            number of samples to shift between the start of consecutive chunks.
-            For event-based chunking: number of events. For time-based chunking: seconds.
-            Ignored when chunk_size is None.
+            boolean array of masked elements of shape (\*data_dimensions)
+            that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
 
@@ -99,22 +257,8 @@ class BaseAggregator(Component, ABC):
             table containing the start and end values as timestamps and event IDs
             as well as the aggregated statistic values for each chunk
         """
-        # Set chunk_size to table length if None (use entire table as one chunk)
-        if self.chunk_size is None:
-            effective_chunk_size = len(table)
-            self.chunking_mode = (
-                "events"  # Force event-based chunking when using entire table
-            )
-        else:
-            effective_chunk_size = self.chunk_size
-            self._check_table_length(table, effective_chunk_size)
-        if chunk_shift is not None and chunk_shift > effective_chunk_size:
-            raise ValueError(
-                f"The chunk_shift ({chunk_shift}) must be smaller than the chunk_size ({effective_chunk_size})."
-            )
-
         # Get chunks using the chunking strategy
-        chunks = self._get_chunks(table, chunk_shift, effective_chunk_size)
+        chunks = self.chunking(table)
 
         # Initialize result storage
         results = defaultdict(list)
@@ -128,7 +272,6 @@ class BaseAggregator(Component, ABC):
             results["event_id_end"].append(chunk["event_id"][-1])
 
             # Compute aggregator-specific statistics
-            # This method adds columns to results dict (including n_events if applicable)
             self._add_result_columns(
                 chunk[col_name].data, masked_elements_of_sample, results
             )
@@ -144,14 +287,8 @@ class BaseAggregator(Component, ABC):
 
     @abstractmethod
     def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
-        """
+        r"""
         Compute statistics and add columns to results dictionary.
-
-        This method should compute aggregator-specific statistics from the data
-        and append values to appropriate keys in results_dict.
-
-        The base implementation already adds: time_start, time_end, event_id_start, event_id_end.
-        Subclasses should add their specific statistics (e.g., mean, median, std, n_events, etc.).
 
         Parameters
         ----------
@@ -161,133 +298,13 @@ class BaseAggregator(Component, ABC):
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
             Dictionary to which statistic columns should be added.
-            Use results_dict['column_name'].append(value) for each statistic.
-
-        Examples
-        --------
-        # Add mean, median, std columns:
-        results_dict['mean'].append(np.mean(data))
-        results_dict['median'].append(np.median(data))
-        results_dict['std'].append(np.std(data))
         """
         pass
 
     @abstractmethod
     def _set_result_units(self, table, unit):
-        """
-        Set units for result columns that should inherit from the input data.
-
-        This method is called after the result table is created to assign units
-        to columns that were computed from the input data and should have the same units.
-
-        Parameters
-        ----------
-        table : astropy.table.Table
-            The result table with computed statistics
-        unit : astropy.units.Unit
-            The unit from the input data column
-
-        Examples
-        --------
-        # Set units for specific columns:
-        table['mean'].unit = unit
-        table['median'].unit = unit
-        table['std'].unit = unit
-        """
+        """Set units for result columns that should inherit from input data."""
         pass
-
-    def _get_chunks(self, table, chunk_shift, effective_chunk_size):
-        """
-        Generate chunks from table based on chunking strategy.
-
-        Parameters
-        ----------
-        table : astropy.table.Table
-            Input table to chunk
-        chunk_shift : int or None
-            Number of events/seconds to shift between chunks
-        effective_chunk_size : int
-            Size of each chunk in events or seconds
-
-        Yields
-        ------
-        astropy.table.Table
-            Chunks of the input table
-        """
-        # If using entire table as one chunk, just yield the whole table
-        if self.chunk_size is None:
-            yield table
-            return
-
-        if self.chunking_mode == "events":
-            yield from self._get_event_chunks(table, chunk_shift, effective_chunk_size)
-        elif self.chunking_mode == "time":
-            yield from self._get_time_chunks(table, chunk_shift, effective_chunk_size)
-
-    def _check_table_length(self, table, effective_chunk_size):
-        """Check if the table length is sufficient for at least one chunk."""
-        if self.chunking_mode == "events":
-            if len(table) < effective_chunk_size:
-                raise ValueError(
-                    f"The length of the provided table ({len(table)}) "
-                    f"is insufficient to meet the required statistics "
-                    f"for a single chunk of size ({effective_chunk_size})."
-                )
-        elif self.chunking_mode == "time":
-            times = table["time"]
-            total_duration = (times[-1] - times[0]).to_value("s")
-            if total_duration < effective_chunk_size:
-                raise ValueError(
-                    f"The total duration of the provided table"
-                    f"({total_duration} seconds) is insufficient "
-                    f"to meet the required statistics for a single chunk "
-                    f"of size ({effective_chunk_size} seconds)."
-                )
-
-    def _get_event_chunks(self, table, chunk_shift, effective_chunk_size):
-        """Generate chunks based on event count."""
-        # Calculate the range step: Use chunk_shift if provided, otherwise use chunk_size
-        step = chunk_shift or effective_chunk_size
-
-        # Generate chunks that do not overflow
-        for i in range(0, len(table) - effective_chunk_size + 1, step):
-            yield table[i : i + effective_chunk_size]
-
-        # If chunk_shift is None, ensure the last chunk is of size chunk_size, if needed
-        if chunk_shift is None and len(table) % effective_chunk_size != 0:
-            yield table[-effective_chunk_size:]
-
-    def _get_time_chunks(self, table, chunk_shift, effective_chunk_size):
-        """Generate chunks based on time intervals."""
-        times = table["time"]
-        start_time = times[0]
-        end_time = times[-1]
-        total_duration = (end_time - start_time).to_value("s")
-
-        # Calculate time step: Use chunk_shift if provided, otherwise use chunk_size
-        time_step = chunk_shift if chunk_shift is not None else effective_chunk_size
-
-        current_time = start_time
-        while True:
-            chunk_end = current_time + effective_chunk_size * u.s
-            # Check if chunk end exceeds our data range (with 0.1s tolerance for floating point)
-            if chunk_end > end_time + 0.1 * u.s:
-                break
-
-            mask = (times >= current_time) & (times < chunk_end)
-            if np.any(mask):
-                yield table[mask]
-            current_time += time_step * u.s
-
-        if chunk_shift is None:
-            # Add overlapping last chunk if there's remaining data
-            remaining_duration = (end_time - current_time).to_value("s")
-            if remaining_duration > 0.1 and total_duration > effective_chunk_size:
-                # Ensure last chunk has full duration by potentially overlapping
-                last_chunk_start = end_time - effective_chunk_size * u.s
-                mask = (times >= last_chunk_start) & (times <= end_time)
-                if np.any(mask):
-                    yield table[mask]
 
 
 class StatisticsAggregator(BaseAggregator):

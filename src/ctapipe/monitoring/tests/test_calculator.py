@@ -35,11 +35,14 @@ def test_statistics_calculator(example_subarray):
                 "stats_aggregator_type": [
                     ("id", 1, "SigmaClippingAggregator"),
                 ],
-                "chunk_shift": chunk_shift,
                 "faulty_pixels_fraction": 0.09,
             },
             "SigmaClippingAggregator": {
+                "chunking_type": "SizeChunking",
+            },
+            "SizeChunking": {
                 "chunk_size": chunk_size,
+                "chunk_shift": chunk_shift,
             },
         }
     )
@@ -129,11 +132,14 @@ def test_outlier_detector(example_subarray):
                         },
                     },
                 ],
-                "chunk_shift": 500,
                 "faulty_pixels_fraction": 0.09,
             },
             "SigmaClippingAggregator": {
+                "chunking_type": "SizeChunking",
+            },
+            "SizeChunking": {
                 "chunk_size": 1000,
+                "chunk_shift": 500,
             },
         }
     )

@@ -37,6 +37,9 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
                 ],
             },
             "PlainAggregator": {
+                "chunking_type": "SizeChunking",
+            },
+            "SizeChunking": {
                 "chunk_size": 1,
             },
         }
@@ -106,7 +109,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_failure_colname_file}",
-                "--StatisticsAggregator.chunk_size=1",
+                "--SizeChunking.chunk_size=1",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -119,14 +122,14 @@ def test_tool_config_error(tmp_path, dl1_image_file):
     )
 
     with pytest.raises(
-        ToolConfigurationError, match="Change --StatisticsAggregator.chunk_size"
+        ToolConfigurationError, match="Change --SizeChunking.chunk_size"
     ):
         run_tool(
             PixelStatisticsCalculatorTool(),
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_failure_chunk_size_file}",
-                "--StatisticsAggregator.chunk_size=2500",
+                "--SizeChunking.chunk_size=2500",
             ],
             cwd=tmp_path,
             raises=True,

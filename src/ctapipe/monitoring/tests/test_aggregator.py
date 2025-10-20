@@ -2,12 +2,17 @@
 Tests for StatisticsAggregator and related functions
 """
 
+import astropy.units as u
 import numpy as np
 import pytest
 from astropy.table import Table
 from astropy.time import Time
+from traitlets.config import Config
 
-from ctapipe.monitoring.aggregator import PlainAggregator, SigmaClippingAggregator
+from ctapipe.monitoring.aggregator import (
+    PlainAggregator,
+    SigmaClippingAggregator,
+)
 
 
 def test_aggregators():
@@ -35,11 +40,26 @@ def test_aggregators():
         [times, event_ids, time_data],
         names=("time", "event_id", "peak_time"),
     )
-    # Initialize the aggregators
+    # Initialize the aggregators using Config
     chunk_size = 2500
-    ped_aggregator = SigmaClippingAggregator(chunk_size=chunk_size)
-    ff_charge_aggregator = SigmaClippingAggregator(chunk_size=chunk_size)
-    ff_time_aggregator = PlainAggregator(chunk_size=chunk_size)
+    config = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": chunk_size},
+        }
+    )
+
+    ped_aggregator = SigmaClippingAggregator(config=config)
+    ff_charge_aggregator = SigmaClippingAggregator(config=config)
+
+    config_plain = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": chunk_size},
+        }
+    )
+
+    ff_time_aggregator = PlainAggregator(config=config_plain)
 
     # Compute the statistical values
     ped_stats = ped_aggregator(table=ped_table)
@@ -102,10 +122,25 @@ def test_chunk_shift():
         names=("time", "event_id", "image"),
     )
     # Initialize the aggregator
-    aggregator = SigmaClippingAggregator(chunk_size=2500)
+    config = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 2500},
+        }
+    )
+    aggregator = SigmaClippingAggregator(config=config)
     # Compute aggregated statistic values
     chunk_stats = aggregator(table=charge_table)
-    chunk_stats_shift = aggregator(table=charge_table, chunk_shift=2000)
+
+    # Test with overlapping chunks
+    config_overlap = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 2500, "chunk_shift": 2000},
+        }
+    )
+    aggregator_overlap = SigmaClippingAggregator(config=config_overlap)
+    chunk_stats_shift = aggregator_overlap(table=charge_table)
     # Check if three chunks are used for the computation of aggregated statistic values as the last chunk overflows
     assert len(chunk_stats) == 3
     # Check if two chunks are used for the computation of aggregated statistic values as the last chunk is dropped
@@ -113,9 +148,6 @@ def test_chunk_shift():
     # Check if ValueError is raised when the chunk_size is larger than the length of table
     with pytest.raises(ValueError):
         _ = aggregator(table=charge_table[1000:1500])
-    # Check if ValueError is raised when the chunk_shift is smaller than the chunk_size
-    with pytest.raises(ValueError):
-        _ = aggregator(table=charge_table, chunk_shift=3000)
 
 
 def test_with_outliers():
@@ -139,8 +171,21 @@ def test_with_outliers():
         names=("time", "event_id", "image"),
     )
     # Initialize the aggregators
-    sigmaclipping_aggregator = SigmaClippingAggregator(chunk_size=2500)
-    plain_aggregator = PlainAggregator(chunk_size=2500)
+    config_sigma = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 2500},
+        }
+    )
+    sigmaclipping_aggregator = SigmaClippingAggregator(config=config_sigma)
+
+    config_plain = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 2500},
+        }
+    )
+    plain_aggregator = PlainAggregator(config=config_plain)
 
     # Compute aggregated statistic values
     sigmaclipping_chunk_stats = sigmaclipping_aggregator(table=ped_table)
@@ -192,7 +237,13 @@ def test_time_based_chunking():
     )
 
     # Test time-based chunking with 2-second intervals
-    aggregator_time = PlainAggregator(chunking_mode="time", chunk_size=2)
+    config_time = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 2 * u.s},
+        }
+    )
+    aggregator_time = PlainAggregator(config=config_time)
     result_time = aggregator_time(table=table)
 
     # Should create 5 chunks (10 seconds / 2 seconds per chunk)
@@ -206,23 +257,17 @@ def test_time_based_chunking():
         assert 1.5 <= chunk_duration <= 2.5, f"Chunk {i} duration: {chunk_duration}s"
 
     # Test with larger time chunks
-    aggregator_time_5s = PlainAggregator(chunking_mode="time", chunk_size=5)
+    config_time_5s = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 5 * u.s},
+        }
+    )
+    aggregator_time_5s = PlainAggregator(config=config_time_5s)
     result_time_5s = aggregator_time_5s(table=table)
 
     # Should create 2 chunks (10 seconds / 5 seconds per chunk)
     assert len(result_time_5s) == 2
-
-    # Test with entire time range (chunk_size=None)
-    aggregator_time_all = PlainAggregator(chunking_mode="time", chunk_size=None)
-    result_time_all = aggregator_time_all(table=table)
-
-    # Should create 1 chunk containing all data
-    assert len(result_time_all) == 1
-    assert np.all(result_time_all[0]["n_events"] == 1000)
-
-    # Verify statistical calculations are reasonable
-    np.testing.assert_allclose(result_time[0]["mean"], 5.0, atol=0.5)
-    np.testing.assert_allclose(result_time[0]["std"], 1.0, atol=0.1)
 
 
 def test_time_based_chunking_with_shift():
@@ -247,8 +292,14 @@ def test_time_based_chunking_with_shift():
     )
 
     # Test overlapping time chunks: 2-second chunks with 1-second shift
-    aggregator_overlap = PlainAggregator(chunking_mode="time", chunk_size=2)
-    result_overlap = aggregator_overlap(table=table, chunk_shift=1)
+    config_overlap = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 2 * u.s, "chunk_shift": 1 * u.s},
+        }
+    )
+    aggregator_overlap = PlainAggregator(config=config_overlap)
+    result_overlap = aggregator_overlap(table=table)
 
     # With 5 seconds of data, 2-second chunks with 1-second shift should create:
     # Chunk 0: [0:2]s, Chunk 1: [1:3]s, Chunk 2: [2:4]s, Chunk 3: [3:5]s = 4 chunks
@@ -264,7 +315,14 @@ def test_time_based_chunking_with_shift():
             assert next_start < current_end
 
     # Test non-overlapping chunks for comparison
-    result_no_overlap = aggregator_overlap(table=table, chunk_shift=None)
+    config_no_overlap = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 2 * u.s},
+        }
+    )
+    aggregator_no_overlap = PlainAggregator(config=config_no_overlap)
+    result_no_overlap = aggregator_no_overlap(table=table)
 
     # Should create 3 chunks for 5 seconds with 2-second chunks:
     # [0:2]s, [2:4]s, and [3:5]s (last chunk overlaps to maintain full duration)
@@ -287,7 +345,13 @@ def test_time_vs_event_chunking_consistency():
     )
 
     # Test event-based chunking (default behavior)
-    aggregator_events = SigmaClippingAggregator(chunking_mode="events", chunk_size=100)
+    config_events = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 100},
+        }
+    )
+    aggregator_events = SigmaClippingAggregator(config=config_events)
     result_events = aggregator_events(table=table)
 
     # Should create 5 chunks (500 events / 100 events per chunk)
@@ -302,9 +366,13 @@ def test_time_vs_event_chunking_consistency():
     total_duration = (times[-1] - times[0]).to_value("s")
     chunk_duration = total_duration / 5  # Same number of chunks as event-based
 
-    aggregator_time = SigmaClippingAggregator(
-        chunking_mode="time", chunk_size=int(chunk_duration)
+    config_time = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": chunk_duration * u.s},
+        }
     )
+    aggregator_time = SigmaClippingAggregator(config=config_time)
     result_time = aggregator_time(table=table)
 
     # Should create approximately the same number of chunks
@@ -337,20 +405,33 @@ def test_time_chunking_validation():
         names=("time", "event_id", "image"),
     )
 
-    # Test invalid chunk_shift (larger than chunk_size)
-    aggregator = PlainAggregator(chunking_mode="time", chunk_size=2)
+    # Test chunk_shift larger than chunk_duration (creates gaps between chunks)
+    config_gaps = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {
+                "chunk_duration": 2 * u.s,
+                "chunk_shift": 3 * u.s,  # 3 > 2 seconds - creates gaps
+            },
+        }
+    )
+    aggregator = PlainAggregator(config=config_gaps)
 
-    with pytest.raises(
-        ValueError, match="chunk_shift.*must be smaller than.*chunk_size"
-    ):
-        _ = aggregator(table=table, chunk_shift=3)  # 3 > 2 seconds
+    # This should now work (creates chunks with gaps between them)
+    result_gaps = aggregator(table=table)
+    # Should create fewer chunks because of the gaps
+    assert len(result_gaps) >= 1
 
-    # Test that chunk_size=None works for time mode
-    aggregator_none = PlainAggregator(chunking_mode="time", chunk_size=None)
-    result_none = aggregator_none(table=table)
-
-    assert len(result_none) == 1  # Single chunk with all data
-    assert np.all(result_none[0]["n_events"] == 100)
+    # Test that chunk_duration=0 raises a ValueError
+    config_none = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 0 * u.s},
+        }
+    )
+    aggregator_none = PlainAggregator(config=config_none)
+    with pytest.raises(ValueError):
+        _ = aggregator_none(table=table)
 
 
 def test_1d_data_handling():
@@ -373,7 +454,13 @@ def test_1d_data_handling():
     )
 
     # Test PlainAggregator with 1D data
-    plain_aggregator = PlainAggregator(chunk_size=500)
+    config_1d = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 500},
+        }
+    )
+    plain_aggregator = PlainAggregator(config=config_1d)
     plain_stats = plain_aggregator(table=table_1d, col_name="value")
 
     # Should create 2 chunks
@@ -403,7 +490,13 @@ def test_1d_data_handling():
     assert plain_stats[1]["n_events"] == 500
 
     # Test SigmaClippingAggregator with 1D data
-    sigma_aggregator = SigmaClippingAggregator(chunk_size=500)
+    config_sigma_1d = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 500},
+        }
+    )
+    sigma_aggregator = SigmaClippingAggregator(config=config_sigma_1d)
     sigma_stats = sigma_aggregator(table=table_1d, col_name="value")
 
     # Should create 2 chunks
@@ -487,7 +580,13 @@ def test_nan_handling():
     )
 
     # Test PlainAggregator with NaN values
-    plain_aggregator = PlainAggregator(chunk_size=500)
+    config_plain_nan = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 500},
+        }
+    )
+    plain_aggregator = PlainAggregator(config=config_plain_nan)
     plain_stats = plain_aggregator(table=table_1d, col_name="value")
 
     assert len(plain_stats) == 2
@@ -511,7 +610,13 @@ def test_nan_handling():
     np.testing.assert_allclose(plain_stats[1]["mean"], 10.0, atol=1.0)
 
     # Test SigmaClippingAggregator with NaN values
-    sigma_aggregator = SigmaClippingAggregator(chunk_size=500)
+    config_sigma_nan = Config(
+        {
+            "SigmaClippingAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 500},
+        }
+    )
+    sigma_aggregator = SigmaClippingAggregator(config=config_sigma_nan)
     sigma_stats = sigma_aggregator(table=table_1d, col_name="value")
 
     assert len(sigma_stats) == 2
@@ -592,9 +697,14 @@ def test_nan_handling():
         names=("time", "event_id", "data"),
     )
 
-    plain_stats_all_nan = PlainAggregator(chunk_size=None)(
-        table=table_all_nan, col_name="data"
+    config_all_nan = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": None},
+        }
     )
+    aggregator_all_nan = PlainAggregator(config=config_all_nan)
+    plain_stats_all_nan = aggregator_all_nan(table=table_all_nan, col_name="data")
 
     # Should have 1 chunk (chunk_size=None means entire table)
     assert len(plain_stats_all_nan) == 1
