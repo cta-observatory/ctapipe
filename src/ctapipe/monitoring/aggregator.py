@@ -182,7 +182,11 @@ class TimeChunking(BaseChunking):
             # Create mask for this time window
             mask = (times >= current_time) & (times < chunk_end)
             if np.any(mask):
-                yield table[mask]
+                # Convert boolean mask to slice indices for contiguous selection
+                indices = np.nonzero(mask)[0]
+                start_idx = indices[0]
+                end_idx = indices[-1] + 1  # +1 because slice end is exclusive
+                yield table[start_idx:end_idx]
 
             current_time += time_step
 
@@ -200,7 +204,11 @@ class TimeChunking(BaseChunking):
                 last_chunk_start = end_time - self.chunk_duration
                 mask = (times >= last_chunk_start) & (times <= end_time)
                 if np.any(mask):
-                    yield table[mask]
+                    # Convert boolean mask to slice indices
+                    indices = np.nonzero(mask)[0]
+                    start_idx = indices[0]
+                    end_idx = indices[-1] + 1  # +1 because slice end is exclusive
+                    yield table[start_idx:end_idx]
 
 
 class BaseAggregator(Component, ABC):
