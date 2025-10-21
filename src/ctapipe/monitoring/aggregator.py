@@ -51,22 +51,16 @@ class BaseChunking(Component, ABC):
         Parameters
         ----------
         table : astropy.table.Table
-            Input table with 'time' and 'event_id' columns
+            Input table with 'time' column.
 
         Yields
         ------
         astropy.table.Table
             Chunks of the input table
         """
-        self._validate_table(table)
+        if "time" not in table.colnames:
+            raise ValueError("Table must have a 'time' column")
         yield from self._generate_chunks(table)
-
-    def _validate_table(self, table):
-        """Validate that table has required columns."""
-        required_cols = ["time", "event_id"]
-        missing = [col for col in required_cols if col not in table.colnames]
-        if missing:
-            raise ValueError(f"Table must have columns: {missing}")
 
     @abstractmethod
     def _generate_chunks(self, table) -> Generator[Table, None, None]:
@@ -273,11 +267,14 @@ class BaseAggregator(Component, ABC):
 
         # Process each chunk
         for chunk in chunks:
-            # Add time/event metadata
+            # Add time metadata
             results["time_start"].append(chunk["time"][0])
             results["time_end"].append(chunk["time"][-1])
-            results["event_id_start"].append(chunk["event_id"][0])
-            results["event_id_end"].append(chunk["event_id"][-1])
+
+            # Add event_id metadata if column exists
+            if "event_id" in chunk.colnames:
+                results["event_id_start"].append(chunk["event_id"][0])
+                results["event_id_end"].append(chunk["event_id"][-1])
 
             # Compute aggregator-specific statistics
             self._add_result_columns(
