@@ -1,6 +1,7 @@
 Enhanced ``StatisticsAggregator`` classes to support time-based chunking in addition to event-based chunking.
 
-Introduced ``BaseAggregator`` as a new base class for all aggregators, allowing extensions beyond statistics aggregation.
-The new ``chunking_mode`` parameter allows aggregating statistics over time intervals (seconds) rather than
-fixed event counts, enabling time-series analysis. The aggregators now work with any N-dimensional event-wise data,
-making them universally applicable across different data types in ctapipe.
+Refactored with component-based chunking system using ``BaseChunking``, ``SizeChunking``, and ``TimeChunking`` components.
+Statistics can now be aggregated over time intervals (seconds) rather than fixed event counts, enabling time-series analysis.
+Time-based chunking supports ``chunk_duration`` and configurable overlap via ``chunk_shift``.
+
+Breaking change: ``StatisticsAggregator`` now requires a ``chunking`` component to define chunking behavior.
