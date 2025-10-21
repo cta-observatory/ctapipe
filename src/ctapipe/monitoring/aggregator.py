@@ -69,25 +69,25 @@ class BaseChunking(Component, ABC):
 
 
 class SizeChunking(BaseChunking):
-    """Divides tables into chunks based on number of events."""
+    """Divides tables into chunks based on number of rows."""
 
     chunk_size = Int(
         default_value=None,
         allow_none=True,
-        help="Number of events per chunk. If None, use entire table as one chunk.",
+        help="Number of rows per chunk. If None, use entire table as one chunk.",
     ).tag(config=True)
 
     chunk_shift = Int(
         default_value=None,
         allow_none=True,
         help=(
-            "Number of events to shift between consecutive chunks. "
+            "Number of rows to shift between consecutive chunks. "
             "If None, chunks do not overlap."
         ),
     ).tag(config=True)
 
     def _generate_chunks(self, table) -> Generator[Table, None, None]:
-        """Generate event-count based chunks."""
+        """Generate row-count based chunks."""
         # Handle case where chunk_size is None (entire table)
         if self.chunk_size is None:
             yield table
@@ -156,7 +156,7 @@ class TimeChunking(BaseChunking):
             raise ValueError(
                 f"Total duration ({total_duration}) is less than chunk_duration ({self.chunk_duration})"
             )
-        if self.chunk_duration == 0 * u.s:
+        if self.chunk_duration <= 0 * u.s:
             raise ValueError("chunk_duration must be greater than zero.")
 
         # Calculate time step
@@ -335,8 +335,7 @@ class StatisticsAggregator(BaseAggregator):
         should have the same units as the input data.
         """
         for col in ("mean", "median", "std"):
-            if col in table.colnames:
-                table[col].unit = unit
+            table[col].unit = unit
 
     @abstractmethod
     def compute_stats(
