@@ -15,11 +15,13 @@ from ctapipe.containers import ArrayEventContainer
 from ctapipe.image.extractor import (
     FullWaveformSum,
     GlobalPeakWindowSum,
+    ImageExtractor,
     LocalPeakWindowSum,
     NeighborPeakWindowSum,
     VarianceExtractor,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
+from ctapipe.io.eventsource import EventSource
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -406,3 +408,16 @@ def test_no_gain_selection(prod5_gamma_simtel_path):
         assert peak_time.shape == (readout.n_channels, readout.n_pixels)
 
     assert tested_n_channels == {1, 2}
+
+
+@pytest.mark.parametrize("extractor", ImageExtractor.non_abstract_subclasses())
+def test_extractor_simtel_eventsource(extractor, prod5_gamma_simtel_path):
+    with EventSource(prod5_gamma_simtel_path) as source:
+        calibrator = CameraCalibrator(source.subarray, image_extractor_type=extractor)
+
+        n_calibrated = 0
+        for event in source:
+            calibrator(event)
+            n_calibrated += 1
+
+        assert n_calibrated == 7
