@@ -124,14 +124,14 @@ class TimeChunking(BaseChunking):
     chunk_duration = AstroQuantity(
         physical_type=u.s,
         default_value=0 * u.s,
-        help="Duration of each time chunk. If None, use entire table as one chunk.",
+        help="Duration of each time chunk.",
     ).tag(config=True)
 
     chunk_shift = AstroQuantity(
         physical_type=u.s,
         default_value=0 * u.s,
         allow_none=True,
-        help=("Time shift between consecutive chunks. If None, chunks do not overlap."),
+        help=("Time shift between consecutive chunks. If 0, chunks do not overlap."),
     ).tag(config=True)
 
     time_tolerance = AstroQuantity(
@@ -313,18 +313,9 @@ class StatisticsAggregator(BaseAggregator):
     containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
 
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
-
-    This class provides backward compatibility by wrapping add_result_columns() to call
-    the existing compute_stats() method.
     """
 
     def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
-        """
-        Compute statistics using compute_stats and add columns to results dictionary.
-
-        This method provides the bridge between the new BaseAggregator interface
-        and the existing compute_stats() method used by subclasses.
-        """
         stats = self.compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
