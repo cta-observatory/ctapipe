@@ -796,6 +796,12 @@ class NeighborPeakWindowSum(ImageExtractor):
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+
+        if selected_gain_channel is not None:
+            broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
+            # neighbor_average_maximum indexes using channel.
+            broken_pixels = broken_pixels[np.newaxis, ...]
+
         peak_index = neighbor_average_maximum(
             waveforms,
             neighbors_indices=neighbors.indices,
