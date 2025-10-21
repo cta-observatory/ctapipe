@@ -276,8 +276,6 @@ CameraDisplay(geom, image=image)
 
 fig, hillas = display_event_with_annotated_hillas(image, geom, picture_thresh=20, boundary_thresh=10)
 
-plt.savefig("annotated_hillas_parameters.png", dpi=300)
-
 plt.show()
 
 ######################################################################
