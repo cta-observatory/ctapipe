@@ -244,10 +244,8 @@ def neighbor_average_maximum(
 
     Returns
     -------
-    average_wf : ndarray
-        Average of neighbor waveforms for each pixel.
-        Shape: (n_channels, n_pix)
-
+    peak_pos : ndarray
+        Index of the maximum for each pixel's neighbor averaged waveform.
     """
 
     n_channels, n_pixels, _ = waveforms.shape
