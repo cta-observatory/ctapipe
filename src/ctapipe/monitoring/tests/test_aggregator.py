@@ -144,7 +144,7 @@ def test_chunk_shift():
     # Check if three chunks are used for the computation of aggregated statistic values as the last chunk overflows
     assert len(chunk_stats) == 3
     # Check if two chunks are used for the computation of aggregated statistic values as the last chunk is dropped
-    assert len(chunk_stats_shift) == 2
+    assert len(chunk_stats_shift) == 3
     # Check if ValueError is raised when the chunk_size is larger than the length of table
     with pytest.raises(ValueError):
         _ = aggregator(table=charge_table[1000:1500])
@@ -721,3 +721,207 @@ def test_nan_handling():
     np.testing.assert_allclose(
         plain_stats_all_nan[0]["mean"][[0, 1, 3, 4]], 10.0, atol=1.0
     )
+
+
+def test_undersized_tables():
+    """Test handling of tables smaller than chunk size with allow_undersized_tables option"""
+
+    # Create small test table (50 rows)
+    times = Time(np.linspace(60117.911, 60117.912, num=50), scale="tai", format="mjd")
+    event_ids = np.arange(50)
+    rng = np.random.default_rng(42)
+    data = rng.normal(10.0, 2.0, size=(50, 2, 5))
+
+    small_table = Table(
+        [times, event_ids, data],
+        names=("time", "event_id", "image"),
+    )
+
+    # Test 1: SizeChunking with undersized table - should raise error by default
+    config_error = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 100, "allow_undersized_tables": False},
+        }
+    )
+    aggregator_error = PlainAggregator(config=config_error)
+
+    with pytest.raises(
+        ValueError, match="Table length \\(50\\) is less than chunk_size \\(100\\)"
+    ):
+        aggregator_error(table=small_table)
+
+    # Test 2: SizeChunking with allow_undersized_tables=True
+    config_allow = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 100, "allow_undersized_tables": True},
+        }
+    )
+    aggregator_allow = PlainAggregator(config=config_allow)
+    result_allow = aggregator_allow(table=small_table)
+
+    # Should process entire table as single chunk
+    assert len(result_allow) == 1
+    assert result_allow[0]["n_events"][0, 0] == 50  # All 50 events in single chunk
+
+    # Test 3: TimeChunking with undersized table - should raise error by default
+    # Note: table spans ~86.4 seconds, so use 100s chunk_duration to make it undersized
+    config_time_error = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {
+                "chunk_duration": 100 * u.s,
+                "allow_undersized_tables": False,
+            },
+        }
+    )
+    aggregator_time_error = PlainAggregator(config=config_time_error)
+
+    with pytest.raises(
+        ValueError, match="Total duration .* is less than chunk_duration"
+    ):
+        aggregator_time_error(table=small_table)
+
+    # Test 4: TimeChunking with allow_undersized_tables=True
+    config_time_allow = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {
+                "chunk_duration": 100 * u.s,
+                "allow_undersized_tables": True,
+            },
+        }
+    )
+    aggregator_time_allow = PlainAggregator(config=config_time_allow)
+    result_time_allow = aggregator_time_allow(table=small_table)
+
+    # Should process entire table as single chunk
+    assert len(result_time_allow) == 1
+    assert result_time_allow[0]["n_events"][0, 0] == 50
+
+
+def test_last_chunk_policy_size_chunking():
+    """Test different last_chunk_policy options for SizeChunking"""
+
+    # Create test table with 55 rows (chunk_size=20 leaves 15 rows remainder)
+    times = Time(np.linspace(60117.911, 60117.912, num=55), scale="tai", format="mjd")
+    event_ids = np.arange(55)
+    rng = np.random.default_rng(123)
+    data = rng.normal(5.0, 1.0, size=(55, 3))
+
+    table = Table(
+        [times, event_ids, data],
+        names=("time", "event_id", "image"),
+    )
+
+    # Test 1: last_chunk_policy="overlap" (default)
+    config_overlap = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 20, "last_chunk_policy": "overlap"},
+        }
+    )
+    aggregator_overlap = PlainAggregator(config=config_overlap)
+    result_overlap = aggregator_overlap(table=table)
+
+    # Should have 3 chunks: [0:20], [20:40], [35:55] (last overlaps)
+    assert len(result_overlap) == 3
+    assert result_overlap[0]["n_events"][0] == 20  # First chunk: 20 events
+    assert result_overlap[1]["n_events"][0] == 20  # Second chunk: 20 events
+    assert result_overlap[2]["n_events"][0] == 20  # Last chunk: 20 events (overlapping)
+
+    # Test 2: last_chunk_policy="truncate"
+    config_truncate = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 20, "last_chunk_policy": "truncate"},
+        }
+    )
+    aggregator_truncate = PlainAggregator(config=config_truncate)
+    result_truncate = aggregator_truncate(table=table)
+
+    # Should have 3 chunks: [0:20], [20:40], [40:55] (last is partial)
+    assert len(result_truncate) == 3
+    assert result_truncate[0]["n_events"][0] == 20  # First chunk: 20 events
+    assert result_truncate[1]["n_events"][0] == 20  # Second chunk: 20 events
+    assert result_truncate[2]["n_events"][0] == 15  # Last chunk: 15 events (truncated)
+
+    # Test 3: last_chunk_policy="skip"
+    config_skip = Config(
+        {
+            "PlainAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 20, "last_chunk_policy": "skip"},
+        }
+    )
+    aggregator_skip = PlainAggregator(config=config_skip)
+    result_skip = aggregator_skip(table=table)
+
+    # Should have 2 chunks: [0:20], [20:40] (last chunk skipped)
+    assert len(result_skip) == 2
+    assert result_skip[0]["n_events"][0] == 20  # First chunk: 20 events
+    assert result_skip[1]["n_events"][0] == 20  # Second chunk: 20 events
+    # No third chunk - the remaining 15 events are skipped
+
+
+def test_last_chunk_policy_time_chunking():
+    """Test different last_chunk_policy options for TimeChunking"""
+
+    # Create test table with 5.5 seconds of data (chunk_duration=2s leaves 1.5s remainder)
+    times = Time(
+        np.linspace(60117.911, 60117.911 + 5.5 / 86400, num=55),
+        scale="tai",
+        format="mjd",
+    )
+    event_ids = np.arange(55)
+    rng = np.random.default_rng(456)
+    data = rng.normal(8.0, 1.5, size=(55, 2))
+
+    table = Table(
+        [times, event_ids, data],
+        names=("time", "event_id", "image"),
+    )
+
+    # Test 1: last_chunk_policy="overlap" (default)
+    config_overlap = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 2 * u.s, "last_chunk_policy": "overlap"},
+        }
+    )
+    aggregator_overlap = PlainAggregator(config=config_overlap)
+    result_overlap = aggregator_overlap(table=table)
+
+    # Should have 3 chunks: [0:2s], [2:4s], [3.5:5.5s] (last overlaps)
+    assert len(result_overlap) == 3
+    # All chunks should have roughly the same number of events (overlapping ensures full duration)
+
+    # Test 2: last_chunk_policy="truncate"
+    config_truncate = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {
+                "chunk_duration": 2 * u.s,
+                "last_chunk_policy": "truncate",
+            },
+        }
+    )
+    aggregator_truncate = PlainAggregator(config=config_truncate)
+    result_truncate = aggregator_truncate(table=table)
+
+    # Should have 3 chunks: [0:2s], [2:4s], [4:5.5s] (last is partial)
+    assert len(result_truncate) == 3
+    # Last chunk should have fewer events due to shorter duration
+
+    # Test 3: last_chunk_policy="skip"
+    config_skip = Config(
+        {
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {"chunk_duration": 2 * u.s, "last_chunk_policy": "skip"},
+        }
+    )
+    aggregator_skip = PlainAggregator(config=config_skip)
+    result_skip = aggregator_skip(table=table)
+
+    # Should have 2 chunks: [0:2s], [2:4s] (last partial chunk skipped)
+    assert len(result_skip) == 2

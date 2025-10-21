@@ -1,5 +1,5 @@
 """
-Algorithms to compute aggregated time-series statistics from columns of an event table.
+Algorithms to compute aggregated time-series statistics from columns of an astropy table.
 
 These classes take as input an events table containing any event-wise quantities
 (e.g., images, scalars, vectors), divide it into time chunks, which may optionally
@@ -33,7 +33,7 @@ from astropy.table import Table
 
 from ..containers import ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import AstroQuantity, ComponentName, Int
+from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
 
 
 class BaseChunking(Component, ABC):
@@ -43,6 +43,25 @@ class BaseChunking(Component, ABC):
     Chunking components divide tables into overlapping or non-overlapping chunks
     for processing by aggregators.
     """
+
+    allow_undersized_tables = Bool(
+        default_value=False,
+        help=(
+            "If True, allow processing tables smaller than chunk size/duration by yielding "
+            "the entire table as a single chunk. If False, raise an error."
+        ),
+    ).tag(config=True)
+
+    last_chunk_policy = Enum(
+        values=["overlap", "truncate", "skip"],
+        default_value="overlap",
+        help=(
+            "Policy for handling the last chunk when data doesn't divide evenly. "
+            "'overlap': Create overlapping chunk with full size (current behavior). "
+            "'truncate': Yield remaining data as smaller chunk. "
+            "'skip': Skip the last partial chunk."
+        ),
+    ).tag(config=True)
 
     def __call__(self, table) -> Generator[Table, None, None]:
         """
@@ -58,6 +77,7 @@ class BaseChunking(Component, ABC):
         astropy.table.Table
             Chunks of the input table
         """
+        # Basic validation that all chunking strategies need
         if "time" not in table.colnames:
             raise ValueError("Table must have a 'time' column")
         yield from self._generate_chunks(table)
@@ -86,6 +106,26 @@ class SizeChunking(BaseChunking):
         ),
     ).tag(config=True)
 
+    def _generate_final_chunk(self, table, last_chunk_start):
+        """Generate the final chunk according to last_chunk_policy."""
+        remaining_rows = len(table) - last_chunk_start
+
+        # Only add final chunk if there are remaining rows
+        if remaining_rows == 0:
+            return None
+
+        if self.last_chunk_policy == "overlap":
+            # Ensure last chunk has full size by potentially overlapping
+            return table[-self.chunk_size :]
+        elif self.last_chunk_policy == "truncate":
+            # Yield remaining rows as smaller chunk
+            return table[last_chunk_start:]
+        elif self.last_chunk_policy == "skip":
+            # Skip the last partial chunk
+            return None
+
+        return None
+
     def _generate_chunks(self, table) -> Generator[Table, None, None]:
         """Generate row-count based chunks."""
         # Handle case where chunk_size is None (entire table)
@@ -93,23 +133,39 @@ class SizeChunking(BaseChunking):
             yield table
             return
 
-        # Validate chunk_size vs table length
+        # Check table size vs chunk_size
         if len(table) < self.chunk_size:
-            raise ValueError(
-                f"Table length ({len(table)}) is less than chunk_size ({self.chunk_size})"
-            )
+            if self.allow_undersized_tables:
+                yield table  # Yield entire table as single chunk
+                return
+            else:
+                raise ValueError(
+                    f"Table length ({len(table)}) is less than chunk_size ({self.chunk_size}). "
+                    f"Set allow_undersized_tables=True to process as single chunk."
+                )
 
         # Calculate step size
         step = self.chunk_shift if self.chunk_shift is not None else self.chunk_size
 
-        # Generate overlapping/non-overlapping chunks
-        for i in range(0, len(table) - self.chunk_size + 1, step):
-            yield table[i : i + self.chunk_size]
+        # Calculate all main chunk start indices (not extending beyond table)
+        n_chunks = (len(table) - self.chunk_size) // step + 1
+        main_chunk_indices = np.arange(n_chunks) * step
 
-        # Handle last chunk for non-overlapping case
-        if self.chunk_shift is None and len(table) % self.chunk_size != 0:
-            # Ensure last chunk has full size by potentially overlapping
-            yield table[-self.chunk_size :]
+        # Filter indices that would create valid chunks
+        main_chunk_indices = main_chunk_indices[
+            main_chunk_indices + self.chunk_size <= len(table)
+        ]
+        last_chunk_start = main_chunk_indices[-1] + step
+
+        # Generate chunks for each main chunk start index
+        for start_idx in main_chunk_indices:
+            end_idx = start_idx + self.chunk_size
+            yield table[start_idx:end_idx]
+
+        # Handle final chunk according to policy
+        final_chunk = self._generate_final_chunk(table, last_chunk_start)
+        if final_chunk is not None:
+            yield final_chunk
 
 
 class TimeChunking(BaseChunking):
@@ -128,16 +184,47 @@ class TimeChunking(BaseChunking):
         help=("Time shift between consecutive chunks. If 0, chunks do not overlap."),
     ).tag(config=True)
 
-    time_tolerance = AstroQuantity(
-        physical_type=u.s,
-        default_value=0.1 * u.s,
-        help=(
-            "Time tolerance for floating point comparisons when determining "
-            "chunk boundaries. Used bidirectionally: prevents generating chunks "
-            "when within tolerance of the end time, and prevents generating "
-            "additional overlapping chunks when remaining time is within tolerance."
-        ),
-    ).tag(config=True)
+    def _validate_inputs(self, total_duration):
+        """Validate chunk_duration and table duration."""
+        # Check if chunk_duration is properly set
+        if self.chunk_duration <= 0 * u.s:
+            raise ValueError("chunk_duration must be greater than zero.")
+
+        # Check if total duration is sufficient for chunking
+        if total_duration < self.chunk_duration:
+            if self.allow_undersized_tables:
+                return True  # Signal to yield entire table as single chunk
+            raise ValueError(
+                f"Total duration ({total_duration}) is less than chunk_duration ({self.chunk_duration}). "
+                f"Set allow_undersized_tables=True to process as single chunk."
+            )
+        return False  # Normal processing
+
+    def _create_chunk_from_mask(self, table, mask):
+        """Create a table chunk from a boolean mask using slice indexing."""
+        if np.any(mask):
+            indices = np.nonzero(mask)[0]
+            start_idx = indices[0]
+            end_idx = indices[-1] + 1  # +1 because slice end is exclusive
+            return table[start_idx:end_idx]
+        return None
+
+    def _generate_final_chunk(self, table, times, last_chunk_start, end_time):
+        """Generate the final chunk according to last_chunk_policy."""
+        if last_chunk_start == end_time:
+            return None
+        if self.last_chunk_policy == "overlap":
+            # Ensure last chunk has full duration by potentially overlapping
+            last_chunk_start = end_time - self.chunk_duration
+            mask = (times >= last_chunk_start) & (times <= end_time)
+        elif self.last_chunk_policy == "truncate":
+            # Yield remaining time as smaller chunk
+            mask = (times >= last_chunk_start) & (times <= end_time)
+        elif self.last_chunk_policy == "skip":
+            # Skip the last partial chunk
+            return None
+
+        return self._create_chunk_from_mask(table, mask)
 
     def _generate_chunks(self, table) -> Generator[Table, None, None]:
         """Generate time-based chunks."""
@@ -151,58 +238,39 @@ class TimeChunking(BaseChunking):
         end_time = times[-1]
         total_duration = end_time - start_time
 
-        # Validate inputs
-        if total_duration < self.chunk_duration:
-            raise ValueError(
-                f"Total duration ({total_duration}) is less than chunk_duration ({self.chunk_duration})"
-            )
-        if self.chunk_duration <= 0 * u.s:
-            raise ValueError("chunk_duration must be greater than zero.")
+        # Validate inputs and handle undersized tables
+        use_entire_table = self._validate_inputs(total_duration)
+        if use_entire_table:
+            yield table  # Yield entire table as single chunk
+            return
 
         # Calculate time step
         time_step = (
             self.chunk_shift if self.chunk_shift > 0 * u.s else self.chunk_duration
         )
 
-        # Generate main sequence of chunks
-        current_time = start_time
-        while True:
-            chunk_end = current_time + self.chunk_duration
+        # Calculate number of chunks and generate all chunk start times
+        n_chunks = int(total_duration.to_value(u.s) // time_step.to_value(u.s)) + 1
+        chunk_starts = start_time + np.arange(n_chunks) * time_step
 
-            # Check if we've reached the end
-            if chunk_end > end_time + self.time_tolerance:
-                break
+        # Filter chunk starts that would create main chunks (not extending beyond end)
+        main_chunk_starts = chunk_starts[chunk_starts + self.chunk_duration <= end_time]
+        last_chunk_start = main_chunk_starts[-1] + time_step
 
-            # Create mask for this time window
-            mask = (times >= current_time) & (times < chunk_end)
-            if np.any(mask):
-                # Convert boolean mask to slice indices for contiguous selection
-                indices = np.nonzero(mask)[0]
-                start_idx = indices[0]
-                end_idx = indices[-1] + 1  # +1 because slice end is exclusive
-                yield table[start_idx:end_idx]
+        # Generate chunks for each main chunk start time
+        for chunk_start in main_chunk_starts:
+            chunk_end = chunk_start + self.chunk_duration
+            mask = (times >= chunk_start) & (times < chunk_end)
+            chunk = self._create_chunk_from_mask(table, mask)
+            if chunk is not None:
+                yield chunk
 
-            current_time += time_step
-
-        # Handle last chunk for non-overlapping case only
-        if self.chunk_shift == 0 * u.s:
-            remaining_duration = end_time - current_time
-
-            # Only generate last chunk if remaining duration is beyond tolerance
-            # This ensures bidirectional tolerance: no chunk if we're close to the end
-            if (
-                remaining_duration > self.time_tolerance
-                and total_duration > self.chunk_duration
-            ):
-                # Ensure last chunk has full duration by potentially overlapping
-                last_chunk_start = end_time - self.chunk_duration
-                mask = (times >= last_chunk_start) & (times <= end_time)
-                if np.any(mask):
-                    # Convert boolean mask to slice indices
-                    indices = np.nonzero(mask)[0]
-                    start_idx = indices[0]
-                    end_idx = indices[-1] + 1  # +1 because slice end is exclusive
-                    yield table[start_idx:end_idx]
+        # Handle final chunk according to policy
+        final_chunk = self._generate_final_chunk(
+            table, times, last_chunk_start, end_time
+        )
+        if final_chunk is not None:
+            yield final_chunk
 
 
 class BaseAggregator(Component, ABC):
