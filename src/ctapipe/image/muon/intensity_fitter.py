@@ -156,7 +156,7 @@ def create_profile(
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
+    ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
@@ -274,7 +274,7 @@ def image_prediction_no_units(
     dy = pixel_y_rad - center_y_rad
     ang = np.arctan2(dy, dx)
     # Add muon rotation angle
-    ang += phi_rad
+    ang -= phi_rad
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
