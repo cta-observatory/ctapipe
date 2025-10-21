@@ -84,7 +84,10 @@ class NeighborAverage(InvalidPixelHandler):
 
         input_1d = image.ndim == 1
         image = np.atleast_2d(image)
-        peak_time = np.atleast_2d(peak_time)
+
+        if peak_time is not None:
+            peak_time = np.atleast_2d(peak_time)
+
         n_channels = image.shape[0]
         for channel in range(n_channels):
             if n_interpolated[channel] == 0:
@@ -95,22 +98,27 @@ class NeighborAverage(InvalidPixelHandler):
             )
 
             index, neighbor = np.nonzero(neighbors)
-            image_sum = np.zeros(n_interpolated[channel], dtype=image.dtype)
+
             count = np.zeros(n_interpolated[channel], dtype=int)
-            peak_time_sum = np.zeros(n_interpolated[channel], dtype=peak_time.dtype)
-
-            # calculate average of image and peak_time
             np.add.at(count, index, 1)
-            np.add.at(image_sum, index, image[channel, neighbor])
-            np.add.at(peak_time_sum, index, peak_time[channel, neighbor])
-
             valid = count > 0
-            np.divide(image_sum, count, out=image_sum, where=valid)
-            np.divide(peak_time_sum, count, out=peak_time_sum, where=valid)
 
-            peak_time[channel, pixel_mask[channel]] = peak_time_sum
+            # calculate average of image
+            image_sum = np.zeros(n_interpolated[channel], dtype=image.dtype)
+            np.add.at(image_sum, index, image[channel, neighbor])
+            np.divide(image_sum, count, out=image_sum, where=valid)
             image[channel, pixel_mask[channel]] = image_sum
 
+            # if given, also calculate average of peak_time
+            if peak_time is not None:
+                peak_time_sum = np.zeros(n_interpolated[channel], dtype=peak_time.dtype)
+                np.add.at(peak_time_sum, index, peak_time[channel, neighbor])
+                np.divide(peak_time_sum, count, out=peak_time_sum, where=valid)
+                peak_time[channel, pixel_mask[channel]] = peak_time_sum
+
         if input_1d:
-            return image[0], peak_time[0]
+            image = image[0]
+            if peak_time is not None:
+                peak_time = peak_time[0]
+
         return image, peak_time
