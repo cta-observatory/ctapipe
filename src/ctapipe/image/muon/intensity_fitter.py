@@ -273,7 +273,7 @@ def image_prediction_no_units(
     dx = pixel_x_rad - center_x_rad
     dy = pixel_y_rad - center_y_rad
     ang = np.arctan2(dy, dx)
-    # Add muon rotation angle
+    # Subtract muon rotation angle
     ang -= phi_rad
 
     # Produce smoothed muon profile
