@@ -12,7 +12,7 @@ from matplotlib.lines import Line2D
 
 from ctapipe.instrument import SubarrayDescription
 
-# from ctapipe.coordinates import TelescopeFrame
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image.toymodel import Gaussian
 from ctapipe.visualization import CameraDisplay
 from ctapipe.image.cleaning import tailcuts_clean
@@ -62,10 +62,8 @@ def display_event_with_annotated_hillas(
 
     fontsize = 12
 
-    # x = hillas.fov_lon
-    # y = hillas.fov_lat
-    x = hillas.x
-    y = hillas.y
+    x = hillas.fov_lon
+    y = hillas.fov_lat
 
     # 1. Center of Gravity (x, y)
     ax.plot(
@@ -172,7 +170,7 @@ def display_event_with_annotated_hillas(
     ax.annotate(
         f"Width\n{hillas.width:.3f}",
         xy=(mid_width_x, mid_width_y),
-        xytext=(mid_width_x - 0.35, mid_width_y + 0.25),
+        xytext=(mid_width_x - 0.7, mid_width_y + 0.5),
         color=width_color,
         fontsize=fontsize,
         fontweight="bold",
@@ -201,7 +199,7 @@ def display_event_with_annotated_hillas(
     )
 
     # Draw arc showing the psi angle at the end of the length axis
-    arc_radius = 0.12
+    arc_radius = 0.25
     # The arc should go from the horizontal (0°) to the length axis direction (psi)
     angle_to_cog = np.degrees(hillas.psi.value)
 
@@ -289,7 +287,7 @@ def display_event_with_annotated_hillas(
     )
 
     # Draw arc for phi angle
-    phi_arc_radius = 0.1
+    phi_arc_radius = 0.25
     phi_arc = Arc(
         (camera_center_x, camera_center_y),
         2 * phi_arc_radius,
@@ -319,7 +317,7 @@ def display_event_with_annotated_hillas(
 
     # Add reference x-axis line for angle measurement
     ax.plot(
-        [-1.2, 1.2],
+        [-2.2, 2.2],
         [camera_center_y, camera_center_y],
         "w--",
         linewidth=2,
@@ -405,13 +403,13 @@ def display_event_with_annotated_hillas(
 # -----------------
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-geom = subarray.tel[1].camera.geometry  # .transform_to(TelescopeFrame())
+geom = subarray.tel[1].camera.geometry.transform_to(TelescopeFrame())
 
 # Define Gaussian model parameters
-x0 = -0.2 * u.m
-y0 = 0.5 * u.m
-sigma_length = 0.4 * u.m
-sigma_width = 0.1 * u.m
+x0 = -0.6 * u.deg
+y0 = 1.2 * u.deg
+sigma_length = 0.8 * u.deg
+sigma_width = 0.2 * u.deg
 psi = 65.0 * u.deg
 
 model = Gaussian(x0, y0, sigma_length, sigma_width, psi)
