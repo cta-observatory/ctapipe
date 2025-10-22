@@ -166,7 +166,7 @@ def create_profile(
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    # The rotation angle of muon image should go in the opposite direction -phi.
+    # The rotation angle of muon image should go in the opposite direction (-phi).
     ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
