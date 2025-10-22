@@ -1,3 +1,20 @@
+ctapipe v0.27.1 (2025-10-22)
+============================
+
+Bug Fixes
+---------
+
+- Fix the normalization for muon analysis to account for different PixelShapes. [`#2865 <https://github.com/cta-observatory/ctapipe/pull/2865>`__]
+
+- Fix the missing selection of the correct broken pixels for gain selected data
+  in the image extractors. [`#2867 <https://github.com/cta-observatory/ctapipe/pull/2867>`__]
+
+- Fix the sign of phi0, previously, it was giving the complementary angle of the impact point. [`#2869 <https://github.com/cta-observatory/ctapipe/pull/2869>`__]
+
+- Allow ``peak_time=None`` in ``InvalidPixelHandler``. Some extractors may not
+  provide a valid peak time (e.g. the ``VarianceExtractor``). [`#2867 <https://github.com/cta-observatory/ctapipe/pull/2867>`__]
+
+
 ctapipe v0.27.0 (2025-10-10)
 ============================
 
