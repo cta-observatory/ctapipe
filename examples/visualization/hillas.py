@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, Arc
 from matplotlib.lines import Line2D
 
-from ctapipe.instrument import CameraGeometry
+from ctapipe.instrument import SubarrayDescription
+# from ctapipe.coordinates import TelescopeFrame
 from ctapipe.visualization import CameraDisplay
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
@@ -54,15 +55,26 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
     angle_color = '#CC79A7'     # pink
     radial_color = '#E69F00'    # orange
     
+
+    # x = hillas.fov_lon
+    # y = hillas.fov_lat
+    x = hillas.x
+    y = hillas.y
+
     # 1. Center of Gravity (x, y)
-    ax.plot(hillas.x.value, hillas.y.value, 'o', 
+    ax.plot(x.value, y.value, 'o', 
             color=cog_color, markersize=15, markeredgewidth=3, 
             markerfacecolor='none', label='COG (x, y)')
+
+
+    ax.plot(x.value, y.value, 'o', 
+        color=cog_color, markersize=15, markeredgewidth=3, 
+        markerfacecolor='none', label='COG (FOV lon, lat)')
 
     # 2. Hillas Ellipse (shows length and width)
     # Note: Ellipse angle is rotation of the width (horizontal) axis
     # Since height=length (major axis) should be along psi, we add 90 degrees
-    ellipse = Ellipse(xy=(hillas.x.value, hillas.y.value),
+    ellipse = Ellipse(xy=(x.value, y.value),
                      width=hillas.width.value * 2,
                      height=hillas.length.value * 2,
                      angle=np.degrees(hillas.psi.value) + 90,
@@ -74,18 +86,28 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
     ax.add_patch(ellipse)
     
     # 3. Length axis (major axis)
-    length_end_x = hillas.x.value + hillas.length.value * np.cos(hillas.psi.value)
-    length_end_y = hillas.y.value + hillas.length.value * np.sin(hillas.psi.value)
-    length_start_x = hillas.x.value - hillas.length.value * np.cos(hillas.psi.value)
-    length_start_y = hillas.y.value - hillas.length.value * np.sin(hillas.psi.value)
-    
+    length_end_x = x.value + hillas.length.value * np.cos(hillas.psi.value)
+    length_end_y = y.value + hillas.length.value * np.sin(hillas.psi.value)
+    length_start_x = x.value
+    length_start_y = y.value
+
     ax.plot([length_start_x, length_end_x], 
             [length_start_y, length_end_y], 
             color=length_color, linewidth=3, label='Length', zorder=10)
+
+
+    long_axis_end_x = x.value + 2 * hillas.length.value * np.cos(hillas.psi.value)
+    long_axis_end_y = y.value + 2 * hillas.length.value * np.sin(hillas.psi.value)
+    long_axis_start_x = x.value - 2 * hillas.length.value * np.cos(hillas.psi.value)
+    long_axis_start_y = y.value - 2 * hillas.length.value * np.sin(hillas.psi.value)
+
+    ax.plot([long_axis_start_x, long_axis_end_x], 
+            [long_axis_start_y, long_axis_end_y], 
+            color=length_color, linewidth=3, label='long-axis', zorder=10, alpha=0.5, ls='--')
     
     # Annotate length
-    mid_length_x = hillas.x.value + 0.7 * hillas.length.value * np.cos(hillas.psi.value)
-    mid_length_y = hillas.y.value + 0.7 * hillas.length.value * np.sin(hillas.psi.value)
+    mid_length_x = x.value + 0.7 * hillas.length.value * np.cos(hillas.psi.value)
+    mid_length_y = y.value + 0.7 * hillas.length.value * np.sin(hillas.psi.value)
     ax.annotate(f'Length\n{hillas.length:.3f}', 
                 xy=(mid_length_x, mid_length_y),
                 xytext=(mid_length_x + 0.3, mid_length_y - 0.2),
@@ -95,18 +117,18 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
                 )
     
     # 4. Width axis (minor axis)
-    width_end_x = hillas.x.value + hillas.width.value * np.sin(hillas.psi.value)
-    width_end_y = hillas.y.value - hillas.width.value * np.cos(hillas.psi.value)
-    width_start_x = hillas.x.value - hillas.width.value * np.sin(hillas.psi.value)
-    width_start_y = hillas.y.value + hillas.width.value * np.cos(hillas.psi.value)
-    
+    width_end_x = x.value + hillas.width.value * np.sin(hillas.psi.value)
+    width_end_y = y.value - hillas.width.value * np.cos(hillas.psi.value)
+    width_start_x = x.value
+    width_start_y = y.value
+
     ax.plot([width_start_x, width_end_x], 
             [width_start_y, width_end_y], 
             color=width_color, linewidth=3, label='Width', zorder=10)
     
     # Annotate width
-    mid_width_x = hillas.x.value + 0.7 * hillas.width.value * np.sin(hillas.psi.value)
-    mid_width_y = hillas.y.value - 0.7 * hillas.width.value * np.cos(hillas.psi.value)
+    mid_width_x = x.value + 0.7 * hillas.width.value * np.sin(hillas.psi.value)
+    mid_width_y = y.value - 0.7 * hillas.width.value * np.cos(hillas.psi.value)
     ax.annotate(f'Width\n{hillas.width:.3f}', 
                 xy=(mid_width_x, mid_width_y),
                 xytext=(mid_width_x - 0.35, mid_width_y + 0.25),
@@ -160,8 +182,8 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
     camera_center_y = 0
     
     # Draw line from camera center to COG
-    ax.plot([camera_center_x, hillas.x.value], 
-            [camera_center_y, hillas.y.value], 
+    ax.plot([camera_center_x, x.value], 
+            [camera_center_y, y.value], 
             color=radial_color, linewidth=2.5, linestyle=':', label='r (radial)', zorder=5)
     
     # Mark camera center
@@ -176,8 +198,8 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
                 bbox=dict(boxstyle='round,pad=0.5', facecolor='black', alpha=0.7))
     
     # Annotate r
-    mid_r_x = hillas.x.value / 2
-    mid_r_y = hillas.y.value / 2
+    mid_r_x = x.value / 2
+    mid_r_y = y.value / 2
     ax.annotate(f'r = {hillas.r:.3f}', 
                 xy=(mid_r_x, mid_r_y),
                 xytext=(mid_r_x + 0.2, mid_r_y - 0),
@@ -212,8 +234,8 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
                  f"━━━━━━━━━━━━━━━━━━━━\n"
                  f"Intensity: {hillas.intensity:.1f} p.e.\n"
                  f"\n"
-                 f"x: {hillas.x:.4f}\n"
-                 f"y: {hillas.y:.4f}\n"
+                 f"x: {x:.4f}\n"
+                 f"y: {y:.4f}\n"
                  f"r: {hillas.r:.4f}\n"
                  f"φ: {np.degrees(hillas.phi.value):.2f}°\n"
                  f"\n"
@@ -259,12 +281,13 @@ def display_event_with_annotated_hillas(image, geom, picture_thresh=10, boundary
 
 from ctapipe.image.toymodel import Gaussian
 
-geom = CameraGeometry.from_name("LSTCam")
+subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+geom = subarray.tel[1].camera.geometry # .transform_to(TelescopeFrame())
 
 # Define Gaussian model parameters
-x0 = -0.3 * u.m
+x0 = -0.2 * u.m
 y0 = 0.5 * u.m
-sigma_length = 0.3 * u.m
+sigma_length = 0.4 * u.m
 sigma_width = 0.1 * u.m
 psi = 65.0 * u.deg
 
@@ -276,6 +299,8 @@ CameraDisplay(geom, image=image)
 
 fig, hillas = display_event_with_annotated_hillas(image, geom, picture_thresh=20, boundary_thresh=10)
 
+
+plt.savefig("hillas_annotated_event.png", dpi=300)
 plt.show()
 
 ######################################################################
@@ -300,7 +325,3 @@ plt.show()
 # | **psi** | rotation angle of ellipse (deg) |
 # | **psi_uncertainty** | uncertainty of psi (deg) |
 # 
-
-
-
-
