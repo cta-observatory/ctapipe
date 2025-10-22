@@ -53,7 +53,7 @@ def display_event_with_annotated_hillas(
 
     # Define colors for different elements using a colorblind-friendly palette
     cog_color = "red"
-    ellipse_color = "#D55E00"  # vermillion
+    ellipse_color = "#D55E00"  # vermilion
     length_color = "#0072B2"  # blue
     width_color = "#009E73"  # green
     angle_color = "#CC79A7"  # pink
