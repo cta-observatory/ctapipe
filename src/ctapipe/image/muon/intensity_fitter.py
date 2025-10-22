@@ -151,8 +151,8 @@ def create_profile(
         ring radius
     phi: float
         phase (phi0) defines the azimuth of the most probable
-        value in the phi distribution. The rotation angle or muon image
-        should go in the opposite direction.
+        value in the phi distribution. The rotation angle of muon image
+        should go in the opposite direction (-phi0).
     pixel_diameter: float
         pixel FoV
     oversampling: int
