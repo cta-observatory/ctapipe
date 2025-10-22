@@ -141,12 +141,23 @@ def create_profile(
 
     Parameters
     ----------
+    mirror_radius: float
+        mirror radius
+    hole_radius: float
+        hole or camera radius
     impact_parameter: float
         Impact distance from mirror center
-    ang: ndarray
-        Angles over which to integrate
+    radius: float
+        ring radius
     phi: float
-        Rotation angle of muon image
+        phase (phi0) defines the azimuth of the most probable
+        value in the phi distribution. The rotation angle or muon image
+        should go in the opposite direction.
+    pixel_diameter: float
+        pixel FoV
+    oversampling: int
+        Oversampling is used to define how much the phi binning is
+        smaller than the single pixel FoV.
 
     Returns
     -------
