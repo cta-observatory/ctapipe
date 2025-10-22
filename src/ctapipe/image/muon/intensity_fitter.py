@@ -141,12 +141,22 @@ def create_profile(
 
     Parameters
     ----------
+    mirror_radius: float
+        mirror radius
+    hole_radius: float
+        hole or camera radius
     impact_parameter: float
         Impact distance from mirror center
-    ang: ndarray
-        Angles over which to integrate
+    radius: float
+        ring radius
     phi: float
-        Rotation angle of muon image
+        Phase corresponding to the azimuth of maximum
+        intensity of the ring.
+    pixel_diameter: float
+        pixel FoV
+    oversampling: int
+        Oversampling is used to define how much the phi binning is
+        smaller than the single pixel FoV.
 
     Returns
     -------
@@ -156,7 +166,8 @@ def create_profile(
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
+    # The rotation angle of muon image should go in the opposite direction (-phi).
+    ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
@@ -273,8 +284,8 @@ def image_prediction_no_units(
     dx = pixel_x_rad - center_x_rad
     dy = pixel_y_rad - center_y_rad
     ang = np.arctan2(dy, dx)
-    # Add muon rotation angle
-    ang += phi_rad
+    # Subtract muon rotation angle
+    ang -= phi_rad
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
