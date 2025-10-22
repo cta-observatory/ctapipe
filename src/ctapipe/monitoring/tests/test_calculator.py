@@ -76,11 +76,12 @@ def test_statistics_calculator(example_subarray):
     # overlapping chunk at the end.
     expected_len_firstpass = n_images // chunk_size + 1
     assert len(stats) == expected_len_firstpass
-    # In the second pass, the number of chunks is equal to the
-    # number of images divided by the chunk shift minus the
-    # number of chunks in the first pass, since we set all
-    # chunks to be faulty.
-    expected_len_secondpass = (n_images // chunk_shift) - expected_len_firstpass
+    # In the second pass, the number of chunks is 8.
+    # This is because we set all chunks to be faulty.
+    # In case of two last main chunks being faulty, they would be discarded,
+    # making effective table length to be 4000 events in this case.
+    # Thus, we would have (4000 / 500) = 8 chunks in the second pass.
+    expected_len_secondpass = 8
     assert len(stats_chunk_shift) == expected_len_secondpass
     # The total number of aggregated chunks is the sum of the
     # number of chunks in the first and second pass.
