@@ -60,6 +60,8 @@ def display_event_with_annotated_hillas(
     angle_color = "#CC79A7"  # pink
     radial_color = "#E69F00"  # orange
 
+    fontsize = 12
+
     # x = hillas.fov_lon
     # y = hillas.fov_lat
     x = hillas.x
@@ -143,7 +145,7 @@ def display_event_with_annotated_hillas(
         xy=(mid_length_x, mid_length_y),
         xytext=(mid_length_x + 0.3, mid_length_y - 0.2),
         color=length_color,
-        fontsize=16,
+        fontsize=fontsize,
         fontweight="bold",
         arrowprops=dict(arrowstyle="->", color=length_color, lw=2),
         bbox=dict(boxstyle="round,pad=0.5", facecolor="black", alpha=1),
@@ -172,7 +174,7 @@ def display_event_with_annotated_hillas(
         xy=(mid_width_x, mid_width_y),
         xytext=(mid_width_x - 0.35, mid_width_y + 0.25),
         color=width_color,
-        fontsize=16,
+        fontsize=fontsize,
         fontweight="bold",
         arrowprops=dict(arrowstyle="->", color=width_color, lw=2),
         bbox=dict(boxstyle="round,pad=0.5", facecolor="black", alpha=1),
@@ -231,7 +233,7 @@ def display_event_with_annotated_hillas(
         f"ψ = {np.degrees(hillas.psi.value):.1f}°",
         xy=(psi_label_x, psi_label_y),
         color=angle_color,
-        fontsize=16,
+        fontsize=fontsize,
         fontweight="bold",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="black", alpha=0.7),
     )
@@ -280,7 +282,7 @@ def display_event_with_annotated_hillas(
         xy=(mid_r_x, mid_r_y),
         xytext=(mid_r_x + 0.2, mid_r_y - 0),
         color=radial_color,
-        fontsize=16,
+        fontsize=fontsize,
         fontweight="bold",
         arrowprops=dict(arrowstyle="->", color=radial_color, lw=2),
         bbox=dict(boxstyle="round,pad=0.5", facecolor="black", alpha=0.7),
@@ -310,7 +312,7 @@ def display_event_with_annotated_hillas(
         f"φ = {np.degrees(hillas.phi.value):.1f}°",
         xy=(phi_label_x, phi_label_y),
         color=radial_color,
-        fontsize=16,
+        fontsize=fontsize,
         fontweight="bold",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="black", alpha=0.7),
     )
