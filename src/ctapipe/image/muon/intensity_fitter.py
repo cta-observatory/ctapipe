@@ -150,8 +150,8 @@ def create_profile(
     radius: float
         ring radius
     phi: float
-        Phase (phi0) defines the azimuth of the most probable
-        value in the phi distribution.
+        Phase corresponding to the azimuth of maximum
+        intensity of the ring.
     pixel_diameter: float
         pixel FoV
     oversampling: int
