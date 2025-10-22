@@ -21,7 +21,8 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 import astropy.units as u
 
 ######################################################################
-# ## Camera Display with Hillas Parameters annotated
+# Camera Display with Hillas Parameters annotated
+# ----------------------------------------------
 
 
 def display_event_with_annotated_hillas(
@@ -398,7 +399,8 @@ def display_event_with_annotated_hillas(
 
 
 ######################################################################
-# ## Simulate and display an event
+# Simulate an event
+# -----------------
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
 geom = subarray.tel[1].camera.geometry  # .transform_to(TelescopeFrame())
@@ -414,35 +416,56 @@ model = Gaussian(x0, y0, sigma_length, sigma_width, psi)
 image = model.generate_image(geom, intensity=10000)[0]
 
 
-CameraDisplay(geom, image=image)
+######################################################################
+# Hillas Parameters
+# -----------------
+# Hillas parameters and their meaning.
+# Note that they are calculated **after image cleaning**.
+#
 
 fig, hillas = display_event_with_annotated_hillas(
     image, geom, picture_thresh=20, boundary_thresh=10
 )
 
-
-plt.savefig("hillas_annotated_event.png", dpi=300)
+plt.tight_layout()
+# plt.savefig("hillas_annotated_event.png", dpi=300)
 plt.show()
 
 ######################################################################
-# ## Attributes
-#
-# Hillas parameters and their meaning.
-# They are calculated **after image cleaning**.
-#
-# | Attribute | Description |
-# |---|---|
-# | **intensity** | total intensity (size) |
-# | **skewness** | measure of the asymmetry |
-# | **kurtosis** | measure of the tailedness |
-# | **fov_lon** | longitude angle in a spherical system centered on the pointing position (deg) |
-# | **fov_lat** | latitude angle in a spherical system centered on the pointing position (deg) |
-# | **r** | radial coordinate of centroid (deg) |
-# | **phi** | polar coordinate of centroid (deg) |
-# | **length** | standard deviation along the major-axis (deg) |
-# | **length_uncertainty** | uncertainty of length (deg) |
-# | **width** | standard spread along the minor-axis (deg) |
-# | **width_uncertainty** | uncertainty of width (deg) |
-# | **psi** | rotation angle of ellipse (deg) |
-# | **psi_uncertainty** | uncertainty of psi (deg) |
-#
+# +-----------------------------------+-----------------------------------+
+# | Attribute                         | Description                       |
+# +===================================+===================================+
+# | **intensity**                     | total intensity (size)            |
+# +-----------------------------------+-----------------------------------+
+# | **skewness**                      | measure of the asymmetry          |
+# +-----------------------------------+-----------------------------------+
+# | **kurtosis**                      | measure of the tailedness         |
+# +-----------------------------------+-----------------------------------+
+# | **fov_lon**                       | longitude angle in a spherical    |
+# |                                   | system centered on the pointing   |
+# |                                   | position (deg)                    |
+# +-----------------------------------+-----------------------------------+
+# | **fov_lat**                       | latitude angle in a spherical     |
+# |                                   | system centered on the pointing   |
+# |                                   | position (deg)                    |
+# +-----------------------------------+-----------------------------------+
+# | **r**                             | radial coordinate of centroid     |
+# |                                   | (deg)                             |
+# +-----------------------------------+-----------------------------------+
+# | **phi**                           | polar coordinate of centroid      |
+# |                                   | (deg)                             |
+# +-----------------------------------+-----------------------------------+
+# | **length**                        | standard deviation along the      |
+# |                                   | major-axis (deg)                  |
+# +-----------------------------------+-----------------------------------+
+# | **length_uncertainty**            | uncertainty of length (deg)       |
+# +-----------------------------------+-----------------------------------+
+# | **width**                         | standard spread along the         |
+# |                                   | minor-axis (deg)                  |
+# +-----------------------------------+-----------------------------------+
+# | **width_uncertainty**             | uncertainty of width (deg)        |
+# +-----------------------------------+-----------------------------------+
+# | **psi**                           | rotation angle of ellipse (deg)   |
+# +-----------------------------------+-----------------------------------+
+# | **psi_uncertainty**               | uncertainty of psi (deg)          |
+# +-----------------------------------+-----------------------------------+
