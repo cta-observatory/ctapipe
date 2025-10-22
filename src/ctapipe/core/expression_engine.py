@@ -19,6 +19,11 @@ class ExpressionError(TypeError):
 class ExpressionEngine:
     """
     Compile expressions on init, evaluate on call.
+
+    The expressions are evaluated as python code in the context that is passed.
+    Additionally, astropy.units is exposed as ``u`` and numpy as ``np``.
+
+    Basic mathematical functions are also exposed without the np prefix.
     """
 
     def __init__(self, expressions):
