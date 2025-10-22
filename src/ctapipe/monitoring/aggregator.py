@@ -186,45 +186,37 @@ class TimeChunking(BaseChunking):
 
     def _validate_inputs(self, total_duration):
         """Validate chunk_duration and table duration."""
+        chunk_duration = self.chunk_duration.to_value(u.s)
         # Check if chunk_duration is properly set
-        if self.chunk_duration <= 0 * u.s:
+        if chunk_duration <= 0:
             raise ValueError("chunk_duration must be greater than zero.")
 
         # Check if total duration is sufficient for chunking
-        if total_duration < self.chunk_duration:
+        if total_duration < chunk_duration:
             if self.allow_undersized_tables:
                 return True  # Signal to yield entire table as single chunk
             raise ValueError(
-                f"Total duration ({total_duration}) is less than chunk_duration ({self.chunk_duration}). "
+                f"Total duration ({total_duration * u.s}) is less than chunk_duration ({self.chunk_duration}). "
                 f"Set allow_undersized_tables=True to process as single chunk."
             )
         return False  # Normal processing
 
-    def _create_chunk_from_mask(self, table, mask):
-        """Create a table chunk from a boolean mask using slice indexing."""
-        if np.any(mask):
-            indices = np.nonzero(mask)[0]
-            start_idx = indices[0]
-            end_idx = indices[-1] + 1  # +1 because slice end is exclusive
-            return table[start_idx:end_idx]
-        return None
-
-    def _generate_final_chunk(self, table, times, last_chunk_start, end_time):
+    def _generate_final_chunk(self, table, last_chunk_idx):
         """Generate the final chunk according to last_chunk_policy."""
-        if last_chunk_start == end_time:
+        if last_chunk_idx == len(table):
             return None
         if self.last_chunk_policy == "overlap":
             # Ensure last chunk has full duration by potentially overlapping
-            last_chunk_start = end_time - self.chunk_duration
-            mask = (times >= last_chunk_start) & (times <= end_time)
+            last_chunk_idx = np.searchsorted(
+                table["time"], table["time"][-1] - self.chunk_duration, side="left"
+            )
+            return table[last_chunk_idx:]
         elif self.last_chunk_policy == "truncate":
             # Yield remaining time as smaller chunk
-            mask = (times >= last_chunk_start) & (times <= end_time)
+            return table[last_chunk_idx:]
         elif self.last_chunk_policy == "skip":
             # Skip the last partial chunk
             return None
-
-        return self._create_chunk_from_mask(table, mask)
 
     def _generate_chunks(self, table) -> Generator[Table, None, None]:
         """Generate time-based chunks."""
@@ -234,12 +226,10 @@ class TimeChunking(BaseChunking):
             return
 
         times = table["time"]
-        start_time = times[0]
-        end_time = times[-1]
-        total_duration = end_time - start_time
+        relative_times = (times - times[0]).to_value(u.s)
 
         # Validate inputs and handle undersized tables
-        use_entire_table = self._validate_inputs(total_duration)
+        use_entire_table = self._validate_inputs(relative_times[-1])
         if use_entire_table:
             yield table  # Yield entire table as single chunk
             return
@@ -247,28 +237,29 @@ class TimeChunking(BaseChunking):
         # Calculate time step
         time_step = (
             self.chunk_shift if self.chunk_shift > 0 * u.s else self.chunk_duration
+        ).to_value(u.s)
+
+        chunk_start_time = np.arange(
+            0,
+            relative_times[-1] - self.chunk_duration.to_value(u.s),
+            time_step,
         )
+        chunk_end_time = chunk_start_time + self.chunk_duration.to_value(u.s)
 
-        # Calculate number of chunks and generate all chunk start times
-        n_chunks = int(total_duration.to_value(u.s) // time_step.to_value(u.s)) + 1
-        chunk_starts = start_time + np.arange(n_chunks) * time_step
-
-        # Filter chunk starts that would create main chunks (not extending beyond end)
-        main_chunk_starts = chunk_starts[chunk_starts + self.chunk_duration <= end_time]
-        last_chunk_start = main_chunk_starts[-1] + time_step
+        chunk_start_idx = np.searchsorted(relative_times, chunk_start_time)
+        chunk_end_idx = np.searchsorted(relative_times, chunk_end_time, side="right")
 
         # Generate chunks for each main chunk start time
-        for chunk_start in main_chunk_starts:
-            chunk_end = chunk_start + self.chunk_duration
-            mask = (times >= chunk_start) & (times < chunk_end)
-            chunk = self._create_chunk_from_mask(table, mask)
+        for i, j in zip(chunk_start_idx, chunk_end_idx):
+            chunk = table[i:j]
             if chunk is not None:
                 yield chunk
 
         # Handle final chunk according to policy
-        final_chunk = self._generate_final_chunk(
-            table, times, last_chunk_start, end_time
+        last_chunk_idx = np.searchsorted(
+            relative_times, chunk_start_time[-1] + time_step
         )
+        final_chunk = self._generate_final_chunk(table, last_chunk_idx)
         if final_chunk is not None:
             yield final_chunk
 
