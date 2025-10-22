@@ -150,7 +150,7 @@ def create_profile(
     radius: float
         ring radius
     phi: float
-        phase (phi0) defines the azimuth of the most probable
+        Phase (phi0) defines the azimuth of the most probable
         value in the phi distribution. The rotation angle of muon image
         should go in the opposite direction (-phi0).
     pixel_diameter: float
