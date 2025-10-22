@@ -22,7 +22,7 @@ import astropy.units as u
 
 ######################################################################
 # Camera Display with Hillas Parameters annotated
-# ----------------------------------------------
+# -----------------------------------------------
 
 
 def display_event_with_annotated_hillas(
@@ -415,7 +415,6 @@ psi = 65.0 * u.deg
 model = Gaussian(x0, y0, sigma_length, sigma_width, psi)
 image = model.generate_image(geom, intensity=10000)[0]
 
-
 ######################################################################
 # Hillas Parameters
 # -----------------
@@ -429,6 +428,12 @@ fig, hillas = display_event_with_annotated_hillas(
 
 plt.tight_layout()
 # plt.savefig("hillas_annotated_event.png", dpi=300)
+plt.show()
+
+plt.figure(figsize=(14, 12))
+disp = CameraDisplay(geom)
+disp.image = image
+disp.overlay_moments(hillas)
 plt.show()
 
 ######################################################################
