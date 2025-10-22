@@ -44,7 +44,7 @@ def display_event_with_annotated_hillas(
         print("Could not parametrize event")
         return None
 
-    fig, ax = plt.subplots(figsize=(14, 12))
+    fig, ax = plt.subplots(figsize=(12, 10))
 
     # Display the camera image
     display = CameraDisplay(geom, ax=ax, cmap="gray")
@@ -426,15 +426,9 @@ fig, hillas = display_event_with_annotated_hillas(
     image, geom, picture_thresh=20, boundary_thresh=10
 )
 
-plt.tight_layout()
 # plt.savefig("hillas_annotated_event.png", dpi=300)
 plt.show()
 
-plt.figure(figsize=(14, 12))
-disp = CameraDisplay(geom)
-disp.image = image
-disp.overlay_moments(hillas)
-plt.show()
 
 ######################################################################
 # +-----------------------------------+-----------------------------------+
