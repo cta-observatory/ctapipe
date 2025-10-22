@@ -1,1 +1,0 @@
-``ctapipe.io.read_table`` and ``ctapipe.io.write_table`` now support custom column metadata.

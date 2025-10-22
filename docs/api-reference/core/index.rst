@@ -35,28 +35,32 @@ Serialization and Deserialization are simply specialized Components that perform
 
 
 .. toctree::
-  :maxdepth: 1
+   :maxdepth: 1
 
-  traits
+   traits
 
 
 Reference/API
 =============
 
 .. automodapi:: ctapipe.core
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.env
+   :no-inheritance-diagram:
+   :include-all-objects:
 
 .. automodapi:: ctapipe.core.component
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.core.telescope_component
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.core.tool
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.core.container
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.core.expression_engine
-    :no-inheritance-diagram:
+   :no-inheritance-diagram:

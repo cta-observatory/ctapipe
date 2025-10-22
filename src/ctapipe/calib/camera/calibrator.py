@@ -11,6 +11,7 @@ from numba import float32, float64, guvectorize, int64
 
 from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
 from ctapipe.core import TelescopeComponent
+from ctapipe.core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
@@ -27,25 +28,6 @@ __all__ = ["CameraCalibrator"]
 def _get_pixel_index(n_pixels):
     """Cached version of ``np.arange(n_pixels)``"""
     return np.arange(n_pixels)
-
-
-def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channel):
-    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
-
-    index = _get_pixel_index(n_pixels)
-    masks = (
-        pixel_status.hardware_failing_pixels,
-        pixel_status.pedestal_failing_pixels,
-        pixel_status.flatfield_failing_pixels,
-    )
-    for mask in masks:
-        if mask is not None:
-            if selected_gain_channel is not None:
-                broken_pixels |= mask[selected_gain_channel, index]
-            else:
-                broken_pixels |= mask
-
-    return broken_pixels
 
 
 class CameraCalibrator(TelescopeComponent):
@@ -225,24 +207,29 @@ class CameraCalibrator(TelescopeComponent):
 
         n_channels, n_pixels, n_samples = waveforms.shape
 
+        calib = event.monitoring.tel[tel_id].camera.coefficients
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
-        broken_pixels = _get_invalid_pixels(
-            n_channels,
-            n_pixels,
-            event.mon.tel[tel_id].pixel_status,
-            selected_gain_channel,
-        )
         pixel_index = _get_pixel_index(n_pixels)
 
-        dl1_calib = event.calibration.tel[tel_id].dl1
+        pedestal = calib.pedestal_offset
+        factor = calib.factor
+        time_shift = calib.time_shift
+        if selected_gain_channel is not None:
+            if factor is not None:
+                factor = factor[selected_gain_channel, pixel_index]
+            if time_shift is not None:
+                time_shift = time_shift[selected_gain_channel, pixel_index]
+
         readout = self.subarray.tel[tel_id].camera.readout
 
         # subtract any remaining pedestal before extraction
-        if dl1_calib.pedestal_offset is not None:
+        if pedestal is not None:
+            if selected_gain_channel is not None:
+                pedestal = pedestal[selected_gain_channel, pixel_index]
             # this copies intentionally, we don't want to modify the dl0 data
             # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
             waveforms = waveforms.copy()
-            waveforms -= np.atleast_2d(dl1_calib.pedestal_offset)[..., np.newaxis]
+            waveforms -= np.atleast_2d(pedestal)[..., np.newaxis]
 
         if n_samples == 1:
             # To handle ASTRI and dst
@@ -257,13 +244,9 @@ class CameraCalibrator(TelescopeComponent):
                 is_valid=True,
             )
         else:
-            # shift waveforms if time_shift calibration is available
-            time_shift = dl1_calib.time_shift
+            # shift waveforms if time_shift is available
             remaining_shift = None
             if time_shift is not None:
-                if selected_gain_channel is not None:
-                    time_shift = time_shift[selected_gain_channel, pixel_index]
-
                 if self.apply_waveform_time_shift.tel[tel_id]:
                     sampling_rate = readout.sampling_rate.to_value(u.GHz)
                     time_shift_samples = time_shift * sampling_rate
@@ -279,7 +262,7 @@ class CameraCalibrator(TelescopeComponent):
                 waveforms,
                 tel_id=tel_id,
                 selected_gain_channel=selected_gain_channel,
-                broken_pixels=broken_pixels,
+                broken_pixels=calib.outlier_mask,
             )
 
             # correct non-integer remainder of the shift if given
@@ -291,22 +274,10 @@ class CameraCalibrator(TelescopeComponent):
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        if (
-            dl1_calib.relative_factor is not None
-            and dl1_calib.absolute_factor is not None
-        ):
-            if selected_gain_channel is None:
-                calibration = dl1_calib.relative_factor / dl1_calib.absolute_factor
-            else:
-                calibration = (
-                    dl1_calib.relative_factor[selected_gain_channel, pixel_index]
-                    / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
-                )
-
-            if isinstance(extractor, VarianceExtractor):
-                calibration = calibration**2
-
-            dl1.image *= calibration
+        if factor is not None:
+            if n_samples > 1 and isinstance(extractor, VarianceExtractor):
+                factor = factor**2
+            dl1.image *= factor
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:
@@ -314,7 +285,7 @@ class CameraCalibrator(TelescopeComponent):
                 tel_id,
                 dl1.image,
                 dl1.peak_time,
-                broken_pixels,
+                calib.outlier_mask,
             )
 
         # store the results in the event structure
@@ -372,7 +343,7 @@ def shift_waveforms(waveforms, time_shift_samples):
     [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
     "(s),()->(s)",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def _shift_waveforms_by_integer(waveforms, integer_shift, shifted_waveforms):
     n_samples = waveforms.size

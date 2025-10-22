@@ -240,11 +240,11 @@ def test_irf_tool_wrong_cuts(
     with config_path.open("w") as f:
         json.dump(
             {
-                "EventPreprocessor": {
+                "DL2EventPreprocessor": {
                     "energy_reconstructor": "ExtraTreesRegressor",
                     "geometry_reconstructor": "HillasReconstructor",
                     "gammaness_classifier": "ExtraTreesClassifier",
-                    "EventQualityQuery": {
+                    "DL2EventQualityQuery": {
                         "quality_criteria": [
                             # No criteria for minimum event multiplicity
                             ("valid classifier", "ExtraTreesClassifier_is_valid"),

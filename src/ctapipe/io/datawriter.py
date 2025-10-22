@@ -218,16 +218,6 @@ class DataWriter(Component):
         default_value="blosc:zstd",
     ).tag(config=True)
 
-    write_index_tables = Bool(
-        help=(
-            "Generate PyTables index datasets for all tables that contain an "
-            "event_id or tel_id. These speed up in-kernel pytables operations,"
-            "but add some overhead to the file. They can also be generated "
-            "and attached after the file is written "
-        ),
-        default_value=False,
-    ).tag(config=True)
-
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
 
     transform_waveform = Bool(default_value=False).tag(config=True)
@@ -355,7 +345,7 @@ class DataWriter(Component):
         """
         obs_id = event.index.obs_id
 
-        for tel_id, pointing in event.pointing.tel.items():
+        for tel_id in event.monitoring.tel.keys():
             if tel_id in self._constant_telescope_pointing_written[obs_id]:
                 continue
             index = TelescopeConfigurationIndexContainer(
@@ -363,7 +353,8 @@ class DataWriter(Component):
                 tel_id=tel_id,
             )
             self._writer.write(
-                f"configuration/telescope/pointing/tel_{tel_id:03d}", (index, pointing)
+                f"configuration/telescope/pointing/tel_{tel_id:03d}",
+                (index, event.monitoring.tel[tel_id].pointing),
             )
             self._constant_telescope_pointing_written[obs_id].add(tel_id)
 
@@ -372,9 +363,6 @@ class DataWriter(Component):
         self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
-
-        if self.write_index_tables:
-            self._generate_indices()
 
         write_reference_metadata_headers(
             subarray=self._subarray,
@@ -717,46 +705,6 @@ class DataWriter(Component):
                     table_name=f"dl2/event/subarray/{container_name}/{algorithm}",
                     containers=[event.index, container],
                 )
-
-    def _generate_table_indices(self, h5file, start_node):
-        """helper to generate PyTables index tabnles for common columns"""
-        for node in h5file.iter_nodes(start_node):
-            if not isinstance(node, tables.group.Group):
-                self.log.debug("generating indices for node: %s", node)
-                if "event_id" in node.colnames:
-                    node.cols.event_id.create_index()
-                    self.log.debug("generated event_id index")
-                if "tel_id" in node.colnames:
-                    node.cols.tel_id.create_index()
-                    self.log.debug("generated tel_id index")
-                if "obs_id" in node.colnames:
-                    self.log.debug("generated obs_id index")
-                    node.cols.obs_id.create_index(kind="ultralight")
-            else:
-                # recurse
-                self._generate_table_indices(h5file, node)
-
-    def _generate_indices(self):
-        """generate PyTables index tables for common columns"""
-        self.log.debug("Writing index tables")
-        if self.write_dl1_images:
-            self._generate_table_indices(
-                self._writer.h5file, "/dl1/event/telescope/images"
-            )
-            if self._is_simulation:
-                self._generate_table_indices(
-                    self._writer.h5file, "/simulation/event/telescope/images"
-                )
-        if self.write_dl1_parameters:
-            self._generate_table_indices(
-                self._writer.h5file, "/dl1/event/telescope/parameters"
-            )
-            if self._is_simulation:
-                self._generate_table_indices(
-                    self._writer.h5file, "/simulation/event/telescope/parameters"
-                )
-
-        self._generate_table_indices(self._writer.h5file, "/dl1/event/subarray")
 
     def _write_context_metadata_headers(self):
         """write out any user-defined metadata in the context_metadata field to the

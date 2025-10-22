@@ -1,6 +1,5 @@
 import astropy.units as u
 from astropy.coordinates import AltAz, SkyCoord
-from pytest import approx
 
 
 def test_telescope_to_horizontal_alt0_az0():
@@ -15,29 +14,29 @@ def test_telescope_to_horizontal_alt0_az0():
         fov_lon=1 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == 1.0
-    assert horizon_coord.alt.deg == 0.0
+    assert u.isclose(horizon_coord.az, 1.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, 0.0 * u.deg)
 
     telescope_coord = SkyCoord(
         fov_lon=-1 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.wrap_at("180d").deg == -1.0
-    assert horizon_coord.alt.deg == 0.0
+    assert u.isclose(horizon_coord.az.wrap_at("180d"), -1.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, 0.0 * u.deg)
 
     telescope_coord = SkyCoord(
         fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == 0.0
-    assert horizon_coord.alt.deg == 1.0
+    assert u.isclose(horizon_coord.az, 0.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, 1.0 * u.deg)
 
     telescope_coord = SkyCoord(
         fov_lon=0 * u.deg, fov_lat=-1 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == 0.0
-    assert horizon_coord.alt.deg == -1.0
+    assert u.isclose(horizon_coord.az, 0.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, -1.0 * u.deg)
 
 
 def test_telescope_to_horizontal_alt0_az180():
@@ -52,26 +51,26 @@ def test_telescope_to_horizontal_alt0_az180():
         fov_lon=1 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == approx(181.0)
-    assert horizon_coord.alt.deg == 0.0
+    assert u.isclose(horizon_coord.az, 181.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, 0.0 * u.deg)
 
     telescope_coord = SkyCoord(
         fov_lon=-1 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == approx(179.0)
-    assert horizon_coord.alt.deg == 0.0
+    assert u.isclose(horizon_coord.az, 179.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, 0.0 * u.deg)
 
     telescope_coord = SkyCoord(
         fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == 180.0
-    assert horizon_coord.alt.deg == 1.0
+    assert u.isclose(horizon_coord.az, 180.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, 1.0 * u.deg)
 
     telescope_coord = SkyCoord(
         fov_lon=0 * u.deg, fov_lat=-1 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.deg == 180.0
-    assert horizon_coord.alt.deg == -1.0
+    assert u.isclose(horizon_coord.az, 180.0 * u.deg)
+    assert u.isclose(horizon_coord.alt, -1.0 * u.deg)

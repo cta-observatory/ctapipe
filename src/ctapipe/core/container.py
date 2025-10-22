@@ -358,7 +358,7 @@ class Container(metaclass=ContainerMeta):
         return self.fields.keys()
 
     def values(self):
-        """Get the keys of the container"""
+        """Get the values of the container"""
         return (getattr(self, k) for k in self.fields.keys())
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):

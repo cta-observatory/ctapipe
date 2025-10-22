@@ -1,3 +1,0 @@
-Raise a clear error message in the ``DispReconstructor``
-in case of non-supported coordinate frames for the pointing
-directions instead of silently assuming AltAz.

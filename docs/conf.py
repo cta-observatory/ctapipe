@@ -104,65 +104,82 @@ def setup(app):
         getattr(traits, alias).__module__ = "ctapipe.core.traits"
 
 
+def add_reference_type(prefix, objs):
+    return [(prefix, o) for o in objs]
+
+
 # These links are ignored in the checks, necessary due to broken intersphinx for
 # these
-nitpick_ignore = [
-    # needed for building the docs with python 3.11 locally.
-    # we use the lowest supported version on readthedocs,
-    # so that is what we use in the intersphinx link above
-    ("py:class", "enum.StrEnum"),
-    # these are coming from traitlets:
-    ("py:class", "t.Union"),
-    ("py:class", "t.Any"),
-    ("py:class", "t.Dict"),
-    ("py:class", "t.Optional"),
-    ("py:class", "t.Type"),
-    ("py:class", "t.List"),
-    ("py:class", "t.Tuple"),
-    ("py:class", "t.Sequence"),
-    ("py:class", "Config"),
-    ("py:class", "traitlets.config.configurable.Configurable"),
-    ("py:class", "traitlets.traitlets.HasTraits"),
-    ("py:class", "traitlets.traitlets.HasDescriptors"),
-    ("py:class", "traitlets.traitlets.TraitType"),
-    ("py:class", "traitlets.traitlets.BaseDescriptor"),
-    ("py:class", "traitlets.traitlets.List"),
-    ("py:class", "traitlets.traitlets.Container"),
-    ("py:class", "traitlets.traitlets.Instance"),
-    ("py:class", "traitlets.traitlets.ClassBasedTraitType"),
-    ("py:class", "traitlets.traitlets.Int"),
-    ("py:class", "traitlets.config.application.Application"),
-    ("py:class", "traitlets.utils.sentinel.Sentinel"),
-    ("py:class", "traitlets.traitlets.ObserveHandler"),
-    ("py:class", "traitlets.traitlets.T"),
-    ("py:class", "traitlets.traitlets.G"),
-    ("py:class", "Sentinel"),
-    ("py:class", "ObserveHandler"),
-    ("py:class", "dict[K, V]"),
-    ("py:class", "G"),
-    ("py:class", "K"),
-    ("py:class", "V"),
-    ("py:class", "StrDict"),
-    ("py:class", "ClassesType"),
-    ("py:class", "re.Pattern"),
-    ("py:class", "re.Pattern[t.Any]"),
-    ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
-    ("py:class", "astropy.table.table.Table"),
-    ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
-    ("py:class", "ctapipe.compat.StrEnum"),
-    ("py:class", "ctapipe.compat.StrEnum"),
-    ("py:obj", "traitlets.traitlets.T"),
-    ("py:obj", "traitlets.traitlets.G"),
-    ("py:obj", "traitlets.traitlets.S"),
-    ("py:obj", "traitlets.config.boolean_flag"),
-    ("py:obj", "traitlets.TraitError"),
-    ("py:obj", "-v"),  # fix for wrong syntax in a traitlets docstring
-    ("py:obj", "cls"),
-    ("py:obj", "name"),
-    ("py:meth", "MetaHasDescriptors.__init__"),
-    ("py:meth", "HasTraits.__new__"),
-    ("py:meth", "BaseDescriptor.instance_init"),
-]
+nitpick_ignore = add_reference_type(
+    "py:class",
+    [
+        "enum.StrEnum",
+        "t.Union",
+        "t.Any",
+        "t.Dict",
+        "t.Optional",
+        "t.Type",
+        "t.List",
+        "t.Tuple",
+        "t.Sequence",
+        "Config",
+        "traitlets.config.configurable.Configurable",
+        "traitlets.traitlets.HasTraits",
+        "traitlets.traitlets.HasDescriptors",
+        "traitlets.traitlets.TraitType",
+        "traitlets.traitlets.BaseDescriptor",
+        "traitlets.traitlets.List",
+        "traitlets.traitlets.Container",
+        "traitlets.traitlets.Instance",
+        "traitlets.traitlets.ClassBasedTraitType",
+        "traitlets.traitlets.Int",
+        "traitlets.config.application.Application",
+        "traitlets.utils.sentinel.Sentinel",
+        "traitlets.traitlets.ObserveHandler",
+        "traitlets.traitlets.T",
+        "traitlets.traitlets.G",
+        "Sentinel",
+        "ObserveHandler",
+        "dict[K, V]",
+        "G",
+        "K",
+        "V",
+        "StrDict",
+        "ClassesType",
+        "re.Pattern",
+        "re.Pattern[t.Any]",
+        "astropy.coordinates.baseframe.BaseCoordinateFrame",
+        "astropy.table.table.Table",
+        "eventio.simtel.simtelfile.SimTelFile",
+        "ctapipe.compat.StrEnum",
+        "ctapipe.compat.StrEnum",
+    ],
+)
+nitpick_ignore += add_reference_type(
+    "py:obj",
+    [
+        # needed for building the docs with python 3.11 locally.
+        # we use the lowest supported version on readthedocs,
+        # so that is what we use in the intersphinx link above
+        # these are coming from traitlets:
+        "traitlets.traitlets.T",
+        "traitlets.traitlets.G",
+        "traitlets.traitlets.S",
+        "traitlets.config.boolean_flag",
+        "traitlets.TraitError",
+        "-v",  # fix for wrong syntax in a traitlets docstring
+        "cls",
+        "name",
+    ],
+)
+nitpick_ignore += add_reference_type(
+    "py:meth",
+    [
+        "MetaHasDescriptors.__init__",
+        "HasTraits.__new__",
+        "BaseDescriptor.instance_init",
+    ],
+)
 
 # Sphinx gallery config
 
@@ -379,6 +396,10 @@ man_pages = [("index", project.lower(), project + " Documentation", [author], 1)
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
+description = (
+    "Experimental Data Analysis for the"
+    " Cherenkov Telescope Array Observatory (CTAO)."
+)
 texinfo_documents = [
     (
         master_doc,
@@ -386,8 +407,7 @@ texinfo_documents = [
         "ctapipe Documentation",
         author,
         "ctapipe",
-        "Experimental Data Analysis for the"
-        "Cherenkov Telescope Array Observatory (CTAO).",
+        description,
         "Science",
     )
 ]

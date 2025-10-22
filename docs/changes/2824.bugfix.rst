@@ -1,1 +1,0 @@
-Fix HDF5EventSource not properly reading telescope-wise DL2 fields written by ``ctapipe-apply-models``.

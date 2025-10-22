@@ -121,6 +121,8 @@ ctapipe-store-astropy-cache = "ctapipe.tools.store_astropy_cache:main"
 HDF5EventSource = "ctapipe.io.hdf5eventsource:HDF5EventSource"
 SimTelEventSource = "ctapipe.io.simteleventsource:SimTelEventSource"
 
+[project.entry-points.ctapipe_monitoring]
+HDF5MonitoringSource = "ctapipe.io.hdf5monitoringsource:HDF5MonitoringSource"
 
 [project.entry-points.ctapipe_reco]
 HillasIntersection = "ctapipe.reco.hillas_intersection:HillasIntersection"

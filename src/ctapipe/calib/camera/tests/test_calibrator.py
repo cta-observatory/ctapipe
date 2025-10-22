@@ -6,6 +6,7 @@ from copy import deepcopy
 
 import astropy.units as u
 import numpy as np
+import pytest
 from scipy.stats import norm
 from traitlets.config import Config
 
@@ -14,11 +15,13 @@ from ctapipe.containers import ArrayEventContainer
 from ctapipe.image.extractor import (
     FullWaveformSum,
     GlobalPeakWindowSum,
+    ImageExtractor,
     LocalPeakWindowSum,
     NeighborPeakWindowSum,
     VarianceExtractor,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
+from ctapipe.io.eventsource import EventSource
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -149,19 +152,17 @@ def test_dl1_variance_calib(example_subarray):
         random = np.random.default_rng(1)
         y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
 
-        absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
-        y *= absolute[..., np.newaxis]
-
-        relative = random.normal(1, 0.01, (n_channels, n_pixels))
-        y /= relative[..., np.newaxis]
+        factor = random.normal(1, 0.01, (n_channels, n_pixels)) / random.uniform(
+            100, 1000, (n_channels, n_pixels)
+        ).astype("float32")
+        y /= factor[..., np.newaxis]
 
         pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
         y += pedestal[..., np.newaxis]
 
         event.dl0.tel[tel_id].waveform = y
-        event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-        event.calibration.tel[tel_id].dl1.absolute_factor = absolute
-        event.calibration.tel[tel_id].dl1.relative_factor = relative
+        event.monitoring.tel[tel_id].camera.coefficients.pedestal_offset = pedestal
+        event.monitoring.tel[tel_id].camera.coefficients.factor = factor
         event.dl0.tel[tel_id].selected_gain_channel = None
         event.r1.tel[tel_id].selected_gain_channel = None
 
@@ -209,13 +210,11 @@ def test_dl1_charge_calib(example_subarray):
             "float32"
         )
 
-        # Define absolute calibration coefficients
-        absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
-        y *= absolute[..., np.newaxis]
-
-        # Define relative coefficients
-        relative = random.normal(1, 0.01, (n_channels, n_pixels))
-        y /= relative[..., np.newaxis]
+        # Define multiplicative factor for calibration coefficients
+        factor = random.normal(1, 0.01, (n_channels, n_pixels)) / random.uniform(
+            100, 1000, (n_channels, n_pixels)
+        ).astype("float32")
+        y /= factor[..., np.newaxis]
 
         # Define pedestal
         pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
@@ -239,9 +238,11 @@ def test_dl1_charge_calib(example_subarray):
             event.dl1.tel[tel_id].image, y.sum(-1).squeeze(), rtol=1e-4
         )
 
-        event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-        event.calibration.tel[tel_id].dl1.absolute_factor = absolute
-        event.calibration.tel[tel_id].dl1.relative_factor = relative
+        event.monitoring.tel[tel_id].camera.coefficients.pedestal_offset = pedestal
+        event.monitoring.tel[tel_id].camera.coefficients.factor = factor
+        event.monitoring.tel[tel_id].camera.coefficients.outlier_mask = np.zeros(
+            (n_channels, n_pixels), dtype=bool
+        )
 
         # Test without timing corrections
         calibrator(event)
@@ -254,7 +255,9 @@ def test_dl1_charge_calib(example_subarray):
         )
 
         # test with timing corrections
-        event.calibration.tel[tel_id].dl1.time_shift = time_offset / sampling_rate
+        event.monitoring.tel[tel_id].camera.coefficients.time_shift = (
+            time_offset / sampling_rate
+        )
         calibrator(event)
 
         # more rtol since shifting might lead to reduced integral
@@ -357,7 +360,7 @@ def test_invalid_pixels(example_event, example_subarray):
     camera = example_subarray.tel[tel_id].camera
     sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
 
-    event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
+    event.monitoring.tel[tel_id].camera.coefficients.outlier_mask[:, 0] = True
     event.r1.tel[tel_id].waveform.fill(0.0)
     event.r1.tel[tel_id].waveform[:, 1:, 20] = 1.0
     event.r1.tel[tel_id].waveform[:, 0, 10] = 9999
@@ -367,8 +370,9 @@ def test_invalid_pixels(example_event, example_subarray):
         config=config,
     )
     calibrator(event)
-    assert np.all(event.dl1.tel[tel_id].image == 1.0)
-    assert np.all(event.dl1.tel[tel_id].peak_time == 20.0 / sampling_rate)
+    dl1 = event.dl1.tel[tel_id]
+    np.testing.assert_array_equal(dl1.image, 1.0)
+    np.testing.assert_array_equal(dl1.peak_time, 20.0 / sampling_rate)
 
     # test we can set the invalid pixel handler to None
     config.CameraCalibrator.invalid_pixel_handler_type = None
@@ -378,7 +382,7 @@ def test_invalid_pixels(example_event, example_subarray):
     )
     calibrator(event)
     assert event.dl1.tel[tel_id].image[0] == 9999
-    assert event.dl1.tel[tel_id].peak_time[0] == 10.0 / sampling_rate
+    assert event.dl1.tel[tel_id].peak_time[0] == pytest.approx(10.0 / sampling_rate)
 
 
 def test_no_gain_selection(prod5_gamma_simtel_path):
@@ -404,3 +408,16 @@ def test_no_gain_selection(prod5_gamma_simtel_path):
         assert peak_time.shape == (readout.n_channels, readout.n_pixels)
 
     assert tested_n_channels == {1, 2}
+
+
+@pytest.mark.parametrize("extractor", ImageExtractor.non_abstract_subclasses())
+def test_extractor_simtel_eventsource(extractor, prod5_gamma_simtel_path):
+    with EventSource(prod5_gamma_simtel_path) as source:
+        calibrator = CameraCalibrator(source.subarray, image_extractor_type=extractor)
+
+        n_calibrated = 0
+        for event in source:
+            calibrator(event)
+            n_calibrated += 1
+
+        assert n_calibrated == 7

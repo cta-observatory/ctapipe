@@ -14,8 +14,10 @@ from scipy.ndimage import correlate1d
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
+from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 from ...exceptions import OptionalDependencyMissing
+from ...instrument.camera.geometry import PixelShape
 from ..pixel_likelihood import neg_log_likelihood_approx
 
 try:
@@ -30,11 +32,14 @@ __all__ = [
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
+# ratio of the areas of the unit circle and a hexagon of flat-to-flat lengths 2
+CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
+
 # Sqrt of 2, as it is needed multiple times
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)], cache=True)
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
@@ -136,12 +141,22 @@ def create_profile(
 
     Parameters
     ----------
+    mirror_radius: float
+        mirror radius
+    hole_radius: float
+        hole or camera radius
     impact_parameter: float
         Impact distance from mirror center
-    ang: ndarray
-        Angles over which to integrate
+    radius: float
+        ring radius
     phi: float
-        Rotation angle of muon image
+        Phase corresponding to the azimuth of maximum
+        intensity of the ring.
+    pixel_diameter: float
+        pixel FoV
+    oversampling: int
+        Oversampling is used to define how much the phi binning is
+        smaller than the single pixel FoV.
 
     Returns
     -------
@@ -151,7 +166,8 @@ def create_profile(
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
+    # The rotation angle of muon image should go in the opposite direction (-phi).
+    ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
@@ -175,6 +191,7 @@ def image_prediction(
     oversampling=3,
     min_lambda=300 * u.nm,
     max_lambda=600 * u.nm,
+    pix_type=PixelShape.HEXAGON,
 ):
     """
     Predict muon ring image from given parameters.
@@ -216,10 +233,11 @@ def image_prediction(
         oversampling=oversampling,
         min_lambda_m=min_lambda.to_value(u.m),
         max_lambda_m=max_lambda.to_value(u.m),
+        pix_type=pix_type,
     )
 
 
-@vectorize([double(double, double, double)], cache=True)
+@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def gaussian_cdf(x, mu, sig):
     """
     Function to compute values of a given gaussians
@@ -256,6 +274,7 @@ def image_prediction_no_units(
     oversampling=3,
     min_lambda_m=300e-9,
     max_lambda_m=600e-9,
+    pix_type=PixelShape.HEXAGON,
 ):
     """
     Unit-less version of `image_prediction`.
@@ -265,8 +284,8 @@ def image_prediction_no_units(
     dx = pixel_x_rad - center_x_rad
     dy = pixel_y_rad - center_y_rad
     ang = np.arctan2(dy, dx)
-    # Add muon rotation angle
-    ang += phi_rad
+    # Subtract muon rotation angle
+    ang -= phi_rad
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
@@ -316,7 +335,12 @@ def image_prediction_no_units(
     # diameter. In any case, since in the end we do a data-MC comparison of the muon
     # ring analysis outputs, it is not critical that this value is exact.
 
-    pred *= CIRCLE_SQUARE_AREA_RATIO
+    if pix_type == PixelShape.HEXAGON:
+        pred *= CIRCLE_HEXAGON_AREA_RATIO
+    elif pix_type == PixelShape.SQUARE:
+        pred *= CIRCLE_SQUARE_AREA_RATIO
+    elif pix_type == PixelShape.CIRCLE:
+        return pred
 
     return pred
 
@@ -332,6 +356,7 @@ def build_negative_log_likelihood(
     spe_width,
     pedestal,
     hole_radius=0 * u.m,
+    pix_type=PixelShape.HEXAGON,
 ):
     """Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
@@ -413,6 +438,7 @@ def build_negative_log_likelihood(
             oversampling=oversampling,
             min_lambda_m=min_lambda,
             max_lambda_m=max_lambda,
+            pix_type=pix_type,
         )
 
         # scale prediction by optical efficiency of the telescope
@@ -534,6 +560,7 @@ class MuonIntensityFitter(TelescopeComponent):
             spe_width=self.spe_width.tel[tel_id],
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
+            pix_type=telescope.camera.geometry.pix_type,
         )
         negative_log_likelihood.errordef = Minuit.LIKELIHOOD
 

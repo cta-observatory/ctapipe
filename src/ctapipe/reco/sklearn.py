@@ -753,8 +753,8 @@ class DispReconstructor(Reconstructor):
                         fov_lon=fov_lon,
                         fov_lat=fov_lat,
                         telescope_pointing=AltAz(
-                            alt=event.pointing.tel[tel_id].altitude,
-                            az=event.pointing.tel[tel_id].azimuth,
+                            alt=event.monitoring.tel[tel_id].pointing.altitude,
+                            az=event.monitoring.tel[tel_id].pointing.azimuth,
                         ),
                     ).transform_to(AltAz())
 

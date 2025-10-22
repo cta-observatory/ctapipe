@@ -1,4 +1,5 @@
-""" Class to handle configuration for algorithms """
+"""Class to handle configuration for algorithms"""
+
 import html
 import warnings
 import weakref
@@ -226,12 +227,22 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
+        from .tool import Tool  # to avoid circular import
+
         name = self.__class__.__name__
         config = {name: {k: v.get(self) for k, v in self.traits(config=True).items()}}
 
         for val in self.__dict__.values():
-            if isinstance(val, Component):
+            if isinstance(val, (Component, Tool)):
                 config[name].update(val.get_current_config())
+            if (
+                isinstance(val, (list, tuple))
+                and val
+                and isinstance(val[0], (Component, Tool))
+            ):
+                for element in val:
+                    if isinstance(element, (Component, Tool)):
+                        config[name].update(element.get_current_config())
 
         return config
 

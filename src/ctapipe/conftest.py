@@ -19,6 +19,13 @@ from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
 from ctapipe.io import SimTelEventSource
+from ctapipe.io.hdf5dataformat import (
+    DL0_TEL_POINTING_GROUP,
+    DL1_CAMERA_COEFFICIENTS_GROUP,
+    DL1_CAMERA_MONITORING_GROUP,
+    FIXED_POINTING_GROUP,
+    SIMULATION_GROUP,
+)
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
 from ctapipe.utils.filelock import FileLock
@@ -161,6 +168,11 @@ def subarray_and_event_gamma_off_axis_500_gev(
 
 
 @pytest.fixture(scope="session")
+def prod6_gamma_simtel_path():
+    return get_dataset_path("gamma_prod6_preliminary.simtel.zst")
+
+
+@pytest.fixture(scope="session")
 def prod5_gamma_simtel_path():
     return get_dataset_path("gamma_prod5.simtel.zst")
 
@@ -177,6 +189,26 @@ def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
     )
+
+
+@pytest.fixture(scope="session")
+def proton_dl2_train_small_h5():
+    return get_dataset_path("proton_dl2_train_small.dl2.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_single_chunk():
+    return get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_same_chunks():
+    return get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_different_chunks():
+    return get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
@@ -675,18 +707,15 @@ def reference_location():
 
 
 @pytest.fixture(scope="session")
-def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
-    from ctapipe.instrument import SubarrayDescription
+def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     from ctapipe.io import read_table, write_table
 
-    path = dl1_tmp_path / "dl1_mon_ponting.dl1.h5"
-    shutil.copy(dl1_file, path)
+    path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
+    shutil.copy(calibpipe_camcalib_same_chunks, path)
 
-    events = read_table(path, "/dl1/event/subarray/trigger")
-    subarray = SubarrayDescription.from_hdf(path)
-
+    tel_id = 1
     # create some dummy monitoring data
-    time = events["time"]
+    time = read_table(path, f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}")["time"]
     start, stop = time[[0, -1]]
     duration = (stop - start).to_value(u.s)
 
@@ -698,13 +727,103 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
     az = (180 + 5 * dt / dt[-1]) * u.deg
 
     table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
-
-    for tel_id in subarray.tel:
-        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+    write_table(table, path, f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}")
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
-        f.remove_node("/configuration/telescope/pointing", recursive=True)
+        # Remove the constant pointing
+        f.remove_node(FIXED_POINTING_GROUP, recursive=True)
+        # Remove camera-related monitoring data
+        f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
+    path = dl1_tmp_path / "dl1_mon_pointingobs.dl1.h5"
+    shutil.copy(dl1_mon_pointing_file, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp_path):
+    path = dl1_tmp_path / "calibpipe_camcalib_single_chunk_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_single_chunk, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_path):
+    path = dl1_tmp_path / "calibpipe_camcalib_same_chunks_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_same_chunks, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def calibpipe_camcalib_different_chunks_obs(
+    calibpipe_camcalib_different_chunks, dl1_tmp_path
+):
+    path = dl1_tmp_path / "calibpipe_camcalib_different_chunks_obs.dl1.h5"
+    shutil.copy(calibpipe_camcalib_different_chunks, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
+
+    return path
+
+
+@pytest.fixture(scope="session")
+def dl1_merged_monitoring_file(
+    dl1_tmp_path, dl1_mon_pointing_file, calibpipe_camcalib_different_chunks
+):
+    """
+    File containing both camera and pointing monitoring data.
+    """
+    from ctapipe.tools.merge import MergeTool
+
+    output = dl1_tmp_path / "dl1_merged_monitoring_file.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--output={output}",
+            str(dl1_mon_pointing_file),
+            str(calibpipe_camcalib_different_chunks),
+            "--monitoring",
+            "--single-ob",
+        ]
+        assert run_tool(MergeTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
+    path = dl1_tmp_path / "dl1_merged_monitoring_file_obs.dl1.h5"
+    shutil.copy(dl1_merged_monitoring_file, path)
+
+    # Remove the simulation to mimic a real observation file
+    with tables.open_file(path, "r+") as f:
+        f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
 
@@ -786,11 +905,11 @@ def irf_event_loader_test_config():
 
     return Config(
         {
-            "EventPreprocessor": {
+            "DL2EventPreprocessor": {
                 "energy_reconstructor": "ExtraTreesRegressor",
                 "geometry_reconstructor": "HillasReconstructor",
                 "gammaness_classifier": "ExtraTreesClassifier",
-                "EventQualityQuery": {
+                "DL2EventQualityQuery": {
                     "quality_criteria": [
                         (
                             "multiplicity 4",
@@ -817,15 +936,19 @@ def event_loader_config_path(irf_event_loader_test_config, irf_tmp_path):
 
 @pytest.fixture(scope="session")
 def irf_events_table():
-    from ctapipe.irf import EventPreprocessor
+    from ctapipe.io import DL2EventPreprocessor
 
     N1 = 1000
     N2 = 100
     N = N1 + N2
-    epp = EventPreprocessor()
+    epp = DL2EventPreprocessor()
     tab = epp.make_empty_table()
 
-    ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
+    ids = ["obs_id", "event_id"]
+    unitless = set(
+        [colname for colname in tab.colnames if tab[colname].unit is None]
+    ) - set(ids)
+    bulk = set(tab.colnames) - set(ids) - set(unitless)
 
     id_tab = QTable(
         data=np.zeros((N, len(ids)), dtype=np.uint64),
@@ -837,16 +960,21 @@ def irf_events_table():
         names=bulk,
         units={c: tab[c].unit for c in bulk},
     )
-
     # Setting values following pyirf test in pyirf/irf/tests/test_background.py
-    bulk_tab["reco_energy"] = np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
-    bulk_tab["true_energy"] = np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
-    bulk_tab["reco_source_fov_offset"] = (
-        np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
+    bulk_tab.replace_column(
+        "reco_energy", np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
     )
-    bulk_tab["true_source_fov_offset"] = (
-        np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg
+    bulk_tab.replace_column(
+        "true_energy", np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
     )
+    bulk_tab.replace_column(
+        "reco_source_fov_offset", np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
+    )
+    bulk_tab.replace_column(
+        "true_source_fov_offset",
+        np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg,
+    )
+
     for name in unitless:
         bulk_tab.add_column(
             Column(name=name, unit=tab[name].unit, data=np.zeros(N) * np.nan)
@@ -856,3 +984,40 @@ def irf_events_table():
 
     ev = vstack([e_tab, tab], join_type="exact", metadata_conflicts="silent")
     return ev
+
+
+@pytest.fixture(scope="function")
+def test_config():
+    return {
+        "DL2EventLoader": {"event_reader_function": "read_telescope_events_chunked"},
+        "DL2EventPreprocessor": {
+            "energy_reconstructor": "ExtraTreesRegressor",
+            "gammaness_classifier": "ExtraTreesClassifier",
+            "columns_to_rename": {},
+            "output_table_schema": [
+                Column(
+                    name="obs_id", dtype=np.uint64, description="Observation Block ID"
+                ),
+                Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+                Column(name="tel_id", dtype=np.uint64, description="Telescope ID"),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy",
+                    unit=u.TeV,
+                    description="Reconstructed energy",
+                ),
+                Column(
+                    name="ExtraTreesRegressor_tel_energy_uncert",
+                    unit=u.TeV,
+                    description="Reconstructed energy uncertainty",
+                ),
+            ],
+            "apply_derived_columns": False,
+            # "disable_column_renaming": True,
+            "allow_unsupported_pointing_frames": True,
+        },
+        "DL2EventQualityQuery": {
+            "quality_criteria": [
+                ("valid reco", "ExtraTreesRegressor_tel_is_valid"),
+            ]
+        },
+    }

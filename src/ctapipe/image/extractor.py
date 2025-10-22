@@ -47,6 +47,7 @@ from ctapipe.core.traits import (
 )
 from ctapipe.instrument import CameraDescription
 
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
@@ -62,7 +63,7 @@ from .timing import timing_parameters
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def extract_around_peak(
     waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
@@ -147,7 +148,7 @@ def extract_around_peak(
     ],
     "(s),(),()->(),()",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time):
     """
@@ -215,7 +216,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     peak_time[0] /= sampling_rate_ghz
 
 
-@njit(cache=True)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def neighbor_average_maximum(
     waveforms, neighbors_indices, neighbors_indptr, local_weight, broken_pixels
 ):
@@ -243,10 +244,8 @@ def neighbor_average_maximum(
 
     Returns
     -------
-    average_wf : ndarray
-        Average of neighbor waveforms for each pixel.
-        Shape: (n_channels, n_pix)
-
+    peak_pos : ndarray
+        Index of the maximum for each pixel's neighbor averaged waveform.
     """
 
     n_channels, n_pixels, _ = waveforms.shape
@@ -534,6 +533,20 @@ class FixedWindowSum(ImageExtractor):
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
+@lru_cache()
+def _get_pixel_index(n_pixels):
+    return np.arange(n_pixels)
+
+
+def _select_value_for_gain(array, selected_gain_channel):
+    """Select values from a full array for the selected gain.
+
+    For an array of shape (n_channels, n_pixels, ...) return an array
+    of shape (n_pixels, ...) for the selected gain give in selected_gain_channel.
+    """
+    return array[selected_gain_channel, _get_pixel_index(len(selected_gain_channel))]
+
+
 class GlobalPeakWindowSum(ImageExtractor):
     """
     Extractor which sums in a window about the
@@ -583,6 +596,9 @@ class GlobalPeakWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
+        if selected_gain_channel is not None:
+            broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
+
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
             peak_index = waveforms.mean(
@@ -778,6 +794,12 @@ class NeighborPeakWindowSum(ImageExtractor):
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+
+        if selected_gain_channel is not None:
+            broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
+            # neighbor_average_maximum indexes using channel.
+            broken_pixels = broken_pixels[np.newaxis, ...]
+
         peak_index = neighbor_average_maximum(
             waveforms,
             neighbors_indices=neighbors.indices,
@@ -1500,7 +1522,7 @@ def deconvolve(
     ],
     "(s),(),()->()",
     nopython=True,
-    cache=True,
+    cache=not CTAPIPE_DISABLE_NUMBA_CACHE,
 )
 def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
     """

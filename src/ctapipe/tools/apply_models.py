@@ -11,6 +11,11 @@ from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Integer, List, Path, classes_with_traits, flag
 from ctapipe.io import HDF5Merger, TableLoader, write_table
 from ctapipe.io.astropy_helpers import join_allow_empty, read_table
+from ctapipe.io.hdf5dataformat import (
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL2_SUBARRAY_GROUP,
+    DL2_TEL_GROUP,
+)
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.reco import Reconstructor
 
@@ -223,7 +228,7 @@ class ApplyModels(Tool):
                 write_table(
                     table[output_columns],
                     self.output_path,
-                    f"/dl2/event/telescope/{prop}/{prefix}/tel_{tel_id:03d}",
+                    f"{DL2_TEL_GROUP}/{prop}/{prefix}/tel_{tel_id:03d}",
                     append=True,
                 )
 
@@ -237,7 +242,7 @@ class ApplyModels(Tool):
         # to ensure events are stored in the correct order,
         # we resort to trigger table order
         trigger = read_table(
-            self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
+            self.h5file, f"{DL1_SUBARRAY_TRIGGER_TABLE}", start=start, stop=stop
         )[["obs_id", "event_id"]]
         trigger["__sort_index__"] = np.arange(len(trigger))
 
@@ -264,7 +269,7 @@ class ApplyModels(Tool):
         write_table(
             stereo_predictions,
             self.output_path,
-            f"/dl2/event/subarray/{combiner.property}/{combiner.prefix}",
+            f"{DL2_SUBARRAY_GROUP}/{combiner.property}/{combiner.prefix}",
             append=True,
         )
 
