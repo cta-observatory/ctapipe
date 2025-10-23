@@ -1,6 +1,6 @@
 """
-Event Display with Hillas Reconstruction
-========================================
+Event Display with Hillas Parameters
+====================================
 
 This script displays events with Hillas parameter reconstruction and visualization of all parameters on the camera image.
 """
