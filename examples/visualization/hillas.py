@@ -331,8 +331,8 @@ def display_event_with_annotated_hillas(
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"Intensity: {hillas.intensity:.1f} p.e.\n"
         f"\n"
-        f"x: {x:.4f}\n"
-        f"y: {y:.4f}\n"
+        f"fov_long: {x:.4f}\n"
+        f"fov_lat: {y:.4f}\n"
         f"r: {hillas.r:.4f}\n"
         f"φ: {np.degrees(hillas.phi.value):.2f}°\n"
         f"\n"
@@ -368,7 +368,7 @@ def display_event_with_annotated_hillas(
             markeredgecolor=cog_color,
             markersize=10,
             markeredgewidth=2,
-            label="COG (x, y)",
+            label="COG (fov_long, fov_lat)",
             linestyle="None",
         ),
         Line2D(
