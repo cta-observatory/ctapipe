@@ -39,8 +39,14 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
-def chord_length(radius, rho, phi):
+def chord_length(radius, rho, phi, phi0=0):
+    return _chord_length(radius, rho, phi, phi0)
+
+
+@vectorize(
+    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
+)
+def _chord_length(radius, rho, phi, phi0):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -68,6 +74,9 @@ def chord_length(radius, rho, phi):
 
 
     """
+
+    phi = phi - phi0
+
     discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
     valid = discriminant_norm >= 0
 
