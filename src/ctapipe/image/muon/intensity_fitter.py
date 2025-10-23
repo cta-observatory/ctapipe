@@ -40,13 +40,6 @@ SQRT2 = np.sqrt(2)
 
 
 def chord_length(radius, rho, phi, phi0=0):
-    return _chord_length(radius, rho, phi, phi0)
-
-
-@vectorize(
-    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
-)
-def _chord_length(radius, rho, phi, phi0):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
@@ -78,6 +71,13 @@ def _chord_length(radius, rho, phi, phi0):
 
     """
 
+    return _chord_length(radius, rho, phi, phi0)
+
+
+@vectorize(
+    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
+)
+def _chord_length(radius, rho, phi, phi0):
     phi = phi - phi0
 
     discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
