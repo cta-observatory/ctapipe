@@ -1,2 +1,0 @@
-Allow ``peak_time=None`` in ``InvalidPixelHandler``. Some extractors may not
-provide a valid peak time (e.g. the ``VarianceExtractor``).

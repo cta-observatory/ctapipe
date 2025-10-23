@@ -1,2 +1,0 @@
-Fix the missing selection of the correct broken pixels for gain selected data
-in the image extractors.
