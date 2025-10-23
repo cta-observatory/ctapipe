@@ -60,6 +60,9 @@ def _chord_length(radius, rho, phi, phi0):
         fractional distance of impact point from circle center
     phi: float or ndarray in radians
         rotation angles to calculate length
+    phi0: float
+        Phase corresponding to the azimuth of maximum
+        intensity of the ring.
 
     Returns
     -------
