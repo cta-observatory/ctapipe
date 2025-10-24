@@ -68,7 +68,10 @@ def chord_length(radius, rho, phi):
 
 
     """
-    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
+    sin_phi = np.sin(phi)
+    cos_phi = np.cos(phi)
+
+    discriminant_norm = 1 - (rho**2 * sin_phi**2)
     valid = discriminant_norm >= 0
 
     if not valid:
@@ -76,13 +79,12 @@ def chord_length(radius, rho, phi):
 
     if rho <= 1.0:
         # muon has hit the mirror
-        effective_chord_length = radius * (
-            np.sqrt(discriminant_norm) + rho * np.cos(phi)
-        )
+        effective_chord_length = radius * (np.sqrt(discriminant_norm) + rho * cos_phi)
     else:
         # muon did not hit the mirror
+
         # Filtering out non-physical solutions for phi
-        if np.abs(phi) < np.arcsin(1.0 / rho):
+        if (np.abs(sin_phi) < (1.0 / rho)) & (cos_phi > 0):
             effective_chord_length = 2 * radius * np.sqrt(discriminant_norm)
         else:
             return 0
