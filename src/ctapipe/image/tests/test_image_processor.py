@@ -1,6 +1,7 @@
 """
 Tests for ImageProcessor functionality
 """
+
 from copy import deepcopy
 
 import astropy.units as u
@@ -13,7 +14,7 @@ from ctapipe.containers import (
     CameraTimingParametersContainer,
 )
 from ctapipe.image import ImageProcessor
-from ctapipe.image.cleaning import MARSImageCleaner
+from ctapipe.image.cleaning import MARSImageCleaner, NSBImageCleaner
 
 
 def test_image_processor(example_event, example_subarray):
@@ -21,10 +22,10 @@ def test_image_processor(example_event, example_subarray):
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
-        subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
+        subarray=example_subarray, image_cleaner_type="NSBImageCleaner"
     )
 
-    assert isinstance(process_images.clean, MARSImageCleaner)
+    assert isinstance(process_images.clean, NSBImageCleaner)
 
     calibrate(example_event)
     process_images(example_event)
