@@ -55,6 +55,22 @@ def test_chord_length(
     assert np.isclose(length, expected_length, atol=1e-15)
 
 
+@pytest.mark.parametrize("rho", [0.5, 1.2])
+def test_chord_length_periodicity(rho):
+    from ctapipe.image.muon.intensity_fitter import chord_length
+
+    radius = 10.0
+
+    phi1 = np.linspace(0, 2 * np.pi, 1000)
+    reference_length = chord_length(radius, rho, phi1)
+
+    for offset in (-2 * np.pi, 2 * np.pi):
+        phi2 = phi1 + offset
+        offset_length = chord_length(radius, rho, phi2)
+
+        np.testing.assert_array_almost_equal(reference_length, offset_length)
+
+
 def test_muon_efficiency_fit(prod5_lst, reference_location):
     from ctapipe.coordinates import TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
