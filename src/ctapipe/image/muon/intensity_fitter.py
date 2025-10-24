@@ -44,6 +44,7 @@ def chord_length(radius, rho, phi, phi0=0):
     Function for integrating the length of a chord across a circle (effective chord length).
 
     A circular mirror is used for signal, and a circular camera is used for shadowing.
+    The function is 2pi-periodic.
 
     Parameters
     ----------
