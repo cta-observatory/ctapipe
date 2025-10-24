@@ -43,6 +43,8 @@ def test_image_processor(cleaner, example_event, example_subarray):
             assert isfinite(dl1tel.parameters.morphology.n_pixels)
             assert isfinite(dl1tel.parameters.intensity_statistics.max)
             assert isfinite(dl1tel.parameters.peak_time_statistics.max)
+        else:
+            assert np.isnan(dl1tel.parameters.hillas.length.value)
 
     process_images.check_image.to_table()
 
