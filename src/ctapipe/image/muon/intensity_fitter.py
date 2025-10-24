@@ -39,12 +39,12 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
-def chord_length(radius, rho, phi):
+def chord_length(radius, rho, phi, phi0=0):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
 
     A circular mirror is used for signal, and a circular camera is used for shadowing.
+    The function is 2pi-periodic.
 
     Parameters
     ----------
@@ -54,6 +54,9 @@ def chord_length(radius, rho, phi):
         fractional distance of impact point from circle center
     phi: float or ndarray in radians
         rotation angles to calculate length
+    phi0: float
+        Phase corresponding to the azimuth of maximum
+        intensity of the ring.
 
     Returns
     -------
@@ -68,13 +71,21 @@ def chord_length(radius, rho, phi):
 
 
     """
+
+    return _chord_length(radius, rho, phi, phi0)
+
+
+@vectorize(
+    [double(double, double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE
+)
+def _chord_length(radius, rho, phi, phi0):
+    phi = phi - phi0
+
     sin_phi = np.sin(phi)
     cos_phi = np.cos(phi)
 
     discriminant_norm = 1 - (rho**2 * sin_phi**2)
-    valid = discriminant_norm >= 0
-
-    if not valid:
+    if discriminant_norm < 0:
         return 0
 
     if rho <= 1.0:
