@@ -83,7 +83,7 @@ def _chord_length(radius, rho, phi, phi0):
     sin_phi = np.sin(phi)
     cos_phi = np.cos(phi)
 
-    discriminant_norm = 1 - (rho**2 * np.sin(phi) ** 2)
+    discriminant_norm = 1 - (rho**2 * sin_phi**2)
     if discriminant_norm < 0:
         return 0
 
