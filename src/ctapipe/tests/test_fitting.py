@@ -71,6 +71,15 @@ def test_lts_regression():
     # larger rtol since we added noise
     assert np.allclose(true_beta, beta, rtol=0.05)
 
+    x = np.array([np.nan, 3, np.nan])
+    y = np.array([1, 2, 3])
+
+    beta, error = lts_linear_regression(x, y)
+
+    # return NaNs when less than 2 valid points are given
+    assert np.all(np.isnan(beta))
+    assert np.isnan(error)
+
 
 def test_lts_regression_singular_pair():
     """
