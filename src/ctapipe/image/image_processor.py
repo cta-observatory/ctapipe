@@ -54,7 +54,10 @@ class ImageQualityQuery(QualityQuery):
     """for configuring image-wise data checks"""
 
     quality_criteria = List(
-        default_value=[("size_greater_0", "image.sum() > 0")],
+        default_value=[
+            ("size_greater_0", "image.sum() > 0"),
+            ("at_least_2_pixels", "image.size > 1"),
+        ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
