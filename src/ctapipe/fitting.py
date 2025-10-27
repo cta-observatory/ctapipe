@@ -167,6 +167,13 @@ def lts_linear_regression(
     error: float
         Residual sum of squares of the best fit
     """
+    mask = np.isfinite(x) & np.isfinite(y)
+    x, y = x[mask], y[mask]
+
+    # Prevent segmentation faults in numba
+    if x.size < 2:
+        return np.array([np.nan, np.nan], dtype=np.float64), np.nan
+
     # numba currently does not support passing rng via default, so we have a
     # pure python wrapper that calls the numba jitted function with he defaults filled in
     return _lts_linear_regression(
