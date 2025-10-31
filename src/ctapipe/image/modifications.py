@@ -286,7 +286,40 @@ class WaveformModifier(TelescopeComponent):
         # Read in the waveforms in the NSB-only file. Store in a dictionary
         # with one key per telescope, containing an array [n_events, n_gains,
         # n_pixels, n_samples]
-        nsb_database = defaultdict(list)  # [nevents, ngains, npixels, nsamples]
+        nsb_database = self.read_nsb_database()
+
+        # Check if noise statistics is sufficient:
+        stats_ok = self.check_noise_statistics(nsb_database)
+        if not stats_ok:
+            raise ValueError("Please use an input nsb_file with more events!")
+
+        # Now shift the waveforms so that they have mean=0 and do not introduce
+        # any bias (just fluctuations)
+        self.zero_baseline(nsb_database)
+
+        # Add up waveforms selected at random to obtain different
+        # realizations of the total noise that will be added
+        for tel_id in nsb_database:
+            self.total_noise[tel_id] = build_wf_noise_pixelwise(
+                nsb_database[tel_id],
+                self.n_noise_realizations,
+                self.nsb_level,
+                self.rng,
+                self.shuffle_full_cameras,
+            )
+
+    def read_nsb_database(self):
+        """
+        Reads in R1 noise waveforms from an input file self.nsb_file
+
+        Returns
+        -------
+        nsb_database : dict
+        Dictionary with one key per telescope, containing an array [n_events,
+        n_gains, n_pixels, n_samples] (noise waveforms)
+
+        """
+        nsb_database = defaultdict(list)
         with EventSource(
             input_url=self.nsb_file, skip_calibration_events=False
         ) as source:
@@ -300,10 +333,27 @@ class WaveformModifier(TelescopeComponent):
             tel_id: np.stack(waveforms) for tel_id, waveforms in nsb_database.items()
         }
 
-        # Check that we have enough NSB-only events for all telescopes. We
-        # require that the number of NSB events for any telescope is at
-        # least two times the number of waveforms (=nsb_level) that we will add
-        # up. This is to avoid excessive correlation among the waveforms.
+        return nsb_database
+
+    def check_noise_statistics(self, nsb_database):
+        """
+        Check that we have enough NSB-only events for all telescopes. We
+        require that the number of NSB events for any telescope is at
+        least two times the number of waveforms (=nsb_level) that we will add
+        up. This is to avoid excessive correlation among the waveforms.
+
+        Parameters
+        ----------
+        nsb_database: dict
+        Dictionary with one key per telescope, containing an array [n_events,
+        n_gains, n_pixels, n_samples] (noise waveforms)
+
+        Returns
+        -------
+        stats_ok : bool
+        True if statistics of noise events is considered sufficient
+        """
+
         stats_ok = True
         for tel_id in nsb_database:
             nevents = nsb_database[tel_id].shape[0]
@@ -318,27 +368,31 @@ class WaveformModifier(TelescopeComponent):
             )
             stats_ok = False
 
-        if not stats_ok:
-            raise ValueError("Please use an input nsb_file with more events!")
+        return stats_ok
 
-        # Now shift the waveforms so that they have mean=0 and do not introduce
-        # any bias (just fluctuations). For each telescope and gain we average
-        # all pixels
+    def zero_baseline(self, nsb_database):
+        """
+        For each telescope and gain we average the waveform values for all
+        pixels, and subtract those averages from the waveforms.
+        In this way we make sure we do not introduce any net average charge,
+        but only increase the fluctuations.
+
+        Parameters
+        ----------
+        nsb_database: dict
+        Dictionary with one key per telescope, containing an array [n_events,
+        n_gains, n_pixels, n_samples] (noise waveforms)
+
+        Returns
+        -------
+        nsb_database: dict
+        Dictionary, same as above but after baseline zeroing
+        """
+
         for tel_id in nsb_database:
             for channel in range(nsb_database[tel_id].shape[1]):
                 mean = np.mean(nsb_database[tel_id][:, channel, :, :])
                 nsb_database[tel_id][:, channel, :, :] -= mean
-
-        # Now add up waveforms selected at random to obtain different
-        # realizations of the total noise that will be added
-        for tel_id in nsb_database:
-            self.total_noise[tel_id] = build_wf_noise_pixelwise(
-                nsb_database[tel_id],
-                self.n_noise_realizations,
-                self.nsb_level,
-                self.rng,
-                self.shuffle_full_cameras,
-            )
 
     def __call__(self, tel_id, waveforms, selected_gain_channel=None):
         """
