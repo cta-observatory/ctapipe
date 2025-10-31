@@ -150,9 +150,9 @@ class PixelStatisticsCalculatorTool(Tool):
             # Check if the chunk size does not exceed the table length of the input data
             if self.stats_calculator.stats_aggregators[
                 self.stats_calculator.stats_aggregator_type.tel[tel_id]
-            ].chunk_size > len(dl1_table):
+            ].chunking.chunk_size > len(dl1_table):
                 raise ToolConfigurationError(
-                    f"Change --StatisticsAggregator.chunk_size to decrease the chunk size "
+                    f"Change --SizeChunking.chunk_size to decrease the chunk size "
                     f"of the aggregation to a maximum of '{len(dl1_table)}' (table length of the "
                     f"input data for telescope 'tel_id={tel_id}')."
                 )
@@ -172,8 +172,15 @@ class PixelStatisticsCalculatorTool(Tool):
                 tel_id=tel_id,
                 col_name=self.input_column_name,
             )
-            # Check if 'chunk_shift' is selected
-            if self.stats_calculator.chunk_shift is not None:
+            # Check if 'chunk_shift' is configured for overlapping chunks
+            aggregator = self.stats_calculator.stats_aggregators[
+                self.stats_calculator.stats_aggregator_type.tel[tel_id]
+            ]
+            if (
+                hasattr(aggregator.chunking, "chunk_shift")
+                and aggregator.chunking.chunk_shift is not None
+                and aggregator.chunking.chunk_shift > 0
+            ):
                 # Check if there are any faulty chunks to perform a second pass over the data
                 if np.any(~aggregated_stats["is_valid"].data):
                     # Perform the second pass of the statistics calculation
