@@ -63,7 +63,7 @@ def mono_table():
     )
 
 
-@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+@pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
 def test_predict_mean_energy(weights, mono_table):
     combine = StereoMeanCombiner(
         prefix="dummy",
@@ -160,7 +160,7 @@ def test_predict_mean_disp(mono_table):
     assert_array_equal(tel_ids[2], [1])
 
 
-@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+@pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
 def test_mean_prediction_single_event(weights):
     event = ArrayEventContainer()
 
