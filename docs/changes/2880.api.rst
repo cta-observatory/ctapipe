@@ -1,0 +1,1 @@
+Rename "konrad" weights to "aspect-weighted-intensity" weights.
