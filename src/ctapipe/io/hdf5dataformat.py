@@ -1,4 +1,4 @@
-""" HDF5 Data Format Constants """
+"""HDF5 Data Format Constants"""
 
 __all__ = [
     "R0_GROUP",
@@ -41,13 +41,18 @@ __all__ = [
     "DL0_TEL_POINTING_GROUP",
     "DL1_SUBARRAY_POINTING_GROUP",
     "DL1_TEL_POINTING_GROUP",
+    "DL1_TEL_PSF_GROUP",
     "DL1_TEL_CALIBRATION_GROUP",
+    "DL1_TEL_THROUGHPUT_CALIBRATION_GROUP",
     "DL1_CAMERA_MONITORING_GROUP",
     "DL1_CAMERA_COEFFICIENTS_GROUP",
     "DL1_PIXEL_STATISTICS_GROUP",
     "DL1_SKY_PEDESTAL_IMAGE_GROUP",
     "DL1_FLATFIELD_IMAGE_GROUP",
     "DL1_FLATFIELD_PEAK_TIME_GROUP",
+    "DL2_SUBARRAY_MONITORING_GROUP",
+    "DL2_SUBARRAY_INTERCALIBRATION_GROUP",
+    "DL2_SUBARRAY_CROSS_CALIBRATION_GROUP",
     "DL1_COLUMN_NAMES",
 ]
 
@@ -97,7 +102,11 @@ DL2_SUBARRAY_PARTICLETYPE_GROUP = "/dl2/event/subarray/particle_type"
 DL0_TEL_POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 DL1_SUBARRAY_POINTING_GROUP = "/dl1/monitoring/subarray/pointing"
 DL1_TEL_POINTING_GROUP = "/dl1/monitoring/telescope/pointing"
+DL1_TEL_PSF_GROUP = "/dl1/monitoring/telescope/psf"
 DL1_TEL_CALIBRATION_GROUP = "/dl1/monitoring/telescope/calibration"
+DL1_TEL_THROUGHPUT_CALIBRATION_GROUP = (
+    "/dl1/monitoring/telescope/calibration/optical_throughput"
+)
 DL1_CAMERA_MONITORING_GROUP = "/dl1/monitoring/telescope/calibration/camera"
 DL1_CAMERA_COEFFICIENTS_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/coefficients"
@@ -114,6 +123,9 @@ DL1_FLATFIELD_IMAGE_GROUP = (
 DL1_FLATFIELD_PEAK_TIME_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_peak_time"
 )
+DL2_SUBARRAY_MONITORING_GROUP = "/dl2/monitoring/subarray"
+DL2_SUBARRAY_INTERCALIBRATION_GROUP = "/dl2/monitoring/subarray/intercalibration"
+DL2_SUBARRAY_CROSS_CALIBRATION_GROUP = "/dl2/monitoring/subarray/cross_calibration"
 
 # Column names used for the DL1A data
 DL1_COLUMN_NAMES = ["image", "peak_time"]
