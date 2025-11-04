@@ -43,7 +43,6 @@ __all__ = [
     "DL1_TEL_POINTING_GROUP",
     "DL1_TEL_OPTICAL_PSF_GROUP",
     "DL1_TEL_CALIBRATION_GROUP",
-    "DL1_TEL_THROUGHPUT_CALIBRATION_GROUP",
     "DL1_TEL_MUON_THROUGHPUT_GROUP",
     "DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP",
     "DL1_CAMERA_MONITORING_GROUP",
@@ -107,9 +106,6 @@ DL1_SUBARRAY_POINTING_GROUP = "/dl1/monitoring/subarray/pointing"
 DL1_TEL_POINTING_GROUP = "/dl1/monitoring/telescope/pointing"
 DL1_TEL_OPTICAL_PSF_GROUP = "/dl1/monitoring/telescope/optical_psf"
 DL1_TEL_CALIBRATION_GROUP = "/dl1/monitoring/telescope/calibration"
-DL1_TEL_THROUGHPUT_CALIBRATION_GROUP = (
-    "/dl1/monitoring/telescope/calibration/optical_throughput"
-)
 DL1_TEL_MUON_THROUGHPUT_GROUP = (
     "/dl1/monitoring/telescope/calibration/optical_throughput/muon"
 )

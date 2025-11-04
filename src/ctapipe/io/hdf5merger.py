@@ -21,13 +21,19 @@ from .hdf5dataformat import (
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_CALIBRATION_GROUP,
+    DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
+    DL1_TEL_MUON_THROUGHPUT_GROUP,
+    DL1_TEL_OPTICAL_PSF_GROUP,
     DL1_TEL_PARAMETERS_GROUP,
     DL1_TEL_POINTING_GROUP,
     DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
+    DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
     DL2_SUBARRAY_GROUP,
+    DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
     DL2_TEL_GROUP,
     FIXED_POINTING_GROUP,
     OBSERVATION_BLOCK_TABLE,
@@ -436,31 +442,35 @@ class HDF5Merger(Component):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
 
-        # Pointing monitoring
-        if self.monitoring and DL1_SUBARRAY_POINTING_GROUP in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_POINTING_GROUP])
+        # Monitoring - DL0 and DL1 subarray groups
+        monitoring_dl1_subarray_groups = [
+            DL1_SUBARRAY_POINTING_GROUP,
+        ]
+        for key in monitoring_dl1_subarray_groups:
+            if self.monitoring and key in other.root:
+                self._append_table(other, other.root[key])
+        # Monitoring - DL0 and DL1 telescopegroups
+        monitoring_telescope_groups = [
+            DL0_TEL_POINTING_GROUP,
+            DL1_TEL_POINTING_GROUP,
+            DL1_TEL_OPTICAL_PSF_GROUP,
+            DL1_TEL_CALIBRATION_GROUP,
+            DL1_CAMERA_COEFFICIENTS_GROUP,
+            DL1_TEL_MUON_THROUGHPUT_GROUP,
+            DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP,
+        ]
+        for key in monitoring_telescope_groups:
+            if self.monitoring and key in other.root:
+                self._append_table_group(other, other.root[key])
 
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL0_TEL_POINTING_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL0_TEL_POINTING_GROUP])
-
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL1_TEL_POINTING_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_TEL_POINTING_GROUP])
-
-        # Calibration coefficients monitoring
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL1_CAMERA_COEFFICIENTS_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_CAMERA_COEFFICIENTS_GROUP])
+        # Monitoring - DL2 subarray groups
+        monitoring_dl2_subarray_groups = [
+            DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
+            DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
+        ]
+        for key in monitoring_dl2_subarray_groups:
+            if self.monitoring and key in other.root:
+                self._append_table(other, other.root[key])
 
         # Pixel statistics monitoring
         for dl1_colname in DL1_COLUMN_NAMES:
