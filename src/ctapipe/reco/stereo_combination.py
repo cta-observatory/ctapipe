@@ -450,6 +450,8 @@ class StereoDispCombiner(StereoCombiner):
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
+        self.n_tel_combinations = 2
+
     def _calculate_weights(self, data):
         if isinstance(data, Container):
             if self.weights == "intensity":
@@ -484,7 +486,6 @@ class StereoDispCombiner(StereoCombiner):
         weights = []
         dist_weights = []
         signs = np.array([-1, 1])
-        n_tel_combinations = 2
 
         for tel_id, dl2 in event.dl2.tel.items():
             if dl2.geometry[self.prefix].is_valid:
@@ -508,7 +509,7 @@ class StereoDispCombiner(StereoCombiner):
                 ids.append(tel_id)
 
         if len(fov_lon_values) > 0:
-            index_tel_combs = get_combinations(range(len(ids)), n_tel_combinations)
+            index_tel_combs = get_combinations(range(len(ids)), self.n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
                 index_tel_combs,
                 np.array(fov_lon_values),
@@ -561,7 +562,6 @@ class StereoDispCombiner(StereoCombiner):
             mono_predictions
         )
         _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
-        n_tel_combinations = 2
 
         n_array_events = len(obs_ids)
         stereo_table = Table({"obs_id": obs_ids, "event_id": event_ids})
@@ -579,13 +579,13 @@ class StereoDispCombiner(StereoCombiner):
                     prefix,
                 )
                 combs_array, combs_to_multi_indices = create_combs_array(
-                    valid_multiplicity.max(), n_tel_combinations
+                    valid_multiplicity.max(), self.n_tel_combinations
                 )
                 index_tel_combs, n_combs = get_index_combs(
                     valid_multiplicity,
                     combs_array,
                     combs_to_multi_indices,
-                    n_tel_combinations,
+                    self.n_tel_combinations,
                 )
                 combs_to_array_indices = np.repeat(
                     np.arange(len(valid_multiplicity)), n_combs
