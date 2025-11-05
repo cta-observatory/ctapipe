@@ -6,11 +6,11 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.containers import (
     ArrayEventContainer,
+    ArrayPointingContainer,
     DispContainer,
     HillasParametersContainer,
     ImageParametersContainer,
     ParticleClassificationContainer,
-    PointingContainer,
     ReconstructedContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -81,6 +81,18 @@ def mono_table():
             ],
             "disp_tel_parameter": [0.65, 1.1, 0.7, 0.9, 1, 0.5, 0.65, 1.1, 0.7, 0.9]
             * u.deg,
+            "disp_tel_sign_score": [
+                0.65,
+                0.87,
+                0.7,
+                0.5,
+                0.3,
+                0.99,
+                0.65,
+                0.3,
+                0.2,
+                0.86,
+            ],
             "subarray_pointing_lat": 10 * [70] * u.deg,
             "subarray_pointing_lon": 10 * [0] * u.deg,
         }
@@ -330,6 +342,7 @@ def test_disp_combiner_single_event(weights):
         "disp_tel_alt": [58.5, 58, 62.5, 20] * u.deg,
         "disp_tel_az": [12.5, 15, 13, 30] * u.deg,
         "disp_tel_parameter": [0.65, 1.1, 0.7, 1.0] * u.deg,
+        "disp_tel_sign_score": [0.95, 0.98, 0.66, 0],
         "disp_tel_is_valid": [True, True, True, False],
     }
 
@@ -347,7 +360,10 @@ def test_disp_combiner_single_event(weights):
 
         event.dl2.tel[event_dict["tel_id"][i]] = TelescopeReconstructedContainer(
             disp={
-                "dummy": DispContainer(parameter=event_dict["disp_tel_parameter"][i])
+                "dummy": DispContainer(
+                    parameter=event_dict["disp_tel_parameter"][i],
+                    sign_score=event_dict["disp_tel_sign_score"][i],
+                )
             },
             geometry={
                 "dummy": ReconstructedGeometryContainer(
@@ -358,7 +374,7 @@ def test_disp_combiner_single_event(weights):
             },
         )
 
-    event.pointing = PointingContainer(
+    event.monitoring.pointing = ArrayPointingContainer(
         array_azimuth=0 * u.deg, array_altitude=70 * u.deg
     )
 
@@ -366,6 +382,7 @@ def test_disp_combiner_single_event(weights):
         prefix="dummy",
         property=ReconstructionProperty.GEOMETRY,
         weights=weights,
+        sign_score_limit=0.85,
     )
     disp_combiner(event)
     if weights in ["intensity", "konrad"]:

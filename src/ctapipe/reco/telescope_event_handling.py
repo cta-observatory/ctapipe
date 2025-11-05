@@ -199,12 +199,12 @@ def get_combinations(iterable, size):
 
 @njit
 def calc_combs_min_distances_event(
-    index_tel_combs, fov_lon_values, fov_lat_values, weights
+    index_tel_combs, fov_lon_values, fov_lat_values, weights, dist_weights
 ):
     """
     Calculate the weighted mean field-of-view (FoV) coordinates for each telescope combination.
 
-    Determines the minimum distance between all possible telescopes SIGN
+    Determines the weighted minimum distance between all possible telescopes SIGN
     pairs per telescope combination and computes their weighted mean FoV longitude and latitude.
     Used event-wise with njit decorator.
 
@@ -221,6 +221,9 @@ def calc_combs_min_distances_event(
         SIGN value (-1, 1) per telescope event.
     weights : np.ndarray
         Array of weights for each telescope event.
+    dist_weights : np.ndarray
+        Array of shape (n_tels, 2) containing adapted SIGN scores for each sign per
+        telescope event.
 
     Returns
     -------
@@ -246,7 +249,19 @@ def calc_combs_min_distances_event(
         w1, w2 = weights[tel_1], weights[tel_2]
         combined_weights[i] = w1 + w2
 
-        # Calculate all 4 possible distances
+        # Calculate scores for each telescope combination using the
+        # dist weights (SIGN scores). If one of the four weights of a telescope
+        # combination is != 1, set the others to inf to avoid selecting them.
+        comb_dist_weights = (
+            dist_weights[tel_1, sign_combs[:, 0]]
+            * dist_weights[tel_2, sign_combs[:, 1]]
+        )
+        if np.any(comb_dist_weights != 1):
+            comb_dist_weights = np.where(
+                comb_dist_weights == 1, np.inf, comb_dist_weights
+            )
+
+        # Calculate all 4 possible distances and weight them
         lon_diffs = (
             fov_lon_values[tel_1, sign_combs[:, 0]]
             - fov_lon_values[tel_2, sign_combs[:, 1]]
@@ -256,10 +271,10 @@ def calc_combs_min_distances_event(
             - fov_lat_values[tel_2, sign_combs[:, 1]]
         )
 
-        distances = np.hypot(lon_diffs, lat_diffs)
+        distances = np.hypot(lon_diffs, lat_diffs) * comb_dist_weights
+        argmin_distance = np.argmin(distances)
 
         # Weighted mean for minimum distances
-        argmin_distance = np.argmin(distances)
         lon_vals = [
             fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
             fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
@@ -281,6 +296,7 @@ def calc_combs_min_distances_table(
     fov_lon_values,
     fov_lat_values,
     weights,
+    dist_weights,
 ):
     """
     Calculate the weighted mean field-of-view (FoV) coordinates for each telescope combination.
@@ -302,6 +318,9 @@ def calc_combs_min_distances_table(
         SIGN value (-1, 1) per telescope event.
     weights : np.ndarray
         Array of weights for each telescope event.
+    dist_weights : np.ndarray
+        Array of shape (n_tels, 2) containing adapted SIGN scores for each sign per
+        telescope event.
 
     Returns
     -------
@@ -318,14 +337,28 @@ def calc_combs_min_distances_table(
 
     sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 
-    # Calculate all 4 possible distances
+    # Calculate scores for each telescope combination using the
+    # dist weights (SIGN scores). If one of the four weights of a telescope
+    # combination is != 1, set the others to inf to avoid selecting them.
+    # Calculate all 4 possible distances afterwards.
     lon_combs = fov_lon_values[index_tel_combs]
     lon_diffs = lon_combs[:, 0, sign_combs[:, 0]] - lon_combs[:, 1, sign_combs[:, 1]]
 
     lat_combs = fov_lat_values[index_tel_combs]
     lat_diffs = lat_combs[:, 0, sign_combs[:, 0]] - lat_combs[:, 1, sign_combs[:, 1]]
 
-    distances = np.hypot(lon_diffs, lat_diffs)
+    comb_dist_weights = (
+        dist_weights[index_tel_combs][:, 0, sign_combs[:, 0]]
+        * dist_weights[index_tel_combs][:, 1, sign_combs[:, 1]]
+    )
+
+    dist_weight_mask = np.any(comb_dist_weights != 1, axis=1)
+    comb_dist_weights[dist_weight_mask] = np.where(
+        comb_dist_weights[dist_weight_mask] == 1,
+        np.inf,
+        comb_dist_weights[dist_weight_mask],
+    )
+    distances = np.hypot(lon_diffs, lat_diffs) * comb_dist_weights
     argmin_distance = np.argmin(distances, axis=1)
 
     # Weighted mean for minimum distances
@@ -349,39 +382,68 @@ def calc_combs_min_distances_table(
     return weighted_lons, weighted_lats, combined_weights
 
 
-def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
+def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"):
     """
-    Calculate the possible field-of-view longitude and latitude coordinates.
+    Calculate possible field-of-view (FoV) longitude and latitude coordinates
+    and weights.
 
-    Computes both possible fov_lon and fov_lat values from Hillas and
-    DISP parameter (Considering that its SIGN parameter could be 1 and -1) for
-    each telescope event.
+    For each telescope event, this function computes the two possible
+    (fov_lon, fov_lat) positions in the telescope frame corresponding to the
+    DISP direction ambiguity (SIGN = ±1). Moreover, it calculates weights based
+    on the DISP sign score used for calculating the minimum distance per telescope
+    combination later on.
 
     Parameters
     ----------
     tel_table : astropy.table.Table
-        Table containing Hillas parameters and DISP parameter.
-    prefix : str
-        Prefix used to access the DISP parameter.
+        Table containing Hillas parameters and DISP reconstruction results.
+        Must include the following columns:
+        - ``hillas_fov_lon`` : Hillas ellipse centroid longitude (Quantity)
+        - ``hillas_fov_lat`` : Hillas ellipse centroid latitude (Quantity)
+        - ``hillas_psi`` : Hillas ellipse orientation angle (Quantity)
+        - ``<prefix>_parameter`` : DISP distance from image centroid (float)
+        - ``<prefix>_sign_score`` : DISP sign score (float)
+    sign_score_limit : float
+        Minimum DISP sign score to consider when calculating the dist weights
+        (1 / (1 + sign_score)). Weights of events with
+        ``sign_score < sign_score_limit`` and not selected DISP signs are
+        set to 1.
+    prefix : str, optional
+        Prefix used to access the DISP parameter (default: "DispReconstructor_tel").
 
     Returns
     -------
-    Tuple(np.ndarray, np.ndarray)
-        Arrays of shape (n_tel_events, 2) containing the possible field-of-view
-        longitudes and latitudes for each SIGN value.
+    tuple of np.ndarray
+        (fov_lon, fov_lat, disp_scores)
+
+        - ``fov_lon`` : array of shape (n_tel_events, 2)
+          Possible FoV longitudes for each sign (-1, +1) in degrees.
+        - ``fov_lat`` : array of shape (n_tel_events, 2)
+          Possible FoV latitudes for each sign (-1, +1) in degrees.
+        - ``dist_weights`` : array of shape (n_tel_events, 2)
+          Weights (1 / (1 + sign_score)) for each telescope sign. 1 for
+          sign_scores below the given ``sign_score_limit`` and not selected
+          DISP signs. Between 0 and 1. Lower values correspond to more reliable
+          reconstruction.
     """
     hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
     hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
     hillas_psi = tel_table["hillas_psi"].quantity.to_value(u.rad)
     disp = tel_table[f"{prefix}_parameter"]
     signs = np.array([-1, 1])
+    sign_score = tel_table[f"{prefix}_sign_score"]
+
+    dist_weights = np.ones((len(disp), 2))
+    mask_sign = np.sign(disp)[:, None] == signs
+    sign_score[sign_score < sign_score_limit] = 0
+    dist_weights[mask_sign] = 1 / (1 + sign_score)
 
     cos_psi = np.cos(hillas_psi)
     sin_psi = np.sin(hillas_psi)
-    lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]
-    lats = hillas_fov_lat[:, None] + signs * disp[:, None] * sin_psi[:, None]
+    lons = hillas_fov_lon[:, None] + signs * np.abs(disp)[:, None] * cos_psi[:, None]
+    lats = hillas_fov_lat[:, None] + signs * np.abs(disp)[:, None] * sin_psi[:, None]
 
-    return lons, lats
+    return lons, lats, dist_weights
 
 
 def create_combs_array(max_multi, k):
