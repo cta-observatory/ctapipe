@@ -467,13 +467,13 @@ def create_combs_array(max_multi, k):
         - An array of all k-combinations for different multiplicities.
         - An array mapping each combination to its respective multiplicity.
     """
-    combs_array = get_combinations(range(2), k)
-    for i in range(3, max_multi + 1):
+    combs_array = get_combinations(range(k), k)
+    for i in range(k + 1, max_multi + 1):
         combs = get_combinations(range(i), k)
         combs_array = np.concatenate([combs_array, combs])
 
-    n_combs = _calc_n_combs(np.arange(2, max_multi + 1), k)
-    combs_to_multi_indices = np.repeat(np.arange(2, max_multi + 1), n_combs)
+    n_combs = _calc_n_combs(np.arange(k, max_multi + 1), k)
+    combs_to_multi_indices = np.repeat(np.arange(k, max_multi + 1), n_combs)
 
     return combs_array, combs_to_multi_indices
 
