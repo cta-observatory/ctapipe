@@ -2,8 +2,6 @@
 Tool to apply machine learning models in bulk (as opposed to event by event).
 """
 
-import time
-
 import numpy as np
 import tables
 from astropy.table import Table, join, vstack
@@ -264,11 +262,7 @@ class ApplyModels(Tool):
         stereo_table.sort("__sort_index__")
 
         combiner = reconstructor.stereo_combiner
-        start = time.time()
         stereo_predictions = combiner.predict_table(stereo_table)
-        end = time.time()
-        duration = end - start
-        print(f"{reconstructor}, {combiner} - Dauer: {duration}")
         del stereo_table
 
         trafo = TelListToMaskTransform(self.loader.subarray)
