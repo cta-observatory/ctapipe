@@ -492,7 +492,7 @@ class StereoDispCombiner(StereoCombiner):
                 dl1 = event.dl1.tel[tel_id].parameters
                 hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
-                hillas_psi = dl1.hillas.psi.to_value(u.rad)
+                hillas_psi = dl1.hillas.psi
                 disp = dl2.disp[self.prefix].parameter.value
                 sign_score = dl2.disp[self.prefix].sign_score
 
@@ -500,8 +500,8 @@ class StereoDispCombiner(StereoCombiner):
                 if sign_score > self.sign_score_limit:
                     dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
 
-                fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
-                fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+                fov_lons = hillas_fov_lon + signs * np.abs(disp) * np.cos(hillas_psi)
+                fov_lats = hillas_fov_lat + signs * np.abs(disp) * np.sin(hillas_psi)
                 dist_weights.append(dist_weight)
                 fov_lon_values.append(fov_lons)
                 fov_lat_values.append(fov_lats)
