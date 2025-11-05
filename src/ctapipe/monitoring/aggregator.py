@@ -22,7 +22,7 @@ __all__ = [
     "SigmaClippingAggregator",
 ]
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Generator
 
@@ -75,7 +75,9 @@ class BaseChunking(Component, metaclass=ABCMeta):
         Yields
         ------
         astropy.table.Table
-            Chunks of the input table
+            Chunks of the input table. Each chunk is a view/reference to the
+            original table data, meaning modifications to chunk data will affect
+            the original table.
         """
         # Basic validation that all chunking strategies need
         if "time" not in table.colnames:
@@ -264,7 +266,7 @@ class TimeChunking(BaseChunking):
             yield final_chunk
 
 
-class BaseAggregator(Component, ABC):
+class BaseAggregator(Component, metaclass=ABCMeta):
     """
     Base class for aggregators that compute statistics over chunks of data.
 

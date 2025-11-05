@@ -219,13 +219,8 @@ def test_time_based_chunking():
     """test time-based chunking functionality"""
 
     # Create dummy data spanning 10 seconds with uniform time distribution
-    start_time = 60117.911
-    duration_days = 10 / 86400  # 10 seconds in days
-    times = Time(
-        np.linspace(start_time, start_time + duration_days, num=1000),
-        scale="tai",
-        format="mjd",
-    )
+    start_time = Time("2020-01-01T20:00:00")
+    times = start_time + np.linspace(0, 10, 1000) * u.s
     event_ids = np.arange(1000)
     rng = np.random.default_rng(42)
     data = rng.normal(5.0, 1.0, size=(1000, 2, 10))
@@ -274,13 +269,8 @@ def test_time_based_chunking_with_shift():
     """test time-based chunking with overlapping windows (rolling statistics)"""
 
     # Create dummy data spanning exactly 5 seconds to get cleaner chunks
-    start_time = 60117.911
-    duration_days = 5 / 86400  # 5 seconds in days
-    times = Time(
-        np.linspace(start_time, start_time + duration_days, num=500),
-        scale="tai",
-        format="mjd",
-    )
+    start_time = Time("2020-01-01T20:00:00")
+    times = start_time + np.linspace(0, 4.99, 500) * u.s
     event_ids = np.arange(500)
     rng = np.random.default_rng(123)
     data = rng.normal(10.0, 2.0, size=(500, 2, 5))
