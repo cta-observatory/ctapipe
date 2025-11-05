@@ -36,7 +36,7 @@ from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
 
 
-class BaseChunking(Component, ABC):
+class BaseChunking(Component, metaclass=ABCMeta):
     """
     Abstract base class for chunking strategies.
 
@@ -57,7 +57,7 @@ class BaseChunking(Component, ABC):
         default_value="overlap",
         help=(
             "Policy for handling the last chunk when data doesn't divide evenly. "
-            "'overlap': Create overlapping chunk with full size (current behavior). "
+            "'overlap': Create overlapping chunk with full size (default behavior). "
             "'truncate': Yield remaining data as smaller chunk. "
             "'skip': Skip the last partial chunk."
         ),
