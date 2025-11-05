@@ -7,7 +7,7 @@ from astropy.table import Table
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
-from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Float, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -428,6 +428,19 @@ class StereoDispCombiner(StereoCombiner):
         ),
     ).tag(config=True)
 
+    sign_score_limit = Float(
+        default_value=0.85,
+        min=0,
+        max=1.0,
+        help=(
+            "Lower-limit for the telescope-wise sign scores to consider in the weighting "
+            "of the distances per telescope combination. The value must be between 0 and "
+            "and 1. Telescope events with a sign score above this limit are taken "
+            "preferably into account for calculating the minimum distance per telescope "
+            "combination."
+        ),
+    ).tag(config=True)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -469,6 +482,7 @@ class StereoDispCombiner(StereoCombiner):
         fov_lon_values = []
         fov_lat_values = []
         weights = []
+        dist_weights = []
         signs = np.array([-1, 1])
         n_tel_combinations = 2
 
@@ -479,9 +493,15 @@ class StereoDispCombiner(StereoCombiner):
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
                 hillas_psi = dl1.hillas.psi.to_value(u.rad)
                 disp = dl2.disp[self.prefix].parameter.value
+                sign_score = dl2.disp[self.prefix].sign_score
+
+                dist_weight = np.ones(2)
+                if sign_score > self.sign_score_limit:
+                    dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
 
                 fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
                 fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+                dist_weights.append(dist_weight)
                 fov_lon_values.append(fov_lons)
                 fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
@@ -494,14 +514,15 @@ class StereoDispCombiner(StereoCombiner):
                 np.array(fov_lon_values),
                 np.array(fov_lat_values),
                 np.array(weights),
+                np.array(dist_weights),
             )
             fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
             fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
             alt, az = telescope_to_horizontal(
                 lon=fov_lon_weighted_average * u.deg,
                 lat=fov_lat_weighted_average * u.deg,
-                pointing_alt=event.pointing.array_altitude,
-                pointing_az=event.pointing.array_azimuth,
+                pointing_alt=event.monitoring.pointing.array_altitude,
+                pointing_az=event.monitoring.pointing.array_azimuth,
             )
             valid = True
         else:
@@ -552,8 +573,10 @@ class StereoDispCombiner(StereoCombiner):
 
         if self.property is ReconstructionProperty.GEOMETRY:
             if np.count_nonzero(valid) > 0:
-                fov_lon_values, fov_lat_values = calc_fov_lon_lat(
-                    mono_predictions[valid], prefix
+                fov_lon_values, fov_lat_values, dist_weights = calc_fov_lon_lat(
+                    mono_predictions[valid],
+                    self.sign_score_limit,
+                    prefix,
                 )
                 combs_array, combs_to_multi_indices = create_combs_array(
                     valid_multiplicity.max(), n_tel_combinations
@@ -577,6 +600,7 @@ class StereoDispCombiner(StereoCombiner):
                     fov_lon_values,
                     fov_lat_values,
                     weights,
+                    dist_weights,
                 )
 
                 # All calculated telescope combinations are valid here.
