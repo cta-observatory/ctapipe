@@ -396,7 +396,6 @@ class WaveformModifier(TelescopeComponent):
 
     def __call__(self, tel_id, waveforms, selected_gain_channel=None):
         """
-
         Parameters
         ----------
         tel_id
@@ -413,20 +412,11 @@ class WaveformModifier(TelescopeComponent):
         # Note: MC waveforms passed to this function should contain data in all
         # pixels (not DVR'ed - obviously DVR depends on noise level, it does not
         # make sense to add the noise after DVR was applied)
-        if selected_gain_channel is None:
-            return (
-                waveforms
-                + self.total_noise[tel_id][self.rng.integers(self.n_noise_realizations)]
-            )
-        else:
-            return (
-                waveforms
-                + self.total_noise[tel_id][
-                    self.rng.integers(self.n_noise_realizations),
-                    selected_gain_channel,
-                    np.arange(waveforms.shape[1]),
-                ]
-            )
+        noise = self.total_noise[tel_id][self.rng.integers(self.n_noise_realizations)]
+        if selected_gain_channel is not None:
+            noise = noise[selected_gain_channel, np.arange(waveforms.shape[1])]
+
+        return waveforms + noise
 
 
 class ImageModifier(TelescopeComponent):
