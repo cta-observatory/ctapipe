@@ -22,7 +22,7 @@ class EmptyImages(Exception):
 def guess_shower_depth(energy):
     """
     Simple estimation of depth of shower max based on the expected gamma-ray elongation
-    rate.
+    rate
 
     Parameters
     ----------
@@ -67,16 +67,16 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     pixel_pos_trans_x, pixel_pos_trans_y = np.zeros(shape), np.zeros(shape)
 
     for i in range(shape[0]):
-        cosine_angle = np.cos(phi[i])
-        sin_angle = np.sin(phi[i])
-
         for j in range(shape[1]):
-            pixel_pos_trans_x[i][j] = (x_trans - pixel_pos_x[i][j]) * cosine_angle - (
-                y_trans - pixel_pos_y[i][j]
-            ) * sin_angle
-            pixel_pos_trans_y[i][j] = (pixel_pos_x[i][j] - x_trans) * sin_angle + (
-                pixel_pos_y[i][j] - y_trans
-            ) * cosine_angle
+            cosine_angle = np.cos(phi[i][j])
+            sin_angle = np.sin(phi[i][j])
+
+            pixel_pos_trans_x[i][j] = (
+                x_trans[i][j] - pixel_pos_x[i][j]
+            ) * cosine_angle - (y_trans[i][j] - pixel_pos_y[i][j]) * sin_angle
+            pixel_pos_trans_y[i][j] = (
+                pixel_pos_x[i][j] - x_trans[i][j]
+            ) * sin_angle + (pixel_pos_y[i][j] - y_trans[i][j]) * cosine_angle
 
     return pixel_pos_trans_x, pixel_pos_trans_y
 
@@ -116,15 +116,15 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
         seed = [source_x, source_y, tilt_x, tilt_y, en_seed, 1.2]
 
     # Take a reasonable first guess at step size
-    step = [0.04 / 57.3, 0.04 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.01]
+    step = [0.05 / 57.3, 0.05 / 57.3, 10, 10, en_seed * 0.1, 0.1, 0.01]
     # And some sensible limits of the fit range
     limits = [
         [source_x - 1.5 / 57.3, source_x + 1.5 / 57.3],
         [source_y - 1.5 / 57.3, source_y + 1.5 / 57.3],
         [tilt_x - 100, tilt_x + 100],
         [tilt_y - 100, tilt_y + 100],
-        [lower_en_limit, en_seed * 2],
-        [0.8, 1.2],
+        [lower_en_limit, en_seed * 10],
+        [0.5, 1.5],
         [0.0, 0.01],
     ]
 
