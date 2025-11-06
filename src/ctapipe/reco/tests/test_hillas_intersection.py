@@ -115,12 +115,12 @@ def test_intersection_reco_impact_point_tilted(example_subarray):
         3: HillasParametersContainer(intensity=100, psi=0 * u.deg),
     }
 
-    reco_konrad = hill_inter.reconstruct_tilted(
+    reco_mean_intensity = hill_inter.reconstruct_tilted(
         hillas_parameters=hillas_dict, tel_x=tel_x_dict, tel_y=tel_y_dict
     )
 
-    np.testing.assert_allclose(reco_konrad[0], -delta.to_value(u.m), atol=1e-6)
-    np.testing.assert_allclose(reco_konrad[1], delta.to_value(u.m), atol=1e-6)
+    np.testing.assert_allclose(reco_mean_intensity[0], -delta.to_value(u.m), atol=1e-6)
+    np.testing.assert_allclose(reco_mean_intensity[1], delta.to_value(u.m), atol=1e-6)
 
 
 def test_intersection_weighting_spoiled_parameters(example_subarray):
@@ -140,12 +140,16 @@ def test_intersection_weighting_spoiled_parameters(example_subarray):
         3: HillasParametersContainer(intensity=10000, psi=0 * u.deg),
     }
 
-    reco_konrad_spoiled = hill_inter.reconstruct_tilted(
+    reco_mean_intensity_spoiled = hill_inter.reconstruct_tilted(
         hillas_parameters=hillas_dict, tel_x=tel_x_dict, tel_y=tel_y_dict
     )
 
-    np.testing.assert_allclose(reco_konrad_spoiled[0], -delta.to_value(u.m), atol=1e-1)
-    np.testing.assert_allclose(reco_konrad_spoiled[1], delta.to_value(u.m), atol=1e-1)
+    np.testing.assert_allclose(
+        reco_mean_intensity_spoiled[0], -delta.to_value(u.m), atol=1e-1
+    )
+    np.testing.assert_allclose(
+        reco_mean_intensity_spoiled[1], delta.to_value(u.m), atol=1e-1
+    )
 
 
 def test_intersection_nominal_reconstruction(example_subarray):
