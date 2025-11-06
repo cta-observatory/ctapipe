@@ -1,6 +1,6 @@
 """
 Definition of the ``PixelStatisticsCalculator`` class, providing all steps needed to
-calculate the montoring data for the camera calibration.
+calculate the monitoring data for the camera calibration.
 """
 
 import numpy as np
@@ -11,7 +11,6 @@ from ..core.traits import (
     ComponentName,
     Dict,
     Float,
-    Int,
     List,
     TelescopeParameter,
     TraitError,
@@ -58,16 +57,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
         ),
     ).tag(config=True)
 
-    chunk_shift = Int(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Number of samples to shift the aggregation chunk for the calculation "
-            "of the statistical values. Only used in the second_pass(), since the "
-            "first_pass() is conducted with non-overlapping chunks (chunk_shift=None)."
-        ),
-    ).tag(config=True)
-
     faulty_pixels_fraction = Float(
         default_value=0.1,
         allow_none=True,
@@ -102,7 +91,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         self.stats_aggregators = {}
         for _, _, name in self.stats_aggregator_type:
             self.stats_aggregators[name] = StatisticsAggregator.from_name(
-                name, subarray=self.subarray, parent=self
+                name, parent=self
             )
 
         # Initialize the instances of OutlierDetector from the configuration
@@ -165,13 +154,22 @@ class PixelStatisticsCalculator(TelescopeComponent):
         """
         # Get the aggregator
         aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
-        # Pass through the whole provided dl1 table
-        aggregated_stats = aggregator(
-            table=table,
-            masked_pixels_of_sample=masked_pixels_of_sample,
-            col_name=col_name,
-            chunk_shift=None,
-        )
+
+        # Temporarily disable chunk_shift for first pass to ensure non-overlapping chunks
+        original_chunk_shift = aggregator.chunking.chunk_shift
+        aggregator.chunking.chunk_shift = None
+
+        try:
+            # Pass through the whole provided dl1 table
+            aggregated_stats = aggregator(
+                table=table,
+                masked_elements_of_sample=masked_pixels_of_sample,
+                col_name=col_name,
+            )
+        finally:
+            # Restore original chunk_shift
+            aggregator.chunking.chunk_shift = original_chunk_shift
+
         # Detect faulty pixels with multiple instances of ``OutlierDetector``
         # and append the outlier masks to the aggregated statistics
         self._find_and_append_outliers(aggregated_stats)
@@ -186,7 +184,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         table,
         valid_chunks,
         tel_id,
-        masked_pixels_of_sample=None,
+        masked_elements_of_sample=None,
         col_name="image",
     ) -> Table:
         """
@@ -216,11 +214,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
         astropy.table.Table
             Table containing the aggregated statistics after the second pass, their outlier masks, and the validity of the chunks.
         """
-        # Check if the chunk_shift is set for the second pass
-        if self.chunk_shift is None:
-            raise ValueError(
-                "chunk_shift must be set if second pass over the data is requested"
-            )
         # Check if at least one chunk is faulty
         if np.all(valid_chunks):
             raise ValueError(
@@ -228,6 +221,14 @@ class PixelStatisticsCalculator(TelescopeComponent):
             )
         # Get the aggregator
         aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
+
+        chunk_shift = aggregator.chunking.chunk_shift
+        if chunk_shift is None or chunk_shift == 0:
+            raise ValueError(
+                "Aggregator's chunking component must have chunk_shift > 0 configured for second pass. "
+                f"Current chunk_shift: {chunk_shift}"
+            )
+
         # Conduct a second pass over the data
         aggregated_stats_secondpass = []
         faulty_chunks_indices = np.flatnonzero(~valid_chunks)
@@ -238,32 +239,31 @@ class PixelStatisticsCalculator(TelescopeComponent):
             )
             # Calculate the start of the slice depending on whether the previous chunk was faulty or not
             slice_start = (
-                aggregator.chunk_size * index
+                aggregator.chunking.chunk_size * index
                 if index - 1 in faulty_chunks_indices
-                else aggregator.chunk_size * (index - 1)
+                else aggregator.chunking.chunk_size * (index - 1)
             )
             # Set the start of the slice to the first element of the dl1 table if out of bound
             # and add one ``chunk_shift``.
-            slice_start = max(0, slice_start) + self.chunk_shift
+            slice_start = max(0, slice_start) + int(chunk_shift)
             # Set the end of the slice to the last element of the dl1 table if out of bound
             # and subtract one ``chunk_shift``.
-            slice_end = min(len(table) - 1, aggregator.chunk_size * (index + 2)) - (
-                self.chunk_shift - 1
-            )
+            slice_end = min(
+                len(table) - 1, aggregator.chunking.chunk_size * (index + 2)
+            ) - (int(chunk_shift) - 1)
             # Slice the dl1 table according to the previously calculated start and end.
             table_sliced = table[slice_start:slice_end]
-            # Run the stats aggregator on the sliced dl1 table with a chunk_shift
+            # Run the stats aggregator on the sliced dl1 table with overlapping chunks
             # to sample the period of trouble (carflashes etc.) as effectively as possible.
             # Checking for the length of the sliced table to be greater than the ``chunk_size``
             # since it can be smaller if the last two chunks are faulty. Note: The two last chunks
             # can be overlapping during the first pass, so we simply ignore them if there are faulty.
-            if len(table_sliced) > aggregator.chunk_size:
+            if len(table_sliced) > aggregator.chunking.chunk_size:
                 aggregated_stats_secondpass.append(
                     aggregator(
                         table=table_sliced,
-                        masked_pixels_of_sample=masked_pixels_of_sample,
+                        masked_elements_of_sample=masked_elements_of_sample,
                         col_name=col_name,
-                        chunk_shift=self.chunk_shift,
                     )
                 )
         # Stack the aggregated statistics of each faulty chunk
