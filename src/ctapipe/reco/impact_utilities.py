@@ -67,16 +67,15 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     pixel_pos_trans_x, pixel_pos_trans_y = np.zeros(shape), np.zeros(shape)
 
     for i in range(shape[0]):
+        cosine_angle = np.cos(phi[i])
+        sin_angle = np.sin(phi[i])
         for j in range(shape[1]):
-            cosine_angle = np.cos(phi[i][j])
-            sin_angle = np.sin(phi[i][j])
-
-            pixel_pos_trans_x[i][j] = (
-                x_trans[i][j] - pixel_pos_x[i][j]
-            ) * cosine_angle - (y_trans[i][j] - pixel_pos_y[i][j]) * sin_angle
-            pixel_pos_trans_y[i][j] = (
-                pixel_pos_x[i][j] - x_trans[i][j]
-            ) * sin_angle + (pixel_pos_y[i][j] - y_trans[i][j]) * cosine_angle
+            pixel_pos_trans_x[i][j] = (x_trans - pixel_pos_x[i][j]) * cosine_angle - (
+                y_trans - pixel_pos_y[i][j]
+            ) * sin_angle
+            pixel_pos_trans_y[i][j] = (pixel_pos_x[i][j] - x_trans) * sin_angle + (
+                pixel_pos_y[i][j] - y_trans
+            ) * cosine_angle
 
     return pixel_pos_trans_x, pixel_pos_trans_y
 

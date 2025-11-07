@@ -241,12 +241,23 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             time_dict[tel_id] = event.dl1.tel[tel_id].peak_time
             mask = event.dl1.tel[tel_id].image_mask
             if self.pedestal_width.tel[tel_id] is None:
-                if event.mon.tel[tel_id].pedestal.charge_std is None:
+                selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+
+                if (
+                    event.monitoring.tel[
+                        tel_id
+                    ].camera.pixel_statistics.sky_pedestal_image.std
+                    is None
+                ):
                     ped_dict[tel_id] = BACKUP_PED_TABLE[
                         str(self.subarray.tel[tel_id])
                     ] * np.ones(self.subarray.tel[tel_id].camera.geometry.n_pixels)
                 else:
-                    ped_dict[tel_id] = event.mon.tel[tel_id].pedestal.charge_std[0]
+                    ped_dict[tel_id] = event.monitoring.tel[
+                        tel_id
+                    ].camera.pixel_statistics.sky_pedestal_image.std[
+                        selected_gain_channel, :
+                    ]
             else:
                 ped_dict[tel_id] = self.pedestal_width.tel[tel_id] * np.ones(
                     self.subarray.tel[tel_id].camera.geometry.n_pixels
