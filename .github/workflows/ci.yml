@@ -59,21 +59,18 @@ jobs:
             install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
-            coverage-core: sysmon
 
           - name: Linux (3.12, mamba)
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: mamba
             extras: tests,all
-            coverage-core: sysmon
 
           - name: Linux (3.13, pip)
             os: ubuntu-24.04
             python-version: "3.13"
             install-method: pip
             extras: tests,all
-            coverage-core: sysmon
 
           # macos 13 image is x86-based
           - name: macos (3.10, x86_64, pip)
@@ -88,7 +85,6 @@ jobs:
             python-version: "3.12"
             install-method: mamba
             extras: tests,all
-            coverage-core: sysmon
 
     defaults:
       run:
@@ -165,13 +161,16 @@ jobs:
         run: |
           ctapipe-info --all
 
+      - name: Setup coverage
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        run: |
+          echo "COVERAGE_CORE=sysmon" >> $GITHUB_ENV
+          echo "PYTEST_ADDOPTS=--cov --cov-report=xml $PYTEST_ADDOPTS" >> $GITHUB_ENV
+
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        env:
-          COVERAGE_CORE: ${{ matrix.coverage-core || '' }}
         run: |
           pytest -n auto --dist loadscope \
-            --cov --cov-report=xml \
             --doctest-modules --doctest-glob='*.rst' \
             --ignore=docs/conf.py \
             src/ctapipe docs
