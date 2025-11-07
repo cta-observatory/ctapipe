@@ -15,7 +15,6 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
-  COVERAGE_CORE: sysmon
 
 jobs:
   lint:
@@ -60,18 +59,21 @@ jobs:
             install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
+            coverage-core: sysmon
 
           - name: Linux (3.12, mamba)
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: mamba
             extras: tests,all
+            coverage-core: sysmon
 
           - name: Linux (3.13, pip)
             os: ubuntu-24.04
             python-version: "3.13"
             install-method: pip
             extras: tests,all
+            coverage-core: sysmon
 
           # macos 13 image is x86-based
           - name: macos (3.10, x86_64, pip)
@@ -79,6 +81,7 @@ jobs:
             python-version: "3.10"
             install-method: pip
             extras: tests,all
+            coverage-core: sysmon
 
           # macos 14 image is arm64 based
           - name: macos (3.12, arm64, mamba)
@@ -86,6 +89,7 @@ jobs:
             python-version: "3.12"
             install-method: mamba
             extras: tests,all
+            coverage-core: sysmon
 
     defaults:
       run:
@@ -164,6 +168,8 @@ jobs:
 
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          COVERAGE_CORE: ${{ matrix.coverage-core || '' }}
         run: |
           pytest -n auto --dist loadscope \
             --cov --cov-report=xml \
@@ -187,7 +193,6 @@ jobs:
           echo "SOURCE_BRANCH=${SOURCE_BRANCH}" >> sonar_env
           echo "TARGET_BRANCH=${TARGET_BRANCH}" >> sonar_env
           cat sonar_env
-
 
       # upload coverage report for sonar workflow
       - uses: actions/upload-artifact@v4
