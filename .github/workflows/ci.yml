@@ -81,7 +81,6 @@ jobs:
             python-version: "3.10"
             install-method: pip
             extras: tests,all
-            coverage-core: sysmon
 
           # macos 14 image is arm64 based
           - name: macos (3.12, arm64, mamba)
