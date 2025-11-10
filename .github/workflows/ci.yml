@@ -149,6 +149,7 @@ jobs:
           python --version | grep "Python ${PYTHON_VERSION}"
           pip install -e ".[${EXTRAS}]"
           pip install ./test_plugin
+          pip install astropy==7.2.0rc2
           pip freeze
 
       - if: contains(matrix.extra-args, 'oldest-deps') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
