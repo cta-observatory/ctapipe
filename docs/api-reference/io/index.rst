@@ -200,9 +200,9 @@ into one big table, joining the simulation information if available:
 
     from ctapipe.io import TableLoader
 
-    loader = TableLoader("events.dl1.h5")
-    events = loader.read_subarray_events()
-    tel_events = loader.read_telescope_events()
+    with TableLoader("events.dl1.h5") as loader:
+        events = loader.read_subarray_events()
+        tel_events = loader.read_telescope_events()
 
     print(loader.subarray, len(events), len(tel_events))
 
