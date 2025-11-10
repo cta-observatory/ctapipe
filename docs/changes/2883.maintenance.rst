@@ -1,1 +1,1 @@
-Updated colormaps in `Array Display` and `Use N-dimensional Histogram functionality and Interpolation` tutorials.
+Updated colormaps in "Array Display" and "Use N-dimensional Histogram functionality and Interpolation" tutorials.
