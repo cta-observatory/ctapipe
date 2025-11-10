@@ -69,7 +69,7 @@ disp.add_labels()
 # the ``values`` attribute, like a trigger pattern
 #
 
-plt.set_cmap("rainbow")  # the array display will use the current colormap for values
+plt.set_cmap("Accent_r")  # the array display will use the current colormap for values
 
 ad = ArrayDisplay(subarray)
 ad.telescopes.set_linewidth(0)  # to turn off the telescope borders
@@ -94,7 +94,7 @@ ad.add_labels()
 
 shower_impact = SkyCoord(200 * u.m, -200 * u.m, 0 * u.m, frame=EastingNorthingFrame())
 
-plt.set_cmap("rainbow")  # the array display will use the current colormap for values
+plt.set_cmap("inferno")  # the array display will use the current colormap for values
 ad = ArrayDisplay(subarray)
 ad.telescopes.set_linewidth(0)  # to turn off the telescope borders
 plt.scatter(shower_impact.easting, shower_impact.northing, marker="+", s=200)
