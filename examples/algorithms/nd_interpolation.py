@@ -105,34 +105,39 @@ E = energy_lookup(points).reshape((N, N))
 # shows :math:`\log_{10}(E)` in TeV
 #
 
-plt.figure(figsize=(12, 5))
-plt.nipy_spectral()
+fig, axs = plt.subplots(1, 2, figsize=(12, 5), layout="constrained")
+axs = axs.ravel()
 
 # the uninterpolated table
-plt.subplot(1, 2, 1)
-plt.xlim(1.5, 5)
-plt.ylim(0, 500)
-plt.xlabel("log10(SIZE)")
-plt.ylabel("Impact Dist (m)")
-plt.pcolormesh(
-    energy_table.bin_centers(0), energy_table.bin_centers(1), energy_table.hist.T
+im = axs[0].pcolormesh(
+    energy_table.bin_centers(0),
+    energy_table.bin_centers(1),
+    energy_table.hist.T,
+    cmap="inferno"
 )
-plt.title(f"Raw table, uninterpolated {energy_table.hist.T.shape}")
-cb = plt.colorbar()
+axs[0].set_title(f"Raw table, uninterpolated {energy_table.hist.T.shape}")
+cb = fig.colorbar(im, ax=axs[0])
 cb.set_label(r"$\log_{10}(E/\mathrm{TeV})$")
 
 # the interpolated table
-plt.subplot(1, 2, 2)
-plt.pcolormesh(np.linspace(xmin, xmax, N), np.linspace(ymin, ymax, N), E)
-plt.xlim(1.5, 5)
-plt.ylim(0, 500)
-plt.xlabel("log10(SIZE)")
-plt.ylabel("Impact Dist(m)")
-plt.title("Interpolated to a ({0}, {0}) grid".format(N))
-cb = plt.colorbar()
+im = axs[1].pcolormesh(
+    np.linspace(xmin, xmax, N),
+    np.linspace(ymin, ymax, N),
+    E,
+    cmap="inferno"
+)
+axs[1].set_title(f"Interpolated to a ({N}, {N}) grid")
+cb = fig.colorbar(im, ax=axs[1])
 cb.set_label(r"$\log_{10}(E/\mathrm{TeV})$")
 
-plt.tight_layout()
+for ax in axs:
+    ax.set(
+        xlim=[1.5, 5],
+        ylim=[0, 500],
+        xlabel=r"$\log_{10}(\mathrm{SIZE})$",
+        ylabel="Impact Dist / m",
+    )
+
 plt.show()
 
 
