@@ -193,7 +193,7 @@ jobs:
           cat sonar_env
 
       # upload coverage report for sonar workflow
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         with:
           name: ctapipe-coverage-report
