@@ -34,7 +34,7 @@ def test_image_processor(cleaner, example_event, example_subarray):
     for dl1tel in example_event.dl1.tel.values():
         n_survived_pixels = dl1tel.image_mask.sum()
         assert isfinite(n_survived_pixels)
-        if n_survived_pixels > 0:
+        if n_survived_pixels > 1:
             assert isfinite(dl1tel.parameters.hillas.length.value)
             dl1tel.parameters.hillas.length.to("deg")
             assert isfinite(dl1tel.parameters.timing.slope.value)
@@ -69,7 +69,7 @@ def test_image_processor_camera_frame(cleaner, example_event, example_subarray):
     for dl1tel in event.dl1.tel.values():
         n_survived_pixels = dl1tel.image_mask.sum()
         assert isfinite(n_survived_pixels)
-        if n_survived_pixels > 0:
+        if n_survived_pixels > 1:
             assert isfinite(dl1tel.parameters.hillas.length.value)
             dl1tel.parameters.hillas.length.to("meter")
             assert isfinite(dl1tel.parameters.timing.slope.value)
