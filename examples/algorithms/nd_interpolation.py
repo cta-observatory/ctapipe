@@ -113,7 +113,7 @@ im = axs[0].pcolormesh(
     energy_table.bin_centers(0),
     energy_table.bin_centers(1),
     energy_table.hist.T,
-    cmap="inferno"
+    cmap="inferno",
 )
 axs[0].set_title(f"Raw table, uninterpolated {energy_table.hist.T.shape}")
 cb = fig.colorbar(im, ax=axs[0])
@@ -124,7 +124,7 @@ im = axs[1].pcolormesh(
     np.linspace(xmin, xmax, N),
     np.linspace(ymin, ymax, N),
     E,
-    cmap="inferno"
+    cmap="inferno",
 )
 axs[1].set_title(f"Interpolated to a ({N}, {N}) grid")
 cb = fig.colorbar(im, ax=axs[1])
