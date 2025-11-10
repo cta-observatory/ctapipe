@@ -15,7 +15,6 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
-  COVERAGE_CORE: sysmon
 
 jobs:
   lint:
@@ -162,11 +161,16 @@ jobs:
         run: |
           ctapipe-info --all
 
+      - name: Setup coverage
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        run: |
+          echo "COVERAGE_CORE=sysmon" >> $GITHUB_ENV
+          echo "PYTEST_ADDOPTS=--cov --cov-report=xml $PYTEST_ADDOPTS" >> $GITHUB_ENV
+
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           pytest -n auto --dist loadscope \
-            --cov --cov-report=xml \
             --doctest-modules --doctest-glob='*.rst' \
             --ignore=docs/conf.py \
             src/ctapipe docs
@@ -187,7 +191,6 @@ jobs:
           echo "SOURCE_BRANCH=${SOURCE_BRANCH}" >> sonar_env
           echo "TARGET_BRANCH=${TARGET_BRANCH}" >> sonar_env
           cat sonar_env
-
 
       # upload coverage report for sonar workflow
       - uses: actions/upload-artifact@v4
