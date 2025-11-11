@@ -54,7 +54,10 @@ class ImageQualityQuery(QualityQuery):
     """for configuring image-wise data checks"""
 
     quality_criteria = List(
-        default_value=[("size_greater_0", "image.sum() > 0")],
+        default_value=[
+            ("size_greater_0", "image.sum() > 0"),
+            ("at_least_2_pixels", "image.size > 1"),
+        ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
@@ -222,7 +225,7 @@ class ImageProcessor(TelescopeComponent):
                 tel_id=tel_id,
                 image=dl1_camera.image,
                 arrival_times=dl1_camera.peak_time,
-                monitoring=event.monitoring.tel[tel_id],
+                monitoring=event.monitoring.tel[tel_id].camera,
             )
 
             dl1_camera.parameters = self._parameterize_image(

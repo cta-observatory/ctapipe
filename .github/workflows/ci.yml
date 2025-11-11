@@ -15,7 +15,6 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
-  COVERAGE_CORE: sysmon
 
 jobs:
   lint:
@@ -24,7 +23,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Check README syntax
@@ -126,7 +125,7 @@ jobs:
 
       - name: Python setup
         if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
@@ -154,7 +153,7 @@ jobs:
 
       - if: contains(matrix.extra-args, 'oldest-deps') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
-          micromamba install -n cta-dev -y numpy=1.24 numba=0.57 scipy=1.10 astropy=6.1 matplotlib=3.6
+          micromamba install -n cta-dev -y numpy=1.24 numba=0.57 scipy=1.15 astropy=6.1 matplotlib=3.6
           micromamba list -n cta-dev
 
       - name: ctapipe-info
@@ -162,11 +161,16 @@ jobs:
         run: |
           ctapipe-info --all
 
+      - name: Setup coverage
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        run: |
+          echo "COVERAGE_CORE=sysmon" >> $GITHUB_ENV
+          echo "PYTEST_ADDOPTS=--cov --cov-report=xml $PYTEST_ADDOPTS" >> $GITHUB_ENV
+
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           pytest -n auto --dist loadscope \
-            --cov --cov-report=xml \
             --doctest-modules --doctest-glob='*.rst' \
             --ignore=docs/conf.py \
             src/ctapipe docs
@@ -188,7 +192,6 @@ jobs:
           echo "TARGET_BRANCH=${TARGET_BRANCH}" >> sonar_env
           cat sonar_env
 
-
       # upload coverage report for sonar workflow
       - uses: actions/upload-artifact@v4
         if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
@@ -206,7 +209,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
