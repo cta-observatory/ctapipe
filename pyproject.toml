@@ -30,11 +30,11 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "astropy >=6.1,<8.0.0a0",
+    "astropy >=6.1,<8.0.0",
     "docutils",
     "joblib",
     "numba >=0.57",
-    "numpy >=1.24,<3.0.0a0",
+    "numpy >=1.24,<3.0.0",
     "packaging",
     "psutil",
     "pyyaml >=5.1",
@@ -52,7 +52,7 @@ dependencies = [
 # use `dev` to get really all dependencies
 all = [
     "bokeh ~=3.0",
-    "eventio >=1.9.1,<2.0.0a0",
+    "eventio >=1.9.1,<2.0.0",
     "iminuit >=2",
     "matplotlib ~=3.0",
     "pyirf ~=0.13.0"
@@ -61,7 +61,7 @@ all = [
 tests = [
     # at the moment, essentially all tests rely on test data from simtel
     # it doesn't make sense to skip all of these.
-    "eventio >=1.9.1,<2.0.0a0",
+    "eventio >=1.9.1,<2.0.0",
     "h5py",
     "pandas",
     "pytest >= 7.0",
