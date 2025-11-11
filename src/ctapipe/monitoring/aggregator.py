@@ -80,8 +80,12 @@ class BaseChunking(Component, metaclass=ABCMeta):
             the original table.
         """
         # Basic validation that all chunking strategies need
-        if "time" not in table.colnames:
-            raise ValueError("Table must have a 'time' column")
+        if "time" not in table.colnames and (
+            "time_start" not in table.colnames or "time_end" not in table.colnames
+        ):
+            raise ValueError(
+                "Table must have a 'time' column or both 'time_start' and 'time_end' columns for chunking."
+            )
         yield from self._generate_chunks(table)
 
     @abstractmethod
@@ -329,8 +333,12 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         # Process each chunk
         for chunk in chunks:
             # Add time metadata
-            results["time_start"].append(chunk["time"][0])
-            results["time_end"].append(chunk["time"][-1])
+            if "time_start" in chunk.colnames and "time_end" in chunk.colnames:
+                results["time_start"].append(chunk["time_start"][0])
+                results["time_end"].append(chunk["time_end"][-1])
+            else:
+                results["time_start"].append(chunk["time"][0])
+                results["time_end"].append(chunk["time"][-1])
 
             # Add event_id metadata if column exists
             if "event_id" in chunk.colnames:
