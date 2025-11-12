@@ -503,8 +503,6 @@ class HDF5MonitoringSource(MonitoringSource):
             pixel_stats_container = PixelStatisticsContainer()
             for name, interpolator in self.pixel_stats_dict.items():
                 # Skip if no interpolator is available
-                if interpolator is None:
-                    continue
                 # Set the timestamp to the first entry if it is not provided
                 # and monitoring is from simulation.
                 if self.is_simulation and time is None:
