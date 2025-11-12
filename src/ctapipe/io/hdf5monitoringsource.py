@@ -281,7 +281,9 @@ class HDF5MonitoringSource(MonitoringSource):
                 name = group._v_name
                 if "pedestal_image" in name:
                     # Explicitly set key to 'pedestal_image' to match container attribute
-                    self.pixel_stats_dict["pedestal_image"] = PedestalImageInterpolator()
+                    self.pixel_stats_dict[
+                        "pedestal_image"
+                    ] = PedestalImageInterpolator()
                 elif "flatfield_image" in name:
                     self.pixel_stats_dict[name] = FlatfieldImageInterpolator()
                 elif "flatfield_peak_time" in name:
