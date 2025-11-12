@@ -278,16 +278,15 @@ class HDF5MonitoringSource(MonitoringSource):
                 if group._v_pathname == DL1_PIXEL_STATISTICS_GROUP:
                     continue
                 # Instantiate the appropriate interpolator based on the table name
-                if "pedestal_image" in group._v_name:
-                    self.pixel_stats_dict[group._v_name] = PedestalImageInterpolator()
-                elif "flatfield_image" in group._v_name:
-                    self.pixel_stats_dict[group._v_name] = FlatfieldImageInterpolator()
-                elif "flatfield_peak_time" in group._v_name:
-                    self.pixel_stats_dict[
-                        group._v_name
-                    ] = FlatfieldPeakTimeInterpolator()
+                name = group._v_name
+                if "pedestal_image" in name:
+                    self.pixel_stats_dict[name] = PedestalImageInterpolator()
+                elif "flatfield_image" in name:
+                    self.pixel_stats_dict[name] = FlatfieldImageInterpolator()
+                elif "flatfield_peak_time" in name:
+                    self.pixel_stats_dict[name] = FlatfieldPeakTimeInterpolator()
                 else:
-                    self.pixel_stats_dict[group._v_name] = None
+                    self.pixel_stats_dict[name] = None
 
         # Process the tables and interpolate the data
         for tel_id in self.subarray.tel_ids:
