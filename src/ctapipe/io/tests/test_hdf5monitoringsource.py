@@ -135,11 +135,11 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_same_chunks):
             "std",
         ]:
             np.testing.assert_array_equal(
-                camera_mon_con.pixel_statistics.sky_pedestal_image[column],
+                camera_mon_con.pixel_statistics.pedestal_image[column],
                 sky_pedestal_image[column][0],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the sky pedestal image."
+                    "through the HDF5MonitoringSource for the pedestal image."
                 ),
             )
         for column in [

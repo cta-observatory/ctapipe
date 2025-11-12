@@ -45,6 +45,7 @@ __all__ = [
     "DL1_CAMERA_MONITORING_GROUP",
     "DL1_CAMERA_COEFFICIENTS_GROUP",
     "DL1_PIXEL_STATISTICS_GROUP",
+    "DL1_PEDESTAL_IMAGE_GROUP",
     "DL1_SKY_PEDESTAL_IMAGE_GROUP",
     "DL1_FLATFIELD_IMAGE_GROUP",
     "DL1_FLATFIELD_PEAK_TIME_GROUP",
@@ -104,6 +105,9 @@ DL1_CAMERA_COEFFICIENTS_GROUP = (
 )
 DL1_PIXEL_STATISTICS_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_statistics"
+)
+DL1_PEDESTAL_IMAGE_GROUP = (
+    "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/pedestal_image"
 )
 DL1_SKY_PEDESTAL_IMAGE_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/sky_pedestal_image"

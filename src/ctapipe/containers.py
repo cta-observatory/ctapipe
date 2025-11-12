@@ -1239,9 +1239,9 @@ class PixelStatisticsContainer(Container):
         default_factory=StatisticsContainer,
         description="Statistical description from the peak arrival time of flat-field event distributions",
     )
-    sky_pedestal_image = Field(
+    pedestal_image = Field(
         default_factory=StatisticsContainer,
-        description="Statistical description from the image charge of sky pedestal event distributions",
+        description="Statistical description from the image charge of pedestal event distributions",
     )
 
 
