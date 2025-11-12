@@ -269,20 +269,37 @@ class HDF5MonitoringSource(MonitoringSource):
             PedestalImageInterpolator,
         )
 
-        # Instantiate the chunk interpolators for each table
-        self._pedestal_image_interpolator = PedestalImageInterpolator()
-        self._flatfield_image_interpolator = FlatfieldImageInterpolator()
-        self._flatfield_peak_time_interpolator = FlatfieldPeakTimeInterpolator()
+        # Open the file to check for the existence of pixel statistics tables
+        (
+            self._ped_img_interpolator,
+            self._ff_img_interpolator,
+            self._ff_time_interpolator,
+        ) = None, None, None
+        with tables.open_file(file, mode="r") as h5file:
+            # Iterate over pixel statistics tables to check for their existence
+            self.pixel_stats_dict = {}
+            for group in h5file.walk_groups(DL1_PIXEL_STATISTICS_GROUP):
+                # Skip the parent group itself
+                if group._v_pathname == DL1_PIXEL_STATISTICS_GROUP:
+                    continue
+                # Instantiate the appropriate interpolator based on the table name
+                if "pedestal_image" in group._v_name:
+                    self._ped_img_interpolator = PedestalImageInterpolator()
+                    self.pixel_stats_dict[group._v_name] = self._ped_img_interpolator
+                elif "flatfield_image" in group._v_name:
+                    self._ff_img_interpolator = FlatfieldImageInterpolator()
+                    self.pixel_stats_dict[group._v_name] = self._ff_img_interpolator
+                elif "flatfield_peak_time" in group._v_name:
+                    self._ff_time_interpolator = FlatfieldPeakTimeInterpolator()
+                    self.pixel_stats_dict[group._v_name] = self._ff_time_interpolator
+                else:
+                    self.pixel_stats_dict[group._v_name] = None
 
         # Process the tables and interpolate the data
         for tel_id in self.subarray.tel_ids:
             self._pixel_statistics[tel_id] = {}
 
-            for name, interpolator in (
-                ("sky_pedestal_image", self._pedestal_image_interpolator),
-                ("flatfield_image", self._flatfield_image_interpolator),
-                ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
-            ):
+            for name, interpolator in self.pixel_stats_dict.items():
                 # Read the tables from the monitoring file
                 self._pixel_statistics[tel_id][name] = read_table(
                     file,
@@ -493,11 +510,10 @@ class HDF5MonitoringSource(MonitoringSource):
         if self.has_pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
             pixel_stats_container = PixelStatisticsContainer()
-            for name, interpolator in (
-                ("sky_pedestal_image", self._pedestal_image_interpolator),
-                ("flatfield_image", self._flatfield_image_interpolator),
-                ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
-            ):
+            for name, interpolator in self.pixel_stats_dict.items():
+                # Skip if no interpolator is available
+                if interpolator is None:
+                    continue
                 # Set the timestamp to the first entry if it is not provided
                 # and monitoring is from simulation.
                 if self.is_simulation and time is None:
