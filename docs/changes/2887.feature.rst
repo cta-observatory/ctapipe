@@ -1,0 +1,1 @@
+Read all pixel statistics tables from the HDF5 file and instantiate the appropriate interpolators for each table in the MonitoringSource.
