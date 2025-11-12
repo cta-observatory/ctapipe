@@ -270,11 +270,6 @@ class HDF5MonitoringSource(MonitoringSource):
         )
 
         # Open the file to check for the existence of pixel statistics tables
-        (
-            self._ped_img_interpolator,
-            self._ff_img_interpolator,
-            self._ff_time_interpolator,
-        ) = None, None, None
         with tables.open_file(file, mode="r") as h5file:
             # Iterate over pixel statistics tables to check for their existence
             self.pixel_stats_dict = {}
@@ -284,14 +279,13 @@ class HDF5MonitoringSource(MonitoringSource):
                     continue
                 # Instantiate the appropriate interpolator based on the table name
                 if "pedestal_image" in group._v_name:
-                    self._ped_img_interpolator = PedestalImageInterpolator()
-                    self.pixel_stats_dict[group._v_name] = self._ped_img_interpolator
+                    self.pixel_stats_dict[group._v_name] = PedestalImageInterpolator()
                 elif "flatfield_image" in group._v_name:
-                    self._ff_img_interpolator = FlatfieldImageInterpolator()
-                    self.pixel_stats_dict[group._v_name] = self._ff_img_interpolator
+                    self.pixel_stats_dict[group._v_name] = FlatfieldImageInterpolator()
                 elif "flatfield_peak_time" in group._v_name:
-                    self._ff_time_interpolator = FlatfieldPeakTimeInterpolator()
-                    self.pixel_stats_dict[group._v_name] = self._ff_time_interpolator
+                    self.pixel_stats_dict[
+                        group._v_name
+                    ] = FlatfieldPeakTimeInterpolator()
                 else:
                     self.pixel_stats_dict[group._v_name] = None
 
