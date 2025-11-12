@@ -1,0 +1,1 @@
+Allow subsequent aggregation of pre-aggregated time ranges (time_start, time_end) instead of just time column.
