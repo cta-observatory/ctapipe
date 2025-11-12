@@ -1226,23 +1226,24 @@ class ChunkStatisticsContainer(StatisticsContainer):
     event_id_end = Field(None, "event id of the last event of the chunk")
 
 
-class PixelStatisticsContainer(Container):
-    """
-    Container for pixel statistics from flat-field and sky pedestal events
-    """
+# Set up PixelStatisticsContainer dynamically based on EventType
+_fields = {}
+for event in EventType:
+    prefix = event.name.lower()
+    _fields[f"{prefix}_image"] = Field(
+        default_factory=StatisticsContainer,
+        description=f"Statistical description from the image charge of {prefix.replace('_', ' ')} event distributions",
+    )
+    _fields[f"{prefix}_peak_time"] = Field(
+        default_factory=StatisticsContainer,
+        description=f"Statistical description from the peak arrival time of {prefix.replace('_', ' ')} event distributions",
+    )
 
-    flatfield_image = Field(
-        default_factory=StatisticsContainer,
-        description="Statistical description from the image charge of flat-field event distributions",
-    )
-    flatfield_peak_time = Field(
-        default_factory=StatisticsContainer,
-        description="Statistical description from the peak arrival time of flat-field event distributions",
-    )
-    sky_pedestal_image = Field(
-        default_factory=StatisticsContainer,
-        description="Statistical description from the image charge of sky pedestal event distributions",
-    )
+PixelStatisticsContainer = type(
+    "PixelStatisticsContainer",
+    (Container,),
+    {**_fields},
+)
 
 
 class CameraMonitoringContainer(Container):
