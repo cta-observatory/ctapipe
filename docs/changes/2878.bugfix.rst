@@ -1,2 +1,0 @@
-Add a check in ``lts_linear_regression`` to ensure that the input data has
-at least 2 valid points. Less could lead to segmentation faults.

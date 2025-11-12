@@ -1,2 +1,0 @@
-Add default check in ``ImageQualityQuery`` to check for images
-with at least 2 surviving pixels after image cleaning.

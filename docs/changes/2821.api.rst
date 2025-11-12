@@ -1,3 +1,0 @@
-``CameraGeometry.neighbor_matrix_sparse`` is now a ``scipy.sparse.csr_array`` instead
-of a ``scipy.sparse.csr_matrix``, see https://docs.scipy.org/doc/scipy/reference/sparse.migration_to_sparray.html
-for more information.

@@ -1,7 +1,0 @@
-Enhanced ``StatisticsAggregator`` classes to support time-based chunking in addition to event-based chunking.
-
-Refactored with component-based chunking system using ``BaseChunking``, ``SizeChunking``, and ``TimeChunking`` components.
-Statistics can now be aggregated over time intervals (seconds) rather than fixed event counts, enabling time-series analysis.
-Time-based chunking supports ``chunk_duration`` and configurable overlap via ``chunk_shift``.
-
-Breaking change: ``StatisticsAggregator`` now requires a ``chunking`` component to define chunking behavior.
