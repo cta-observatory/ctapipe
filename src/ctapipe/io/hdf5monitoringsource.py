@@ -285,8 +285,6 @@ class HDF5MonitoringSource(MonitoringSource):
                     self.pixel_stats_dict[name] = FlatfieldImageInterpolator()
                 elif "flatfield_peak_time" in name:
                     self.pixel_stats_dict[name] = FlatfieldPeakTimeInterpolator()
-                else:
-                    self.pixel_stats_dict[name] = None
 
         # Process the tables and interpolate the data
         for tel_id in self.subarray.tel_ids:
