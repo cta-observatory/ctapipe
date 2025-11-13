@@ -1,1 +1,0 @@
-- add a documentation page to show Hillas parameters displayed on camera image as schematic.
