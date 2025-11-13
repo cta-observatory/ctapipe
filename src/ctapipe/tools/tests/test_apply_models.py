@@ -41,7 +41,7 @@ def test_apply_energy_regressor(
             f"--input={input_path}",
             f"--output={output_path}",
             f"--reconstructor={energy_regressor_path}",
-            "--StereoMeanCombiner.weights=konrad",
+            "--StereoMeanCombiner.weights=aspect-weighted-intensity",
             "--chunk-size=5",  # small chunksize so we test multiple chunks for the test file
         ],
         raises=True,
@@ -135,7 +135,7 @@ def test_apply_all(
             f"--reconstructor={disp_reconstructor_path}",
             "--no-dl1-parameters",
             "--no-true-parameters",
-            "--StereoMeanCombiner.weights=konrad",
+            "--StereoMeanCombiner.weights=aspect-weighted-intensity",
             "--chunk-size=10000",
         ],
         raises=True,
