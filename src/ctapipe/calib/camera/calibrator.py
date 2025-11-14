@@ -232,12 +232,6 @@ class CameraCalibrator(TelescopeComponent):
             waveforms -= np.atleast_2d(pedestal)[..., np.newaxis]
 
         if n_samples == 1:
-            # To handle ASTRI and dst
-            # TODO: Improved handling of ASTRI and dst
-            #   - dst with custom EventSource?
-            #   - Read into dl1 container directly?
-            #   - Don't do anything if dl1 container already filled
-            #   - Update on SST review decision
             dl1 = DL1CameraContainer(
                 image=np.squeeze(waveforms).astype(np.float32),
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
@@ -302,7 +296,7 @@ class CameraCalibrator(TelescopeComponent):
         event : container
             A `~ctapipe.containers.ArrayEventContainer` event container
         """
-        # TODO: How to handle different calibrations depending on tel_id?
+
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
         for tel_id in tel.keys():
             self._calibrate_dl0(event, tel_id)
