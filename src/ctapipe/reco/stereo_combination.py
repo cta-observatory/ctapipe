@@ -45,7 +45,27 @@ __all__ = [
 
 class StereoCombiner(Component):
     """
-    Base Class for algorithms combining telescope-wise predictions to common prediction.
+    Base class for algorithms that combine telescope-wise (mono) predictions
+    into a single array-level (stereo) reconstruction.
+
+    A StereoCombiner defines the interface for transforming per-telescope
+    DL2 predictions (energy, direction, particle type) into a unified
+    stereo estimate. Subclasses implement the actual combination strategy.
+
+    Two usage modes are supported:
+
+    1. **Event-wise combination** via :meth:`__call__`
+       Operates directly on an :class:`~ctapipe.containers.ArrayEventContainer`
+       containing DL1 and DL2 mono predictions for a single event, and writes
+       the stereo-level result into ``event.dl2.stereo``.
+
+    2. **Table-wise combination** via :meth:`predict_table`
+       Takes a table of DL2 mono predictions (one row per telescope-event)
+       and constructs an output table with one row per array event containing
+       the stereo predictions.
+
+    Subclasses must implement both methods, as well as any additional logic
+    required for combining the chosen :class:`~ctapipe.containers.ReconstructionProperty`.
     """
 
     prefix = Unicode(
@@ -55,26 +75,64 @@ class StereoCombiner(Component):
 
     property = UseEnum(
         ReconstructionProperty,
-        help="Which property is being combined.",
+        help=(
+            "Reconstruction property to be combined (e.g. ENERGY, GEOMETRY, "
+            "PARTICLE_TYPE). Subclasses may support only a subset."
+        ),
     ).tag(config=True)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Fill event container with stereo predictions.
+        Compute the stereo prediction for a single array event.
+
+        Parameters
+        ----------
+        event : ArrayEventContainer
+            Event containing DL1 parameters and per-telescope DL2 predictions.
+            Implementations must write the combined stereo prediction into
+            ``event.dl2.stereo`` under the configured ``prefix``.
+
+        Notes
+        -----
+        - This method modifies the event container *in place*.
         """
 
     @abstractmethod
     def predict_table(self, mono_predictions: Table) -> Table:
         """
-        Constructs stereo predictions from a table of
-        telescope events.
+        Construct stereo predictions from a table of mono DL2 predictions.
+
+        Parameters
+        ----------
+        mono_predictions : astropy.table.Table
+            Table containing one row per telescope-event and the
+            DL2 output corresponding to the configured reconstruction property.
+
+        Returns
+        -------
+        stereo_table : astropy.table.Table
+            A table with one row per array event, containing the combined
+            stereo predictions.
         """
 
 
 class StereoMeanCombiner(StereoCombiner):
     """
-    Calculate array-event prediction as (weighted) mean of telescope-wise predictions.
+    Combine telescope-wise mono reconstructions using a (weighted) mean.
+
+    This implementation supports combining energy, geometry and
+    particle-type predictions. Different weighting schemes can be chosen
+    via the ``weights`` configuration trait. Supported weighting options are:
+
+    - ``none``: all telescopes contribute equally
+    - ``intensity``: weight proportional to image intensity
+    - ``konrad``: intensity × (length/width)
+
+    If ``log_target=True`` and ``ENERGY`` is combined, the combiner computes
+    the geometric mean by averaging the logarithm of the energies.
+
+    See :class:`StereoCombiner` for a description of the general interface.
     """
 
     weights = CaselessStrEnum(
@@ -249,7 +307,8 @@ class StereoMeanCombiner(StereoCombiner):
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Calculate the mean prediction for a single array event.
+        Implement :meth:`StereoCombiner.__call__` using a weighted mean
+        combination of the configured reconstruction property.
         """
 
         properties = [
@@ -270,9 +329,13 @@ class StereoMeanCombiner(StereoCombiner):
     def predict_table(self, mono_predictions: Table) -> Table:
         """
         Calculates the (array-)event-wise mean.
-        Telescope events, that are nan, get discarded.
-        This means you might end up with less events if
-        all telescope predictions of a shower are invalid.
+
+        Telescope events, that are nan, get discarded. This means
+        you might end up with less events if all telescope predictions
+        of a shower are invalid.
+
+        See :meth:`StereoCombiner.predict_table` for the general
+        input/output conventions.
         """
 
         prefix = f"{self.prefix}_tel"
@@ -418,7 +481,38 @@ class StereoMeanCombiner(StereoCombiner):
 
 
 class StereoDispCombiner(StereoCombiner):
-    """ """
+    """
+    Stereo combination algorithm for DISP-based direction reconstruction.
+
+    This combiner is essentially an implementation of Algorithm 3
+    of [hofmann-1999-comparison]_ and quite similar to the EventDisplay
+    implementation where each telescope predicts two possible directions (SIGN = ±1).
+    Especially at low energies, the DISP sign reconstruction can be quite uncertain.
+    To solve this head-tail ambiguity this algorithm does the following for all valid
+    telescopes of an array event:
+
+    1. Two possible FoV positions (lon/lat) are computed from the Hillas centroid,
+       the DISP parameter, and the Hillas orientation angle (Hillas psi).
+
+    2. For every telescope pair, all four SIGN combinations are evaluated.
+       The SIGN pair that minimizes the angular distance between the two predicted
+       positions is selected, optionally weighted by the telescope-wise DISP
+       sign score.
+
+    3. The weighted mean FoV direction of all telescope-pair minima is computed
+       and transformed into horizontal (Alt/Az) coordinates.
+
+    See :class:`StereoCombiner` for a description of the general interface.
+
+    Notes
+    -----
+    - Only geometry (:class:`~ctapipe.reco.ReconstructionProperty.GEOMETRY`)
+      is supported.
+    - Weighting options follow the same convention as in :class:`StereoMeanCombiner`
+      (none, intensity, konrad).
+    - The DISP sign-score can optionally be used to prefer SIGN combinations
+      with higher reliability when resolving the DISP head–tail ambiguity.
+    """
 
     weights = CaselessStrEnum(
         ["none", "intensity", "konrad"],
@@ -543,13 +637,30 @@ class StereoDispCombiner(StereoCombiner):
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Calculate the mean prediction for a single array event.
+        Perform DISP-based stereo direction reconstruction for a single event.
+
+        This is the entry point used for event-wise processing.
+        Calls :meth:`_combine_altaz` and stores the resulting stereo geometry
+        inside ``event.dl2.stereo`` under the configured prefix.
         """
 
         self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
-        """ """
+        """
+        Compute stereo DISP-based direction reconstruction for a full table
+        of mono predictions.
+
+        This is the table-wise / batch version of the DISP stereo combination.
+        Each row in ``mono_predictions`` corresponds to a telescope-event.
+        The function groups rows by array event (obs_id, event_id), performs
+        DISP-based direction reconstruction for each array event, and returns
+        one row per array event.
+
+        See :meth:`StereoCombiner.predict_table` for the general
+        input/output conventions.
+        """
+
         prefix = f"{self.prefix}_tel"
         valid = mono_predictions[f"{prefix}_is_valid"]
 
