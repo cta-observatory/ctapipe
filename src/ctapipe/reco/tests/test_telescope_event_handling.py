@@ -75,16 +75,18 @@ def test_calc_combs_min_distances():
     fov_lon_values = np.array([[1, 2], [3, 4], [5, 6]])
     fov_lat_values = np.array([[7, 8], [9, 10], [11, 12]])
     weights = np.array([1, 2, 3])
+    dist_weights = np.array([[1, 1], [1, 1], [1, 0.55]], dtype=np.float64)
 
     exp_comb_weights = np.array([3, 4, 5])
-    exp_fov_lons = np.array([2.66666667, 4.25, 4.6])
-    exp_fov_lats = np.array([8.66666667, 10.25, 10.6])
+    exp_fov_lons = np.array([2.66666667, 5, 5.2])
+    exp_fov_lats = np.array([8.66666667, 11, 11.2])
 
     fov_lons_ev, fov_lats_ev, comb_weights_ev = calc_combs_min_distances_event(
         index_tel_combs,
         fov_lon_values,
         fov_lat_values,
         weights,
+        dist_weights,
     )
 
     fov_lons_tab, fov_lats_tab, comb_weights_tab = calc_combs_min_distances_table(
@@ -92,6 +94,7 @@ def test_calc_combs_min_distances():
         fov_lon_values,
         fov_lat_values,
         weights,
+        dist_weights,
     )
     assert np.allclose(fov_lons_ev, exp_fov_lons)
     assert np.allclose(fov_lons_tab, exp_fov_lons)
