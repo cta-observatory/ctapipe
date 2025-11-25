@@ -432,12 +432,13 @@ class StereoDispCombiner(StereoCombiner):
         default_value=0.85,
         min=0,
         max=1.0,
+        allow_none=True,
         help=(
             "Lower-limit for the telescope-wise sign scores to consider in the weighting "
             "of the distances per telescope combination. The value must be between 0 and "
             "and 1. Telescope events with a sign score above this limit are taken "
             "preferably into account for calculating the minimum distance per telescope "
-            "combination."
+            "combination. Set to None to disable this feature."
         ),
     ).tag(config=True)
 
@@ -485,6 +486,7 @@ class StereoDispCombiner(StereoCombiner):
         fov_lat_values = []
         weights = []
         dist_weights = []
+
         signs = np.array([-1, 1])
 
         for tel_id, dl2 in event.dl2.tel.items():
@@ -494,15 +496,16 @@ class StereoDispCombiner(StereoCombiner):
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
                 hillas_psi = dl1.hillas.psi
                 disp = dl2.disp[self.prefix].parameter.value
-                sign_score = dl2.disp[self.prefix].sign_score
 
                 dist_weight = np.ones(2)
-                if sign_score > self.sign_score_limit:
-                    dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
+                if self.sign_score_limit is not None:
+                    sign_score = dl2.disp[self.prefix].sign_score
+                    if sign_score >= self.sign_score_limit:
+                        dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
+                dist_weights.append(dist_weight)
 
                 fov_lons = hillas_fov_lon + signs * np.abs(disp) * np.cos(hillas_psi)
                 fov_lats = hillas_fov_lat + signs * np.abs(disp) * np.sin(hillas_psi)
-                dist_weights.append(dist_weight)
                 fov_lon_values.append(fov_lons)
                 fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
@@ -555,7 +558,6 @@ class StereoDispCombiner(StereoCombiner):
     def predict_table(self, mono_predictions: Table) -> Table:
         """ """
         prefix = f"{self.prefix}_tel"
-        # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
 
         obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(
@@ -664,7 +666,7 @@ class StereoDispCombiner(StereoCombiner):
 
             else:
                 alt = az = u.Quantity(
-                    np.full(n_array_events, np.nan), u.deg, copy=False
+                    np.full(n_array_events, np.nan), u.deg, copy=COPY_IF_NEEDED
                 )
             stereo_table[f"{self.prefix}_alt"] = alt
             stereo_table[f"{self.prefix}_az"] = az

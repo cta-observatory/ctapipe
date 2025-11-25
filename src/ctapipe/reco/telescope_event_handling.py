@@ -271,7 +271,7 @@ def calc_combs_min_distances_event(
             - fov_lat_values[tel_2, sign_combs[:, 1]]
         )
 
-        distances = np.hypot(lon_diffs, lat_diffs) * comb_dist_weights
+        distances = np.hypot(lon_diffs, lat_diffs) * comb_dist_weights**2
         argmin_distance = np.argmin(distances)
 
         # Weighted mean for minimum distances
@@ -337,28 +337,29 @@ def calc_combs_min_distances_table(
 
     sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 
-    # Calculate scores for each telescope combination using the
-    # dist weights (SIGN scores). If one of the four weights of a telescope
-    # combination is != 1, set the others to inf to avoid selecting them.
-    # Calculate all 4 possible distances afterwards.
     lon_combs = fov_lon_values[index_tel_combs]
     lon_diffs = lon_combs[:, 0, sign_combs[:, 0]] - lon_combs[:, 1, sign_combs[:, 1]]
 
     lat_combs = fov_lat_values[index_tel_combs]
     lat_diffs = lat_combs[:, 0, sign_combs[:, 0]] - lat_combs[:, 1, sign_combs[:, 1]]
 
+    # Calculate scores for each telescope combination using the
+    # dist weights (SIGN scores). If one of the four weights of a telescope
+    # combination is != 1, set the others to inf to avoid selecting them.
+    # Calculate all 4 possible distances afterwards.
     comb_dist_weights = (
         dist_weights[index_tel_combs][:, 0, sign_combs[:, 0]]
         * dist_weights[index_tel_combs][:, 1, sign_combs[:, 1]]
     )
 
     dist_weight_mask = np.any(comb_dist_weights != 1, axis=1)
-    comb_dist_weights[dist_weight_mask] = np.where(
-        comb_dist_weights[dist_weight_mask] == 1,
-        np.inf,
-        comb_dist_weights[dist_weight_mask],
-    )
-    distances = np.hypot(lon_diffs, lat_diffs) * comb_dist_weights
+    if np.any(dist_weight_mask):
+        comb_dist_weights[dist_weight_mask] = np.where(
+            comb_dist_weights[dist_weight_mask] == 1,
+            np.inf,
+            comb_dist_weights[dist_weight_mask],
+        )
+    distances = np.hypot(lon_diffs, lat_diffs) * comb_dist_weights**2
     argmin_distance = np.argmin(distances, axis=1)
 
     # Weighted mean for minimum distances
@@ -431,12 +432,13 @@ def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"
     hillas_psi = tel_table["hillas_psi"].quantity.to_value(u.rad)
     disp = tel_table[f"{prefix}_parameter"]
     signs = np.array([-1, 1])
-    sign_score = tel_table[f"{prefix}_sign_score"]
 
     dist_weights = np.ones((len(disp), 2))
-    mask_sign = np.sign(disp)[:, None] == signs
-    sign_score[sign_score < sign_score_limit] = 0
-    dist_weights[mask_sign] = 1 / (1 + sign_score)
+    if sign_score_limit is not None:
+        sign_score = tel_table[f"{prefix}_sign_score"]
+        mask_sign = np.sign(disp)[:, None] == signs
+        sign_score[sign_score < sign_score_limit] = 0
+        dist_weights[mask_sign] = 1 / (1 + sign_score)
 
     cos_psi = np.cos(hillas_psi)
     sin_psi = np.sin(hillas_psi)
