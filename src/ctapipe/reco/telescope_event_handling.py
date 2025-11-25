@@ -438,7 +438,7 @@ def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"
     if sign_score_limit is not None:
         sign_score = tel_table[f"{prefix}_sign_score"]
         mask_sign = np.sign(disp)[:, None] == signs
-        sign_score[sign_score <= sign_score_limit] = 0
+        sign_score[sign_score < sign_score_limit] = 0
         dist_weights[mask_sign] = 1 / (1 + sign_score)
 
     cos_psi = np.cos(hillas_psi)
