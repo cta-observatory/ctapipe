@@ -403,8 +403,9 @@ def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"
         - ``hillas_fov_lat`` : Hillas ellipse centroid latitude (Quantity)
         - ``hillas_psi`` : Hillas ellipse orientation angle (Quantity)
         - ``<prefix>_parameter`` : DISP distance from image centroid (float)
-        - ``<prefix>_sign_score`` : DISP sign score (float)
-    sign_score_limit : float
+        - ``<prefix>_sign_score`` : DISP sign score (float) if ``sign_score_limit``
+          is not None.
+    sign_score_limit : float or None
         Minimum DISP sign score to consider when calculating the dist weights
         (1 / (1 + sign_score)). Weights of events with
         ``sign_score < sign_score_limit`` and not selected DISP signs are
@@ -437,7 +438,7 @@ def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"
     if sign_score_limit is not None:
         sign_score = tel_table[f"{prefix}_sign_score"]
         mask_sign = np.sign(disp)[:, None] == signs
-        sign_score[sign_score < sign_score_limit] = 0
+        sign_score[sign_score <= sign_score_limit] = 0
         dist_weights[mask_sign] = 1 / (1 + sign_score)
 
     cos_psi = np.cos(hillas_psi)
@@ -448,17 +449,17 @@ def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"
     return lons, lats, dist_weights
 
 
-def create_combs_array(max_multi, k):
+def create_combs_array(max_multiplicity, k):
     """
     Generate an array of all possible `k`-combinations for multiplicities up to
-    `max_multi`.
+    `max_multiplicity`.
 
     Precomputes and stores combinations for different multiplicities to reach them
     by index afterwards.
 
     Parameters
     ----------
-    max_multi : int
+    max_multiplicity : int
         Maximum multiplicity to consider.
     k : int
         The size of the combinations.
@@ -470,12 +471,12 @@ def create_combs_array(max_multi, k):
         - An array mapping each combination to its respective multiplicity.
     """
     combs_array = get_combinations(range(k), k)
-    for i in range(k + 1, max_multi + 1):
+    for i in range(k + 1, max_multiplicity + 1):
         combs = get_combinations(range(i), k)
         combs_array = np.concatenate([combs_array, combs])
 
-    n_combs = _calc_n_combs(np.arange(k, max_multi + 1), k)
-    combs_to_multi_indices = np.repeat(np.arange(k, max_multi + 1), n_combs)
+    n_combs = _calc_n_combs(np.arange(k, max_multiplicity + 1), k)
+    combs_to_multi_indices = np.repeat(np.arange(k, max_multiplicity + 1), n_combs)
 
     return combs_array, combs_to_multi_indices
 
