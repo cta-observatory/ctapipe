@@ -590,6 +590,13 @@ class StereoDispCombiner(StereoCombiner):
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
                 hillas_psi = dl1.hillas.psi
                 disp = dl2.disp[self.prefix].parameter.value
+                if np.isnan(disp):
+                    raise RuntimeError(
+                        f"No valid DISP reconstruction parameter found for "
+                        f"prefix='{self.prefix}'). "
+                        f"Make sure to apply the DispReconstructor before using the "
+                        f"StereoDispCombiner or adapt the prefix accordingly."
+                    )
 
                 dist_weight = np.ones(2)
                 if self.sign_score_limit is not None:
@@ -663,6 +670,14 @@ class StereoDispCombiner(StereoCombiner):
 
         prefix = f"{self.prefix}_tel"
         valid = mono_predictions[f"{prefix}_is_valid"]
+
+        disp_col = f"{prefix}_parameter"
+        if disp_col not in mono_predictions.colnames:
+            raise KeyError(
+                f"Required DISP column '{disp_col}' not found in mono prediction table. "
+                f"Make sure the mono events were reconstructed with the corresponding "
+                f"DispReconstructor (prefix='{self.prefix}') before running StereoDispCombiner."
+            )
 
         obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(
             mono_predictions
