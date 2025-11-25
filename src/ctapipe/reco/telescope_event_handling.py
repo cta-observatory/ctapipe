@@ -175,26 +175,26 @@ def weighted_mean_std_ufunc(
 
 
 @lru_cache(maxsize=4096)
-def get_combinations(iterable, size):
+def get_combinations(array_length, comb_size):
     """
-    Generate all possible combinations of elements of a given `size` from
-    the given `iterable`.
+    Generate all possible index combinations of elements of a given `comb_size`
+    from an array with a given `array_length`.
 
     Uses ``itertools.combinations`` and caching to speed up repeated calls.
 
     Parameters
     ----------
-    iterable: iterable
-        Input iterable from which to generate combinations.
+    array_length: int
+        Length of the list or array to generate index combinations from.
     size : int
         The size of each combination.
 
     Returns
     -------
     np.ndarray
-        Array of combinations of the specified size.
+        Array of indey combinations of the specified size.
     """
-    return np.array(list(combinations(iterable, size)))
+    return np.array(list(combinations(range(array_length), comb_size)))
 
 
 @njit
@@ -470,9 +470,9 @@ def create_combs_array(max_multiplicity, k):
         - An array of all k-combinations for different multiplicities.
         - An array mapping each combination to its respective multiplicity.
     """
-    combs_array = get_combinations(range(k), k)
+    combs_array = get_combinations(k, k)
     for i in range(k + 1, max_multiplicity + 1):
-        combs = get_combinations(range(i), k)
+        combs = get_combinations(i, k)
         combs_array = np.concatenate([combs_array, combs])
 
     n_combs = _calc_n_combs(np.arange(k, max_multiplicity + 1), k)

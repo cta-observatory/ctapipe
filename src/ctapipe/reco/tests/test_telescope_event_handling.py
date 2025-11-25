@@ -56,12 +56,13 @@ def test_get_combinations():
     from ctapipe.reco.telescope_event_handling import get_combinations
 
     tel_ids = [1, 2, 3]
+    comb_size = 2
     get_combinations.cache_clear()
-    combinations = get_combinations(tel_ids)
+    index_combinations = get_combinations(len(tel_ids), comb_size)
 
-    expected_combinations = np.array([[1, 2], [1, 3], [2, 3]])
+    expected_combinations = np.array([[0, 1], [0, 2], [1, 2]])
 
-    assert np.allclose(combinations, expected_combinations)
+    assert np.allclose(index_combinations, expected_combinations)
 
 
 def test_calc_combs_min_distances():
