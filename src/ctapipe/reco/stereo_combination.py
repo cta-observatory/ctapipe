@@ -530,7 +530,7 @@ class StereoDispCombiner(StereoCombiner):
             )
             valid = True
         else:
-            alt = az = u.Quantity(np.nan, u.deg, copy=False)
+            alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
             valid = False
 
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
@@ -546,14 +546,7 @@ class StereoDispCombiner(StereoCombiner):
         Calculate the mean prediction for a single array event.
         """
 
-        properties = [
-            self.property & itm
-            for itm in self.supported
-            if self.property & itm in ReconstructionProperty
-        ]
-        for prop in properties:
-            if prop is ReconstructionProperty.GEOMETRY:
-                self._combine_altaz(event)
+        self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """ """
@@ -573,116 +566,112 @@ class StereoDispCombiner(StereoCombiner):
 
         weights = self._calculate_weights(mono_predictions[valid])
 
-        if self.property is ReconstructionProperty.GEOMETRY:
-            if np.count_nonzero(valid) > 0:
-                fov_lon_values, fov_lat_values, dist_weights = calc_fov_lon_lat(
-                    mono_predictions[valid],
-                    self.sign_score_limit,
-                    prefix,
-                )
-                combs_array, combs_to_multi_indices = create_combs_array(
-                    valid_multiplicity.max(), self.n_tel_combinations
-                )
-                index_tel_combs, n_combs = get_index_combs(
-                    valid_multiplicity,
-                    combs_array,
-                    combs_to_multi_indices,
-                    self.n_tel_combinations,
-                )
-                combs_to_array_indices = np.repeat(
-                    np.arange(len(valid_multiplicity)), n_combs
-                )
-
-                (
-                    comb_fov_lons,
-                    comb_fov_lats,
-                    comb_weights,
-                ) = calc_combs_min_distances_table(
-                    index_tel_combs,
-                    fov_lon_values,
-                    fov_lat_values,
-                    weights,
-                    dist_weights,
-                )
-
-                # All calculated telescope combinations are valid here.
-                all_valid = np.ones(len(comb_weights), dtype=bool)
-                fov_lon_combs_mean, _ = weighted_mean_std_ufunc(
-                    comb_fov_lons,
-                    all_valid,
-                    combs_to_array_indices,
-                    n_combs,
-                    weights=comb_weights,
-                )
-                fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
-                    comb_fov_lats,
-                    all_valid,
-                    combs_to_array_indices,
-                    n_combs,
-                    weights=comb_weights,
-                )
-
-                valid_tel_to_array_indices = tel_to_array_indices[valid]
-                valid_array_indices = np.unique(valid_tel_to_array_indices)
-
-                fov_lon_mean = np.full(n_array_events, np.nan)
-                fov_lat_mean = np.full(n_array_events, np.nan)
-                fov_lon_mean[valid_array_indices] = fov_lon_combs_mean
-                fov_lat_mean[valid_array_indices] = fov_lat_combs_mean
-
-                _, indices_first_tel_in_array = np.unique(
-                    tel_to_array_indices, return_index=True
-                )
-                alt, az = telescope_to_horizontal(
-                    lon=u.Quantity(fov_lon_mean, u.deg, copy=False),
-                    lat=u.Quantity(fov_lat_mean, u.deg, copy=False),
-                    pointing_alt=u.Quantity(
-                        mono_predictions["subarray_pointing_lat"][
-                            indices_first_tel_in_array
-                        ],
-                        u.deg,
-                        copy=False,
-                    ),
-                    pointing_az=u.Quantity(
-                        mono_predictions["subarray_pointing_lon"][
-                            indices_first_tel_in_array
-                        ],
-                        u.deg,
-                        copy=False,
-                    ),
-                )
-
-                # Fill single telescope events from mono_predictions
-                index_single_tel_events = valid_array_indices[valid_multiplicity == 1]
-                mask_single_tel_events = np.isin(
-                    valid_tel_to_array_indices, index_single_tel_events
-                )
-                alt[index_single_tel_events] = mono_predictions[f"{prefix}_alt"][valid][
-                    mask_single_tel_events
-                ]
-                az[index_single_tel_events] = mono_predictions[f"{prefix}_az"][valid][
-                    mask_single_tel_events
-                ]
-
-            else:
-                alt = az = u.Quantity(
-                    np.full(n_array_events, np.nan), u.deg, copy=COPY_IF_NEEDED
-                )
-            stereo_table[f"{self.prefix}_alt"] = alt
-            stereo_table[f"{self.prefix}_az"] = az
-            stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(
-                np.isfinite(stereo_table[f"{self.prefix}_alt"]),
-                np.isfinite(stereo_table[f"{self.prefix}_az"]),
+        if np.count_nonzero(valid) > 0:
+            fov_lon_values, fov_lat_values, dist_weights = calc_fov_lon_lat(
+                mono_predictions[valid],
+                self.sign_score_limit,
+                prefix,
             )
-            stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+            combs_array, combs_to_multi_indices = create_combs_array(
+                valid_multiplicity.max(), self.n_tel_combinations
+            )
+            index_tel_combs, n_combs = get_index_combs(
+                valid_multiplicity,
+                combs_array,
+                combs_to_multi_indices,
+                self.n_tel_combinations,
+            )
+            combs_to_array_indices = np.repeat(
+                np.arange(len(valid_multiplicity)), n_combs
+            )
+
+            (
+                comb_fov_lons,
+                comb_fov_lats,
+                comb_weights,
+            ) = calc_combs_min_distances_table(
+                index_tel_combs,
+                fov_lon_values,
+                fov_lat_values,
+                weights,
+                dist_weights,
+            )
+
+            # All calculated telescope combinations are valid here.
+            all_valid = np.ones(len(comb_weights), dtype=bool)
+            fov_lon_combs_mean, _ = weighted_mean_std_ufunc(
+                comb_fov_lons,
+                all_valid,
+                combs_to_array_indices,
+                n_combs,
+                weights=comb_weights,
+            )
+            fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
+                comb_fov_lats,
+                all_valid,
+                combs_to_array_indices,
+                n_combs,
+                weights=comb_weights,
+            )
+
+            valid_tel_to_array_indices = tel_to_array_indices[valid]
+            valid_array_indices = np.unique(valid_tel_to_array_indices)
+
+            fov_lon_mean = np.full(n_array_events, np.nan)
+            fov_lat_mean = np.full(n_array_events, np.nan)
+            fov_lon_mean[valid_array_indices] = fov_lon_combs_mean
+            fov_lat_mean[valid_array_indices] = fov_lat_combs_mean
+
+            _, indices_first_tel_in_array = np.unique(
+                tel_to_array_indices, return_index=True
+            )
+            alt, az = telescope_to_horizontal(
+                lon=u.Quantity(fov_lon_mean, u.deg, copy=COPY_IF_NEEDED),
+                lat=u.Quantity(fov_lat_mean, u.deg, copy=COPY_IF_NEEDED),
+                pointing_alt=u.Quantity(
+                    mono_predictions["subarray_pointing_lat"][
+                        indices_first_tel_in_array
+                    ],
+                    u.deg,
+                    copy=False,
+                ),
+                pointing_az=u.Quantity(
+                    mono_predictions["subarray_pointing_lon"][
+                        indices_first_tel_in_array
+                    ],
+                    u.deg,
+                    copy=False,
+                ),
+            )
+
+            # Fill single telescope events from mono_predictions
+            index_single_tel_events = valid_array_indices[valid_multiplicity == 1]
+            mask_single_tel_events = np.isin(
+                valid_tel_to_array_indices, index_single_tel_events
+            )
+            alt[index_single_tel_events] = mono_predictions[f"{prefix}_alt"][valid][
+                mask_single_tel_events
+            ]
+            az[index_single_tel_events] = mono_predictions[f"{prefix}_az"][valid][
+                mask_single_tel_events
+            ]
 
         else:
-            raise NotImplementedError()
+            alt = az = u.Quantity(
+                np.full(n_array_events, np.nan), u.deg, copy=COPY_IF_NEEDED
+            )
+        stereo_table[f"{self.prefix}_alt"] = alt
+        stereo_table[f"{self.prefix}_az"] = az
+        stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(
+            np.isfinite(stereo_table[f"{self.prefix}_alt"]),
+            np.isfinite(stereo_table[f"{self.prefix}_az"]),
+        )
+        stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
 
         tel_ids = [[] for _ in range(n_array_events)]
 
         for index, tel_id in zip(
-            valid_tel_to_array_indices, mono_predictions["tel_id"][valid]
+            tel_to_array_indices[valid], mono_predictions["tel_id"][valid]
         ):
             tel_ids[index].append(tel_id)
 
