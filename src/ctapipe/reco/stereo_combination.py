@@ -497,10 +497,11 @@ class StereoDispCombiner(StereoCombiner):
     2. For every telescope pair, all four SIGN combinations are evaluated.
        The SIGN pair that minimizes the angular distance between the two predicted
        positions is selected, optionally weighted by the telescope-wise DISP
-       sign score.
+       sign score. A weighted mean for the minimum distance per telescope pair
+       is calculated.
 
-    3. The weighted mean FoV direction of all telescope-pair minima is computed
-       and transformed into horizontal (Alt/Az) coordinates.
+    3. A second weighted mean FoV direction of all telescope-pair minima is computed
+       afterwards and transformed into horizontal (Alt/Az) coordinates.
 
     See :class:`StereoCombiner` for a description of the general interface.
 
