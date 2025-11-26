@@ -65,7 +65,7 @@ class StereoCombiner(Component):
        the stereo predictions.
 
     Subclasses must implement both methods, as well as any additional logic
-    required for combining the chosen :class:`~ctapipe.containers.ReconstructionProperty`.
+    required for combining the chosen :class:`~ctapipe.reco.ReconstructionProperty`.
     """
 
     prefix = Unicode(
@@ -485,7 +485,7 @@ class StereoDispCombiner(StereoCombiner):
     Stereo combination algorithm for DISP-based direction reconstruction.
 
     This combiner is essentially an implementation of Algorithm 3
-    of [hofmann-1999-comparison]_ and quite similar to the EventDisplay
+    of :cite:p:`hofmann-1999-comparison` and quite similar to the EventDisplay
     implementation where each telescope predicts two possible directions (SIGN = ±1).
     Especially at low energies, the DISP sign reconstruction can be quite uncertain.
     To solve this head-tail ambiguity this algorithm does the following for all valid
