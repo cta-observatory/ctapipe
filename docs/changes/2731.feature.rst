@@ -1,0 +1,9 @@
+Add a ``StereoDispCombiner`` implementing DISP-based stereo direction reconstruction.
+
+Adapted from the implementation in magic-cta-pipe and EventDisplay, it combines
+mono DISP reconstruction by:
+ - get combinations of 2 telescope for every array event
+ - calculating the minimum distance for the 4 possible SIGN pairs for each combination
+ - DISP sign score can be optionally used to weight the distances
+ - calculating the weighted average for the minimum distance SIGN pair (fov lon/lat) per combination
+ - calculating the weighted average of all combinations for an array event with the summed weights
