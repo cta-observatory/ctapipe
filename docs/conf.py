@@ -23,18 +23,12 @@
 # -- General configuration ------------------------------------------------
 import datetime
 import os
-import sys
+import tomllib
 from pathlib import Path
 
 from sphinx_gallery.sorting import ExplicitOrder
 
 import ctapipe
-
-if sys.version_info < (3, 11):
-    import tomli as tomllib
-else:
-    import tomllib
-
 
 pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 pyproject = tomllib.loads(pyproject_path.read_text())
