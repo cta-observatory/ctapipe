@@ -113,7 +113,6 @@ def add_reference_type(prefix, objs):
 nitpick_ignore = add_reference_type(
     "py:class",
     [
-        "enum.StrEnum",
         "t.Union",
         "t.Any",
         "t.Dict",
@@ -151,8 +150,6 @@ nitpick_ignore = add_reference_type(
         "astropy.coordinates.baseframe.BaseCoordinateFrame",
         "astropy.table.table.Table",
         "eventio.simtel.simtelfile.SimTelFile",
-        "ctapipe.compat.StrEnum",
-        "ctapipe.compat.StrEnum",
     ],
 )
 nitpick_ignore += add_reference_type(
