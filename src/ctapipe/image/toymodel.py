@@ -264,7 +264,7 @@ class ImageModel(metaclass=ABCMeta):
 
         """
         pdf = self.pdf(camera.pix_x, camera.pix_y)
-        return pdf * intensity * camera.pix_area.value
+        return pdf * intensity * camera.pix_area.to_value(self.unit**2)
 
 
 class Gaussian(ImageModel):
