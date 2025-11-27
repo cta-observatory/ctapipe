@@ -40,9 +40,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: Linux (3.11, mamba, oldest-deps)
+          - name: Linux (3.12, mamba, oldest-deps)
             os: ubuntu-24.04
-            python-version: "3.11"
+            python-version: "3.12"
             install-method: mamba
             extras: tests,all
             extra-args: ["oldest-deps"]
