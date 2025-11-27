@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dynamic = ["version"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 dependencies = [
     "astropy >=6.1,<8.0.0",
@@ -95,7 +95,6 @@ docs = [
     "sphinx_automodapi",
     "sphinxcontrib-bibtex",
     "sphinx-changelog",
-    "tomli; python_version < '3.11'",
 ]
 
 dev = [
@@ -218,7 +217,7 @@ omit = ["src/ctapipe/_version.py"]
 
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 
 [tool.ruff.lint]
