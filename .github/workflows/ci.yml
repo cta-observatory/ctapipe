@@ -72,16 +72,16 @@ jobs:
             install-method: mamba
             extras: tests,all
 
-          - name: macos (3.12, x86-64, mamba)
+          - name: macos (3.12, x86-64, pip)
             os: macos-15-intel
             python-version: "3.12"
-            install-method: mamba
+            install-method: pip
             extras: tests,all
 
-          - name: macos (3.14, arm64, pip)
+          - name: macos (3.14, arm64, mamba)
             os: macos-15
             python-version: "3.14"
-            install-method: pip
+            install-method: mamba
             extras: tests,all
 
 
