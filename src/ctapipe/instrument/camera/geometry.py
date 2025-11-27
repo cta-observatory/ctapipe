@@ -2,6 +2,7 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+
 import logging
 import warnings
 from copy import deepcopy

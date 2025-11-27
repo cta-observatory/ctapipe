@@ -549,12 +549,12 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
 def test_plugin_help(capsys):
     ProcessorTool().print_help(classes=True)
     captured = capsys.readouterr()
-    assert (
-        "PluginEventSource.foo" in captured.out
-    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
-    assert (
-        "PluginReconstructor.foo" in captured.out
-    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
+    assert "PluginEventSource.foo" in captured.out, (
+        "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
+    )
+    assert "PluginReconstructor.foo" in captured.out, (
+        "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
+    )
 
 
 def test_only_trigger_and_simulation(tmp_path):

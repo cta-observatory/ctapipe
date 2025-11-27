@@ -2,6 +2,7 @@
 """
 Visualization: Methods for displaying data
 """
+
 from .mpl_array import ArrayDisplay
 from .mpl_camera import CameraDisplay
 

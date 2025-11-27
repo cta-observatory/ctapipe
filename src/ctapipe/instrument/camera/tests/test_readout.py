@@ -1,4 +1,5 @@
-""" Tests for CameraGeometry """
+"""Tests for CameraGeometry"""
+
 from itertools import combinations
 
 import numpy as np

@@ -1,4 +1,5 @@
-""" Tests for CameraGeometry """
+"""Tests for CameraGeometry"""
+
 from copy import deepcopy
 
 import numpy as np

@@ -20,7 +20,7 @@ def assert_all_tel_keys(event, expected, ignore=None):
             actual = tuple(container.tel.keys())
             if name not in ignore and actual != expected:
                 raise AssertionError(
-                    f"Unexpected tel_ids in container {name}:" f"{actual} != {expected}"
+                    f"Unexpected tel_ids in container {name}:{actual} != {expected}"
                 )
 
 

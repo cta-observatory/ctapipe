@@ -3,7 +3,6 @@
 Class to write DL1 (a,b) and DL2 (a) data from an event stream
 """
 
-
 import pathlib
 from collections import defaultdict
 

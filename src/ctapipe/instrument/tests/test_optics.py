@@ -1,4 +1,4 @@
-""" Tests for OpticsDescriptions"""
+"""Tests for OpticsDescriptions"""
 
 import pytest
 from astropy import units as u

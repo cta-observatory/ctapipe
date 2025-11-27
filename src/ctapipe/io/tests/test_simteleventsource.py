@@ -1,4 +1,4 @@
-""" tests of SimTelEventSource """
+"""tests of SimTelEventSource"""
 
 # pylint: disable=import-outside-toplevel
 import copy

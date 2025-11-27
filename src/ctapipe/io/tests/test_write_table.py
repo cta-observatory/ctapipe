@@ -1,4 +1,5 @@
 """Tests for the write_table function"""
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -38,9 +39,9 @@ def test_write_table(tmp_path, time_format, tolerance):
 
     for name, column in table.columns.items():
         assert name in read.colnames, f"Column {name} not found in output file"
-        assert (
-            read.dtype[name] == table.dtype[name]
-        ), f"Column {name} dtype different in output file"
+        assert read.dtype[name] == table.dtype[name], (
+            f"Column {name} dtype different in output file"
+        )
 
         # time conversion is not lossless
         if name == "time":

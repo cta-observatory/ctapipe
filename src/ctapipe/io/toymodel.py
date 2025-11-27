@@ -2,6 +2,7 @@
 """
 Create a toymodel event stream of array events
 """
+
 import logging
 
 import astropy.units as u

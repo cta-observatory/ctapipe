@@ -1,6 +1,7 @@
 """
 common pytest fixtures for tests in ctapipe
 """
+
 import importlib
 import importlib.util
 import json

@@ -397,8 +397,7 @@ man_pages = [("index", project.lower(), project + " Documentation", [author], 1)
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 description = (
-    "Experimental Data Analysis for the"
-    " Cherenkov Telescope Array Observatory (CTAO)."
+    "Experimental Data Analysis for the Cherenkov Telescope Array Observatory (CTAO)."
 )
 texinfo_documents = [
     (

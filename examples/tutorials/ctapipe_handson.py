@@ -69,7 +69,7 @@ plt.pcolormesh(r0tel.waveform[0])
 
 ######################################################################
 brightest_pixel = np.argmax(r0tel.waveform[0].sum(axis=1))
-print(f"pixel {brightest_pixel} has sum {r0tel.waveform[0,1535].sum()}")
+print(f"pixel {brightest_pixel} has sum {r0tel.waveform[0, 1535].sum()}")
 
 ######################################################################
 plt.plot(r0tel.waveform[0, brightest_pixel], label="channel 0 (high-gain)")

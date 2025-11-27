@@ -1,6 +1,7 @@
 """
 This module defines classes to enable per-telescope configuration of trait values
 """
+
 import copy
 import logging
 from collections import UserList

@@ -46,7 +46,7 @@ def _get_2d_result_table(
 
 class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
     """
-    Base class for calculating the bias and resolution of the energy prediciton.
+    Base class for calculating the bias and resolution of the energy prediction.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):

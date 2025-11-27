@@ -1,4 +1,5 @@
 """CTAPipe deprecation system."""
+
 import astropy.utils
 
 __all__ = [

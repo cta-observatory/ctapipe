@@ -1,6 +1,7 @@
 """
 This module defines any reference systems which may be needed in addition
 """
+
 from collections import OrderedDict
 
 import astropy.units as u

@@ -2,6 +2,7 @@
 Plot the same event in two camera displays showing the
 different coordinate frames for camera coordinates.
 """
+
 import astropy.units as u
 import matplotlib.pyplot as plt
 

@@ -1,6 +1,7 @@
 """
 Outlier detection algorithms to identify faulty pixels
 """
+
 from abc import abstractmethod
 
 import numpy as np

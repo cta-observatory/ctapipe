@@ -70,8 +70,7 @@ class StereoMeanCombiner(StereoCombiner):
         ["none", "intensity", "konrad"],
         default_value="none",
         help=(
-            "What kind of weights to use."
-            " Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
         ),
     ).tag(config=True)
 

@@ -1,6 +1,7 @@
 """
 Module for python version compatibility
 """
+
 import sys
 
 import numpy as np

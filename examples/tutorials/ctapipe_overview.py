@@ -10,7 +10,6 @@ Analyzing Events Using ctapipe
 # in Padova, 26.11.2018
 # by Maximilian Nöthe (@maxnoe) & Kai A. Brügge (@mackaiver)
 
-
 import tempfile
 import timeit
 from copy import deepcopy

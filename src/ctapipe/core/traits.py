@@ -1,6 +1,7 @@
 """
 Traitlet implementations for ctapipe
 """
+
 import os
 import pathlib
 import warnings
