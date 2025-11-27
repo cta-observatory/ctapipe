@@ -6,7 +6,7 @@ build:
     - ffmpeg
     - graphviz
   tools:
-    python: "3.10"
+    python: "3.12"
 
 python:
   install:
