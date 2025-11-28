@@ -311,7 +311,7 @@ class Gaussian(ImageModel):
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane"""
         X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        return self.dist.pdf(X)
+        return u.Quantity(self.dist.pdf(X), unit=1/self.unit**2, copy=FALSE)
 
 
 class SkewedGaussian(ImageModel):
