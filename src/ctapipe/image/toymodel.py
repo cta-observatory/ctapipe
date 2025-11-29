@@ -311,7 +311,7 @@ class Gaussian(ImageModel):
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane"""
         X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        return u.Quantity(self.dist.pdf(X), unit=1/self.unit**2, copy=FALSE)
+        return u.Quantity(self.dist.pdf(X), unit=1/self.unit**2, copy=False)
 
 
 class SkewedGaussian(ImageModel):
@@ -371,8 +371,7 @@ class SkewedGaussian(ImageModel):
         """2d probability for photon electrons in the camera plane."""
         pos = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
         long, trans = self.rotation @ (pos - self.mu).T
-        return self.trans_dist.pdf(trans) * self.long_dist.pdf(long)
-
+    return u.Quantity(self.trans_dist.pdf(trans) * self.long_dist.pdf(long), unit=1/self.unit**2, copy=False)
 
 class RingGaussian(ImageModel):
     """A shower image consisting of a ring with gaussian radial profile.
