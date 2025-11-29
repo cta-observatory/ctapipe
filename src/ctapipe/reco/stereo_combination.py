@@ -70,8 +70,7 @@ class StereoMeanCombiner(StereoCombiner):
         ["none", "intensity", "konrad"],
         default_value="none",
         help=(
-            "What kind of weights to use."
-            " Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
         ),
     ).tag(config=True)
 
@@ -169,7 +168,7 @@ class StereoMeanCombiner(StereoCombiner):
         weights = []
 
         for tel_id, dl2 in event.dl2.tel.items():
-            mono = dl2.classification[self.prefix]
+            mono = dl2.particle_type[self.prefix]
             if mono.is_valid:
                 values.append(mono.prediction)
                 dl1 = event.dl1.tel[tel_id].parameters
@@ -186,7 +185,7 @@ class StereoMeanCombiner(StereoCombiner):
         container = ParticleClassificationContainer(
             prediction=mean, telescopes=ids, is_valid=valid, prefix=self.prefix
         )
-        event.dl2.stereo.classification[self.prefix] = container
+        event.dl2.stereo.particle_type[self.prefix] = container
 
     def _combine_altaz(self, event):
         ids = []
