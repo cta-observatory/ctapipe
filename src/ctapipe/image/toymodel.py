@@ -311,7 +311,12 @@ class Gaussian(ImageModel):
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane"""
         X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        return u.Quantity(self.dist.pdf(X), unit=1 / self.unit**2, copy=False)
+        # return u.Quantity(self.dist.pdf(X), unit=1 / self.unit**2, copy=False)
+        return u.Quantity(
+            self.dist.pdf(X),
+            unit=1 / self.unit**2,
+            copy=False,
+        ).to_value(1 / self.unit**2)
 
 
 class SkewedGaussian(ImageModel):
@@ -375,7 +380,7 @@ class SkewedGaussian(ImageModel):
             self.trans_dist.pdf(trans) * self.long_dist.pdf(long),
             unit=1 / self.unit**2,
             copy=False,
-        )
+        ).to_value(1 / self.unit**2)
 
 
 class RingGaussian(ImageModel):
@@ -434,10 +439,10 @@ class RingGaussian(ImageModel):
         dy = (y - self.y).to_value(self.unit)
         r = np.sqrt(dx**2 + dy**2)
         phi = np.arctan2(dy, dx)
-        # return u.Quantity(
-        #    self.r_dist.pdf(r) * self._pdf_phi(phi), unit=1 / self.unit**2, copy=False
-        # )
-        return self.r_dist.pdf(r) * self._pdf_phi(phi)
+        return u.Quantity(
+            self.r_dist.pdf(r) * self._pdf_phi(phi), unit=1 / self.unit**2, copy=False
+        ).to_value(1 / self.unit**2)
+        # return self.r_dist.pdf(r) * self._pdf_phi(phi)
 
     def _inner_term(self, phi):
         return np.sqrt(1 - self.rho**2 * np.sin(phi) ** 2)
