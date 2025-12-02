@@ -434,9 +434,10 @@ class RingGaussian(ImageModel):
         dy = (y - self.y).to_value(self.unit)
         r = np.sqrt(dx**2 + dy**2)
         phi = np.arctan2(dy, dx)
-        return u.Quantity(
-            self.r_dist.pdf(r) * self._pdf_phi(phi), unit=1 / self.unit**2, copy=False
-        )
+        # return u.Quantity(
+        #    self.r_dist.pdf(r) * self._pdf_phi(phi), unit=1 / self.unit**2, copy=False
+        # )
+        return self.r_dist.pdf(r) * self._pdf_phi(phi)
 
     def _inner_term(self, phi):
         return np.sqrt(1 - self.rho**2 * np.sin(phi) ** 2)
