@@ -81,9 +81,9 @@ def test_nan_switch(camera_geometry):
     val = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
 
     res = np.full((2, len(camera_geometry)), 2)
-    res[0][
-        0
-    ] = 1  # where the nan was introduced before we should now have the value from the earlier chunk
+    res[0][0] = (
+        1  # where the nan was introduced before we should now have the value from the earlier chunk
+    )
 
     for key in ["mean", "median", "std"]:
         assert np.all(np.isclose(val[key], res))

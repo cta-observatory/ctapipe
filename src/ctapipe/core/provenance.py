@@ -383,7 +383,7 @@ class Provenance(metaclass=Singleton):
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError(
-                "Tried to end activity '{}', but '{}' is current " "activity".format(
+                "Tried to end activity '{}', but '{}' is current activity".format(
                     activity_name, activity.name
                 )
             )

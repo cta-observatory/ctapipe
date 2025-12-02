@@ -1,4 +1,5 @@
-""" Tests of Selectors """
+"""Tests of Selectors"""
+
 import numpy as np
 import pytest
 from astropy.table import Table

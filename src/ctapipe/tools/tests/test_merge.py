@@ -139,9 +139,9 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
 
     diff = StringIO()
     identical = report_diff_values(vstack([table1, table2]), table_merged, fileobj=diff)
-    assert (
-        identical
-    ), f"Merged table not equal to individual tables. Diff:\n {diff.getvalue()}"
+    assert identical, (
+        f"Merged table not equal to individual tables. Diff:\n {diff.getvalue()}"
+    )
 
     stats_key = "/dl2/service/tel_event_statistics/HillasReconstructor"
     merged_stats = read_table(output, stats_key)

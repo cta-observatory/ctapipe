@@ -1,6 +1,7 @@
 """
 High level processing of showers.
 """
+
 from ..containers import ArrayEventContainer
 from ..core import Component, traits
 from ..instrument import SubarrayDescription

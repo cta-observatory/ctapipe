@@ -1,4 +1,4 @@
-""" HDF5 Data Format Constants """
+"""HDF5 Data Format Constants"""
 
 __all__ = [
     "R0_GROUP",

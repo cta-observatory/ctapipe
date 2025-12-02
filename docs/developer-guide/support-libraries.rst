@@ -19,7 +19,7 @@ be discussed with the software manager.
 Math/Stats
 ==========
 
-A large variety of advanced math and statistcs functions can be found
+A large variety of advanced math and statistics functions can be found
 in the `numpy <https://www.numpy.org>`_ (data structures and numerics)
 and `scipy <https://www.scipy.org>`_ packages (advanced mathematics).
 
@@ -71,7 +71,7 @@ astronomical calculations. Specifically:
 * ``astropy.time``: time transformations and frames
 * ``astropy.wcs``: projections
 * ``astropy.io``: low-level FITS access
-* ``astropy.units``: unit quantities with automatic propegation and
+* ``astropy.units``: unit quantities with automatic propagation and
   cross-checks
 * ``astropy.table``: quick and easy reading of tables in nearly any
   format (FITS, ascii, HDF, VO, etc)

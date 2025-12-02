@@ -1,6 +1,7 @@
 """
 Functions to retrieve and interpolate atmosphere profiles.
 """
+
 import numpy as np
 from astropy.units import Quantity
 from scipy.interpolate import interp1d

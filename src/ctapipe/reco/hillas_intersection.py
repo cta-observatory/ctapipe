@@ -8,6 +8,7 @@ performance
 - Make intersect_lines code more readable
 
 """
+
 import itertools
 import warnings
 

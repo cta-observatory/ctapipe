@@ -23,18 +23,12 @@
 # -- General configuration ------------------------------------------------
 import datetime
 import os
-import sys
+import tomllib
 from pathlib import Path
 
 from sphinx_gallery.sorting import ExplicitOrder
 
 import ctapipe
-
-if sys.version_info < (3, 11):
-    import tomli as tomllib
-else:
-    import tomllib
-
 
 pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 pyproject = tomllib.loads(pyproject_path.read_text())
@@ -113,7 +107,6 @@ def add_reference_type(prefix, objs):
 nitpick_ignore = add_reference_type(
     "py:class",
     [
-        "enum.StrEnum",
         "t.Union",
         "t.Any",
         "t.Dict",
@@ -151,8 +144,6 @@ nitpick_ignore = add_reference_type(
         "astropy.coordinates.baseframe.BaseCoordinateFrame",
         "astropy.table.table.Table",
         "eventio.simtel.simtelfile.SimTelFile",
-        "ctapipe.compat.StrEnum",
-        "ctapipe.compat.StrEnum",
     ],
 )
 nitpick_ignore += add_reference_type(
@@ -397,8 +388,7 @@ man_pages = [("index", project.lower(), project + " Documentation", [author], 1)
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 description = (
-    "Experimental Data Analysis for the"
-    " Cherenkov Telescope Array Observatory (CTAO)."
+    "Experimental Data Analysis for the Cherenkov Telescope Array Observatory (CTAO)."
 )
 texinfo_documents = [
     (

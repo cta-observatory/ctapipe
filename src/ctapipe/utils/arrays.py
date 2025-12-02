@@ -1,6 +1,7 @@
 """
 Some utility functions to work with numpy (rec) arrays
 """
+
 import numpy as np
 from numpy.lib.recfunctions import repack_fields
 

@@ -24,7 +24,7 @@ def build_hillas_overlay(hillas, unit, with_label=True, n_sigma=1):
         cog_y = hillas.y.to_value(unit)
     else:
         raise TypeError(
-            "hillas must be a (Camera)HillasParametersContainer" f", got: {hillas} "
+            f"hillas must be a (Camera)HillasParametersContainer, got: {hillas} "
         )
 
     psi_rad = hillas.psi.to_value(u.rad)

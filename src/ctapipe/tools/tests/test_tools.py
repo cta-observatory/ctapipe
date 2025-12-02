@@ -1,6 +1,7 @@
 """
 Test individual tool functionality
 """
+
 import subprocess
 import sys
 

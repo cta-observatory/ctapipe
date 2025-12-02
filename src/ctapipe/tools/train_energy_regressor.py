@@ -1,6 +1,7 @@
 """
 Tool for training the EnergyRegressor
 """
+
 import numpy as np
 
 from ctapipe.core import Tool

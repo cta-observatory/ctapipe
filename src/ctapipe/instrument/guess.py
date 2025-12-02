@@ -4,6 +4,7 @@ we can create TelescopeDescriptions from Monte-Carlo where some
 parameters like the names of the camera and optics structure are not
 stored in the file.
 """
+
 from collections import namedtuple
 
 import astropy.units as u

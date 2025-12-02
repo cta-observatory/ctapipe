@@ -142,12 +142,12 @@ def test_radial_light_distribution():
     )
 
     assert radial_std_dev.unit == u.deg
-    assert isinstance(
-        skewness, (float, np.floating)
-    ), f"Unexpected type: {type(skewness)}"
-    assert isinstance(
-        excess_kurtosis, (float, np.floating)
-    ), f"Unexpected type: {type(excess_kurtosis)}"
+    assert isinstance(skewness, (float, np.floating)), (
+        f"Unexpected type: {type(skewness)}"
+    )
+    assert isinstance(excess_kurtosis, (float, np.floating)), (
+        f"Unexpected type: {type(excess_kurtosis)}"
+    )
     assert np.isclose(radial_std_dev, expected_std_dev, atol=1e-2)
     assert np.isclose(skewness, expected_skewness, atol=1e-2)
     assert np.isclose(excess_kurtosis, expected_excess_kurtosis, atol=1e-2)

@@ -39,11 +39,11 @@ def generate_dummy_dl2(event):
                 energy=10 * u.TeV,
                 prefix=f"{algo}_tel",
             )
-            event.dl2.tel[tel_id].classification[
-                algo
-            ] = ParticleClassificationContainer(
-                prediction=0.9,
-                prefix=f"{algo}_tel",
+            event.dl2.tel[tel_id].classification[algo] = (
+                ParticleClassificationContainer(
+                    prediction=0.9,
+                    prefix=f"{algo}_tel",
+                )
             )
 
         event.dl2.stereo.geometry[algo] = ReconstructedGeometryContainer(

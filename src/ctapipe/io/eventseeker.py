@@ -1,6 +1,7 @@
 """
 Handles seeking to a particular event in a `ctapipe.io.EventSource`
 """
+
 from copy import deepcopy
 
 from ctapipe.core import Component

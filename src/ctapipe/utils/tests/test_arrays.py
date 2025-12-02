@@ -1,4 +1,5 @@
 """Tests for the array utils"""
+
 import numpy as np
 
 

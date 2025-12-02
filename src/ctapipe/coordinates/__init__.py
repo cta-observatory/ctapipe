@@ -1,6 +1,7 @@
 """
 Coordinates.
 """
+
 import warnings
 
 from astropy.coordinates import (

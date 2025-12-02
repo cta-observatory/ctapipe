@@ -1,6 +1,7 @@
 """
 Tool for training the ParticleClassifier
 """
+
 import numpy as np
 from astropy.table import vstack
 
