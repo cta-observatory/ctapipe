@@ -264,7 +264,7 @@ class ImageModel(metaclass=ABCMeta):
 
         """
         pdf = self.pdf(camera.pix_x, camera.pix_y)
-        return pdf * intensity * camera.pix_area.to_value(camera.pix_x.unit**2)
+        return (pdf * intensity * camera.pix_area).to_value(u.one)
 
 
 class Gaussian(ImageModel):
@@ -315,7 +315,7 @@ class Gaussian(ImageModel):
             self.dist.pdf(X),
             unit=1 / self.unit**2,
             copy=False,
-        ).to_value(1 / self.unit**2)
+        )
 
 
 class SkewedGaussian(ImageModel):
@@ -378,7 +378,7 @@ class SkewedGaussian(ImageModel):
             self.trans_dist.pdf(trans) * self.long_dist.pdf(long),
             unit=1 / self.unit**2,
             copy=False,
-        ).to_value(1 / self.unit**2)
+        )
 
 
 class RingGaussian(ImageModel):
@@ -439,7 +439,7 @@ class RingGaussian(ImageModel):
         phi = np.arctan2(dy, dx)
         return u.Quantity(
             self.r_dist.pdf(r) * self._pdf_phi(phi), unit=1 / self.unit**2, copy=False
-        ).to_value(1 / self.unit**2)
+        )
 
     def _inner_term(self, phi):
         return np.sqrt(1 - self.rho**2 * np.sin(phi) ** 2)
