@@ -1,6 +1,7 @@
 import enum
 import uuid
 import warnings
+from abc import abstractmethod
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -111,9 +112,9 @@ class CannotMerge(OSError):
     """Raised when trying to merge incompatible files"""
 
 
-class HDF5Merger(Component):
+class HDF5MergerBase(Component):
     """
-    Class to copy / append / merge ctapipe hdf5 files
+    Base class for HDF5 merging / joining / stacking
     """
 
     output_path = traits.Path(directory_ok=False).tag(config=True)
@@ -128,76 +129,6 @@ class HDF5Merger(Component):
         help="If true, the ``output_path`` is appended to. See also ``overwrite``",
     ).tag(config=True)
 
-    telescope_events = traits.Bool(
-        True,
-        help="Whether to include telescope-wise data in merged output",
-    ).tag(config=True)
-
-    simulation = traits.Bool(
-        True,
-        help="Whether to include data only known for simulations in merged output",
-    ).tag(config=True)
-
-    true_images = traits.Bool(
-        True,
-        help="Whether to include true images in merged output",
-    ).tag(config=True)
-
-    true_parameters = traits.Bool(
-        True,
-        help="Whether to include parameters calculated on true images in merged output",
-    ).tag(config=True)
-
-    r0_waveforms = traits.Bool(
-        True,
-        help="Whether to include r0 waveforms in merged output",
-    ).tag(config=True)
-
-    r1_waveforms = traits.Bool(
-        True,
-        help="Whether to include r1 waveforms in merged output",
-    ).tag(config=True)
-
-    dl1_images = traits.Bool(
-        True,
-        help="Whether to include dl1 images in merged output",
-    ).tag(config=True)
-
-    dl1_parameters = traits.Bool(
-        True,
-        help="Whether to include dl1 image parameters in merged output",
-    ).tag(config=True)
-
-    dl1_muon = traits.Bool(
-        True,
-        help="Whether to include dl1 muon parameters in merged output",
-    ).tag(config=True)
-
-    dl2_subarray = traits.Bool(
-        True, help="Whether to include dl2 subarray-event-wise data in merged output"
-    ).tag(config=True)
-
-    dl2_telescope = traits.Bool(
-        True, help="Whether to include dl2 telescope-event-wise data in merged output"
-    ).tag(config=True)
-
-    monitoring = traits.Bool(
-        True, help="Whether to include monitoring data in merged output"
-    ).tag(config=True)
-
-    processing_statistics = traits.Bool(
-        True, help="Whether to include processing statistics in merged output"
-    ).tag(config=True)
-
-    single_ob = traits.Bool(
-        False,
-        help=(
-            "If true, input files are assumed to be multiple chunks from the same"
-            " observation block and the ob / sb blocks will only be copied from "
-            " the first input file"
-        ),
-    ).tag(config=True)
-
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
         if output_path not in {None, traits.Undefined}:
@@ -209,18 +140,18 @@ class HDF5Merger(Component):
             raise traits.TraitError("overwrite and append are mutually exclusive")
 
         output_exists = self.output_path.exists()
-        appending = False
+        self.appending = False
         if output_exists and not (self.append or self.overwrite):
             raise traits.TraitError(
                 f"output_path '{self.output_path}' exists but neither append nor overwrite allowed"
             )
 
         if output_exists and self.append:
-            appending = True
+            self.appending = True
 
         self.h5file = tables.open_file(
             self.output_path,
-            mode="a" if appending else "w",
+            mode="a" if self.appending else "w",
             filters=DEFAULT_FILTERS,
         )
 
@@ -233,7 +164,7 @@ class HDF5Merger(Component):
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
-        if appending:
+        if self.appending:
             self.meta = self._read_meta(self.h5file)
             self.data_model_version = self.meta.product.data_model_version
 
@@ -243,7 +174,6 @@ class HDF5Merger(Component):
                 self.h5file,
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
-            self.required_nodes = _get_required_nodes(self.h5file)
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
@@ -270,7 +200,7 @@ class HDF5Merger(Component):
             try:
                 self._append(other)
                 # if first file, update required nodes
-                if self.required_nodes is None:
+                if self.force_required_nodes and self.required_nodes is None:
                     self.required_nodes = _get_required_nodes(self.h5file)
                     self.log.info(
                         "Updated required nodes to %s", sorted(self.required_nodes)
@@ -309,173 +239,12 @@ class HDF5Merger(Component):
                 f" {other_version}, expected {self.data_model_version}"
             )
 
-        for node_path in self.required_nodes:
-            if node_path not in other.root:
-                raise CannotMerge(
-                    f"Required node {node_path} not found in {other.filename}"
-                )
-
-    def _check_obs_ids(self, other):
-        keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
-        for key in keys:
-            if key in other.root:
-                obs_ids = other.root[key].col("obs_id")
-                break
-        else:
-            raise CannotMerge(
-                f"Input file {other.filename} is missing keys required to"
-                f" check for duplicated obs_ids. Tried: {keys}"
-            )
-
-        if self.single_ob and len(self._merged_obs_ids) > 0:
-            different = self._merged_obs_ids.symmetric_difference(obs_ids)
-            if len(different) > 0:
-                msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
-                raise CannotMerge(msg)
-        else:
-            duplicated = self._merged_obs_ids.intersection(obs_ids)
-            if len(duplicated) > 0:
-                msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
-                raise CannotMerge(msg)
-
-        self._merged_obs_ids.update(obs_ids)
-
-    def _append(self, other):
-        self._check_obs_ids(other)
-
-        # Configuration
-        self._append_subarray(other)
-
-        # in case of "single_ob", we only copy sb/ob blocks for the first file
-        if not self.single_ob or self._n_merged == 0:
-            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
-            for key in config_keys:
-                if key in other.root:
-                    self._append_table(other, other.root[key])
-
-        if FIXED_POINTING_GROUP in other.root:
-            self._append_table_group(
-                other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
-            )
-
-        # Simulation
-        simulation_table_keys = [
-            SIMULATION_RUN_TABLE,
-            SHOWER_DISTRIBUTION_TABLE,
-            SIMULATION_SHOWER_TABLE,
-        ]
-        for key in simulation_table_keys:
-            if self.simulation and key in other.root:
-                self._append_table(other, other.root[key])
-
-        if (
-            self.telescope_events
-            and self.simulation
-            and SIMULATION_IMPACT_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
-
-        if (
-            self.telescope_events
-            and self.simulation
-            and SIMULATION_IMAGES_GROUP in other.root
-        ):
-            filter_columns = None if self.true_images else ["true_image"]
-            self._append_table_group(
-                other, other.root[SIMULATION_IMAGES_GROUP], filter_columns
-            )
-
-        if (
-            self.telescope_events
-            and self.simulation
-            and self.true_parameters
-            and SIMULATION_PARAMETERS_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[SIMULATION_PARAMETERS_GROUP])
-
-        # R0
-        if self.telescope_events and self.r0_waveforms and R0_TEL_GROUP in other.root:
-            self._append_table_group(other, other.root[R0_TEL_GROUP])
-
-        # R1
-        if self.telescope_events and self.r1_waveforms and R1_TEL_GROUP in other.root:
-            self._append_table_group(other, other.root[R1_TEL_GROUP])
-
-        # DL1
-        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
-
-        if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
-            self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
-
-        if (
-            self.telescope_events
-            and self.dl1_images
-            and DL1_TEL_IMAGES_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_TEL_IMAGES_GROUP])
-
-        if (
-            self.telescope_events
-            and self.dl1_parameters
-            and DL1_TEL_PARAMETERS_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_TEL_PARAMETERS_GROUP])
-
-        if self.telescope_events and self.dl1_muon and DL1_TEL_MUON_GROUP in other.root:
-            self._append_table_group(other, other.root[DL1_TEL_MUON_GROUP])
-
-        # DL2
-        if self.telescope_events and self.dl2_telescope and DL2_TEL_GROUP in other.root:
-            for kind_group in other.root[DL2_TEL_GROUP]._f_iter_nodes("Group"):
-                for iter_group in kind_group._f_iter_nodes("Group"):
-                    self._append_table_group(other, iter_group)
-
-        if self.dl2_subarray and DL2_SUBARRAY_GROUP in other.root:
-            for kind_group in other.root[DL2_SUBARRAY_GROUP]._f_iter_nodes("Group"):
-                for table in kind_group._f_iter_nodes("Table"):
-                    self._append_table(other, table)
-
-        # Pointing monitoring
-        if self.monitoring and DL1_SUBARRAY_POINTING_GROUP in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_POINTING_GROUP])
-
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL0_TEL_POINTING_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL0_TEL_POINTING_GROUP])
-
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL1_TEL_POINTING_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_TEL_POINTING_GROUP])
-
-        # Calibration coefficients monitoring
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL1_CAMERA_COEFFICIENTS_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_CAMERA_COEFFICIENTS_GROUP])
-
-        # Pixel statistics monitoring
-        for dl1_colname in DL1_COLUMN_NAMES:
-            for event_type in EventType:
-                key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
-                if self.monitoring and self.telescope_events and key in other.root:
-                    self._append_table_group(other, other.root[key])
-
-        # quality query statistics
-        if DL1_IMAGE_STATISTICS_TABLE in other.root:
-            self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
-
-        if DL2_EVENT_STATISTICS_GROUP in other.root:
-            for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
-                self._add_statistics_table(other, node)
+        if self.force_required_nodes:
+            for node_path in self.required_nodes:
+                if node_path not in other.root:
+                    raise CannotMerge(
+                        f"Required node {node_path} not found in {other.filename}"
+                    )
 
     def __enter__(self):
         return self
@@ -601,3 +370,267 @@ class HDF5Merger(Component):
                 )
         else:
             self._copy_node(file, input_table)
+
+    @abstractmethod
+    def _check_obs_ids(self, other):
+        pass
+
+    @abstractmethod
+    def _append(self, other):
+        pass
+
+
+class HDF5Merger(HDF5MergerBase):
+    """
+    Class to copy / append / merge ctapipe hdf5 files
+    """
+
+    telescope_events = traits.Bool(
+        True,
+        help="Whether to include telescope-wise data in merged output",
+    ).tag(config=True)
+
+    simulation = traits.Bool(
+        True,
+        help="Whether to include data only known for simulations in merged output",
+    ).tag(config=True)
+
+    true_images = traits.Bool(
+        True,
+        help="Whether to include true images in merged output",
+    ).tag(config=True)
+
+    true_parameters = traits.Bool(
+        True,
+        help="Whether to include parameters calculated on true images in merged output",
+    ).tag(config=True)
+
+    r0_waveforms = traits.Bool(
+        True,
+        help="Whether to include r0 waveforms in merged output",
+    ).tag(config=True)
+
+    r1_waveforms = traits.Bool(
+        True,
+        help="Whether to include r1 waveforms in merged output",
+    ).tag(config=True)
+
+    dl1_images = traits.Bool(
+        True,
+        help="Whether to include dl1 images in merged output",
+    ).tag(config=True)
+
+    dl1_parameters = traits.Bool(
+        True,
+        help="Whether to include dl1 image parameters in merged output",
+    ).tag(config=True)
+
+    dl1_muon = traits.Bool(
+        True,
+        help="Whether to include dl1 muon parameters in merged output",
+    ).tag(config=True)
+
+    dl2_subarray = traits.Bool(
+        True, help="Whether to include dl2 subarray-event-wise data in merged output"
+    ).tag(config=True)
+
+    dl2_telescope = traits.Bool(
+        True, help="Whether to include dl2 telescope-event-wise data in merged output"
+    ).tag(config=True)
+
+    monitoring = traits.Bool(
+        True, help="Whether to include monitoring data in merged output"
+    ).tag(config=True)
+
+    processing_statistics = traits.Bool(
+        True, help="Whether to include processing statistics in merged output"
+    ).tag(config=True)
+
+    single_ob = traits.Bool(
+        False,
+        help=(
+            "If true, input files are assumed to be multiple chunks from the same"
+            " observation block and the ob / sb blocks will only be copied from "
+            " the first input file"
+        ),
+    ).tag(config=True)
+
+    def __init__(self, output_path=None, **kwargs):
+        super().__init__(output_path=output_path, **kwargs)
+        # Check for incompatible options, because monitoring data of the
+        # same observation block should be stacked by the HDF5Stacker.
+        # if self.single_ob and self.monitoring:
+        #    raise traits.TraitError(
+        #        "'single_ob' cannot be True when 'monitoring' is True. "
+        #        "If you want to stack monitoring data for the same observation block "
+        #        "please use the HDF5Stacker Component."
+        #        )
+        # Force checking required nodes when new files are merged
+        self.force_required_nodes = True
+        # If appending to existing file, get required nodes from there
+        if self.appending:
+            self.required_nodes = _get_required_nodes(self.h5file)
+
+    def _check_obs_ids(self, other):
+        keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
+        for key in keys:
+            if key in other.root:
+                obs_ids = other.root[key].col("obs_id")
+                break
+        else:
+            raise CannotMerge(
+                f"Input file {other.filename} is missing keys required to"
+                f" check for duplicated obs_ids. Tried: {keys}"
+            )
+
+        if self.single_ob and len(self._merged_obs_ids) > 0:
+            different = self._merged_obs_ids.symmetric_difference(obs_ids)
+            if len(different) > 0:
+                msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
+                raise CannotMerge(msg)
+        else:
+            duplicated = self._merged_obs_ids.intersection(obs_ids)
+            if len(duplicated) > 0:
+                msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
+                raise CannotMerge(msg)
+
+        self._merged_obs_ids.update(obs_ids)
+
+    def _append(self, other):
+        self._check_obs_ids(other)
+
+        # Configuration
+        super()._append_subarray(other)
+
+        # in case of "single_ob", we only copy sb/ob blocks for the first file
+        if not self.single_ob or self._n_merged == 0:
+            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
+            for key in config_keys:
+                if key in other.root:
+                    super()._append_table(other, other.root[key])
+
+        if FIXED_POINTING_GROUP in other.root:
+            super()._append_table_group(
+                other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
+            )
+
+        # Simulation
+        simulation_table_keys = [
+            SIMULATION_RUN_TABLE,
+            SHOWER_DISTRIBUTION_TABLE,
+            SIMULATION_SHOWER_TABLE,
+        ]
+        for key in simulation_table_keys:
+            if self.simulation and key in other.root:
+                super()._append_table(other, other.root[key])
+
+        if (
+            self.telescope_events
+            and self.simulation
+            and SIMULATION_IMPACT_GROUP in other.root
+        ):
+            super()._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
+
+        if (
+            self.telescope_events
+            and self.simulation
+            and SIMULATION_IMAGES_GROUP in other.root
+        ):
+            filter_columns = None if self.true_images else ["true_image"]
+            super()._append_table_group(
+                other, other.root[SIMULATION_IMAGES_GROUP], filter_columns
+            )
+
+        if (
+            self.telescope_events
+            and self.simulation
+            and self.true_parameters
+            and SIMULATION_PARAMETERS_GROUP in other.root
+        ):
+            super()._append_table_group(other, other.root[SIMULATION_PARAMETERS_GROUP])
+
+        # R0
+        if self.telescope_events and self.r0_waveforms and R0_TEL_GROUP in other.root:
+            super()._append_table_group(other, other.root[R0_TEL_GROUP])
+
+        # R1
+        if self.telescope_events and self.r1_waveforms and R1_TEL_GROUP in other.root:
+            super()._append_table_group(other, other.root[R1_TEL_GROUP])
+
+        # DL1
+        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
+            super()._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
+
+        if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
+            super()._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
+
+        if (
+            self.telescope_events
+            and self.dl1_images
+            and DL1_TEL_IMAGES_GROUP in other.root
+        ):
+            super()._append_table_group(other, other.root[DL1_TEL_IMAGES_GROUP])
+
+        if (
+            self.telescope_events
+            and self.dl1_parameters
+            and DL1_TEL_PARAMETERS_GROUP in other.root
+        ):
+            super()._append_table_group(other, other.root[DL1_TEL_PARAMETERS_GROUP])
+
+        if self.telescope_events and self.dl1_muon and DL1_TEL_MUON_GROUP in other.root:
+            super()._append_table_group(other, other.root[DL1_TEL_MUON_GROUP])
+
+        # DL2
+        if self.telescope_events and self.dl2_telescope and DL2_TEL_GROUP in other.root:
+            for kind_group in other.root[DL2_TEL_GROUP]._f_iter_nodes("Group"):
+                for iter_group in kind_group._f_iter_nodes("Group"):
+                    super()._append_table_group(other, iter_group)
+
+        if self.dl2_subarray and DL2_SUBARRAY_GROUP in other.root:
+            for kind_group in other.root[DL2_SUBARRAY_GROUP]._f_iter_nodes("Group"):
+                for table in kind_group._f_iter_nodes("Table"):
+                    super()._append_table(other, table)
+
+        # Pointing monitoring
+        if self.monitoring and DL1_SUBARRAY_POINTING_GROUP in other.root:
+            super()._append_table(other, other.root[DL1_SUBARRAY_POINTING_GROUP])
+
+        if (
+            self.monitoring
+            and self.telescope_events
+            and DL0_TEL_POINTING_GROUP in other.root
+        ):
+            super()._append_table_group(other, other.root[DL0_TEL_POINTING_GROUP])
+
+        if (
+            self.monitoring
+            and self.telescope_events
+            and DL1_TEL_POINTING_GROUP in other.root
+        ):
+            super()._append_table_group(other, other.root[DL1_TEL_POINTING_GROUP])
+
+        # Calibration coefficients monitoring
+        if (
+            self.monitoring
+            and self.telescope_events
+            and DL1_CAMERA_COEFFICIENTS_GROUP in other.root
+        ):
+            super()._append_table_group(
+                other, other.root[DL1_CAMERA_COEFFICIENTS_GROUP]
+            )
+
+        # Pixel statistics monitoring
+        for dl1_colname in DL1_COLUMN_NAMES:
+            for event_type in EventType:
+                key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
+                if self.monitoring and self.telescope_events and key in other.root:
+                    super()._append_table_group(other, other.root[key])
+
+        # quality query statistics
+        if DL1_IMAGE_STATISTICS_TABLE in other.root:
+            super()._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
+
+        if DL2_EVENT_STATISTICS_GROUP in other.root:
+            for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
+                super()._add_statistics_table(other, node)
