@@ -305,7 +305,7 @@ class HDF5MergerBase(Component):
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
                 if self.telescope_events and key in other.root:
-                    super()._append_table_group(other, other.root[key], once=once)
+                    self._append_table_group(other, other.root[key], once=once)
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
