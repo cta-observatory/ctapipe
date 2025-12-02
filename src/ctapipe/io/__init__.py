@@ -4,6 +4,7 @@ ctapipe io module
 # order matters to prevent circular imports
 isort:skip_file
 """
+
 from .astropy_helpers import read_table, write_table  # noqa: I001
 from .datalevels import DataLevel
 from .dl2_tables_preprocessing import DL2EventPreprocessor, DL2EventLoader
@@ -12,7 +13,7 @@ from .eventseeker import EventSeeker
 from .tableio import TableReader, TableWriter
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableloader import TableLoader
-from .hdf5merger import HDF5Merger
+from .hdf5merger import HDF5MergerBase, HDF5Merger, HDF5Stacker
 from .hdf5monitoringsource import HDF5MonitoringSource, get_hdf5_monitoring_types
 from .monitoringsource import MonitoringSource
 from .monitoringtypes import MonitoringType
@@ -25,7 +26,9 @@ from .datawriter import DATA_MODEL_VERSION, DataWriter
 __all__ = [
     "HDF5TableWriter",
     "HDF5TableReader",
+    "HDF5MergerBase",
     "HDF5Merger",
+    "HDF5Stacker",
     "TableWriter",
     "TableReader",
     "TableLoader",
