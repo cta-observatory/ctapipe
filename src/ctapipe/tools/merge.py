@@ -14,8 +14,8 @@ from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io.hdf5merger import CannotMerge
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import Bool, Unicode, flag
-from ..io import HDF5Merger
+from ..core.traits import Bool, ComponentName, Unicode, flag
+from ..io import HDF5MergerBase
 from ..io import metadata as meta
 
 __all__ = ["MergeTool"]
@@ -27,7 +27,7 @@ class MergeTool(Tool):
     """
 
     name = "ctapipe-merge"
-    description = "Merge multiple ctapipe HDF5 files into one"
+    description = "Merge/stack multiple ctapipe HDF5 files into one"
 
     examples = """
     To merge several files in the current directory:
@@ -40,6 +40,12 @@ class MergeTool(Tool):
     --pattern='*.dl1.h5'
 
     If no pattern is given, all .h5 files in the given directory will be taken as input.
+
+    For stacking monitoring files, use:
+
+    > ctapipe-merge /input/dir/monitoring1.h5 /input/dir/monitoring2.h5 \
+    --merger-type=HDF5Stacker --output=/path/output_file.h5 --progress
+
     """
     input_dir = traits.Path(
         default_value=None,
@@ -54,6 +60,10 @@ class MergeTool(Tool):
         traits.Path(exists=True, directory_ok=False),
         default_value=[],
         help="Input CTA HDF5 files",
+    ).tag(config=True)
+
+    merger_component_type = ComponentName(
+        HDF5MergerBase, default_value="HDF5Merger"
     ).tag(config=True)
 
     progress_bar = Bool(
@@ -76,8 +86,9 @@ class MergeTool(Tool):
 
     aliases = {
         ("i", "input-dir"): "MergeTool.input_dir",
-        ("o", "output"): "HDF5Merger.output_path",
+        ("o", "output"): "HDF5MergerBase.output_path",
         ("p", "pattern"): "MergeTool.file_pattern",
+        ("t", "merger-type"): "MergeTool.merger_component_type",
     }
 
     flags = {
@@ -94,16 +105,16 @@ class MergeTool(Tool):
             "Show a progress bar for all given input files",
         ),
         "overwrite": (
-            {"HDF5Merger": {"overwrite": True}},
+            {"HDF5MergerBase": {"overwrite": True}},
             "Overwrite existing files",
         ),
         "append": (
-            {"HDF5Merger": {"append": True}},
+            {"HDF5MergerBase": {"append": True}},
             "Append to existing files",
         ),
         **flag(
             "telescope-events",
-            "HDF5Merger.telescope_events",
+            "HDF5MergerBase.telescope_events",
             "Include telescope-wise data",
             "Exclude telescope-wise data",
         ),
@@ -163,7 +174,7 @@ class MergeTool(Tool):
         ),
     }
 
-    classes = [HDF5Merger]
+    classes = [HDF5MergerBase]
 
     def setup(self):
         # Get input Files
@@ -186,7 +197,9 @@ class MergeTool(Tool):
                 f"Same file given multiple times. Duplicated files are: {duplicated}"
             )
 
-        self.merger = self.enter_context(HDF5Merger(parent=self))
+        self.merger = self.enter_context(
+            HDF5MergerBase.from_name(self.merger_component_type, parent=self)
+        )
         if self.merger.output_path in self.input_files:
             raise ToolConfigurationError(
                 "Output path contained in input files. Fix your configuration / cli arguments."
