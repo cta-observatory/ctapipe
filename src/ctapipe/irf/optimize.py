@@ -66,20 +66,20 @@ class OptimizationResult:
         self.multiplicity_cuts = multiplicity_cuts
 
     def __repr__(self):
-        repr = f"<OptimizationResult with {len(self.gh_cuts)} G/H bins"
+        representation = f"<OptimizationResult with {len(self.gh_cuts)} G/H bins"
 
         if self.spatial_selection_table is not None:
-            repr += f", and {len(self.spatial_selection_table)} theta bins"
+            representation += f", and {len(self.spatial_selection_table)} theta bins"
 
         if self.multiplicity_cuts is not None:
-            repr += f", and {len(self.multiplicity_cuts)} multiplicity bins"
+            representation += f", and {len(self.multiplicity_cuts)} multiplicity bins"
 
-        repr += (
+        representation += (
             f" valid between {self.valid_offset.min} to {self.valid_offset.max}"
             f" and {self.valid_energy.min} to {self.valid_energy.max}"
             f" with {len(self.quality_query.quality_criteria)} quality criteria>"
         )
-        return repr
+        return representation
 
     def write(self, output_name: Path | str, overwrite: bool = False) -> None:
         """Write an ``OptimizationResult`` to a file in FITS format."""
