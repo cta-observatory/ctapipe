@@ -24,10 +24,10 @@ from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_CAMERA_MONITORING_GROUP,
-    FIXED_POINTING_GROUP,
-    SIMULATION_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_TRIGGER_TABLE,
+    FIXED_POINTING_GROUP,
+    SIMULATION_GROUP,
 )
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
