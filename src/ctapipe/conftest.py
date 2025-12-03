@@ -792,7 +792,10 @@ def calibpipe_camcalib_different_chunks_obs(
 
 @pytest.fixture(scope="session")
 def dl1_merged_monitoring_file(
-    dl1_tmp_path, dl1_image_file, dl1_mon_pointing_file, calibpipe_camcalib_different_chunks
+    dl1_tmp_path,
+    dl1_image_file,
+    dl1_mon_pointing_file,
+    calibpipe_camcalib_different_chunks,
 ):
     """
     File containing both camera and pointing monitoring data.
