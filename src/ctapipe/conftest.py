@@ -26,6 +26,8 @@ from ctapipe.io.hdf5dataformat import (
     DL1_CAMERA_MONITORING_GROUP,
     FIXED_POINTING_GROUP,
     SIMULATION_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_TRIGGER_TABLE,
 )
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
@@ -734,6 +736,10 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     with tables.open_file(path, "r+") as f:
         # Remove the constant pointing
         f.remove_node(FIXED_POINTING_GROUP, recursive=True)
+        # Remove the subarray trigger table
+        f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=True)
+        # Remove the telescope trigger table
+        f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=True)
         # Remove camera-related monitoring data
         f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
 
