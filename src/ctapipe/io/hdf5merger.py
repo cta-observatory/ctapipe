@@ -351,7 +351,9 @@ class HDF5Merger(Component):
 
         if self.single_ob and len(self._merged_obs_ids) > 0:
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
-            if len(different) > 0:
+            # If monitoring data from the same observation block is being attached,
+            # obs_ids can be different in case of MC simulations.
+            if len(different) > 0 and not self.monitoring:
                 msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
                 raise CannotMerge(msg)
         else:
