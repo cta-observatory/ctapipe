@@ -474,7 +474,9 @@ class HDF5Merger(Component):
             self._append_table_group(other, other.root[R1_TEL_GROUP])
 
         # DL1
-        stack_trigger_table = self._check_event_types(other) if attach_monitoring else True
+        stack_trigger_table = (
+            self._check_event_types(other) if attach_monitoring else True
+        )
         if stack_trigger_table:
             if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
                 self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
