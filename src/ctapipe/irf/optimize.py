@@ -532,7 +532,7 @@ class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: DL2EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         self._check_events(events)

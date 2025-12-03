@@ -400,13 +400,13 @@ class IrfTool(Tool):
                     "selected_gh"
                 ]
                 if self.opt_result.multiplicity_cuts is not None:
-                    reduced_events[bkg_type][
-                        "selected_multiplicity"
-                    ] = evaluate_binned_cut(
-                        reduced_events[bkg_type]["multiplicity"],
-                        reduced_events[bkg_type]["reco_energy"],
-                        self.opt_result.multiplicity_cuts,
-                        operator.ge,
+                    reduced_events[bkg_type]["selected_multiplicity"] = (
+                        evaluate_binned_cut(
+                            reduced_events[bkg_type]["multiplicity"],
+                            reduced_events[bkg_type]["reco_energy"],
+                            self.opt_result.multiplicity_cuts,
+                            operator.ge,
+                        )
                     )
                     reduced_events[bkg_type]["selected"] &= reduced_events[bkg_type][
                         "selected_multiplicity"
