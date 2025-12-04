@@ -635,6 +635,13 @@ class HDF5Merger(Component):
         if not self.single_ob or not self.monitoring:
             if self.subarray != subarray:
                 raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
+        else:
+            if not SubarrayDescription.check_matching_subarrays(
+                [self.subarray, subarray]
+            ):
+                raise CannotMerge(
+                    f"Subarrays are not compatible for file: {other.filename}"
+                )
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
