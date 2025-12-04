@@ -480,10 +480,10 @@ def test_order_merged():
             check_equal_array_event_order(table, tel_trigger[mask])
 
 
-def test_interpolate_pointing(dl1_mon_pointing_file):
+def test_interpolate_pointing(dl1_merged_monitoring_file):
     from ctapipe.io import TableLoader
 
-    with TableLoader(dl1_mon_pointing_file, pointing=True) as loader:
+    with TableLoader(dl1_merged_monitoring_file, pointing=True) as loader:
         events = loader.read_telescope_events([1])
         assert len(events) > 0
         assert "telescope_pointing_azimuth" in events.colnames
