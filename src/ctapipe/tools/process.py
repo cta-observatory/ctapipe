@@ -19,6 +19,8 @@ from ..io import (
     DataLevel,
     DataWriter,
     EventSource,
+    HDF5Merger,
+    HDF5MonitoringSource,
     MonitoringSource,
     MonitoringType,
     metadata,
@@ -240,9 +242,7 @@ class ProcessorTool(Tool):
             atmosphere_profile=self.event_source.atmosphere_density_profile,
             parent=self,
         )
-        self.write = self.enter_context(
-            DataWriter(event_source=self.event_source, parent=self)
-        )
+        self.write = DataWriter(event_source=self.event_source, parent=self)
 
         self.process_muons = None
         if self.should_compute_muon_parameters:
@@ -378,6 +378,29 @@ class ProcessorTool(Tool):
         self.write.write_simulated_shower_distributions(shower_dists)
 
         self._write_processing_statistics()
+
+        # Attach monitoring data if applicable
+        output_path = str(self.write.output_path)
+        self.write.finish()
+        for mon_source in self._monitoring_sources:
+            if isinstance(mon_source, HDF5MonitoringSource):
+                for mon_h5file in mon_source.input_files:
+                    self.log.info(
+                        "Attaching monitoring data from '%s'.", str(mon_h5file)
+                    )
+                    with HDF5Merger(
+                        parent=self,
+                        output_path=output_path,
+                        simulation=False,
+                        r0_waveforms=False,
+                        r1_waveforms=False,
+                        dl1_images=False,
+                        processing_statistics=False,
+                        single_ob=True,
+                        monitoring=True,
+                        append=True,
+                    ) as merger:
+                        merger(str(mon_h5file))
 
 
 def main():
