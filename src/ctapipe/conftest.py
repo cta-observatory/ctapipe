@@ -19,11 +19,11 @@ from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
-from ctapipe.io import SimTelEventSource
+from ctapipe.io import SimTelEventSource, read_table, write_table
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
-    DL1_CAMERA_MONITORING_GROUP,
+    DL1_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_TRIGGER_TABLE,
     FIXED_POINTING_GROUP,
@@ -201,17 +201,38 @@ def proton_dl2_train_small_h5():
 
 @pytest.fixture(scope="session")
 def calibpipe_camcalib_single_chunk():
-    return get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+    path = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+    # Make sure event_type is present in tel trigger table
+    event_type = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)["event_type"]
+    tel_trigger_table = read_table(path, DL1_TEL_TRIGGER_TABLE)
+    if "event_type" not in tel_trigger_table.colnames:
+        tel_trigger_table.add_column(event_type)
+        write_table(tel_trigger_table, path, DL1_TEL_TRIGGER_TABLE, overwrite=True)
+    return path
 
 
 @pytest.fixture(scope="session")
 def calibpipe_camcalib_same_chunks():
-    return get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
+    path = get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
+    # Make sure event_type is present in tel trigger table
+    event_type = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)["event_type"]
+    tel_trigger_table = read_table(path, DL1_TEL_TRIGGER_TABLE)
+    if "event_type" not in tel_trigger_table.colnames:
+        tel_trigger_table.add_column(event_type)
+        write_table(tel_trigger_table, path, DL1_TEL_TRIGGER_TABLE, overwrite=True)
+    return path
 
 
 @pytest.fixture(scope="session")
 def calibpipe_camcalib_different_chunks():
-    return get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
+    path = get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
+    # Make sure event_type is present in tel trigger table
+    event_type = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)["event_type"]
+    tel_trigger_table = read_table(path, DL1_TEL_TRIGGER_TABLE)
+    if "event_type" not in tel_trigger_table.colnames:
+        tel_trigger_table.add_column(event_type)
+        write_table(tel_trigger_table, path, DL1_TEL_TRIGGER_TABLE, overwrite=True)
+    return path
 
 
 @pytest.fixture(scope="session")
@@ -499,6 +520,32 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl1_tel1_file(dl1_tmp_path, prod5_gamma_simtel_path):
+    """
+    DL1 file containing only data for telescope 1 from a gamma simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "gamma_tel1.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(_lock_file(output)):
+        if output.is_file():
+            return output
+        tel_id = 1
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            f"--EventSource.allowed_tels={tel_id}",
+            "--write-images",
+            "--max-events=20",
+            "--DataWriter.Contact.name=αℓℓ the äüöß",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
@@ -711,14 +758,15 @@ def reference_location():
 
 @pytest.fixture(scope="session")
 def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
-    from ctapipe.io import read_table, write_table
-
     path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
     shutil.copy(calibpipe_camcalib_same_chunks, path)
 
     tel_id = 1
     # create some dummy monitoring data
-    time = read_table(path, f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}")["time"]
+    time = read_table(
+        calibpipe_camcalib_same_chunks,
+        f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
+    )["time"]
     start, stop = time[[0, -1]]
     duration = (stop - start).to_value(u.s)
 
@@ -736,23 +784,22 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
     with tables.open_file(path, "r+") as f:
         # Remove the constant pointing
         f.remove_node(FIXED_POINTING_GROUP, recursive=True)
-        # Remove the subarray trigger table
-        f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=True)
-        # Remove the telescope trigger table
-        f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=True)
-        # Remove camera-related monitoring data
-        f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
+        # Remove the DL1 table
+        f.remove_node(DL1_GROUP, recursive=True)
 
     return path
 
 
 @pytest.fixture(scope="session")
 def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
-    path = dl1_tmp_path / "dl1_mon_pointingobs.dl1.h5"
+    path = dl1_tmp_path / "dl1_mon_pointing_obs.dl1.h5"
     shutil.copy(dl1_mon_pointing_file, path)
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
+            table.cols.event_type[:] = np.abs(table.col("event_type"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
@@ -765,8 +812,10 @@ def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
+            table.cols.event_type[:] = np.abs(table.col("event_type"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
-
     return path
 
 
@@ -777,8 +826,10 @@ def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_p
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
+            table.cols.event_type[:] = np.abs(table.col("event_type"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
-
     return path
 
 
@@ -791,6 +842,9 @@ def calibpipe_camcalib_different_chunks_obs(
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
+            table.cols.event_type[:] = np.abs(table.col("event_type"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
@@ -799,7 +853,7 @@ def calibpipe_camcalib_different_chunks_obs(
 @pytest.fixture(scope="session")
 def dl1_merged_monitoring_file(
     dl1_tmp_path,
-    dl1_image_file,
+    dl1_tel1_file,
     dl1_mon_pointing_file,
     calibpipe_camcalib_different_chunks,
 ):
@@ -809,17 +863,15 @@ def dl1_merged_monitoring_file(
     from ctapipe.tools.merge import MergeTool
 
     output = dl1_tmp_path / "dl1_merged_monitoring_file.h5"
+    shutil.copy(dl1_tel1_file, output)
 
     # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
-        if output.is_file():
-            return output
-
         argv = [
             f"--output={output}",
-            str(dl1_image_file),
             str(dl1_mon_pointing_file),
             str(calibpipe_camcalib_different_chunks),
+            "--append",
             "--monitoring",
             "--single-ob",
         ]
@@ -834,6 +886,9 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
+            table.cols.event_type[:] = np.abs(table.col("event_type"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path

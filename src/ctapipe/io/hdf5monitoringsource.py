@@ -30,6 +30,7 @@ from .hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
+    DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_CALIBRATION_GROUP,
 )
 from .metadata import read_reference_metadata
@@ -222,7 +223,19 @@ class HDF5MonitoringSource(MonitoringSource):
 
         with tables.open_file(file) as open_file:
             # Validate simulation consistency
-            file_is_simulation = "simulation" in open_file.root
+            # Determine if the file is from simulation.
+            # First check for the presence of the simulation group.
+            file_is_simulation = False
+            if "simulation" in open_file.root:
+                file_is_simulation = True
+            else:
+                # Check for negative event types in the DL1 subarray trigger table
+                # as an indicator for simulation data.
+                if DL1_SUBARRAY_TRIGGER_TABLE in open_file.root:
+                    if np.any(
+                        open_file.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_type") < 0
+                    ):
+                        file_is_simulation = True
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
