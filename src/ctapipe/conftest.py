@@ -799,7 +799,7 @@ def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
     with tables.open_file(path, "r+") as f:
         if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
             table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_type[:] = np.abs(table.col("event_type"))
+            table.cols.event_id[:] = np.abs(table.col("event_id"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
@@ -814,7 +814,7 @@ def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp
     with tables.open_file(path, "r+") as f:
         if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
             table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_type[:] = np.abs(table.col("event_type"))
+            table.cols.event_id[:] = np.abs(table.col("event_id"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
     return path
 
@@ -828,7 +828,7 @@ def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_p
     with tables.open_file(path, "r+") as f:
         if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
             table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_type[:] = np.abs(table.col("event_type"))
+            table.cols.event_id[:] = np.abs(table.col("event_id"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
     return path
 
@@ -844,7 +844,7 @@ def calibpipe_camcalib_different_chunks_obs(
     with tables.open_file(path, "r+") as f:
         if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
             table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_type[:] = np.abs(table.col("event_type"))
+            table.cols.event_id[:] = np.abs(table.col("event_id"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path
@@ -888,7 +888,7 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
     with tables.open_file(path, "r+") as f:
         if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
             table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_type[:] = np.abs(table.col("event_type"))
+            table.cols.event_id[:] = np.abs(table.col("event_id"))
         f.remove_node(SIMULATION_GROUP, recursive=True)
 
     return path

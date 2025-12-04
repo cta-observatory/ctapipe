@@ -233,7 +233,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 # as an indicator for simulation data.
                 if DL1_SUBARRAY_TRIGGER_TABLE in open_file.root:
                     if np.any(
-                        open_file.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_type") < 0
+                        open_file.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_id") < 0
                     ):
                         file_is_simulation = True
 
