@@ -538,8 +538,6 @@ def dl1_tel1_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             f"--EventSource.allowed_tels={tel_id}",
             "--write-images",
-            "--max-events=20",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output

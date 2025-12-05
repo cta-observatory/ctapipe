@@ -231,11 +231,10 @@ class HDF5MonitoringSource(MonitoringSource):
             else:
                 # Check for negative event types in the DL1 subarray trigger table
                 # as an indicator for simulation data.
-                if DL1_SUBARRAY_TRIGGER_TABLE in open_file.root:
-                    if np.any(
-                        open_file.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_id") < 0
-                    ):
-                        file_is_simulation = True
+                if DL1_SUBARRAY_TRIGGER_TABLE in open_file.root and np.any(
+                    open_file.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_id") < 0
+                ):
+                    file_is_simulation = True
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
