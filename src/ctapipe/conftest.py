@@ -6,6 +6,7 @@ import importlib
 import importlib.util
 import json
 import shutil
+import warnings
 from copy import deepcopy
 from pathlib import Path
 
@@ -202,36 +203,36 @@ def proton_dl2_train_small_h5():
 @pytest.fixture(scope="session")
 def calibpipe_camcalib_single_chunk():
     path = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
-    # Make sure event_type is present in tel trigger table
-    event_type = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)["event_type"]
-    tel_trigger_table = read_table(path, DL1_TEL_TRIGGER_TABLE)
-    if "event_type" not in tel_trigger_table.colnames:
-        tel_trigger_table.add_column(event_type)
-        write_table(tel_trigger_table, path, DL1_TEL_TRIGGER_TABLE, overwrite=True)
+    # Remove the DL1 table
+    with tables.open_file(path, mode="r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=False)
+        if DL1_TEL_TRIGGER_TABLE in f.root:
+            f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=False)
     return path
 
 
 @pytest.fixture(scope="session")
 def calibpipe_camcalib_same_chunks():
     path = get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
-    # Make sure event_type is present in tel trigger table
-    event_type = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)["event_type"]
-    tel_trigger_table = read_table(path, DL1_TEL_TRIGGER_TABLE)
-    if "event_type" not in tel_trigger_table.colnames:
-        tel_trigger_table.add_column(event_type)
-        write_table(tel_trigger_table, path, DL1_TEL_TRIGGER_TABLE, overwrite=True)
+    # Remove the DL1 table
+    with tables.open_file(path, mode="r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=False)
+        if DL1_TEL_TRIGGER_TABLE in f.root:
+            f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=False)
     return path
 
 
 @pytest.fixture(scope="session")
 def calibpipe_camcalib_different_chunks():
     path = get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
-    # Make sure event_type is present in tel trigger table
-    event_type = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)["event_type"]
-    tel_trigger_table = read_table(path, DL1_TEL_TRIGGER_TABLE)
-    if "event_type" not in tel_trigger_table.colnames:
-        tel_trigger_table.add_column(event_type)
-        write_table(tel_trigger_table, path, DL1_TEL_TRIGGER_TABLE, overwrite=True)
+    # Remove the DL1 table
+    with tables.open_file(path, mode="r+") as f:
+        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
+            f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=False)
+        if DL1_TEL_TRIGGER_TABLE in f.root:
+            f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=False)
     return path
 
 
@@ -520,7 +521,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
-def dl1_tel1_file(dl1_tmp_path, prod5_gamma_simtel_path):
+def dl1_tel1_file(dl1_tmp_path, prod6_gamma_simtel_path):
     """
     DL1 file containing only data for telescope 1 from a gamma simulation set.
     """
@@ -534,7 +535,7 @@ def dl1_tel1_file(dl1_tmp_path, prod5_gamma_simtel_path):
             return output
         tel_id = 1
         argv = [
-            f"--input={prod5_gamma_simtel_path}",
+            f"--input={prod6_gamma_simtel_path}",
             f"--output={output}",
             f"--EventSource.allowed_tels={tel_id}",
             "--write-images",
@@ -795,11 +796,15 @@ def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_id[:] = np.abs(table.col("event_id"))
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if (
+            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
+            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
     return path
 
 
@@ -810,10 +815,15 @@ def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_id[:] = np.abs(table.col("event_id"))
-        f.remove_node(SIMULATION_GROUP, recursive=True)
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if (
+            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
+            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
     return path
 
 
@@ -824,10 +834,15 @@ def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_p
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_id[:] = np.abs(table.col("event_id"))
-        f.remove_node(SIMULATION_GROUP, recursive=True)
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if (
+            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
+            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
     return path
 
 
@@ -840,11 +855,15 @@ def calibpipe_camcalib_different_chunks_obs(
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_id[:] = np.abs(table.col("event_id"))
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if (
+            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
+            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
     return path
 
 
@@ -884,11 +903,15 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            table = f.root[DL1_SUBARRAY_TRIGGER_TABLE]
-            table.cols.event_id[:] = np.abs(table.col("event_id"))
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if (
+            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
+            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
     return path
 
 

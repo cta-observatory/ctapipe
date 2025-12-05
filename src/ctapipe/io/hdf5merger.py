@@ -141,6 +141,11 @@ class HDF5Merger(Component):
         help="Whether to include telescope-wise data in merged output",
     ).tag(config=True)
 
+    trigger = traits.Bool(
+        True,
+        help="Whether to include data related to the trigger in merged output",
+    ).tag(config=True)
+
     simulation = traits.Bool(
         True,
         help="Whether to include data only known for simulations in merged output",
@@ -236,7 +241,7 @@ class HDF5Merger(Component):
         self.data_model_version = None
         self.subarray = None
         self.meta = None
-        self._merged_obs_ids, self._merged_event_types = set(), set()
+        self._merged_obs_ids = set()
         self._n_merged = 0
 
         # output file existed, so read subarray and data model version to make sure
@@ -257,11 +262,6 @@ class HDF5Merger(Component):
             if not self.single_ob or not self.monitoring:
                 # Get required nodes from existing output file
                 self.required_nodes = _get_required_nodes(self.h5file)
-            # Event types treatment only relevant for attaching
-            # monitoring data of the same observation block.
-            if self.single_ob and self.monitoring:
-                # this will update _merged_event_types from existing input file
-                _ = self._check_event_types(self.h5file)
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
@@ -364,22 +364,6 @@ class HDF5Merger(Component):
 
         self._merged_obs_ids.update(obs_ids)
 
-    def _check_event_types(self, other):
-        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
-            event_types = other.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_type")
-            if len(self._merged_event_types) > 0:
-                different = self._merged_event_types.symmetric_difference(event_types)
-                if len(different) > 0:
-                    self._merged_event_types.update(different)
-                    return True
-                else:
-                    return False
-            else:
-                self._merged_event_types.update(event_types)
-                return True
-        else:
-            return False
-
     def _append(self, other):
         self._check_obs_ids(other)
 
@@ -476,14 +460,14 @@ class HDF5Merger(Component):
             self._append_table_group(other, other.root[R1_TEL_GROUP])
 
         # DL1
-        stack_trigger_table = (
-            self._check_event_types(other) if attach_monitoring else True
-        )
-        if stack_trigger_table:
-            if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
-                self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
-            if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
-                self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
+        if (
+            self.telescope_events
+            and not attach_monitoring
+            and DL1_TEL_TRIGGER_TABLE in other.root
+        ):
+            self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
+        if not attach_monitoring and DL1_SUBARRAY_TRIGGER_TABLE in other.root:
+            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
         if (
             self.telescope_events
