@@ -391,6 +391,7 @@ class ProcessorTool(Tool):
                     with HDF5Merger(
                         parent=self,
                         output_path=output_path,
+                        trigger=False,
                         simulation=False,
                         r0_waveforms=False,
                         r1_waveforms=False,
