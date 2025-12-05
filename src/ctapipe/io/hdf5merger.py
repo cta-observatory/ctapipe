@@ -14,10 +14,12 @@ from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
 from .hdf5dataformat import (
+    DL0_MONITORING_GROUP,
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_COLUMN_NAMES,
     DL1_IMAGE_STATISTICS_TABLE,
+    DL1_MONITORING_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
@@ -133,6 +135,11 @@ class HDF5Merger(Component):
         help="Whether to include telescope-wise data in merged output",
     ).tag(config=True)
 
+    trigger = traits.Bool(
+        True,
+        help="Whether to include data related to the trigger in merged output",
+    ).tag(config=True)
+
     simulation = traits.Bool(
         True,
         help="Whether to include data only known for simulations in merged output",
@@ -182,7 +189,7 @@ class HDF5Merger(Component):
     ).tag(config=True)
 
     monitoring = traits.Bool(
-        True, help="Whether to include monitoring data in merged output"
+        False, help="Whether to include monitoring data in merged output"
     ).tag(config=True)
 
     processing_statistics = traits.Bool(
@@ -226,6 +233,7 @@ class HDF5Merger(Component):
 
         self.required_nodes = None
         self.data_model_version = None
+        self.data_category = None
         self.subarray = None
         self.meta = None
         self._merged_obs_ids = set()
@@ -236,6 +244,7 @@ class HDF5Merger(Component):
         if appending:
             self.meta = self._read_meta(self.h5file)
             self.data_model_version = self.meta.product.data_model_version
+            self.data_category = self.meta.product.data_category
 
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
@@ -243,7 +252,12 @@ class HDF5Merger(Component):
                 self.h5file,
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
-            self.required_nodes = _get_required_nodes(self.h5file)
+
+            # Required nodes are not relevant for attaching
+            # monitoring data of the same observation block.
+            if not self.single_ob or not self.monitoring:
+                # Get required nodes from existing output file
+                self.required_nodes = _get_required_nodes(self.h5file)
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
@@ -262,6 +276,7 @@ class HDF5Merger(Component):
             if self._n_merged == 0:
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.product.data_model_version
+                self.data_category = self.meta.product.data_category
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
             else:
                 self._check_can_merge(other)
@@ -269,12 +284,15 @@ class HDF5Merger(Component):
             Provenance().add_input_file(other.filename, "data product to merge")
             try:
                 self._append(other)
-                # if first file, update required nodes
-                if self.required_nodes is None:
-                    self.required_nodes = _get_required_nodes(self.h5file)
-                    self.log.info(
-                        "Updated required nodes to %s", sorted(self.required_nodes)
-                    )
+                # Required nodes are not relevant for attaching
+                # monitoring data of the same observation block.
+                if not self.single_ob or not self.monitoring:
+                    # if first file, update required nodes
+                    if self.required_nodes is None:
+                        self.required_nodes = _get_required_nodes(self.h5file)
+                        self.log.info(
+                            "Updated required nodes to %s", sorted(self.required_nodes)
+                        )
                 self._n_merged += 1
             finally:
                 self._update_meta()
@@ -308,12 +326,19 @@ class HDF5Merger(Component):
                 f"Input file {other.filename:!r} has different data model version:"
                 f" {other_version}, expected {self.data_model_version}"
             )
+        other_category = other_meta.product.data_category
+        if self.data_category != other_category:
+            raise CannotMerge(
+                f"Input file {other.filename:!r} has different data category:"
+                f" {other_category}, expected {self.data_category}"
+            )
 
-        for node_path in self.required_nodes:
-            if node_path not in other.root:
-                raise CannotMerge(
-                    f"Required node {node_path} not found in {other.filename}"
-                )
+        if self.required_nodes is not None:
+            for node_path in self.required_nodes:
+                if node_path not in other.root:
+                    raise CannotMerge(
+                        f"Required node {node_path} not found in {other.filename}"
+                    )
 
     def _check_obs_ids(self, other):
         keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
@@ -329,7 +354,9 @@ class HDF5Merger(Component):
 
         if self.single_ob and len(self._merged_obs_ids) > 0:
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
-            if len(different) > 0:
+            # If monitoring data from the same observation block is being attached,
+            # obs_ids can be different in case of MC simulations.
+            if len(different) > 0 and self.data_category != "Sim":
                 msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
                 raise CannotMerge(msg)
         else:
@@ -346,6 +373,16 @@ class HDF5Merger(Component):
         # Configuration
         self._append_subarray(other)
 
+        # Create boolean to decide whether to attach
+        # monitoring groups of the same observation block
+        attach_monitoring = (
+            self.monitoring
+            and self.single_ob
+            and (
+                DL0_MONITORING_GROUP in other.root or DL1_MONITORING_GROUP in other.root
+            )
+        )
+
         # in case of "single_ob", we only copy sb/ob blocks for the first file
         if not self.single_ob or self._n_merged == 0:
             config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
@@ -353,9 +390,11 @@ class HDF5Merger(Component):
                 if key in other.root:
                     self._append_table(other, other.root[key])
 
-        if FIXED_POINTING_GROUP in other.root:
+        if not attach_monitoring and FIXED_POINTING_GROUP in other.root:
             self._append_table_group(
-                other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
+                other,
+                other.root[FIXED_POINTING_GROUP],
+                once=(self.single_ob and not attach_monitoring),
             )
 
         # Simulation
@@ -365,12 +404,13 @@ class HDF5Merger(Component):
             SIMULATION_SHOWER_TABLE,
         ]
         for key in simulation_table_keys:
-            if self.simulation and key in other.root:
+            if self.simulation and not attach_monitoring and key in other.root:
                 self._append_table(other, other.root[key])
 
         if (
             self.telescope_events
             and self.simulation
+            and not attach_monitoring
             and SIMULATION_IMPACT_GROUP in other.root
         ):
             self._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
@@ -378,6 +418,7 @@ class HDF5Merger(Component):
         if (
             self.telescope_events
             and self.simulation
+            and not attach_monitoring
             and SIMULATION_IMAGES_GROUP in other.root
         ):
             filter_columns = None if self.true_images else ["true_image"]
@@ -388,29 +429,44 @@ class HDF5Merger(Component):
         if (
             self.telescope_events
             and self.simulation
+            and not attach_monitoring
             and self.true_parameters
             and SIMULATION_PARAMETERS_GROUP in other.root
         ):
             self._append_table_group(other, other.root[SIMULATION_PARAMETERS_GROUP])
 
         # R0
-        if self.telescope_events and self.r0_waveforms and R0_TEL_GROUP in other.root:
+        if (
+            self.telescope_events
+            and self.r0_waveforms
+            and not attach_monitoring
+            and R0_TEL_GROUP in other.root
+        ):
             self._append_table_group(other, other.root[R0_TEL_GROUP])
 
         # R1
-        if self.telescope_events and self.r1_waveforms and R1_TEL_GROUP in other.root:
+        if (
+            self.telescope_events
+            and self.r1_waveforms
+            and not attach_monitoring
+            and R1_TEL_GROUP in other.root
+        ):
             self._append_table_group(other, other.root[R1_TEL_GROUP])
 
         # DL1
-        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
-
-        if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
+        if (
+            self.telescope_events
+            and not attach_monitoring
+            and DL1_TEL_TRIGGER_TABLE in other.root
+        ):
             self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
+        if not attach_monitoring and DL1_SUBARRAY_TRIGGER_TABLE in other.root:
+            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
         if (
             self.telescope_events
             and self.dl1_images
+            and not attach_monitoring
             and DL1_TEL_IMAGES_GROUP in other.root
         ):
             self._append_table_group(other, other.root[DL1_TEL_IMAGES_GROUP])
@@ -418,15 +474,26 @@ class HDF5Merger(Component):
         if (
             self.telescope_events
             and self.dl1_parameters
+            and not attach_monitoring
             and DL1_TEL_PARAMETERS_GROUP in other.root
         ):
             self._append_table_group(other, other.root[DL1_TEL_PARAMETERS_GROUP])
 
-        if self.telescope_events and self.dl1_muon and DL1_TEL_MUON_GROUP in other.root:
+        if (
+            self.telescope_events
+            and self.dl1_muon
+            and not attach_monitoring
+            and DL1_TEL_MUON_GROUP in other.root
+        ):
             self._append_table_group(other, other.root[DL1_TEL_MUON_GROUP])
 
         # DL2
-        if self.telescope_events and self.dl2_telescope and DL2_TEL_GROUP in other.root:
+        if (
+            self.telescope_events
+            and self.dl2_telescope
+            and not attach_monitoring
+            and DL2_TEL_GROUP in other.root
+        ):
             for kind_group in other.root[DL2_TEL_GROUP]._f_iter_nodes("Group"):
                 for iter_group in kind_group._f_iter_nodes("Group"):
                     self._append_table_group(other, iter_group)
@@ -470,10 +537,18 @@ class HDF5Merger(Component):
                     self._append_table_group(other, other.root[key])
 
         # quality query statistics
-        if DL1_IMAGE_STATISTICS_TABLE in other.root:
+        if (
+            self.processing_statistics
+            and not attach_monitoring
+            and DL1_IMAGE_STATISTICS_TABLE in other.root
+        ):
             self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
 
-        if DL2_EVENT_STATISTICS_GROUP in other.root:
+        if (
+            self.processing_statistics
+            and not attach_monitoring
+            and DL2_EVENT_STATISTICS_GROUP in other.root
+        ):
             for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
                 self._add_statistics_table(other, node)
 
@@ -499,8 +574,18 @@ class HDF5Merger(Component):
             self.subarray = subarray
             self.subarray.to_hdf(self.h5file)
 
-        elif self.subarray != subarray:
-            raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
+        # Relax subarray matching requirements for attaching
+        # monitoring data of the same observation block.
+        if not self.single_ob or not self.monitoring:
+            if self.subarray != subarray:
+                raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
+        else:
+            if not SubarrayDescription.check_matching_subarrays(
+                [self.subarray, subarray]
+            ):
+                raise CannotMerge(
+                    f"Subarrays are not compatible for file: {other.filename}"
+                )
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
