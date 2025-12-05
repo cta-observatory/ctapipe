@@ -114,6 +114,7 @@ class PixelStatisticsCalculatorTool(Tool):
         with HDF5Merger(
             parent=self,
             output_path=self.output_path,
+            trigger=False,
             simulation=False,
             r0_waveforms=False,
             r1_waveforms=False,

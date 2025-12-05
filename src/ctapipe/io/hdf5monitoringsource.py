@@ -30,7 +30,6 @@ from .hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
-    DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_CALIBRATION_GROUP,
 )
 from .metadata import read_reference_metadata
@@ -229,10 +228,10 @@ class HDF5MonitoringSource(MonitoringSource):
             if "simulation" in open_file.root:
                 file_is_simulation = True
             else:
-                # Check for negative event types in the DL1 subarray trigger table
-                # as an indicator for simulation data.
-                if DL1_SUBARRAY_TRIGGER_TABLE in open_file.root and np.any(
-                    open_file.root[DL1_SUBARRAY_TRIGGER_TABLE].col("event_id") < 0
+                # Check for metadata attribute if simulation group is not present
+                if (
+                    "CTA PRODUCT DATA CATEGORY" in open_file.root._v_attrs
+                    and open_file.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
                 ):
                     file_is_simulation = True
 
