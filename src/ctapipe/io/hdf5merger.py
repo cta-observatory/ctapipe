@@ -239,6 +239,7 @@ class HDF5Merger(Component):
 
         self.required_nodes = None
         self.data_model_version = None
+        self.data_category = None
         self.subarray = None
         self.meta = None
         self._merged_obs_ids = set()
@@ -249,6 +250,7 @@ class HDF5Merger(Component):
         if appending:
             self.meta = self._read_meta(self.h5file)
             self.data_model_version = self.meta.product.data_model_version
+            self.data_category = self.meta.product.data_category
 
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
@@ -280,6 +282,7 @@ class HDF5Merger(Component):
             if self._n_merged == 0:
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.product.data_model_version
+                self.data_category = self.meta.product.data_category
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
             else:
                 self._check_can_merge(other)
@@ -329,6 +332,12 @@ class HDF5Merger(Component):
                 f"Input file {other.filename:!r} has different data model version:"
                 f" {other_version}, expected {self.data_model_version}"
             )
+        other_category = other_meta.product.data_category
+        if self.data_category != other_category:
+            raise CannotMerge(
+                f"Input file {other.filename:!r} has different data category:"
+                f" {other_category}, expected {self.data_category}"
+            )
 
         if self.required_nodes is not None:
             for node_path in self.required_nodes:
@@ -353,7 +362,7 @@ class HDF5Merger(Component):
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
             # If monitoring data from the same observation block is being attached,
             # obs_ids can be different in case of MC simulations.
-            if len(different) > 0 and not self.monitoring:
+            if len(different) > 0 and self.data_category != "Sim":
                 msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
                 raise CannotMerge(msg)
         else:
