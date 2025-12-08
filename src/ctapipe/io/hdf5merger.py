@@ -284,21 +284,20 @@ class HDF5Merger(Component):
                 self.data_model_version = self.meta.product.data_model_version
                 self.data_category = self.meta.product.data_category
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
+                # Required nodes are not relevant for attaching
+                # monitoring data of the same observation block.
+                if not self.single_ob or not self.monitoring:
+                    if self.required_nodes is None:
+                        self.required_nodes = _get_required_nodes(self.h5file)
+                        self.log.info(
+                            "Updated required nodes to %s", sorted(self.required_nodes)
+                        )
             else:
                 self._check_can_merge(other)
 
             Provenance().add_input_file(other.filename, "data product to merge")
             try:
                 self._append(other)
-                # Required nodes are not relevant for attaching
-                # monitoring data of the same observation block.
-                if not self.single_ob or not self.monitoring:
-                    # if first file, update required nodes
-                    if self.required_nodes is None:
-                        self.required_nodes = _get_required_nodes(self.h5file)
-                        self.log.info(
-                            "Updated required nodes to %s", sorted(self.required_nodes)
-                        )
                 self._n_merged += 1
             finally:
                 self._update_meta()
