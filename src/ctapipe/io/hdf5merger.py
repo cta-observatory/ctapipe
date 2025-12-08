@@ -287,11 +287,10 @@ class HDF5Merger(Component):
                 # Required nodes are not relevant for attaching
                 # monitoring data of the same observation block.
                 if not self.single_ob or not self.monitoring:
-                    if self.required_nodes is None:
-                        self.required_nodes = _get_required_nodes(self.h5file)
-                        self.log.info(
-                            "Updated required nodes to %s", sorted(self.required_nodes)
-                        )
+                    self.required_nodes = _get_required_nodes(self.h5file)
+                    self.log.info(
+                        "Updated required nodes to %s", sorted(self.required_nodes)
+                    )
             else:
                 self._check_can_merge(other)
 
