@@ -68,6 +68,14 @@ class StereoCombiner(Component):
     required for combining the chosen :class:`~ctapipe.reco.ReconstructionProperty`.
     """
 
+    weights = CaselessStrEnum(
+        ["none", "intensity", "konrad"],
+        default_value="none",
+        help=(
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+        ),
+    ).tag(config=True)
+
     prefix = Unicode(
         default_value="",
         help="Prefix to be added to the output container / column names.",
@@ -80,6 +88,33 @@ class StereoCombiner(Component):
             "PARTICLE_TYPE). Subclasses may support only a subset."
         ),
     ).tag(config=True)
+
+    def _calculate_weights(self, data):
+        if isinstance(data, Container):
+            if self.weights == "intensity":
+                return data.hillas.intensity
+
+            if self.weights == "konrad":
+                return data.hillas.intensity * data.hillas.length / data.hillas.width
+
+            return 1
+
+        if isinstance(data, Table):
+            if self.weights == "intensity":
+                return data["hillas_intensity"]
+
+            if self.weights == "konrad":
+                return (
+                    data["hillas_intensity"]
+                    * data["hillas_length"]
+                    / data["hillas_width"]
+                )
+
+            return np.ones(len(data))
+
+        raise TypeError(
+            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+        )
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -515,14 +550,6 @@ class StereoDispCombiner(StereoCombiner):
       with higher reliability when resolving the DISP head–tail ambiguity.
     """
 
-    weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"],
-        default_value="none",
-        help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
-        ),
-    ).tag(config=True)
-
     sign_score_limit = Float(
         default_value=0.85,
         min=0,
@@ -547,33 +574,6 @@ class StereoDispCombiner(StereoCombiner):
             )
 
         self.n_tel_combinations = 2
-
-    def _calculate_weights(self, data):
-        if isinstance(data, Container):
-            if self.weights == "intensity":
-                return data.hillas.intensity
-
-            if self.weights == "konrad":
-                return data.hillas.intensity * data.hillas.length / data.hillas.width
-
-            return 1
-
-        if isinstance(data, Table):
-            if self.weights == "intensity":
-                return data["hillas_intensity"]
-
-            if self.weights == "konrad":
-                return (
-                    data["hillas_intensity"]
-                    * data["hillas_length"]
-                    / data["hillas_width"]
-                )
-
-            return np.ones(len(data))
-
-        raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
-        )
 
     def _calc_dist_weights(self, disp, sign_score, signs):
         dist_weight = np.ones(2)
@@ -634,8 +634,8 @@ class StereoDispCombiner(StereoCombiner):
             fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
             valid = True
 
+        # single tel events
         elif len(fov_lon_values) == 1:
-            # single tel events
             fov_lon_weighted_average = hillas_fov_lon + disp * np.cos(hillas_psi)
             fov_lat_weighted_average = hillas_fov_lat + disp * np.sin(hillas_psi)
             valid = True
@@ -821,4 +821,5 @@ class StereoDispCombiner(StereoCombiner):
 
         stereo_table[f"{self.prefix}_telescopes"] = tel_ids
         add_defaults_and_meta(stereo_table, _containers[self.property], self.prefix)
+
         return stereo_table
