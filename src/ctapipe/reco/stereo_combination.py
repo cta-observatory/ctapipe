@@ -575,6 +575,16 @@ class StereoDispCombiner(StereoCombiner):
             "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
         )
 
+    def _calc_dist_weights(self, disp, sign_score, signs):
+        dist_weight = np.ones(2)
+        if self.sign_score_limit is None:
+            return dist_weight
+
+        if sign_score >= self.sign_score_limit:
+            dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
+
+        return dist_weight
+
     def _combine_altaz(self, event):
         ids = []
         fov_lon_values = []
@@ -599,11 +609,8 @@ class StereoDispCombiner(StereoCombiner):
                         f"StereoDispCombiner or adapt the prefix accordingly."
                     )
 
-                dist_weight = np.ones(2)
-                if self.sign_score_limit is not None:
-                    sign_score = dl2.disp[self.prefix].sign_score
-                    if sign_score >= self.sign_score_limit:
-                        dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
+                sign_score = dl2.disp[self.prefix].sign_score
+                dist_weight = self._calc_dist_weights(disp, sign_score, signs)
                 dist_weights.append(dist_weight)
 
                 abs_disp = np.abs(disp)
