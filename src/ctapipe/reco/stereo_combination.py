@@ -590,7 +590,7 @@ class StereoDispCombiner(StereoCombiner):
                 hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
                 hillas_psi = dl1.hillas.psi
-                disp = dl2.disp[self.prefix].parameter.value
+                disp = dl2.disp[self.prefix].parameter.to_value(u.deg)
                 if np.isnan(disp):
                     raise RuntimeError(
                         f"No valid DISP reconstruction parameter found for "
@@ -606,8 +606,9 @@ class StereoDispCombiner(StereoCombiner):
                         dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
                 dist_weights.append(dist_weight)
 
-                fov_lons = hillas_fov_lon + signs * np.abs(disp) * np.cos(hillas_psi)
-                fov_lats = hillas_fov_lat + signs * np.abs(disp) * np.sin(hillas_psi)
+                abs_disp = np.abs(disp)
+                fov_lons = hillas_fov_lon + signs * abs_disp * np.cos(hillas_psi)
+                fov_lats = hillas_fov_lat + signs * abs_disp * np.sin(hillas_psi)
                 fov_lon_values.append(fov_lons)
                 fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
