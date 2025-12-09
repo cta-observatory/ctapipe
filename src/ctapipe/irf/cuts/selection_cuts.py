@@ -3,7 +3,7 @@ import operator
 from astropy.table import QTable, Table
 from pyirf.cuts import evaluate_binned_cut
 
-from ...core.traits import Path
+from ...core.traits import Path, TraitError
 from ..optimize.results import OptimizationResult
 from .quality_cuts import EventQualitySelection
 
@@ -16,7 +16,6 @@ class EventSelection(EventQualitySelection):
     """
 
     cuts_file = Path(
-        allow_none=False,
         directory_ok=False,
         exists=True,
         help="Path to the cuts file to apply to the observation.",
@@ -24,6 +23,12 @@ class EventSelection(EventQualitySelection):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
+
+        if self.cuts_file is None:
+            raise TraitError(
+                "EventSelection.cuts_file must be set to an existing cuts file via the config or constructor."
+            )
+
         self.cuts = OptimizationResult.read(self.cuts_file)
 
     def calculate_selection(
