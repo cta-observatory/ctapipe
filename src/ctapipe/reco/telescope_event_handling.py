@@ -443,8 +443,9 @@ def calc_fov_lon_lat(tel_table, sign_score_limit, prefix="DispReconstructor_tel"
 
     cos_psi = np.cos(hillas_psi)
     sin_psi = np.sin(hillas_psi)
-    lons = hillas_fov_lon[:, None] + signs * np.abs(disp)[:, None] * cos_psi[:, None]
-    lats = hillas_fov_lat[:, None] + signs * np.abs(disp)[:, None] * sin_psi[:, None]
+    abs_disp = np.abs(disp)[:, None]
+    lons = hillas_fov_lon[:, None] + signs * abs_disp * cos_psi[:, None]
+    lats = hillas_fov_lat[:, None] + signs * abs_disp * sin_psi[:, None]
 
     return lons, lats, dist_weights
 
