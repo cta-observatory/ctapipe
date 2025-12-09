@@ -777,14 +777,14 @@ class StereoDispCombiner(StereoCombiner):
                         indices_first_tel_in_array
                     ],
                     u.deg,
-                    copy=False,
+                    copy=COPY_IF_NEEDED,
                 ),
                 pointing_az=u.Quantity(
                     mono_predictions["subarray_pointing_lon"][
                         indices_first_tel_in_array
                     ],
                     u.deg,
-                    copy=False,
+                    copy=COPY_IF_NEEDED,
                 ),
             )
 
