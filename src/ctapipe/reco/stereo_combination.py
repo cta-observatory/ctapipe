@@ -614,7 +614,7 @@ class StereoDispCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
-        if len(fov_lon_values) > 0:
+        if len(fov_lon_values) > 1:
             index_tel_combs = get_combinations(len(ids), self.n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
                 index_tel_combs,
@@ -625,16 +625,25 @@ class StereoDispCombiner(StereoCombiner):
             )
             fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
             fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
+            valid = True
+
+        elif len(fov_lon_values) == 1:
+            # single tel events
+            fov_lon_weighted_average = hillas_fov_lon + disp * np.cos(hillas_psi)
+            fov_lat_weighted_average = hillas_fov_lat + disp * np.sin(hillas_psi)
+            valid = True
+
+        else:
+            alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
+            valid = False
+
+        if valid:
             alt, az = telescope_to_horizontal(
                 lon=fov_lon_weighted_average * u.deg,
                 lat=fov_lat_weighted_average * u.deg,
                 pointing_alt=event.monitoring.pointing.array_altitude,
                 pointing_az=event.monitoring.pointing.array_azimuth,
             )
-            valid = True
-        else:
-            alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
-            valid = False
 
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
