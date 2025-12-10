@@ -1,3 +1,19 @@
+ctapipe v0.28.1 (2025-12-11)
+============================
+
+
+Bug Fixes
+---------
+
+- Fix a unit handling bug in the toymodel that resulted in wrong image intensities. [`#2898 <https://github.com/cta-observatory/ctapipe/pull/2898>`__]
+
+
+Maintenance
+-----------
+
+- Add support for python 3.14, raise minimum supported python version to 3.12. [`#2855 <https://github.com/cta-observatory/ctapipe/pull/2855>`__]
+
+
 ctapipe v0.28.0 (2025-11-13)
 ============================
 
