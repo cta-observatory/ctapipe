@@ -146,7 +146,9 @@ jobs:
           EXTRAS: ${{ matrix.extras }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          pip install -e ".[${EXTRAS}]"
+          # numba/llvmlite do not provide wheels for macos-intel in recent releases, but pip tries to download
+          # the latest release and build it from source. Force only wheels being considered for these to packages.
+          pip install --only-binary llvmlite --only-binary numba -e ".[${EXTRAS}]"
           pip install ./test_plugin
           pip freeze
 
