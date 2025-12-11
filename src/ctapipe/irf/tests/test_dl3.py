@@ -7,7 +7,7 @@ from astropy.io import fits
 from astropy.time import Time
 
 from ctapipe.irf import EventLoader
-from ctapipe.irf.dl3 import DL3_GADF
+from ctapipe.irf.dl3 import DL3GADFEventsWriter
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +37,7 @@ def dl2_meta_for_dl3(gamma_diffuse_full_reco_file, dl3_event_loader_test_config)
 
 @pytest.fixture
 def dl3_writer(dl2_events_for_dl3, dl2_meta_for_dl3, hdu_irfs):
-    dl3_format_optional = DL3_GADF()
+    dl3_format_optional = DL3GADFEventsWriter()
 
     # Load events
     dl3_format_optional.events = dl2_events_for_dl3
@@ -75,7 +75,7 @@ def dl3_writer(dl2_events_for_dl3, dl2_meta_for_dl3, hdu_irfs):
     return dl3_format_optional
 
 
-class TestDL3GADF:
+class TestDL3GADFEventsWriter:
     def test_dl3_file(self, tmp_path, dl3_writer):
         output_path = tmp_path / "dl3_gadf.fits"
 

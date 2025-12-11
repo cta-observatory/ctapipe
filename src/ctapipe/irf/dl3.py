@@ -17,7 +17,7 @@ from ctapipe.core.traits import AstroTime, Bool
 from ctapipe.version import version as ctapipe_version
 
 
-class DL3_Format(Component):
+class DL3EventsWriter(Component):
     """
     Base class for writing a DL3 file
     """
@@ -311,7 +311,7 @@ class DL3_Format(Component):
         self._software_information = software_information
 
 
-class DL3_GADF(DL3_Format):
+class DL3GADFEventsWriter(DL3EventsWriter):
     """
     Class to write DL3 in GADF format, subclass of DL3_Format
     """

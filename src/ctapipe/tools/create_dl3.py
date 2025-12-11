@@ -5,7 +5,7 @@ from ctapipe.core.traits import Bool, Integer, classes_with_traits, flag
 
 from ..irf import EventLoader, EventPreprocessor
 from ..irf.cuts import EventSelection
-from ..irf.dl3 import DL3_GADF, DL3_Format
+from ..irf.dl3 import DL3EventsWriter, DL3GADFEventsWriter
 
 __all__ = ["DL3Tool"]
 
@@ -92,11 +92,11 @@ class DL3Tool(Tool):
         EventPreprocessor.raise_error_for_optional = self.raise_error_for_optional
 
         # Setting the GADF format object
-        DL3_Format.optional_dl3_columns = self.optional_dl3_columns
-        DL3_Format.raise_error_for_optional = self.raise_error_for_optional
-        DL3_Format.overwrite = self.overwrite
+        DL3EventsWriter.optional_dl3_columns = self.optional_dl3_columns
+        DL3EventsWriter.raise_error_for_optional = self.raise_error_for_optional
+        DL3EventsWriter.overwrite = self.overwrite
 
-        self.dl3_format = DL3_GADF()
+        self.dl3_format = DL3GADFEventsWriter()
 
     def start(self):
         self.log.info("Loading events from DL2")
