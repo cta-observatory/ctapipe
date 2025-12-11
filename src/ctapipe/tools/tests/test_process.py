@@ -491,7 +491,7 @@ def test_muon_reconstruction_simtel(tmp_path):
             )
 
 
-def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk):
+def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_chunk):
     """check we can use the process tool with a monitoring file"""
     from ctapipe.io import HDF5MonitoringSource
 
@@ -501,7 +501,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk)
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     expected_camcalib_coefficients = read_table(
-        calibpipe_camcalib_single_chunk,
+        calibpipe_camcalib_sims_single_chunk,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     assert (
@@ -515,7 +515,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_single_chunk)
                 "--overwrite",
                 FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
-                f"--HDF5MonitoringSource.input_files={calibpipe_camcalib_single_chunk}",
+                f"--HDF5MonitoringSource.input_files={calibpipe_camcalib_sims_single_chunk}",
             ],
             cwd=tmp_path,
             raises=True,

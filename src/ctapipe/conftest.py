@@ -25,8 +25,6 @@ from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_GROUP,
-    DL1_SUBARRAY_TRIGGER_TABLE,
-    DL1_TEL_TRIGGER_TABLE,
     FIXED_POINTING_GROUP,
     SIMULATION_GROUP,
 )
@@ -201,39 +199,18 @@ def proton_dl2_train_small_h5():
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_single_chunk():
-    path = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
-    # Remove the DL1 table
-    with tables.open_file(path, mode="r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=False)
-        if DL1_TEL_TRIGGER_TABLE in f.root:
-            f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=False)
-    return path
+def calibpipe_camcalib_sims_single_chunk():
+    return get_dataset_path("calibpipe_camcalib_sims_single_chunk_i0.2.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_same_chunks():
-    path = get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
-    # Remove the DL1 table
-    with tables.open_file(path, mode="r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=False)
-        if DL1_TEL_TRIGGER_TABLE in f.root:
-            f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=False)
-    return path
+def calibpipe_camcalib_obslike_same_chunks():
+    return get_dataset_path("calibpipe_camcalib_obslike_same_chunks_i0.2.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_different_chunks():
-    path = get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
-    # Remove the DL1 table
-    with tables.open_file(path, mode="r+") as f:
-        if DL1_SUBARRAY_TRIGGER_TABLE in f.root:
-            f.remove_node(DL1_SUBARRAY_TRIGGER_TABLE, recursive=False)
-        if DL1_TEL_TRIGGER_TABLE in f.root:
-            f.remove_node(DL1_TEL_TRIGGER_TABLE, recursive=False)
-    return path
+def calibpipe_camcalib_obslike_different_chunks():
+    return get_dataset_path("calibpipe_camcalib_obslike_different_chunks_i0.2.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
@@ -756,17 +733,17 @@ def reference_location():
 
 
 @pytest.fixture(scope="session")
-def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
+def dl1_mon_pointing_file(calibpipe_camcalib_sims_single_chunk, dl1_tmp_path):
     path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
-    shutil.copy(calibpipe_camcalib_same_chunks, path)
+    shutil.copy(calibpipe_camcalib_sims_single_chunk, path)
 
     tel_id = 1
     # create some dummy monitoring data
-    time = read_table(
-        calibpipe_camcalib_same_chunks,
+    start = read_table(
+        calibpipe_camcalib_sims_single_chunk,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )["time"]
-    start, stop = time[[0, -1]]
+    stop = start + 10 * u.s
     duration = (stop - start).to_value(u.s)
 
     # start a bit before, go a bit longer
@@ -809,70 +786,11 @@ def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp_path):
-    path = dl1_tmp_path / "calibpipe_camcalib_single_chunk_obs.dl1.h5"
-    shutil.copy(calibpipe_camcalib_single_chunk, path)
-
-    # Remove the simulation to mimic a real observation file
-    with tables.open_file(path, "r+") as f:
-        if SIMULATION_GROUP in f.root:
-            f.remove_node(SIMULATION_GROUP, recursive=True)
-        if (
-            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
-            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-        ):
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
-    return path
-
-
-@pytest.fixture(scope="session")
-def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_path):
-    path = dl1_tmp_path / "calibpipe_camcalib_same_chunks_obs.dl1.h5"
-    shutil.copy(calibpipe_camcalib_same_chunks, path)
-
-    # Remove the simulation to mimic a real observation file
-    with tables.open_file(path, "r+") as f:
-        if SIMULATION_GROUP in f.root:
-            f.remove_node(SIMULATION_GROUP, recursive=True)
-        if (
-            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
-            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-        ):
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
-    return path
-
-
-@pytest.fixture(scope="session")
-def calibpipe_camcalib_different_chunks_obs(
-    calibpipe_camcalib_different_chunks, dl1_tmp_path
-):
-    path = dl1_tmp_path / "calibpipe_camcalib_different_chunks_obs.dl1.h5"
-    shutil.copy(calibpipe_camcalib_different_chunks, path)
-
-    # Remove the simulation to mimic a real observation file
-    with tables.open_file(path, "r+") as f:
-        if SIMULATION_GROUP in f.root:
-            f.remove_node(SIMULATION_GROUP, recursive=True)
-        if (
-            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
-            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-        ):
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
-    return path
-
-
-@pytest.fixture(scope="session")
 def dl1_merged_monitoring_file(
     dl1_tmp_path,
     dl1_tel1_file,
     dl1_mon_pointing_file,
-    calibpipe_camcalib_different_chunks,
+    calibpipe_camcalib_sims_single_chunk,
 ):
     """
     File containing both camera and pointing monitoring data.
@@ -887,7 +805,7 @@ def dl1_merged_monitoring_file(
         argv = [
             f"--output={output}",
             str(dl1_mon_pointing_file),
-            str(calibpipe_camcalib_different_chunks),
+            str(calibpipe_camcalib_sims_single_chunk),
             "--append",
             "--monitoring",
             "--single-ob",
