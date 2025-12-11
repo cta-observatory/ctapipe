@@ -529,7 +529,21 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
         output,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
-    assert actual_camcalib_coefficients == expected_camcalib_coefficients
+    # Check that the second coefficients match the expected values (last entry)
+    for column in [
+        "factor",
+        "pedestal_offset",
+        "time_shift",
+        "outlier_mask",
+    ]:
+        np.testing.assert_array_equal(
+            actual_camcalib_coefficients[column],
+            expected_camcalib_coefficients[column],
+            err_msg=(
+                f"'{column}' do not match after reading the monitoring file "
+                "attached to the process tool output file."
+            ),
+        )
 
 
 def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
