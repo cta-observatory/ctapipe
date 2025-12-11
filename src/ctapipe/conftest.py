@@ -25,7 +25,6 @@ from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_GROUP,
-    FIXED_POINTING_GROUP,
     SIMULATION_GROUP,
 )
 from ctapipe.utils import get_dataset_path
@@ -758,10 +757,9 @@ def dl1_mon_pointing_file(calibpipe_camcalib_sims_single_chunk, dl1_tmp_path):
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
-        # Remove the constant pointing
-        f.remove_node(FIXED_POINTING_GROUP, recursive=True)
         # Remove the DL1 table
-        f.remove_node(DL1_GROUP, recursive=True)
+        if DL1_GROUP in f.root:
+            f.remove_node(DL1_GROUP, recursive=True)
 
     return path
 
