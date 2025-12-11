@@ -664,8 +664,7 @@ class EventLoader(Component):
             for i in range(len(obs_all_info_table)):
                 start_time = Time(obs_all_info_table["actual_start_time"][i]).tai
                 stop_time = start_time + TimeDelta(
-                    obs_all_info_table["actual_duration"][i]
-                    * obs_all_info_table["actual_duration"].unit
+                    obs_all_info_table["actual_duration"].quantity[i]
                 )
                 list_gti.append((start_time, stop_time))
             meta["gti"] = list_gti
@@ -693,18 +692,14 @@ class EventLoader(Component):
                     == "ALTAZ"
                 ):
                     pointing_start = AltAz(
-                        alt=obs_all_info_table["subarray_pointing_lat"][i]
-                        * obs_all_info_table["subarray_pointing_lat"].unit,
-                        az=obs_all_info_table["subarray_pointing_lon"][i]
-                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                        alt=obs_all_info_table["subarray_pointing_lat"].quantity[i],
+                        az=obs_all_info_table["subarray_pointing_lon"].quantity[i],
                         location=meta["location"],
                         obstime=meta["gti"][i][0],
                     )
                     pointing_stop = AltAz(
-                        alt=obs_all_info_table["subarray_pointing_lat"][i]
-                        * obs_all_info_table["subarray_pointing_lat"].unit,
-                        az=obs_all_info_table["subarray_pointing_lon"][i]
-                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                        alt=obs_all_info_table["subarray_pointing_lat"].quantity[i],
+                        az=obs_all_info_table["subarray_pointing_lon"].quantity[i],
                         location=meta["location"],
                         obstime=meta["gti"][i][1],
                     )
@@ -715,10 +710,8 @@ class EventLoader(Component):
                     == "ICRS"
                 ):
                     pointing_start = ICRS(
-                        dec=obs_all_info_table["subarray_pointing_lat"][i]
-                        * obs_all_info_table["subarray_pointing_lat"].unit,
-                        ra=obs_all_info_table["subarray_pointing_lon"][i]
-                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                        dec=obs_all_info_table["subarray_pointing_lat"].quantity[i],
+                        ra=obs_all_info_table["subarray_pointing_lon"].quantity[i],
                     )
                     pointing_stop = pointing_start
                 elif (
@@ -728,10 +721,8 @@ class EventLoader(Component):
                     == "GALACTIC"
                 ):
                     pointing_start = Galactic(
-                        b=obs_all_info_table["subarray_pointing_lat"][i]
-                        * obs_all_info_table["subarray_pointing_lat"].unit,
-                        l=obs_all_info_table["subarray_pointing_lon"][i]
-                        * obs_all_info_table["subarray_pointing_lon"].unit,
+                        b=obs_all_info_table["subarray_pointing_lat"].quantity[i],
+                        l=obs_all_info_table["subarray_pointing_lon"].quantity[i],
                     )
                     pointing_stop = pointing_start
                 list_pointing.append((meta["gti"][i][0], pointing_start))
