@@ -450,16 +450,10 @@ class DL3_GADF(DL3_Format):
             object_coordinate = self.target_information[
                 "object_coordinate"
             ].transform_to(ICRS())
-            header["RA_OBJ"] = (
-                "nan"
-                if np.isnan(object_coordinate.ra.to_value(u.deg))
-                else object_coordinate.ra.to_value(u.deg)
-            )
-            header["DEC_OBJ"] = (
-                "nan"
-                if np.isnan(object_coordinate.dec.to_value(u.deg))
-                else object_coordinate.dec.to_value(u.deg)
-            )
+            if not np.isnan(object_coordinate.ra.to_value(u.deg)):
+                header["RA_OBJ"] = object_coordinate.ra.to_value(u.deg)
+            if not np.isnan(object_coordinate.dec.to_value(u.deg)):
+                header["DEC_OBJ"] = object_coordinate.dec.to_value(u.deg)
         return header
 
     def get_hdu_header_base_subarray_information(self) -> Dict[str, Any]:

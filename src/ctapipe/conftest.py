@@ -1,6 +1,7 @@
 """
 common pytest fixtures for tests in ctapipe
 """
+import copy
 import importlib
 import importlib.util
 import json
@@ -790,6 +791,9 @@ def irf_event_loader_test_config():
                 "energy_reconstructor": "ExtraTreesRegressor",
                 "geometry_reconstructor": "HillasReconstructor",
                 "gammaness_classifier": "ExtraTreesClassifier",
+                "optional_dl3_columns": False,
+                "irf_pre_processing": True,
+                "raise_error_for_optional": False,
                 "EventQualitySelection": {
                     "quality_criteria": [
                         (
@@ -804,6 +808,28 @@ def irf_event_loader_test_config():
             }
         }
     )
+
+
+@pytest.fixture(scope="session")
+def dl3_event_loader_test_config(irf_event_loader_test_config, dummy_cuts_file):
+    from traitlets.config import Config
+
+    config = copy.deepcopy(irf_event_loader_test_config)
+    config.merge(
+        Config(
+            {
+                "EventSelection": {
+                    "cuts_file": dummy_cuts_file,
+                },
+                "EventPreprocessor": {
+                    "optional_dl3_columns": True,
+                    "irf_pre_processing": False,
+                    "raise_error_for_optional": False,
+                },
+            }
+        )
+    )
+    return config
 
 
 @pytest.fixture(scope="session")
@@ -864,3 +890,53 @@ def irf_events_table():
 
     ev = vstack([e_tab, tab], join_type="exact", metadata_conflicts="silent")
     return ev
+
+
+@pytest.fixture(scope="session")
+def dummy_cuts_file(
+    gamma_diffuse_full_reco_file,
+    proton_full_reco_file,
+    event_loader_config_path,
+    irf_tmp_path,
+):
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
+
+    output_path = irf_tmp_path / "dummy_cuts.fits"
+    run_tool(
+        EventSelectionOptimizer(),
+        argv=[
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--proton-file={proton_full_reco_file}",
+            # Use diffuse gammas weighted to electron spectrum as stand-in
+            f"--electron-file={gamma_diffuse_full_reco_file}",
+            f"--output={output_path}",
+            f"--config={event_loader_config_path}",
+        ],
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
+def dummy_irf_file(
+    gamma_diffuse_full_reco_file,
+    proton_full_reco_file,
+    dummy_cuts_file,
+    event_loader_config_path,
+    irf_tmp_path,
+):
+    from ctapipe.tools.compute_irf import IrfTool
+
+    output_path = irf_tmp_path / "dummy_irf.fits"
+    run_tool(
+        IrfTool(),
+        argv=[
+            f"--cuts={dummy_cuts_file}",
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--proton-file={proton_full_reco_file}",
+            # Use diffuse gammas weighted to electron spectrum as stand-in
+            f"--electron-file={gamma_diffuse_full_reco_file}",
+            f"--output={output_path}",
+            f"--config={event_loader_config_path}",
+        ],
+    )
+    return output_path

@@ -9,30 +9,6 @@ from ctapipe.core import ToolConfigurationError, run_tool
 pytest.importorskip("pyirf")
 
 
-@pytest.fixture(scope="module")
-def dummy_cuts_file(
-    gamma_diffuse_full_reco_file,
-    proton_full_reco_file,
-    event_loader_config_path,
-    irf_tmp_path,
-):
-    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
-
-    output_path = irf_tmp_path / "dummy_cuts.fits"
-    run_tool(
-        EventSelectionOptimizer(),
-        argv=[
-            f"--gamma-file={gamma_diffuse_full_reco_file}",
-            f"--proton-file={proton_full_reco_file}",
-            # Use diffuse gammas weighted to electron spectrum as stand-in
-            f"--electron-file={gamma_diffuse_full_reco_file}",
-            f"--output={output_path}",
-            f"--config={event_loader_config_path}",
-        ],
-    )
-    return output_path
-
-
 @pytest.mark.parametrize("include_background", (False, True))
 @pytest.mark.parametrize("spatial_selection_applied", (True, False))
 def test_irf_tool(

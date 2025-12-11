@@ -597,9 +597,7 @@ class EventLoader(Component):
 
         # Load event
         with TableLoader(self.file, parent=self, **self.opts_loader) as load:
-            keep_columns, _, _ = self.epp.get_columns_keep_rename_scheme(None, True)
-            header = self.epp.make_empty_table(keep_columns)
-            bits = [header]
+            bits = []
             for _, _, events in load.read_subarray_events_chunked(
                 chunk_size, **self.opts_loader
             ):
@@ -615,7 +613,12 @@ class EventLoader(Component):
                 selected = self.epp.keep_necessary_columns_only(selected)
                 bits.append(selected)
 
-            bits.append(header)  # Putting it last ensures the correct metadata is used
+            keep_columns, _, _ = self.epp.get_columns_keep_rename_scheme(events, True)
+            header = self.epp.make_empty_table(keep_columns)
+            # Putting first and last ensures the correct metadata is used
+            bits.insert(0, header)
+            bits.append(header)
+
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table
 
