@@ -120,6 +120,7 @@ class PixelStatisticsCalculatorTool(Tool):
             r1_waveforms=False,
             dl1_images=False,
             processing_statistics=False,
+            single_ob=True,
         ) as merger:
             merger(self.input_data.input_url)
         # Select a new subarray if the allowed_tels configuration is used
