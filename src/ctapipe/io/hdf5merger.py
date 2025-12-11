@@ -371,37 +371,7 @@ class HDF5Merger(Component):
 
         self._merged_obs_ids.update(obs_ids)
 
-    def _append(self, other):
-        self._check_obs_ids(other)
-
-        # Configuration
-        self._append_subarray(other)
-
-        # Create boolean to decide whether to attach
-        # monitoring groups of the same observation block
-        attach_monitoring = (
-            self.monitoring
-            and self.single_ob
-            and (
-                DL0_MONITORING_GROUP in other.root or DL1_MONITORING_GROUP in other.root
-            )
-        )
-
-        # in case of "single_ob", we only copy sb/ob blocks for the first file
-        if not self.single_ob or self._n_merged == 0:
-            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
-            for key in config_keys:
-                if key in other.root:
-                    self._append_table(other, other.root[key])
-
-        if not attach_monitoring and FIXED_POINTING_GROUP in other.root:
-            self._append_table_group(
-                other,
-                other.root[FIXED_POINTING_GROUP],
-                once=(self.single_ob and not attach_monitoring),
-            )
-
-    def _append_simulation_data(self, other):
+    def _append_simulation_data(self, other, attach_monitoring=False):
         """Append simulation-related data (run, shower, impact, images, parameters)."""
         if not self.simulation:
             return
@@ -443,7 +413,14 @@ class HDF5Merger(Component):
         ):
             self._append_table_group(other, other.root[SIMULATION_PARAMETERS_GROUP])
 
-    def _append_waveform_data(self, other):
+        if not attach_monitoring and FIXED_POINTING_GROUP in other.root:
+            self._append_table_group(
+                other,
+                other.root[FIXED_POINTING_GROUP],
+                once=(self.single_ob and not attach_monitoring),
+            )
+
+    def _append_waveform_data(self, other, attach_monitoring=False):
         """Append R0 and R1 waveform data."""
         if not self.telescope_events:
             return
@@ -517,26 +494,26 @@ class HDF5Merger(Component):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
 
-    def _append_monitoring_data(self, other):
+    def _append_monitoring_data(self, other, attach_monitoring=False):
         """Append monitoring data (pointing, calibration, throughput, pixel statistics)."""
         if not self.monitoring:
             return
 
-        self._append_monitoring_subarray_groups(other)
-        self._append_monitoring_telescope_groups(other)
-        self._append_monitoring_dl2_groups(other)
-        self._append_pixel_statistics(other)
+        self._append_monitoring_subarray_groups(other, attach_monitoring)
+        self._append_monitoring_telescope_groups(other, attach_monitoring)
+        self._append_monitoring_dl2_groups(other, attach_monitoring)
+        self._append_pixel_statistics(other, attach_monitoring)
 
-    def _append_monitoring_subarray_groups(self, other):
+    def _append_monitoring_subarray_groups(self, other, attach_monitoring=False):
         """Append monitoring subarray groups."""
         monitoring_dl1_subarray_groups = [
             DL1_SUBARRAY_POINTING_GROUP,
         ]
         for key in monitoring_dl1_subarray_groups:
-            if key in other.root:
+            if key in other.root and attach_monitoring:
                 self._append_table(other, other.root[key])
 
-    def _append_monitoring_telescope_groups(self, other):
+    def _append_monitoring_telescope_groups(self, other, attach_monitoring=False):
         """Append monitoring telescope groups."""
         monitoring_telescope_groups = [
             DL0_TEL_POINTING_GROUP,
@@ -548,20 +525,20 @@ class HDF5Merger(Component):
             DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP,
         ]
         for key in monitoring_telescope_groups:
-            if key in other.root:
+            if key in other.root and attach_monitoring:
                 self._append_table_group(other, other.root[key])
 
-    def _append_monitoring_dl2_groups(self, other):
+    def _append_monitoring_dl2_groups(self, other, attach_monitoring=False):
         """Append monitoring DL2 subarray groups."""
         monitoring_dl2_subarray_groups = [
             DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
             DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
         ]
         for key in monitoring_dl2_subarray_groups:
-            if key in other.root:
+            if key in other.root and attach_monitoring:
                 self._append_table(other, other.root[key])
 
-    def _append_pixel_statistics(self, other):
+    def _append_pixel_statistics(self, other, attach_monitoring=False):
         """Append pixel statistics monitoring data."""
         if not self.telescope_events:
             return
@@ -569,7 +546,7 @@ class HDF5Merger(Component):
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
-                if key in other.root:
+                if key in other.root and attach_monitoring:
                     self._append_table_group(other, other.root[key])
 
         # quality query statistics
@@ -590,14 +567,24 @@ class HDF5Merger(Component):
 
     def _append(self, other):
         self._check_obs_ids(other)
-        self._append_subarray(other)
-        self._append_configuration(other)
-        self._append_simulation_data(other)
-        self._append_waveform_data(other)
-        self._append_dl1_data(other)
-        self._append_dl2_data(other)
-        self._append_monitoring_data(other)
-        self._append_statistics_data(other)
+
+        # Create boolean to decide whether to attach
+        # monitoring groups of the same observation block
+        attach_monitoring = (
+            self.monitoring
+            and self.single_ob
+            and (
+                DL0_MONITORING_GROUP in other.root or DL1_MONITORING_GROUP in other.root
+            )
+        )
+        self._append_subarray(other, attach_monitoring)
+        self._append_configuration(other, attach_monitoring)
+        self._append_simulation_data(other, attach_monitoring)
+        self._append_waveform_data(other, attach_monitoring)
+        self._append_dl1_data(other, attach_monitoring)
+        self._append_dl2_data(other, attach_monitoring)
+        self._append_monitoring_data(other, attach_monitoring)
+        self._append_statistics_data(other, attach_monitoring)
 
     def __enter__(self):
         return self
@@ -633,6 +620,13 @@ class HDF5Merger(Component):
                 raise CannotMerge(
                     f"Subarrays are not compatible for file: {other.filename}"
                 )
+
+        # in case of "single_ob", we only copy sb/ob blocks for the first file
+        if not self.single_ob or self._n_merged == 0:
+            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
+            for key in config_keys:
+                if key in other.root:
+                    self._append_table(other, other.root[key])
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
