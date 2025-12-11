@@ -63,8 +63,8 @@ def create_initial_guess(geometry, hillas, size):
     unit = geometry.pix_x.unit
     initial_guess = {}
 
-    initial_guess["cog_x"] = hillas.fov_lon.to_value(unit)
-    initial_guess["cog_y"] = hillas.fov_lat.to_value(unit)
+    initial_guess["cog_x"] = hillas.x.to_value(unit)
+    initial_guess["cog_y"] = hillas.y.to_value(unit)
 
     initial_guess["length"] = hillas.length.to_value(unit)
     initial_guess["width"] = hillas.width.to_value(unit)
