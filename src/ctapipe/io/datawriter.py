@@ -44,8 +44,10 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v7.2.0"
+DATA_MODEL_VERSION = "v7.3.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v7.3.0: - Add possibility to attach monitoring data to the event HDF5 file.
+          - Add the event type to the telescope trigger container.
 - v7.2.0: - Added new monitoring groups: DL1_TEL_[OPTICAL_PSF, MUON_THROUGHPUT, ILLUMINATOR_THROUGHPUT]_GROUP
             and DL2_SUBARRAY_[MONITORING, INTER_CALIBRATION, CROSS_CALIBRATION]_GROUP
           - Change field name in ``ReconstructedContainer`` from 'classification' to 'particle_type'.
