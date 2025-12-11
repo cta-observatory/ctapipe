@@ -742,7 +742,7 @@ def dl1_mon_pointing_file(calibpipe_camcalib_sims_single_chunk, dl1_tmp_path):
     start = read_table(
         calibpipe_camcalib_sims_single_chunk,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
-    )["time"]
+    )["time"][0]
     stop = start + 10 * u.s
     duration = (stop - start).to_value(u.s)
 

@@ -247,7 +247,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
                 ),
             )
         # Set the unique timestamps within the validity range
-        unique_timestamps = Time([t_start + 0.2 * u.s, t_end - 0.2 * u.s])
+        unique_timestamps = Time([t_start + 0.02 * u.s, t_end - 0.02 * u.s])
         # Get the camera monitoring container for the given unique timestamps
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
             tel_id, unique_timestamps
