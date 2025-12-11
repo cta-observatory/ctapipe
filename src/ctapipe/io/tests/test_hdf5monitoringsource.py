@@ -247,10 +247,10 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
                 ),
             )
         # Set the unique timestamps within the validity range
-        unique_timestamps = Time([t_start + 0.02 * u.s, t_end - 0.02 * u.s])
+        unique_timestamps = Time([t_start + 0.2 * u.s, t_end + 0.2 * u.s])
         # Get the camera monitoring container for the given unique timestamps
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamps
+            tel_id, unique_timestamps, timestamp_tolerance=0.25 * u.s
         )
         # Validate the returned container
         camera_mon_con.validate()
@@ -313,7 +313,7 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
         assert monitoring_source.telescope_pointings
         for e in source:
             # Test exception of interpolating outside the valid range
-            with pytest.raises(ValueError, match="A value"):
+            with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
                 monitoring_source.fill_monitoring_container(e)
             # Set the trigger time to the pointing time
             e.trigger.time = pointing_time
