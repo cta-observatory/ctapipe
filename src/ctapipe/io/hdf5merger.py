@@ -50,8 +50,12 @@ from .hdf5dataformat import (
     SIMULATION_RUN_TABLE,
     SIMULATION_SHOWER_TABLE,
 )
-from .hdf5eventsource import COMPATIBLE_DATA_MODEL_VERSIONS
 from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
+
+COMPATIBLE_DATA_MODEL_VERSIONS = [
+    "v7.2.0",
+    "v7.3.0",
+]
 
 
 class NodeType(enum.Enum):
