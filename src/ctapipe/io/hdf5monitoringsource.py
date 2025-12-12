@@ -222,7 +222,18 @@ class HDF5MonitoringSource(MonitoringSource):
 
         with tables.open_file(file) as open_file:
             # Validate simulation consistency
-            file_is_simulation = "simulation" in open_file.root
+            # Determine if the file is from simulation.
+            # First check for the presence of the simulation group.
+            file_is_simulation = False
+            if "simulation" in open_file.root:
+                file_is_simulation = True
+            else:
+                # Check for metadata attribute if simulation group is not present
+                if (
+                    "CTA PRODUCT DATA CATEGORY" in open_file.root._v_attrs
+                    and open_file.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+                ):
+                    file_is_simulation = True
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
