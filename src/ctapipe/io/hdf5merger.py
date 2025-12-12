@@ -393,9 +393,6 @@ class HDF5Merger(Component):
 
     def _append_simulation_data(self, other):
         """Append simulation-related data (run, shower, impact, images, parameters)."""
-        if not self.simulation or self.attach_monitoring:
-            return
-
         simulation_table_keys = [
             SIMULATION_RUN_TABLE,
             SHOWER_DISTRIBUTION_TABLE,
@@ -428,9 +425,6 @@ class HDF5Merger(Component):
 
     def _append_waveform_data(self, other):
         """Append R0 and R1 waveform data."""
-        if not self.telescope_events or self.attach_monitoring:
-            return
-
         # R0
         if self.r0_waveforms and R0_TEL_GROUP in other.root:
             self._append_table_group(other, other.root[R0_TEL_GROUP])
@@ -442,8 +436,6 @@ class HDF5Merger(Component):
     def _append_dl1_data(self, other):
         """Append DL1 data (triggers, images, parameters, muon)."""
         # DL1 subarray trigger table (always check)
-        if self.attach_monitoring:
-            return
         if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
             self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
@@ -464,8 +456,6 @@ class HDF5Merger(Component):
 
     def _append_dl2_data(self, other):
         """Append DL2 data (telescope and subarray events)."""
-        if self.attach_monitoring:
-            return
         # DL2 telescope data
         if self.telescope_events and self.dl2_telescope and DL2_TEL_GROUP in other.root:
             for kind_group in other.root[DL2_TEL_GROUP]._f_iter_nodes("Group"):
@@ -480,13 +470,11 @@ class HDF5Merger(Component):
 
     def _append_monitoring_data(self, other):
         """Append monitoring data (pointing, calibration, throughput, pixel statistics)."""
-        if not self.monitoring:
-            return
-
         self._append_monitoring_subarray_groups(other)
-        self._append_monitoring_telescope_groups(other)
         self._append_monitoring_dl2_groups(other)
-        self._append_pixel_statistics(other)
+        if self.telescope_events:
+            self._append_monitoring_telescope_groups(other)
+            self._append_pixel_statistics(other)
 
     def _append_monitoring_subarray_groups(self, other):
         """Append monitoring subarray groups."""
@@ -524,9 +512,6 @@ class HDF5Merger(Component):
 
     def _append_pixel_statistics(self, other):
         """Append pixel statistics monitoring data."""
-        if not self.telescope_events:
-            return
-
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
@@ -536,27 +521,37 @@ class HDF5Merger(Component):
     def _append_statistics_data(self, other):
         """Append processing statistics data."""
         # quality query statistics
-        if not self.processing_statistics:
-            return
-
-        if not self.attach_monitoring and DL1_IMAGE_STATISTICS_TABLE in other.root:
+        if DL1_IMAGE_STATISTICS_TABLE in other.root:
             self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
 
-        if not self.attach_monitoring and DL2_EVENT_STATISTICS_GROUP in other.root:
+        if DL2_EVENT_STATISTICS_GROUP in other.root:
             for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
                 self._add_statistics_table(other, node)
 
     def _append(self, other):
-        #
+        """Append data to the output file."""
+        # Check for the obs_ids
         self._check_obs_ids(other)
+        # Check for the subarray description and write if first file
         self._append_subarray(other)
+        # Append configuration data like SB/OB blocks
         self._append_configuration(other)
-        self._append_simulation_data(other)
-        self._append_waveform_data(other)
-        self._append_dl1_data(other)
-        self._append_dl2_data(other)
-        self._append_monitoring_data(other)
-        self._append_statistics_data(other)
+        # Append simulation data
+        if self.simulation and not self.attach_monitoring:
+            self._append_simulation_data(other)
+        # Append waveform data
+        if self.telescope_events and not self.attach_monitoring:
+            self._append_waveform_data(other)
+        # Append DL1 and DL2 data
+        if not self.attach_monitoring:
+            self._append_dl1_data(other)
+            self._append_dl2_data(other)
+        # Append monitoring data
+        if self.monitoring:
+            self._append_monitoring_data(other)
+        # Append processing statistics
+        if self.processing_statistics and not self.attach_monitoring:
+            self._append_statistics_data(other)
 
     def __enter__(self):
         return self
