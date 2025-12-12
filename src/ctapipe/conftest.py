@@ -771,15 +771,13 @@ def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        data_category = "CTA PRODUCT DATA CATEGORY"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
-        if (
-            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
-            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-        ):
+        if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
+                f.root._v_attrs[data_category] = "Other"
     return path
 
 
@@ -819,15 +817,13 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
+        data_category = "CTA PRODUCT DATA CATEGORY"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
-        if (
-            "CTA PRODUCT DATA CATEGORY" in f.root._v_attrs
-            and f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-        ):
+        if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs["CTA PRODUCT DATA CATEGORY"] = "Other"
+                f.root._v_attrs[data_category] = "Other"
     return path
 
 
