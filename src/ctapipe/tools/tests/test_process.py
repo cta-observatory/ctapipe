@@ -17,7 +17,6 @@ from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import EventSource, TableLoader, read_table
 from ctapipe.io.hdf5dataformat import (
-    DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
     DL1_TEL_PARAMETERS_GROUP,
@@ -498,25 +497,18 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
     output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
     tool = ProcessorTool()
 
-    tel_id = 1
-    # Read the camera monitoring data with the coefficients
-    expected_camcalib_coefficients = read_table(
-        calibpipe_camcalib_sims_single_chunk,
-        f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
-    )
     assert (
         run_tool(
             tool,
             argv=[
                 f"--input={GAMMA_TEST_LARGE}",
                 f"--output={output}",
-                f"--allowed-tels={tel_id}",
+                "--allowed-tels=1",
                 "--max-events=1",
                 "--overwrite",
                 FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
                 f"--HDF5MonitoringSource.input_files={calibpipe_camcalib_sims_single_chunk}",
-                "--write-monitoring",
             ],
             cwd=tmp_path,
             raises=True,
@@ -526,25 +518,6 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
 
     assert len(tool._monitoring_sources) == 1
     assert isinstance(tool._monitoring_sources[0], HDF5MonitoringSource)
-    actual_camcalib_coefficients = read_table(
-        output,
-        f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
-    )
-    # Check that the second coefficients match the expected values (last entry)
-    for column in [
-        "factor",
-        "pedestal_offset",
-        "time_shift",
-        "outlier_mask",
-    ]:
-        np.testing.assert_array_equal(
-            actual_camcalib_coefficients[column],
-            expected_camcalib_coefficients[column],
-            err_msg=(
-                f"'{column}' do not match after reading the monitoring file "
-                "attached to the process tool output file."
-            ),
-        )
 
 
 def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
@@ -567,7 +540,6 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
                 FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
                 f"--HDF5MonitoringSource.input_files={dl1_image_file}",
-                "--write-monitoring",
             ],
             cwd=tmp_path,
             raises=True,
