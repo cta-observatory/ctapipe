@@ -14,12 +14,10 @@ from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
 from .hdf5dataformat import (
-    DL0_MONITORING_GROUP,
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_COLUMN_NAMES,
     DL1_IMAGE_STATISTICS_TABLE,
-    DL1_MONITORING_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
@@ -200,7 +198,7 @@ class HDF5Merger(Component):
     ).tag(config=True)
 
     monitoring = traits.Bool(
-        False, help="Whether to include monitoring data in merged output"
+        True, help="Whether to include monitoring data in merged output"
     ).tag(config=True)
 
     processing_statistics = traits.Bool(
@@ -210,9 +208,16 @@ class HDF5Merger(Component):
     single_ob = traits.Bool(
         False,
         help=(
-            "If true, input files are assumed to be multiple chunks from the same"
-            " observation block and the ob / sb blocks will only be copied from "
-            " the first input file"
+            "If true, input files are assumed to be multiple chunks from the same "
+            "observation block. The ob / sb blocks and monitoring data (if included) "
+            "will only be copied from the first input file."
+        ),
+    ).tag(config=True)
+
+    attach_monitoring = traits.Bool(
+        False,
+        help=(
+            "If true, monitoring data can be horizontally merged. Requires monitoring=True."
         ),
     ).tag(config=True)
 
@@ -225,6 +230,9 @@ class HDF5Merger(Component):
 
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
+
+        if self.attach_monitoring and not self.monitoring:
+            raise traits.TraitError("attach_monitoring=True requires monitoring=True")
 
         output_exists = self.output_path.exists()
         appending = False
@@ -249,7 +257,6 @@ class HDF5Merger(Component):
         self.meta = None
         self._merged_obs_ids = set()
         self._n_merged = 0
-        self.attach_monitoring = False
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
@@ -265,9 +272,8 @@ class HDF5Merger(Component):
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
 
-            # Required nodes are not relevant for attaching
-            # monitoring data of the same observation block.
-            if not self.single_ob or not self.monitoring:
+            # Required nodes are not relevant for attaching monitoring data.
+            if not self.attach_monitoring:
                 # Get required nodes from existing output file
                 self.required_nodes = _get_required_nodes(self.h5file)
 
@@ -290,24 +296,13 @@ class HDF5Merger(Component):
                 self.data_model_version = self.meta.product.data_model_version
                 self.data_category = self.meta.product.data_category
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
-                # Required nodes are not relevant for attaching
-                # monitoring data of the same observation block.
-                if not self.single_ob or not self.monitoring:
+                # Required nodes are not relevant for attaching monitoring data.
+                if not self.attach_monitoring:
                     self.required_nodes = _get_required_nodes(self.h5file)
                     self.log.info(
                         "Updated required nodes to %s", sorted(self.required_nodes)
                     )
             else:
-                # Create boolean to decide whether to attach
-                # monitoring groups of the same observation block
-                self.attach_monitoring = (
-                    self.monitoring
-                    and self.single_ob
-                    and (
-                        DL0_MONITORING_GROUP in other.root
-                        or DL1_MONITORING_GROUP in other.root
-                    )
-                )
                 self._check_can_merge(other)
 
             Provenance().add_input_file(other.filename, "data product to merge")
@@ -487,7 +482,7 @@ class HDF5Merger(Component):
         ]
         for key in monitoring_dl1_subarray_groups:
             if key in other.root:
-                self._append_table(other, other.root[key])
+                self._append_table(other, other.root[key], once=self.single_ob)
 
     def _append_monitoring_telescope_groups(self, other):
         """Append monitoring telescope groups."""
@@ -502,7 +497,7 @@ class HDF5Merger(Component):
         ]
         for key in monitoring_telescope_groups:
             if key in other.root:
-                self._append_table_group(other, other.root[key])
+                self._append_table_group(other, other.root[key], once=self.single_ob)
 
     def _append_monitoring_dl2_groups(self, other):
         """Append monitoring DL2 subarray groups."""
@@ -512,7 +507,7 @@ class HDF5Merger(Component):
         ]
         for key in monitoring_dl2_subarray_groups:
             if key in other.root:
-                self._append_table(other, other.root[key])
+                self._append_table(other, other.root[key], once=self.single_ob)
 
     def _append_pixel_statistics(self, other):
         """Append pixel statistics monitoring data."""
@@ -520,7 +515,9 @@ class HDF5Merger(Component):
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
                 if key in other.root:
-                    self._append_table_group(other, other.root[key])
+                    self._append_table_group(
+                        other, other.root[key], once=self.single_ob
+                    )
 
     def _append_statistics_data(self, other):
         """Append processing statistics data."""
@@ -590,7 +587,7 @@ class HDF5Merger(Component):
 
         # Relax subarray matching requirements for attaching
         # monitoring data of the same observation block.
-        if not self.single_ob or not self.monitoring:
+        if not self.single_ob or not self.attach_monitoring:
             if self.subarray != subarray:
                 raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
         else:

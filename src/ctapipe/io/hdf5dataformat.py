@@ -38,8 +38,6 @@ __all__ = [
     "DL2_TEL_GEOMETRY_GROUP",
     "DL2_TEL_ENERGY_GROUP",
     "DL2_TEL_PARTICLETYPE_GROUP",
-    "DL0_MONITORING_GROUP",
-    "DL1_MONITORING_GROUP",
     "DL0_TEL_POINTING_GROUP",
     "DL1_SUBARRAY_POINTING_GROUP",
     "DL1_TEL_POINTING_GROUP",
@@ -103,8 +101,6 @@ DL2_SUBARRAY_ENERGY_GROUP = "/dl2/event/subarray/energy"
 DL2_SUBARRAY_PARTICLETYPE_GROUP = "/dl2/event/subarray/particle_type"
 
 # Monitoring group
-DL0_MONITORING_GROUP = "/dl0/monitoring"
-DL1_MONITORING_GROUP = "/dl1/monitoring"
 DL0_TEL_POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 DL1_SUBARRAY_POINTING_GROUP = "/dl1/monitoring/subarray/pointing"
 DL1_TEL_POINTING_GROUP = "/dl1/monitoring/telescope/pointing"

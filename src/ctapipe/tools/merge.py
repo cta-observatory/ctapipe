@@ -161,6 +161,12 @@ class MergeTool(Tool):
             "Include monitoring data",
             "Exclude monitoring data",
         ),
+        **flag(
+            "attach-monitoring",
+            "HDF5Merger.attach_monitoring",
+            "Attach monitoring data",
+            "Not attach monitoring data",
+        ),
     }
 
     classes = [HDF5Merger]
