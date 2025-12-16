@@ -96,13 +96,13 @@ jobs:
           fetch-depth: 0
 
       - name: cache test data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data-desy-1
 
       - name: cache astropy data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.astropy/cache
           key: astropy-cache
