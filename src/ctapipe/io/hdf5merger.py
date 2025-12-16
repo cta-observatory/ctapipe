@@ -93,31 +93,6 @@ _NODES_TO_CHECK = {
 }
 
 
-def _get_required_nodes(h5file):
-    """Return nodes to be required in a new file for appending to ``h5file``"""
-    required_nodes = set()
-    for node, node_type in _NODES_TO_CHECK.items():
-        if node not in h5file.root:
-            continue
-
-        if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
-            required_nodes.add(node)
-
-        elif node_type is NodeType.ITER_GROUP:
-            for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for table in kind_group._f_iter_nodes("Table"):
-                    required_nodes.add(table._v_pathname)
-
-        elif node_type is NodeType.ITER_TEL_GROUP:
-            for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for iter_group in kind_group._f_iter_nodes("Group"):
-                    required_nodes.add(iter_group._v_pathname)
-        else:
-            raise ValueError(f"Unhandled node type: {node_type} of {node}")
-
-    return required_nodes
-
-
 class CannotMerge(OSError):
     """Raised when trying to merge incompatible files"""
 
@@ -272,10 +247,8 @@ class HDF5Merger(Component):
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
 
-            # Required nodes are not relevant for attaching monitoring data.
-            if not self.attach_monitoring:
-                # Get required nodes from existing output file
-                self.required_nodes = _get_required_nodes(self.h5file)
+            # Get required nodes from existing output file
+            self.required_nodes = self._get_required_nodes(self.h5file)
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
@@ -296,12 +269,7 @@ class HDF5Merger(Component):
                 self.data_model_version = self.meta.product.data_model_version
                 self.data_category = self.meta.product.data_category
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
-                # Required nodes are not relevant for attaching monitoring data.
-                if not self.attach_monitoring:
-                    self.required_nodes = _get_required_nodes(self.h5file)
-                    self.log.info(
-                        "Updated required nodes to %s", sorted(self.required_nodes)
-                    )
+                self.required_nodes = self._get_required_nodes(self.h5file)
             else:
                 self._check_can_merge(other)
 
@@ -388,6 +356,33 @@ class HDF5Merger(Component):
                 raise CannotMerge(msg)
 
         self._merged_obs_ids.update(obs_ids)
+
+    def _get_required_nodes(self, h5file):
+        """Return nodes to be required in a new file for appending to ``h5file``"""
+        required_nodes = set()
+        # Required nodes are not relevant for attaching monitoring data.
+        if self.attach_monitoring:
+            return required_nodes
+        for node, node_type in _NODES_TO_CHECK.items():
+            if node not in h5file.root:
+                continue
+
+            if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
+                required_nodes.add(node)
+
+            elif node_type is NodeType.ITER_GROUP:
+                for kind_group in h5file.root[node]._f_iter_nodes("Group"):
+                    for table in kind_group._f_iter_nodes("Table"):
+                        required_nodes.add(table._v_pathname)
+
+            elif node_type is NodeType.ITER_TEL_GROUP:
+                for kind_group in h5file.root[node]._f_iter_nodes("Group"):
+                    for iter_group in kind_group._f_iter_nodes("Group"):
+                        required_nodes.add(iter_group._v_pathname)
+            else:
+                raise ValueError(f"Unhandled node type: {node_type} of {node}")
+        self.log.info("Updated required nodes to %s", sorted(required_nodes))
+        return required_nodes
 
     def _append_simulation_data(self, other):
         """Append simulation-related data (run, shower, impact, images, parameters)."""
