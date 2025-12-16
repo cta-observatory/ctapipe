@@ -250,7 +250,7 @@ class HDF5Merger(Component):
             filters=DEFAULT_FILTERS,
         )
 
-        self.required_nodes = None
+        self.required_nodes = set()
         self.data_model_version = None
         self.data_category = None
         self.subarray = None
@@ -356,12 +356,11 @@ class HDF5Merger(Component):
                 f" {other_category}, expected {self.data_category}"
             )
 
-        if self.required_nodes is not None:
-            for node_path in self.required_nodes:
-                if node_path not in other.root:
-                    raise CannotMerge(
-                        f"Required node {node_path} not found in {other.filename}"
-                    )
+        for node_path in self.required_nodes:
+            if node_path not in other.root:
+                raise CannotMerge(
+                    f"Required node {node_path} not found in {other.filename}"
+                )
 
     def _check_obs_ids(self, other):
         keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
