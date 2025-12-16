@@ -20,7 +20,6 @@ from ..io import (
     DataWriter,
     EventSource,
     HDF5Merger,
-    HDF5MonitoringSource,
     MonitoringSource,
     MonitoringType,
     metadata,
@@ -103,6 +102,11 @@ class ProcessorTool(Tool):
         default_value=[],
     ).tag(config=True)
 
+    write_monitoring = Bool(
+        help="Write monitoring data to the output file",
+        default_value=False,
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("o", "output"): "DataWriter.output_path",
@@ -159,6 +163,12 @@ class ProcessorTool(Tool):
             "DataWriter.write_muon_parameters",
             "store DL1/Event/Telescope muon parameters in output",
             "don't store DL1/Event/Telescope muon parameters in output",
+        ),
+        **flag(
+            "write-monitoring",
+            "ProcessorTool.write_monitoring",
+            "store monitoring data in output",
+            "don't store monitoring data in output",
         ),
         "camera-frame": (
             {"ImageProcessor": {"use_telescope_frame": False}},
@@ -334,6 +344,7 @@ class ProcessorTool(Tool):
         self.log.info(
             "compute muon parameters: %s", self.should_compute_muon_parameters
         )
+        self.log.info("write monitoring: %s", self.write_monitoring)
         self.event_source.subarray.info(printer=self.log.info)
 
         for event in tqdm(
@@ -382,8 +393,8 @@ class ProcessorTool(Tool):
         # Attach monitoring data if applicable
         output_path = str(self.write.output_path)
         self.write.finish()
-        for mon_source in self._monitoring_sources:
-            if isinstance(mon_source, HDF5MonitoringSource):
+        if self.write_monitoring:
+            for mon_source in self._monitoring_sources:
                 for mon_h5file in mon_source.input_files:
                     self.log.info(
                         "Attaching monitoring data from '%s'.", str(mon_h5file)
@@ -399,6 +410,7 @@ class ProcessorTool(Tool):
                         processing_statistics=False,
                         single_ob=True,
                         monitoring=True,
+                        attach_monitoring=True,
                         append=True,
                     ) as merger:
                         merger(str(mon_h5file))
