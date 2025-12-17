@@ -21,13 +21,19 @@ from .hdf5dataformat import (
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_CALIBRATION_GROUP,
+    DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
+    DL1_TEL_MUON_THROUGHPUT_GROUP,
+    DL1_TEL_OPTICAL_PSF_GROUP,
     DL1_TEL_PARAMETERS_GROUP,
     DL1_TEL_POINTING_GROUP,
     DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
+    DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
     DL2_SUBARRAY_GROUP,
+    DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
     DL2_TEL_GROUP,
     FIXED_POINTING_GROUP,
     OBSERVATION_BLOCK_TABLE,
@@ -340,12 +346,8 @@ class HDF5Merger(Component):
 
         self._merged_obs_ids.update(obs_ids)
 
-    def _append(self, other):
-        self._check_obs_ids(other)
-
-        # Configuration
-        self._append_subarray(other)
-
+    def _append_configuration(self, other):
+        """Append configuration-related data (scheduling blocks, observation blocks, pointing)."""
         # in case of "single_ob", we only copy sb/ob blocks for the first file
         if not self.single_ob or self._n_merged == 0:
             config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
@@ -358,124 +360,161 @@ class HDF5Merger(Component):
                 other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
             )
 
-        # Simulation
+    def _append_simulation_data(self, other):
+        """Append simulation-related data (run, shower, impact, images, parameters)."""
+        if not self.simulation:
+            return
+
         simulation_table_keys = [
             SIMULATION_RUN_TABLE,
             SHOWER_DISTRIBUTION_TABLE,
             SIMULATION_SHOWER_TABLE,
         ]
         for key in simulation_table_keys:
-            if self.simulation and key in other.root:
+            if key in other.root:
                 self._append_table(other, other.root[key])
 
-        if (
-            self.telescope_events
-            and self.simulation
-            and SIMULATION_IMPACT_GROUP in other.root
-        ):
+        if not self.telescope_events:
+            return
+
+        if SIMULATION_IMPACT_GROUP in other.root:
             self._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
 
-        if (
-            self.telescope_events
-            and self.simulation
-            and SIMULATION_IMAGES_GROUP in other.root
-        ):
+        if SIMULATION_IMAGES_GROUP in other.root:
             filter_columns = None if self.true_images else ["true_image"]
             self._append_table_group(
                 other, other.root[SIMULATION_IMAGES_GROUP], filter_columns
             )
 
-        if (
-            self.telescope_events
-            and self.simulation
-            and self.true_parameters
-            and SIMULATION_PARAMETERS_GROUP in other.root
-        ):
+        if self.true_parameters and SIMULATION_PARAMETERS_GROUP in other.root:
             self._append_table_group(other, other.root[SIMULATION_PARAMETERS_GROUP])
 
+    def _append_waveform_data(self, other):
+        """Append R0 and R1 waveform data."""
+        if not self.telescope_events:
+            return
+
         # R0
-        if self.telescope_events and self.r0_waveforms and R0_TEL_GROUP in other.root:
+        if self.r0_waveforms and R0_TEL_GROUP in other.root:
             self._append_table_group(other, other.root[R0_TEL_GROUP])
 
         # R1
-        if self.telescope_events and self.r1_waveforms and R1_TEL_GROUP in other.root:
+        if self.r1_waveforms and R1_TEL_GROUP in other.root:
             self._append_table_group(other, other.root[R1_TEL_GROUP])
 
-        # DL1
+    def _append_dl1_data(self, other):
+        """Append DL1 data (triggers, images, parameters, muon)."""
+        # DL1 subarray trigger table (always check)
         if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
             self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
-        if self.telescope_events and DL1_TEL_TRIGGER_TABLE in other.root:
+        if not self.telescope_events:
+            return
+
+        if DL1_TEL_TRIGGER_TABLE in other.root:
             self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
 
-        if (
-            self.telescope_events
-            and self.dl1_images
-            and DL1_TEL_IMAGES_GROUP in other.root
-        ):
+        if self.dl1_images and DL1_TEL_IMAGES_GROUP in other.root:
             self._append_table_group(other, other.root[DL1_TEL_IMAGES_GROUP])
 
-        if (
-            self.telescope_events
-            and self.dl1_parameters
-            and DL1_TEL_PARAMETERS_GROUP in other.root
-        ):
+        if self.dl1_parameters and DL1_TEL_PARAMETERS_GROUP in other.root:
             self._append_table_group(other, other.root[DL1_TEL_PARAMETERS_GROUP])
 
-        if self.telescope_events and self.dl1_muon and DL1_TEL_MUON_GROUP in other.root:
+        if self.dl1_muon and DL1_TEL_MUON_GROUP in other.root:
             self._append_table_group(other, other.root[DL1_TEL_MUON_GROUP])
 
-        # DL2
+    def _append_dl2_data(self, other):
+        """Append DL2 data (telescope and subarray events)."""
+        # DL2 telescope data
         if self.telescope_events and self.dl2_telescope and DL2_TEL_GROUP in other.root:
             for kind_group in other.root[DL2_TEL_GROUP]._f_iter_nodes("Group"):
                 for iter_group in kind_group._f_iter_nodes("Group"):
                     self._append_table_group(other, iter_group)
 
+        # DL2 subarray data
         if self.dl2_subarray and DL2_SUBARRAY_GROUP in other.root:
             for kind_group in other.root[DL2_SUBARRAY_GROUP]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
 
-        # Pointing monitoring
-        if self.monitoring and DL1_SUBARRAY_POINTING_GROUP in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_POINTING_GROUP])
+    def _append_monitoring_data(self, other):
+        """Append monitoring data (pointing, calibration, throughput, pixel statistics)."""
+        if not self.monitoring:
+            return
 
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL0_TEL_POINTING_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL0_TEL_POINTING_GROUP])
+        self._append_monitoring_subarray_groups(other)
+        self._append_monitoring_telescope_groups(other)
+        self._append_monitoring_dl2_groups(other)
+        self._append_pixel_statistics(other)
 
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL1_TEL_POINTING_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_TEL_POINTING_GROUP])
+    def _append_monitoring_subarray_groups(self, other):
+        """Append monitoring subarray groups."""
+        monitoring_dl1_subarray_groups = [
+            DL1_SUBARRAY_POINTING_GROUP,
+        ]
+        for key in monitoring_dl1_subarray_groups:
+            if key in other.root:
+                self._append_table(other, other.root[key])
 
-        # Calibration coefficients monitoring
-        if (
-            self.monitoring
-            and self.telescope_events
-            and DL1_CAMERA_COEFFICIENTS_GROUP in other.root
-        ):
-            self._append_table_group(other, other.root[DL1_CAMERA_COEFFICIENTS_GROUP])
+    def _append_monitoring_telescope_groups(self, other):
+        """Append monitoring telescope groups."""
+        monitoring_telescope_groups = [
+            DL0_TEL_POINTING_GROUP,
+            DL1_TEL_POINTING_GROUP,
+            DL1_TEL_OPTICAL_PSF_GROUP,
+            DL1_TEL_CALIBRATION_GROUP,
+            DL1_CAMERA_COEFFICIENTS_GROUP,
+            DL1_TEL_MUON_THROUGHPUT_GROUP,
+            DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP,
+        ]
+        for key in monitoring_telescope_groups:
+            if key in other.root:
+                self._append_table_group(other, other.root[key])
 
-        # Pixel statistics monitoring
+    def _append_monitoring_dl2_groups(self, other):
+        """Append monitoring DL2 subarray groups."""
+        monitoring_dl2_subarray_groups = [
+            DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
+            DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
+        ]
+        for key in monitoring_dl2_subarray_groups:
+            if key in other.root:
+                self._append_table(other, other.root[key])
+
+    def _append_pixel_statistics(self, other):
+        """Append pixel statistics monitoring data."""
+        if not self.telescope_events:
+            return
+
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
-                if self.monitoring and self.telescope_events and key in other.root:
+                if key in other.root:
                     self._append_table_group(other, other.root[key])
 
-        # quality query statistics
+    def _append_statistics_data(self, other):
+        """Append processing statistics data."""
+        if not self.processing_statistics:
+            return
+
+        # Quality query statistics
         if DL1_IMAGE_STATISTICS_TABLE in other.root:
             self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
 
         if DL2_EVENT_STATISTICS_GROUP in other.root:
             for node in other.root[DL2_EVENT_STATISTICS_GROUP]._f_iter_nodes("Table"):
                 self._add_statistics_table(other, node)
+
+    def _append(self, other):
+        self._check_obs_ids(other)
+        self._append_subarray(other)
+        self._append_configuration(other)
+        self._append_simulation_data(other)
+        self._append_waveform_data(other)
+        self._append_dl1_data(other)
+        self._append_dl2_data(other)
+        self._append_monitoring_data(other)
+        self._append_statistics_data(other)
 
     def __enter__(self):
         return self
