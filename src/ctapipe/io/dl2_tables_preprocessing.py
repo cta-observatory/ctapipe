@@ -373,7 +373,7 @@ class DL2EventLoader(Component):
             "energy_range_min",
             "energy_range_max",
             "max_scatter_range",
-            "max_viewcode_radius",
+            "max_viewcone_radius",
             "min_viewcone_radius",
         ]:
             if len(np.unique(sim_config[itm])) > 1:
