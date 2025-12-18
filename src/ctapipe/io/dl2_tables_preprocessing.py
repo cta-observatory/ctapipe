@@ -381,7 +381,7 @@ class DL2EventLoader(Component):
                     f"Unsupported: '{itm}' differs across simulation runs"
                 )
 
-        n_showers_config = sim_config["n_showers"].sum() * sim_config["shower_reuse"][0]
+        n_showers_config = (sim_config["n_showers"] * sim_config["shower_reuse"]).sum()
         if n_showers == 0:
             n_showers = n_showers_config
 
