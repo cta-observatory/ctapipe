@@ -269,12 +269,21 @@ class TemplateNetworkInterpolator(BaseTemplate):
 
         super().__init__()
 
+        self.template_file = template_file
+
         input_dict = None
         with gzip.open(template_file, "r") as file_list:
             input_dict = pickle.load(file_list)
 
-        keys = np.array(list(input_dict.keys()))
-        values = np.array(list(input_dict.values()), dtype=np.float32)
+        # The dict has at its highest level two keys: data and tel_type.
+        # The first just contains the template dict, the second a string to validate the tel_type
+        # that the templates are made for.
+
+        data_input_dict = input_dict["data"]
+        self.tel_type_string = input_dict["tel_type"]
+
+        keys = np.array(list(data_input_dict.keys()))
+        values = np.array(list(data_input_dict.values()), dtype=np.float32)
         self.no_zenaz = False
         self.bounds = bounds
 
@@ -324,6 +333,10 @@ class TemplateNetworkInterpolator(BaseTemplate):
 
         return interpolated_value
 
+    # Two interpolators are the same if they are generated from the same file
+    def __eq__(self, other):
+        return self.template_file == other.template_file
+
 
 class TimeGradientInterpolator(BaseTemplate):
     """
@@ -339,11 +352,22 @@ class TimeGradientInterpolator(BaseTemplate):
         """
 
         super().__init__()
-        file_list = gzip.open(template_file)
-        input_dict = pickle.load(file_list)
 
-        keys = np.array(list(input_dict.keys()))
-        values = np.array(list(input_dict.values()), dtype=np.float32)
+        self.template_file = template_file
+
+        input_dict = None
+        with gzip.open(template_file, "r") as file_list:
+            input_dict = pickle.load(file_list)
+
+        # The dict has at its highest level two keys: data and tel_type.
+        # The first just contains the template dict, the second a string to validate the tel_type
+        # that the templates are made for.
+
+        data_input_dict = input_dict["data"]
+        self.tel_type_string = input_dict["tel_type"]
+
+        keys = np.array(list(data_input_dict.keys()))
+        values = np.array(list(data_input_dict.values()), dtype=np.float32)
         self.no_zenaz = False
 
         # First check if we even have a zen and azimuth entry
@@ -384,6 +408,10 @@ class TimeGradientInterpolator(BaseTemplate):
             )
 
         return interpolated_value
+
+    # Two interpolators are the same if they are generated from the same file
+    def __eq__(self, other):
+        return self.template_file == other.template_file
 
 
 class DummyTemplateInterpolator:
