@@ -164,6 +164,16 @@ filterwarnings = [
     "error::tables.UnclosedFileWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
     "ignore::ctapipe.core.provenance.MissingReferenceMetadata",
+    # inside matplotlib, already fixed but occurs in "oldest-deps" tests
+    "ignore:'parseString':DeprecationWarning:matplotlib",
+    "ignore:'resetCache':DeprecationWarning:matplotlib",
+    "ignore:'oneOf':DeprecationWarning:matplotlib",
+    "ignore:'leaveWhiteSpace':DeprecationWarning:matplotlib",
+    "ignore:'setName':DeprecationWarning:matplotlib",
+    "ignore:'setParseAction':DeprecationWarning:matplotlib",
+    "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
+    "ignore:'unquoteResults':DeprecationWarning:matplotlib",
+    "ignore:'parseAll':DeprecationWarning:pyparsing",
 ]
 norecursedirs = [
     ".git",
