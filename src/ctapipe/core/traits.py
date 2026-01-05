@@ -111,13 +111,18 @@ class AstroQuantity(TraitType):
         else:
             self.physical_type = physical_type
 
-        if self.default_value is not Undefined and self.physical_type is not None:
-            default_type = u.get_physical_type(self.default_value)
-            if default_type != self.physical_type:
-                raise TraitError(
-                    f"Given physical type {self.physical_type} does not match"
-                    f" physical type of the default value, {default_type}."
-                )
+        if self.default_value is not Undefined and self.default_value is not None:
+            if self.physical_type is not None:
+                default_type = u.get_physical_type(self.default_value)
+                if default_type != self.physical_type:
+                    raise TraitError(
+                        f"Given physical type {self.physical_type} does not match"
+                        f" physical type of the default value, {default_type}."
+                    )
+            else:
+                if not isinstance(self.default_value, u.Quantity):
+                    self.default_value = u.Quantity(self.default_value)
+                self.physical_type = u.get_physical_type(self.default_value)
 
     @property
     def info_text(self):

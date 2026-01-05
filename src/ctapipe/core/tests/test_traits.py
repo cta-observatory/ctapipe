@@ -347,7 +347,9 @@ def test_quantity_from_config(tmp_path):
     from ctapipe.core.traits import AstroQuantity
 
     class QuantityComponent(Component):
-        distance = AstroQuantity(u.cm, default_value=1 * u.m).tag(config=True)
+        distance = AstroQuantity(physical_type=u.cm, default_value=1 * u.m).tag(
+            config=True
+        )
 
     config = Config()
     config.QuantityComponent.distance = "5 cm"
@@ -362,7 +364,9 @@ def test_quantity_from_config(tmp_path):
     assert q.distance.unit == u.m
 
     class QTool(Tool):
-        distance = AstroQuantity(u.cm, default_value=1 * u.m).tag(config=True)
+        distance = AstroQuantity(physical_type=u.cm, default_value=1 * u.m).tag(
+            config=True
+        )
 
     config_file = tmp_path / "config.json"
     config_file.write_text(
@@ -398,7 +402,9 @@ def test_quantity_tool(capsys):
 
 def test_quantity_none():
     class AllowNone(Component):
-        quantity = AstroQuantity(default_value=None, allow_none=True)
+        quantity = AstroQuantity(
+            default_value=None, allow_none=True, physical_type=u.TeV
+        )
 
     c = AllowNone()
     assert c.quantity is None
