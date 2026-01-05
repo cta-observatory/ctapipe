@@ -94,7 +94,7 @@ class HillasIntersection(HillasGeometryReconstructor):
     """
 
     weighting = traits.CaselessStrEnum(
-        ["harmonic-mean-intensity", "hess"],
+        ["harmonic-mean-intensity"],
         default_value="harmonic-mean-intensity",
         help="Weighting Method name",
     ).tag(config=True)
@@ -103,7 +103,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
-        Weighting must be a function similar to the weight_mean_intensity already implemented
+        Weighting must be a function similar to the weight_mean_intensity function already implemented
         """
         super().__init__(subarray, atmosphere_profile, **kwargs)
 
