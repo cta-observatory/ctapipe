@@ -1,0 +1,4 @@
+Fix naming mismatch between ``classification`` and ``particle_type`` group
+in ``HDF5EventSource``.
+Rename the ``classification`` field from ``ReconstructedContainer`` to
+``particle_type``.

@@ -177,7 +177,7 @@ def test_mean_prediction_single_event(weights):
         energy={
             "dummy": ReconstructedEnergyContainer(energy=10 * u.GeV, is_valid=True)
         },
-        classification={
+        particle_type={
             "dummy": ParticleClassificationContainer(prediction=1.0, is_valid=True)
         },
         geometry={
@@ -190,7 +190,7 @@ def test_mean_prediction_single_event(weights):
         energy={
             "dummy": ReconstructedEnergyContainer(energy=20 * u.GeV, is_valid=True)
         },
-        classification={
+        particle_type={
             "dummy": ParticleClassificationContainer(prediction=0.0, is_valid=True)
         },
         geometry={
@@ -203,7 +203,7 @@ def test_mean_prediction_single_event(weights):
         energy={
             "dummy": ReconstructedEnergyContainer(energy=0.04 * u.TeV, is_valid=True)
         },
-        classification={
+        particle_type={
             "dummy": ParticleClassificationContainer(prediction=0.8, is_valid=True)
         },
         geometry={
@@ -239,4 +239,16 @@ def test_mean_prediction_single_event(weights):
         assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
-    assert event.dl2.stereo.classification["dummy"].prediction == pytest.approx(0.6)
+    assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(0.6)
+
+
+def test_reconstructed_container_warning():
+    from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
+
+    container = ReconstructedContainer()
+
+    with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
+        _ = container.classification
+
+    with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
+        container.classification = ParticleClassificationContainer()
