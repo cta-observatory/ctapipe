@@ -224,9 +224,9 @@ class GhPercentileCutCalculator(Component):
             self.smoothing = None
 
         return calculate_percentile_cut(
-            gammaness,
-            reco_energy,
-            reco_energy_bins,
+            values=gammaness,
+            bin_values=reco_energy,
+            bins=reco_energy_bins,
             smoothing=self.smoothing,
             percentile=100 - self.target_percentile,
             fill_value=gammaness.max(),
@@ -238,15 +238,17 @@ class ThetaPercentileCutCalculator(Component):
     """Computes a percentile cut on theta."""
 
     theta_min_angle = AstroQuantity(
-        default_value=u.Quantity(-1, u.deg),
+        default_value=None,
+        allow_none=True,
         physical_type=u.physical.angle,
-        help="Smallest angular cut value allowed (-1 means no cut)",
+        help="Smallest angular cut value allowed (None means no cut)",
     ).tag(config=True)
 
     theta_max_angle = AstroQuantity(
-        default_value=u.Quantity(0.32, u.deg),
+        default_value=u.Quantity(0.5, u.deg),
+        allow_none=True,
         physical_type=u.physical.angle,
-        help="Largest angular cut value allowed",
+        help="Largest angular cut value allowed (None means no cut)",
     ).tag(config=True)
 
     min_counts = Integer(
@@ -255,7 +257,7 @@ class ThetaPercentileCutCalculator(Component):
     ).tag(config=True)
 
     theta_fill_value = AstroQuantity(
-        default_value=u.Quantity(0.32, u.deg),
+        default_value=u.Quantity(0.5, u.deg),
         physical_type=u.physical.angle,
         help="Angular cut value used for bins with too few events",
     ).tag(config=True)
@@ -272,25 +274,15 @@ class ThetaPercentileCutCalculator(Component):
     ).tag(config=True)
 
     def __call__(self, theta, reco_energy, reco_energy_bins):
-        if self.theta_min_angle < 0 * u.deg:
-            theta_min_angle = None
-        else:
-            theta_min_angle = self.theta_min_angle
-
-        if self.theta_max_angle < 0 * u.deg:
-            theta_max_angle = None
-        else:
-            theta_max_angle = self.theta_max_angle
-
         if self.smoothing and self.smoothing < 0:
             self.smoothing = None
 
         return calculate_percentile_cut(
-            theta,
-            reco_energy,
-            reco_energy_bins,
-            min_value=theta_min_angle,
-            max_value=theta_max_angle,
+            values=theta,
+            bin_values=reco_energy,
+            bins=reco_energy_bins,
+            min_value=self.theta_min_angle,
+            max_value=self.theta_max_angle,
             smoothing=self.smoothing,
             percentile=self.target_percentile,
             fill_value=self.theta_fill_value,
@@ -325,9 +317,9 @@ class PercentileCuts(CutOptimizerBase):
             self.reco_energy_bins,
         )
         gh_mask = evaluate_binned_cut(
-            events["signal"]["gh_score"],
-            events["signal"]["reco_energy"],
-            gh_cuts,
+            values=events["signal"]["gh_score"],
+            bin_values=events["signal"]["reco_energy"],
+            cut_table=gh_cuts,
             op=operator.ge,
         )
         spatial_selection_table = self.theta_cut_calculator(
@@ -428,8 +420,8 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
         self._check_events(events)
 
         initial_gh_cuts = calculate_percentile_cut(
-            events["signal"]["gh_score"],
-            events["signal"]["reco_energy"],
+            values=events["signal"]["gh_score"],
+            bin_values=events["signal"]["reco_energy"],
             bins=self.reco_energy_bins,
             fill_value=0.0,
             percentile=100 * (1 - self.initial_gh_cut_efficency),
@@ -437,9 +429,9 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
             smoothing=1,
         )
         initial_gh_mask = evaluate_binned_cut(
-            events["signal"]["gh_score"],
-            events["signal"]["reco_energy"],
-            initial_gh_cuts,
+            values=events["signal"]["gh_score"],
+            bin_values=events["signal"]["reco_energy"],
+            cut_table=initial_gh_cuts,
             op=operator.gt,
         )
 
@@ -456,8 +448,8 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
             self.gh_cut_efficiency_step,
         )
         opt_sensitivity, gh_cuts = optimize_gh_cut(
-            events["signal"],
-            events["background"],
+            signal=events["signal"],
+            background=events["background"],
             reco_energy_bins=self.reco_energy_bins,
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
@@ -470,10 +462,10 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
 
         # Re-calculate theta cut with optimized g/h cut
         gh_mask = evaluate_binned_cut(
-            events["signal"]["gh_score"],
-            events["signal"]["reco_energy"],
-            gh_cuts,
-            operator.ge,
+            values=events["signal"]["gh_score"],
+            bin_values=events["signal"]["reco_energy"],
+            cut_table=gh_cuts,
+            op=operator.ge,
         )
         events["signal"]["selected_gh"] = gh_mask
         spatial_selection_table_opt = self.theta_cut_calculator(
@@ -499,19 +491,21 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
 class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
     """
     Finds the combination of G/H cut, theta cut, and cut on the event-multiplicity
-    for each energy bin with the maximum point source sensitivity in a grid search.
+    for each energy bin with the best point source sensitivity in a grid search.
     """
 
     theta_min_angle = AstroQuantity(
-        default_value=u.Quantity(-1, u.deg),
+        default_value=None,
+        allow_none=True,
         physical_type=u.physical.angle,
-        help="Smallest angular cut value allowed (-1 means no cut)",
+        help="Smallest angular cut value allowed (None means no cut)",
     ).tag(config=True)
 
     theta_max_angle = AstroQuantity(
-        default_value=u.Quantity(0.32, u.deg),
+        default_value=u.Quantity(0.5, u.deg),
+        allow_none=True,
         physical_type=u.physical.angle,
-        help="Largest angular cut value allowed",
+        help="Largest angular cut value allowed (None means no cut)",
     ).tag(config=True)
 
     max_theta_cut_efficiency = Float(
@@ -549,8 +543,8 @@ class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
         )
 
         opt_sensitivity, multiplicity_cuts, theta_cuts, gh_cuts = optimize_cuts(
-            events["signal"],
-            events["background"],
+            signal=events["signal"],
+            background=events["background"],
             reco_energy_bins=self.reco_energy_bins,
             multiplicity_cuts=self.multiplicity_cuts,
             gh_cut_efficiencies=gh_cut_efficiencies,
