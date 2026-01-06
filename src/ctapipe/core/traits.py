@@ -97,32 +97,34 @@ class AstroQuantity(TraitType):
 
     def __init__(self, physical_type=None, **kwargs):
         super().__init__(**kwargs)
-        if physical_type is not None:
-            if isinstance(physical_type, u.PhysicalType):
-                self.physical_type = physical_type
-            elif isinstance(physical_type, u.UnitBase):
-                self.physical_type = u.get_physical_type(physical_type)
-            else:
-                raise TraitError(
-                    "Given physical type must be either of type"
-                    " astropy.units.PhysicalType or a subclass of"
-                    f" astropy.units.UnitBase, was {type(physical_type)}."
-                )
-        else:
+        if physical_type is None:
+            self.physical_type = None
+        elif isinstance(physical_type, u.PhysicalType):
             self.physical_type = physical_type
+        elif isinstance(physical_type, u.UnitBase):
+            self.physical_type = u.get_physical_type(physical_type)
+        else:
+            raise TraitError(
+                "Given physical type must be either of type"
+                " astropy.units.PhysicalType or a subclass of"
+                f" astropy.units.UnitBase, was {type(physical_type)}."
+            )
 
         if self.default_value is not Undefined and self.default_value is not None:
-            if self.physical_type is not None:
-                default_type = u.get_physical_type(self.default_value)
-                if default_type != self.physical_type:
-                    raise TraitError(
-                        f"Given physical type {self.physical_type} does not match"
-                        f" physical type of the default value, {default_type}."
-                    )
-            else:
-                if not isinstance(self.default_value, u.Quantity):
-                    self.default_value = u.Quantity(self.default_value)
-                self.physical_type = u.get_physical_type(self.default_value)
+            self._validate_default_value()
+
+    def _validate_default_value(self):
+        if self.physical_type is not None:
+            default_type = u.get_physical_type(self.default_value)
+            if default_type != self.physical_type:
+                raise TraitError(
+                    f"Given physical type {self.physical_type} does not match"
+                    f" the default value's physical type {default_type}."
+                )
+        else:
+            if not isinstance(self.default_value, u.Quantity):
+                self.default_value = u.Quantity(self.default_value)
+            self.physical_type = u.get_physical_type(self.default_value)
 
     @property
     def info_text(self):
