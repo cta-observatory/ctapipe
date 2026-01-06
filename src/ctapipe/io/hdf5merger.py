@@ -178,7 +178,7 @@ class HDF5Merger(Component):
     single_ob = traits.Bool(
         False,
         help=(
-            "If true, input files are assumed to be multiple chunks from the same "
+            "If true, input files are assumed to be related to the same "
             "observation block. The ob / sb blocks and monitoring data (if included) "
             "will only be copied from the first input file."
         ),
