@@ -523,26 +523,18 @@ class HDF5Merger(Component):
 
     def _append(self, other):
         """Append data to the output file."""
-        # Check for the obs_ids
         self._check_obs_ids(other)
-        # Check for the subarray description and write if first file
         self._append_subarray(other)
-        # Append configuration data like SB/OB blocks
         self._append_configuration(other)
-        # Append simulation data
         if self.simulation and not self.attach_monitoring:
             self._append_simulation_data(other)
-        # Append waveform data
         if self.telescope_events and not self.attach_monitoring:
             self._append_waveform_data(other)
-        # Append DL1 and DL2 data
         if not self.attach_monitoring:
             self._append_dl1_data(other)
             self._append_dl2_data(other)
-        # Append monitoring data
         if self.monitoring:
             self._append_monitoring_data(other)
-        # Append processing statistics
         if self.processing_statistics and not self.attach_monitoring:
             self._append_statistics_data(other)
 
