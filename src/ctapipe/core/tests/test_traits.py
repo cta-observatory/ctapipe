@@ -333,7 +333,7 @@ def test_quantity():
     with pytest.raises(
         TraitError,
         match=f"Given physical type {u.physical.energy} does not match"
-        + f" physical type of the default value, {u.get_physical_type(5 * u.m)}.",
+        + f" the default value's physical type {u.get_physical_type(5 * u.m)}.",
     ):
 
         class AnotherBadComponentWithEnergyTrait(Component):
