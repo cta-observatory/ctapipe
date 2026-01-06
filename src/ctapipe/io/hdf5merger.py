@@ -119,11 +119,6 @@ class HDF5Merger(Component):
         help="Whether to include telescope-wise data in merged output",
     ).tag(config=True)
 
-    trigger = traits.Bool(
-        True,
-        help="Whether to include data related to the trigger in merged output",
-    ).tag(config=True)
-
     simulation = traits.Bool(
         True,
         help="Whether to include data only known for simulations in merged output",
