@@ -1,0 +1,3 @@
+Rename "konrad" weights to "aspect-weighted-intensity" weights.
+
+Rename "Konrad" weights in ``HillasIntersection`` to "harmonic-mean-intensity".
