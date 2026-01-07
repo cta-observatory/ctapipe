@@ -90,7 +90,7 @@ class HillasIntersection(HillasGeometryReconstructor):
     for multiplicity 2 events.
 
     A more detailed explanation can be found in section 3.2 of
-    :cite:p:`ctao-a-and-a-special-edition`.
+    :cite:p:`ctao-mc-design-studies`.
     """
 
     weighting = traits.CaselessStrEnum(
