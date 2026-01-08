@@ -293,3 +293,21 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
         initial_tel_events = loader.read_telescope_events()
 
     assert_table_equal(merged_tel_events, initial_tel_events)
+
+
+def test_merge_exceptions(
+    tmp_path, calibpipe_camcalib_sims_single_chunk, dl1_mon_pointing_file
+):
+    from ctapipe.io.hdf5merger import CannotMerge
+    from ctapipe.tools.merge import MergeTool
+
+    # Test if invalid merge with different monitoring types raises CannotMerge
+    with pytest.raises(CannotMerge, match="Required node"):
+        argv = [
+            f"--output={calibpipe_camcalib_sims_single_chunk}",
+            str(dl1_mon_pointing_file),
+            "--append",
+            "--monitoring",
+            "--single-ob",
+        ]
+        run_tool(MergeTool(), argv=argv, cwd=tmp_path)
