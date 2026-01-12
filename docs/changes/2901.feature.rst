@@ -1,1 +1,5 @@
+Add merge_strategy option to HDF5Merger component to control merging behavior. The HDF5Merger component supports the following strategies:
+- 'events-multiple-obs': allows merging event files (with and without monitoring data) from different observation blocks.
+- 'events-single-ob': for merging events in consecutive chunks of the same observation block.
+- 'monitoring-only': attaches horizontally monitoring data from the same observation block (requires monitoring=True).
 Allow monitoring data to be merged to the HDF5 event data files.
