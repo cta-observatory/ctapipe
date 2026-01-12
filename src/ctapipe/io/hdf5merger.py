@@ -186,7 +186,7 @@ class HDF5Merger(Component):
         help=(
             "Strategy to handle different use cases when merging HDF5 files. "
             "'events-multiple-obs': allows merging event files (w and w/o monitoring data) from different observation blocks; "
-            "'events-single-ob': assumes all input event files are from the same observation block; "
+            "'events-single-ob': for merging events in consecutive chunks of the same OB."
             "'monitoring-only': attaches horizontally monitoring data from the same observation block (requires monitoring=True)."
         ),
     ).tag(config=True)
