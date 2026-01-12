@@ -353,7 +353,7 @@ class HDF5Merger(Component):
             # obs_ids can be different in case of MC simulations.
             if len(different) > 0 and self.data_category != "Sim":
                 msg = (
-                    f"Merge strategy 'events-single-ob' selected, but input file {other.filename} contains "
+                    f"Merge strategy '{self.merge_strategy}' selected, but input file {other.filename} contains "
                     f"different obs_ids than already merged ({self._merged_obs_ids}): {different}"
                 )
                 raise CannotMerge(msg)
