@@ -242,7 +242,7 @@ def test_merge_single_ob(tmp_path, dl1_file, dl1_chunks):
             str(path1),
             str(path2),
             f"--output={output}",
-            "--single-ob",
+            "--merge-strategy=events-single-ob",
         ],
         cwd=tmp_path,
         raises=True,
@@ -268,7 +268,7 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
         argv=[
             str(path1),
             f"--output={output}",
-            "--single-ob",
+            "--merge-strategy=events-single-ob",
         ],
         cwd=tmp_path,
         raises=True,
@@ -279,7 +279,7 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
         argv=[
             str(path2),
             f"--output={output}",
-            "--single-ob",
+            "--merge-strategy=events-single-ob",
             "--append",
         ],
         cwd=tmp_path,
@@ -308,6 +308,6 @@ def test_merge_exceptions(
             str(dl1_mon_pointing_file),
             "--append",
             "--monitoring",
-            "--single-ob",
+            "--merge-strategy=events-single-ob",
         ]
         run_tool(MergeTool(), argv=argv, cwd=tmp_path)

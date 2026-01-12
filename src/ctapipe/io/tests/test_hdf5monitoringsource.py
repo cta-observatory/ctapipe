@@ -22,7 +22,7 @@ from ctapipe.utils import get_dataset_path
 
 def test_hdf5_monitoring_source_subarray():
     """test a simple subarray"""
-    file = get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+    file = get_dataset_path("calibpipe_camcalib_sims_single_chunk_i0.2.0.dl1.h5")
     with HDF5MonitoringSource(input_files=[file]) as source:
         assert source.subarray.telescope_types
         assert source.subarray.camera_types

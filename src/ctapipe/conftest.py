@@ -803,8 +803,7 @@ def dl1_merged_monitoring_file(
             str(dl1_mon_pointing_file),
             str(calibpipe_camcalib_sims_single_chunk),
             "--append",
-            "--attach-monitoring",
-            "--single-ob",
+            "--merge-strategy=monitoring-only",
         ]
         assert run_tool(MergeTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output

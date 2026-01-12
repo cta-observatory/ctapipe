@@ -197,10 +197,11 @@ def test_monitoring_traiterror(tmp_path, calibpipe_camcalib_sims_single_chunk):
 
     # Test if invalid monitoring settings raise TraitError
     with pytest.raises(
-        traits.TraitError, match="attach_monitoring=True requires monitoring=True"
+        traits.TraitError,
+        match="Merge strategy 'monitoring-only' requires monitoring=True",
     ):
         _ = HDF5Merger(
             calibpipe_camcalib_sims_single_chunk,
             monitoring=False,
-            attach_monitoring=True,
+            merge_strategy="monitoring-only",
         )

@@ -180,19 +180,14 @@ class HDF5Merger(Component):
         True, help="Whether to include processing statistics in merged output"
     ).tag(config=True)
 
-    single_ob = traits.Bool(
-        False,
+    merge_strategy = traits.CaselessStrEnum(
+        ["events-multiple-obs", "events-single-ob", "monitoring-only"],
+        default_value="events-multiple-obs",
         help=(
-            "If true, input files are assumed to be related to the same "
-            "observation block. The ob / sb blocks and monitoring data (if included) "
-            "will only be copied from the first input file."
-        ),
-    ).tag(config=True)
-
-    attach_monitoring = traits.Bool(
-        False,
-        help=(
-            "If true, monitoring data can be horizontally merged. Requires monitoring=True."
+            "Strategy to handle different use cases when merging HDF5 files. "
+            "'events-multiple-obs': allows merging event files (w and w/o monitoring data) from different observation blocks; "
+            "'events-single-ob': assumes all input event files are from the same observation block; "
+            "'monitoring-only': attaches horizontally monitoring data from the same observation block (requires monitoring=True)."
         ),
     ).tag(config=True)
 
@@ -206,8 +201,16 @@ class HDF5Merger(Component):
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
 
+        # set convenient flags based on merge strategy
+        self.single_ob = (
+            self.merge_strategy == "events-single-ob"
+            or self.merge_strategy == "monitoring-only"
+        )
+        self.attach_monitoring = self.merge_strategy == "monitoring-only"
         if self.attach_monitoring and not self.monitoring:
-            raise traits.TraitError("attach_monitoring=True requires monitoring=True")
+            raise traits.TraitError(
+                "Merge strategy 'monitoring-only' requires monitoring=True"
+            )
 
         output_exists = self.output_path.exists()
         appending = False
@@ -349,7 +352,10 @@ class HDF5Merger(Component):
             # If monitoring data from the same observation block is being attached,
             # obs_ids can be different in case of MC simulations.
             if len(different) > 0 and self.data_category != "Sim":
-                msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
+                msg = (
+                    f"Merge strategy 'events-single-ob' selected, but input file {other.filename} contains "
+                    f"different obs_ids than already merged ({self._merged_obs_ids}): {different}"
+                )
                 raise CannotMerge(msg)
         else:
             duplicated = self._merged_obs_ids.intersection(obs_ids)

@@ -78,17 +78,10 @@ class MergeTool(Tool):
         ("i", "input-dir"): "MergeTool.input_dir",
         ("o", "output"): "HDF5Merger.output_path",
         ("p", "pattern"): "MergeTool.file_pattern",
+        ("s", "merge-strategy"): "HDF5Merger.merge_strategy",
     }
 
     flags = {
-        "single-ob": (
-            {"HDF5Merger": {"single_ob": True}},
-            (
-                "By default, the merge tool assumes it is merging multiple"
-                " observation blocks. This option switches to merging multiple"
-                " chunks of events of the same ob."
-            ),
-        ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
@@ -160,12 +153,6 @@ class MergeTool(Tool):
             "HDF5Merger.monitoring",
             "Include monitoring data",
             "Exclude monitoring data",
-        ),
-        **flag(
-            "attach-monitoring",
-            "HDF5Merger.attach_monitoring",
-            "Attach monitoring data",
-            "Not attach monitoring data",
         ),
     }
 
