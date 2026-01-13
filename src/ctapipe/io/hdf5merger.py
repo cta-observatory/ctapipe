@@ -50,6 +50,11 @@ from .hdf5dataformat import (
 )
 from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
 
+COMPATIBLE_DATA_MODEL_VERSIONS = [
+    "v7.2.0",
+    "v7.3.0",
+]
+
 
 class NodeType(enum.Enum):
     # a single table
@@ -81,36 +86,16 @@ _NODES_TO_CHECK = {
     DL1_TEL_IMAGES_GROUP: NodeType.TEL_GROUP,
     DL1_TEL_PARAMETERS_GROUP: NodeType.TEL_GROUP,
     DL1_TEL_MUON_GROUP: NodeType.TEL_GROUP,
-    DL2_TEL_GROUP: NodeType.ITER_TEL_GROUP,
-    DL2_SUBARRAY_GROUP: NodeType.ITER_GROUP,
     DL1_SUBARRAY_POINTING_GROUP: NodeType.TABLE,
     DL1_TEL_POINTING_GROUP: NodeType.TEL_GROUP,
+    DL1_PIXEL_STATISTICS_GROUP: NodeType.ITER_TEL_GROUP,
+    DL1_CAMERA_COEFFICIENTS_GROUP: NodeType.TEL_GROUP,
+    DL1_TEL_MUON_THROUGHPUT_GROUP: NodeType.TEL_GROUP,
+    DL2_TEL_GROUP: NodeType.ITER_TEL_GROUP,
+    DL2_SUBARRAY_GROUP: NodeType.ITER_GROUP,
+    DL2_SUBARRAY_CROSS_CALIBRATION_GROUP: NodeType.TABLE,
+    DL2_SUBARRAY_INTER_CALIBRATION_GROUP: NodeType.TABLE,
 }
-
-
-def _get_required_nodes(h5file):
-    """Return nodes to be required in a new file for appending to ``h5file``"""
-    required_nodes = set()
-    for node, node_type in _NODES_TO_CHECK.items():
-        if node not in h5file.root:
-            continue
-
-        if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
-            required_nodes.add(node)
-
-        elif node_type is NodeType.ITER_GROUP:
-            for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for table in kind_group._f_iter_nodes("Table"):
-                    required_nodes.add(table._v_pathname)
-
-        elif node_type is NodeType.ITER_TEL_GROUP:
-            for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                for iter_group in kind_group._f_iter_nodes("Group"):
-                    required_nodes.add(iter_group._v_pathname)
-        else:
-            raise ValueError(f"Unhandled node type: {node_type} of {node}")
-
-    return required_nodes
 
 
 class CannotMerge(OSError):
@@ -195,12 +180,14 @@ class HDF5Merger(Component):
         True, help="Whether to include processing statistics in merged output"
     ).tag(config=True)
 
-    single_ob = traits.Bool(
-        False,
+    merge_strategy = traits.CaselessStrEnum(
+        ["events-multiple-obs", "events-single-ob", "monitoring-only"],
+        default_value="events-multiple-obs",
         help=(
-            "If true, input files are assumed to be multiple chunks from the same"
-            " observation block and the ob / sb blocks will only be copied from "
-            " the first input file"
+            "Strategy to handle different use cases when merging HDF5 files. "
+            "'events-multiple-obs': allows merging event files (w and w/o monitoring data) from different observation blocks; "
+            "'events-single-ob': for merging events in consecutive chunks of the same OB."
+            "'monitoring-only': attaches horizontally monitoring data from the same observation block (requires monitoring=True)."
         ),
     ).tag(config=True)
 
@@ -213,6 +200,17 @@ class HDF5Merger(Component):
 
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
+
+        # set convenient flags based on merge strategy
+        self.single_ob = (
+            self.merge_strategy == "events-single-ob"
+            or self.merge_strategy == "monitoring-only"
+        )
+        self.attach_monitoring = self.merge_strategy == "monitoring-only"
+        if self.attach_monitoring and not self.monitoring:
+            raise traits.TraitError(
+                "Merge strategy 'monitoring-only' requires monitoring=True"
+            )
 
         output_exists = self.output_path.exists()
         appending = False
@@ -232,6 +230,7 @@ class HDF5Merger(Component):
 
         self.required_nodes = None
         self.data_model_version = None
+        self.data_category = None
         self.subarray = None
         self.meta = None
         self._merged_obs_ids = set()
@@ -242,6 +241,7 @@ class HDF5Merger(Component):
         if appending:
             self.meta = self._read_meta(self.h5file)
             self.data_model_version = self.meta.product.data_model_version
+            self.data_category = self.meta.product.data_category
 
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
@@ -249,7 +249,9 @@ class HDF5Merger(Component):
                 self.h5file,
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
-            self.required_nodes = _get_required_nodes(self.h5file)
+
+            # Get required nodes from existing output file
+            self.required_nodes = self._get_required_nodes(self.h5file)
 
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
@@ -268,6 +270,7 @@ class HDF5Merger(Component):
             if self._n_merged == 0:
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.product.data_model_version
+                self.data_category = self.meta.product.data_category
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
             else:
                 self._check_can_merge(other)
@@ -277,10 +280,7 @@ class HDF5Merger(Component):
                 self._append(other)
                 # if first file, update required nodes
                 if self.required_nodes is None:
-                    self.required_nodes = _get_required_nodes(self.h5file)
-                    self.log.info(
-                        "Updated required nodes to %s", sorted(self.required_nodes)
-                    )
+                    self.required_nodes = self._get_required_nodes(self.h5file)
                 self._n_merged += 1
             finally:
                 self._update_meta()
@@ -309,10 +309,24 @@ class HDF5Merger(Component):
     def _check_can_merge(self, other):
         other_meta = self._read_meta(other)
         other_version = other_meta.product.data_model_version
-        if self.data_model_version != other_version:
+        if self.attach_monitoring:
+            if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
+                raise CannotMerge(
+                    f"Input file {other.filename!r} has incompatible data model version"
+                    f" for attaching monitoring data: {other_version}, expected one of"
+                    f" {COMPATIBLE_DATA_MODEL_VERSIONS}"
+                )
+        else:
+            if self.data_model_version != other_version:
+                raise CannotMerge(
+                    f"Input file {other.filename!r} has different data model version:"
+                    f" {other_version}, expected {self.data_model_version}"
+                )
+        other_category = other_meta.product.data_category
+        if self.data_category != other_category:
             raise CannotMerge(
-                f"Input file {other.filename:!r} has different data model version:"
-                f" {other_version}, expected {self.data_model_version}"
+                f"Input file {other.filename!r} has different data category:"
+                f" {other_category}, expected {self.data_category}"
             )
 
         for node_path in self.required_nodes:
@@ -335,8 +349,13 @@ class HDF5Merger(Component):
 
         if self.single_ob and len(self._merged_obs_ids) > 0:
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
-            if len(different) > 0:
-                msg = f"Input file {other.filename} contains different obs_ids than already merged ({self._merged_obs_ids}) for single_ob=True: {different}"
+            # If monitoring data from the same observation block is being attached,
+            # obs_ids can be different in case of MC simulations.
+            if len(different) > 0 and self.data_category != "Sim":
+                msg = (
+                    f"Merge strategy '{self.merge_strategy}' selected, but input file {other.filename} contains "
+                    f"different obs_ids than already merged ({self._merged_obs_ids}): {different}"
+                )
                 raise CannotMerge(msg)
         else:
             duplicated = self._merged_obs_ids.intersection(obs_ids)
@@ -346,25 +365,36 @@ class HDF5Merger(Component):
 
         self._merged_obs_ids.update(obs_ids)
 
-    def _append_configuration(self, other):
-        """Append configuration-related data (scheduling blocks, observation blocks, pointing)."""
-        # in case of "single_ob", we only copy sb/ob blocks for the first file
-        if not self.single_ob or self._n_merged == 0:
-            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
-            for key in config_keys:
-                if key in other.root:
-                    self._append_table(other, other.root[key])
+    def _get_required_nodes(self, h5file):
+        """Return nodes to be required in a new file for appending to ``h5file``"""
+        required_nodes = set()
+        # Required nodes are not relevant for attaching monitoring data.
+        if self.attach_monitoring:
+            self.log.info("No required nodes to check for attaching monitoring data.")
+            return required_nodes
+        for node, node_type in _NODES_TO_CHECK.items():
+            if node not in h5file.root:
+                continue
 
-        if FIXED_POINTING_GROUP in other.root:
-            self._append_table_group(
-                other, other.root[FIXED_POINTING_GROUP], once=self.single_ob
-            )
+            if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
+                required_nodes.add(node)
+
+            elif node_type is NodeType.ITER_GROUP:
+                for kind_group in h5file.root[node]._f_iter_nodes("Group"):
+                    for table in kind_group._f_iter_nodes("Table"):
+                        required_nodes.add(table._v_pathname)
+
+            elif node_type is NodeType.ITER_TEL_GROUP:
+                for kind_group in h5file.root[node]._f_iter_nodes("Group"):
+                    for iter_group in kind_group._f_iter_nodes("Group"):
+                        required_nodes.add(iter_group._v_pathname)
+            else:
+                raise ValueError(f"Unhandled node type: {node_type} of {node}")
+        self.log.info("Updated required nodes to %s", sorted(required_nodes))
+        return required_nodes
 
     def _append_simulation_data(self, other):
         """Append simulation-related data (run, shower, impact, images, parameters)."""
-        if not self.simulation:
-            return
-
         simulation_table_keys = [
             SIMULATION_RUN_TABLE,
             SHOWER_DISTRIBUTION_TABLE,
@@ -374,9 +404,15 @@ class HDF5Merger(Component):
             if key in other.root:
                 self._append_table(other, other.root[key])
 
+        if FIXED_POINTING_GROUP in other.root:
+            self._append_table_group(
+                other,
+                other.root[FIXED_POINTING_GROUP],
+                once=self.single_ob,
+            )
+
         if not self.telescope_events:
             return
-
         if SIMULATION_IMPACT_GROUP in other.root:
             self._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
 
@@ -391,9 +427,6 @@ class HDF5Merger(Component):
 
     def _append_waveform_data(self, other):
         """Append R0 and R1 waveform data."""
-        if not self.telescope_events:
-            return
-
         # R0
         if self.r0_waveforms and R0_TEL_GROUP in other.root:
             self._append_table_group(other, other.root[R0_TEL_GROUP])
@@ -439,13 +472,11 @@ class HDF5Merger(Component):
 
     def _append_monitoring_data(self, other):
         """Append monitoring data (pointing, calibration, throughput, pixel statistics)."""
-        if not self.monitoring:
-            return
-
         self._append_monitoring_subarray_groups(other)
-        self._append_monitoring_telescope_groups(other)
         self._append_monitoring_dl2_groups(other)
-        self._append_pixel_statistics(other)
+        if self.telescope_events:
+            self._append_monitoring_telescope_groups(other)
+            self._append_pixel_statistics(other)
 
     def _append_monitoring_subarray_groups(self, other):
         """Append monitoring subarray groups."""
@@ -454,7 +485,7 @@ class HDF5Merger(Component):
         ]
         for key in monitoring_dl1_subarray_groups:
             if key in other.root:
-                self._append_table(other, other.root[key])
+                self._append_table(other, other.root[key], once=self.single_ob)
 
     def _append_monitoring_telescope_groups(self, other):
         """Append monitoring telescope groups."""
@@ -469,7 +500,7 @@ class HDF5Merger(Component):
         ]
         for key in monitoring_telescope_groups:
             if key in other.root:
-                self._append_table_group(other, other.root[key])
+                self._append_table_group(other, other.root[key], once=self.single_ob)
 
     def _append_monitoring_dl2_groups(self, other):
         """Append monitoring DL2 subarray groups."""
@@ -479,25 +510,21 @@ class HDF5Merger(Component):
         ]
         for key in monitoring_dl2_subarray_groups:
             if key in other.root:
-                self._append_table(other, other.root[key])
+                self._append_table(other, other.root[key], once=self.single_ob)
 
     def _append_pixel_statistics(self, other):
         """Append pixel statistics monitoring data."""
-        if not self.telescope_events:
-            return
-
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
                 if key in other.root:
-                    self._append_table_group(other, other.root[key])
+                    self._append_table_group(
+                        other, other.root[key], once=self.single_ob
+                    )
 
     def _append_statistics_data(self, other):
         """Append processing statistics data."""
-        if not self.processing_statistics:
-            return
-
-        # Quality query statistics
+        # quality query statistics
         if DL1_IMAGE_STATISTICS_TABLE in other.root:
             self._add_statistics_table(other, other.root[DL1_IMAGE_STATISTICS_TABLE])
 
@@ -506,15 +533,21 @@ class HDF5Merger(Component):
                 self._add_statistics_table(other, node)
 
     def _append(self, other):
+        """Append data to the output file."""
         self._check_obs_ids(other)
         self._append_subarray(other)
         self._append_configuration(other)
-        self._append_simulation_data(other)
-        self._append_waveform_data(other)
-        self._append_dl1_data(other)
-        self._append_dl2_data(other)
-        self._append_monitoring_data(other)
-        self._append_statistics_data(other)
+        if self.simulation and not self.attach_monitoring:
+            self._append_simulation_data(other)
+        if self.telescope_events and not self.attach_monitoring:
+            self._append_waveform_data(other)
+        if not self.attach_monitoring:
+            self._append_dl1_data(other)
+            self._append_dl2_data(other)
+        if self.monitoring:
+            self._append_monitoring_data(other)
+        if self.processing_statistics and not self.attach_monitoring:
+            self._append_statistics_data(other)
 
     def __enter__(self):
         return self
@@ -527,6 +560,15 @@ class HDF5Merger(Component):
             self.h5file.close()
         Provenance().add_output_file(str(self.output_path))
 
+    def _append_configuration(self, other):
+        """Append configuration-related data (scheduling blocks, observation blocks, pointing)."""
+        # in case of "single_ob", we only copy sb/ob blocks for the first file
+        if not self.single_ob or self._n_merged == 0:
+            config_keys = [SCHEDULING_BLOCK_TABLE, OBSERVATION_BLOCK_TABLE]
+            for key in config_keys:
+                if key in other.root:
+                    self._append_table(other, other.root[key])
+
     def _append_subarray(self, other):
         # focal length choice doesn't matter here, set to equivalent so we don't get
         # an error if only the effective focal length is available in the file
@@ -538,8 +580,18 @@ class HDF5Merger(Component):
             self.subarray = subarray
             self.subarray.to_hdf(self.h5file)
 
-        elif self.subarray != subarray:
-            raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
+        # Relax subarray matching requirements for attaching
+        # monitoring data of the same observation block.
+        if not self.single_ob or not self.attach_monitoring:
+            if self.subarray != subarray:
+                raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
+        else:
+            if not SubarrayDescription.check_matching_subarrays(
+                [self.subarray, subarray]
+            ):
+                raise CannotMerge(
+                    f"Subarrays are not compatible for file: {other.filename}"
+                )
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""

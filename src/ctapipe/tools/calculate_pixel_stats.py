@@ -114,10 +114,12 @@ class PixelStatisticsCalculatorTool(Tool):
         with HDF5Merger(
             parent=self,
             output_path=self.output_path,
+            simulation=False,
             r0_waveforms=False,
             r1_waveforms=False,
             dl1_images=False,
-            true_images=False,
+            processing_statistics=False,
+            merge_strategy="events-single-ob",
         ) as merger:
             merger(self.input_data.input_url)
         # Select a new subarray if the allowed_tels configuration is used
