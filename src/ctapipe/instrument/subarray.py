@@ -614,12 +614,18 @@ class SubarrayDescription:
         """
         # here to prevent circular import
         from ..io import write_table
+        from ..io.hdf5dataformat import (
+            CONFIG_INSTRUMENT_SUBARRAY,
+            CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
+            CONFIG_INSTRUMENT_TEL_OPTICS,
+            CONFIG_INSTRUMENT_TEL_CAMERA,
+        )
 
         with ExitStack() as stack:
             if not isinstance(h5file, tables.File):
                 h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
-            if "/configuration/instrument/subarray" in h5file.root and not overwrite:
+            if CONFIG_INSTRUMENT_SUBARRAY in h5file.root and not overwrite:
                 raise OSError(
                     "File already contains a SubarrayDescription and overwrite=False"
                 )
@@ -630,26 +636,26 @@ class SubarrayDescription:
             write_table(
                 subarray_table,
                 h5file,
-                path="/configuration/instrument/subarray/layout",
+                path=CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
                 overwrite=overwrite,
             )
             write_table(
                 self.to_table(kind="optics"),
                 h5file,
-                path="/configuration/instrument/telescope/optics",
+                path=CONFIG_INSTRUMENT_TEL_OPTICS,
                 overwrite=overwrite,
             )
             for i, camera in enumerate(self.camera_types):
                 write_table(
                     camera.geometry.to_table(),
                     h5file,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{i}",
+                    path=f"{CONFIG_INSTRUMENT_TEL_CAMERA}/geometry_{i}",
                     overwrite=overwrite,
                 )
                 write_table(
                     camera.readout.to_table(),
                     h5file,
-                    path=f"/configuration/instrument/telescope/camera/readout_{i}",
+                    path=f"{CONFIG_INSTRUMENT_TEL_CAMERA}/readout_{i}",
                     overwrite=overwrite,
                 )
 
@@ -657,12 +663,17 @@ class SubarrayDescription:
     def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
         # here to prevent circular import
         from ..io import read_table
+        from ..io.hdf5dataformat import (
+            CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
+            CONFIG_INSTRUMENT_TEL_OPTICS,
+            CONFIG_INSTRUMENT_TEL_CAMERA,
+        )
 
         if isinstance(focal_length_choice, str):
             focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
 
         layout = read_table(
-            path, "/configuration/instrument/subarray/layout", table_cls=QTable
+            path, CONFIG_INSTRUMENT_SUBARRAY_LAYOUT, table_cls=QTable
         )
 
         version = layout.meta.get("TAB_VER")
@@ -678,12 +689,12 @@ class SubarrayDescription:
         for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
                 read_table(
-                    path, f"/configuration/instrument/telescope/camera/geometry_{idx}"
+                    path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/geometry_{idx}"
                 )
             )
             readout = CameraReadout.from_table(
                 read_table(
-                    path, f"/configuration/instrument/telescope/camera/readout_{idx}"
+                    path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/readout_{idx}"
                 )
             )
             cameras[idx] = CameraDescription(
@@ -691,7 +702,7 @@ class SubarrayDescription:
             )
 
         optics_table = read_table(
-            path, "/configuration/instrument/telescope/optics", table_cls=QTable
+            path, CONFIG_INSTRUMENT_TEL_OPTICS, table_cls=QTable
         )
 
         optics_version = optics_table.meta.get("TAB_VER")

@@ -9,6 +9,11 @@ __all__ = [
     "SIMULATION_GROUP",
     "SIMULATION_TEL_TABLE",
     "CONFIG_GROUP",
+    "CONFIG_INSTRUMENT_SUBARRAY",
+    "CONFIG_INSTRUMENT_SUBARRAY_LAYOUT",
+    "CONFIG_INSTRUMENT_TEL",
+    "CONFIG_INSTRUMENT_TEL_OPTICS",
+    "CONFIG_INSTRUMENT_TEL_CAMERA",
     "SCHEDULING_BLOCK_TABLE",
     "OBSERVATION_BLOCK_TABLE",
     "SIMULATION_RUN_TABLE",
@@ -60,10 +65,16 @@ __all__ = [
 
 # Configuration, service, and simulation group
 CONFIG_GROUP = "/configuration"
+CONFIG_INSTRUMENT_SUBARRAY = "/configuration/instrument/subarray"
+CONFIG_INSTRUMENT_SUBARRAY_LAYOUT = "/configuration/instrument/subarray/layout"
+CONFIG_INSTRUMENT_TEL = "/configuration/instrument/telescope"
+CONFIG_INSTRUMENT_TEL_OPTICS = "/configuration/instrument/telescope/optics"
+CONFIG_INSTRUMENT_TEL_CAMERA = "/configuration/instrument/telescope/camera"
 SCHEDULING_BLOCK_TABLE = "/configuration/observation/scheduling_block"
 OBSERVATION_BLOCK_TABLE = "/configuration/observation/observation_block"
 SIMULATION_RUN_TABLE = "/configuration/simulation/run"
 FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
+
 DL1_IMAGE_STATISTICS_TABLE = "/dl1/service/image_statistics"
 DL2_EVENT_STATISTICS_GROUP = "/dl2/service/tel_event_statistics"
 SIMULATION_GROUP = "/simulation"
