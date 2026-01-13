@@ -617,8 +617,8 @@ class SubarrayDescription:
         from ..io.hdf5dataformat import (
             CONFIG_INSTRUMENT_SUBARRAY,
             CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
-            CONFIG_INSTRUMENT_TEL_OPTICS,
             CONFIG_INSTRUMENT_TEL_CAMERA,
+            CONFIG_INSTRUMENT_TEL_OPTICS,
         )
 
         with ExitStack() as stack:
@@ -665,16 +665,14 @@ class SubarrayDescription:
         from ..io import read_table
         from ..io.hdf5dataformat import (
             CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
-            CONFIG_INSTRUMENT_TEL_OPTICS,
             CONFIG_INSTRUMENT_TEL_CAMERA,
+            CONFIG_INSTRUMENT_TEL_OPTICS,
         )
 
         if isinstance(focal_length_choice, str):
             focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
 
-        layout = read_table(
-            path, CONFIG_INSTRUMENT_SUBARRAY_LAYOUT, table_cls=QTable
-        )
+        layout = read_table(path, CONFIG_INSTRUMENT_SUBARRAY_LAYOUT, table_cls=QTable)
 
         version = layout.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_VERSIONS:
@@ -688,22 +686,16 @@ class SubarrayDescription:
 
         for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
-                read_table(
-                    path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/geometry_{idx}"
-                )
+                read_table(path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/geometry_{idx}")
             )
             readout = CameraReadout.from_table(
-                read_table(
-                    path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/readout_{idx}"
-                )
+                read_table(path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/readout_{idx}")
             )
             cameras[idx] = CameraDescription(
                 name=geometry.name, readout=readout, geometry=geometry
             )
 
-        optics_table = read_table(
-            path, CONFIG_INSTRUMENT_TEL_OPTICS, table_cls=QTable
-        )
+        optics_table = read_table(path, CONFIG_INSTRUMENT_TEL_OPTICS, table_cls=QTable)
 
         optics_version = optics_table.meta.get("TAB_VER")
         if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
@@ -841,12 +833,14 @@ class SubarrayDescription:
         Returns
         -------
         SubarrayDescription
-       
+
         """
 
         tel_positions, tel_descriptions = {}, {}
         tel_ids = set()  # To collect unique telescope IDs
-        reference_location = subarray_list[0].reference_location  # Get the reference location from the first subarray
+        reference_location = subarray_list[
+            0
+        ].reference_location  # Get the reference location from the first subarray
         for s, subarray in enumerate(subarray_list):
             if not isinstance(subarray, SubarrayDescription):
                 raise TypeError(

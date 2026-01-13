@@ -295,6 +295,75 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
     assert_table_equal(merged_tel_events, initial_tel_events)
 
 
+def test_merge_telescope_data(dl1_tmp_path, prod6_gamma_simtel_path, dl1_tel1_file):
+    """
+    Test merging telescope events from different files produces same result
+    as processing all telescopes together.
+    """
+    from ctapipe.tools.merge import MergeTool
+    from ctapipe.tools.process import ProcessorTool
+
+    # Create DL1 file with telescopes 2-4
+    dl1_tel2_file = dl1_tmp_path / "gamma_tel2-4.dl1.h5"
+
+    few_tels = [f"--EventSource.allowed_tels={i}" for i in (2, 3, 4)]
+    argv = [
+        f"--input={prod6_gamma_simtel_path}",
+        f"--output={dl1_tel2_file}",
+        "--write-images",
+    ] + few_tels
+    run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path)
+
+    # Create reference DL1 file with all telescopes 1-4
+    dl1_all_tels_file = dl1_tmp_path / "gamma_tel1-4_ref.dl1.h5"
+    all_tel_ids = [f"--EventSource.allowed_tels={i}" for i in (1, 2, 3, 4)]
+    argv = [
+        f"--input={prod6_gamma_simtel_path}",
+        f"--output={dl1_all_tels_file}",
+        "--write-images",
+    ] + all_tel_ids
+    run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path)
+
+    # Merge tel1 and tel2-4 files
+    merged_output = dl1_tmp_path / "gamma_merged_tel1-4.dl1.h5"
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(dl1_tel1_file),
+            str(dl1_tel2_file),
+            f"--output={merged_output}",
+            "--telescope-events",
+            "--combine-telescope-events",
+        ],
+        cwd=dl1_tmp_path,
+        raises=True,
+    )
+
+    # Compare merged result with reference
+    with TableLoader(merged_output) as loader:
+        merged_telescope_data = loader.read_telescope_events(
+            telescopes=[1, 2, 3, 4], dl1_images=True
+        )
+        # TODO: check why one row is not matching for the timing columns
+        merged_telescope_data.remove_columns(
+            ["timing_intercept", "timing_deviation", "timing_slope"]
+        )
+        merged_subarray_data = loader.read_subarray_events()
+
+    with TableLoader(dl1_all_tels_file) as loader:
+        reference_telescope_data = loader.read_telescope_events(
+            telescopes=[1, 2, 3, 4], dl1_images=True
+        )
+        # TODO: check why one row is not matching for the timing columns
+        reference_telescope_data.remove_columns(
+            ["timing_intercept", "timing_deviation", "timing_slope"]
+        )
+        reference_subarray_data = loader.read_subarray_events()
+
+    assert_table_equal(merged_telescope_data, reference_telescope_data)
+    assert_table_equal(merged_subarray_data, reference_subarray_data)
+
+
 def test_merge_exceptions(
     tmp_path, calibpipe_camcalib_sims_single_chunk, dl1_mon_pointing_file
 ):

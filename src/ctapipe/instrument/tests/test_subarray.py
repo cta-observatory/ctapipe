@@ -333,7 +333,9 @@ def test_merge_subarrays_exceptions(example_subarray):
     sub2 = example_subarray.select_subarray([3, 4], name="s2")
 
     # Check that invalid inputs raise exceptions
-    with pytest.raises(TypeError, match="All elements of subarray_list must be 'SubarrayDescription'"):
+    with pytest.raises(
+        TypeError, match="All elements of subarray_list must be 'SubarrayDescription'"
+    ):
         SubarrayDescription.merge_subarrays([sub1, int(67)])
 
     # Check that duplicate telescope ids without overwrite raises exception
@@ -352,8 +354,12 @@ def test_merge_subarrays_exceptions(example_subarray):
         tel_descriptions=sub2.tel,
         reference_location=shifted_location,
     )
-    with pytest.raises(ValueError, match="All subarrays must have the same reference_location"):
-        SubarrayDescription.merge_subarrays([sub1, sub2_shifted], overwrite_tel_ids=True)
+    with pytest.raises(
+        ValueError, match="All subarrays must have the same reference_location"
+    ):
+        SubarrayDescription.merge_subarrays(
+            [sub1, sub2_shifted], overwrite_tel_ids=True
+        )
 
 
 def test_merge_subarrays_overwrite_tel_ids(example_subarray):
