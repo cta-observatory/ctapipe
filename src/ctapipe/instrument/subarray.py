@@ -808,3 +808,78 @@ class SubarrayDescription:
             set(subarray.tel_ids) == set(subarray_list[0].tel_ids)
             for subarray in subarray_list
         )
+
+    @staticmethod
+    def merge_subarrays(
+        subarray_list: list,
+        name=None,
+        overwrite_tel_ids: bool = False,
+    ) -> "SubarrayDescription":
+        """Merge multiple subarrays into one
+
+        Parameters
+        ----------
+        subarray_list: list(SubarrayDescription)
+            list of subarrays to merge
+        name: str
+            name of new merged subarray
+        overwrite_tel_ids: bool
+            if True, telescope entries from later subarrays replace earlier ones;
+            if False (default), encountering a duplicate telescope id raises a
+            ValueError.
+        Returns
+        -------
+        SubarrayDescription
+       
+        """
+
+        tel_positions, tel_descriptions = {}, {}
+        tel_ids = set()  # To collect unique telescope IDs
+        reference_location = subarray_list[0].reference_location  # Get the reference location from the first subarray
+        for s, subarray in enumerate(subarray_list):
+            if not isinstance(subarray, SubarrayDescription):
+                raise TypeError(
+                    "All elements of subarray_list must be 'SubarrayDescription' "
+                    f"instances, got '{type(subarray)}' for element '{s}'."
+                )
+            for tid in subarray.tel_ids:
+                if tid in tel_ids:
+                    if overwrite_tel_ids:
+                        # Warn about overwriting telescope entry
+                        msg = (
+                            f"Overwriting telescope id '{tid}' from subarray "
+                            f"'{subarray.name}' into merged subarray."
+                        )
+                        warnings.warn(msg, UserWarning)
+                    else:
+                        raise ValueError(
+                            "Duplicate telescope id encountered while merging subarrays. "
+                            f"Telescope '{tid}' already defined; set overwrite_tel_ids=True to "
+                            "allow later subarrays to replace earlier entries."
+                        )
+                tel_ids.add(tid)
+            if subarray.reference_location != reference_location:
+                raise ValueError(
+                    "All subarrays must have the same reference_location to be merged. "
+                    f"Subarray '{subarray.name}' ({subarray.reference_location}) does not match "
+                    f"the reference location of the first subarray '{subarray_list[0].name}' "
+                    f"({reference_location})."
+                )
+
+        # Merge telescope positions and descriptions, optionally allowing later entries to overwrite
+        for subarray in subarray_list:
+            for tid in subarray.tel_ids:
+                # Copy/overwrite telescope position and description from the current subarray
+                tel_positions[tid] = subarray.positions[tid]
+                tel_descriptions[tid] = subarray.tels[tid]
+
+        if not name:
+            name = "Merged_" + _range_extraction(tel_ids)
+
+        newsub = SubarrayDescription(
+            name,
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+            reference_location=reference_location,
+        )
+        return newsub
