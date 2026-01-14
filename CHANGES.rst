@@ -1,3 +1,53 @@
+ctapipe v0.29.0 (2026-01-14)
+============================
+
+
+Bug Fixes
+---------
+
+- Fix naming mismatch between ``classification`` and ``particle_type`` group
+  in ``HDF5EventSource``.
+  Rename the ``classification`` field from ``ReconstructedContainer`` to
+  ``particle_type``. [`#2763 <https://github.com/cta-observatory/ctapipe/pull/2763>`__]
+
+- Fix a unit handling bug in the toymodel that resulted in wrong image intensities. [`#2898 <https://github.com/cta-observatory/ctapipe/pull/2898>`__]
+
+- Fix trigger tables when merging monitoring data of same event types. [`#2901 <https://github.com/cta-observatory/ctapipe/pull/2901>`__]
+
+- Always fill available monitoring information in ``ctapipe-process``.
+  Previously, monitoring was only filled if applying camera calibration was
+  part of the configured processing steps. [`#2911 <https://github.com/cta-observatory/ctapipe/pull/2911>`__]
+
+- Fixed bug that could in some cases lead to incorrect effective areas. In
+  simulated files with no simulation distribution present, the fallback was to use
+  the simulation configuration, but applying the number of reused showers was
+  missing in that computation. The fallback computation is now corrected, and more
+  checks were added to ensure consistency when both the simulation configuration
+  and shower distribution are present. [`#2913 <https://github.com/cta-observatory/ctapipe/pull/2913>`__]
+
+
+Data Model Changes
+------------------
+
+- Add more calibration and monitoring groups to HDF data format [`#2881 <https://github.com/cta-observatory/ctapipe/pull/2881>`__]
+
+
+New Features
+------------
+
+- Add merge_strategy option to HDF5Merger component to control merging behavior. The HDF5Merger component supports the following strategies:
+  - 'events-multiple-obs': allows merging event files (with and without monitoring data) from different observation blocks.
+  - 'events-single-ob': for merging events in consecutive chunks of the same observation block.
+  - 'monitoring-only': attaches horizontally monitoring data from the same observation block (requires monitoring=True).
+  Allow monitoring data to be merged to the HDF5 event data files. [`#2901 <https://github.com/cta-observatory/ctapipe/pull/2901>`__]
+
+
+Maintenance
+-----------
+
+- Add support for python 3.14, raise minimum supported python version to 3.12. [`#2855 <https://github.com/cta-observatory/ctapipe/pull/2855>`__]
+
+
 ctapipe v0.28.0 (2025-11-13)
 ============================
 

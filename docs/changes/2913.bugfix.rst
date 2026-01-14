@@ -1,6 +1,0 @@
-Fixed bug that could in some cases lead to incorrect effective areas. In
-simulated files with no simulation distribution present, the fallback was to use
-the simulation configuration, but applying the number of reused showers was
-missing in that computation. The fallback computation is now corrected, and more
-checks were added to ensure consistency when both the simulation configuration
-and shower distribution are present.
