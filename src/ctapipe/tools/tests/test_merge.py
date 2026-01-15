@@ -295,73 +295,140 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
     assert_table_equal(merged_tel_events, initial_tel_events)
 
 
-def test_merge_telescope_data(dl1_tmp_path, prod6_gamma_simtel_path, dl1_tel1_file):
+def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
     """
     Test merging telescope events from different files produces same result
     as processing all telescopes together.
     """
+
+    from ctapipe.io.hdf5merger import CannotMerge
     from ctapipe.tools.merge import MergeTool
     from ctapipe.tools.process import ProcessorTool
 
-    # Create DL1 file with telescopes 2-4
-    dl1_tel2_file = dl1_tmp_path / "gamma_tel2-4.dl1.h5"
-
-    few_tels = [f"--EventSource.allowed_tels={i}" for i in (2, 3, 4)]
-    argv = [
+    common_argv = [
         f"--input={prod6_gamma_simtel_path}",
-        f"--output={dl1_tel2_file}",
         "--write-images",
-    ] + few_tels
-    run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path)
+    ]
+    outputs = {
+        "ref": tmp_path / "gamma_ref.dl1.h5",
+        "sub1": tmp_path / "gamma_sub1.dl1.h5",
+        "sub2": tmp_path / "gamma_sub2.dl1.h5",
+        "sub2_dl1b": tmp_path / "gamma_sub2_noimages.dl1b.h5",
+        "merged": tmp_path / "gamma_merged.dl1.h5",
+        "merged_appendmode": tmp_path / "gamma_merged_appendmode.dl1.h5",
+        "tel_ids_invalid": tmp_path / "duplicated_tel_ids_invalid.dl1.h5",
+        "required_node_invalid": tmp_path / "required_node_invalid.dl1.h5",
+    }
+    allowed_tels = range(1, 26, 4)
+    allowed_tels_strings = [
+        f"--EventSource.allowed_tels={tel_id}" for tel_id in allowed_tels
+    ]
+    tel_sets = [
+        ("ref", allowed_tels_strings),
+        ("sub1", allowed_tels_strings[:4]),
+        ("sub2", allowed_tels_strings[4:]),
+    ]
+    # Run ProcessorTool for each subset
+    for name, tel_args in tel_sets:
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                *common_argv,
+                *tel_args,
+                f"--output={outputs[name]}",
+            ],
+            cwd=tmp_path,
+        )
 
-    # Create reference DL1 file with all telescopes 1-4
-    dl1_all_tels_file = dl1_tmp_path / "gamma_tel1-4_ref.dl1.h5"
-    all_tel_ids = [f"--EventSource.allowed_tels={i}" for i in (1, 2, 3, 4)]
-    argv = [
-        f"--input={prod6_gamma_simtel_path}",
-        f"--output={dl1_all_tels_file}",
-        "--write-images",
-    ] + all_tel_ids
-    run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path)
+    tel_sets = [
+        ("ref", allowed_tels_strings),
+        ("sub1", allowed_tels_strings[:4]),
+        ("sub2", allowed_tels_strings[4:]),
+    ]
+    # For append mode test, copy one of the subset files to start with
+    shutil.copy(outputs["sub1"], outputs["merged_appendmode"])
+    # Merge subset files into single file which should match reference
+    # Test both normal merge and append mode
+    merger_mode_argv = {
+        "merged": [str(outputs["sub1"])],
+        "merged_appendmode": ["--append"],
+    }
+    for merged_mode_name in ["merged", "merged_appendmode"]:
+        run_tool(
+            MergeTool(),
+            argv=merger_mode_argv[merged_mode_name]
+            + [
+                str(outputs["sub2"]),
+                f"--output={outputs[merged_mode_name]}",
+                "--telescope-events",
+                "--combine-telescope-data",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
 
-    # Merge tel1 and tel2-4 files
-    merged_output = dl1_tmp_path / "gamma_merged_tel1-4.dl1.h5"
+        # Compare merged result with reference
+        with (
+            TableLoader(outputs[merged_mode_name]) as merged_loader,
+            TableLoader(outputs["ref"]) as ref_loader,
+        ):
+            # Compare telescope data for each telescope
+            for tel_id in allowed_tels:
+                merged_telescope_data = merged_loader.read_telescope_events(
+                    telescopes=[tel_id], dl1_images=True
+                )
+                reference_telescope_data = ref_loader.read_telescope_events(
+                    telescopes=[tel_id], dl1_images=True
+                )
+                assert_table_equal(merged_telescope_data, reference_telescope_data)
+            # Compare subarray data
+            merged_subarray_data = merged_loader.read_subarray_events()
+            reference_subarray_data = ref_loader.read_subarray_events()
+            assert_table_equal(merged_subarray_data, reference_subarray_data)
+
+    # Check that merging files with overlapping telescope IDs raises an error
+    # When combining telescope data, telescope IDs must be unique.
+    with pytest.raises(
+        ValueError, match="Duplicate telescope IDs found when merging file"
+    ):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(outputs["sub1"]),
+                str(outputs[merged_mode_name]),
+                "--telescope-events",
+                "--combine-telescope-data",
+                f"--output={outputs['tel_ids_invalid']}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    # Check that merging files. with different data levels raises an error
+    # When combining telescope data, data levels must match.
     run_tool(
-        MergeTool(),
+        ProcessorTool(),
         argv=[
-            str(dl1_tel1_file),
-            str(dl1_tel2_file),
-            f"--output={merged_output}",
-            "--telescope-events",
-            "--combine-telescope-events",
+            f"--input={prod6_gamma_simtel_path}",
+            "--no-write-images",
+            *allowed_tels_strings[4:],
+            f"--output={outputs['sub2_dl1b']}",
         ],
-        cwd=dl1_tmp_path,
-        raises=True,
+        cwd=tmp_path,
     )
-
-    # Compare merged result with reference
-    with TableLoader(merged_output) as loader:
-        merged_telescope_data = loader.read_telescope_events(
-            telescopes=[1, 2, 3, 4], dl1_images=True
+    with pytest.raises(CannotMerge, match="Required node"):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(outputs["sub1"]),
+                str(outputs["sub2_dl1b"]),
+                "--telescope-events",
+                "--combine-telescope-data",
+                f"--output={outputs['required_node_invalid']}",
+            ],
+            cwd=tmp_path,
+            raises=True,
         )
-        # TODO: check why one row is not matching for the timing columns
-        merged_telescope_data.remove_columns(
-            ["timing_intercept", "timing_deviation", "timing_slope"]
-        )
-        merged_subarray_data = loader.read_subarray_events()
-
-    with TableLoader(dl1_all_tels_file) as loader:
-        reference_telescope_data = loader.read_telescope_events(
-            telescopes=[1, 2, 3, 4], dl1_images=True
-        )
-        # TODO: check why one row is not matching for the timing columns
-        reference_telescope_data.remove_columns(
-            ["timing_intercept", "timing_deviation", "timing_slope"]
-        )
-        reference_subarray_data = loader.read_subarray_events()
-
-    assert_table_equal(merged_telescope_data, reference_telescope_data)
-    assert_table_equal(merged_subarray_data, reference_subarray_data)
 
 
 def test_merge_exceptions(

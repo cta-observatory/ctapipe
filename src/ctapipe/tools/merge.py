@@ -94,8 +94,8 @@ class MergeTool(Tool):
             {"HDF5Merger": {"merge_strategy": "monitoring-only"}},
             ("Attach monitoring data from the same observation block."),
         ),
-        "combine-telescope-events": (
-            {"HDF5Merger": {"merge_strategy": "combine-telescope-events"}},
+        "combine-telescope-data": (
+            {"HDF5Merger": {"merge_strategy": "combine-telescope-data"}},
             ("Combine telescope-wise data from the same observation block."),
         ),
         "progress": (

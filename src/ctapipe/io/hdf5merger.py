@@ -4,9 +4,8 @@ import warnings
 from contextlib import ExitStack
 from pathlib import Path
 
-import numpy as np
 import tables
-from astropy.table import unique, vstack
+from astropy.table import join, unique, vstack
 from astropy.time import Time
 
 from ..containers import EventType
@@ -188,7 +187,7 @@ class HDF5Merger(Component):
         [
             "events-multiple-obs",
             "events-single-ob",
-            "combine-telescope-events",
+            "combine-telescope-data",
             "monitoring-only",
         ],
         default_value="events-multiple-obs",
@@ -196,7 +195,7 @@ class HDF5Merger(Component):
             "Strategy to handle different use cases when merging HDF5 files. "
             "'events-multiple-obs': allows merging event files (w and w/o monitoring data) from different observation blocks; "
             "'events-single-ob': for merging events in consecutive chunks of the same OB; "
-            "'combine-telescope-events': merges telescope-wise data from different files for the same OB (requires telescope_events=True); "
+            "'combine-telescope-data': merges telescope-wise data from different files for the same OB (requires telescope_events=True); "
             "'monitoring-only': attaches horizontally monitoring data from the same OB (requires monitoring=True)."
         ),
     ).tag(config=True)
@@ -215,19 +214,17 @@ class HDF5Merger(Component):
         self.single_ob = (
             self.merge_strategy == "events-single-ob"
             or self.merge_strategy == "monitoring-only"
-            or self.merge_strategy == "combine-telescope-events"
+            or self.merge_strategy == "combine-telescope-data"
         )
         self.attach_monitoring = self.merge_strategy == "monitoring-only"
         if self.attach_monitoring and not self.monitoring:
             raise traits.TraitError(
                 "Merge strategy 'monitoring-only' requires monitoring=True"
             )
-        self.combine_telescope_events = (
-            self.merge_strategy == "combine-telescope-events"
-        )
-        if self.combine_telescope_events and not self.telescope_events:
+        self.combine_telescope_data = self.merge_strategy == "combine-telescope-data"
+        if self.combine_telescope_data and not self.telescope_events:
             raise traits.TraitError(
-                "Merge strategy 'combine-telescope-events' requires telescope_events=True"
+                "Merge strategy 'combine-telescope-data' requires telescope_events=True"
             )
 
         output_exists = self.output_path.exists()
@@ -251,7 +248,7 @@ class HDF5Merger(Component):
         self.data_category = None
         self.subarray = None
         self.subarray_list = []
-        self.tel_trigger_tables = []
+        self.tel_trigger_tables, self.shower_tables = [], []
         self.tel_ids_set = set()
         self.meta = None
         self._merged_obs_ids = set()
@@ -273,7 +270,7 @@ class HDF5Merger(Component):
             self.subarray_list.append(self.subarray)
 
             # Update tel_ids_set with existing telescope IDs when appending
-            if self.combine_telescope_events:
+            if self.combine_telescope_data:
                 self.tel_ids_set.update(self.subarray.tel_ids)
 
             # Get required nodes from existing output file
@@ -282,10 +279,14 @@ class HDF5Merger(Component):
             # this will update _merged_obs_ids from existing input file
             self._check_obs_ids(self.h5file)
 
-            # Append existing tel trigger tables if the merge strategy is 'combine-telescope-events'
-            if self.combine_telescope_events:
+            # Append existing tel trigger tables and shower tables
+            # if the merge strategy is 'combine-telescope-data'
+            if self.combine_telescope_data:
                 self.tel_trigger_tables.append(
                     read_table(self.h5file, DL1_TEL_TRIGGER_TABLE)
+                )
+                self.shower_tables.append(
+                    read_table(self.h5file, SIMULATION_SHOWER_TABLE)
                 )
             self._n_merged += 1
 
@@ -408,11 +409,8 @@ class HDF5Merger(Component):
             if node not in h5file.root:
                 continue
 
-            if node_type is NodeType.TABLE:
+            if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
                 required_nodes.add(node)
-            elif node_type is NodeType.TEL_GROUP:
-                if not self.combine_telescope_events:
-                    required_nodes.add(node)
 
             elif node_type is NodeType.ITER_GROUP:
                 for kind_group in h5file.root[node]._f_iter_nodes("Group"):
@@ -421,9 +419,6 @@ class HDF5Merger(Component):
 
             elif node_type is NodeType.ITER_TEL_GROUP:
                 for kind_group in h5file.root[node]._f_iter_nodes("Group"):
-                    if self.combine_telescope_events:
-                        required_nodes.add(kind_group.name)
-                        continue
                     for iter_group in kind_group._f_iter_nodes("Group"):
                         required_nodes.add(iter_group._v_pathname)
             else:
@@ -433,15 +428,20 @@ class HDF5Merger(Component):
 
     def _append_simulation_data(self, other):
         """Append simulation-related data (run, shower, impact, images, parameters)."""
+
+        if SIMULATION_SHOWER_TABLE in other.root:
+            if self.combine_telescope_data:
+                self.shower_tables.append(read_table(other, SIMULATION_SHOWER_TABLE))
+            else:
+                self._append_table(other, other.root[SIMULATION_SHOWER_TABLE])
         simulation_table_keys = [
             SIMULATION_RUN_TABLE,
             SHOWER_DISTRIBUTION_TABLE,
-            SIMULATION_SHOWER_TABLE,
         ]
         for key in simulation_table_keys:
             if key in other.root:
                 self._append_table(
-                    other, other.root[key], once=self.combine_telescope_events
+                    other, other.root[key], once=self.combine_telescope_data
                 )
 
         if FIXED_POINTING_GROUP in other.root:
@@ -477,19 +477,16 @@ class HDF5Merger(Component):
 
     def _append_dl1_data(self, other):
         """Append DL1 data (triggers, images, parameters, muon)."""
-        if (
-            DL1_SUBARRAY_TRIGGER_TABLE in other.root
-            and not self.combine_telescope_events
-        ):
+        if DL1_SUBARRAY_TRIGGER_TABLE in other.root and not self.combine_telescope_data:
             self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
 
         if not self.telescope_events:
             return
 
-        if self.combine_telescope_events:
-            self.tel_trigger_tables.append(read_table(other, DL1_TEL_TRIGGER_TABLE))
-        else:
-            if DL1_TEL_TRIGGER_TABLE in other.root:
+        if DL1_TEL_TRIGGER_TABLE in other.root:
+            if self.combine_telescope_data:
+                self.tel_trigger_tables.append(read_table(other, DL1_TEL_TRIGGER_TABLE))
+            else:
                 self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
 
         if self.dl1_images and DL1_TEL_IMAGES_GROUP in other.root:
@@ -598,40 +595,34 @@ class HDF5Merger(Component):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._flush()
         self.close()
+        self._flush()
 
     def _flush(self):
-        """Flush merged data when combining telescope events."""
-        if not self.combine_telescope_events:
+        """Flush any remaining data to the output file.
+
+        This is relevant for the 'combine-telescope-data' merge strategy,
+        where subarray and tel_trigger tables are only written at the end
+        after all files have been processed.
+        """
+
+        if not self.combine_telescope_data or not self.tel_trigger_tables:
             return
 
         # Merge all subarrays into one
-        self.log.info(
-            f"Merging {len(self.subarray_list)} subarrays for combine_telescope_events"
-        )
         merged_subarray = SubarrayDescription.merge_subarrays(self.subarray_list)
-
         # Write merged subarray to HDF5 (overwrite if existing)
-        merged_subarray.to_hdf(self.h5file, overwrite=True)
-        self.log.info(f"Wrote merged subarray with {merged_subarray.n_tels} telescopes")
-
-        # Combine telescope trigger tables
-        self.log.info(
-            f"Combining {len(self.tel_trigger_tables)} telescope trigger tables"
-        )
+        merged_subarray.to_hdf(self.output_path, overwrite=True)
+        # Stack the tel_trigger tables vertically and sort by telescope event keys
         combined_tel_triggers = vstack(self.tel_trigger_tables)
         combined_tel_triggers.sort(TEL_EVENT_KEYS)
+        # Write combined telescope trigger table to HDF5 (overwrite if existing)
         write_table(
             combined_tel_triggers,
             self.output_path,
             path=DL1_TEL_TRIGGER_TABLE,
             overwrite=True,
         )
-        self.log.info(
-            f"Wrote combined telescope trigger table with {len(combined_tel_triggers)} rows"
-        )
-
         # Create the subarray trigger table from the combined telescope triggers
         subarray_trigger_table = combined_tel_triggers.copy()
         subarray_trigger_table.keep_columns(
@@ -644,25 +635,42 @@ class HDF5Merger(Component):
         tel_trigger_groups = combined_tel_triggers.group_by(SUBARRAY_EVENT_KEYS)
         tel_with_trigger = []
         for tel_trigger in tel_trigger_groups.groups:
-            tel_with_trigger_mask = np.zeros(len(merged_subarray.tel_ids), dtype=bool)
-            tel_with_trigger_mask[
-                merged_subarray.tel_ids_to_indices(tel_trigger["tel_id"])
-            ] = True
-            tel_with_trigger.append(tel_with_trigger_mask)
-
+            tel_with_trigger.append(
+                merged_subarray.tel_ids_to_mask(tel_trigger["tel_id"])
+            )
+        # Add the new column to the table indicating which telescopes had a trigger for each event
         subarray_trigger_table.add_column(
             tel_with_trigger, index=-2, name="tels_with_trigger"
         )
-
+        # Write subarray trigger table to HDF5 (overwrite if existing)
         write_table(
             subarray_trigger_table,
             self.output_path,
             DL1_SUBARRAY_TRIGGER_TABLE,
             overwrite=True,
         )
-        self.log.info(
-            f"Wrote combined subarray trigger table with {len(subarray_trigger_table)} rows"
-        )
+        # Create and write the merged shower table with only unique events
+        # that are also in the subarray trigger table
+        if self.shower_tables:
+            # Stack the shower tables vertically and keep only unique events
+            shower_table_stacked = vstack(self.shower_tables)
+            shower_table_stacked = unique(
+                shower_table_stacked, keys=SUBARRAY_EVENT_KEYS
+            )
+            # Join with subarray trigger table to keep only events that had a trigger
+            shower_table = join(
+                shower_table_stacked,
+                subarray_trigger_table[SUBARRAY_EVENT_KEYS],
+                join_type="inner",
+            )
+            shower_table.sort(SUBARRAY_EVENT_KEYS)
+            # Write shower table to HDF5 (overwrite if existing)
+            write_table(
+                shower_table,
+                self.output_path,
+                SIMULATION_SHOWER_TABLE,
+                overwrite=True,
+            )
 
     def close(self):
         if hasattr(self, "h5file"):
@@ -686,14 +694,14 @@ class HDF5Merger(Component):
         )
 
         # Check for duplicate telescope IDs when combining telescope events
-        if self.combine_telescope_events:
+        if self.combine_telescope_data:
             new_tel_ids = set(subarray.tel_ids)
             duplicates = self.tel_ids_set.intersection(new_tel_ids)
             if duplicates:
                 raise ValueError(
                     f"Duplicate telescope IDs found when merging file {other.filename}: {sorted(duplicates)}. "
                     "Each telescope ID must be unique across all input files when using "
-                    "the merge strategy 'combine-telescope-events'."
+                    "the merge strategy 'combine-telescope-data'."
                 )
             self.tel_ids_set.update(new_tel_ids)
 
@@ -701,10 +709,10 @@ class HDF5Merger(Component):
 
         if self.subarray is None:
             self.subarray = subarray
-            if not self.combine_telescope_events:
+            if not self.combine_telescope_data:
                 self.subarray.to_hdf(self.h5file)
 
-        if not self.combine_telescope_events:
+        if not self.combine_telescope_data:
             # Relax subarray matching requirements for attaching
             # monitoring data of the same observation block.
             if not self.single_ob or not self.attach_monitoring:
