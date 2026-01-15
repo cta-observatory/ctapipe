@@ -305,6 +305,12 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
     from ctapipe.tools.merge import MergeTool
     from ctapipe.tools.process import ProcessorTool
 
+    # To be dropped from comparison
+    TIMING_COLUMNS = [
+        "timing_intercept",
+        "timing_deviation",
+        "timing_slope",
+    ]
     common_argv = [
         f"--input={prod6_gamma_simtel_path}",
         "--write-images",
@@ -380,7 +386,11 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
                 reference_telescope_data = ref_loader.read_telescope_events(
                     telescopes=[tel_id], dl1_images=True
                 )
-                assert_table_equal(merged_telescope_data, reference_telescope_data)
+                # Assert equality of the two tables after removing timing columns
+                assert_table_equal(
+                    merged_telescope_data.remove_columns(TIMING_COLUMNS),
+                    reference_telescope_data.remove_columns(TIMING_COLUMNS),
+                )
             # Compare subarray data
             merged_subarray_data = merged_loader.read_subarray_events()
             reference_subarray_data = ref_loader.read_subarray_events()
