@@ -10,7 +10,7 @@ EventSelectionOptimizer:
   proton_target_spectrum: IRFDOC_PROTON_SPECTRUM
   electron_target_spectrum: IRFDOC_ELECTRON_SPECTRUM
   obs_time: 50 hour
-  optimization_algorithm: "PointSourceSensitivityOptimizer"  # Alternative: "PercentileCuts"
+  optimization_algorithm: "PointSourceSensitivityOptimizer" # Alternatives: "PointSourceSensitivityGhOptimizer", "PercentileCuts"
 
 DL2EventPreprocessor:
   energy_reconstructor: "RandomForestRegressor"
@@ -19,7 +19,6 @@ DL2EventPreprocessor:
 
   DL2EventQualityQuery:
     quality_criteria:
-      - ["multiplicity 4", "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4"]
       - ["valid classifier", "RandomForestClassifier_is_valid"]
       - ["valid geom reco", "HillasReconstructor_is_valid"]
       - ["valid energy reco", "RandomForestRegressor_is_valid"]
@@ -28,6 +27,21 @@ DefaultRecoEnergyBins:
   reco_energy_min: 0.015 TeV
   reco_energy_max: 150 TeV
   reco_energy_n_bins_per_decade: 5
+
+PointSourceSensitivityOptimizer:
+  min_background_fov_offset: 0.0 deg
+  max_background_fov_offset: 5.0 deg
+  max_gh_cut_efficiency: 0.8
+  gh_cut_efficiency_step: 0.1
+  alpha: 0.2
+  theta_min_angle: None
+  theta_max_angle: 0.5 deg
+  max_theta_cut_efficiency: 0.8
+  theta_cut_efficiency_step: 0.1
+  multiplicity_cuts: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+PointSourceSensitivityGhOptimizer:
+  initial_gh_cut_efficency: 0.4
 
 ThetaPercentileCutCalculator:
   theta_min_angle: None
@@ -41,11 +55,3 @@ GhPercentileCutCalculator:
   target_percentile: 68
   min_counts: 10
   smoothing:
-
-PointSourceSensitivityOptimizer:
-  min_background_fov_offset: 0.0 deg
-  max_background_fov_offset: 5.0 deg
-  initial_gh_cut_efficency: 0.4
-  max_gh_cut_efficiency: 0.8
-  gh_cut_efficiency_step: 0.1
-  alpha: 0.2
