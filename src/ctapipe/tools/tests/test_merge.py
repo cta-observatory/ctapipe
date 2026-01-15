@@ -348,11 +348,6 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
             cwd=tmp_path,
         )
 
-    tel_sets = [
-        ("ref", allowed_tels_strings),
-        ("sub1", allowed_tels_strings[:4]),
-        ("sub2", allowed_tels_strings[4:]),
-    ]
     # For append mode test, copy one of the subset files to start with
     shutil.copy(outputs["sub1"], outputs["merged_appendmode"])
     # Merge subset files into single file which should match reference
