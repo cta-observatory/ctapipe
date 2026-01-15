@@ -325,7 +325,9 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
         "tel_ids_invalid": tmp_path / "duplicated_tel_ids_invalid.dl1.h5",
         "required_node_invalid": tmp_path / "required_node_invalid.dl1.h5",
     }
-    allowed_tels = range(1, 26, 4)
+    # Select a few telescopes that cover different telescope types
+    # and have at least one triggered event in the simulated file.
+    allowed_tels = [1, 4, 5, 9, 13, 17, 25]
     allowed_tels_strings = [
         f"--EventSource.allowed_tels={tel_id}" for tel_id in allowed_tels
     ]
@@ -387,10 +389,9 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
                     telescopes=[tel_id], dl1_images=True
                 )
                 # Assert equality of the two tables after removing timing columns
-                assert_table_equal(
-                    merged_telescope_data.remove_columns(TIMING_COLUMNS),
-                    reference_telescope_data.remove_columns(TIMING_COLUMNS),
-                )
+                merged_telescope_data.remove_columns(TIMING_COLUMNS)
+                reference_telescope_data.remove_columns(TIMING_COLUMNS)
+                assert_table_equal(merged_telescope_data, reference_telescope_data)
             # Compare subarray data
             merged_subarray_data = merged_loader.read_subarray_events()
             reference_subarray_data = ref_loader.read_subarray_events()
