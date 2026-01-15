@@ -101,6 +101,11 @@ class SubarrayDescription:
         if self.positions.keys() != self.tels.keys():
             raise ValueError("Telescope ids in positions and descriptions do not match")
 
+        # Ensure sorted order of telescopes by tel_id
+        sorted_keys = sorted(self.positions.keys())
+        self.positions = {k: self.positions[k] for k in sorted_keys}
+        self.tels = {k: self.tels[k] for k in sorted_keys}
+
     def __str__(self):
         return self.name
 
@@ -837,7 +842,7 @@ class SubarrayDescription:
         """
 
         tel_positions, tel_descriptions = {}, {}
-        tel_ids = set()  # To collect unique telescope IDs
+        tel_ids, tid_to_subarray = set(), {}
         reference_location = subarray_list[
             0
         ].reference_location  # Get the reference location from the first subarray
@@ -862,6 +867,7 @@ class SubarrayDescription:
                             f"Telescope '{tid}' already defined; set overwrite_tel_ids=True to "
                             "allow later subarrays to replace earlier entries."
                         )
+                tid_to_subarray[tid] = subarray
                 tel_ids.add(tid)
             if subarray.reference_location != reference_location:
                 raise ValueError(
@@ -872,14 +878,14 @@ class SubarrayDescription:
                 )
 
         # Merge telescope positions and descriptions, optionally allowing later entries to overwrite
-        for subarray in subarray_list:
-            for tid in subarray.tel_ids:
-                # Copy/overwrite telescope position and description from the current subarray
-                tel_positions[tid] = subarray.positions[tid]
-                tel_descriptions[tid] = subarray.tels[tid]
+        for tid in sorted(tel_ids):
+            # Copy/overwrite telescope position and description from the current subarray
+            subarray = tid_to_subarray[tid]
+            tel_positions[tid] = subarray.positions[tid]
+            tel_descriptions[tid] = subarray.tels[tid]
 
-        if not name:
-            name = "Merged_" + _range_extraction(tel_ids)
+        if name is None:
+            name = "Merged_" + _range_extraction(sorted(tel_ids))
 
         newsub = SubarrayDescription(
             name,
