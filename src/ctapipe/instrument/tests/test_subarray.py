@@ -323,7 +323,7 @@ def test_merge_subarrays(example_subarray):
     expected_sub = example_subarray.select_subarray([1, 2, 3, 4], name="Merged_1-4")
     merged_sub = SubarrayDescription.merge_subarrays([sub1, sub2])
 
-    assert expected_sub.__eq__(merged_sub)
+    assert expected_sub == merged_sub
 
 
 def test_merge_subarrays_exceptions(example_subarray):
