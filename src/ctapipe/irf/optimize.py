@@ -293,9 +293,9 @@ class ThetaPercentileCutCalculator(Component):
 class PercentileCuts(CutOptimizerBase):
     """
     Calculates G/H separation cut based on the percentile of signal events
-    to keep in each bin.
+    to keep in each bin via ``GhPercentileCutCalculator``.
     Optionally also calculates a percentile cut on theta based on the signal
-    events surviving this G/H cut.
+    events surviving this G/H cut via ``ThetaPercentileCutCalculator``.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
