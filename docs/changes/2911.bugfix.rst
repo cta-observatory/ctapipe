@@ -1,3 +1,0 @@
-Always fill available monitoring information in ``ctapipe-process``.
-Previously, monitoring was only filled if applying camera calibration was
-part of the configured processing steps.

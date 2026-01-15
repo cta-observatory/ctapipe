@@ -1,1 +1,0 @@
-Fix trigger tables when merging monitoring data of same event types.
