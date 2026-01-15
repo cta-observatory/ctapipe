@@ -101,11 +101,6 @@ class SubarrayDescription:
         if self.positions.keys() != self.tels.keys():
             raise ValueError("Telescope ids in positions and descriptions do not match")
 
-        # Ensure sorted order of telescopes by tel_id
-        sorted_keys = sorted(self.positions.keys())
-        self.positions = {k: self.positions[k] for k in sorted_keys}
-        self.tels = {k: self.tels[k] for k in sorted_keys}
-
     def __str__(self):
         return self.name
 
