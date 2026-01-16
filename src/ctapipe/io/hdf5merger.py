@@ -222,9 +222,12 @@ class HDF5Merger(Component):
                 "Merge strategy 'monitoring-only' requires monitoring=True"
             )
         self.combine_telescope_data = self.merge_strategy == "combine-telescope-data"
-        if self.combine_telescope_data and not self.telescope_events:
+        if self.combine_telescope_data and (
+            not self.telescope_events or self.dl2_subarray
+        ):
             raise traits.TraitError(
-                "Merge strategy 'combine-telescope-data' requires telescope_events=True"
+                "Merge strategy 'combine-telescope-data' requires telescope_events=True "
+                "and dl2_subarray=False"
             )
 
         output_exists = self.output_path.exists()
@@ -551,7 +554,7 @@ class HDF5Merger(Component):
             DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
         ]
         for key in monitoring_dl2_subarray_groups:
-            if key in other.root:
+            if self.dl2_subarray and key in other.root:
                 self._append_table(other, other.root[key], once=self.single_ob)
 
     def _append_pixel_statistics(self, other):

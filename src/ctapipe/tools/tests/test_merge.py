@@ -301,6 +301,7 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
     as processing all telescopes together.
     """
 
+    from ctapipe.core import traits
     from ctapipe.io.hdf5merger import CannotMerge
     from ctapipe.tools.merge import MergeTool
     from ctapipe.tools.process import ProcessorTool
@@ -322,7 +323,7 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
         "sub2_dl1b": tmp_path / "gamma_sub2_noimages.dl1b.h5",
         "merged": tmp_path / "gamma_merged.dl1.h5",
         "merged_appendmode": tmp_path / "gamma_merged_appendmode.dl1.h5",
-        "tel_ids_invalid": tmp_path / "duplicated_tel_ids_invalid.dl1.h5",
+        "invalid": tmp_path / "invalid.dl1.h5",
         "required_node_invalid": tmp_path / "required_node_invalid.dl1.h5",
     }
     # Select a few telescopes that cover different telescope types
@@ -364,6 +365,7 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
                 str(outputs["sub2"]),
                 f"--output={outputs[merged_mode_name]}",
                 "--telescope-events",
+                "--no-dl2-subarray",
                 "--combine-telescope-data",
             ],
             cwd=tmp_path,
@@ -394,17 +396,49 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
 
     # Check that merging files with overlapping telescope IDs raises an error
     # When combining telescope data, telescope IDs must be unique.
+    argv_options = [
+        str(outputs["sub1"]),
+        str(outputs[merged_mode_name]),
+        f"--output={outputs['invalid']}",
+        "--combine-telescope-data",
+    ]
     with pytest.raises(
         ValueError, match="Duplicate telescope IDs found when merging file"
     ):
         run_tool(
             MergeTool(),
             argv=[
-                str(outputs["sub1"]),
-                str(outputs[merged_mode_name]),
+                *argv_options,
                 "--telescope-events",
-                "--combine-telescope-data",
-                f"--output={outputs['tel_ids_invalid']}",
+                "--no-dl2-subarray",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    # Check that merging files with incompatible options raises a TraitError
+    with pytest.raises(
+        traits.TraitError, match="Merge strategy 'combine-telescope-data' requires"
+    ):
+        run_tool(
+            MergeTool(),
+            argv=[
+                *argv_options,
+                "--no-telescope-events",
+                "--no-dl2-subarray",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+    with pytest.raises(
+        traits.TraitError, match="Merge strategy 'combine-telescope-data' requires"
+    ):
+        run_tool(
+            MergeTool(),
+            argv=[
+                *argv_options,
+                "--telescope-events",
+                "--dl2-subarray",
             ],
             cwd=tmp_path,
             raises=True,
@@ -430,6 +464,7 @@ def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
                 str(outputs["sub2_dl1b"]),
                 "--telescope-events",
                 "--combine-telescope-data",
+                "--no-dl2-subarray",
                 f"--output={outputs['required_node_invalid']}",
             ],
             cwd=tmp_path,
