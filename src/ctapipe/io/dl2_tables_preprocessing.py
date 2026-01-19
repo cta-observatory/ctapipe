@@ -34,6 +34,27 @@ from .tableloader import TableLoader
 __all__ = ["DL2EventLoader", "DL2EventPreprocessor", "DL2EventQualityQuery"]
 
 
+OUTPUT_TABLE_SCHEMA = [
+    Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
+    Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+    Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
+    Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
+    Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
+    Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
+    Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
+    Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
+    Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
+    Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
+    Column(
+        name="gh_score",
+        dtype=np.float64,
+        description="prediction of the classifier, defined between [0,1],"
+        " where values close to 1 mean that the positive class"
+        " (e.g. gamma in gamma-ray analysis) is more likely",
+    ),
+]
+
+
 class DL2EventQualityQuery(QualityQuery):
     """
     Event pre-selection quality criteria for IRF computation with different defaults.
@@ -98,29 +119,6 @@ class DL2EventPreprocessor(Component):
         ),
     ).tag(config=True)
 
-    output_table_schema = List(
-        default_value=[
-            Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
-            Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-            Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
-            Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
-            Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
-            Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
-            Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
-            Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
-            Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
-            Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
-            Column(
-                name="gh_score",
-                dtype=np.float64,
-                description="prediction of the classifier, defined between [0,1],"
-                " where values close to 1 mean that the positive class"
-                " (e.g. gamma in gamma-ray analysis) is more likely",
-            ),
-        ],
-        help="Schema definition for output event QTable",
-    ).tag(config=True)
-
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.quality_query = DL2EventQualityQuery(parent=self)
@@ -169,7 +167,7 @@ class DL2EventPreprocessor(Component):
                     "At the moment only pointing in altaz is supported."
                 )
 
-        columns_to_keep = [col.name for col in self.output_table_schema]
+        columns_to_keep = [col.name for col in OUTPUT_TABLE_SCHEMA]
 
         rename_dict = self.columns_to_rename
         rename_from = list(rename_dict.keys())
@@ -193,9 +191,8 @@ class DL2EventPreprocessor(Component):
         """
         Create an empty event table based on the configured output schema.
         """
-        schema = list(
-            self.output_table_schema
-        )  # make a shallow copy to extend the schema with derived columns
+        # make a shallow copy to extend the schema with derived columns
+        schema = list(OUTPUT_TABLE_SCHEMA)
 
         if self.apply_derived_columns:
             schema.extend(
