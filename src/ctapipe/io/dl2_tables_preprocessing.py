@@ -34,7 +34,7 @@ from .tableloader import TableLoader
 __all__ = ["DL2EventLoader", "DL2EventPreprocessor", "DL2EventQualityQuery"]
 
 
-OUTPUT_TABLE_SCHEMA = [
+DEFAULT_OUTPUT_TABLE_SCHEMA = [
     Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
     Column(name="event_id", dtype=np.uint64, description="Array event ID"),
     Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
@@ -119,8 +119,9 @@ class DL2EventPreprocessor(Component):
         ),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, output_table_schema=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
+        self.output_table_schema = output_table_schema or DEFAULT_OUTPUT_TABLE_SCHEMA
         self.quality_query = DL2EventQualityQuery(parent=self)
 
     @default("columns_to_rename")
@@ -167,7 +168,7 @@ class DL2EventPreprocessor(Component):
                     "At the moment only pointing in altaz is supported."
                 )
 
-        columns_to_keep = [col.name for col in OUTPUT_TABLE_SCHEMA]
+        columns_to_keep = [col.name for col in self.output_table_schema]
 
         rename_dict = self.columns_to_rename
         rename_from = list(rename_dict.keys())
@@ -192,7 +193,7 @@ class DL2EventPreprocessor(Component):
         Create an empty event table based on the configured output schema.
         """
         # make a shallow copy to extend the schema with derived columns
-        schema = list(OUTPUT_TABLE_SCHEMA)
+        schema = list(self.output_table_schema)
 
         if self.apply_derived_columns:
             schema.extend(
