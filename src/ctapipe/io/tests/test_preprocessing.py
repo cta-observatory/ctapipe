@@ -2,7 +2,6 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.table import Column, QTable, Table
-from traitlets.config import Config
 
 
 @pytest.fixture(scope="function")
@@ -133,7 +132,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
     assert "weight" in events.colnames
 
 
-def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config):
+def test_preprocessor_tel_table_with_custom_reconstructor(dl2_event_loader_config):
     from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
     # Create a test table with required columns
@@ -154,11 +153,8 @@ def test_preprocessor_tel_table_with_custom_reconstructor(tmp_path, test_config)
         }
     )
 
-    # Set up config
-    config = test_config
-
     # Create preprocessor with config
-    preprocessor = DL2EventPreprocessor(config=Config(config))
+    preprocessor = DL2EventPreprocessor(config=dl2_event_loader_config)
 
     # Apply quality query and preprocessing
     mask = preprocessor.quality_query.get_table_mask(table)
