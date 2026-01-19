@@ -997,9 +997,7 @@ def dl2_event_loader_config():
             "DL2EventPreprocessor": {
                 "energy_reconstructor": "ExtraTreesRegressor",
                 "gammaness_classifier": "ExtraTreesClassifier",
-                "columns_to_rename": {},
                 "apply_derived_columns": False,
-                # "disable_column_renaming": True,
                 "allow_unsupported_pointing_frames": True,
             },
             "DL2EventQualityQuery": {
