@@ -15,7 +15,7 @@ __all__ = ["concentration_parameters"]
 
 def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     """
-    Calculate concentraion values.
+    Calculate concentration values.
 
     Concentrations are ratios of the amount of light in certain
     areas to the full intensity of the image.

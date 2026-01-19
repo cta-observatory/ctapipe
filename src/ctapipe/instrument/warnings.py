@@ -1,4 +1,5 @@
 """Warnings related to the instrument"""
+
 import warnings
 
 __all__ = ["FromNameWarning", "warn_from_name"]

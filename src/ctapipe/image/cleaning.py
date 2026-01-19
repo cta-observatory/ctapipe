@@ -797,7 +797,7 @@ class NSBImageCleaner(TailcutsImageCleaner):
         """
         pedestal_std = None
         if monitoring is not None:
-            pedestal_std = monitoring.pixel_statistics.sky_pedestal_image.std
+            pedestal_std = monitoring.pixel_statistics.pedestal_image.std
 
         return nsb_image_cleaning(
             self.subarray.tel[tel_id].camera.geometry,

@@ -1,4 +1,5 @@
 """Tests for the bokeh visualization"""
+
 import numpy as np
 import pytest
 

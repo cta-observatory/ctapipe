@@ -1,6 +1,7 @@
 """
 Environment variables to configure ctapipe.
 """
+
 import os
 
 __all__ = [

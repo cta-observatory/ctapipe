@@ -1,4 +1,5 @@
 """Functions handling time, mainly conversion between CTAO timestamps and astropy."""
+
 import numpy as np
 from astropy.time import Time
 

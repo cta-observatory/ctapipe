@@ -7,6 +7,7 @@ import os
 import pathlib
 import re
 import textwrap
+import tomllib
 from abc import abstractmethod
 from contextlib import ExitStack
 from inspect import cleandoc
@@ -15,16 +16,7 @@ from tempfile import mkdtemp
 
 import yaml
 from docutils.core import publish_parts
-from traitlets import TraitError
-
-try:
-    import tomli as toml
-
-    HAS_TOML = True
-except ImportError:
-    HAS_TOML = False
-
-from traitlets import List, default
+from traitlets import List, TraitError, default
 from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
@@ -283,9 +275,9 @@ class Tool(Application):
             with open(path) as infile:
                 config = Config(yaml.safe_load(infile))
             self.update_config(config)
-        elif path.suffix == ".toml" and HAS_TOML:
+        elif path.suffix == ".toml":
             with open(path, "rb") as infile:
-                config = Config(toml.load(infile))
+                config = Config(tomllib.load(infile))
             self.update_config(config)
         elif path.suffix in [".json", ".py"]:
             # fall back to traitlets.config.Application's implementation. Note

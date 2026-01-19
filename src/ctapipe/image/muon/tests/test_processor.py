@@ -1,6 +1,7 @@
 """
 Tests for MuonProcessor functionality
 """
+
 import numpy as np
 import pytest
 

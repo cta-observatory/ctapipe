@@ -107,7 +107,7 @@ output file, where ``<algorithm>`` is the identifier of the algorithm
     * - /energy
       - shower energy reconstruction
       - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
-    * - /classification
+    * - /particle_type
       - shower classification parameters
       - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
 

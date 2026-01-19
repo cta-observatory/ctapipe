@@ -189,3 +189,19 @@ def test_duplicated_obs_ids(tmp_path, dl2_shower_geometry_file):
             CannotMerge, match="Input file .* contains obs_ids already included"
         ):
             merger(dl2_shower_geometry_file)
+
+
+def test_monitoring_traiterror(tmp_path, calibpipe_camcalib_sims_single_chunk):
+    from ctapipe.core import traits
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    # Test if invalid monitoring settings raise TraitError
+    with pytest.raises(
+        traits.TraitError,
+        match="Merge strategy 'monitoring-only' requires monitoring=True",
+    ):
+        _ = HDF5Merger(
+            calibpipe_camcalib_sims_single_chunk,
+            monitoring=False,
+            merge_strategy="monitoring-only",
+        )

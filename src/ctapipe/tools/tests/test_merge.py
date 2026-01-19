@@ -139,9 +139,9 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
 
     diff = StringIO()
     identical = report_diff_values(vstack([table1, table2]), table_merged, fileobj=diff)
-    assert (
-        identical
-    ), f"Merged table not equal to individual tables. Diff:\n {diff.getvalue()}"
+    assert identical, (
+        f"Merged table not equal to individual tables. Diff:\n {diff.getvalue()}"
+    )
 
     stats_key = "/dl2/service/tel_event_statistics/HillasReconstructor"
     merged_stats = read_table(output, stats_key)
@@ -293,3 +293,21 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
         initial_tel_events = loader.read_telescope_events()
 
     assert_table_equal(merged_tel_events, initial_tel_events)
+
+
+def test_merge_exceptions(
+    tmp_path, calibpipe_camcalib_sims_single_chunk, dl1_mon_pointing_file
+):
+    from ctapipe.io.hdf5merger import CannotMerge
+    from ctapipe.tools.merge import MergeTool
+
+    # Test if invalid merge with different monitoring types raises CannotMerge
+    with pytest.raises(CannotMerge, match="Required node"):
+        argv = [
+            f"--output={calibpipe_camcalib_sims_single_chunk}",
+            str(dl1_mon_pointing_file),
+            "--append",
+            "--monitoring",
+            "--single-ob",
+        ]
+        run_tool(MergeTool(), argv=argv, cwd=tmp_path)

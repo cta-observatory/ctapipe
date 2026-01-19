@@ -17,24 +17,23 @@ license = "BSD-3-Clause"
 classifiers = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Development Status :: 3 - Alpha",
 ]
 
 dynamic = ["version"]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 dependencies = [
     "astropy >=6.1,<8.0.0",
     "docutils",
     "joblib",
-    "numba >=0.57",
-    "numpy >=1.24,<3.0.0",
+    "numba >=0.59.0",
+    "numpy >=1.26,<3.0.0",
     "packaging",
     "psutil",
     "pyyaml >=5.1",
@@ -48,11 +47,15 @@ dependencies = [
 
 [project.optional-dependencies]
 
+eventio = [
+    "eventio >=1.9.1,<3.0.0",
+]
+
 # all is with all optional *runtime* dependencies
 # use `dev` to get really all dependencies
 all = [
     "bokeh ~=3.0",
-    "eventio >=1.9.1,<2.0.0",
+    "ctapipe[eventio]",
     "iminuit >=2",
     "matplotlib ~=3.0",
     "pyirf ~=0.13.0"
@@ -61,7 +64,7 @@ all = [
 tests = [
     # at the moment, essentially all tests rely on test data from simtel
     # it doesn't make sense to skip all of these.
-    "eventio >=1.9.1,<2.0.0",
+    "ctapipe[eventio]",
     "h5py",
     "pandas",
     "pytest >= 7.0",
@@ -90,7 +93,6 @@ docs = [
     "sphinx_automodapi",
     "sphinxcontrib-bibtex",
     "sphinx-changelog",
-    "tomli; python_version < '3.11'",
 ]
 
 dev = [
@@ -162,6 +164,16 @@ filterwarnings = [
     "error::tables.UnclosedFileWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
     "ignore::ctapipe.core.provenance.MissingReferenceMetadata",
+    # inside matplotlib, already fixed but occurs in "oldest-deps" tests
+    "ignore:'parseString':DeprecationWarning:matplotlib",
+    "ignore:'resetCache':DeprecationWarning:matplotlib",
+    "ignore:'oneOf':DeprecationWarning:matplotlib",
+    "ignore:'leaveWhiteSpace':DeprecationWarning:matplotlib",
+    "ignore:'setName':DeprecationWarning:matplotlib",
+    "ignore:'setParseAction':DeprecationWarning:matplotlib",
+    "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
+    "ignore:'unquoteResults':DeprecationWarning:matplotlib",
+    "ignore:'parseAll':DeprecationWarning:pyparsing",
 ]
 norecursedirs = [
     ".git",
@@ -213,7 +225,7 @@ omit = ["src/ctapipe/_version.py"]
 
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 88
 
 [tool.ruff.lint]

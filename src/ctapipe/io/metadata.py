@@ -22,6 +22,7 @@ them (as in `Activity.from_provenance()`)
     some_astropy_table.write("output.ecsv")
 
 """
+
 import gzip
 import os
 import uuid

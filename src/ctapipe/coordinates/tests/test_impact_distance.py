@@ -111,6 +111,6 @@ def test_compare_3d_and_frame_impact_distance(
                 shower_geom=shower_geom, subarray=example_subarray
             )
 
-            assert np.allclose(
-                impact_distances_frame, impact_distances_3d
-            ), f"failed at {alt=} {az=}"
+            assert np.allclose(impact_distances_frame, impact_distances_3d), (
+                f"failed at {alt=} {az=}"
+            )

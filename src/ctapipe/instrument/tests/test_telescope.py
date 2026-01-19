@@ -1,4 +1,5 @@
-""" Tests for TelescopeDescriptions """
+"""Tests for TelescopeDescriptions"""
+
 import pytest
 
 from ctapipe.instrument import FromNameWarning

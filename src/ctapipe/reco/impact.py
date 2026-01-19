@@ -2,6 +2,7 @@
 """
 Implementation of the ImPACT reconstruction algorithm
 """
+
 import copy
 
 import numpy as np

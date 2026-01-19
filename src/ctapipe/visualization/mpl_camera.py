@@ -2,6 +2,7 @@
 """
 Visualization routines using matplotlib
 """
+
 import copy
 import logging
 from itertools import product
@@ -369,7 +370,7 @@ class CameraDisplay:
         if image.shape != self.geom.pix_x.shape:
             raise ValueError(
                 (
-                    "Image has a different shape {} than the " "given CameraGeometry {}"
+                    "Image has a different shape {} than the given CameraGeometry {}"
                 ).format(image.shape, self.geom.pix_x.shape)
             )
 

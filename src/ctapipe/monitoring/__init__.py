@@ -1,6 +1,7 @@
 """
 Module for handling monitoring data.
 """
+
 from .aggregator import PlainAggregator, SigmaClippingAggregator, StatisticsAggregator
 from .interpolation import (
     ChunkInterpolator,

@@ -1,6 +1,7 @@
 """
 Test CTA Reference metadata functionality
 """
+
 import uuid
 
 import pytest

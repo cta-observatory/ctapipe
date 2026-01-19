@@ -1,3 +1,0 @@
-Fix a bug, where the ``ImageProcessor`` passes ``TelescopeMonitoringContainer``
-instead of ``CameraMonitoringContainer`` to the ``ImageCleaner`` which
-results in an AttributeError for the ``NSBImageCleaner``.

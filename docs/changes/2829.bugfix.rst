@@ -1,1 +1,0 @@
-Fix ``ctapipe-optimize-event-selection`` raising an error for compressed (.fits.gz) output files.

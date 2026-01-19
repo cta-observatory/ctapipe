@@ -4,7 +4,6 @@
 Hillas-style moment-based shower image parametrization.
 """
 
-
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
@@ -83,7 +82,7 @@ def hillas_parameters(geom, image):
     Returns
     -------
     HillasParametersContainer:
-        container of hillas parametesr
+        container of hillas parameters
     """
     unit = geom.pix_x.unit
     pix_x = geom.pix_x.to_value(unit)
@@ -133,9 +132,9 @@ def hillas_parameters(geom, image):
     # avoid divide by 0 warnings
     # psi will be consistently defined in the range (-pi/2, pi/2)
     if length == 0:
-        psi = (
-            psi_uncert
-        ) = transverse_cog_uncert = skewness_long = kurtosis_long = np.nan
+        psi = psi_uncert = transverse_cog_uncert = skewness_long = kurtosis_long = (
+            np.nan
+        )
     else:
         if vx != 0:
             psi = np.arctan(vy / vx)

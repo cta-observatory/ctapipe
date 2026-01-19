@@ -2,6 +2,7 @@
 """
 This module contains the utils.astro unit tests
 """
+
 import warnings
 
 import numpy as np

@@ -1,4 +1,5 @@
 """Tests for the data structures defined in ctapipe.containers"""
+
 import numpy as np
 from numpy.testing import assert_equal
 

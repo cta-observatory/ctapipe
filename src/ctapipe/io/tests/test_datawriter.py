@@ -39,9 +39,7 @@ def generate_dummy_dl2(event):
                 energy=10 * u.TeV,
                 prefix=f"{algo}_tel",
             )
-            event.dl2.tel[tel_id].classification[
-                algo
-            ] = ParticleClassificationContainer(
+            event.dl2.tel[tel_id].particle_type[algo] = ParticleClassificationContainer(
                 prediction=0.9,
                 prefix=f"{algo}_tel",
             )
@@ -58,7 +56,7 @@ def generate_dummy_dl2(event):
             telescopes=[1, 2, 4],
             prefix=algo,
         )
-        event.dl2.stereo.classification[algo] = ParticleClassificationContainer(
+        event.dl2.stereo.particle_type[algo] = ParticleClassificationContainer(
             prediction=0.9,
             telescopes=[1, 2, 4],
             prefix=algo,

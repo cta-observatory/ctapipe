@@ -1,10 +1,12 @@
 """
 common pytest fixtures for tests in ctapipe
 """
+
 import importlib
 import importlib.util
 import json
 import shutil
+import warnings
 from copy import deepcopy
 from pathlib import Path
 
@@ -18,12 +20,11 @@ from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
-from ctapipe.io import SimTelEventSource
+from ctapipe.io import SimTelEventSource, read_table, write_table
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
-    DL1_CAMERA_MONITORING_GROUP,
-    FIXED_POINTING_GROUP,
+    DL1_GROUP,
     SIMULATION_GROUP,
 )
 from ctapipe.utils import get_dataset_path
@@ -197,18 +198,18 @@ def proton_dl2_train_small_h5():
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_single_chunk():
-    return get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+def calibpipe_camcalib_sims_single_chunk():
+    return get_dataset_path("calibpipe_camcalib_sims_single_chunk_i0.2.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_same_chunks():
-    return get_dataset_path("calibpipe_camcalib_same_chunks_i0.1.0.dl1.h5")
+def calibpipe_camcalib_obslike_same_chunks():
+    return get_dataset_path("calibpipe_camcalib_obslike_same_chunks_i0.2.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
-def calibpipe_camcalib_different_chunks():
-    return get_dataset_path("calibpipe_camcalib_different_chunks_i0.1.0.dl1.h5")
+def calibpipe_camcalib_obslike_different_chunks():
+    return get_dataset_path("calibpipe_camcalib_obslike_different_chunks_i0.2.0.dl1.h5")
 
 
 @pytest.fixture(scope="session")
@@ -496,6 +497,30 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl1_tel1_file(dl1_tmp_path, prod6_gamma_simtel_path):
+    """
+    DL1 file containing only data for telescope 1 from a gamma simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "gamma_tel1.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(_lock_file(output)):
+        if output.is_file():
+            return output
+        tel_id = 1
+        argv = [
+            f"--input={prod6_gamma_simtel_path}",
+            f"--output={output}",
+            f"--EventSource.allowed_tels={tel_id}",
+            "--write-images",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
@@ -707,16 +732,17 @@ def reference_location():
 
 
 @pytest.fixture(scope="session")
-def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
-    from ctapipe.io import read_table, write_table
-
+def dl1_mon_pointing_file(calibpipe_camcalib_sims_single_chunk, dl1_tmp_path):
     path = dl1_tmp_path / "dl1_mon_pointing.dl1.h5"
-    shutil.copy(calibpipe_camcalib_same_chunks, path)
+    shutil.copy(calibpipe_camcalib_sims_single_chunk, path)
 
     tel_id = 1
     # create some dummy monitoring data
-    time = read_table(path, f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}")["time"]
-    start, stop = time[[0, -1]]
+    start = read_table(
+        calibpipe_camcalib_sims_single_chunk,
+        f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
+    )["time"][0]
+    stop = start + 10 * u.s
     duration = (stop - start).to_value(u.s)
 
     # start a bit before, go a bit longer
@@ -731,67 +757,36 @@ def dl1_mon_pointing_file(calibpipe_camcalib_same_chunks, dl1_tmp_path):
 
     # remove static pointing table
     with tables.open_file(path, "r+") as f:
-        # Remove the constant pointing
-        f.remove_node(FIXED_POINTING_GROUP, recursive=True)
-        # Remove camera-related monitoring data
-        f.remove_node(DL1_CAMERA_MONITORING_GROUP, recursive=True)
+        # Remove the DL1 table
+        if DL1_GROUP in f.root:
+            f.remove_node(DL1_GROUP, recursive=True)
 
     return path
 
 
 @pytest.fixture(scope="session")
 def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
-    path = dl1_tmp_path / "dl1_mon_pointingobs.dl1.h5"
+    path = dl1_tmp_path / "dl1_mon_pointing_obs.dl1.h5"
     shutil.copy(dl1_mon_pointing_file, path)
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
-    return path
-
-
-@pytest.fixture(scope="session")
-def calibpipe_camcalib_single_chunk_obs(calibpipe_camcalib_single_chunk, dl1_tmp_path):
-    path = dl1_tmp_path / "calibpipe_camcalib_single_chunk_obs.dl1.h5"
-    shutil.copy(calibpipe_camcalib_single_chunk, path)
-
-    # Remove the simulation to mimic a real observation file
-    with tables.open_file(path, "r+") as f:
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
-    return path
-
-
-@pytest.fixture(scope="session")
-def calibpipe_camcalib_same_chunks_obs(calibpipe_camcalib_same_chunks, dl1_tmp_path):
-    path = dl1_tmp_path / "calibpipe_camcalib_same_chunks_obs.dl1.h5"
-    shutil.copy(calibpipe_camcalib_same_chunks, path)
-
-    # Remove the simulation to mimic a real observation file
-    with tables.open_file(path, "r+") as f:
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
-    return path
-
-
-@pytest.fixture(scope="session")
-def calibpipe_camcalib_different_chunks_obs(
-    calibpipe_camcalib_different_chunks, dl1_tmp_path
-):
-    path = dl1_tmp_path / "calibpipe_camcalib_different_chunks_obs.dl1.h5"
-    shutil.copy(calibpipe_camcalib_different_chunks, path)
-
-    # Remove the simulation to mimic a real observation file
-    with tables.open_file(path, "r+") as f:
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
+        data_category = "CTA PRODUCT DATA CATEGORY"
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs[data_category] = "Other"
     return path
 
 
 @pytest.fixture(scope="session")
 def dl1_merged_monitoring_file(
-    dl1_tmp_path, dl1_mon_pointing_file, calibpipe_camcalib_different_chunks
+    dl1_tmp_path,
+    dl1_tel1_file,
+    dl1_mon_pointing_file,
+    calibpipe_camcalib_sims_single_chunk,
 ):
     """
     File containing both camera and pointing monitoring data.
@@ -799,18 +794,16 @@ def dl1_merged_monitoring_file(
     from ctapipe.tools.merge import MergeTool
 
     output = dl1_tmp_path / "dl1_merged_monitoring_file.h5"
+    shutil.copy(dl1_tel1_file, output)
 
     # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
-        if output.is_file():
-            return output
-
         argv = [
             f"--output={output}",
             str(dl1_mon_pointing_file),
-            str(calibpipe_camcalib_different_chunks),
-            "--monitoring",
-            "--single-ob",
+            str(calibpipe_camcalib_sims_single_chunk),
+            "--append",
+            "--merge-strategy=monitoring-only",
         ]
         assert run_tool(MergeTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -823,8 +816,13 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        f.remove_node(SIMULATION_GROUP, recursive=True)
-
+        data_category = "CTA PRODUCT DATA CATEGORY"
+        if SIMULATION_GROUP in f.root:
+            f.remove_node(SIMULATION_GROUP, recursive=True)
+        if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs[data_category] = "Other"
     return path
 
 

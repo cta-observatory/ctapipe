@@ -264,7 +264,7 @@ class ImageModel(metaclass=ABCMeta):
 
         """
         pdf = self.pdf(camera.pix_x, camera.pix_y)
-        return pdf * intensity * camera.pix_area.value
+        return (pdf * intensity * camera.pix_area).to_value(u.one)
 
 
 class Gaussian(ImageModel):
@@ -311,7 +311,11 @@ class Gaussian(ImageModel):
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane"""
         X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        return self.dist.pdf(X)
+        return u.Quantity(
+            self.dist.pdf(X),
+            unit=1 / self.unit**2,
+            copy=False,
+        )
 
 
 class SkewedGaussian(ImageModel):
@@ -364,14 +368,17 @@ class SkewedGaussian(ImageModel):
         a = delta / np.sqrt(1 - delta**2)
         scale = self.length.to_value(self.unit) / np.sqrt(1 - 2 * delta**2 / np.pi)
         loc = -scale * delta * np.sqrt(2 / np.pi)
-
         return a, loc, scale
 
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
         pos = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
         long, trans = self.rotation @ (pos - self.mu).T
-        return self.trans_dist.pdf(trans) * self.long_dist.pdf(long)
+        return u.Quantity(
+            self.trans_dist.pdf(trans) * self.long_dist.pdf(long),
+            unit=1 / self.unit**2,
+            copy=False,
+        )
 
 
 class RingGaussian(ImageModel):
@@ -430,7 +437,9 @@ class RingGaussian(ImageModel):
         dy = (y - self.y).to_value(self.unit)
         r = np.sqrt(dx**2 + dy**2)
         phi = np.arctan2(dy, dx)
-        return self.r_dist.pdf(r) * self._pdf_phi(phi)
+        return u.Quantity(
+            self.r_dist.pdf(r) * self._pdf_phi(phi), unit=1 / self.unit**2, copy=False
+        )
 
     def _inner_term(self, phi):
         return np.sqrt(1 - self.rho**2 * np.sin(phi) ** 2)

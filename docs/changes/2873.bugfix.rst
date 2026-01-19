@@ -1,2 +1,0 @@
-Fix a bug in the ``chord_length`` function used by the  ``MuonIntensityFitter`` likelihood function
-that resulted in incorrect periodicity. The function returned 0 outside of the domain phi [-π, π].

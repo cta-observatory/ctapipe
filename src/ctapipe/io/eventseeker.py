@@ -1,6 +1,7 @@
 """
 Handles seeking to a particular event in a `ctapipe.io.EventSource`
 """
+
 from copy import deepcopy
 
 from ctapipe.core import Component
@@ -78,7 +79,7 @@ class EventSeeker(Component):
         self._event_source = event_source
 
         self._n_events = None
-        self._source = self._event_source.__iter__()
+        self._source = iter(self._event_source)
         self._current_event = None
         self._has_fast_seek = False  # By default seeking iterates through
         self._getevent_warn = True
@@ -89,7 +90,7 @@ class EventSeeker(Component):
         """
         if self._event_source.is_stream:
             raise OSError("Back-seeking is not possible for event source")
-        self._source = self._event_source.__iter__()
+        self._source = iter(self._event_source)
         self._current_event = None
 
     def __iter__(self):
@@ -218,9 +219,11 @@ class EventSeeker(Component):
             self.log.warning(msg)
             self._getevent_warn = False
 
-        self._reset()  # Event ids may not be in order, so always reset
+        if self._current_event is not None:
+            self._reset()  # Event ids may not be in order, so always reset
 
         for event in self._source:
+            self._current_event = event
             if event.index.event_id == event_id:
                 return event
         raise IndexError(f"Event id {event_id} not found in file")

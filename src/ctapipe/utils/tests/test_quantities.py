@@ -1,4 +1,5 @@
 """tests for ctapipe.utils.quantities"""
+
 import astropy.units as u
 import numpy as np
 import pytest

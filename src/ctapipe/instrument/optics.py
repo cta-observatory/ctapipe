@@ -4,7 +4,7 @@ Classes and functions related to telescope Optics
 
 import logging
 from abc import abstractmethod
-from enum import Enum, auto, unique
+from enum import Enum, StrEnum, auto, unique
 
 import astropy.units as u
 import numpy as np
@@ -12,7 +12,6 @@ from astropy.table import QTable
 from scipy.stats import laplace, laplace_asymmetric
 from traitlets import validate
 
-from ..compat import StrEnum
 from ..core import TelescopeComponent
 from ..core.traits import Float, List, TraitError
 from ..utils import get_table_dataset

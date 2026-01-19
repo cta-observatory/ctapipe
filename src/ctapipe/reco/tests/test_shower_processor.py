@@ -1,6 +1,7 @@
 """
 Tests for ShowerProcessor functionalities.
 """
+
 from copy import deepcopy
 
 import pytest

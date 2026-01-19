@@ -1,6 +1,7 @@
 """
 Base functionality for reading and writing tabular data
 """
+
 import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict

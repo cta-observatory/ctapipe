@@ -1,6 +1,7 @@
 """
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
+
 # pylint: disable=W0201
 import sys
 
@@ -352,11 +353,10 @@ class ProcessorTool(Tool):
                 )
                 continue
 
+            for mon_source in self._monitoring_sources:
+                mon_source.fill_monitoring_container(event)
+
             if self.should_calibrate:
-                # Fill monitoring containers needed for the calibration
-                for mon_source in self._monitoring_sources:
-                    self.log.debug("Filling monitoring container for '%s'", mon_source)
-                    mon_source.fill_monitoring_container(event)
                 self.calibrate(event)
 
             if self.should_compute_dl1:

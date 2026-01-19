@@ -1,4 +1,5 @@
 """utils to deal with astropy.units.Quantity"""
+
 from astropy.units import Quantity
 
 

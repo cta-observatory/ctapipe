@@ -20,7 +20,7 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v6
@@ -40,16 +40,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: Linux (3.10, mamba, oldest-deps)
+          - name: Linux (3.12, mamba, oldest-deps)
             os: ubuntu-24.04
-            python-version: "3.10"
+            python-version: "3.12"
             install-method: mamba
             extras: tests,all
             extra-args: ["oldest-deps"]
 
-          - name: Linux (3.11, pip, minimal-dependencies)
+          - name: Linux (3.12, pip, minimal-dependencies)
             os: ubuntu-24.04
-            python-version: "3.11"
+            python-version: "3.12"
             install-method: pip
             extras: tests
 
@@ -60,31 +60,30 @@ jobs:
             extra-args: ["codecov"]
             extras: tests,all
 
-          - name: Linux (3.12, mamba)
-            os: ubuntu-24.04
-            python-version: "3.12"
-            install-method: mamba
-            extras: tests,all
-
-          - name: Linux (3.13, pip)
+          - name: Linux (3.13, mamba)
             os: ubuntu-24.04
             python-version: "3.13"
-            install-method: pip
-            extras: tests,all
-
-          # macos 13 image is x86-based
-          - name: macos (3.10, x86_64, pip)
-            os: macos-13
-            python-version: "3.10"
-            install-method: pip
-            extras: tests,all
-
-          # macos 14 image is arm64 based
-          - name: macos (3.12, arm64, mamba)
-            os: macos-14
-            python-version: "3.12"
             install-method: mamba
             extras: tests,all
+
+          - name: Linux (3.14, mamba)
+            os: ubuntu-24.04
+            python-version: "3.14"
+            install-method: mamba
+            extras: tests,all
+
+          - name: macos (3.12, x86-64, pip)
+            os: macos-15-intel
+            python-version: "3.12"
+            install-method: pip
+            extras: tests,all
+
+          - name: macos (3.14, arm64, mamba)
+            os: macos-15
+            python-version: "3.14"
+            install-method: mamba
+            extras: tests,all
+
 
     defaults:
       run:
@@ -92,18 +91,18 @@ jobs:
         shell: bash -leo pipefail {0}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: cache test data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data-desy-1
 
       - name: cache astropy data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.astropy/cache
           key: astropy-cache
@@ -147,13 +146,15 @@ jobs:
           EXTRAS: ${{ matrix.extras }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          pip install -e ".[${EXTRAS}]"
+          # numba/llvmlite do not provide wheels for macos-intel in recent releases, but pip tries to download
+          # the latest release and build it from source. Force only wheels being considered for these to packages.
+          pip install --only-binary llvmlite --only-binary numba -e ".[${EXTRAS}]"
           pip install ./test_plugin
           pip freeze
 
       - if: contains(matrix.extra-args, 'oldest-deps') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
-          micromamba install -n cta-dev -y numpy=1.24 numba=0.57 scipy=1.15 astropy=6.1 matplotlib=3.6
+          micromamba install -n cta-dev -y numpy=1.26 numba=0.59.0 scipy=1.15 astropy=6.1 matplotlib=3.8 eventio=1.11.6
           micromamba list -n cta-dev
 
       - name: ctapipe-info
@@ -193,7 +194,7 @@ jobs:
           cat sonar_env
 
       # upload coverage report for sonar workflow
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         with:
           name: ctapipe-coverage-report
@@ -204,7 +205,7 @@ jobs:
   docs:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

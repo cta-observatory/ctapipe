@@ -270,9 +270,9 @@ def test_CameraFrame_against_TelescopeFrame(filename):
                 if hasattr(cam, "unit"):
                     if cam.value == 0 or tel.value == 0:
                         kwargs["atol"] = 1e-6 * cam.unit
-                    assert u.isclose(
-                        cam, tel, **kwargs
-                    ), f"attr {field} not matching, camera: {result_camera_frame!s} telescope: {result_telescope_frame!s}"
+                    assert u.isclose(cam, tel, **kwargs), (
+                        f"attr {field} not matching, camera: {result_camera_frame!s} telescope: {result_telescope_frame!s}"
+                    )
                 elif isinstance(cam, list):
                     assert cam == tel
                 else:

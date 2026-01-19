@@ -1,4 +1,5 @@
 """Implementations of TableWriter and -Reader for HDF5 files"""
+
 import enum
 from pathlib import PurePath
 
@@ -541,8 +542,7 @@ class HDF5TableReader(TableReader):
             self._h5file = filename
         else:
             raise NotImplementedError(
-                "filename needs to be either a string, pathlib.PurePath "
-                "or tables.File"
+                "filename needs to be either a string, pathlib.PurePath or tables.File"
             )
 
     def open(self, filename, **kwargs):

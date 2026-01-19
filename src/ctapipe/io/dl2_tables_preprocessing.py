@@ -5,7 +5,7 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import Column, QTable, Table, vstack
+from astropy.table import Column, QTable, vstack
 
 try:
     from pyirf.simulations import SimulatedEventsInfo
@@ -236,9 +236,11 @@ class DL2EventPreprocessor(Component):
         return QTable(
             names=[col.name for col in schema],
             dtype=[col.dtype for col in schema],
-            units=[col.unit for col in schema]
-            if any(col.unit for col in schema)
-            else None,
+            units=(
+                [col.unit for col in schema]
+                if any(col.unit for col in schema)
+                else None
+            ),
             meta={},
         )
 
@@ -349,29 +351,52 @@ class DL2EventLoader(Component):
         if not has_pyirf:
             raise OptionalDependencyMissing("pyirf")
 
-        sim = loader.read_simulation_configuration()
+        sim_config = loader.read_simulation_configuration()
+        n_showers: int = 0
         try:
-            show = loader.read_shower_distribution()
+            shower_distribution = loader.read_shower_distribution()
+            n_showers = shower_distribution["n_entries"].sum()
         except NoSuchNodeError:
             self.log.warning(
-                "Simulation distributions were not found in the input files, falling back to estimating the number of showers from the simulation configuration."
+                "Simulation distributions were not found in the input files, "
+                "falling back to estimating the number of showers from the "
+                "simulation configuration."
             )
-            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
 
-        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(np.unique(sim[itm])) > 1:
+        # Some tight consistency checks. Eventually we will support using the
+        # arbitrary shower distribution and non-flat spatial distributions.
+        # Currently we do not support those, so we raise exceptions here to
+        # avoid that we incorrectly compute the effective area, which would have
+        # a high scientific impact.
+        for itm in [
+            "spectral_index",
+            "energy_range_min",
+            "energy_range_max",
+            "max_scatter_range",
+            "max_viewcone_radius",
+            "min_viewcone_radius",
+        ]:
+            if len(np.unique(sim_config[itm])) > 1:
                 raise NotImplementedError(
                     f"Unsupported: '{itm}' differs across simulation runs"
                 )
 
+        n_showers_config = (sim_config["n_showers"] * sim_config["shower_reuse"]).sum()
+        if n_showers == 0:
+            n_showers = n_showers_config
+
+        assert n_showers_config == n_showers, "Inconsistent number of simulated showers"
+
+        # This gets the distribution assuming a power-law model, and we assume
+        # all merged observations have the same model.
         sim_info = SimulatedEventsInfo(
-            n_showers=show["n_entries"].sum(),
-            energy_min=sim["energy_range_min"].quantity[0],
-            energy_max=sim["energy_range_max"].quantity[0],
-            max_impact=sim["max_scatter_range"].quantity[0],
-            spectral_index=sim["spectral_index"][0],
-            viewcone_max=sim["max_viewcone_radius"].quantity[0],
-            viewcone_min=sim["min_viewcone_radius"].quantity[0],
+            n_showers=n_showers,
+            energy_min=sim_config["energy_range_min"].quantity[0],
+            energy_max=sim_config["energy_range_max"].quantity[0],
+            max_impact=sim_config["max_scatter_range"].quantity[0],
+            spectral_index=sim_config["spectral_index"][0],
+            viewcone_max=sim_config["max_viewcone_radius"].quantity[0],
+            viewcone_min=sim_config["min_viewcone_radius"].quantity[0],
         )
 
         return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)

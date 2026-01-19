@@ -3,6 +3,7 @@ Container structures for data that should be read or written to disk
 """
 
 import enum
+import warnings
 from functools import partial
 
 import numpy as np
@@ -1078,10 +1079,34 @@ class ReconstructedContainer(Container):
         default_factory=partial(Map, ReconstructedEnergyContainer),
         description="map of algorithm to reconstructed energy parameters",
     )
-    classification = Field(
+    particle_type = Field(
         default_factory=partial(Map, ParticleClassificationContainer),
         description="map of algorithm to classification parameters",
     )
+
+    @staticmethod
+    def _warn_classification_deprecated():
+        from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
+
+        warnings.warn(
+            "The 'classification' field from 'ReconstructedContainer' was "
+            "renamed and will be deleted in future versions. Use "
+            "'particle_type' instead. "
+            "E.g. switch from 'event.dl2.{tel,stereo}.classification' to "
+            "'event.dl2.{tel,stereo}.particle_type'.",
+            CTAPipeDeprecationWarning,
+            stacklevel=3,
+        )
+
+    @property
+    def classification(self):
+        self._warn_classification_deprecated()
+        return self.particle_type
+
+    @classification.setter
+    def classification(self, value):
+        self._warn_classification_deprecated()
+        self.particle_type = value
 
 
 class TelescopeReconstructedContainer(ReconstructedContainer):
@@ -1239,9 +1264,9 @@ class PixelStatisticsContainer(Container):
         default_factory=StatisticsContainer,
         description="Statistical description from the peak arrival time of flat-field event distributions",
     )
-    sky_pedestal_image = Field(
+    pedestal_image = Field(
         default_factory=StatisticsContainer,
-        description="Statistical description from the image charge of sky pedestal event distributions",
+        description="Statistical description from the image charge of pedestal event distributions",
     )
 
 

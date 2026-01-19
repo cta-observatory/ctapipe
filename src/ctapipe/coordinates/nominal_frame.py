@@ -5,6 +5,7 @@ https://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/s
 We are just not creating a metaclass and a factory but directly building the
 corresponding class.
 """
+
 import astropy.units as u
 from astropy.coordinates import (
     AltAz,

@@ -1,23 +1,13 @@
 """
 Module for python version compatibility
 """
-import sys
 
 import numpy as np
 from packaging.version import Version
 
 __all__ = [
-    "StrEnum",
+    "COPY_IF_NEEDED",
 ]
-
-
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from enum import Enum
-
-    class StrEnum(str, Enum):
-        """Compatibility backfill of StrEnum for python < 3.11"""
 
 
 # in numpy 1.x, copy=False allows copying if it cannot be avoided

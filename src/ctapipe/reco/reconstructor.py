@@ -211,9 +211,9 @@ class HillasGeometryReconstructor(Reconstructor):
         prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
         for tel_id in event.trigger.tels_with_trigger:
             tel_index = self.subarray.tel_indices[tel_id]
-            event.dl2.tel[tel_id].impact[
-                self.__class__.__name__
-            ] = TelescopeImpactParameterContainer(
-                distance=impact_distances[tel_index],
-                prefix=prefix,
+            event.dl2.tel[tel_id].impact[self.__class__.__name__] = (
+                TelescopeImpactParameterContainer(
+                    distance=impact_distances[tel_index],
+                    prefix=prefix,
+                )
             )

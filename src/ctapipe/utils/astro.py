@@ -4,6 +4,7 @@ This module is intended to contain astronomy-related helper tools which are
 not provided by external packages and/or to satisfy particular needs of
 usage within ctapipe.
 """
+
 import gzip
 import logging
 import warnings

@@ -1,6 +1,7 @@
 """
 Handles reading of different event/waveform containing files
 """
+
 import warnings
 from abc import abstractmethod
 from collections.abc import Generator

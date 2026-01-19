@@ -75,7 +75,7 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     # move up the shower axis by slant_distance
     point = impact + altaz_to_righthanded_cartesian(alt=alt, az=az, distance=distance)
 
-    # offset by telescope positions and convert to sperical
+    # offset by telescope positions and convert to spherical
     # to get local AltAz for each telescope
     cartesian = point[np.newaxis, :] - _get_xyz(telescope_position).T
     lon, lat, _ = cartesian_to_spherical(cartesian)

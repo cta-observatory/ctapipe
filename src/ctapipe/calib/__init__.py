@@ -2,6 +2,7 @@
 """
 Module for calibration code
 """
+
 from .camera import CameraCalibrator, GainSelector
 
 __all__ = [

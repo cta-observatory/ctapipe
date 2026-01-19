@@ -255,7 +255,7 @@ disp.overlay_coordinate(
 # Generating an animation
 # -----------------------
 #
-# Here we will make an animation of fake events by re-using a single
+# Here we will make an animation of fake events by reusing a single
 # display (much faster than generating a new one each time)
 #
 
@@ -268,7 +268,7 @@ maxwid = 0.05
 maxlen = 0.1
 
 fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-disp = CameraDisplay(geom, ax=ax)  # we only need one display (it can be re-used)
+disp = CameraDisplay(geom, ax=ax)  # we only need one display (it can be reused)
 disp.cmap = "inferno"
 disp.add_colorbar(ax=ax)
 
@@ -308,7 +308,7 @@ plt.show()
 # and also when using Jupyter notebooks/lab with appropriate backends.
 
 ######################################################################
-# When this is the case, the same ``CameraDisplay`` object can be re-used.
+# When this is the case, the same ``CameraDisplay`` object can be reused.
 # We can’t show this here in the documentation, but creating an animation
 # when in a matplotlib window is quite easy! Try this in an interactive
 # ipython session:

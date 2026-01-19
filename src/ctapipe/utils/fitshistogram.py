@@ -225,7 +225,7 @@ class Histogram:
             ohdu.header.set("BZERO", float(self.value_zero))
 
         ohdu.header.set(
-            "NSAMP", self._numsamples, "Number of samples " "originally filled"
+            "NSAMP", self._numsamples, "Number of samples originally filled"
         )
 
         return ohdu

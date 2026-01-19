@@ -1,6 +1,7 @@
 """
 Generate Features.
 """
+
 from collections import ChainMap
 
 from .component import Component

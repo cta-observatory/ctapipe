@@ -1,4 +1,5 @@
 import logging
+import warnings
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -50,6 +51,7 @@ from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
 from ..utils import IndexFinder
+from ..utils.deprecation import CTAPipeDeprecationWarning
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
@@ -89,7 +91,7 @@ logger = logging.getLogger(__name__)
 DL2_CONTAINERS = {
     "energy": ReconstructedEnergyContainer,
     "geometry": ReconstructedGeometryContainer,
-    "classification": ParticleClassificationContainer,
+    "particle_type": ParticleClassificationContainer,
     "impact": TelescopeImpactParameterContainer,
     "disp": DispContainer,
 }
@@ -102,6 +104,8 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v6.0.0",
     "v7.0.0",
     "v7.1.0",
+    "v7.2.0",
+    "v7.3.0",
 ]
 
 
@@ -489,245 +493,36 @@ class HDF5EventSource(EventSource):
         """
         self.reader = HDF5TableReader(self.file_)
 
-        if DataLevel.R1 in self.datalevels:
-            waveform_readers = {
-                table.name: self.reader.read(
-                    f"{R1_TEL_GROUP}/{table.name}", R1CameraContainer
-                )
-                for table in self.file_.root.r1.event.telescope
-            }
+        waveform_readers = self._init_r1_readers()
+        image_readers = self._init_dl1_image_readers()
+        true_image_readers = self._init_dl1_true_image_readers()
+        param_readers = self._init_dl1_parameter_readers()
+        true_param_readers = self._init_dl1_true_parameter_readers()
+        muon_readers = self._init_muon_readers()
+        dl2_readers = self._init_dl2_stereo_readers()
+        dl2_tel_readers = self._init_dl2_telescope_readers()
+        mc_shower_reader = self._init_simulation_readers()
+        true_impact_readers = self._init_true_impact_readers()
 
-        if DataLevel.DL1_IMAGES in self.datalevels:
-            ignore_columns = {"parameters"}
-
-            # if there are no parameters, there are no image_mask, avoids warnings
-            if DataLevel.DL1_PARAMETERS not in self.datalevels:
-                ignore_columns.add("image_mask")
-
-            image_readers = {
-                table.name: self.reader.read(
-                    f"{DL1_TEL_IMAGES_GROUP}/{table.name}",
-                    DL1CameraContainer,
-                    ignore_columns=ignore_columns,
-                )
-                for table in self.file_.root.dl1.event.telescope.images
-            }
-            if self.has_simulated_dl1:
-                simulated_image_iterators = {
-                    table.name: self.file_.root.simulation.event.telescope.images[
-                        table.name
-                    ].iterrows()
-                    for table in self.file_.root.simulation.event.telescope.images
-                }
-
-        if DataLevel.DL1_PARAMETERS in self.datalevels:
-            hillas_cls = HillasParametersContainer
-            timing_cls = TimingParametersContainer
-            hillas_prefix = "hillas"
-            timing_prefix = "timing"
-
-            if self._is_hillas_in_camera_frame():
-                hillas_cls = CameraHillasParametersContainer
-                timing_cls = CameraTimingParametersContainer
-                hillas_prefix = "camera_frame_hillas"
-                timing_prefix = "camera_frame_timing"
-
-            param_readers = {
-                table.name: self.reader.read(
-                    f"{DL1_TEL_PARAMETERS_GROUP}/{table.name}",
-                    containers=(
-                        hillas_cls,
-                        timing_cls,
-                        LeakageContainer,
-                        ConcentrationContainer,
-                        MorphologyContainer,
-                        IntensityStatisticsContainer,
-                        PeakTimeStatisticsContainer,
-                    ),
-                    prefixes=[
-                        hillas_prefix,
-                        timing_prefix,
-                        "leakage",
-                        "concentration",
-                        "morphology",
-                        "intensity",
-                        "peak_time",
-                    ],
-                )
-                for table in self.file_.root.dl1.event.telescope.parameters
-            }
-            if self.has_simulated_dl1:
-                simulated_param_readers = {
-                    table.name: self.reader.read(
-                        f"{SIMULATION_PARAMETERS_GROUP}/{table.name}",
-                        containers=[
-                            hillas_cls,
-                            LeakageContainer,
-                            ConcentrationContainer,
-                            MorphologyContainer,
-                            IntensityStatisticsContainer,
-                        ],
-                        prefixes=[
-                            f"true_{hillas_prefix}",
-                            "true_leakage",
-                            "true_concentration",
-                            "true_morphology",
-                            "true_intensity",
-                        ],
-                    )
-                    for table in self.file_.root.dl1.event.telescope.parameters
-                }
-
-        if self.has_muon_parameters:
-            muon_readers = {
-                table.name: self.reader.read(
-                    f"{DL1_TEL_MUON_GROUP}/{table.name}",
-                    containers=[
-                        MuonRingContainer,
-                        MuonParametersContainer,
-                        MuonEfficiencyContainer,
-                    ],
-                )
-                for table in self.file_.root.dl1.event.telescope.muon
-            }
-
-        dl2_readers = {}
-        if DL2_SUBARRAY_GROUP in self.file_.root:
-            dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
-
-            for kind, group in dl2_group._v_children.items():
-                try:
-                    container = DL2_CONTAINERS[kind]
-                except KeyError:
-                    self.log.warning("Unknown DL2 stereo group %s", kind)
-                    continue
-
-                dl2_readers[kind] = {
-                    algorithm: HDF5TableReader(self.file_).read(
-                        table._v_pathname,
-                        containers=container,
-                        prefixes=(algorithm,),
-                    )
-                    for algorithm, table in group._v_children.items()
-                }
-
-        dl2_tel_readers = {}
-        if DL2_TEL_GROUP in self.file_.root:
-            dl2_group = self.file_.root[DL2_TEL_GROUP]
-
-            for kind, group in dl2_group._v_children.items():
-                try:
-                    container = DL2_CONTAINERS[kind]
-                except KeyError:
-                    self.log.warning("Unknown DL2 telescope group %s", kind)
-                    continue
-
-                dl2_tel_readers[kind] = {}
-                for algorithm, algorithm_group in group._v_children.items():
-                    dl2_tel_readers[kind][algorithm] = {}
-                    for key, table in algorithm_group._v_children.items():
-                        column_attrs = get_column_attrs(table)
-
-                        # workaround for missing prefix-information in tables written
-                        # by apply-models tool before ctapipe v0.27.0
-                        if any(
-                            v.get("PREFIX", "") != "" for v in column_attrs.values()
-                        ):
-                            prefixes = (
-                                None  # prefix are there and will be found by reader
-                            )
-                        else:
-                            # prefix not stored, assume data written by write_table with this prefix
-                            prefixes = algorithm + "_tel"
-
-                        dl2_tel_readers[kind][algorithm][key] = HDF5TableReader(
-                            self.file_
-                        ).read(
-                            table._v_pathname,
-                            containers=container,
-                            prefixes=prefixes,
-                        )
-
-        true_impact_readers = {}
-        if self.is_simulation:
-            # simulated shower wide information
-            mc_shower_reader = HDF5TableReader(self.file_).read(
-                SIMULATION_SHOWER_TABLE,
-                SimulatedShowerContainer,
-                prefixes="true",
-            )
-            if "impact" in self.file_.root.simulation.event.telescope:
-                true_impact_readers = {
-                    table.name: self.reader.read(
-                        f"{SIMULATION_IMPACT_GROUP}/{table.name}",
-                        containers=TelescopeImpactParameterContainer,
-                        prefixes=["true_impact"],
-                    )
-                    for table in self.file_.root.simulation.event.telescope.impact
-                }
-
-        # Setup iterators for the array events
-        events = HDF5TableReader(self.file_).read(
-            DL1_SUBARRAY_TRIGGER_TABLE,
-            [TriggerContainer, EventIndexContainer],
-            ignore_columns={"tel"},
-        )
-        telescope_trigger_reader = HDF5TableReader(self.file_).read(
-            DL1_TEL_TRIGGER_TABLE,
-            [TelEventIndexContainer, TelescopeTriggerContainer],
-            ignore_columns={"trigger_pixels"},
-        )
-
-        pointing_interpolator = None
-        if DL0_TEL_POINTING_GROUP in self.file_.root:
-            from ..monitoring.interpolation import PointingInterpolator
-
-            pointing_interpolator = PointingInterpolator(
-                h5file=self.file_,
-                parent=self,
-            )
+        events = self._init_event_iterator()
+        telescope_trigger_reader = self._init_telescope_trigger_reader()
+        pointing_interpolator = self._init_pointing_interpolator()
 
         counter = 0
         for trigger, index in events:
-            data = ArrayEventContainer(
-                trigger=trigger,
-                count=counter,
-                index=index,
-                simulation=SimulatedEventContainer() if self.is_simulation else None,
+            data = self._create_array_event_container(trigger, index, counter)
+            full_tels_with_trigger = self._update_tels_with_trigger(data)
+
+            self._fill_telescope_triggers(
+                data,
+                full_tels_with_trigger,
+                telescope_trigger_reader,
             )
-            # Maybe take some other metadata, but there are still some 'unknown'
-            # written out by the stage1 tool
-            data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
-            data.meta["input_url"] = self.input_url
-            data.meta["max_events"] = self.max_events
-
-            data.trigger.tels_with_trigger = self._full_subarray.tel_mask_to_tel_ids(
-                data.trigger.tels_with_trigger
-            )
-            full_tels_with_trigger = data.trigger.tels_with_trigger.copy()
-            if self.allowed_tels:
-                data.trigger.tels_with_trigger = np.intersect1d(
-                    data.trigger.tels_with_trigger, np.array(list(self.allowed_tels))
-                )
-
-            # the telescope trigger table contains triggers for all telescopes
-            # that participated in the event, so we need to read a row for each
-            # of them, ignoring the ones not in allowed_tels after reading
-            for tel_id in full_tels_with_trigger:
-                tel_index, tel_trigger = next(telescope_trigger_reader)
-
-                if self.allowed_tels and tel_id not in self.allowed_tels:
-                    continue
-
-                data.trigger.tel[tel_index.tel_id] = tel_trigger
 
             if self.is_simulation:
                 data.simulation.shower = next(mc_shower_reader)
 
-            for kind, readers in dl2_readers.items():
-                c = getattr(data.dl2.stereo, kind)
-                for algorithm, reader in readers.items():
-                    c[algorithm] = next(reader)
+            self._fill_dl2_stereo(data, dl2_readers)
 
             # this needs to stay *after* reading the telescope trigger table
             # and after reading all subarray event information, so that we don't
@@ -738,78 +533,497 @@ class HDF5EventSource(EventSource):
             self._fill_array_pointing(data)
             self._fill_telescope_pointing(data, pointing_interpolator)
 
-            for tel_id in data.trigger.tel.keys():
-                key = f"tel_{tel_id:03d}"
-
-                if self.allowed_tels and tel_id not in self.allowed_tels:
-                    continue
-
-                if key in true_impact_readers:
-                    data.simulation.tel[tel_id].impact = next(true_impact_readers[key])
-
-                if DataLevel.R1 in self.datalevels:
-                    data.r1.tel[tel_id] = next(waveform_readers[key])
-
-                    # TODO: Delete if we drop support for datamodel versions < v6.0.0
-                    r1_waveform = data.r1.tel[tel_id].waveform
-                    if r1_waveform.ndim == 2:
-                        data.r1.tel[tel_id].waveform = r1_waveform[np.newaxis, ...]
-
-                if self.has_simulated_dl1:
-                    simulated = data.simulation.tel[tel_id]
-
-                if DataLevel.DL1_IMAGES in self.datalevels:
-                    data.dl1.tel[tel_id] = next(image_readers[key])
-
-                    if self.has_simulated_dl1:
-                        simulated_image_row = next(simulated_image_iterators[key])
-                        simulated.true_image = simulated_image_row["true_image"]
-                        simulated.true_image_sum = simulated_image_row["true_image_sum"]
-
-                if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    # Is there a smarter way to unpack this?
-                    # Best would probably be if we could directly read
-                    # into the ImageParametersContainer
-                    params = next(param_readers[key])
-                    data.dl1.tel[tel_id].parameters = ImageParametersContainer(
-                        hillas=params[0],
-                        timing=params[1],
-                        leakage=params[2],
-                        concentration=params[3],
-                        morphology=params[4],
-                        intensity_statistics=params[5],
-                        peak_time_statistics=params[6],
-                    )
-                    if self.has_simulated_dl1:
-                        simulated_params = next(simulated_param_readers[key])
-                        simulated.true_parameters = ImageParametersContainer(
-                            hillas=simulated_params[0],
-                            leakage=simulated_params[1],
-                            concentration=simulated_params[2],
-                            morphology=simulated_params[3],
-                            intensity_statistics=simulated_params[4],
-                        )
-
-                if self.has_muon_parameters:
-                    ring, parameters, efficiency = next(muon_readers[key])
-                    data.muon.tel[tel_id] = MuonTelescopeContainer(
-                        ring=ring,
-                        parameters=parameters,
-                        efficiency=efficiency,
-                    )
-
-                for kind, algorithms in dl2_tel_readers.items():
-                    c = getattr(data.dl2.tel[tel_id], kind)
-                    for algorithm, readers in algorithms.items():
-                        c[algorithm] = next(readers[key])
-
-                        # change prefix to new data model
-                        if kind == "impact" and self.datamodel_version == (4, 0, 0):
-                            prefix = f"{algorithm}_tel_{c[algorithm].default_prefix}"
-                            c[algorithm].prefix = prefix
+            self._fill_telescopes(
+                data=data,
+                waveform_readers=waveform_readers,
+                image_readers=image_readers,
+                true_image_readers=true_image_readers,
+                param_readers=param_readers,
+                true_param_readers=true_param_readers,
+                muon_readers=muon_readers,
+                dl2_tel_readers=dl2_tel_readers,
+                true_impact_readers=true_impact_readers,
+            )
 
             yield data
             counter += 1
+
+    # -------------------------------------------------------------------------
+    # Init Readers
+    # -------------------------------------------------------------------------
+
+    def _init_r1_readers(self):
+        if DataLevel.R1 not in self.datalevels:
+            return {}
+
+        return {
+            table.name: self.reader.read(
+                f"{R1_TEL_GROUP}/{table.name}", R1CameraContainer
+            )
+            for table in self.file_.root.r1.event.telescope
+        }
+
+    def _init_dl1_image_readers(self):
+        if DataLevel.DL1_IMAGES not in self.datalevels:
+            return {}
+
+        ignore_columns = {"parameters"}
+        if DataLevel.DL1_PARAMETERS not in self.datalevels:
+            # if there are no parameters, there are no image_mask, avoids warnings
+            ignore_columns.add("image_mask")
+
+        image_readers = {
+            table.name: self.reader.read(
+                f"{DL1_TEL_IMAGES_GROUP}/{table.name}",
+                DL1CameraContainer,
+                ignore_columns=ignore_columns,
+            )
+            for table in self.file_.root.dl1.event.telescope.images
+        }
+
+        return image_readers
+
+    def _init_dl1_true_image_readers(self):
+        if DataLevel.DL1_IMAGES not in self.datalevels:
+            return {}
+
+        true_image_readers = {}
+        if self.has_simulated_dl1:
+            true_image_readers = {
+                table.name: self.file_.root.simulation.event.telescope.images[
+                    table.name
+                ].iterrows()
+                for table in self.file_.root.simulation.event.telescope.images
+            }
+
+        return true_image_readers
+
+    def _init_dl1_parameter_readers(self):
+        if DataLevel.DL1_PARAMETERS not in self.datalevels:
+            return {}
+
+        (
+            hillas_cls,
+            timing_cls,
+            hillas_prefix,
+            timing_prefix,
+        ) = self._get_hillas_and_timing_classes()
+
+        param_readers = {
+            table.name: self.reader.read(
+                f"{DL1_TEL_PARAMETERS_GROUP}/{table.name}",
+                containers=(
+                    hillas_cls,
+                    timing_cls,
+                    LeakageContainer,
+                    ConcentrationContainer,
+                    MorphologyContainer,
+                    IntensityStatisticsContainer,
+                    PeakTimeStatisticsContainer,
+                ),
+                prefixes=[
+                    hillas_prefix,
+                    timing_prefix,
+                    "leakage",
+                    "concentration",
+                    "morphology",
+                    "intensity",
+                    "peak_time",
+                ],
+            )
+            for table in self.file_.root.dl1.event.telescope.parameters
+        }
+
+        return param_readers
+
+    def _init_dl1_true_parameter_readers(self):
+        if DataLevel.DL1_PARAMETERS not in self.datalevels:
+            return {}
+
+        if not self.has_simulated_dl1:
+            return {}
+
+        (
+            hillas_cls,
+            _,
+            hillas_prefix,
+            _,
+        ) = self._get_hillas_and_timing_classes()
+
+        true_param_readers = {
+            table.name: self.reader.read(
+                f"{SIMULATION_PARAMETERS_GROUP}/{table.name}",
+                containers=[
+                    hillas_cls,
+                    LeakageContainer,
+                    ConcentrationContainer,
+                    MorphologyContainer,
+                    IntensityStatisticsContainer,
+                ],
+                prefixes=[
+                    f"true_{hillas_prefix}",
+                    "true_leakage",
+                    "true_concentration",
+                    "true_morphology",
+                    "true_intensity",
+                ],
+            )
+            for table in self.file_.root.dl1.event.telescope.parameters
+        }
+
+        return true_param_readers
+
+    def _get_hillas_and_timing_classes(self):
+        hillas_cls = HillasParametersContainer
+        timing_cls = TimingParametersContainer
+        hillas_prefix = "hillas"
+        timing_prefix = "timing"
+
+        if self._is_hillas_in_camera_frame():
+            hillas_cls = CameraHillasParametersContainer
+            timing_cls = CameraTimingParametersContainer
+            hillas_prefix = "camera_frame_hillas"
+            timing_prefix = "camera_frame_timing"
+
+        return hillas_cls, timing_cls, hillas_prefix, timing_prefix
+
+    def _init_muon_readers(self):
+        if not self.has_muon_parameters:
+            return {}
+
+        return {
+            table.name: self.reader.read(
+                f"{DL1_TEL_MUON_GROUP}/{table.name}",
+                containers=[
+                    MuonRingContainer,
+                    MuonParametersContainer,
+                    MuonEfficiencyContainer,
+                ],
+            )
+            for table in self.file_.root.dl1.event.telescope.muon
+        }
+
+    def _init_dl2_stereo_readers(self):
+        dl2_readers = {}
+        if DL2_SUBARRAY_GROUP not in self.file_.root:
+            return dl2_readers
+
+        dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
+        for kind, group in dl2_group._v_children.items():
+            if kind == "classification":
+                warnings.warn(
+                    "Support for datamodel version <7.2.0 will be removed in a future release.",
+                    CTAPipeDeprecationWarning,
+                )
+                kind = "particle_type"
+            try:
+                container = DL2_CONTAINERS[kind]
+            except KeyError:
+                self.log.warning("Unknown DL2 stereo group %s", kind)
+                continue
+
+            dl2_readers[kind] = {
+                algorithm: HDF5TableReader(self.file_).read(
+                    table._v_pathname,
+                    containers=container,
+                    prefixes=(algorithm,),
+                )
+                for algorithm, table in group._v_children.items()
+            }
+
+        return dl2_readers
+
+    def _init_dl2_telescope_readers(self):
+        dl2_tel_readers = {}
+        if DL2_TEL_GROUP not in self.file_.root:
+            return dl2_tel_readers
+
+        dl2_group = self.file_.root[DL2_TEL_GROUP]
+        for kind, group in dl2_group._v_children.items():
+            if kind == "classification":
+                warnings.warn(
+                    "Support for datamodel version <7.2.0 will be removed in a future release.",
+                    CTAPipeDeprecationWarning,
+                )
+                kind = "particle_type"
+            try:
+                container = DL2_CONTAINERS[kind]
+            except KeyError:
+                self.log.warning("Unknown DL2 telescope group %s", kind)
+                continue
+
+            dl2_tel_readers[kind] = self._init_single_dl2_tel_group(group, container)
+
+        return dl2_tel_readers
+
+    def _init_single_dl2_tel_group(self, group, container):
+        tel_group_readers = {}
+        for algorithm, algorithm_group in group._v_children.items():
+            tel_group_readers[algorithm] = {}
+            for key, table in algorithm_group._v_children.items():
+                column_attrs = get_column_attrs(table)
+
+                # workaround for missing prefix-information in tables written
+                # by apply-models tool before ctapipe v0.27.0
+                if any(v.get("PREFIX", "") != "" for v in column_attrs.values()):
+                    prefixes = None  # prefix are there and will be found by reader
+                else:
+                    # prefix not stored, assume data written by write_table with this prefix
+                    prefixes = algorithm + "_tel"
+
+                tel_group_readers[algorithm][key] = HDF5TableReader(self.file_).read(
+                    table._v_pathname,
+                    containers=container,
+                    prefixes=prefixes,
+                )
+
+        return tel_group_readers
+
+    def _init_simulation_readers(self):
+        if not self.is_simulation:
+            return None
+
+        mc_shower_reader = HDF5TableReader(self.file_).read(
+            SIMULATION_SHOWER_TABLE,
+            SimulatedShowerContainer,
+            prefixes="true",
+        )
+
+        return mc_shower_reader
+
+    def _init_true_impact_readers(self):
+        if not self.is_simulation:
+            return {}
+
+        if "impact" not in self.file_.root.simulation.event.telescope:
+            return {}
+
+        true_impact_readers = {
+            table.name: self.reader.read(
+                f"{SIMULATION_IMPACT_GROUP}/{table.name}",
+                containers=TelescopeImpactParameterContainer,
+                prefixes=["true_impact"],
+            )
+            for table in self.file_.root.simulation.event.telescope.impact
+        }
+
+        return true_impact_readers
+
+    def _init_event_iterator(self):
+        events = HDF5TableReader(self.file_).read(
+            DL1_SUBARRAY_TRIGGER_TABLE,
+            [TriggerContainer, EventIndexContainer],
+            ignore_columns={"tel"},
+        )
+
+        return events
+
+    def _init_telescope_trigger_reader(self):
+        telescope_trigger_reader = HDF5TableReader(self.file_).read(
+            DL1_TEL_TRIGGER_TABLE,
+            [TelEventIndexContainer, TelescopeTriggerContainer],
+            ignore_columns={"trigger_pixels"},
+        )
+        return telescope_trigger_reader
+
+    def _init_pointing_interpolator(self):
+        if DL0_TEL_POINTING_GROUP not in self.file_.root:
+            return None
+
+        from ..monitoring.interpolation import PointingInterpolator
+
+        return PointingInterpolator(
+            h5file=self.file_,
+            parent=self,
+        )
+
+    # -------------------------------------------------------------------------
+    # Event-Object and Trigger
+    # -------------------------------------------------------------------------
+
+    def _create_array_event_container(self, trigger, index, counter):
+        data = ArrayEventContainer(
+            trigger=trigger,
+            count=counter,
+            index=index,
+            simulation=SimulatedEventContainer() if self.is_simulation else None,
+        )
+        # Maybe take some other metadata, but there are still some 'unknown'
+        # written out by the process tool
+        data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
+        data.meta["input_url"] = self.input_url
+        data.meta["max_events"] = self.max_events
+        return data
+
+    def _update_tels_with_trigger(self, data):
+        data.trigger.tels_with_trigger = self._full_subarray.tel_mask_to_tel_ids(
+            data.trigger.tels_with_trigger
+        )
+        full_tels_with_trigger = data.trigger.tels_with_trigger.copy()
+
+        if self.allowed_tels:
+            data.trigger.tels_with_trigger = np.intersect1d(
+                data.trigger.tels_with_trigger,
+                np.array(list(self.allowed_tels)),
+            )
+
+        return full_tels_with_trigger
+
+    def _fill_telescope_triggers(
+        self, data, full_tels_with_trigger, telescope_trigger_reader
+    ):
+        # the telescope trigger table contains triggers for all telescopes
+        # that participated in the event, so we need to read a row for each
+        # of them, ignoring the ones not in allowed_tels after reading
+        for tel_id in full_tels_with_trigger:
+            tel_index, tel_trigger = next(telescope_trigger_reader)
+
+            if self.allowed_tels and tel_id not in self.allowed_tels:
+                continue
+
+            data.trigger.tel[tel_index.tel_id] = tel_trigger
+
+    # -------------------------------------------------------------------------
+    # DL2 and Tel-wise
+    # -------------------------------------------------------------------------
+
+    def _fill_dl2_stereo(self, data, dl2_readers):
+        for kind, readers in dl2_readers.items():
+            c = getattr(data.dl2.stereo, kind)
+            for algorithm, reader in readers.items():
+                c[algorithm] = next(reader)
+
+    def _fill_telescopes(
+        self,
+        data,
+        waveform_readers,
+        image_readers,
+        true_image_readers,
+        param_readers,
+        true_param_readers,
+        muon_readers,
+        dl2_tel_readers,
+        true_impact_readers,
+    ):
+        for tel_id in data.trigger.tel.keys():
+            key = f"tel_{tel_id:03d}"
+
+            if self.allowed_tels and tel_id not in self.allowed_tels:
+                continue
+
+            if key in true_impact_readers:
+                data.simulation.tel[tel_id].impact = next(true_impact_readers[key])
+
+            self._fill_r1_for_tel(data, tel_id, key, waveform_readers)
+
+            simulated = None
+            if self.has_simulated_dl1:
+                simulated = data.simulation.tel[tel_id]
+
+            self._fill_images_for_tel(
+                data, tel_id, key, image_readers, true_image_readers, simulated
+            )
+            self._fill_parameters_for_tel(
+                data, tel_id, key, param_readers, true_param_readers, simulated
+            )
+            self._fill_muons_for_tel(data, tel_id, key, muon_readers)
+            self._fill_dl2_for_tel(data, tel_id, dl2_tel_readers)
+
+    def _fill_r1_for_tel(self, data, tel_id, key, waveform_readers):
+        if DataLevel.R1 not in self.datalevels:
+            return
+
+        data.r1.tel[tel_id] = next(waveform_readers[key])
+
+        r1_waveform = data.r1.tel[tel_id].waveform
+        if r1_waveform.ndim == 2:
+            warnings.warn(
+                "Support for datamodel version <6.0.0 will be removed in a future release.",
+                CTAPipeDeprecationWarning,
+            )
+            data.r1.tel[tel_id].waveform = r1_waveform[np.newaxis, ...]
+
+    def _fill_images_for_tel(
+        self,
+        data,
+        tel_id,
+        key,
+        image_readers,
+        true_image_readers,
+        simulated,
+    ):
+        if DataLevel.DL1_IMAGES not in self.datalevels:
+            return
+
+        data.dl1.tel[tel_id] = next(image_readers[key])
+
+        if simulated is None:
+            return
+
+        simulated_image_row = next(true_image_readers[key])
+        simulated.true_image = simulated_image_row["true_image"]
+        simulated.true_image_sum = simulated_image_row["true_image_sum"]
+
+    def _fill_parameters_for_tel(
+        self,
+        data,
+        tel_id,
+        key,
+        param_readers,
+        true_param_readers,
+        simulated,
+    ):
+        if DataLevel.DL1_PARAMETERS not in self.datalevels:
+            return
+
+        params = next(param_readers[key])
+        data.dl1.tel[tel_id].parameters = ImageParametersContainer(
+            hillas=params[0],
+            timing=params[1],
+            leakage=params[2],
+            concentration=params[3],
+            morphology=params[4],
+            intensity_statistics=params[5],
+            peak_time_statistics=params[6],
+        )
+
+        if simulated is None:
+            return
+
+        simulated_params = next(true_param_readers[key])
+        simulated.true_parameters = ImageParametersContainer(
+            hillas=simulated_params[0],
+            leakage=simulated_params[1],
+            concentration=simulated_params[2],
+            morphology=simulated_params[3],
+            intensity_statistics=simulated_params[4],
+        )
+
+    def _fill_muons_for_tel(self, data, tel_id, key, muon_readers):
+        if not self.has_muon_parameters:
+            return
+
+        ring, parameters, efficiency = next(muon_readers[key])
+        data.muon.tel[tel_id] = MuonTelescopeContainer(
+            ring=ring,
+            parameters=parameters,
+            efficiency=efficiency,
+        )
+
+    def _fill_dl2_for_tel(self, data, tel_id, dl2_tel_readers):
+        for kind, algorithms in dl2_tel_readers.items():
+            c = getattr(data.dl2.tel[tel_id], kind)
+            for algorithm, readers in algorithms.items():
+                key = f"tel_{tel_id:03d}"
+                if key not in readers:
+                    continue
+
+                c[algorithm] = next(readers[key])
+
+                # change prefix to new data model
+                if kind == "impact" and self.datamodel_version == (4, 0, 0):
+                    prefix = f"{algorithm}_tel_{c[algorithm].default_prefix}"
+                    c[algorithm].prefix = prefix
 
     def _fill_array_pointing(self, event):
         """

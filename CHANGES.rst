@@ -1,3 +1,110 @@
+ctapipe v0.29.0 (2026-01-14)
+============================
+
+
+Bug Fixes
+---------
+
+- Fix naming mismatch between ``classification`` and ``particle_type`` group
+  in ``HDF5EventSource``.
+  Rename the ``classification`` field from ``ReconstructedContainer`` to
+  ``particle_type``. [`#2763 <https://github.com/cta-observatory/ctapipe/pull/2763>`__]
+
+- Fix a unit handling bug in the toymodel that resulted in wrong image intensities. [`#2898 <https://github.com/cta-observatory/ctapipe/pull/2898>`__]
+
+- Fix trigger tables when merging monitoring data of same event types. [`#2901 <https://github.com/cta-observatory/ctapipe/pull/2901>`__]
+
+- Always fill available monitoring information in ``ctapipe-process``.
+  Previously, monitoring was only filled if applying camera calibration was
+  part of the configured processing steps. [`#2911 <https://github.com/cta-observatory/ctapipe/pull/2911>`__]
+
+- Fixed bug that could in some cases lead to incorrect effective areas. In
+  simulated files with no simulation distribution present, the fallback was to use
+  the simulation configuration, but applying the number of reused showers was
+  missing in that computation. The fallback computation is now corrected, and more
+  checks were added to ensure consistency when both the simulation configuration
+  and shower distribution are present. [`#2913 <https://github.com/cta-observatory/ctapipe/pull/2913>`__]
+
+
+Data Model Changes
+------------------
+
+- Add more calibration and monitoring groups to HDF data format [`#2881 <https://github.com/cta-observatory/ctapipe/pull/2881>`__]
+
+
+New Features
+------------
+
+- Add merge_strategy option to HDF5Merger component to control merging behavior. The HDF5Merger component supports the following strategies:
+  - 'events-multiple-obs': allows merging event files (with and without monitoring data) from different observation blocks.
+  - 'events-single-ob': for merging events in consecutive chunks of the same observation block.
+  - 'monitoring-only': attaches horizontally monitoring data from the same observation block (requires monitoring=True).
+  Allow monitoring data to be merged to the HDF5 event data files. [`#2901 <https://github.com/cta-observatory/ctapipe/pull/2901>`__]
+
+
+Maintenance
+-----------
+
+- Add support for python 3.14, raise minimum supported python version to 3.12. [`#2855 <https://github.com/cta-observatory/ctapipe/pull/2855>`__]
+
+
+ctapipe v0.28.0 (2025-11-13)
+============================
+
+
+API Changes
+-----------
+
+- ``CameraGeometry.neighbor_matrix_sparse`` is now a ``scipy.sparse.csr_array`` instead
+  of a ``scipy.sparse.csr_matrix``, see https://docs.scipy.org/doc/scipy/reference/sparse.migration_to_sparray.html
+  for more information. [`#2821 <https://github.com/cta-observatory/ctapipe/pull/2821>`__]
+
+
+Bug Fixes
+---------
+
+- Fix ``ctapipe-optimize-event-selection`` raising an error for compressed (.fits.gz) output files. [`#2829 <https://github.com/cta-observatory/ctapipe/pull/2829>`__]
+
+- Fix a bug in the ``chord_length`` function used by the  ``MuonIntensityFitter`` likelihood function
+  that resulted in incorrect periodicity. The function returned 0 outside of the domain phi [-π, π]. [`#2873 <https://github.com/cta-observatory/ctapipe/pull/2873>`__]
+
+- Fix a bug, where the ``ImageProcessor`` passes ``TelescopeMonitoringContainer``
+  instead of ``CameraMonitoringContainer`` to the ``ImageCleaner`` which
+  results in an AttributeError for the ``NSBImageCleaner``. [`#2875 <https://github.com/cta-observatory/ctapipe/pull/2875>`__]
+
+- Add a check in ``lts_linear_regression`` to ensure that the input data has
+  at least 2 valid points. Less could lead to segmentation faults. [`#2878 <https://github.com/cta-observatory/ctapipe/pull/2878>`__]
+
+- Add default check in ``ImageQualityQuery`` to check for images
+  with at least 2 surviving pixels after image cleaning. This prevents a segfault in the
+  timing parameters if not enough points are available for the linear regression. [`#2877 <https://github.com/cta-observatory/ctapipe/pull/2877>`__]
+
+New Features
+------------
+
+- Enhanced ``StatisticsAggregator`` classes to support time-based chunking in addition to event-based chunking.
+
+  Refactored with component-based chunking system using ``BaseChunking``, ``SizeChunking``, and ``TimeChunking`` components.
+  Statistics can now be aggregated over time intervals (seconds) rather than fixed event counts, enabling time-series analysis.
+  Time-based chunking supports ``chunk_duration`` and configurable overlap via ``chunk_shift``.
+
+  Breaking change: ``StatisticsAggregator`` now requires a ``chunking`` component to define chunking behavior. [`#2848 <https://github.com/cta-observatory/ctapipe/pull/2848>`__]
+
+- Add a documentation page to show Hillas parameters displayed on camera image as schematic. [`#2868 <https://github.com/cta-observatory/ctapipe/pull/2868>`__]
+
+- Add phi0 as argument to the chord length function. [`#2872 <https://github.com/cta-observatory/ctapipe/pull/2872>`__]
+
+- Read all pixel statistics tables from the HDF5 file and instantiate the appropriate interpolators for each table in the MonitoringSource. [`#2888 <https://github.com/cta-observatory/ctapipe/pull/2888>`__]
+
+- Allow subsequent aggregation of pre-aggregated time ranges (time_start, time_end) instead of just time column. [`#2889 <https://github.com/cta-observatory/ctapipe/pull/2889>`__]
+
+Maintenance
+-----------
+
+- Updated colormaps in "Array Display" and "Use N-dimensional Histogram functionality and Interpolation" tutorials. [`#2883 <https://github.com/cta-observatory/ctapipe/pull/2883>`__]
+
+- Add compatibility with eventio 2.0. [`#2857 <https://github.com/cta-observatory/ctapipe/pull/2857>`__]
+
 ctapipe v0.27.1 (2025-10-22)
 ============================
 

@@ -222,7 +222,18 @@ class HDF5MonitoringSource(MonitoringSource):
 
         with tables.open_file(file) as open_file:
             # Validate simulation consistency
-            file_is_simulation = "simulation" in open_file.root
+            # Determine if the file is from simulation.
+            # First check for the presence of the simulation group.
+            file_is_simulation = False
+            if "simulation" in open_file.root:
+                file_is_simulation = True
+            else:
+                # Check for metadata attribute if simulation group is not present
+                if (
+                    "CTA PRODUCT DATA CATEGORY" in open_file.root._v_attrs
+                    and open_file.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+                ):
+                    file_is_simulation = True
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
@@ -269,20 +280,28 @@ class HDF5MonitoringSource(MonitoringSource):
             PedestalImageInterpolator,
         )
 
-        # Instantiate the chunk interpolators for each table
-        self._pedestal_image_interpolator = PedestalImageInterpolator()
-        self._flatfield_image_interpolator = FlatfieldImageInterpolator()
-        self._flatfield_peak_time_interpolator = FlatfieldPeakTimeInterpolator()
+        # Open the file to check for the existence of pixel statistics tables
+        with tables.open_file(file, mode="r") as h5file:
+            # Iterate over pixel statistics tables to check for their existence
+            self.pixel_stats_dict = {}
+            for group in h5file.walk_groups(DL1_PIXEL_STATISTICS_GROUP):
+                # Skip the parent group itself
+                if group._v_pathname == DL1_PIXEL_STATISTICS_GROUP:
+                    continue
+                # Instantiate the appropriate interpolator based on the table name
+                name = group._v_name
+                if "pedestal_image" in name:
+                    self.pixel_stats_dict[name] = PedestalImageInterpolator()
+                elif "flatfield_image" in name:
+                    self.pixel_stats_dict[name] = FlatfieldImageInterpolator()
+                elif "flatfield_peak_time" in name:
+                    self.pixel_stats_dict[name] = FlatfieldPeakTimeInterpolator()
 
         # Process the tables and interpolate the data
         for tel_id in self.subarray.tel_ids:
             self._pixel_statistics[tel_id] = {}
 
-            for name, interpolator in (
-                ("sky_pedestal_image", self._pedestal_image_interpolator),
-                ("flatfield_image", self._flatfield_image_interpolator),
-                ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
-            ):
+            for name, interpolator in self.pixel_stats_dict.items():
                 # Read the tables from the monitoring file
                 self._pixel_statistics[tel_id][name] = read_table(
                     file,
@@ -493,17 +512,17 @@ class HDF5MonitoringSource(MonitoringSource):
         if self.has_pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
             pixel_stats_container = PixelStatisticsContainer()
-            for name, interpolator in (
-                ("sky_pedestal_image", self._pedestal_image_interpolator),
-                ("flatfield_image", self._flatfield_image_interpolator),
-                ("flatfield_peak_time", self._flatfield_peak_time_interpolator),
-            ):
+            for name, interpolator in self.pixel_stats_dict.items():
+                # Skip if no interpolator is available
                 # Set the timestamp to the first entry if it is not provided
                 # and monitoring is from simulation.
                 if self.is_simulation and time is None:
                     time = self._pixel_statistics[tel_id][name]["time_start"][0]
 
                 stats_data = interpolator(tel_id, time, timestamp_tolerance)
+                # Map any pedestal name to the container field name (unique for pedestal)
+                if "pedestal_image" in name:
+                    name = "pedestal_image"
                 pixel_stats_container[name] = StatisticsContainer(
                     mean=stats_data["mean"],
                     median=stats_data["median"],

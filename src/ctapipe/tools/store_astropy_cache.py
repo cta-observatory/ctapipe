@@ -1,4 +1,5 @@
 """Script to download astropy data needed for coordinate transformations."""
+
 from argparse import ArgumentParser
 from contextlib import ExitStack
 from pathlib import Path

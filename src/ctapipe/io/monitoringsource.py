@@ -1,6 +1,7 @@
 """
 Handles reading of monitoring files
 """
+
 from abc import abstractmethod
 
 from ..containers import ArrayEventContainer
