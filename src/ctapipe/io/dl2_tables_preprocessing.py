@@ -119,7 +119,13 @@ class DL2EventPreprocessor(Component):
         ),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, output_table_schema=None, **kwargs):
+    def __init__(
+        self,
+        config=None,
+        parent=None,
+        output_table_schema: list[Column] | None = None,
+        **kwargs,
+    ):
         super().__init__(config=config, parent=parent, **kwargs)
         self.output_table_schema = output_table_schema or DEFAULT_OUTPUT_TABLE_SCHEMA
         self.quality_query = DL2EventQualityQuery(parent=self)
