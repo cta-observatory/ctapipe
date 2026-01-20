@@ -1,0 +1,7 @@
+As a consequence of fixing the bug #2921, `ctapipe.core.ExpressionEngine`
+converts all input tables to `astropy.table.QTable` internally, which has a
+small side effect on what is allowed in expressions: all columns with units are
+now of type `astropy.units.Quantity`, instead of `astropy.table.Column`. Before,
+an expression like ``"some_column.quantity.to(u.m)"`` would work if a ``Table``
+was passed (but would fail for a ``QTable``). Now, that expression should be
+``some_column.to(u.m)``
