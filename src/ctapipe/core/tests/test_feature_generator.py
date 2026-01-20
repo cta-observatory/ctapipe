@@ -60,13 +60,13 @@ def test_to_unit():
 
     expressions = [
         ("length_meter", "length.to(u.m)"),
-        ("log_length_meter", "log10(length.quantity.to_value(u.m))"),
+        ("log_length_meter", "log10(length.to_value(u.m))"),
     ]
     generator = FeatureGenerator(features=expressions)
     table = Table({"length": [1 * u.km]})
 
     table = generator(table)
-    assert table["length_meter"] == 1000
+    assert table["length_meter"] == 1000 * u.m
     assert table["log_length_meter"] == 3
     assert table["length_meter"].unit == u.m
 

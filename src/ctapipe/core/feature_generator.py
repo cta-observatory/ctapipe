@@ -4,7 +4,7 @@ Generate Features.
 
 from collections import ChainMap
 
-from astropy.table import QTable, Table
+from astropy.table import QTable
 
 from .component import Component
 from .expression_engine import ExpressionEngine
@@ -56,15 +56,32 @@ class FeatureGenerator(Component):
         self.engine = ExpressionEngine(expressions=self.features)
         self._feature_names = [name for name, _ in self.features]
 
-    def __call__(self, table: Table | QTable, **kwargs) -> QTable:
+    def __call__(self, table: QTable, **kwargs) -> QTable:
         """
         Apply feature generation to the input table.
 
         This method returns a shallow copy of the input table with the
         new features added. Existing columns will share the underlying data,
         however the new columns won't be visible in the input table.
+
+        Parameters
+        ----------
+        table: QTable | Table
+            Input table. Internally a Table will be converted to a QTable so that
+            unit propagation works, so expressions should only rely on properties of QTables.
+        **kwargs:
+            Other objects that should be available in expressions. For example,
+            if a you pass ``subarray=subarray``, expressions can use that
+            object. This can also be special functions like `f=my_function`,
+            which would allow an expression like "f(col1)".
+
+        Returns
+        -------
+        QTable:
+            A new table with the same columns as the input, but with new columns
+            for each feature.
         """
-        table = _shallow_copy_table(table)
+        table = _shallow_copy_table(QTable(table))
         lookup = ChainMap(table, kwargs)
 
         for result, name in zip(self.engine(lookup), self._feature_names):
