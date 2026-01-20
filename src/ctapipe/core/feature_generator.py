@@ -4,7 +4,7 @@ Generate Features.
 
 from collections import ChainMap
 
-from astropy.table import QTable
+from astropy.table import QTable, Table
 
 from .component import Component
 from .expression_engine import ExpressionEngine
@@ -56,7 +56,7 @@ class FeatureGenerator(Component):
         self.engine = ExpressionEngine(expressions=self.features)
         self._feature_names = [name for name, _ in self.features]
 
-    def __call__(self, table: QTable, **kwargs) -> QTable:
+    def __call__(self, table: Table | QTable, **kwargs) -> Table:
         """
         Apply feature generation to the input table.
 
@@ -77,22 +77,22 @@ class FeatureGenerator(Component):
 
         Returns
         -------
-        QTable:
+        QTable|Table:
             A new table with the same columns as the input, but with new columns
-            for each feature.
+            for each feature. The returned class depends on what was passed in.
         """
-        table = _shallow_copy_table(QTable(table))
-        lookup = ChainMap(table, kwargs)
+        table_copy = _shallow_copy_table(QTable(table))
+        lookup = ChainMap(table_copy, kwargs)
 
         for result, name in zip(self.engine(lookup), self._feature_names):
-            if name in table.colnames:
+            if name in table_copy.colnames:
                 raise FeatureGeneratorException(f"{name} is already a column of table.")
             try:
-                table[name] = result
+                table_copy[name] = result
             except Exception as err:
                 raise err
 
-        return table
+        return table.__class__(table_copy)  # ensure the return type is what is expected
 
     def __len__(self):
         return len(self.features)
