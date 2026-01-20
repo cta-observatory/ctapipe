@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from astropy.table import Table
+from astropy.table import QTable, Table
 
 from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.feature_generator import FeatureGenerator, FeatureGeneratorException
@@ -68,6 +68,7 @@ def test_to_unit():
     table = generator(table)
     assert table["length_meter"] == 1000
     assert table["log_length_meter"] == 3
+    assert table["length_meter"].unit == u.m
 
 
 def test_multiplicity(subarray_prod5_paranal):
@@ -102,3 +103,28 @@ def test_multiplicity(subarray_prod5_paranal):
     np.testing.assert_equal(table["n_lsts"], [1, 2])
     np.testing.assert_equal(table["n_msts"], [2, 1])
     np.testing.assert_equal(table["n_ssts"], [0, 1])
+
+
+@pytest.mark.parametrize("table_class", [QTable, Table])
+def test_unit_propegation(table_class):
+    """
+    Check that units propagate to features.
+
+    If a column in the input table has a unit, and a feature does math on that
+    unit, the feature should have the appropriate unit.
+    """
+
+    import astropy.units as u
+
+    table = table_class(dict(x=np.arange(11) * u.cm, E=np.linspace(-2, 2, 11) * u.TeV))
+    features = [
+        ("x2", "x**2"),
+        ("E_per_area", "E/x**2"),
+    ]
+
+    feature_gen = FeatureGenerator(features=features)
+
+    new_table = feature_gen(table)
+
+    assert new_table["x2"].unit.is_equivalent("cm2")
+    assert new_table["E_per_area"].unit.is_equivalent("TeV cm-2")

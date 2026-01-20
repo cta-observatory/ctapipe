@@ -4,6 +4,8 @@ Generate Features.
 
 from collections import ChainMap
 
+from astropy.table import QTable, Table
+
 from .component import Component
 from .expression_engine import ExpressionEngine
 from .traits import List, Tuple, Unicode
@@ -54,7 +56,7 @@ class FeatureGenerator(Component):
         self.engine = ExpressionEngine(expressions=self.features)
         self._feature_names = [name for name, _ in self.features]
 
-    def __call__(self, table, **kwargs):
+    def __call__(self, table: Table | QTable, **kwargs) -> QTable:
         """
         Apply feature generation to the input table.
 
