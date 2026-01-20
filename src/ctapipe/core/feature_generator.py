@@ -72,8 +72,8 @@ class FeatureGenerator(Component):
         **kwargs:
             Other objects that should be available in expressions. For example,
             if a you pass ``subarray=subarray``, expressions can use that
-            object. This can also be special functions like `f=my_function`,
-            which would allow an expression like "f(col1)".
+            object. This can also be special functions like ``f=my_function``,
+            which would allow an expression like ``"f(col1)"``.
 
         Returns
         -------
