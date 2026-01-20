@@ -123,8 +123,25 @@ def test_unit_propegation(table_class):
     ]
 
     feature_gen = FeatureGenerator(features=features)
-
     new_table = feature_gen(table)
 
     assert new_table["x2"].unit.is_equivalent("cm2")
     assert new_table["E_per_area"].unit.is_equivalent("TeV cm-2")
+
+
+@pytest.mark.parametrize("table_class", [QTable, Table])
+def test_input_output_class(table_class):
+    """Ensure output table class is same as input."""
+
+    import astropy.units as u
+
+    table = table_class(dict(x=np.arange(11) * u.cm, E=np.linspace(-2, 2, 11) * u.TeV))
+    features = [
+        ("x2", "x**2"),
+        ("E_per_area", "E/x**2"),
+    ]
+
+    feature_gen = FeatureGenerator(features=features)
+    new_table = feature_gen(table)
+
+    assert new_table.__class__ == table.__class__
