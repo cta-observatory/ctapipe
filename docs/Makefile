@@ -24,3 +24,6 @@ clean:
 
 
 .PHONY: all help clean Makefile
+
+html-noplot:
+	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) $(SOURCEDIR) $(BUILDDIR)/html
