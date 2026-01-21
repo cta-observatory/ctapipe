@@ -1,10 +1,11 @@
 """Module containing classes related to event loading and preprocessing"""
 
+from enum import StrEnum, auto
 from pathlib import Path
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import AltAz, SkyCoord, angular_separation
 from astropy.table import Column, QTable, vstack
 
 try:
@@ -26,12 +27,17 @@ from traitlets import default
 
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
-from ..coordinates import NominalFrame
-from ..core import Component, QualityQuery
-from ..core.traits import Bool, Dict, List, Tuple, Unicode
+from ..coordinates import NominalFrame, altaz_to_fov
+from ..core import Component, FeatureGenerator, QualityQuery
+from ..core.traits import Bool, CaselessStrEnum, Dict, List, Tuple, Unicode
 from .tableloader import TableLoader
 
-__all__ = ["DL2EventLoader", "DL2EventPreprocessor", "DL2EventQualityQuery"]
+__all__ = [
+    "DL2EventLoader",
+    "DL2EventPreprocessor",
+    "DL2EventQualityQuery",
+    "DL2EventPreprocessorNew",
+]
 
 
 DEFAULT_OUTPUT_TABLE_SCHEMA = [
@@ -55,6 +61,73 @@ DEFAULT_OUTPUT_TABLE_SCHEMA = [
 ]
 
 
+class DL2FeatureSet(StrEnum):
+    custom = auto()
+    simulation = auto()
+
+
+def get_default_features_to_generate(
+    feature_set: DL2FeatureSet = DL2FeatureSet.simulation,
+    energy_reconstructor: str = "RandomForestRegressor",
+    geometry_reconstructor: str = "HillasReconstructor",
+    gammaness_reconstructor: str = "RandomForestClassifier",
+) -> list[tuple]:
+    """Return a default list of FeatureGenerator features."""
+    if feature_set == DL2FeatureSet.simulation:
+        # Default features for DL2/Subarray events
+        return [
+            ("reco_energy", f"{energy_reconstructor}_energy"),
+            ("reco_alt", f"{geometry_reconstructor}_alt"),
+            ("reco_az", f"{geometry_reconstructor}_az"),
+            ("gh_score", f"{gammaness_reconstructor}_prediction"),
+            ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
+            (
+                "true_fov_offset",
+                "angular_separation(reco_az, reco_alt, subarray_pointing_lat, subarray_pointing_lon)",
+            ),
+            (
+                "reco_fov_offset",
+                "angular_separation(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            (
+                "reco_fov_coord",
+                "altaz_to_fov(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            ("reco_fov_lon", "reco_fov_coord[:,0]"),
+            ("reco_fov_lat", "reco_fov_coord[:,1]"),
+            (
+                "true_fov_coord",
+                "altaz_to_fov(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            ("true_fov_lon", "true_fov_coord[:,0]"),
+            ("true_fov_lat", "true_fov_coord[:,1]"),
+        ]
+    else:
+        raise ValueError(f"unknown feature set: {feature_set}")
+
+
+def get_default_features_to_store(feature_set: DL2FeatureSet) -> list[str]:
+    if feature_set == DL2FeatureSet.simulation:
+        return [
+            "reco_energy",
+            "reco_alt",
+            "reco_az",
+            "gh_score",
+            "true_energy",
+            "true_alt",
+            "true_az",
+            "true_fov_offset",
+            "reco_fov_offset",
+            "theta",
+            "reco_fov_lat",
+            "true_fov_lat",
+            "reco_fov_lon",
+            "true_fov_lon",
+        ]
+    else:
+        raise ValueError(f"unknown feature set: {feature_set}")
+
+
 class DL2EventQualityQuery(QualityQuery):
     """
     Event pre-selection quality criteria for IRF computation with different defaults.
@@ -73,6 +146,84 @@ class DL2EventQualityQuery(QualityQuery):
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
+
+
+class DL2EventPreprocessorNew(Component):
+    """
+    Selects or generates features and filters tables of events.
+
+    In normal use, one only has to specify the ``feature_set`` option, which
+    will generate features supports standard use cases. For advanced usage, you
+    can set ``feature_set=custom`` and pass in a configured FeatureGenerator and
+    set the ``features`` property of this class with the columns you to retain
+    in the output table.
+    """
+
+    classes = [DL2EventQualityQuery, FeatureGenerator]
+
+    energy_reconstructor = Unicode(
+        default_value="RandomForestRegressor",
+        help="Prefix of the reco `_energy` column",
+    ).tag(config=True)
+
+    geometry_reconstructor = Unicode(
+        default_value="HillasReconstructor",
+        help="Prefix of the `_alt` and `_az` reco geometry columns",
+    ).tag(config=True)
+
+    gammaness_classifier = Unicode(
+        default_value="RandomForestClassifier",
+        help="Prefix of the classifier `_prediction` column",
+    ).tag(config=True)
+
+    feature_set = CaselessStrEnum(
+        values=[str(x) for x in DL2FeatureSet],
+        default_value=str(DL2FeatureSet.simulation),
+        help=(
+            "Set up the FeatureGenerator.features and output features based on standard use cases."
+            "Specify 'custom' if you want to set your own in your config file. If this is set to "
+            "any value other than 'custom', the feature properties of the configuration "
+            "file you pass in will be overridden."
+        ),
+    )
+
+    features = List(
+        Unicode(),
+        help=(
+            "Features (columns) to retain in the output.  "
+            "These can include columns generated by the FeatureGenerator. "
+            "If you set these, make sure feature_set=custom."
+        ),
+    ).tag(config=True)
+
+    @default("features")
+    def default_features(self):
+        if DL2FeatureSet(self.feature_set) != DL2FeatureSet.custom:
+            return get_default_features_to_store(DL2FeatureSet(self.feature_set))
+        else:
+            return []
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+        if DL2FeatureSet(self.feature_set) == DL2FeatureSet.custom:
+            self.feature_generator = FeatureGenerator(parent=self)
+        else:
+            self.feature_generator = FeatureGenerator(
+                features=get_default_features_to_generate(
+                    feature_set=DL2FeatureSet(self.feature_set),
+                    energy_reconstructor=self.energy_reconstructor,
+                    geometry_reconstructor=self.geometry_reconstructor,
+                    gammaness_reconstructor=self.gammaness_classifier,
+                )
+            )
+
+    def __call__(self, table):
+        """Return new table with only the columns in features."""
+
+        generated = self.feature_generator(
+            table, angular_separation=angular_separation, altaz_to_fov=altaz_to_fov
+        )
+        return generated[self.features]
 
 
 class DL2EventPreprocessor(Component):
