@@ -43,6 +43,7 @@ __all__ = [
     "DL2_TEL_GEOMETRY_GROUP",
     "DL2_TEL_ENERGY_GROUP",
     "DL2_TEL_PARTICLETYPE_GROUP",
+    "DL2_TEL_IMPACT_GROUP",
     "DL0_TEL_POINTING_GROUP",
     "DL1_SUBARRAY_POINTING_GROUP",
     "DL1_TEL_POINTING_GROUP",
@@ -104,6 +105,7 @@ DL2_TEL_GROUP = "/dl2/event/telescope"
 DL2_TEL_GEOMETRY_GROUP = "/dl2/event/telescope/geometry"
 DL2_TEL_ENERGY_GROUP = "/dl2/event/telescope/energy"
 DL2_TEL_PARTICLETYPE_GROUP = "/dl2/event/telescope/particle_type"
+DL2_TEL_IMPACT_GROUP = "/dl2/event/telescope/impact"
 
 DL2_GROUP = "/dl2"
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"

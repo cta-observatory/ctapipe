@@ -223,11 +223,11 @@ class HDF5Merger(Component):
             )
         self.combine_telescope_data = self.merge_strategy == "combine-telescope-data"
         if self.combine_telescope_data and (
-            not self.telescope_events or self.dl2_subarray
+            not self.telescope_events or self.dl2_telescope or self.dl2_subarray
         ):
             raise traits.TraitError(
                 "Merge strategy 'combine-telescope-data' requires telescope_events=True "
-                "and dl2_subarray=False"
+                "and dl2_telescope=False and dl2_subarray=False"
             )
 
         output_exists = self.output_path.exists()
