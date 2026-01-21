@@ -154,9 +154,15 @@ class DL2EventPreprocessorNew(Component):
 
     In normal use, one only has to specify the ``feature_set`` option, which
     will generate features supports standard use cases. For advanced usage, you
-    can set ``feature_set=custom`` and pass in a configured FeatureGenerator and
-    set the ``features`` property of this class with the columns you to retain
-    in the output table.
+    can set ``feature_set=custom`` and pass in a configured
+    `~ctapipe.core.FeatureGenerator` and set the ``features`` property of this
+    class with the columns you to retain in the output table.
+
+    In the `~ctapipe.core.FeatureGenerator`` used internally, you have access to several
+    additional functions useful for DL2 processing:
+
+      - `~astropy.coordinates.angular_separation`
+      - `~ctapipe.coordinates.alt_az_to_fov`
     """
 
     classes = [DL2EventQualityQuery, FeatureGenerator]
