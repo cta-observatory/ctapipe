@@ -16,6 +16,8 @@ from ..io.datalevels import DataLevel
 from ..utils import get_dataset_path
 from ..visualization import CameraDisplay
 
+__all__ = ["ImagePlotter"]
+
 
 class ImagePlotter(Component):
     """Plotter for camera images"""
