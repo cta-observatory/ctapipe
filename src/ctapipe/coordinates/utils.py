@@ -1,14 +1,16 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz
+from astropy.coordinates import AltAz, SkyCoord
 from erfa.ufunc import p2s as cartesian_to_spherical
 from erfa.ufunc import s2p as spherical_to_cartesian
 
 from .ground_frames import _get_xyz
+from .nominal_frame import NominalFrame
 
 __all__ = [
     "altaz_to_righthanded_cartesian",
     "get_point_on_shower_axis",
+    "altaz_to_fov",
 ]
 
 
@@ -80,3 +82,25 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     cartesian = point[np.newaxis, :] - _get_xyz(telescope_position).T
     lon, lat, _ = cartesian_to_spherical(cartesian)
     return AltAz(alt=lat, az=-lon, copy=False)
+
+
+def altaz_to_fov(az, alt, pointing_az, pointing_alt) -> u.Quantity[2]:
+    """
+    Compute FOV coordinates from alt/az coordinates.
+
+    This can be used in an FeatureGenerator or ExpressionEngine to get a single
+    column with fov_lon, fov_lat coordinates.
+
+    Returns
+    -------
+    u.Quantity[2]:
+       2D array of coordinates with 2 columns: fov_lon, fov_lat
+    """
+    pointing_coord = SkyCoord(az=pointing_az, alt=pointing_alt, frame="altaz")
+    event_coord = SkyCoord(az=az, alt=alt, frame="altaz", origin=pointing_coord)
+    nominal_coord = event_coord.transform_to(NominalFrame)
+
+    # note the minus sign for the fov_lon, which is to match GADF conventions
+    return u.Quantity(
+        np.column_stack((-nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
+    )
