@@ -58,7 +58,7 @@ jobs:
             python-version: "3.12"
             install-method: pip
             extra-args: ["codecov"]
-            extras: tests,all
+            extras: tests,all, impact
 
           - name: Linux (3.13, mamba)
             os: ubuntu-24.04
