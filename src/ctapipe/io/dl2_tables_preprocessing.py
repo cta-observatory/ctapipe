@@ -26,7 +26,7 @@ from tables import NoSuchNodeError
 from traitlets import default
 
 from ..coordinates import NominalFrame, altaz_to_fov
-from ..core import Component, FeatureGenerator, QualityQuery
+from ..core import Component, FeatureGenerator, QualityQuery, ToolConfigurationError
 from ..core.traits import CaselessStrEnum, Dict, List, Unicode
 from .tableloader import TableLoader
 
@@ -37,6 +37,8 @@ __all__ = [
 
 
 class DL2FeatureSet(StrEnum):
+    """Pre-defined configurations for DL2EventPreprocessor for specific use cases."""
+
     custom = auto()
     simulation = auto()
 
@@ -79,7 +81,8 @@ class DL2EventPreprocessor(Component):
         values=[str(x) for x in DL2FeatureSet],
         default_value=str(DL2FeatureSet.simulation),
         help=(
-            "Set up the FeatureGenerator.features and output features based on standard use cases."
+            "Set up the FeatureGenerator.features, output features, and quality criteria "
+            "based on standard use cases."
             "Specify 'custom' if you want to set your own in your config file. If this is set to "
             "any value other than 'custom', the feature properties of the configuration "
             "file you pass in will be overridden."
@@ -107,6 +110,13 @@ class DL2EventPreprocessor(Component):
             self.quality_query = QualityQuery(
                 quality_criteria=self._get_predefined_quality_criteria()
             )
+        # sanity checks:
+        if len(self.features) == 0:
+            raise ToolConfigurationError(
+                "DL2EventPreprocessor has no output features configured."
+                "You have feature_set=custom, but did not provide the list"
+                "of features in the configuration."
+            )
 
     def __call__(self, table):
         """Return new table with only the columns in features."""
@@ -118,48 +128,11 @@ class DL2EventPreprocessor(Component):
 
         # apply event selection on the resulting table
 
-        # return only the olumns specified in `self.features`:
-        return generated[self.features]
+        selected_mask = self.quality_query.get_table_mask(generated)
 
-    @default("features")
-    def default_features(self):
-        """Set the default features to output from the DL2FeatureSet."""
-        if self.feature_set == DL2FeatureSet.simulation:
-            return [
-                "reco_energy",
-                "reco_alt",
-                "reco_az",
-                "gh_score",
-                "true_energy",
-                "true_alt",
-                "true_az",
-                "true_fov_offset",
-                "reco_fov_offset",
-                "theta",
-                "reco_fov_lat",
-                "true_fov_lat",
-                "reco_fov_lon",
-                "true_fov_lon",
-            ]
-        elif self.feature_set == DL2FeatureSet.custom:
-            return []
-        else:
-            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
-
-    def _get_predefined_quality_criteria(self) -> list[tuple]:
-        """Return QualityQuery configuration for a DL2FeatureSet."""
-        if self.feature_set == DL2FeatureSet.simulation:
-            return [
-                (
-                    "multiplicity 4",
-                    f"np.count_nonzero({self.geometry_reconstructor}_telescopes,axis=1) >= 4",
-                ),
-                ("valid classifier", f"{self.gammaness_classifier}_is_valid"),
-                ("valid geom reco", f"{self.geometry_reconstructor}_is_valid"),
-                ("valid energy reco", f"{self.energy_reconstructor}_is_valid"),
-            ]
-        else:
-            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
+        # return only the columns specified in `self.features`, and rows in
+        # `selected_mask`
+        return generated[self.features][selected_mask]
 
     def _get_predefined_features_to_generate(self) -> list[tuple]:
         """Return a default list of FeatureGenerator features."""
@@ -191,7 +164,54 @@ class DL2EventPreprocessor(Component):
                     "reco_fov_offset",
                     "angular_separation(true_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
                 ),
+                (
+                    "multiplicity",
+                    f"np.count_nonzero({self.gammaness_classifier}_telescopes,axis=1)",
+                ),
             ]
+        else:
+            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
+
+    def _get_predefined_quality_criteria(self) -> list[tuple]:
+        """
+        Set the quality criteria for a DL2FeatureSet.
+
+        Here you can use any columns in the input table, or any that are
+        specified in the FeatureGenerator.
+        """
+        if self.feature_set == DL2FeatureSet.simulation:
+            return [
+                ("valid geometry", f"{self.geometry_reconstructor}_is_valid"),
+                ("valid energy", f"{self.energy_reconstructor}_is_valid"),
+                ("valid gammaness", f"{self.gammaness_classifier}_is_valid"),
+                ("multiplicity>=4", "multiplicity> 4"),
+            ]
+        else:
+            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
+
+    @default("features")
+    def default_features(self):
+        """Set the columns to output, for a given FeatureSet."""
+        if self.feature_set == DL2FeatureSet.simulation:
+            return [
+                "reco_energy",
+                "reco_alt",
+                "reco_az",
+                "gh_score",
+                "true_energy",
+                "true_alt",
+                "true_az",
+                "true_fov_offset",
+                "reco_fov_offset",
+                "theta",
+                "reco_fov_lat",
+                "true_fov_lat",
+                "reco_fov_lon",
+                "true_fov_lon",
+                "multiplicity",
+            ]
+        elif self.feature_set == DL2FeatureSet.custom:
+            return []
         else:
             raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
 
