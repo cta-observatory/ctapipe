@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+import pytest
 from astropy import units as u
-from astropy.table import Table
+from astropy.table import QTable
+
+from ctapipe.io.dl2_tables_preprocessing import DL2FeatureSet
 
 
 def make_example_dl2_table():
-    return Table(
+    return QTable(
         dict(
             obs_id=[10, 10, 10, 10],
             event_id=[1, 2, 3, 4],
@@ -22,17 +25,14 @@ def make_example_dl2_table():
     )
 
 
-def test_event_preprocessing():
-    from ctapipe.io.dl2_tables_preprocessing import (
-        DL2EventPreprocessorNew,
-        DL2FeatureSet,
-        get_default_features_to_store,
-    )
+@pytest.mark.parametrize("feature_set", list(DL2FeatureSet))
+def test_event_preprocessing(feature_set):
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
 
     table = make_example_dl2_table()
 
-    preprocess = DL2EventPreprocessorNew(feature_set=str(DL2FeatureSet.simulation))
+    preprocess = DL2EventPreprocessor(feature_set=feature_set)
     table_processed = preprocess(table)
 
-    for feature in get_default_features_to_store(DL2FeatureSet.simulation):
+    for feature in preprocess.features:
         assert feature in table_processed.columns

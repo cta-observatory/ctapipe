@@ -6,7 +6,7 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord, angular_separation
-from astropy.table import Column, QTable, vstack
+from astropy.table import QTable, vstack
 
 try:
     from pyirf.simulations import SimulatedEventsInfo
@@ -25,39 +25,14 @@ except ModuleNotFoundError:
 from tables import NoSuchNodeError
 from traitlets import default
 
-from ..compat import COPY_IF_NEEDED
-from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame, altaz_to_fov
 from ..core import Component, FeatureGenerator, QualityQuery
-from ..core.traits import Bool, CaselessStrEnum, Dict, List, Tuple, Unicode
+from ..core.traits import CaselessStrEnum, Dict, List, Unicode
 from .tableloader import TableLoader
 
 __all__ = [
     "DL2EventLoader",
     "DL2EventPreprocessor",
-    "DL2EventQualityQuery",
-    "DL2EventPreprocessorNew",
-]
-
-
-DEFAULT_OUTPUT_TABLE_SCHEMA = [
-    Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
-    Column(name="event_id", dtype=np.uint64, description="Array event ID"),
-    Column(name="true_energy", unit=u.TeV, description="Simulated energy"),
-    Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
-    Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
-    Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
-    Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
-    Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
-    Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
-    Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
-    Column(
-        name="gh_score",
-        dtype=np.float64,
-        description="prediction of the classifier, defined between [0,1],"
-        " where values close to 1 mean that the positive class"
-        " (e.g. gamma in gamma-ray analysis) is more likely",
-    ),
 ]
 
 
@@ -66,89 +41,7 @@ class DL2FeatureSet(StrEnum):
     simulation = auto()
 
 
-def get_default_features_to_generate(
-    feature_set: DL2FeatureSet = DL2FeatureSet.simulation,
-    energy_reconstructor: str = "RandomForestRegressor",
-    geometry_reconstructor: str = "HillasReconstructor",
-    gammaness_reconstructor: str = "RandomForestClassifier",
-) -> list[tuple]:
-    """Return a default list of FeatureGenerator features."""
-    if feature_set == DL2FeatureSet.simulation:
-        # Default features for DL2/Subarray events
-        return [
-            ("reco_energy", f"{energy_reconstructor}_energy"),
-            ("reco_alt", f"{geometry_reconstructor}_alt"),
-            ("reco_az", f"{geometry_reconstructor}_az"),
-            ("gh_score", f"{gammaness_reconstructor}_prediction"),
-            ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
-            (
-                "reco_fov_coord",
-                "altaz_to_fov(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
-            ),
-            ("reco_fov_lon", "reco_fov_coord[:,0]"),
-            ("reco_fov_lat", "reco_fov_coord[:,1]"),
-            (
-                "true_fov_coord",
-                "altaz_to_fov(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
-            ),
-            ("true_fov_lon", "true_fov_coord[:,0]"),
-            ("true_fov_lat", "true_fov_coord[:,1]"),
-            (
-                "true_fov_offset",
-                "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
-            ),
-            (
-                "reco_fov_offset",
-                "angular_separation(true_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
-            ),
-        ]
-    else:
-        raise ValueError(f"unknown feature set: {feature_set}")
-
-
-def get_default_features_to_store(feature_set: DL2FeatureSet) -> list[str]:
-    if feature_set == DL2FeatureSet.simulation:
-        return [
-            "reco_energy",
-            "reco_alt",
-            "reco_az",
-            "gh_score",
-            "true_energy",
-            "true_alt",
-            "true_az",
-            "true_fov_offset",
-            "reco_fov_offset",
-            "theta",
-            "reco_fov_lat",
-            "true_fov_lat",
-            "reco_fov_lon",
-            "true_fov_lon",
-        ]
-    else:
-        raise ValueError(f"unknown feature set: {feature_set}")
-
-
-class DL2EventQualityQuery(QualityQuery):
-    """
-    Event pre-selection quality criteria for IRF computation with different defaults.
-    """
-
-    quality_criteria = List(
-        Tuple(Unicode(), Unicode()),
-        default_value=[
-            (
-                "multiplicity 4",
-                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-            ),
-            ("valid classifier", "RandomForestClassifier_is_valid"),
-            ("valid geom reco", "HillasReconstructor_is_valid"),
-            ("valid energy reco", "RandomForestRegressor_is_valid"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
-
-
-class DL2EventPreprocessorNew(Component):
+class DL2EventPreprocessor(Component):
     """
     Selects or generates features and filters tables of events.
 
@@ -165,7 +58,7 @@ class DL2EventPreprocessorNew(Component):
       - `~ctapipe.coordinates.alt_az_to_fov`
     """
 
-    classes = [DL2EventQualityQuery, FeatureGenerator]
+    classes = [QualityQuery, FeatureGenerator]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -202,208 +95,105 @@ class DL2EventPreprocessorNew(Component):
         ),
     ).tag(config=True)
 
-    @default("features")
-    def default_features(self):
-        if DL2FeatureSet(self.feature_set) != DL2FeatureSet.custom:
-            return get_default_features_to_store(DL2FeatureSet(self.feature_set))
-        else:
-            return []
-
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         if DL2FeatureSet(self.feature_set) == DL2FeatureSet.custom:
             self.feature_generator = FeatureGenerator(parent=self)
+            self.quality_query = QualityQuery(parent=self)
         else:
             self.feature_generator = FeatureGenerator(
-                features=get_default_features_to_generate(
-                    feature_set=DL2FeatureSet(self.feature_set),
-                    energy_reconstructor=self.energy_reconstructor,
-                    geometry_reconstructor=self.geometry_reconstructor,
-                    gammaness_reconstructor=self.gammaness_classifier,
-                )
+                features=self._get_predefined_features_to_generate()
+            )
+            self.quality_query = QualityQuery(
+                quality_criteria=self._get_predefined_quality_criteria()
             )
 
     def __call__(self, table):
         """Return new table with only the columns in features."""
 
+        # generate new features, which includes renaming columns:
         generated = self.feature_generator(
             table, angular_separation=angular_separation, altaz_to_fov=altaz_to_fov
         )
+
+        # apply event selection on the resulting table
+
+        # return only the olumns specified in `self.features`:
         return generated[self.features]
 
+    @default("features")
+    def default_features(self):
+        """Set the default features to output from the DL2FeatureSet."""
+        if self.feature_set == DL2FeatureSet.simulation:
+            return [
+                "reco_energy",
+                "reco_alt",
+                "reco_az",
+                "gh_score",
+                "true_energy",
+                "true_alt",
+                "true_az",
+                "true_fov_offset",
+                "reco_fov_offset",
+                "theta",
+                "reco_fov_lat",
+                "true_fov_lat",
+                "reco_fov_lon",
+                "true_fov_lon",
+            ]
+        elif self.feature_set == DL2FeatureSet.custom:
+            return []
+        else:
+            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
 
-class DL2EventPreprocessor(Component):
-    """Defines pre-selection cuts and the necessary renaming of columns."""
+    def _get_predefined_quality_criteria(self) -> list[tuple]:
+        """Return QualityQuery configuration for a DL2FeatureSet."""
+        if self.feature_set == DL2FeatureSet.simulation:
+            return [
+                (
+                    "multiplicity 4",
+                    f"np.count_nonzero({self.geometry_reconstructor}_telescopes,axis=1) >= 4",
+                ),
+                ("valid classifier", f"{self.gammaness_classifier}_is_valid"),
+                ("valid geom reco", f"{self.geometry_reconstructor}_is_valid"),
+                ("valid energy reco", f"{self.energy_reconstructor}_is_valid"),
+            ]
+        else:
+            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
 
-    classes = [DL2EventQualityQuery]
-
-    energy_reconstructor = Unicode(
-        default_value="RandomForestRegressor",
-        help="Prefix of the reco `_energy` column",
-    ).tag(config=True)
-
-    geometry_reconstructor = Unicode(
-        default_value="HillasReconstructor",
-        help="Prefix of the `_alt` and `_az` reco geometry columns",
-    ).tag(config=True)
-
-    gammaness_classifier = Unicode(
-        default_value="RandomForestClassifier",
-        help="Prefix of the classifier `_prediction` column",
-    ).tag(config=True)
-
-    apply_derived_columns = Bool(
-        default_value=True, help="Whether to compute derived columns"
-    ).tag(config=True)
-
-    allow_unsupported_pointing_frames = Bool(
-        default_value=False,
-        help=(
-            "Check whether the pointing is supported."
-            "For the moment, only pointing in altaz is supported."
-            "Divergent pointing is also not supported."
-        ),
-    ).tag(config=True)
-
-    columns_to_rename = Dict(
-        key_trait=Unicode(),
-        value_trait=Unicode(),
-        help=(
-            "Dictionary of columns to rename. "
-            "Leave unset to apply default renaming. "
-            "Set to an empty dictionary to disable renaming entirely. "
-            "Set to a partial dictionary to override only some names."
-        ),
-    ).tag(config=True)
-
-    def __init__(
-        self,
-        config=None,
-        parent=None,
-        output_table_schema: list[Column] | None = None,
-        **kwargs,
-    ):
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.output_table_schema = output_table_schema or DEFAULT_OUTPUT_TABLE_SCHEMA
-        self.quality_query = DL2EventQualityQuery(parent=self)
-
-    @default("columns_to_rename")
-    def _default_columns_to_rename(self):
-        return {
-            f"{self.energy_reconstructor}_energy": "reco_energy",
-            f"{self.geometry_reconstructor}_az": "reco_az",
-            f"{self.geometry_reconstructor}_alt": "reco_alt",
-            f"{self.gammaness_classifier}_prediction": "gh_score",
-            "subarray_pointing_lat": "pointing_alt",
-            "subarray_pointing_lon": "pointing_az",
-        }
-
-    def normalise_column_names(self, events: QTable) -> QTable:
-        """
-        Rename column names according to configuration.
-
-        Parameters
-        ----------
-        events : QTable
-            Input event table.
-
-        Returns
-        -------
-        QTable
-            Table with selected and renamed columns.
-
-        Raises
-        ------
-        NotImplementedError
-            If pointing is not AltAz or varies too much.
-        ValueError
-            If required columns are missing.
-        """
-        if not self.allow_unsupported_pointing_frames:
-            if events["subarray_pointing_lat"].std() > 1e-3:
-                raise NotImplementedError(
-                    "No support for making irfs from varying pointings yet"
-                )
-            if any(
-                events["subarray_pointing_frame"] != CoordinateFrameType.ALTAZ.value
-            ):
-                raise NotImplementedError(
-                    "At the moment only pointing in altaz is supported."
-                )
-
-        columns_to_keep = [col.name for col in self.output_table_schema]
-
-        rename_dict = self.columns_to_rename
-        rename_from = list(rename_dict.keys())
-        rename_to = list(rename_dict.values())
-
-        fixed_columns = list(set(columns_to_keep) - set(rename_to))
-        columns_to_read = fixed_columns + rename_from
-        for col in columns_to_read:
-            if col not in events.colnames:
-                raise ValueError(
-                    f"Input files must conform to the ctapipe DL2 data model. "
-                    f"Required column {col} is missing."
-                )
-
-        events = QTable(events[columns_to_read], copy=COPY_IF_NEEDED)
-        if rename_from and rename_to:
-            events.rename_columns(rename_from, rename_to)
-        return events
-
-    def make_empty_table(self) -> QTable:
-        """
-        Create an empty event table based on the configured output schema.
-        """
-        # make a shallow copy to extend the schema with derived columns
-        schema = list(self.output_table_schema)
-
-        if self.apply_derived_columns:
-            schema.extend(
-                [
-                    Column(
-                        name="reco_fov_lat",
-                        unit=u.deg,
-                        description="Reconstructed FOV lat",
-                    ),
-                    Column(
-                        name="reco_fov_lon",
-                        unit=u.deg,
-                        description="Reconstructed FOV lon",
-                    ),
-                    Column(
-                        name="theta",
-                        unit=u.deg,
-                        description="Angular offset from source",
-                    ),
-                    Column(
-                        name="true_source_fov_offset",
-                        unit=u.deg,
-                        description="Simulated angular offset from pointing direction",
-                    ),
-                    Column(
-                        name="reco_source_fov_offset",
-                        unit=u.deg,
-                        description="Reconstructed angular offset from pointing direction",
-                    ),
-                    Column(
-                        name="weight",
-                        dtype=np.float64,
-                        description="Event weight",
-                    ),
-                ]
-            )
-
-        return QTable(
-            names=[col.name for col in schema],
-            dtype=[col.dtype for col in schema],
-            units=(
-                [col.unit for col in schema]
-                if any(col.unit for col in schema)
-                else None
-            ),
-            meta={},
-        )
+    def _get_predefined_features_to_generate(self) -> list[tuple]:
+        """Return a default list of FeatureGenerator features."""
+        if self.feature_set == DL2FeatureSet.simulation:
+            # Default features for DL2/Subarray events
+            return [
+                ("reco_energy", f"{self.energy_reconstructor}_energy"),
+                ("reco_alt", f"{self.geometry_reconstructor}_alt"),
+                ("reco_az", f"{self.geometry_reconstructor}_az"),
+                ("gh_score", f"{self.gammaness_classifier}_prediction"),
+                ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
+                (
+                    "reco_fov_coord",
+                    "altaz_to_fov(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
+                ),
+                ("reco_fov_lon", "reco_fov_coord[:,0]"),
+                ("reco_fov_lat", "reco_fov_coord[:,1]"),
+                (
+                    "true_fov_coord",
+                    "altaz_to_fov(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
+                ),
+                ("true_fov_lon", "true_fov_coord[:,0]"),
+                ("true_fov_lat", "true_fov_coord[:,1]"),
+                (
+                    "true_fov_offset",
+                    "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+                ),
+                (
+                    "reco_fov_offset",
+                    "angular_separation(true_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+                ),
+            ]
+        else:
+            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
 
 
 class DL2EventLoader(Component):
