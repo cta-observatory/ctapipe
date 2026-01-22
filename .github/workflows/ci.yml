@@ -44,14 +44,14 @@ jobs:
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: mamba
-            extras: tests,all
+            extras: tests,all,impact
             extra-args: ["oldest-deps"]
 
           - name: Linux (3.12, pip, minimal-dependencies)
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: pip
-            extras: tests
+            extras: tests,impact
 
           - name: Linux (3.12, pip, coverage)
             os: ubuntu-24.04
