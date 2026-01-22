@@ -82,14 +82,6 @@ def get_default_features_to_generate(
             ("gh_score", f"{gammaness_reconstructor}_prediction"),
             ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
             (
-                "true_fov_offset",
-                "angular_separation(reco_az, reco_alt, subarray_pointing_lat, subarray_pointing_lon)",
-            ),
-            (
-                "reco_fov_offset",
-                "angular_separation(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
-            ),
-            (
                 "reco_fov_coord",
                 "altaz_to_fov(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
             ),
@@ -101,6 +93,14 @@ def get_default_features_to_generate(
             ),
             ("true_fov_lon", "true_fov_coord[:,0]"),
             ("true_fov_lat", "true_fov_coord[:,1]"),
+            (
+                "true_fov_offset",
+                "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+            ),
+            (
+                "reco_fov_offset",
+                "angular_separation(true_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+            ),
         ]
     else:
         raise ValueError(f"unknown feature set: {feature_set}")
