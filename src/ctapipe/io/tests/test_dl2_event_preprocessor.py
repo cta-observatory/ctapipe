@@ -8,7 +8,9 @@ from astropy.table import QTable
 from ctapipe.io.dl2_tables_preprocessing import DL2FeatureSet
 
 
-def make_example_dl2_table():
+@pytest.fixture(scope="function")
+def minimal_dl2_table():
+    """A dunmmy DL2 table for testing DL2EventPreprocessor"""
     return QTable(
         dict(
             obs_id=[10, 10, 10, 10],
@@ -38,7 +40,7 @@ def make_example_dl2_table():
 
 
 @pytest.mark.parametrize("feature_set", list(DL2FeatureSet))
-def test_event_preprocessing(feature_set):
+def test_event_preprocessing(feature_set, minimal_dl2_table):
     from traitlets.config import Config
 
     from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
@@ -47,8 +49,7 @@ def test_event_preprocessing(feature_set):
     # These will be ignored in other feature_sets.
     custom_config = Config()
     custom_config.DL2EventPreprocessor.features = ["obs_id", "event_id"]
-
-    table = make_example_dl2_table()
+    table = minimal_dl2_table
 
     # process the table:
     preprocess = DL2EventPreprocessor(config=custom_config, feature_set=feature_set)

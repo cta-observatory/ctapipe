@@ -114,8 +114,8 @@ class DL2EventPreprocessor(Component):
         if len(self.features) == 0:
             raise ToolConfigurationError(
                 "DL2EventPreprocessor has no output features configured."
-                "You have feature_set=custom, but did not provide the list"
-                "of features in the configuration."
+                "You have set `feature_set=custom`, but did not provide the list "
+                "of features in the configuration (DL2EventPreprocessor.features)."
             )
 
     def __call__(self, table):
