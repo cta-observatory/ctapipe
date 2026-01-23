@@ -335,7 +335,9 @@ def test_selected_subarray(
                         "LST_LST_LSTCam",
                         str(tmp_path) + "/LST_LST_LSTCam.template.gz",
                     ]
-                ]
+                ],
+                "pedestal_width": [["type", "LST_LST_LSTCam", 1.0]],
+                "spe_width": [["type", "LST_LST_LSTCam", 1.0]],
             }
         }
     )

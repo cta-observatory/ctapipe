@@ -56,32 +56,6 @@ MINUIT_STRATEGY = 1  # Default minimization strategy, 2 is careful, 0 is fast
 MINUIT_TOLERANCE_FACTOR = 1000  # Tolerance for convergence according to EDM criterion
 MIGRAD_ITERATE = 1  # Do not call migrad again if convergence was not reached
 
-BACKUP_PED_TABLE = {
-    "LST_LST_LSTCam": 1.4,
-    "MST_MST_NectarCam": 1.3,
-    "MST_MST_FlashCam": 1.3,
-    "SST_SST_SST-Camera": 0.5,
-    "SST_SST_CHEC": 0.5,
-    "SST_ASTRI_ASTRICam": 0.5,
-    "MST_HESS-1_HESS-1U": 1.0,
-    "LST_H.E.S.S. CT5 (876 mirrors)_H.E.S.S. CT5 with FlashCam": 1.0,
-    "dummy": 0.01,
-    "UNKNOWN-960PX": 1.0,
-}
-
-BACKUP_SPE_TABLE = {
-    "LST_LST_LSTCam": 0.6,
-    "MST_MST_NectarCam": 0.6,
-    "MST_MST_FlashCam": 0.6,
-    "SST_SST_SST-Camera": 0.6,
-    "SST_SST_CHEC": 0.6,
-    "SST_ASTRI_ASTRICam": 0.6,
-    "MST_HESS-1_HESS-1U": 0.6,
-    "LST_H.E.S.S. CT5 (876 mirrors)_H.E.S.S. CT5 with FlashCam": 0.6,
-    "UNKNOWN-960PX": 0.6,
-    "dummy": 0.6,
-}
-
 # Validity bounds of the templates in degree in camera coordinates.
 # Needed to initialize the templates
 TEMPLATE_BOUNDS = ((-5, 1), (-1.5, 1.5))
@@ -127,16 +101,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         ),
         allow_none=False,
         help=("Path to the image templates to be used in the reconstruction"),
-    ).tag(config=True)
-
-    # The SPE and pedestal width parameters are also configurable as TelescopeParameters.
-    # None is allowed and the default value. In that case, either values from the event monitoring data are used
-    # or if that is also not available, a value from a hardcoded backup dict is used.
-
-    pedestal_width = traits.FloatTelescopeParameter(
-        allow_none=True,
-        default_value=None,
-        help="Pedestal width parameter for the likelihood",
     ).tag(config=True)
 
     # The SPE and pedestal width parameters are also configurable as TelescopeParameters.
@@ -243,37 +207,26 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             image_dict[tel_id] = image
             time_dict[tel_id] = event.dl1.tel[tel_id].peak_time
             mask = event.dl1.tel[tel_id].image_mask
-            if self.pedestal_width.tel[tel_id] is None:
-                selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
 
-                if (
-                    event.monitoring.tel[
-                        tel_id
-                    ].camera.pixel_statistics.pedestal_image.std
-                    is None
-                ):
-                    ped_dict[tel_id] = BACKUP_PED_TABLE[
-                        str(self.subarray.tel[tel_id])
-                    ] * np.ones(self.subarray.tel[tel_id].camera.geometry.n_pixels)
-                else:
-                    ped_dict[tel_id] = event.monitoring.tel[
-                        tel_id
-                    ].camera.pixel_statistics.sky_pedestal_image.std[
-                        selected_gain_channel, :
-                    ]
-            else:
+            selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+
+            if (
+                event.monitoring.tel[tel_id].camera.pixel_statistics.pedestal_image.std
+                is None
+            ):
                 ped_dict[tel_id] = self.pedestal_width.tel[tel_id] * np.ones(
                     self.subarray.tel[tel_id].camera.geometry.n_pixels
                 )
-
-            if self.spe_width.tel[tel_id] is None:
-                spe_dict[tel_id] = BACKUP_SPE_TABLE[
-                    str(self.subarray.tel[tel_id])
-                ] * np.ones(self.subarray.tel[tel_id].camera.geometry.n_pixels)
             else:
-                spe_dict[tel_id] = self.spe_width.tel[tel_id] * np.ones(
-                    self.subarray.tel[tel_id].camera.geometry.n_pixels
-                )
+                ped_dict[tel_id] = event.monitoring.tel[
+                    tel_id
+                ].camera.pixel_statistics.sky_pedestal_image.std[
+                    selected_gain_channel, :
+                ]
+
+            spe_dict[tel_id] = self.spe_width.tel[tel_id] * np.ones(
+                self.subarray.tel[tel_id].camera.geometry.n_pixels
+            )
 
             # Dilate the images around the original cleaning to help the fit
             for _ in range(4):
