@@ -23,7 +23,13 @@ def _shallow_copy_table(table):
     the original table.
     """
     # automatically return Table or QTable depending on input
-    return table.__class__({col: table[col] for col in table.colnames}, copy=False)
+    table_copy = table.__class__(
+        {col: table[col] for col in table.colnames}, copy=False
+    )
+    table_copy.meta = (
+        table.meta.copy()
+    )  # here we don't want a shallow copy, as we might add metadata
+    return table_copy
 
 
 class FeatureGeneratorException(TypeError):

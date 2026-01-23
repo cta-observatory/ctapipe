@@ -19,19 +19,26 @@ def test_feature_generator():
     generator = FeatureGenerator(features=expressions)
 
     table = Table({"intensity": [1, 10, 100], "length": [2, 4, 8], "width": [1, 2, 4]})
+    table.meta["VERSION"] = 1.0
+
     log_intensity = [0, 1, 2]
     area = [2, 8, 32]
     eccentricity = np.sqrt(0.75)
 
-    table = generator(table)
+    processed_table = generator(table)
+    processed_table.meta["GEN"] = True
 
-    assert "log_intensity" in table.colnames
-    assert "area" in table.colnames
-    assert "eccentricity" in table.colnames
+    assert "log_intensity" in processed_table.colnames
+    assert "area" in processed_table.colnames
+    assert "eccentricity" in processed_table.colnames
 
-    assert np.all(table["log_intensity"] == log_intensity)
-    assert np.all(table["area"] == area)
-    assert np.all(table["eccentricity"] == eccentricity)
+    assert np.all(processed_table["log_intensity"] == log_intensity)
+    assert np.all(processed_table["area"] == area)
+    assert np.all(processed_table["eccentricity"] == eccentricity)
+
+    # also check that metadata was propagated and doesn't overwrite old table:
+    assert "VERSION" in processed_table.meta
+    assert "GEN" not in table.meta
 
 
 def test_existing_feature():
