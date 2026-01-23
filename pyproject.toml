@@ -57,7 +57,8 @@ all = [
     "bokeh ~=3.0",
     "ctapipe[eventio]",
     "matplotlib ~=3.0",
-    "pyirf ~=0.13.0"
+    "pyirf ~=0.13.0",
+    "iminuit >=2"
 ]
 
 tests = [
@@ -100,8 +101,7 @@ dev = [
     "setuptools_scm[toml]",
 ]
 
-impact = ["tensorflow >=2.16.0",
-    "iminuit >=2"]
+impact = ["tensorflow >=2.16.0"]
 
 [project.scripts]
 ctapipe-info = "ctapipe.tools.info:main"
