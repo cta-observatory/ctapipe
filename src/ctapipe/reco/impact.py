@@ -122,7 +122,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     """
 
     image_template_path = TelescopeParameter(
-        trait=traits.Path(exists=True, directory_ok=False, allow_none=False),
+        trait=traits.Path(
+            exists=True, directory_ok=False, allow_none=False, default_value="./"
+        ),
         allow_none=False,
         help=("Path to the image templates to be used in the reconstruction"),
     ).tag(config=True)
@@ -247,7 +249,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 if (
                     event.monitoring.tel[
                         tel_id
-                    ].camera.pixel_statistics.sky_pedestal_image.std
+                    ].camera.pixel_statistics.pedestal_image.std
                     is None
                 ):
                     ped_dict[tel_id] = BACKUP_PED_TABLE[

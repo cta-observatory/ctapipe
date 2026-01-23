@@ -24,7 +24,9 @@ class FreePACTReconstructor(ImPACTReconstructor):
     """
 
     image_template_path = TelescopeParameter(
-        trait=traits.Path(exists=True, directory_ok=True, allow_none=False),
+        trait=traits.Path(
+            exists=True, directory_ok=True, allow_none=False, default_value="./"
+        ),
         allow_none=False,
         help=("Path to the image templates to be used in the reconstruction"),
     ).tag(config=True)
@@ -149,7 +151,9 @@ class FreePACTProtonReconstructor(FreePACTReconstructor):
     """
 
     image_template_path = TelescopeParameter(
-        trait=traits.Path(exists=True, directory_ok=True, allow_none=False),
+        trait=traits.Path(
+            exists=True, directory_ok=True, allow_none=False, default_value="./"
+        ),
         allow_none=False,
         help=("Path to the image templates to be used in the reconstruction"),
     ).tag(config=True)

@@ -92,8 +92,8 @@ class BaseTemplate:
 
         # If we only have one zenith angle available in the templates, don't bother
         # searching
-        if len(self.zeniths) == 0:
-            zenith_bound = self.zeniths[0], self.zeniths[0]
+        if len(self.zeniths) == 1:
+            zenith_bound = (0, 0)
         else:
             # Otherwise search for where our zenith lies in the available range
             index = np.searchsorted(self.zeniths, zenith, side="left")
@@ -108,8 +108,8 @@ class BaseTemplate:
                 index_upper -= 1
             zenith_bound = (index, index_upper)
         # Do the same again for azimuth angle
-        if len(self.azimuths) == 0:
-            azimuth_bound = self.azimuths[0], self.azimuths[0]
+        if len(self.azimuths) == 1:
+            azimuth_bound = (0, 0)
         else:
             az_index = np.searchsorted(self.azimuths, azimuth)
             # Except in this case we need to loop back around rather than stay at the edge
