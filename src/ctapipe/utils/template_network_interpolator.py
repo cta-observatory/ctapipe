@@ -12,7 +12,7 @@ from ..exceptions import OptionalDependencyMissing
 try:
     import tensorflow as tf
 except ModuleNotFoundError:
-    tf = None
+    raise OptionalDependencyMissing("tensorflow")
 
 from .unstructured_interpolator import UnstructuredInterpolator
 
@@ -547,6 +547,8 @@ class FreePACTInterpolator(BaseTemplate):
         """
 
         super().__init__()
+        if tf is None:
+            raise OptionalDependencyMissing("tensorflow")
 
         data_input_dict = load_prediction_files_filtered(directory)
         # self.tel_type_string = telescope_type
@@ -566,9 +568,6 @@ class FreePACTInterpolator(BaseTemplate):
             # Therefore remove offset (last) dimension from interpolator
             self.interpolator = values[0]
             self.no_zenaz = True
-
-        if tf is None:
-            raise OptionalDependencyMissing("tensorflow")
 
     def _create_interpolator(self, zenith_bin, azimuth_bin):
         """
