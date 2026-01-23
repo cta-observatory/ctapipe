@@ -43,7 +43,7 @@ def minimal_dl2_table():
 def test_event_preprocessing(feature_set, minimal_dl2_table):
     from traitlets.config import Config
 
-    from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
+    from ctapipe.io import DL2EventPreprocessor
 
     # set some custom features for the case where the feature_set==custom.
     # These will be ignored in other feature_sets.
@@ -58,6 +58,9 @@ def test_event_preprocessing(feature_set, minimal_dl2_table):
     for feature in preprocess.features:
         assert feature in table_processed.columns
 
+    # check that the qualityquery worked
+    assert len(table_processed) <= len(table)
+
 
 def test_no_output():
     """Check error is raised if no columns are specified for output."""
@@ -66,3 +69,46 @@ def test_no_output():
 
     with pytest.raises(ToolConfigurationError):
         DL2EventPreprocessor(feature_set=DL2FeatureSet.custom)
+
+
+def test_nondefault_reconstructors(minimal_dl2_table):
+    """Check that using a different constructor than default still works"""
+
+    from ctapipe.io import DL2EventPreprocessor
+
+    # define some new reconstructors, and add those columns to the test table:
+    geom = "ExampleGeometryReconstructor"
+    energy = "ExampleEnergyRegressor"
+    gammaness = "ExampleGammnessClassifier"
+    table = minimal_dl2_table
+
+    table[f"{geom}_alt"] = ([71.1, 62.2, 61.3, 75.8] * u.deg,)
+    table[f"{geom}_az"] = [231.0, 231.6, 231.4, 238.1] * u.deg
+    table[f"{geom}_is_valid"] = [True, False, True, True]
+
+    table[f"{energy}_energy"] = [20.0, 1.0, 0.5, 0.1] * u.TeV
+    table[f"{energy}_is_valid"] = [True, False, True, True]
+
+    table[f"{gammaness}_prediction"] = [0.1, 0.8, 0.9, 0.7]
+    table[f"{gammaness}_is_valid"] = [True, False, True, True]
+    table[f"{gammaness}_telescopes"] = table["RandomForestClassifier_telescopes"]
+
+    preprocess = DL2EventPreprocessor(
+        feature_set="simulation",
+        geometry_reconstructor=geom,
+        energy_reconstructor=energy,
+        gammaness_reconstructor=gammaness,
+    )
+
+    table_processed = preprocess(table)
+
+    # check that the processing worked. In this case, we check that the
+    # requested columns are renamed correctly and that the filtered values match
+    # the original values.
+
+    mask = table["event_id"] == table_processed["event_id"]
+    masked = table[mask]  # so that we just compare values after filtering
+
+    assert np.allclose(table_processed["reco_energy"], masked[f"{energy}_energy"])
+    assert np.allclose(table_processed["reco_az"], masked[f"{geom}_az"])
+    assert np.allclose(table_processed["gh_score"], masked[f"{gammaness}_prediction"])
