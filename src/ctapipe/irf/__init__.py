@@ -31,7 +31,13 @@ from .optimize import (
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
-from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
+from .spectra import (
+    ENERGY_FLUX_UNIT,
+    FLUX_UNIT,
+    SPECTRA,
+    Spectra,
+    spectrum_from_simulation_config,
+)
 
 __all__ = [
     "AngularResolution2dMaker",
@@ -53,4 +59,5 @@ __all__ = [
     "FLUX_UNIT",
     "check_bins_in_range",
     "make_bins_per_decade",
+    "spectrum_from_simulation_config",
 ]

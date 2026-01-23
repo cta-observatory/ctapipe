@@ -179,9 +179,13 @@ class DefaultFoVOffsetBins(Component):
         default_value=1,
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.fov_offset_bins = u.Quantity(
+    # def __init__(self, config=None, parent=None, **kwargs):
+    #     super().__init__(config=config, parent=parent, **kwargs)
+    #
+    #
+    @property
+    def fov_offset_bins(self):
+        return u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
                 self.fov_offset_max.to_value(u.deg),
