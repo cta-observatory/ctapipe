@@ -76,7 +76,7 @@ jobs:
             os: macos-15-intel
             python-version: "3.12"
             install-method: pip
-            extras: tests,all
+            extras: tests,all,impact
 
           - name: macos (3.14, arm64, mamba)
             os: macos-15

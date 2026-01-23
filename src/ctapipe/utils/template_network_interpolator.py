@@ -6,7 +6,13 @@ import re
 import numba
 import numpy as np
 import numpy.ma as ma
-import tensorflow as tf
+
+from ..exceptions import OptionalDependencyMissing
+
+try:
+    import tensorflow as tf
+except ModuleNotFoundError:
+    tf = None
 
 from .unstructured_interpolator import UnstructuredInterpolator
 
@@ -560,6 +566,9 @@ class FreePACTInterpolator(BaseTemplate):
             # Therefore remove offset (last) dimension from interpolator
             self.interpolator = values[0]
             self.no_zenaz = True
+
+        if tf is None:
+            raise OptionalDependencyMissing("tensorflow")
 
     def _create_interpolator(self, zenith_bin, azimuth_bin):
         """
