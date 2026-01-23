@@ -12,7 +12,8 @@ from ..exceptions import OptionalDependencyMissing
 try:
     import tensorflow as tf
 except ModuleNotFoundError:
-    raise OptionalDependencyMissing("tensorflow")
+    tf = None
+    raise OptionalDependencyMissing("tensorflow") from None
 
 from .unstructured_interpolator import UnstructuredInterpolator
 
