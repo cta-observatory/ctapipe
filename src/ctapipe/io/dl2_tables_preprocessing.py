@@ -72,7 +72,7 @@ class DL2EventPreprocessor(Component):
         help="Prefix of the `_alt` and `_az` reco geometry columns",
     ).tag(config=True)
 
-    gammaness_classifier = Unicode(
+    gammaness_reconstructor = Unicode(
         default_value="RandomForestClassifier",
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
@@ -142,7 +142,7 @@ class DL2EventPreprocessor(Component):
                 ("reco_energy", f"{self.energy_reconstructor}_energy"),
                 ("reco_alt", f"{self.geometry_reconstructor}_alt"),
                 ("reco_az", f"{self.geometry_reconstructor}_az"),
-                ("gh_score", f"{self.gammaness_classifier}_prediction"),
+                ("gh_score", f"{self.gammaness_reconstructor}_prediction"),
                 ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
                 (
                     "reco_fov_coord",
@@ -166,7 +166,7 @@ class DL2EventPreprocessor(Component):
                 ),
                 (
                     "multiplicity",
-                    f"np.count_nonzero({self.gammaness_classifier}_telescopes,axis=1)",
+                    f"np.count_nonzero({self.gammaness_reconstructor}_telescopes,axis=1)",
                 ),
             ]
         else:
@@ -181,10 +181,10 @@ class DL2EventPreprocessor(Component):
         """
         if self.feature_set == DL2FeatureSet.simulation:
             return [
-                ("valid geometry", f"{self.geometry_reconstructor}_is_valid"),
+                ("Valid geometry", f"{self.geometry_reconstructor}_is_valid"),
                 ("valid energy", f"{self.energy_reconstructor}_is_valid"),
-                ("valid gammaness", f"{self.gammaness_classifier}_is_valid"),
-                ("multiplicity>=4", "multiplicity> 4"),
+                ("valid gammaness", f"{self.gammaness_reconstructor}_is_valid"),
+                ("sufficient multiplicity", "multiplicity >= 4"),
             ]
         else:
             raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
@@ -194,6 +194,8 @@ class DL2EventPreprocessor(Component):
         """Set the columns to output, for a given FeatureSet."""
         if self.feature_set == DL2FeatureSet.simulation:
             return [
+                "event_id",
+                "obs_id",
                 "reco_energy",
                 "reco_alt",
                 "reco_az",
