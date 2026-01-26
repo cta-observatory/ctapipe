@@ -5,7 +5,7 @@ import pytest
 from astropy import units as u
 from astropy.table import QTable
 
-from ctapipe.io.dl2_tables_preprocessing import PreprocessorFeatureSet
+from ctapipe.io import PreprocessorFeatureSet
 
 
 @pytest.fixture(scope="function")
@@ -65,7 +65,7 @@ def test_event_preprocessing(feature_set, minimal_dl2_table):
 def test_no_output():
     """Check error is raised if no columns are specified for output."""
     from ctapipe.core import ToolConfigurationError
-    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
+    from ctapipe.io import EventPreprocessor, PreprocessorFeatureSet
 
     with pytest.raises(ToolConfigurationError):
         EventPreprocessor(feature_set=PreprocessorFeatureSet.custom)
