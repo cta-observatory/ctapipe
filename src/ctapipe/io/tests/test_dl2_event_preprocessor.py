@@ -5,7 +5,7 @@ import pytest
 from astropy import units as u
 from astropy.table import QTable
 
-from ctapipe.io.dl2_tables_preprocessing import DL2FeatureSet
+from ctapipe.io.dl2_tables_preprocessing import PreprocessorFeatureSet
 
 
 @pytest.fixture(scope="function")
@@ -39,20 +39,20 @@ def minimal_dl2_table():
     )
 
 
-@pytest.mark.parametrize("feature_set", list(DL2FeatureSet))
+@pytest.mark.parametrize("feature_set", list(PreprocessorFeatureSet))
 def test_event_preprocessing(feature_set, minimal_dl2_table):
     from traitlets.config import Config
 
-    from ctapipe.io import DL2EventPreprocessor
+    from ctapipe.io import EventPreprocessor
 
     # set some custom features for the case where the feature_set==custom.
     # These will be ignored in other feature_sets.
     custom_config = Config()
-    custom_config.DL2EventPreprocessor.features = ["obs_id", "event_id"]
+    custom_config.EventPreprocessor.features = ["obs_id", "event_id"]
     table = minimal_dl2_table
 
     # process the table:
-    preprocess = DL2EventPreprocessor(config=custom_config, feature_set=feature_set)
+    preprocess = EventPreprocessor(config=custom_config, feature_set=feature_set)
     table_processed = preprocess(table)
 
     for feature in preprocess.features:
@@ -65,16 +65,16 @@ def test_event_preprocessing(feature_set, minimal_dl2_table):
 def test_no_output():
     """Check error is raised if no columns are specified for output."""
     from ctapipe.core import ToolConfigurationError
-    from ctapipe.io.dl2_tables_preprocessing import DL2EventPreprocessor
+    from ctapipe.io.dl2_tables_preprocessing import EventPreprocessor
 
     with pytest.raises(ToolConfigurationError):
-        DL2EventPreprocessor(feature_set=DL2FeatureSet.custom)
+        EventPreprocessor(feature_set=PreprocessorFeatureSet.custom)
 
 
 def test_nondefault_reconstructors(minimal_dl2_table):
     """Check that using a different constructor than default still works"""
 
-    from ctapipe.io import DL2EventPreprocessor
+    from ctapipe.io import EventPreprocessor
 
     # define some new reconstructors, and add those columns to the test table:
     geom = "ExampleGeometryReconstructor"
@@ -93,8 +93,8 @@ def test_nondefault_reconstructors(minimal_dl2_table):
     table[f"{gammaness}_is_valid"] = [True, False, True, True]
     table[f"{gammaness}_telescopes"] = table["RandomForestClassifier_telescopes"]
 
-    preprocess = DL2EventPreprocessor(
-        feature_set="simulation",
+    preprocess = EventPreprocessor(
+        feature_set="dl2_simulation",
         geometry_reconstructor=geom,
         energy_reconstructor=energy,
         gammaness_reconstructor=gammaness,
