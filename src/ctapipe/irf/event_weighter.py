@@ -15,7 +15,7 @@ from pyirf.spectral import (
 
 from ..core import Component, traits
 from ..core.feature_generator import _shallow_copy_table
-from .binning import DefaultFoVOffsetBins
+from .binning import DefaultFoVOffsetBins, DefaultFoVPhiBins
 from .spectra import SPECTRA, Spectra
 
 __all__ = [
@@ -158,12 +158,12 @@ class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
         events_table.meta["OFFSBINS"] = list(offset_bins.to_value("deg"))
 
 
-class PolarEventWeighter(EventWeighter):
+class PolarEventWeighter(EventWeighter, DefaultFoVOffsetBins, DefaultFoVPhiBins):
     """
     Weights in field-of-view polar $(r, \\phi)$ bins in the `~ctapipe.coordinates.NominalFrame`.
 
     Calling this class adds a column to the output table with the event-wise
-    spectral-spatial weights, with column name `weight_column``. This
+    spectral-spatial weights, with column name ``weight_column``. This
     implementation additionally adds the columns
     ``output_table["fov_offset_bin"]``, ``output_table["fov_phi_bin"]``, and the
     list of offset and phi bin edges in ``output_table.meta["OFFSBINS"]`` and
