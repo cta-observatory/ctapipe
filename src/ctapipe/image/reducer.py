@@ -3,6 +3,7 @@ Algorithms for the data volume reduction.
 """
 
 from abc import abstractmethod
+from copy import deepcopy
 
 import numpy as np
 
@@ -214,3 +215,39 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             mask = dilate(camera_geom, mask)
 
         return mask
+
+
+class ReadoutWindowReducer(TelescopeComponent):
+    """
+    Reduce the readout window size of telescope using a fixed window.
+    """
+
+    window_start = IntTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help="Start sample of readout window",
+    ).tag(config=True)
+
+    window_end = IntTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help="Last sample of readout window (non-inclusive)",
+    ).tag(config=True)
+
+    def __init__(self, subarray, **kwargs):
+        # we mutate the subarray, make sure we do not modify it for someone else
+        super().__init__(deepcopy(subarray), **kwargs)
+
+        for tel_id, tel in self.subarray.tel.items():
+            start = self.window_start.tel[tel_id]
+            end = self.window_end.tel[tel_id]
+            n_samples = len(np.arange(tel.camera.readout.n_samples)[start:end])
+            tel.camera.readout.n_samples = n_samples
+
+    def __call__(self, event):
+        for container in (event.r0, event.r1, event.dl0):
+            for tel_id, tel_container in container.tel.items():
+                if tel_container.waveform is not None:
+                    start = self.window_start.tel[tel_id]
+                    end = self.window_end.tel[tel_id]
+                    tel_container.waveform = tel_container.waveform[..., start:end]
