@@ -87,10 +87,10 @@ docs = [
     "pandas",
     "pydata_sphinx_theme",
     "pypandoc",
-    "sphinx ~= 8.2.0",
+    "sphinx~=8.2.0",
+    "sphinx-automodapi==0.22.0",
     "sphinx-design",
     "sphinx-gallery >= 0.16.0",
-    "sphinx_automodapi==v0.20.0",
     "sphinxcontrib-bibtex",
     "sphinx-changelog",
 ]
