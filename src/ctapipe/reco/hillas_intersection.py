@@ -88,17 +88,22 @@ class HillasIntersection(HillasGeometryReconstructor):
     Uncertainties on the positions are provided by taking the spread of the
     crossing points, however this means that no uncertainty can be provided
     for multiplicity 2 events.
+
+    A more detailed explanation can be found in section 3.2 of
+    :cite:p:`ctao-mc-design-studies`.
     """
 
     weighting = traits.CaselessStrEnum(
-        ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
+        ["harmonic-mean-intensity"],
+        default_value="harmonic-mean-intensity",
+        help="Weighting Method name",
     ).tag(config=True)
 
     property = ReconstructionProperty.GEOMETRY
 
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
-        Weighting must be a function similar to the weight_konrad already implemented
+        Weighting must be a function similar to the weight_mean_intensity function already implemented
         """
         super().__init__(subarray, atmosphere_profile, **kwargs)
 
@@ -106,8 +111,8 @@ class HillasIntersection(HillasGeometryReconstructor):
         # To do this we need the conversion table from CORSIKA
 
         # other weighting schemes can be implemented. just add them as additional methods
-        if self.weighting == "Konrad":
-            self._weight_method = self.weight_konrad
+        if self.weighting == "harmonic-mean-intensity":
+            self._weight_method = self.weight_mean_intensity
 
     def __call__(self, event):
         """
@@ -559,7 +564,7 @@ class HillasIntersection(HillasGeometryReconstructor):
         return xs, ys
 
     @staticmethod
-    def weight_konrad(p1, p2):
+    def weight_mean_intensity(p1, p2):
         return (p1 * p2) / (p1 + p2)
 
     @staticmethod
