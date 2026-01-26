@@ -49,3 +49,18 @@ Reference/API
 .. automodapi:: ctapipe.core.env
    :no-inheritance-diagram:
    :include-all-objects:
+
+.. automodapi:: ctapipe.core.component
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.telescope_component
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.tool
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.container
+   :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.expression_engine
+   :no-inheritance-diagram:
