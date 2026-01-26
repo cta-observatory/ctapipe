@@ -292,6 +292,11 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 )
         lines.append("    </tbody>")
         lines.append("</table>")
+
+        for val in self.__dict__.values():
+            if isinstance(val, Component):
+                lines.append(val._repr_html_())
+
         lines.append("</div>")
         return "\n".join(lines)
 
