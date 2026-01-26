@@ -1,0 +1,1 @@
+Removed the option ``output_table_schema`` from ``DL2EventLoader``, which was incorrectly implemented.

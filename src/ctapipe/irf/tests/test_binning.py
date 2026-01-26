@@ -105,3 +105,14 @@ def test_fov_offset_bins_base():
     assert np.isclose(binning.fov_offset_bins[0], binning.fov_offset_min, rtol=1e-9)
     assert np.isclose(binning.fov_offset_bins[-1], binning.fov_offset_max, rtol=1e-9)
     assert np.allclose(np.diff(binning.fov_offset_bins.to_value(u.deg)), 1)
+
+
+def test_fov_phi_bins_base():
+    from ctapipe.irf.binning import DefaultFoVPhiBins
+
+    binning = DefaultFoVPhiBins(fov_offset_n_bins=4)
+    assert len(binning.fov_offset_bins) == 5
+    assert binning.fov_offset_bins.unit == u.deg
+    assert np.allclose(
+        binning.fov_offset_bins, [0.0, 90.0, 180.0, 270.0, 360.0] * u.deg
+    )
