@@ -15,7 +15,7 @@ from astropy.table import vstack
 from ..containers import CoordinateFrameType
 from ..core.traits import Int
 from ..exceptions import TooFewEvents
-from ..instrument.telescope import TelescopeDescription
+from ..instrument import TelescopeDescription
 from ..io import TableLoader
 from ..reco.preprocessing import check_valid_rows
 from ..reco.sklearn import DispReconstructor, SKLearnReconstructor

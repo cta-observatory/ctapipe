@@ -864,7 +864,7 @@ def gamma_diffuse_full_reco_file(
             f"--output={output_path}",
             f"--reconstructor={particle_classifier_path}",
             "--no-dl1-parameters",
-            "--StereoMeanCombiner.weights=konrad",
+            "--StereoMeanCombiner.weights=aspect-weighted-intensity",
         ],
         raises=True,
     )
@@ -890,7 +890,7 @@ def proton_full_reco_file(
             f"--output={output_path}",
             f"--reconstructor={particle_classifier_path}",
             "--no-dl1-parameters",
-            "--StereoMeanCombiner.weights=konrad",
+            "--StereoMeanCombiner.weights=aspect-weighted-intensity",
         ],
         raises=True,
     )

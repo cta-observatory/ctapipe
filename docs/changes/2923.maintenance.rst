@@ -1,0 +1,2 @@
+Pinned sphinx to 8.x until we can solve the warnings produced with 9.x, and
+removed some redundant (duplicated) API docs.

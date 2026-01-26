@@ -4,6 +4,8 @@ from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import Integer, IntTelescopeParameter
 
+__all__ = ["SoftwareTrigger"]
+
 
 class SoftwareTrigger(TelescopeComponent):
     """

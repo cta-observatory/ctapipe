@@ -38,7 +38,7 @@ dependencies:
   - scipy
   - setuptools
   - setuptools-scm
-  - sphinx
+  - sphinx=8
   - sphinx-gallery
   - sphinx-automodapi
   - pydata-sphinx-theme
