@@ -336,15 +336,6 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def _process_telescope_pointings(self, file):
         """Process telescope pointing monitoring data."""
-        if self.is_simulation:
-            msg = (
-                "HDF5MonitoringSource: Telescope pointings are available, but will be ignored. "
-                f"The monitoring file '{file}' is from simulated data."
-            )
-            self.log.warning(msg)
-            warnings.warn(msg, UserWarning)
-            return
-
         from ..monitoring import PointingInterpolator
 
         # Instantiate the pointing interpolator
@@ -361,18 +352,6 @@ class HDF5MonitoringSource(MonitoringSource):
             self._pointing_interpolator.add_table(
                 tel_id, self._telescope_pointings[tel_id]
             )
-            # Instantiate the pointing interpolator
-            self._pointing_interpolator = PointingInterpolator()
-            # Read the pointing data from the file to have the telescope pointings as a property
-            for tel_id in self.subarray.tel_ids:
-                self._telescope_pointings[tel_id] = read_table(
-                    file,
-                    f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
-                )
-                # Register the table with the pointing interpolator
-                self._pointing_interpolator.add_table(
-                    tel_id, self._telescope_pointings[tel_id]
-                )
 
     @property
     def is_simulation(self):
@@ -479,8 +458,9 @@ class HDF5MonitoringSource(MonitoringSource):
 
         if monitoring_type == MonitoringType.TELESCOPE_POINTINGS:
             alt, az = self._pointing_interpolator(tel_id, time)
-            # Get telescope location for proper AltAz frame
-            location = self.subarray.tel_coords[tel_id].to_earth_location()
+            # Get individual telescope location for proper AltAz frame
+            tel_index = self.subarray.tel_index_array[tel_id]
+            location = self.subarray.tel_coords[tel_index].to_earth_location()
             return SkyCoord(
                 alt=alt, az=az, frame=AltAz(obstime=time, location=location)
             )

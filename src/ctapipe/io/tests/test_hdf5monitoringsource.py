@@ -89,7 +89,7 @@ def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
         assert monitoring_source.is_simulation
         assert monitoring_source.pixel_statistics
         assert monitoring_source.camera_coefficients
-        assert not monitoring_source.telescope_pointings
+        assert monitoring_source.telescope_pointings
         # Check that the camcalib_coefficients match the event calibration data
         for e in source:
             # Fill the monitoring container for the event
@@ -468,16 +468,12 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         HDF5MonitoringSource(
             input_files=[dl1_mon_pointing_file, calibpipe_camcalib_obslike_same_chunks]
         )
-    # Warns if telescope pointings are available but
-    # the monitoring source is from simulated data.
-    with pytest.warns(
-        UserWarning,
-        match="HDF5MonitoringSource: Telescope pointings are available, but will be ignored.",
-    ):
-        HDF5MonitoringSource(
-            subarray=None,
-            input_files=[dl1_mon_pointing_file],
-        )
+    # Test that we can open a file with pointing data (even for simulation)
+    monitoring_source = HDF5MonitoringSource(
+        subarray=None,
+        input_files=[dl1_mon_pointing_file],
+    )
+    assert monitoring_source.has_pointings
     # Warns if overlapping monitoring types are found in multiple input files.
     with pytest.warns(
         UserWarning,
@@ -544,10 +540,6 @@ def test_get_table_pointing(dl1_merged_monitoring_file):
     tel_id = 1
 
     with HDF5MonitoringSource(input_files=[dl1_merged_monitoring_file]) as source:
-        # Skip test if this is simulation data (pointings are not processed)
-        if source.is_simulation:
-            pytest.skip("Telescope pointings are not available for simulation data")
-
         # Test getting telescope pointing table
         pointing_table = source.get_table(
             MonitoringType.TELESCOPE_POINTINGS, tel_id=tel_id
@@ -616,10 +608,6 @@ def test_get_values_telescope_pointing(dl1_merged_monitoring_file):
     tel_id = 1
 
     with HDF5MonitoringSource(input_files=[dl1_merged_monitoring_file]) as source:
-        # Skip test if this is simulation data (pointings are not processed)
-        if source.is_simulation:
-            pytest.skip("Telescope pointings are not available for simulation data")
-
         # Get a time from the pointing table
         table = source.get_table(MonitoringType.TELESCOPE_POINTINGS, tel_id=tel_id)
         time = Time(table["time"][0], format="unix")
@@ -629,8 +617,8 @@ def test_get_values_telescope_pointing(dl1_merged_monitoring_file):
             MonitoringType.TELESCOPE_POINTINGS, time=time, tel_id=tel_id
         )
         assert isinstance(pointing, SkyCoord)
-        assert pointing.alt.unit == u.rad
-        assert pointing.az.unit == u.rad
+        assert pointing.alt.unit.is_equivalent(u.rad)
+        assert pointing.az.unit.is_equivalent(u.rad)
 
         # Test with array of times
         times = Time(table["time"][:3], format="unix")
