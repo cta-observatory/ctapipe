@@ -94,7 +94,7 @@ def test_nondefault_reconstructors(minimal_dl2_table):
     table[f"{gammaness}_telescopes"] = table["RandomForestClassifier_telescopes"]
 
     preprocess = EventPreprocessor(
-        feature_set="dl2_simulation",
+        feature_set=PreprocessorFeatureSet.dl2_irf,
         geometry_reconstructor=geom,
         energy_reconstructor=energy,
         gammaness_reconstructor=gammaness,

@@ -20,8 +20,8 @@ __all__ = ["EventPreprocessor"]
 class PreprocessorFeatureSet(StrEnum):
     """Pre-defined configurations for DL2EventPreprocessor for specific use cases."""
 
-    custom = auto()
-    dl2_simulation = auto()
+    custom = auto()  #: use user-supplied configuration
+    dl2_irf = auto()  #: support IRF preprocessing use case
 
 
 class EventPreprocessor(Component):
@@ -58,7 +58,7 @@ class EventPreprocessor(Component):
 
     feature_set = traits.UseEnum(
         PreprocessorFeatureSet,
-        default_value=PreprocessorFeatureSet.dl2_simulation,
+        default_value=PreprocessorFeatureSet.dl2_irf,
         help=(
             "Set up the FeatureGenerator.features, output features, and quality criteria "
             "based on standard use cases."
@@ -115,7 +115,7 @@ class EventPreprocessor(Component):
 
     def _get_predefined_features_to_generate(self) -> list[tuple]:
         """Return a default list of FeatureGenerator features."""
-        if self.feature_set == PreprocessorFeatureSet.dl2_simulation:
+        if self.feature_set == PreprocessorFeatureSet.dl2_irf:
             # Default features for DL2/Subarray events
             return [
                 ("reco_energy", f"{self.energy_reconstructor}_energy"),
@@ -158,7 +158,7 @@ class EventPreprocessor(Component):
         Here you can use any columns in the input table, or any that are
         specified in the FeatureGenerator.
         """
-        if self.feature_set == PreprocessorFeatureSet.dl2_simulation:
+        if self.feature_set == PreprocessorFeatureSet.dl2_irf:
             return [
                 ("Valid geometry", f"{self.geometry_reconstructor}_is_valid"),
                 ("valid energy", f"{self.energy_reconstructor}_is_valid"),
@@ -171,7 +171,7 @@ class EventPreprocessor(Component):
     @default("features")
     def default_features(self):
         """Set the columns to output, for a given FeatureSet."""
-        if self.feature_set == PreprocessorFeatureSet.dl2_simulation:
+        if self.feature_set == PreprocessorFeatureSet.dl2_irf:
             return [
                 "event_id",
                 "obs_id",
