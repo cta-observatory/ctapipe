@@ -490,3 +490,170 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
                 calibpipe_camcalib_obslike_same_chunks,
             ],
         )
+
+
+def test_get_table(calibpipe_camcalib_sims_single_chunk):
+    """test the get_table method"""
+    tel_id = 1
+
+    with HDF5MonitoringSource(
+        input_files=[calibpipe_camcalib_sims_single_chunk]
+    ) as source:
+        # Test getting camera coefficients table
+        coeffs_table = source.get_table(
+            MonitoringType.CAMERA_COEFFICIENTS, tel_id=tel_id
+        )
+        assert coeffs_table is not None
+        assert "time" in coeffs_table.colnames
+        assert "factor" in coeffs_table.colnames
+        assert "pedestal_offset" in coeffs_table.colnames
+        assert len(coeffs_table) > 0
+
+        # Test getting pixel statistics with subtype
+        flatfield_table = source.get_table(
+            MonitoringType.PIXEL_STATISTICS, tel_id=tel_id, subtype="flatfield_image"
+        )
+        assert flatfield_table is not None
+        assert "mean" in flatfield_table.colnames
+        assert "median" in flatfield_table.colnames
+        assert "std" in flatfield_table.colnames
+
+        # Test error when monitoring type not available
+        with pytest.raises(ValueError, match="not available"):
+            source.get_table(MonitoringType.TELESCOPE_POINTINGS, tel_id=tel_id)
+
+        # Test error when tel_id missing for telescope-level data
+        with pytest.raises(TypeError, match="tel_id is required"):
+            source.get_table(MonitoringType.CAMERA_COEFFICIENTS)
+
+        # Test error when subtype missing for pixel statistics
+        with pytest.raises(ValueError, match="subtype parameter is required"):
+            source.get_table(MonitoringType.PIXEL_STATISTICS, tel_id=tel_id)
+
+        # Test error for invalid subtype
+        with pytest.raises(ValueError, match="Unknown subtype"):
+            source.get_table(
+                MonitoringType.PIXEL_STATISTICS,
+                tel_id=tel_id,
+                subtype="invalid_subtype",
+            )
+
+
+def test_get_table_pointing(dl1_merged_monitoring_file):
+    """test get_table method for telescope pointing"""
+    tel_id = 1
+
+    with HDF5MonitoringSource(input_files=[dl1_merged_monitoring_file]) as source:
+        # Skip test if this is simulation data (pointings are not processed)
+        if source.is_simulation:
+            pytest.skip("Telescope pointings are not available for simulation data")
+
+        # Test getting telescope pointing table
+        pointing_table = source.get_table(
+            MonitoringType.TELESCOPE_POINTINGS, tel_id=tel_id
+        )
+        assert pointing_table is not None
+        assert "time" in pointing_table.colnames
+        assert "azimuth" in pointing_table.colnames
+        assert "altitude" in pointing_table.colnames
+
+
+def test_get_values_camera_coefficients(calibpipe_camcalib_sims_single_chunk):
+    """test the get_values method for camera coefficients"""
+    tel_id = 1
+
+    with HDF5MonitoringSource(
+        input_files=[calibpipe_camcalib_sims_single_chunk]
+    ) as source:
+        # For simulation, time can be None (uses first entry)
+        values = source.get_values(
+            MonitoringType.CAMERA_COEFFICIENTS, time=None, tel_id=tel_id
+        )
+        assert isinstance(values, dict)
+        assert "factor" in values
+        assert "pedestal_offset" in values
+        assert "time_shift" in values
+        assert "outlier_mask" in values
+        assert "is_valid" in values
+
+        # Test with explicit time
+        table = source.get_table(MonitoringType.CAMERA_COEFFICIENTS, tel_id=tel_id)
+        time = Time(table["time"][0], format="mjd")
+        values = source.get_values(
+            MonitoringType.CAMERA_COEFFICIENTS, time=time, tel_id=tel_id
+        )
+        assert isinstance(values, dict)
+
+
+def test_get_values_pixel_statistics(calibpipe_camcalib_sims_single_chunk):
+    """test the get_values method for pixel statistics"""
+    tel_id = 1
+
+    with HDF5MonitoringSource(
+        input_files=[calibpipe_camcalib_sims_single_chunk]
+    ) as source:
+        # Test with subtype
+        values = source.get_values(
+            MonitoringType.PIXEL_STATISTICS,
+            time=None,
+            tel_id=tel_id,
+            subtype="flatfield_image",
+        )
+        assert isinstance(values, dict)
+        assert "mean" in values
+        assert "median" in values
+        assert "std" in values
+
+        # Test error when subtype missing
+        with pytest.raises(ValueError, match="subtype parameter is required"):
+            source.get_values(MonitoringType.PIXEL_STATISTICS, time=None, tel_id=tel_id)
+
+
+def test_get_values_telescope_pointing(dl1_merged_monitoring_file):
+    """test the get_values method for telescope pointing"""
+    from astropy.coordinates import SkyCoord
+
+    tel_id = 1
+
+    with HDF5MonitoringSource(input_files=[dl1_merged_monitoring_file]) as source:
+        # Skip test if this is simulation data (pointings are not processed)
+        if source.is_simulation:
+            pytest.skip("Telescope pointings are not available for simulation data")
+
+        # Get a time from the pointing table
+        table = source.get_table(MonitoringType.TELESCOPE_POINTINGS, tel_id=tel_id)
+        time = Time(table["time"][0], format="unix")
+
+        # Get interpolated pointing
+        pointing = source.get_values(
+            MonitoringType.TELESCOPE_POINTINGS, time=time, tel_id=tel_id
+        )
+        assert isinstance(pointing, SkyCoord)
+        assert pointing.alt.unit == u.rad
+        assert pointing.az.unit == u.rad
+
+        # Test with array of times
+        times = Time(table["time"][:3], format="unix")
+        pointings = source.get_values(
+            MonitoringType.TELESCOPE_POINTINGS, time=times, tel_id=tel_id
+        )
+        assert isinstance(pointings, SkyCoord)
+        assert len(pointings) == 3
+
+
+def test_get_values_errors(calibpipe_camcalib_sims_single_chunk):
+    """test error handling in get_values method"""
+    tel_id = 1
+
+    with HDF5MonitoringSource(
+        input_files=[calibpipe_camcalib_sims_single_chunk]
+    ) as source:
+        # Test error when monitoring type not available
+        with pytest.raises(ValueError, match="not available"):
+            source.get_values(
+                MonitoringType.TELESCOPE_POINTINGS, time=None, tel_id=tel_id
+            )
+
+        # Test error when tel_id missing
+        with pytest.raises(TypeError, match="tel_id is required"):
+            source.get_values(MonitoringType.CAMERA_COEFFICIENTS, time=None)

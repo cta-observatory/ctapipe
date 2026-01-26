@@ -4,6 +4,9 @@ Handles reading of monitoring files
 
 from abc import abstractmethod
 
+import astropy.table
+import astropy.time
+
 from ..containers import ArrayEventContainer
 from ..core import TelescopeComponent
 from .monitoringtypes import MonitoringType
@@ -64,14 +67,89 @@ class MonitoringSource(TelescopeComponent):
         return any(mt in self.monitoring_types for mt in monitoring_types)
 
     @abstractmethod
+    def get_table(
+        self,
+        monitoring_type: MonitoringType,
+        tel_id: int = None,
+        **kwargs,
+    ) -> astropy.table.Table:
+        """
+        Get the raw monitoring table for a given monitoring type.
+
+        Parameters
+        ----------
+        monitoring_type : MonitoringType
+            The type of monitoring data to retrieve.
+        tel_id : int, optional
+            Telescope ID for telescope-level monitoring (camera, telescope pointing).
+            None for array-level monitoring (weather, FRAM, LiDAR).
+        **kwargs
+            Implementation-specific parameters (e.g., subtype for PIXEL_STATISTICS).
+
+        Returns
+        -------
+        astropy.table.Table
+            The monitoring table.
+
+        Raises
+        ------
+        ValueError
+            If monitoring_type is not available.
+        TypeError
+            If tel_id scope doesn't match monitoring_type requirements.
+        """
+
+    @abstractmethod
+    def get_values(
+        self,
+        monitoring_type: MonitoringType,
+        time: astropy.time.Time,
+        tel_id: int = None,
+        **kwargs,
+    ):
+        """
+        Get monitoring values for specific timestamp(s).
+
+        Performs interpolation or nearest-neighbor lookup as appropriate.
+
+        Parameters
+        ----------
+        monitoring_type : MonitoringType
+            The type of monitoring data to retrieve.
+        time : astropy.time.Time
+            Target timestamp(s). Can be scalar or array.
+        tel_id : int, optional
+            Telescope ID for telescope-level monitoring. None for array-level.
+        **kwargs
+            Implementation-specific parameters (e.g., timestamp_tolerance, query_method).
+
+        Returns
+        -------
+        astropy.units.Quantity or astropy.coordinates.SkyCoord
+            Monitoring values at requested time(s). Return type depends on monitoring_type.
+            Scalar if time is scalar, array if time is array.
+            E.g., pointing returns SkyCoord, calibration coefficients return Quantity.
+
+        Raises
+        ------
+        ValueError
+            If monitoring_type unavailable or time out of bounds.
+        TypeError
+            If tel_id scope doesn't match monitoring_type requirements.
+        """
+
+    @abstractmethod
     def fill_monitoring_container(self, event: ArrayEventContainer):
         """
         Fill the monitoring container for a given event.
 
+        Populates event.monitoring with telescope-level and array-level monitoring
+        data for the event's trigger time.
+
         Parameters
         ----------
         event : ArrayEventContainer
-            The event to fill the monitoring container for.
+            The event to fill. Uses event.trigger.time for data selection.
         """
 
     def __enter__(self):
