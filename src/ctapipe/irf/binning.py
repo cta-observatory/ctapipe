@@ -17,6 +17,7 @@ __all__ = [
     "DefaultTrueEnergyBins",
     "DefaultRecoEnergyBins",
     "DefaultFoVOffsetBins",
+    "DefaultFoVPhiBins",
 ]
 
 logger = logging.getLogger(__name__)
@@ -179,13 +180,37 @@ class DefaultFoVOffsetBins(Component):
         default_value=1,
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.fov_offset_bins = u.Quantity(
+    @property
+    def fov_offset_bins(self):
+        return u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
                 self.fov_offset_max.to_value(u.deg),
                 self.fov_offset_n_bins + 1,
+            ),
+            u.deg,
+        )
+
+
+class DefaultFoVPhiBins(Component):
+    """
+    Base class for creating IRFs with phi dependence.
+
+    The range is always assumed to be (0, 360) deg.
+    """
+
+    fov_phi_n_bins = Integer(
+        help="Number of FoV offset bins",
+        default_value=4,
+    ).tag(config=True)
+
+    @property
+    def fov_phi_bins(self):
+        return u.Quantity(
+            np.linspace(
+                0.0 * u.deg,
+                360.0 * u.deg,
+                self.fov_phi_n_bins + 1,
             ),
             u.deg,
         )
