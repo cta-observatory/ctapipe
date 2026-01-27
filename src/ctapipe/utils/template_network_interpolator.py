@@ -11,13 +11,18 @@ from ..exceptions import OptionalDependencyMissing
 
 try:
     import tensorflow as tf
+
+    tf.config.set_visible_devices([], "GPU")
+    tf_function = tf.function
 except ModuleNotFoundError:
     tf = None
-    raise OptionalDependencyMissing("tensorflow") from None
+
+    # dummy decorator
+    def tf_function(f):
+        return f
+
 
 from .unstructured_interpolator import UnstructuredInterpolator
-
-tf.config.set_visible_devices([], "GPU")
 
 
 class BaseTemplate:
@@ -322,82 +327,6 @@ class TemplateNetworkInterpolator(BaseTemplate):
         return self.template_file == other.template_file
 
 
-class TimeGradientInterpolator(BaseTemplate):
-    """
-    Class for interpolating between the time gradient predictions
-    """
-
-    def __init__(self, template_file):
-        """
-        Parameters
-        ----------
-        template_file: str
-            Location of pickle file containing ImPACT NN templates
-        """
-
-        super().__init__()
-
-        self.template_file = template_file
-
-        input_dict = None
-        with gzip.open(template_file, "r") as file_list:
-            input_dict = pickle.load(file_list)
-
-        # The dict has at its highest level two keys: data and tel_type.
-        # The first just contains the template dict, the second a string to validate the tel_type
-        # that the templates are made for.
-
-        data_input_dict = input_dict["data"]
-        self.tel_type_string = input_dict["tel_type"]
-
-        keys = np.array(list(data_input_dict.keys()))
-        values = np.array(list(data_input_dict.values()), dtype=np.float32)
-        self.no_zenaz = False
-
-        # First check if we even have a zen and azimuth entry
-        if len(keys[0]) > 4:
-            # If we do then for the sake of speed lets
-            self._create_table_matrix(keys, values)
-        else:
-            # If not we work as before
-            # Currently impact is not set up for offset dependent templates.
-            # Therefore remove offset (last) dimension from interpolator
-            self.interpolator = UnstructuredInterpolator(
-                keys[:-1], values, remember_last=False
-            )
-            self.no_zenaz = True
-
-    def __call__(self, zenith, azimuth, energy, impact, xmax):
-        """
-        Evaluate expected time gradient for a set of shower parameters and pixel positions
-        Parameters
-        ----------
-        energy: array-like
-            Energy of interpolated template
-        impact: array-like
-            Impact distance of interpolated template
-        xmax: array-like
-            Depth of maximum of interpolated templates
-        Returns
-        -------
-        ndarray: Time Gradient expectation and RMS values
-        """
-        array = np.stack((energy, impact, xmax), axis=-1)
-
-        if self.no_zenaz:
-            interpolated_value = self.interpolator(array, None)
-        else:
-            interpolated_value = self.perform_interpolation(
-                zenith, azimuth, array, None
-            )
-
-        return interpolated_value
-
-    # Two interpolators are the same if they are generated from the same file
-    def __eq__(self, other):
-        return self.template_file == other.template_file
-
-
 def load_prediction_files_filtered(directory):
     """
     Finds all files in the given directory matching the pattern:
@@ -451,7 +380,7 @@ def custom_symlog(value, linear_threshold=10.0):
     return value
 
 
-@tf.function
+@tf_function
 def evaluate_model(model, parameters):
     """
     Evaluate the model with the given parameters. TF decorator used to
@@ -466,13 +395,13 @@ def evaluate_model(model, parameters):
 
     Returns
     -------
-    tf.Tensor
+    tf. Tensor
         The output of the model
     """
     return model(parameters)
 
 
-@tf.function
+@tf_function
 def evaluate_model_interpolate(
     model_ul,
     model_uu,
@@ -524,7 +453,7 @@ def evaluate_model_interpolate(
     v_ul = model_ul(parameters)
     v_lu = model_lu(parameters)
     v_uu = model_uu(parameters)
-    # print(v_ll, zenith)
+
     v_l = ((v_ul - v_ll) * (zenith - zenith_l) / (zenith_u - zenith_l)) + v_ll
     v_u = ((v_uu - v_lu) * (zenith - zenith_l) / (zenith_u - zenith_l)) + v_lu
 
@@ -688,6 +617,7 @@ class FreePACTInterpolator(BaseTemplate):
         """
         if self.interpolator[zenith_bin][azimuth_bin] is None:
             self._create_interpolator(zenith_bin, azimuth_bin)
+
         return np.asarray(
             evaluate_model(self.interpolator[zenith_bin][azimuth_bin], points)
         )
@@ -760,6 +690,17 @@ class DummyTimeInterpolator:
 
     def __call__(self, energy, impact, xmax):
         return np.ones_like(energy)
+
+    def reset(self):
+        """Reset the interpolator."""
+        return True
+
+
+class DummyFreePACTInterpolator:
+    """Dummy FreePACT interpolator for testing purposes."""
+
+    def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb, amplitude):
+        return np.ones_like(xb)
 
     def reset(self):
         """Reset the interpolator."""

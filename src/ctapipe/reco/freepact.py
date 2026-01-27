@@ -19,9 +19,29 @@ __all__ = ["FreePACTReconstructor", "create_dummy_freepact_templates"]
 
 class FreePACTReconstructor(ImPACTReconstructor):
     """
-    FreePACT Reconstructor
     This class implements the FreePACT reconstructor, which uses a neural network
-    to predict the likelihood of camera images based on shower parameters.
+    to predict the likelihood of camera images based on shower parameters. The
+    reconstructor is based on the work presented in schwefer24.
+
+    Because this application is computationally intensive the usual
+    advice to use astropy units for all quantities is ignored (as
+    these slow down some computations), instead units within the class
+    are fixed:
+
+    - Angular units in radians
+    - Distance units in metres
+    - Energy units in TeV
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        The telescope subarray to use for reconstruction
+    atmosphere_profile : ctapipe.atmosphere.AtmosphereDensityProfile
+        Density vs. altitude profile of the local atmosphere
+
+    References
+    ----------
+    .. [schwefer24] Schwefer, Parsons, & Hinton,  Astroparticle Physics 163 (2024), 103008
     """
 
     image_template_path = TelescopeParameter(
@@ -31,9 +51,6 @@ class FreePACTReconstructor(ImPACTReconstructor):
         allow_none=False,
         help=("Path to the image templates to be used in the reconstruction"),
     ).tag(config=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def set_up_templates(self):
         """Set up the templates for the FreePACT reconstructor."""
@@ -146,7 +163,7 @@ class FreePACTReconstructor(ImPACTReconstructor):
 
 
 class FreePACTProtonReconstructor(FreePACTReconstructor):
-    """FreePACT Proton Reconstructor
+    """
     This class implements the FreePACT reconstructor for proton showers.
     It uses a neural network to predict the likelihood of camera images based on shower parameters.
     """
@@ -158,9 +175,6 @@ class FreePACTProtonReconstructor(FreePACTReconstructor):
         allow_none=False,
         help=("Path to the image templates to be used in the reconstruction"),
     ).tag(config=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
 
 def create_dummy_freepact_templates(

@@ -101,7 +101,9 @@ dev = [
     "setuptools_scm[toml]",
 ]
 
-impact = ["tensorflow >=2.16.0"]
+impact = [
+    "iminuit >=2",
+    "tensorflow >=2.16.0"]
 
 [project.scripts]
 ctapipe-info = "ctapipe.tools.info:main"
