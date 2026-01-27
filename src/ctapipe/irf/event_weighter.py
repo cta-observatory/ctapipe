@@ -58,9 +58,6 @@ class EventWeighter(Component):
         ----------
         source_spectrum: Callable
             initial spectrum of the events to be processed.
-        target_spectrum: Callable | None
-            target spectrum to weight to. If None, a pre-defined spectrum
-            function from the `target_spectrum_name` attribute will be used`
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.source_spectrum = source_spectrum
@@ -73,7 +70,7 @@ class EventWeighter(Component):
         )
 
     def __call__(self, events_table: QTable) -> QTable:
-        """Returns shallow copy of input table with a `weight` column added"""
+        """Returns shallow copy of input table with a ``weight`` column added"""
 
         table = _shallow_copy_table(events_table)
         self._compute_weights(table)
