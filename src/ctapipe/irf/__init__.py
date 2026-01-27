@@ -43,6 +43,7 @@ from .spectra import (
     FLUX_UNIT,
     SPECTRA,
     Spectra,
+    spectrum_from_name,
     spectrum_from_simulation_config,
 )
 
@@ -72,4 +73,5 @@ __all__ = [
     "RadialEventWeighter",
     "SimpleEventWeighter",
     "spectrum_from_simulation_config",
+    "spectrum_from_name",
 ]
