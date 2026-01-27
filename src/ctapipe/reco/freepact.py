@@ -4,6 +4,7 @@ It uses a neural network to predict th likelihood camera images based on the sho
 
 import numpy as np
 import numpy.ma as ma
+import tensorflow as tf
 
 from ctapipe.core import traits
 from ctapipe.core.telescope_component import TelescopeParameter
@@ -13,7 +14,7 @@ from ctapipe.utils.template_network_interpolator import FreePACTInterpolator
 from ..compat import COPY_IF_NEEDED
 from .impact_utilities import rotate_translate
 
-__all__ = ["FreePACTReconstructor"]
+__all__ = ["FreePACTReconstructor", "create_dummy_freepact_templates"]
 
 
 class FreePACTReconstructor(ImPACTReconstructor):
@@ -115,7 +116,6 @@ class FreePACTReconstructor(ImPACTReconstructor):
         )
         pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask, copy=COPY_IF_NEEDED)
         pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask, copy=COPY_IF_NEEDED)
-
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked
         likelihood = ma.zeros(self.image.shape)
@@ -134,13 +134,14 @@ class FreePACTReconstructor(ImPACTReconstructor):
                     np.rad2deg(pix_y_rot[template_mask]),
                     self.image[template_mask],
                 )
+        likelihood.mask = ma.getmask(self.image)
+
         if goodness_of_fit:
             # return -2 * np.sum(likelihood[self.image>5]) / np.sum(self.image>5)
             # print(ma.getmask(self.image))
             return -2 * ma.sum(likelihood) / np.sum(~ma.getmask(self.image))
 
         likelihood = ma.sum(likelihood) * -2
-
         return likelihood
 
 
@@ -160,3 +161,32 @@ class FreePACTProtonReconstructor(FreePACTReconstructor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+def create_dummy_freepact_templates(
+    output_dir, telescope_type, zenith, azimuth, offset
+):
+    """Create file with dummy template library
+
+    Args:
+        output_dir (str): Output directory
+        telescope_type (str): Telescope type
+        zenith (float): Zenith angle in radians
+        azimuth (float): Azimuth angle in radians
+        offset (float): Offset in degrees
+    """
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.InputLayer(shape=(6,)),
+            tf.keras.layers.Dense(5, activation="sigmoid", kernel_initializer="zeros"),
+            tf.keras.layers.Dense(5, activation="sigmoid", kernel_initializer="zeros"),
+            tf.keras.layers.Dense(1, activation="sigmoid", kernel_initializer="zeros"),
+        ]
+    )
+
+    model.compile(optimizer="adam", loss="mse")
+
+    # reformat line to create file name string
+    output_file = f"/predict_{telescope_type}_{int(zenith)}deg_{int(azimuth)}deg_{offset:.1f}off.keras"
+
+    model.save(output_dir + output_file)

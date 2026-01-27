@@ -62,7 +62,15 @@ def test_reconstructors(cls, tmp_path):
                                 "MST_MST_NectarCam",
                                 str(tmp_path) + "/MST_MST_NectarCam.template.gz",
                             ],
-                        ]
+                        ],
+                        "pedestal_width": [
+                            ["type", "LST_LST_LSTCam", 1.0],
+                            ["type", "MST_MST_NectarCam", 1.0],
+                        ],
+                        "spe_width": [
+                            ["type", "LST_LST_LSTCam", 1.0],
+                            ["type", "MST_MST_NectarCam", 1.0],
+                        ],
                     }
                 }
             )

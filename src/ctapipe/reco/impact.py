@@ -590,6 +590,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask = mask_dict[tel_id]
 
             focal_length = subarray.tel[tel_id].optics.effective_focal_length
+            if np.isnan(focal_length):
+                # fallback to equivalent focal length, do we warn here?
+                focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+
             camera_frame = CameraFrame(
                 telescope_pointing=telescope_pointing[tel_id],
                 focal_length=focal_length,
@@ -642,7 +646,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             self.spe[i][:array_len] = p_spe[i]
 
         # Set the image mask
-        mask = self.image <= 0.0
+        mask = np.isclose(self.image, 0, atol=1e-10, equal_nan=False)
+
         self.pixel_x[mask], self.pixel_y[mask] = ma.masked, ma.masked
         self.image[mask] = ma.masked
         self.time[mask] = ma.masked
@@ -736,7 +741,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
                 if energy_reco == "FreePACTReconstructor":
                     continue
-                energy = energy_seed[energy_reco].energy.value
+                energy = energy_seed[energy_reco].energy.to(u.TeV).value
 
                 # for i in range(1):
                 # energy = 0.5 # TEST!!!
@@ -751,13 +756,12 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                     limits=limits,
                 )
                 #            fit_params_min, like = self.energy_guess(seed)
-                if like < like_min:
+                if like <= like_min:
                     fit_params = fit_params_min
                     like_min = like
 
         if fit_params is None:
             return self.INVALID_GEOMETRY, self.INVALID_ENERGY
-
         # Now do full minimisation
         seed = create_seed(
             fit_params[0], fit_params[1], fit_params[2], fit_params[3], fit_params[4]
