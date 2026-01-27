@@ -4,7 +4,11 @@ It uses a neural network to predict th likelihood camera images based on the sho
 
 import numpy as np
 import numpy.ma as ma
-import tensorflow as tf
+
+try:
+    import tensorflow as tf
+except ModuleNotFoundError:
+    tf = None
 
 from ctapipe.core import traits
 from ctapipe.core.telescope_component import TelescopeParameter
@@ -12,6 +16,7 @@ from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.utils.template_network_interpolator import FreePACTInterpolator
 
 from ..compat import COPY_IF_NEEDED
+from ..exceptions import OptionalDependencyMissing
 from .impact_utilities import rotate_translate
 
 __all__ = ["FreePACTReconstructor", "create_dummy_freepact_templates"]
@@ -189,6 +194,10 @@ def create_dummy_freepact_templates(
         azimuth (float): Azimuth angle in radians
         offset (float): Offset in degrees
     """
+
+    if tf is None:
+        raise OptionalDependencyMissing("tensorflow")
+
     model = tf.keras.Sequential(
         [
             tf.keras.layers.InputLayer(shape=(6,)),
