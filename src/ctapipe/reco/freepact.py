@@ -15,7 +15,6 @@ from ctapipe.core.telescope_component import TelescopeParameter
 from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.utils.template_network_interpolator import FreePACTInterpolator
 
-from ..compat import COPY_IF_NEEDED
 from ..exceptions import OptionalDependencyMissing
 from .impact_utilities import rotate_translate
 
@@ -136,8 +135,8 @@ class FreePACTReconstructor(ImPACTReconstructor):
         pix_x_rot, pix_y_rot = rotate_translate(
             self.pixel_y.data, self.pixel_x.data, source_y, source_x, -phi
         )
-        pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask, copy=COPY_IF_NEEDED)
-        pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask, copy=COPY_IF_NEEDED)
+        pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask)
+        pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask)
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked
         likelihood = ma.zeros(self.image.shape)
