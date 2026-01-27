@@ -44,12 +44,12 @@ def test_simple_weights(example_weight_table):
 
 def test_flat_weighting(example_weight_table):
     """Check that if source and target spectra are the same,  we get 1.0."""
-    from ctapipe.irf.spectra import SPECTRA, Spectra
+    from ctapipe.irf.spectra import Spectra, spectrum_from_name
 
     table = example_weight_table
 
     weight = SimpleEventWeighter(
-        source_spectrum=SPECTRA[Spectra.CRAB_HEGRA],
+        source_spectrum=spectrum_from_name(Spectra.CRAB_HEGRA),
         target_spectrum_name=Spectra.CRAB_HEGRA.name,
         is_diffuse=False,
     )

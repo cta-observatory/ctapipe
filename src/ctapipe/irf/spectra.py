@@ -21,6 +21,7 @@ __all__ = [
     "SPECTRA",
     "Spectra",
     "spectrum_from_simulation_config",
+    "spectrum_from_name",
 ]
 
 ENERGY_FLUX_UNIT = (1 * u.erg / u.s / u.cm**2).unit
@@ -40,6 +41,14 @@ SPECTRA = {
     Spectra.IRFDOC_ELECTRON_SPECTRUM: IRFDOC_ELECTRON_SPECTRUM,
     Spectra.IRFDOC_PROTON_SPECTRUM: IRFDOC_PROTON_SPECTRUM,
 }
+
+
+def spectrum_from_name(name: str | Spectra) -> Callable:
+    """
+    Return spectrum function given a name or Spectra enum value.
+    """
+    spectrum_value = Spectra(name)
+    return SPECTRA[spectrum_value]
 
 
 logger = logging.getLogger(__name__)

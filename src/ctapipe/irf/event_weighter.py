@@ -16,7 +16,7 @@ from pyirf.spectral import (
 from ..core import Component, traits
 from ..core.feature_generator import _shallow_copy_table
 from .binning import DefaultFoVOffsetBins, DefaultFoVPhiBins
-from .spectra import SPECTRA, Spectra
+from .spectra import Spectra, spectrum_from_name
 
 __all__ = [
     "EventWeighter",
@@ -64,7 +64,7 @@ class EventWeighter(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.source_spectrum = source_spectrum
-        self.target_spectrum = SPECTRA[self.target_spectrum_name]
+        self.target_spectrum = spectrum_from_name(self.target_spectrum_name)
 
     @abstractmethod
     def _compute_weights(self, events_table: QTable):
