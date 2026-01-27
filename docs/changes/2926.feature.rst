@@ -1,0 +1,1 @@
+the Jupyter notebook HTML representation of `~ctapipe.core.Container` instances now recursively shows the config of sub-components used in the component instance.  This makes it easier to see the full configuration in a user-friendly way.
