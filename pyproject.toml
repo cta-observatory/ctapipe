@@ -177,7 +177,11 @@ filterwarnings = [
     "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
     "ignore:'unquoteResults':DeprecationWarning:matplotlib",
     "ignore:'parseAll':DeprecationWarning:pyparsing",
+    "ignore:__array__ implementation doesn't accept a copy keyword:DeprecationWarning",
+    "ignore:Type .* uses PyType_Spec with a metaclass that has custom tp_new:DeprecationWarning",
+    "ignore:datetime.datetime.utcfromtimestamp\\(\\):DeprecationWarning",
 ]
+
 norecursedirs = [
     ".git",
     "_build",
