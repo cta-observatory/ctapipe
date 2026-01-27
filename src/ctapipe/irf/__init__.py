@@ -37,7 +37,13 @@ from .optimize import (
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
-from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
+from .spectra import (
+    ENERGY_FLUX_UNIT,
+    FLUX_UNIT,
+    SPECTRA,
+    Spectra,
+    spectrum_from_simulation_config,
+)
 
 __all__ = [
     "AngularResolution2dMaker",
@@ -63,4 +69,5 @@ __all__ = [
     "PolarEventWeighter",
     "RadialEventWeighter",
     "SimpleEventWeighter",
+    "spectrum_from_simulation_config",
 ]
