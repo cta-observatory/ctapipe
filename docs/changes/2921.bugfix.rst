@@ -1,0 +1,4 @@
+Fixed bug where units were incorrect in the output table of an
+`ctapipe.core.FeatureGenerator` if a table of class `astropy.table.Table` was
+passed to the call method. This bug did not affect calls using an
+`astropy.table.QTable`.
