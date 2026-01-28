@@ -4,6 +4,7 @@
 
 from abc import abstractmethod
 from collections.abc import Callable
+from itertools import product
 from typing import override
 
 import numpy as np
@@ -111,7 +112,7 @@ class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
     Weights in radial (FOV) offset bins in the `~ctapipe.coordinates.NominalFrame`.
 
     Calling this class adds a column to the output table with the event-wise
-    spectral-spatial weights, with column name `weight_column``. This implementation
+    spectral-spatial weights, with column name ``weight_column``. This implementation
     additionally adds the column ``output_table["fov_offset_bin"]``, and the
     list of offset bin edges in ``output_table.meta["OFFSBINS"]``
     """
@@ -131,7 +132,7 @@ class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
         #    offset_bins[i-1] <= offset < offset_bins[ii])
         r_bin = np.digitize(offset, offset_bins.value)
 
-        for ii in range(0, len(offset_bins)):
+        for ii in range(1, len(offset_bins)):
             self.log.debug(
                 f"bin {ii} offset=[{offset_bins[ii - 1]}, {offset_bins[ii]})"
             )
@@ -177,6 +178,44 @@ class PolarEventWeighter(EventWeighter, DefaultFoVOffsetBins, DefaultFoVPhiBins)
 
     @override
     def _compute_weights(self, events_table: QTable):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} weighting is not implemented"
+        offset_bins = self.fov_offset_bins
+        phi_bins = self.fov_phi_bins
+        offset = events_table[self.fov_offset_column].to_value(offset_bins.unit)
+        phi = events_table[self.fov_phi_column].to_value(phi_bins.unit)
+        energy = events_table[self.energy_column]
+        weights = np.zeros_like(energy.value)
+
+        r_bin = np.digitize(offset, offset_bins.value)
+        phi_bin = np.digitize(phi, phi_bins.value)
+
+        for i_r, i_phi in product(range(1, len(offset_bins)), range(1, len(phi_bins))):
+            mask = (r_bin == i_r) & (phi_bin == i_phi)
+            phi_solid_angle_fraction = (phi_bins[i_phi] - phi_bins[i_phi - 1]) / (
+                360.0 * u.deg
+            )
+            print(i_phi, phi_solid_angle_fraction)
+            weights[mask] = calculate_event_weights(
+                true_energy=energy[mask],
+                target_spectrum=self.target_spectrum,
+                simulated_spectrum=lambda E: self.source_spectrum.integrate_cone(
+                    offset_bins[i_r - 1], offset_bins[i_r]
+                )(E)
+                * phi_solid_angle_fraction,
+            )
+
+        events_table[self.weight_column] = weights
+        events_table["fov_offset_bin"] = r_bin
+        events_table["fov_phi_bin"] = phi_bin
+
+        events_table.columns["fov_offset_bin"].description = (
+            "Bin i defined as offset[i-1] <= fov_offset < offset[i]. "
+            "Where offset is `OFFSBINS` array found this table's metadata."
         )
+
+        events_table.columns["fov_phi_bin"].description = (
+            "Bin i defined as phi[i-1] <= fov_phi < phi[i]. "
+            "Where phi is `PHIBINS` array found this table's metadata."
+        )
+
+        events_table.meta["OFFSBINS"] = list(offset_bins.to_value("deg"))
+        events_table.meta["PHIBINS"] = list(phi_bins.to_value("deg"))
