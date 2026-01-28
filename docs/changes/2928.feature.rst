@@ -12,7 +12,7 @@ deprecated in a future release.
 
 The `~ctapipe.io.EventPreprocessor` also includes the ability to pre-configure
 itself for specific use cases by setting the ``feature_set`` option. Currently
-only two `~ctapipe.io.ProcessingFeatureSet` are implemented:
+only two `~ctapipe.io.PreprocessorFeatureSet` are implemented:
 ``feature_set=dl2_irf``, which defines the transforms, event selection, and output
 features for processing simulated DL2 events, and ``feature_set=custom``, which
 has no pre-configuration and requires all parameters to be set by the user in a
@@ -36,7 +36,7 @@ The functionality of `~ctapipe.io.DL2EventLoader` can be mimicked with the follo
     )
 
 
- This also introduces a helper function `~ctapipe.coordinates.altaz_to_nominal` to
- convert columns of alt/az coordinates to FOV coordinates in the
- `~ctapipe.coordinates.NominalFrame`, which works with the
- `~ctapipe.io.FeatureGenerator`.
+This also introduces a helper function `~ctapipe.coordinates.altaz_to_nominal`
+to convert columns of alt/az coordinates to FOV coordinates in the
+`~ctapipe.coordinates.NominalFrame`, which works with the
+`~ctapipe.io.FeatureGenerator`.
