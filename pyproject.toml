@@ -58,7 +58,7 @@ all = [
     "ctapipe[eventio]",
     "matplotlib ~=3.0",
     "pyirf ~=0.13.0",
-    "iminuit >=2"
+    "iminuit >=2",
 ]
 
 tests = [
@@ -103,7 +103,8 @@ dev = [
 
 impact = [
     "iminuit >=2",
-    "tensorflow >=2.16.0"]
+    "tensorflow >=2.16.0",
+]
 
 [project.scripts]
 ctapipe-info = "ctapipe.tools.info:main"
@@ -177,10 +178,12 @@ filterwarnings = [
     "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
     "ignore:'unquoteResults':DeprecationWarning:matplotlib",
     "ignore:'parseAll':DeprecationWarning:pyparsing",
+    "ignore:'enablePackrat':DeprecationWarning:matplotlib",
+    # tensorflow (FreePACT) related warnings
     "ignore:__array__ implementation doesn't accept a copy keyword:DeprecationWarning",
+    # protobuf related warnings (via tensorflow)
     "ignore:Type .* uses PyType_Spec with a metaclass that has custom tp_new:DeprecationWarning",
     "ignore:datetime.datetime.utcfromtimestamp\\(\\):DeprecationWarning",
-    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
 ]
 
 norecursedirs = [
