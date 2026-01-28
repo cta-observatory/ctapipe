@@ -8,14 +8,14 @@ from typing import override
 
 import numpy as np
 from astropy import units as u
-from astropy.table import QTable
+from astropy.table import QTable, Table
 from pyirf.binning import OVERFLOW_INDEX, UNDERFLOW_INDEX, calculate_bin_indices
 from pyirf.spectral import (
     calculate_event_weights,
 )
 
 from ..core import Component, traits
-from ..core.feature_generator import _shallow_copy_table
+from ..core.feature_generator import shallow_copy_table
 from .binning import DefaultFoVOffsetBins
 from .spectra import Spectra, spectrum_from_name
 
@@ -69,10 +69,10 @@ class EventWeighter(Component):
             f"{self.__class__.__name__} weighting is not implemented"
         )
 
-    def __call__(self, events_table: QTable) -> QTable:
+    def __call__(self, events_table: Table | QTable) -> QTable:
         """Returns shallow copy of input table with a ``weight`` column added"""
 
-        table = _shallow_copy_table(events_table)
+        table = shallow_copy_table(events_table, output_cls=QTable)
         self._compute_weights(table)
         return table
 
