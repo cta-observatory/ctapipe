@@ -106,7 +106,7 @@ def test_multiplicity(subarray_prod5_paranal):
 
 
 @pytest.mark.parametrize("table_class", [QTable, Table])
-def test_unit_propegation(table_class):
+def test_unit_propagation(table_class):
     """
     Check that units propagate to features.
 
