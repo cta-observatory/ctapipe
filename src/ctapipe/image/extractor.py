@@ -1332,7 +1332,7 @@ class VarianceExtractor(ImageExtractor):
         image = np.nanvar(waveforms, dtype="float32", axis=2)
         container = DL1CameraContainer(
             image=image,
-            is_valid=not np.all(np.isnan(image)),
+            is_valid=np.any(np.isfinite(image)),
         )
         container.meta["ExtractionMethod"] = str(VarianceType.WAVEFORM)
         return container
