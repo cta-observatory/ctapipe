@@ -1329,8 +1329,10 @@ class VarianceExtractor(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
+        image = np.nanvar(waveforms, dtype="float32", axis=2)
         container = DL1CameraContainer(
-            image=np.nanvar(waveforms, dtype="float32", axis=2),
+            image=image,
+            is_valid=np.any(np.isfinite(image)),
         )
         container.meta["ExtractionMethod"] = str(VarianceType.WAVEFORM)
         return container
