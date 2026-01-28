@@ -370,9 +370,7 @@ def custom_symlog(value, linear_threshold=10.0):
     """
     for i in range(value.shape[0]):
         for j in range(value.shape[1]):
-            if np.abs(value[i][j]) < linear_threshold:
-                value[i][j] = value[i][j]
-            else:
+            if np.abs(value[i][j]) > linear_threshold:
                 value[i][j] = np.sign(value[i][j]) * (
                     np.log2(np.abs(value[i][j] / linear_threshold)) + linear_threshold
                 )
@@ -481,7 +479,6 @@ class FreePACTInterpolator(BaseTemplate):
             raise OptionalDependencyMissing("tensorflow")
 
         data_input_dict = load_prediction_files_filtered(directory)
-        # self.tel_type_string = telescope_type
 
         keys = np.array(list(data_input_dict.keys()))
         values = list(data_input_dict.values())
@@ -520,7 +517,7 @@ class FreePACTInterpolator(BaseTemplate):
 
         # Select these values from our range of keys
         selection = np.logical_and(self.keys.T[0] == zenith, self.keys.T[1] == azimuth)
-        bin_sel = np.where(selection)[0][0]
+        bin_sel = np.nonzero(selection)[0][0]
 
         # Create interpolator using this selection
         # Currently freepact is not set up for offset dependent templates.
@@ -530,7 +527,6 @@ class FreePACTInterpolator(BaseTemplate):
         # We can now remove these entries.
         self.keys = self.keys[np.invert(selection)]
         del self.values[bin_sel]
-        # self.values = self.values[np.invert(selection)]
 
     def perform_interpolation(self, zenith, azimuth, interpolation_array, points):
         """
@@ -621,8 +617,6 @@ class FreePACTInterpolator(BaseTemplate):
         return np.asarray(
             evaluate_model(self.interpolator[zenith_bin][azimuth_bin], points)
         )
-
-    #    return self.interpolator[zenith_bin][azimuth_bin].predict(interpolation_array, verbose=0, batch_size=10000)
 
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb, amplitude):
         """
