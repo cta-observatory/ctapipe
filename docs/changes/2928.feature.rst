@@ -1,0 +1,36 @@
+Introduces the `~ctapipe.io.EventPreprocessor` class that can generically
+transform an event table by applying the following steps:
+
+* Generate new or rename existing columns with a `~ctapipe.core.FeatureGenerator`
+* Select "good" event rows with a `~ctapipe.core.QualityQuery`
+* Select which columns to output (by setting the ``features`` configuration
+  attribute of the `~ctapipe.io.EventPreprocessor`)
+
+This is useful for doing the final steps of DL2 processing, and will eventually
+replace what is in `DL2EventPreprocessor` and `DL2EventLoader`, which will be
+deprecated in a future release.
+
+The `~ctapipe.core.EventPreprocessor` also includes the ability to pre-configure
+itself for specific use cases by setting the ``feature_set`` option. Currently
+only two `~ctapipe.io.ProcessingFeatureSet` are implemented:
+`feature_set=dl2_irf`, which defines the transforms, event selection, and output
+features for processing simulated DL2 events, and `feature_set=custom`, which
+has no pre-configuration and requires all parameters to be set by the user in a
+config file.
+
+The functionality of `DL2EventLoader` can be mimicked with the following:
+
+.. code-block:: python
+
+    from ctapipe.io import TableLoader, EventPreprocessor
+    from astropy.table import vstack
+
+    DL2FILE = "some_dl2_file.h5"
+    loader = TableLoader(DL2FILE, dl2=True, simulated=True, observation_info=True)
+    preprocess = EventPreprocessor(feature_set="dl2_simulation")
+    events = vstack(
+        [
+            preprocess(QTable(c.data))
+            for c in loader.read_subarray_events_chunked(chunk_size=100_000)
+        ]
+    )
