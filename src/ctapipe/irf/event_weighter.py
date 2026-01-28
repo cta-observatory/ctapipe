@@ -9,7 +9,7 @@ from typing import override
 import numpy as np
 from astropy import units as u
 from astropy.table import QTable
-from pyirf.binning import calculate_bin_indices
+from pyirf.binning import OVERFLOW_INDEX, UNDERFLOW_INDEX, calculate_bin_indices
 from pyirf.spectral import (
     calculate_event_weights,
 )
@@ -161,3 +161,5 @@ class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
         ].description = "True if event's offset was inside the binning range."
 
         events_table.meta["OFFSBINS"] = list(offset_bins.to_value("deg"))
+        events_table.meta["BINOVER"] = OVERFLOW_INDEX
+        events_table.meta["BINUNDR"] = UNDERFLOW_INDEX
