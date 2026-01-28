@@ -79,7 +79,7 @@ class EventPreprocessor(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
-        if PreprocessorFeatureSet(self.feature_set) == PreprocessorFeatureSet.custom:
+        if self.feature_set == PreprocessorFeatureSet.custom:
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = QualityQuery(parent=self)
         else:
