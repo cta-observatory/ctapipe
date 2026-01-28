@@ -158,8 +158,6 @@ class FreePACTReconstructor(ImPACTReconstructor):
         likelihood.mask = ma.getmask(self.image)
 
         if goodness_of_fit:
-            # return -2 * np.sum(likelihood[self.image>5]) / np.sum(self.image>5)
-            # print(ma.getmask(self.image))
             return -2 * ma.sum(likelihood) / np.sum(~ma.getmask(self.image))
 
         likelihood = ma.sum(likelihood) * -2

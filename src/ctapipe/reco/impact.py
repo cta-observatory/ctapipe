@@ -758,16 +758,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         if fit_params is None:
             return self.INVALID_GEOMETRY, self.INVALID_ENERGY
-        # Now do full minimisation
-        seed = create_seed(
-            fit_params[0], fit_params[1], fit_params[2], fit_params[3], fit_params[4]
-        )
-
-        # fit_params, errors, like = self.minimise(
-        #    params=seed[0],
-        #    step=seed[1],
-        #    limits=seed[2],
-        # )
+        # We may want to now run a full minimisation, depending on if we ran the previous minimisation to completion
 
         # Create a container class for reconstructed shower
 
