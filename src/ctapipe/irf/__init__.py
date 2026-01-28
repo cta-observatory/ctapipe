@@ -20,7 +20,6 @@ from .binning import (
 )
 from .event_weighter import (
     EventWeighter,
-    PolarEventWeighter,
     RadialEventWeighter,
     SimpleEventWeighter,
 )
@@ -67,7 +66,6 @@ __all__ = [
     "check_bins_in_range",
     "make_bins_per_decade",
     "EventWeighter",
-    "PolarEventWeighter",
     "RadialEventWeighter",
     "SimpleEventWeighter",
     "spectrum_from_simulation_config",
