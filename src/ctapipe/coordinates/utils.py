@@ -100,7 +100,6 @@ def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> u.Quantity:
     event_coord = SkyCoord(az=az, alt=alt, frame="altaz", origin=pointing_coord)
     nominal_coord = event_coord.transform_to(NominalFrame)
 
-    # note the minus sign for the fov_lon, which is to match GADF conventions
     return u.Quantity(
         np.column_stack((nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
     )
