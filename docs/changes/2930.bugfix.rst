@@ -1,0 +1,1 @@
+Fixed bug where the `is_valid` field in the `DL1CameraContainer` returned by the `VarianceExtractor` was not being set correctly.
