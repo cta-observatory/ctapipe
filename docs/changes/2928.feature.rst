@@ -34,3 +34,9 @@ The functionality of `DL2EventLoader` can be mimicked with the following:
             for c in loader.read_subarray_events_chunked(chunk_size=100_000)
         ]
     )
+
+
+ This also introduces a helper function `~ctapipe.coordinates.altaz_to_fov` to
+ convert columns of alt/az coordinates to FOV coordinates in the
+ `~ctapipe.coordinates.NominalFrame`, which works with the
+ `~ctapipe.io.FeatureGenerator`.
