@@ -51,7 +51,7 @@ jobs:
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: pip
-            extras: tests,impact
+            extras: tests
 
           - name: Linux (3.12, pip, coverage)
             os: ubuntu-24.04
