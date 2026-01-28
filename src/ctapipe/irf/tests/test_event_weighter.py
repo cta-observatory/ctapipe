@@ -6,7 +6,6 @@ from astropy import units as u
 from astropy.table import QTable
 
 from ctapipe.irf.event_weighter import (
-    PolarEventWeighter,
     RadialEventWeighter,
     SimpleEventWeighter,
 )
@@ -138,50 +137,3 @@ def test_radial_weights_fits(example_weight_table, tmp_path):
         4.0,
         5.0,
     ]
-
-
-def test_polar_weights(example_weight_table):
-    from ctapipe.irf.spectra import PowerLaw
-
-    table = example_weight_table
-
-    source_spectrum = PowerLaw(
-        normalization=u.Quantity(0.00027, "TeV-1 s-1 sr-1 m-2"),
-        index=-2.0,
-        e_ref=1.0 * u.TeV,
-    )
-
-    weight = PolarEventWeighter(
-        source_spectrum=source_spectrum,
-        target_spectrum_name="CRAB_HEGRA",
-        fov_offset_min=0.0 * u.deg,
-        fov_offset_max=5.0 * u.deg,
-        fov_offset_n_bins=5,
-        fov_phi_n_bins=4,
-    )
-
-    assert np.allclose(weight.fov_offset_bins, [0.0, 1.0, 2.0, 3.0, 4.0, 5.0] * u.deg)
-    assert np.allclose(weight.fov_phi_bins, [0.0, 90.0, 180.0, 270.0, 360.0] * u.deg)
-
-    table_w = weight(table)
-
-    assert "fov_offset_bin" in table_w.colnames
-    assert "fov_phi_bin" in table_w.colnames
-    assert "OFFSBINS" in table_w.meta
-    assert "PHIBINS" in table_w.meta
-    assert table_w.meta["OFFSBINS"] == [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
-    assert table_w.meta["PHIBINS"] == [0.0, 90.0, 180.0, 270.0, 360.0]
-
-    for ii in range(0, 7):
-        for jj in range(0, 4):
-            mask = (table_w["fov_offset_bin"] == ii) & (table_w["fov_phi_bin"] == jj)
-
-            if ii == 0 or jj == 0:
-                # there should be no 0th bin
-                assert len(table_w[mask]) == 0
-            elif ii == 6 or jj == 5:
-                # for outlier bin 6,5, weights should be all 0
-                assert np.all(table_w["weight"][mask] == 0.0)
-            else:
-                # for other bins, should have a weight
-                assert np.all(table_w["weight"][mask] >= 0.0)

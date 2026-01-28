@@ -1,10 +1,11 @@
-Introduces a new Component `~ctapipe.irf.EventWeighter` that has different implementations of spectral event weighting:
+Introduces a new Component `~ctapipe.irf.EventWeighter` that has different
+implementations of spectral event weighting:
 
 * `SimpleEventWeigher`: spectral weighting for the full FOV
 * `RadialEventWeighter`: spectral weighing in radial bins in the  FOV
-* `PolarEventWeighter`: spectral weighting in radial+azimuthal (r,phi) bins in the FOV
 
-They operate on a pre-processed table of DL2 information, where you specify the energy and FOV coordinate columns to use.  The interface is as follows:
+They operate on a pre-processed table of DL2 information, where you specify the
+energy and FOV coordinate columns to use. The interface is as follows:
 
 .. code-block:: python
 
