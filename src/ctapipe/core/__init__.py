@@ -5,6 +5,7 @@ Core functionality of ctapipe
 
 from .component import Component, non_abstract_children
 from .container import Container, DeprecatedField, Field, FieldValidationError, Map
+from .expression_engine import ExpressionEngine
 from .feature_generator import FeatureGenerator
 from .provenance import Provenance, get_module_version
 from .qualityquery import QualityCriteriaError, QualityQuery
@@ -28,4 +29,5 @@ __all__ = [
     "QualityQuery",
     "QualityCriteriaError",
     "FieldValidationError",
+    "ExpressionEngine",
 ]
