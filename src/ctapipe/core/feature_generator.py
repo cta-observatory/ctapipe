@@ -3,6 +3,7 @@ Generate Features.
 """
 
 from collections import ChainMap
+from copy import deepcopy
 
 from astropy.table import QTable, Table
 
@@ -13,19 +14,31 @@ from .traits import List, Tuple, Unicode
 __all__ = [
     "FeatureGenerator",
     "FeatureGeneratorException",
+    "shallow_copy_table",
 ]
 
 
-def _shallow_copy_table(table):
+def shallow_copy_table(
+    table, output_cls: type[Table] | type[QTable] | None = None
+) -> Table | QTable:
     """
     Make a shallow copy of the table.
 
-    Data of the existing columns will be shared between shallow
-    copies, but adding / removing columns won't be seen in
-    the original table.
+    Data of the existing columns will be shared between shallow copies, but
+    adding / removing columns won't be seen in the original table. Metadata for
+    the new table will be a copy (not shallow) of the original metadata, so that
+    new metadata can be added without affecting the original table.
+
+    Parameters
+    ----------
+    output_cls: type[Table] | type[QTable] | None
+        type of the output table. If None, use the input table type
     """
-    # automatically return Table or QTable depending on input
-    return table.__class__({col: table[col] for col in table.colnames}, copy=False)
+    output_cls = output_cls or table.__class__
+
+    new_table = output_cls({col: table[col] for col in table.colnames}, copy=False)
+    new_table.meta = deepcopy(table.meta)
+    return new_table
 
 
 class FeatureGeneratorException(TypeError):
@@ -81,7 +94,7 @@ class FeatureGenerator(Component):
             A new table with the same columns as the input, but with new columns
             for each feature. The returned class depends on what was passed in.
         """
-        table_copy = _shallow_copy_table(QTable(table))
+        table_copy = shallow_copy_table(table, output_cls=QTable)
         lookup = ChainMap(table_copy, kwargs)
 
         for result, name in zip(self.engine(lookup), self._feature_names):
