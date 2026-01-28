@@ -36,7 +36,7 @@ The functionality of `DL2EventLoader` can be mimicked with the following:
     )
 
 
- This also introduces a helper function `~ctapipe.coordinates.altaz_to_fov` to
+ This also introduces a helper function `~ctapipe.coordinates.altaz_to_nominal` to
  convert columns of alt/az coordinates to FOV coordinates in the
  `~ctapipe.coordinates.NominalFrame`, which works with the
  `~ctapipe.io.FeatureGenerator`.

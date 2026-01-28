@@ -5,7 +5,7 @@ from enum import StrEnum, auto
 from astropy.coordinates import angular_separation
 from traitlets import default
 
-from ..coordinates import altaz_to_fov
+from ..coordinates import altaz_to_nominal
 from ..core import (
     Component,
     FeatureGenerator,
@@ -38,7 +38,7 @@ class EventPreprocessor(Component):
     additional functions useful for DL2 processing:
 
       - `~astropy.coordinates.angular_separation`
-      - `~ctapipe.coordinates.altaz_to_fov`
+      - `~ctapipe.coordinates.altaz_to_nominal`
     """
 
     energy_reconstructor = traits.Unicode(
@@ -102,7 +102,9 @@ class EventPreprocessor(Component):
 
         # generate new features, which includes renaming columns:
         generated = self.feature_generator(
-            table, angular_separation=angular_separation, altaz_to_fov=altaz_to_fov
+            table,
+            angular_separation=angular_separation,
+            altaz_to_nominal=altaz_to_nominal,
         )
 
         # apply event selection on the resulting table
@@ -125,15 +127,21 @@ class EventPreprocessor(Component):
                 ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
                 (
                     "reco_fov_coord",
-                    "altaz_to_fov(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
+                    "altaz_to_nominal(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
                 ),
-                ("reco_fov_lon", "reco_fov_coord[:,0]"),
+                (
+                    "reco_fov_lon",
+                    "reco_fov_coord[:,0]",
+                ),  # note: GADF IRFs use the negative of this
                 ("reco_fov_lat", "reco_fov_coord[:,1]"),
                 (
                     "true_fov_coord",
-                    "altaz_to_fov(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
+                    "altaz_to_nominal(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
                 ),
-                ("true_fov_lon", "true_fov_coord[:,0]"),
+                (
+                    "true_fov_lon",
+                    "true_fov_coord[:,0]",
+                ),  # note: GADF IRFs use the negative of this
                 ("true_fov_lat", "true_fov_coord[:,1]"),
                 (
                     "true_fov_offset",

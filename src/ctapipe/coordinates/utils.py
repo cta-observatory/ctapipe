@@ -10,7 +10,7 @@ from .nominal_frame import NominalFrame
 __all__ = [
     "altaz_to_righthanded_cartesian",
     "get_point_on_shower_axis",
-    "altaz_to_fov",
+    "altaz_to_nominal",
 ]
 
 
@@ -84,9 +84,9 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     return AltAz(alt=lat, az=-lon, copy=False)
 
 
-def altaz_to_fov(az, alt, pointing_az, pointing_alt) -> u.Quantity:
+def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> u.Quantity:
     """
-    Compute FOV coordinates from alt/az coordinates.
+    Compute nominal (FOV) coordinates from alt/az coordinates.
 
     This can be used in a FeatureGenerator or ExpressionEngine to get a single
     column with fov_lon, fov_lat coordinates.
@@ -102,5 +102,5 @@ def altaz_to_fov(az, alt, pointing_az, pointing_alt) -> u.Quantity:
 
     # note the minus sign for the fov_lon, which is to match GADF conventions
     return u.Quantity(
-        np.column_stack((-nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
+        np.column_stack((nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
     )
