@@ -66,7 +66,7 @@ class EventPreprocessor(Component):
             "any value other than 'custom', the feature properties of the configuration "
             "file you pass in will be overridden."
         ),
-    )
+    ).tag(config=True)
 
     features = traits.List(
         traits.Unicode(),
