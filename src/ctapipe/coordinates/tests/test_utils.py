@@ -55,7 +55,7 @@ def test_single_telescope(subarray_prod5_paranal):
         assert u.isclose(source.separation(point), 1.0 * u.deg, atol=0.1 * u.deg)
 
 
-def test_altaz_to_fov():
+def test_altaz_to_nominal():
     from ctapipe.coordinates import altaz_to_nominal
 
     column = altaz_to_nominal(
@@ -67,4 +67,4 @@ def test_altaz_to_fov():
 
     assert column.unit == u.deg
     assert np.allclose(column[0].value, 0)
-    assert np.allclose(column[1].value, [-0.03747984, -0.79993558])
+    assert np.allclose(column[1].value, [0.03747984, -0.79993558])
