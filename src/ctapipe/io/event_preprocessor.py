@@ -84,10 +84,10 @@ class EventPreprocessor(Component):
             self.quality_query = QualityQuery(parent=self)
         else:
             self.feature_generator = FeatureGenerator(
-                features=self._get_predefined_features_to_generate()
+                parent=self, features=self._get_predefined_features_to_generate()
             )
             self.quality_query = QualityQuery(
-                quality_criteria=self._get_predefined_quality_criteria()
+                parent=self, quality_criteria=self._get_predefined_quality_criteria()
             )
         # sanity checks:
         if len(self.features) == 0:
