@@ -9,6 +9,7 @@ from typing import override
 import numpy as np
 from astropy import units as u
 from astropy.table import QTable
+from pyirf.binning import calculate_bin_indices
 from pyirf.spectral import (
     calculate_event_weights,
 )
@@ -110,9 +111,12 @@ class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
     Weights in radial (FOV) offset bins in the `~ctapipe.coordinates.NominalFrame`.
 
     Calling this class adds a column to the output table with the event-wise
-    spectral-spatial weights, with column name ``weight_column``. This implementation
-    additionally adds the column ``output_table["fov_offset_bin"]``, and the
-    list of offset bin edges in ``output_table.meta["OFFSBINS"]``
+    spectral-spatial weights, with column name ``weight_column``. This
+    implementation additionally adds the column
+    ``output_table["fov_offset_bin"]`` and
+    ``output_table["fov_offset_is_valid"]`` following the conventions of
+    ``pyirf.binning.calculate_bin_indices``, and the list of offset bin edges in
+    ``output_table.meta["OFFSBINS"]``
     """
 
     fov_offset_column = traits.Unicode(
@@ -122,33 +126,38 @@ class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
     @override
     def _compute_weights(self, events_table: QTable):
         offset_bins = self.fov_offset_bins
-        offset = events_table[self.fov_offset_column].to_value(offset_bins.unit)
+        offset = events_table[self.fov_offset_column].to(offset_bins.unit)
         energy = events_table[self.energy_column]
         weights = np.zeros_like(energy.value)
 
         # note that the bin i from digitize starts at 1 and means:
         #    offset_bins[i-1] <= offset < offset_bins[ii])
-        r_bin = np.digitize(offset, offset_bins.value)
+        r_bin, r_valid = calculate_bin_indices(offset, offset_bins)
 
-        for ii in range(1, len(offset_bins)):
+        for ii in range(len(offset_bins) - 1):
             self.log.debug(
-                f"bin {ii} offset=[{offset_bins[ii - 1]}, {offset_bins[ii]})"
+                f"bin {ii} offset=[{offset_bins[ii]}, {offset_bins[ii + 1]})"
             )
             mask = r_bin == ii
             weights[mask] = calculate_event_weights(
                 true_energy=energy[mask],
                 target_spectrum=self.target_spectrum,
                 simulated_spectrum=self.source_spectrum.integrate_cone(
-                    offset_bins[ii - 1], offset_bins[ii]
+                    offset_bins[ii], offset_bins[ii + 1]
                 ),
             )
 
         events_table[self.weight_column] = weights
         events_table["fov_offset_bin"] = r_bin
+        events_table["fov_offset_is_valid"] = r_valid
 
         events_table.columns["fov_offset_bin"].description = (
             "Bin i defined as offset[i-1] <= fov_offset < offset[i]. "
             "Where offset is `OFFSBINS` array found this table's metadata."
         )
+
+        events_table.columns[
+            "fov_offset_is_valid"
+        ].description = "True if event's offset was inside the binning range."
 
         events_table.meta["OFFSBINS"] = list(offset_bins.to_value("deg"))

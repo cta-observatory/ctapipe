@@ -15,9 +15,8 @@ from ctapipe.irf.event_weighter import (
 def example_weight_table():
     table = QTable(
         dict(
-            true_energy=[1.0, 2.0, 0.5, 0.2] * u.TeV,
-            true_fov_offset=[0.1, 1.2, 2.2, 3.2] * u.deg,
-            true_fov_phi=[45.0, 45.0, 268.0, 120.0] * u.deg,
+            true_energy=[1.0, 2.0, 0.5, 0.2, 4.0, 3.2] * u.TeV,
+            true_fov_offset=[0.1, 1.2, 2.2, 3.2, 10.0, 4.1] * u.deg,
         )
     )
     table.meta["VERSION"] = 1.0
@@ -64,6 +63,8 @@ def test_flat_weighting(example_weight_table):
 
 
 def test_radial_weights(example_weight_table):
+    from pyirf.binning import OVERFLOW_INDEX
+
     from ctapipe.irf.spectra import PowerLaw
 
     table = example_weight_table
@@ -87,21 +88,21 @@ def test_radial_weights(example_weight_table):
     table_w = weight(table)
 
     assert "fov_offset_bin" in table_w.colnames
+    assert "fov_offset_is_valid" in table_w.colnames
     assert "OFFSBINS" in table_w.meta
     assert table_w.meta["OFFSBINS"] == [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
 
-    for ii in range(0, 7):
-        mask = table_w["fov_offset_bin"] == ii
+    assert np.all(
+        np.unique(table_w["fov_offset_bin"].data)
+        == np.array([0, 1, 2, 3, 4, OVERFLOW_INDEX])
+    )
 
-        if ii == 0:
-            # there should be no 0th bin
-            assert len(table_w[mask]) == 0
-        elif ii == 6:
-            # for outlier bin 6, weights should be all 0
-            assert np.all(table_w["weight"][mask] == 0.0)
-        else:
-            # for bins 1-5,weights  should be positive in this case
-            assert np.all(table_w["weight"][mask] >= 0.0)
+    for ii in range(0, 5):
+        mask = table_w["fov_offset_bin"] == ii
+        assert np.all(table_w["weight"][mask] >= 0.0)
+        assert np.all(
+            weight.fov_offset_bins[ii] < table_w["true_fov_offset"][mask]
+        ) & np.all(table_w["true_fov_offset"][mask] <= weight.fov_offset_bins[ii + 1])
 
 
 def test_radial_weights_fits(example_weight_table, tmp_path):
