@@ -56,9 +56,9 @@ def test_single_telescope(subarray_prod5_paranal):
 
 
 def test_altaz_to_fov():
-    from ctapipe.coordinates import altaz_to_fov
+    from ctapipe.coordinates import altaz_to_nominal
 
-    column = altaz_to_fov(
+    column = altaz_to_nominal(
         az=[220.0, 220.2] * u.deg,
         alt=[80.0, 79.2] * u.deg,
         pointing_az=[220.0, 220.0] * u.deg,
