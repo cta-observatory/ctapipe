@@ -34,11 +34,11 @@ class EventPreprocessor(Component):
     `~ctapipe.core.FeatureGenerator` and set the ``features`` property of this
     class with the columns you to retain in the output table.
 
-    In the `~ctapipe.core.FeatureGenerator`` used internally, you have access to several
-    additional functions useful for DL2 processing:
+    In the `~ctapipe.core.FeatureGenerator` used internally, you have access to
+    several additional functions useful for DL2 processing:
 
-      - `~astropy.coordinates.angular_separation`
-      - `~ctapipe.coordinates.altaz_to_nominal`
+    - `~astropy.coordinates.angular_separation`
+    - `~ctapipe.coordinates.altaz_to_nominal`
     """
 
     energy_reconstructor = traits.Unicode(
@@ -177,7 +177,7 @@ class EventPreprocessor(Component):
             raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
 
     @default("features")
-    def default_features(self):
+    def _features(self):
         """Set the columns to output, for a given FeatureSet."""
         if self.feature_set == PreprocessorFeatureSet.dl2_irf:
             return [

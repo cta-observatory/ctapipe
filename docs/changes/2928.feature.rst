@@ -39,4 +39,4 @@ The functionality of `~ctapipe.io.DL2EventLoader` can be mimicked with the follo
 This also introduces a helper function `~ctapipe.coordinates.altaz_to_nominal`
 to convert columns of alt/az coordinates to FOV coordinates in the
 `~ctapipe.coordinates.NominalFrame`, which works with the
-`~ctapipe.io.FeatureGenerator`.
+`~ctapipe.core.FeatureGenerator`.
