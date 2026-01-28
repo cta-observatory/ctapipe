@@ -84,16 +84,16 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     return AltAz(alt=lat, az=-lon, copy=False)
 
 
-def altaz_to_fov(az, alt, pointing_az, pointing_alt) -> u.Quantity[2]:
+def altaz_to_fov(az, alt, pointing_az, pointing_alt) -> u.Quantity:
     """
     Compute FOV coordinates from alt/az coordinates.
 
-    This can be used in an FeatureGenerator or ExpressionEngine to get a single
+    This can be used in a FeatureGenerator or ExpressionEngine to get a single
     column with fov_lon, fov_lat coordinates.
 
     Returns
     -------
-    u.Quantity[2]:
+    u.Quantity:
        2D array of coordinates with 2 columns: fov_lon, fov_lat
     """
     pointing_coord = SkyCoord(az=pointing_az, alt=pointing_alt, frame="altaz")

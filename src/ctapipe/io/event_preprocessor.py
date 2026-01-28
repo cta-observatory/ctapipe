@@ -38,7 +38,7 @@ class EventPreprocessor(Component):
     additional functions useful for DL2 processing:
 
       - `~astropy.coordinates.angular_separation`
-      - `~ctapipe.coordinates.alt_az_to_fov`
+      - `~ctapipe.coordinates.altaz_to_fov`
     """
 
     energy_reconstructor = traits.Unicode(
