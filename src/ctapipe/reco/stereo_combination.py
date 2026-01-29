@@ -6,7 +6,8 @@ from astropy.coordinates import AltAz, CartesianRepresentation, SphericalReprese
 from astropy.table import Table
 from traitlets import UseEnum
 
-from ctapipe.core import Component, Container
+from ctapipe.containers import ImageParametersContainer
+from ctapipe.core import Component
 from ctapipe.core.traits import Bool, CaselessStrEnum, Float, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
@@ -72,7 +73,8 @@ class StereoCombiner(Component):
         ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
+            "What kind of weights to use. Options: ``none``, "
+            "``intensity``, ``aspect-weighted-intensity``."
         ),
     ).tag(config=True)
 
@@ -90,7 +92,7 @@ class StereoCombiner(Component):
     ).tag(config=True)
 
     def _calculate_weights(self, data):
-        if isinstance(data, Container):
+        if isinstance(data, ImageParametersContainer):
             if self.weights == "intensity":
                 return data.hillas.intensity
 
@@ -113,7 +115,8 @@ class StereoCombiner(Component):
             return np.ones(len(data))
 
         raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+            "Dl1 data needs to be provided in the form of an ImageParametersContainer "
+            "or astropy.table.Table."
         )
 
     @abstractmethod
@@ -170,14 +173,6 @@ class StereoMeanCombiner(StereoCombiner):
     See :class:`StereoCombiner` for a description of the general interface.
     """
 
-    weights = CaselessStrEnum(
-        ["none", "intensity", "aspect-weighted-intensity"],
-        default_value="none",
-        help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
-        ),
-    ).tag(config=True)
-
     log_target = Bool(
         False,
         help="If true, calculate exp(mean(log(values))).",
@@ -195,33 +190,6 @@ class StereoMeanCombiner(StereoCombiner):
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
-
-    def _calculate_weights(self, data):
-        if isinstance(data, Container):
-            if self.weights == "intensity":
-                return data.hillas.intensity
-
-            if self.weights == "aspect-weighted-intensity":
-                return data.hillas.intensity * data.hillas.length / data.hillas.width
-
-            return 1
-
-        if isinstance(data, Table):
-            if self.weights == "intensity":
-                return data["hillas_intensity"]
-
-            if self.weights == "aspect-weighted-intensity":
-                return (
-                    data["hillas_intensity"]
-                    * data["hillas_length"]
-                    / data["hillas_width"]
-                )
-
-            return np.ones(len(data))
-
-        raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
-        )
 
     def _combine_energy(self, event):
         ids = []
