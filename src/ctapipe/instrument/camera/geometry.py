@@ -37,6 +37,18 @@ def _distance(x1, y1, x2, y2):
 
 
 @unique
+class PixelGridType(Enum):
+    """Grid type for pixel coordinate grids."""
+
+    #: Regular square grid with minimal gaps
+    REGULAR_SQUARE = "square"
+    #: Regular hexagonal grid
+    REGULAR_HEX = "hex"
+    #: Everything else
+    IRREGULAR = "irregular"
+
+
+@unique
 class PixelShape(Enum):
     """Supported Pixel Shapes Enum"""
 
@@ -100,6 +112,10 @@ class CameraGeometry:
         position of each pixel (y-coordinate)
     pix_area : u.Quantity
         surface area of each pixel
+    grid_type : None | PixelGridType
+        The grid type of the pixel grid. By default, square pixels
+        are assumed to be on a regular square grid and circular and hexagonal
+        pixels are assumed to be on a regular hex grid.
     pix_type : PixelShape
         either 'rectangular' or 'hexagonal'
     pix_rotation : u.Quantity[angle]
@@ -128,7 +144,8 @@ class CameraGeometry:
         pix_x,
         pix_y,
         pix_area,
-        pix_type,
+        pix_type: PixelShape,
+        grid_type: None | PixelGridType = None,
         pix_rotation=0 * u.deg,
         cam_rotation=0 * u.deg,
         neighbors=None,
@@ -185,6 +202,15 @@ class CameraGeometry:
         self.cam_rotation = cam_rotation
         self._neighbors = neighbors
         self.frame = frame
+
+        # if grid_type is not given, deduce grid type from pix type assuming regular grids
+        if grid_type is None:
+            if pix_type is PixelShape.SQUARE:
+                self.grid_type = PixelGridType.REGULAR_SQUARE
+            else:
+                self.grid_type = PixelGridType.REGULAR_HEX
+        else:
+            self.grid_type = grid_type
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -722,15 +748,17 @@ class CameraGeometry:
         if self.n_pixels <= 1:
             return csr_array(np.ones((self.n_pixels, self.n_pixels), dtype=bool))
 
-        # assume circle pixels are also on a hex grid
-        if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
+        if self.grid_type is PixelGridType.REGULAR_HEX:
             max_neighbors = 6
             # on a hexgrid, the closest pixel in the second circle is
             # the diameter of the hexagon plus the inradius away
             # in units of the diameter, this is 1 + np.sqrt(3) / 4 = 1.433
             radius = 1.4
             norm = 2  # use L2 norm for hex
-        else:
+            # for square pixels on a hexgrid, the grid is stretched
+            if self.pix_type is PixelShape.SQUARE:
+                radius *= np.sqrt(5) / 2
+        elif self.grid_type is PixelGridType.REGULAR_SQUARE:
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
             # < than 2 * the pixel size, else 4 neighbors with max L1 distance
@@ -745,6 +773,10 @@ class CameraGeometry:
                 max_neighbors = 4
                 radius = 1.5
                 norm = 1
+        else:
+            raise ValueError(
+                "Automatic computation of pixel neighbors only implemented for regular square and hex grids"
+            )
 
         distances, neighbor_candidates = self._kdtree.query(
             self._kdtree.data, k=max_neighbors + 1, p=norm
