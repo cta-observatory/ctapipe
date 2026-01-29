@@ -8,7 +8,7 @@ from traitlets import UseEnum
 
 from ctapipe.containers import ImageParametersContainer
 from ctapipe.core import Component
-from ctapipe.core.traits import Bool, CaselessStrEnum, Float, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -499,9 +499,8 @@ class StereoDispCombiner(StereoCombiner):
 
     2. For every telescope pair, all four SIGN combinations are evaluated.
        The SIGN pair that minimizes the angular distance between the two predicted
-       positions is selected, optionally weighted by the telescope-wise DISP
-       sign score. A weighted mean for the minimum distance per telescope pair
-       is calculated.
+       positions is selected. A weighted mean for the minimum distance per
+       telescope pair is calculated.
 
     3. A second weighted mean FoV direction of all telescope-pair minima is computed
        afterwards and transformed into horizontal (Alt/Az) coordinates.
@@ -514,23 +513,7 @@ class StereoDispCombiner(StereoCombiner):
       is supported.
     - Weighting options follow the same convention as in :class:`StereoMeanCombiner`
       (none, intensity, aspect-weighted-intensity).
-    - The DISP sign-score can optionally be used to prefer SIGN combinations
-      with higher reliability when resolving the DISP head–tail ambiguity.
     """
-
-    sign_score_limit = Float(
-        default_value=0.85,
-        min=0,
-        max=1.0,
-        allow_none=True,
-        help=(
-            "Lower-limit for the telescope-wise sign scores to consider in the weighting "
-            "of the distances per telescope combination. The value must be between 0 and "
-            "and 1. Telescope events with a sign score above this limit are taken "
-            "preferably into account for calculating the minimum distance per telescope "
-            "combination. Set to None to disable this feature."
-        ),
-    ).tag(config=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -543,22 +526,11 @@ class StereoDispCombiner(StereoCombiner):
 
         self.n_tel_combinations = 2
 
-    def _calc_dist_weights(self, disp, sign_score, signs):
-        dist_weight = np.ones(2)
-        if self.sign_score_limit is None:
-            return dist_weight
-
-        if sign_score >= self.sign_score_limit:
-            dist_weight[np.sign(disp) == signs] = 1 / (1 + sign_score)
-
-        return dist_weight
-
     def _combine_altaz(self, event):
         ids = []
         fov_lon_values = []
         fov_lat_values = []
         weights = []
-        dist_weights = []
 
         signs = np.array([-1, 1])
 
@@ -577,13 +549,8 @@ class StereoDispCombiner(StereoCombiner):
                         f"StereoDispCombiner or adapt the prefix accordingly."
                     )
 
-                sign_score = dl2.disp[self.prefix].sign_score
-                dist_weight = self._calc_dist_weights(disp, sign_score, signs)
-                dist_weights.append(dist_weight)
-
-                abs_disp = np.abs(disp)
-                fov_lons = hillas_fov_lon + signs * abs_disp * np.cos(hillas_psi)
-                fov_lats = hillas_fov_lat + signs * abs_disp * np.sin(hillas_psi)
+                fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
+                fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
                 fov_lon_values.append(fov_lons)
                 fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
@@ -596,7 +563,6 @@ class StereoDispCombiner(StereoCombiner):
                 np.array(fov_lon_values),
                 np.array(fov_lat_values),
                 np.array(weights),
-                np.array(dist_weights),
             )
             fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
             fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
@@ -679,10 +645,8 @@ class StereoDispCombiner(StereoCombiner):
         weights = self._calculate_weights(mono_predictions[valid])
 
         if np.count_nonzero(valid) > 0:
-            fov_lon_values, fov_lat_values, dist_weights = calc_fov_lon_lat(
-                mono_predictions[valid],
-                self.sign_score_limit,
-                prefix,
+            fov_lon_values, fov_lat_values = calc_fov_lon_lat(
+                mono_predictions[valid], prefix
             )
             combs_array, combs_to_multi_indices = create_combs_array(
                 valid_multiplicity.max(), self.n_tel_combinations
@@ -706,7 +670,6 @@ class StereoDispCombiner(StereoCombiner):
                 fov_lon_values,
                 fov_lat_values,
                 weights,
-                dist_weights,
             )
 
             # All calculated telescope combinations are valid here.

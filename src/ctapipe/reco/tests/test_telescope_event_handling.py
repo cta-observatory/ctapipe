@@ -75,18 +75,16 @@ def test_calc_combs_min_distances():
     fov_lon_values = np.array([[1, 2], [3, 4], [5, 6]])
     fov_lat_values = np.array([[7, 8], [9, 10], [11, 12]])
     weights = np.array([1, 2, 3])
-    dist_weights = np.array([[1, 1], [1, 1], [1, 0.55]], dtype=np.float64)
 
     exp_comb_weights = np.array([3, 4, 5])
-    exp_fov_lons = np.array([2.66666667, 5, 5.2])
-    exp_fov_lats = np.array([8.66666667, 11, 11.2])
+    exp_fov_lons = np.array([2.66666667, 4.25, 4.6])
+    exp_fov_lats = np.array([8.66666667, 10.25, 10.6])
 
     fov_lons_ev, fov_lats_ev, comb_weights_ev = calc_combs_min_distances_event(
         index_tel_combs,
         fov_lon_values,
         fov_lat_values,
         weights,
-        dist_weights,
     )
 
     fov_lons_tab, fov_lats_tab, comb_weights_tab = calc_combs_min_distances_table(
@@ -94,7 +92,6 @@ def test_calc_combs_min_distances():
         fov_lon_values,
         fov_lat_values,
         weights,
-        dist_weights,
     )
     assert np.allclose(fov_lons_ev, exp_fov_lons)
     assert np.allclose(fov_lons_tab, exp_fov_lons)
@@ -108,26 +105,22 @@ def test_calc_fov_lon_lat():
     from ctapipe.reco.telescope_event_handling import calc_fov_lon_lat
 
     prefix = "disp"
-    sign_score_limit = 0.85
     tel_table = Table(
         {
             "hillas_fov_lon": [1, 2, 3] * u.deg,
             "hillas_fov_lat": [4, 5, 6] * u.deg,
             "hillas_psi": [0, 45, 90] * u.deg,
             f"{prefix}_parameter": [1, 2.5, 3] * u.deg,
-            f"{prefix}_sign_score": [0.7, 0.8, 0.9],
         }
     )
 
-    lon, lat, dist_weights = calc_fov_lon_lat(tel_table, sign_score_limit, prefix)
+    lon, lat = calc_fov_lon_lat(tel_table, prefix)
 
     exp_lon = np.array([[0.0, 2.0], [0.23223305, 3.76776695], [3.0, 3.0]])
     exp_lat = np.array([[4.0, 4.0], [3.23223305, 6.76776695], [3.0, 9.0]])
-    exp_dist_weights = np.array([[1, 1], [1, 1], [1, 1 / (1 + 0.9)]])
 
     assert np.allclose(lon, exp_lon)
     assert np.allclose(lat, exp_lat)
-    assert np.allclose(dist_weights, exp_dist_weights)
 
 
 def test_create_combs_array():
