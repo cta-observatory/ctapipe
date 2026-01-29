@@ -7,6 +7,8 @@ import astropy.units as u
 import numpy as np
 from numba import njit, uint64
 
+from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
+
 __all__ = [
     "get_subarray_index",
     "weighted_mean_std_ufunc",
@@ -19,7 +21,7 @@ __all__ = [
 ]
 
 
-@njit
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _get_subarray_index(obs_ids, event_ids):
     n_tel_events = len(obs_ids)
     idx = np.zeros(n_tel_events, dtype=uint64)
@@ -197,7 +199,7 @@ def get_combinations(array_length, comb_size):
     return np.array(list(combinations(range(array_length), comb_size)))
 
 
-@njit
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def calc_combs_min_distances_event(
     index_tel_combs, fov_lon_values, fov_lat_values, weights, dist_weights
 ):
@@ -482,7 +484,7 @@ def create_combs_array(max_multiplicity, k):
     return combs_array, combs_to_multi_indices
 
 
-@njit
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _binomial(n, k):
     """
     Compute the binomial coefficient (`n` choose `k`).
@@ -508,7 +510,7 @@ def _binomial(n, k):
     return c
 
 
-@njit
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _calc_n_combs(multiplicity, k):
     """
     Calculate the number of possible `k`-combinations for each `multiplicity` value.
@@ -532,7 +534,7 @@ def _calc_n_combs(multiplicity, k):
     return n_combs
 
 
-@njit
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def get_index_combs(multiplicities, combs_array, combs_to_multi_indices, k):
     """
     Generate the telescope event indices for all `k`-combinations of telescope events based on
