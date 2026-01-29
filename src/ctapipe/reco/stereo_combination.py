@@ -69,10 +69,10 @@ class StereoCombiner(Component):
     """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"],
+        ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
         ),
     ).tag(config=True)
 
@@ -94,7 +94,7 @@ class StereoCombiner(Component):
             if self.weights == "intensity":
                 return data.hillas.intensity
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
             return 1
@@ -103,7 +103,7 @@ class StereoCombiner(Component):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return (
                     data["hillas_intensity"]
                     * data["hillas_length"]
@@ -162,7 +162,7 @@ class StereoMeanCombiner(StereoCombiner):
 
     - ``none``: all telescopes contribute equally
     - ``intensity``: weight proportional to image intensity
-    - ``konrad``: intensity × (length/width)
+    - ``aspect-weighted-intensity``: intensity × (length/width)
 
     If ``log_target=True`` and ``ENERGY`` is combined, the combiner computes
     the geometric mean by averaging the logarithm of the energies.
@@ -545,7 +545,7 @@ class StereoDispCombiner(StereoCombiner):
     - Only geometry (:class:`~ctapipe.reco.ReconstructionProperty.GEOMETRY`)
       is supported.
     - Weighting options follow the same convention as in :class:`StereoMeanCombiner`
-      (none, intensity, konrad).
+      (none, intensity, aspect-weighted-intensity).
     - The DISP sign-score can optionally be used to prefer SIGN combinations
       with higher reliability when resolving the DISP head–tail ambiguity.
     """

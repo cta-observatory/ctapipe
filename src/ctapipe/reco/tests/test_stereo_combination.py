@@ -327,7 +327,7 @@ def test_predict_disp_combiner(mono_table):
     assert_array_equal(tel_ids[3], [1, 3, 4, 5])
 
 
-@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+@pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
 def test_disp_combiner_single_event(weights):
     event = ArrayEventContainer()
 
@@ -385,7 +385,7 @@ def test_disp_combiner_single_event(weights):
         sign_score_limit=0.85,
     )
     disp_combiner(event)
-    if weights in ["intensity", "konrad"]:
+    if weights in ["intensity", "aspect-weighted-intensity"]:
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 70.76691618 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.1487853 * u.deg)
     elif weights == "none":
