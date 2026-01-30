@@ -1,6 +1,58 @@
 #!/usr/bin/env python3
 
-"""Components for computing event weights."""
+"""
+Components for computing event weights.
+
+`~ctapipe.irf.EventWeighter` is a base Component with implementations of spectral event weighting:
+
+* `~ctapipe.irf.SimpleEventWeighter`: spectral weighting for the full FOV
+* `~ctapipe.irf.RadialEventWeighter`: spectral weighing in radial bins in the  FOV
+
+They operate on a pre-processed table of DL2 information, where you specify the
+energy and FOV coordinate columns to use. The interface is as follows:
+
+.. code-block:: python
+
+  from astropy.table import QTable
+
+  from ctapipe.irf import RadialEventWeighter  spectrum_from_name
+
+  table = QTable(
+      dict(
+          true_energy=[1.0, 2.0, 0.5, 0.2] * u.TeV,
+          true_fov_offset=[0.1, 1.2, 2.2, 3.2] * u.deg,
+      )
+  )
+
+  # the source spectrum can be anything, but is usually loaded
+  # with ctapipe.irf.spectrum_from_simulation_config() to
+  # weight simulations. Here we will just use the electron
+  # spectrum as a demo:
+  source_spectrum = spectrum_from_name("IRFDOC_ELECTRON_SPECTRUM")
+
+  weighter = RadialEventWeighter(
+      source_spectrum=source_spectrum
+      target_spectrum_name="CRAB_HEGRA",
+      fov_offset_max=5.0*u.deg,
+      fov_offset_n_bins=5,
+  )
+
+  table_with_weights = weighter(table)
+  print(table_with_weights)
+
+
+::
+
+  true_energy true_fov_offset       weight       fov_offset_bin
+      TeV           deg
+  ----------- --------------- ------------------ --------------
+          1.0             0.1 12.399508446433442              1
+          2.0             1.2  7.247055871572714              2
+          0.5             2.2 1.4149219056909543              3
+          0.2             3.2 0.4812883464910382              4
+
+
+"""
 
 from abc import abstractmethod
 from collections.abc import Callable
