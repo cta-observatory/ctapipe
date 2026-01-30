@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 import pytest
 from astropy import units as u
-from astropy.coordinates import AltAz, Angle, EarthLocation, SkyCoord
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.table import Table
 from astropy.time import Time
 from erfa import ErfaWarning
@@ -18,26 +18,15 @@ def test_get_bright_stars():
     """
     unit test for utils.astro.get_bright_stars_with_motion().
     """
-    from astroquery.vizier import Vizier
-
     from ctapipe.utils import get_bright_stars
-
-    vizier = Vizier(
-        catalog="Nomad",
-        columns=["RAJ2000", "DEJ2000", "pmRA", "pmDE"],
-        row_limit=10,
-    )
-
-    # use polaris as a reference
-    polaris = vizier.query_object("polaris", radius=1 * u.Unit("arcsec"))[0][0]
 
     t = Time("J2024")
 
     polaris = SkyCoord(
-        ra=Angle(polaris["RAJ2000"], unit="deg"),
-        dec=Angle(polaris["DEJ2000"], unit="deg"),
-        pm_ra_cosdec=polaris["pmRA"] * u.Unit("mas/yr"),
-        pm_dec=polaris["pmDE"] * u.Unit("mas/yr"),
+        ra=37.9545108 * u.deg,
+        dec=89.2641097 * u.deg,
+        pm_ra_cosdec=44.2 * u.mas / u.year,
+        pm_dec=-11.7 * u.mas / u.year,
         obstime=Time("J2000"),
     )
 
