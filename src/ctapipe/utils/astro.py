@@ -169,7 +169,7 @@ def _query_vizier(catalog, columns, row_limit, magnitude_cutoff):
 
 
 def _query_vizier_with_retry(
-    catalog, columns, row_limit, magnitude_cutoff, max_tries=3, retry_delay=10
+    catalog, columns, row_limit, magnitude_cutoff, max_tries=3, retry_delay=30
 ):
     current = 0
     exception = None
@@ -182,7 +182,7 @@ def _query_vizier_with_retry(
             time.sleep(retry_delay)
         current += 1
 
-    raise ValueError(f"Failed to query vizier after {max_tries}: {exception}")
+    raise ValueError(f"Failed to query vizier after {max_tries} tries: {exception}")
 
 
 def get_star_catalog(
