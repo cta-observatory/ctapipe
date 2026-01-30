@@ -157,60 +157,18 @@ class CameraGeometry:
         self.n_pixels = len(pix_id)
         self.unit = pix_x.unit
         self.pix_id = np.array(pix_id)
-
-        if _validate:
-            self.pix_id = np.array(self.pix_id)
-
-            if self.pix_id.ndim != 1:
-                raise ValueError(
-                    f"Pixel coordinates must be 1 dimensional, got {pix_id.ndim}"
-                )
-
-            shape = (self.n_pixels,)
-
-            if pix_x.shape != shape:
-                raise ValueError(
-                    f"pix_x has wrong shape: {pix_x.shape}, expected {shape}"
-                )
-            if pix_y.shape != shape:
-                raise ValueError(
-                    f"pix_y has wrong shape: {pix_y.shape}, expected {shape}"
-                )
-            if pix_area.shape != shape:
-                raise ValueError(
-                    f"pix_area has wrong shape: {pix_area.shape}, expected {shape}"
-                )
-
-            if isinstance(pix_type, str):
-                pix_type = PixelShape.from_string(pix_type)
-            elif not isinstance(pix_type, PixelShape):
-                raise TypeError(
-                    f"pix_type must be a PixelShape or the name of a PixelShape, got {pix_type}"
-                )
-
-            if not isinstance(pix_rotation, Angle):
-                pix_rotation = Angle(pix_rotation)
-
-            if not isinstance(cam_rotation, Angle):
-                cam_rotation = Angle(cam_rotation)
-
         self.pix_x = pix_x
         self.pix_y = pix_y.to(self.unit)
         self.pix_area = pix_area.to(self.unit**2)
         self.pix_type = pix_type
+        self.grid_type = grid_type
         self.pix_rotation = pix_rotation
         self.cam_rotation = cam_rotation
         self._neighbors = neighbors
         self.frame = frame
 
-        # if grid_type is not given, deduce grid type from pix type assuming regular grids
-        if grid_type is None:
-            if pix_type is PixelShape.SQUARE:
-                self.grid_type = PixelGridType.REGULAR_SQUARE
-            else:
-                self.grid_type = PixelGridType.REGULAR_HEX
-        else:
-            self.grid_type = PixelGridType(grid_type)
+        if _validate:
+            self._validate()
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -226,6 +184,59 @@ class CameraGeometry:
 
             # cache border pixel mask per instance
         self._border_cache = {}
+
+    def _validate(self):
+        self.pix_id = np.array(self.pix_id)
+
+        if self.pix_id.ndim != 1:
+            raise ValueError(
+                f"Pixel coordinates must be 1 dimensional, got {self.pix_id.ndim}"
+            )
+
+        shape = (self.n_pixels,)
+
+        if self.pix_x.shape != shape:
+            raise ValueError(
+                f"pix_x has wrong shape: {self.pix_x.shape}, expected {shape}"
+            )
+        if self.pix_y.shape != shape:
+            raise ValueError(
+                f"pix_y has wrong shape: {self.pix_y.shape}, expected {shape}"
+            )
+        if self.pix_area.shape != shape:
+            raise ValueError(
+                f"pix_area has wrong shape: {self.pix_area.shape}, expected {shape}"
+            )
+
+        if isinstance(self.pix_type, str):
+            self.pix_type = PixelShape.from_string(self.pix_type)
+        elif not isinstance(self.pix_type, PixelShape):
+            raise TypeError(
+                f"pix_type must be a PixelShape or the name of a PixelShape, got {self.pix_type}"
+            )
+
+        # if grid_type is not given, deduce grid type from pix type assuming regular grids
+        self.grid_type = self._get_grid_type(self.grid_type, self.pix_type)
+
+        if not isinstance(self.pix_rotation, Angle):
+            self.pix_rotation = Angle(self.pix_rotation)
+
+        if not isinstance(self.cam_rotation, Angle):
+            self.cam_rotation = Angle(self.cam_rotation)
+
+    @staticmethod
+    def _get_grid_type(grid_type: PixelGridType | str | None, pixel_shape: PixelShape):
+        if isinstance(grid_type, PixelGridType):
+            return grid_type
+
+        if grid_type is None:
+            # backwards compatibility: assume square grid for square pixels, hexgrid for anything else
+            if pixel_shape is PixelShape.SQUARE:
+                return PixelGridType.REGULAR_SQUARE
+
+            return PixelGridType.REGULAR_HEX
+
+        return PixelGridType(grid_type)
 
     def __eq__(self, other):
         if not isinstance(other, CameraGeometry):
@@ -349,6 +360,7 @@ class CameraGeometry:
             pix_y=trans_y,
             pix_area=pix_area,
             pix_type=cam.pix_type,
+            grid_type=cam.grid_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
             neighbors=cam._neighbors,
@@ -378,6 +390,7 @@ class CameraGeometry:
             pix_y=self.pix_y[slice_],
             pix_area=self.pix_area[slice_],
             pix_type=self.pix_type,
+            grid_type=self.grid_type,
             pix_rotation=self.pix_rotation,
             cam_rotation=self.cam_rotation,
             neighbors=None,
