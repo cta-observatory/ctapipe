@@ -183,9 +183,12 @@ norecursedirs = [
 ]
 
 [tool.coverage.run]
-include = ["src/*"]
 relative_files = true
+source = ["src"]
+parallel = true
+concurrency = ["multiprocessing", "thread"]
 omit = ["src/ctapipe/_version.py"]
+patch = ["subprocess"]
 
 [tool.towncrier]
     package = "ctapipe"
