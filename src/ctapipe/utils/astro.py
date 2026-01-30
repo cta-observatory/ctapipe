@@ -7,6 +7,7 @@ usage within ctapipe.
 
 import gzip
 import logging
+import time
 import warnings
 from collections import namedtuple
 from copy import deepcopy
@@ -155,6 +156,35 @@ def select_stars(
     return stars_
 
 
+def _query_vizier(catalog, columns, row_limit, magnitude_cutoff):
+    from astroquery.vizier import Vizier
+
+    vizier = Vizier(
+        catalog=catalog,
+        columns=columns,
+        row_limit=row_limit,
+    )
+
+    return vizier.query_constraints(Vmag=f"<{magnitude_cutoff}")[0]
+
+
+def _query_vizier_with_retry(
+    catalog, columns, row_limit, magnitude_cutoff, max_tries=3, retry_delay=10
+):
+    current = 0
+    exception = None
+    while current < max_tries:
+        try:
+            return _query_vizier(catalog, columns, row_limit, magnitude_cutoff)
+        except Exception as e:
+            log.exception("Querying Vizier failed in attempt: %d", current)
+            exception = e
+            time.sleep(retry_delay)
+        current += 1
+
+    raise ValueError(f"Failed to query vizier after {max_tries}: {exception}")
+
+
 def get_star_catalog(
     catalog: str | StarCatalog, magnitude_cutoff: float = 8.0, row_limit: int = 1000000
 ) -> Table:
@@ -176,20 +206,18 @@ def get_star_catalog(
         List of all stars after cuts with catalog numbers, magnitudes,
         and coordinates as SkyCoord objects including proper motion.
     """
-    from astroquery.vizier import Vizier
-
     if isinstance(catalog, str):
         catalog = StarCatalog[catalog]
+
     catalog_info = catalog.value
     catalog_name = catalog.name
 
-    vizier = Vizier(
+    stars = _query_vizier_with_retry(
         catalog=catalog_info.directory,
         columns=catalog_info.columns,
         row_limit=row_limit,
+        magnitude_cutoff=magnitude_cutoff,
     )
-
-    stars = vizier.query_constraints(Vmag=f"<{magnitude_cutoff}")[0]
 
     header = {
         "ORIGIN": "CTAPIPE",
