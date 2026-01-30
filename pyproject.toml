@@ -173,6 +173,7 @@ filterwarnings = [
     "ignore:'setParseAction':DeprecationWarning:matplotlib",
     "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
     "ignore:'unquoteResults':DeprecationWarning:matplotlib",
+    "ignore:'enablePackrat':DeprecationWarning:matplotlib",
     "ignore:'parseAll':DeprecationWarning:pyparsing",
 ]
 norecursedirs = [
