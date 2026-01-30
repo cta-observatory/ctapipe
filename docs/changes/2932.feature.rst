@@ -1,0 +1,2 @@
+Add a new attribute ``grid_type`` to the ``CameraGeometry`` to
+add the possibility of handling cameras with square pixels using hexagonal grids.
