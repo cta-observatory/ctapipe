@@ -8,7 +8,8 @@ from traitlets import UseEnum
 
 from ctapipe.containers import ImageParametersContainer
 from ctapipe.core import Component
-from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Integer, TraitError, Unicode
+from ctapipe.image.statistics import arg_n_largest
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -20,13 +21,14 @@ from ..containers import (
 )
 from .preprocessing import telescope_to_horizontal
 from .telescope_event_handling import (
-    calc_combs_min_distances_event,
-    calc_combs_min_distances_table,
+    calc_combs_min_distances,
     calc_fov_lon_lat,
     create_combs_array,
+    fill_lower_multiplicities,
     get_combinations,
     get_index_combs,
     get_subarray_index,
+    valid_tels_of_multi,
     weighted_mean_std_ufunc,
 )
 from .utils import add_defaults_and_meta
@@ -513,18 +515,43 @@ class StereoDispCombiner(StereoCombiner):
       is supported.
     - Weighting options follow the same convention as in :class:`StereoMeanCombiner`
       (none, intensity, aspect-weighted-intensity).
+    - The ``n_tel_combinations`` trait controls how many telescopes form a
+      combination (minimum 2). The ``n_best_tels`` trait optionally limits the
+      reconstruction to the best ``n_best_tels`` telescopes by weight; set it to
+      ``None`` to use all valid telescopes.
     """
+
+    n_tel_combinations = Integer(
+        default_value=2,
+        min=2,
+        help=(
+            "Number of telescopes used per combination (minimum 2). Values "
+            "above 5 lead to significantly increased computation time."
+        ),
+    ).tag(config=True)
+
+    n_best_tels = Integer(
+        default_value=None,
+        min=2,
+        allow_none=True,
+        help=(
+            "Select the best n_best_tels telescopes by weight for the combination. "
+            "Set to None to use all valid telescopes."
+        ),
+    ).tag(config=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if self.n_best_tels is not None and self.n_tel_combinations > self.n_best_tels:
+            raise TraitError(
+                "n_tel_combinations must be less than or equal to n_best_tels."
+            )
         self.supported = ReconstructionProperty.GEOMETRY
         if self.property not in self.supported:
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
-
-        self.n_tel_combinations = 2
 
     def _combine_altaz(self, event):
         ids = []
@@ -556,22 +583,28 @@ class StereoDispCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
-        if len(fov_lon_values) > 1:
-            index_tel_combs = get_combinations(len(ids), self.n_tel_combinations)
-            fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
+        multiplicity = len(ids)
+        n_tel_combs = min(self.n_tel_combinations, multiplicity)
+        best_tels_idx = np.arange(multiplicity)
+        if self.n_best_tels is not None and multiplicity > self.n_best_tels:
+            best_tels_idx = arg_n_largest(self.n_best_tels, np.array(weights))
+
+        # single tel events
+        if multiplicity == 1:
+            fov_lon_weighted_average = hillas_fov_lon + disp * np.cos(hillas_psi)
+            fov_lat_weighted_average = hillas_fov_lat + disp * np.sin(hillas_psi)
+            valid = True
+
+        elif multiplicity > 1:
+            index_tel_combs = get_combinations(len(best_tels_idx), n_tel_combs)
+            fov_lons, fov_lats, comb_weights = calc_combs_min_distances(
                 index_tel_combs,
-                np.array(fov_lon_values),
-                np.array(fov_lat_values),
-                np.array(weights),
+                np.array(fov_lon_values)[best_tels_idx],
+                np.array(fov_lat_values)[best_tels_idx],
+                np.array(weights)[best_tels_idx],
             )
             fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
             fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
-            valid = True
-
-        # single tel events
-        elif len(fov_lon_values) == 1:
-            fov_lon_weighted_average = hillas_fov_lon + disp * np.cos(hillas_psi)
-            fov_lat_weighted_average = hillas_fov_lat + disp * np.sin(hillas_psi)
             valid = True
 
         else:
@@ -665,7 +698,7 @@ class StereoDispCombiner(StereoCombiner):
                 comb_fov_lons,
                 comb_fov_lats,
                 comb_weights,
-            ) = calc_combs_min_distances_table(
+            ) = calc_combs_min_distances(
                 index_tel_combs,
                 fov_lon_values,
                 fov_lat_values,
@@ -691,6 +724,18 @@ class StereoDispCombiner(StereoCombiner):
 
             valid_tel_to_array_indices = tel_to_array_indices[valid]
             valid_array_indices = np.unique(valid_tel_to_array_indices)
+
+            if self.n_tel_combinations > 2:
+                fill_lower_multiplicities(
+                    fov_lon_combs_mean,
+                    fov_lat_combs_mean,
+                    self.n_tel_combinations,
+                    valid_tel_to_array_indices,
+                    valid_multiplicity,
+                    fov_lon_values,
+                    fov_lat_values,
+                    weights,
+                )
 
             fov_lon_mean = np.full(n_array_events, np.nan)
             fov_lat_mean = np.full(n_array_events, np.nan)
@@ -721,9 +766,7 @@ class StereoDispCombiner(StereoCombiner):
 
             # Fill single telescope events from mono_predictions
             index_single_tel_events = valid_array_indices[valid_multiplicity == 1]
-            mask_single_tel_events = np.isin(
-                valid_tel_to_array_indices, index_single_tel_events
-            )
+            mask_single_tel_events = valid_tels_of_multi(1, valid_tel_to_array_indices)
             alt[index_single_tel_events] = mono_predictions[f"{prefix}_alt"][valid][
                 mask_single_tel_events
             ]
