@@ -12,7 +12,6 @@ from ..exceptions import OptionalDependencyMissing
 try:
     import tensorflow as tf
 
-    tf.config.set_visible_devices([], "GPU")
     tf_function = tf.function
 except ModuleNotFoundError:
     tf = None
@@ -477,6 +476,8 @@ class FreePACTInterpolator(BaseTemplate):
         super().__init__()
         if tf is None:
             raise OptionalDependencyMissing("tensorflow")
+        else:
+            tf.config.set_visible_devices([], "GPU")
 
         data_input_dict = load_prediction_files_filtered(directory)
 
