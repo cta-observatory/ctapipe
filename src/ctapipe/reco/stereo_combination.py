@@ -8,7 +8,14 @@ from traitlets import UseEnum
 
 from ctapipe.containers import ImageParametersContainer
 from ctapipe.core import Component
-from ctapipe.core.traits import Bool, CaselessStrEnum, Integer, TraitError, Unicode
+from ctapipe.core.traits import (
+    Bool,
+    CaselessStrEnum,
+    Float,
+    Integer,
+    TraitError,
+    Unicode,
+)
 from ctapipe.image.statistics import arg_n_largest
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
@@ -540,6 +547,20 @@ class StereoDispCombiner(StereoCombiner):
         ),
     ).tag(config=True)
 
+    min_ang_diff = Float(
+        default_value=None,
+        min=0.0,
+        allow_none=True,
+        help=(
+            "Minimum angular separation (in degrees) between the reconstructed main shower "
+            "axes of two telescopes. This cut is applied only to array events with exactly "
+            "two participating telescopes (multiplicity = 2). Events for which the angular "
+            "difference between the two shower axes is smaller than this value are rejected, "
+            "as nearly parallel axes lead to problems solving the head-tail ambiguity. "
+            "Set to None to disable this cut."
+        ),
+    ).tag(config=True)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -553,8 +574,14 @@ class StereoDispCombiner(StereoCombiner):
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
+    def _check_ang_diff(self, psi1, psi2):
+        ang_diff = np.abs(psi1 - psi2) % (180 * u.deg)
+        ang_diff = np.minimum(ang_diff, 180 * u.deg - ang_diff)
+        return ang_diff >= (self.min_ang_diff * u.deg)
+
     def _combine_altaz(self, event):
         ids = []
+        hillas_psis = []
         fov_lon_values = []
         fov_lat_values = []
         weights = []
@@ -582,43 +609,50 @@ class StereoDispCombiner(StereoCombiner):
                 fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
+                hillas_psis.append(hillas_psi)
 
         multiplicity = len(ids)
-        n_tel_combs = min(self.n_tel_combinations, multiplicity)
-        best_tels_idx = np.arange(multiplicity)
-        if self.n_best_tels is not None and multiplicity > self.n_best_tels:
-            best_tels_idx = arg_n_largest(self.n_best_tels, np.array(weights))
+        alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
+        valid = False
 
         # single tel events
         if multiplicity == 1:
-            fov_lon_weighted_average = hillas_fov_lon + disp * np.cos(hillas_psi)
-            fov_lat_weighted_average = hillas_fov_lat + disp * np.sin(hillas_psi)
+            stereo_fov_lon = hillas_fov_lon + disp * np.cos(hillas_psi)
+            stereo_fov_lat = hillas_fov_lat + disp * np.sin(hillas_psi)
             valid = True
 
-        elif multiplicity > 1:
-            index_tel_combs = get_combinations(len(best_tels_idx), n_tel_combs)
-            fov_lons, fov_lats, comb_weights = calc_combs_min_distances(
-                index_tel_combs,
-                np.array(fov_lon_values)[best_tels_idx],
-                np.array(fov_lat_values)[best_tels_idx],
-                np.array(weights)[best_tels_idx],
-            )
-            fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
-            fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
-            valid = True
+        elif multiplicity >= 2:
+            if (
+                multiplicity == 2
+                and self.min_ang_diff is not None
+                and not self._check_ang_diff(hillas_psis[0], hillas_psis[1])
+            ):
+                pass
 
-        else:
-            alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
-            valid = False
+            else:
+                n_tel_combs = min(self.n_tel_combinations, multiplicity)
+                best_tels_idx = np.arange(multiplicity)
+                if self.n_best_tels is not None and multiplicity > self.n_best_tels:
+                    best_tels_idx = arg_n_largest(self.n_best_tels, np.array(weights))
+
+                index_tel_combs = get_combinations(len(best_tels_idx), n_tel_combs)
+                fov_lons, fov_lats, comb_weights = calc_combs_min_distances(
+                    index_tel_combs,
+                    np.array(fov_lon_values)[best_tels_idx],
+                    np.array(fov_lat_values)[best_tels_idx],
+                    np.array(weights)[best_tels_idx],
+                )
+                stereo_fov_lon = np.average(fov_lons, weights=comb_weights)
+                stereo_fov_lat = np.average(fov_lats, weights=comb_weights)
+                valid = True
 
         if valid:
             alt, az = telescope_to_horizontal(
-                lon=fov_lon_weighted_average * u.deg,
-                lat=fov_lat_weighted_average * u.deg,
+                lon=stereo_fov_lon * u.deg,
+                lat=stereo_fov_lat * u.deg,
                 pointing_alt=event.monitoring.pointing.array_altitude,
                 pointing_az=event.monitoring.pointing.array_azimuth,
             )
-
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
             az=az,
@@ -667,6 +701,22 @@ class StereoDispCombiner(StereoCombiner):
         obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(
             mono_predictions
         )
+
+        # Reject events with multiplicity 2 and nearly parallel main shower axes
+        if self.min_ang_diff is not None:
+            mask_multi2_tels = valid_tels_of_multi(2, tel_to_array_indices[valid])
+            if np.any(mask_multi2_tels):
+                valid_idx = np.flatnonzero(valid)
+                pairs_in_valid = np.flatnonzero(mask_multi2_tels).reshape(-1, 2)
+                valid_psis = mono_predictions["hillas_psi"][valid]
+                keep_pairs = self._check_ang_diff(
+                    valid_psis[pairs_in_valid[:, 0]],
+                    valid_psis[pairs_in_valid[:, 1]],
+                )
+                if not np.all(keep_pairs):
+                    tels_to_invalidate = valid_idx[pairs_in_valid[~keep_pairs].ravel()]
+                    valid[tels_to_invalidate] = False
+
         _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
 
         n_array_events = len(obs_ids)
