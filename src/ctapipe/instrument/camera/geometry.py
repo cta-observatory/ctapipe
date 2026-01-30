@@ -14,7 +14,7 @@ from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.sparse import csr_array, lil_array
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 
 from ctapipe.coordinates import CameraFrame, get_representation_component_names
 from ctapipe.utils import get_table_dataset
@@ -134,8 +134,8 @@ class CameraGeometry:
         Frame in which the pixel coordinates are defined (after applying cam_rotation)
     """
 
-    CURRENT_TAB_VERSION = "2.0"
-    SUPPORTED_TAB_VERSIONS = {"1.0", "1", "1.1", "2.0"}
+    CURRENT_TAB_VERSION = "2.1"
+    SUPPORTED_TAB_VERSIONS = {"1.0", "1", "1.1", "2.0", "2.1"}
 
     def __init__(
         self,
@@ -145,7 +145,7 @@ class CameraGeometry:
         pix_y,
         pix_area,
         pix_type: PixelShape,
-        grid_type: None | PixelGridType = None,
+        grid_type: None | PixelGridType | str = None,
         pix_rotation=0 * u.deg,
         cam_rotation=0 * u.deg,
         neighbors=None,
@@ -210,7 +210,7 @@ class CameraGeometry:
             else:
                 self.grid_type = PixelGridType.REGULAR_HEX
         else:
-            self.grid_type = grid_type
+            self.grid_type = PixelGridType(grid_type)
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -451,7 +451,7 @@ class CameraGeometry:
         """
 
         pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
-        return cKDTree(pixel_centers)
+        return KDTree(pixel_centers)
 
     @lazyproperty
     def _all_pixel_areas_equal(self):
@@ -647,6 +647,7 @@ class CameraGeometry:
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
                 PIX_TYPE=self.pix_type.value,
+                GRID=self.grid_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
                 TAB_VER=self.CURRENT_TAB_VERSION,
                 CAM_ID=self.name,
@@ -695,6 +696,7 @@ class CameraGeometry:
             pix_y=tab["pix_y"].quantity,
             pix_area=tab["pix_area"].quantity,
             pix_type=tab.meta["PIX_TYPE"],
+            grid_type=tab.meta.get("GRID"),
             pix_rotation=Angle(tab.meta["PIX_ROT"], u.deg),
             cam_rotation=Angle(tab.meta["CAM_ROT"], u.deg),
         )
