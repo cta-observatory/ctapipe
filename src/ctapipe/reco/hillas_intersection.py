@@ -1,12 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""
-
-TODO:
-- Speed tests, need to be certain the looping on all telescopes is not killing
-performance
-- Introduce new weighting schemes
-- Make intersect_lines code more readable
-
+"""An alternate implementation of the Hillas line-intersection method that more
+closely follows the HESS implementation.
 """
 
 import itertools
