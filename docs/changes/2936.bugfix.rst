@@ -1,0 +1,2 @@
+Fixed bug where telescope-wise fixed pointing tables were merged/appended/copied
+by default even if ``telescope_events`` flag were set to false.
