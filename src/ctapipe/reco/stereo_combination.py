@@ -717,6 +717,24 @@ class StereoDispCombiner(StereoCombiner):
                     tels_to_invalidate = valid_idx[pairs_in_valid[~keep_pairs].ravel()]
                     valid[tels_to_invalidate] = False
 
+        weights = self._calculate_weights(mono_predictions[valid])
+        # Select the best n_best_tels telescopes by weight
+        if self.n_best_tels is not None:
+            valid_tel_to_array_indices = tel_to_array_indices[valid]
+
+            order = np.lexsort((-np.array(weights), tel_to_array_indices))
+            array_idx = tel_to_array_indices[order]
+
+            starts = np.r_[True, array_idx[1:] != array_idx[:-1]]
+            start_pos = np.where(starts, np.arange(array_idx.size), 0)
+            group_start = np.maximum.accumulate(start_pos)
+
+            rank = np.arange(array_idx.size) - group_start
+            keep_n = rank < self.n_best_tels
+
+            keep_in_valid = np.zeros(tel_to_array_indices.size, dtype=bool)
+            keep_in_valid[order[keep_n]] = True
+
         _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
 
         n_array_events = len(obs_ids)
@@ -724,8 +742,6 @@ class StereoDispCombiner(StereoCombiner):
         # copy metadata
         for colname in ("obs_id", "event_id"):
             stereo_table[colname].description = mono_predictions[colname].description
-
-        weights = self._calculate_weights(mono_predictions[valid])
 
         if np.count_nonzero(valid) > 0:
             fov_lon_values, fov_lat_values = calc_fov_lon_lat(
