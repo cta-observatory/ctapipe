@@ -9,6 +9,7 @@ on:
 
 env:
   FRAGMENT_NAME_PREFIX: "docs/changes/${{ github.event.number }}"
+  CATEGORIES: "feature|bugfix|api|datamodel|optimization|maintenance"
 
 jobs:
   changelog:
@@ -22,5 +23,10 @@ jobs:
       - name: Check for at least one changelog fragment
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changelog-needed') }}
         run: |
-          find docs/changes -type f | \
-          grep -P "${FRAGMENT_NAME_PREFIX}\.(feature|bugfix|api|datamodel|optimization|maintenance)\.rst"
+          changelog=$((find docs/changes -type f | grep -P "${FRAGMENT_NAME_PREFIX}\.(${CATEGORIES})\.rst") || echo "")
+          if [ -z "${changelog}" ]; then
+            echo "No changelog snippet found, please add a changelog entry in docs/changes, see docs/changes/README.md"
+            exit 1;
+          else
+            echo "Found changelog snippet: $changelog"
+          fi
