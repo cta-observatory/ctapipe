@@ -15,6 +15,7 @@ from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableloader import TableLoader
 from .hdf5merger import HDF5Merger
 from .hdf5monitoringsource import HDF5MonitoringSource, get_hdf5_monitoring_types
+from .fitsmonitoringsource import FITSMonitoringSource
 from .monitoringsource import MonitoringSource
 from .monitoringtypes import MonitoringType
 
@@ -36,6 +37,7 @@ __all__ = [
     "HDF5EventSource",
     "MonitoringSource",
     "HDF5MonitoringSource",
+    "FITSMonitoringSource",
     "MonitoringType",
     "DataLevel",
     "read_table",
