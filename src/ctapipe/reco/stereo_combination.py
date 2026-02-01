@@ -83,8 +83,15 @@ class StereoCombiner(Component):
         ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, "
-            "``intensity``, ``aspect-weighted-intensity``."
+            "Weighting scheme used to combine telescope-wise mono predictions:\n\n"
+            "- ``none``: All telescopes contribute equally (unweighted mean).\n"
+            "- ``intensity``: Contributions are weighted by the image intensity, "
+            "giving higher weight to brighter images.\n"
+            "- ``aspect-weighted-intensity``: Contributions are weighted by the "
+            "image intensity multiplied by the image aspect ratio (length/width), "
+            "favoring bright and well-elongated images.\n\n"
+            "The selected weighting is applied consistently to all supported "
+            "reconstruction properties (e.g. geometry, energy, particle type)."
         ),
     ).tag(config=True)
 
@@ -169,13 +176,10 @@ class StereoMeanCombiner(StereoCombiner):
     """
     Combine telescope-wise mono reconstructions using a (weighted) mean.
 
-    This implementation supports combining energy, geometry and
-    particle-type predictions. Different weighting schemes can be chosen
-    via the ``weights`` configuration trait. Supported weighting options are:
-
-    - ``none``: all telescopes contribute equally
-    - ``intensity``: weight proportional to image intensity
-    - ``aspect-weighted-intensity``: intensity × (length/width)
+    This implementation supports combining energy, geometry, and
+    particle-type predictions. The weighting scheme applied to the
+    telescope-wise inputs is controlled via the ``weights`` configuration
+    trait.
 
     If ``log_target=True`` and ``ENERGY`` is combined, the combiner computes
     the geometric mean by averaging the logarithm of the energies.
@@ -497,36 +501,76 @@ class StereoDispCombiner(StereoCombiner):
     """
     Stereo combination algorithm for DISP-based direction reconstruction.
 
-    This combiner is essentially an implementation of Algorithm 3
-    of :cite:p:`hofmann-1999-comparison` and a generalized implementation of the
-    EventDisplay implementation where each telescope predicts two possible
-    directions (SIGN = ±1). Especially at low energies, the DISP sign reconstruction
-    can be quite uncertain. To solve this head-tail ambiguity this algorithm does
-    the following for all valid telescopes of an array event:
+    This combiner implements a generalized DISP stereo reconstruction based on
+    Algorithm 3 of :cite:p:`hofmann-1999-comparison` and the EventDisplay
+    approach, where each telescope yields two possible directions
+    (DISP sign = ±1). The algorithm resolves the head–tail ambiguity by
+    combining multiple telescope combinations and applying a weighted mean.
 
-    1. Two possible FoV positions (lon/lat) are computed from the Hillas centroid,
-       the DISP parameter, and the Hillas orientation angle (Hillas psi).
+    **Algorithm overview**
 
-    2. For every telescope pair, all four SIGN combinations are evaluated.
-       The SIGN pair that minimizes the angular distance between the two predicted
-       positions is selected. A weighted mean for the minimum distance per
-       telescope pair is calculated.
+    0. **Pre-selection of valid telescopes (per array event)**
+       The set of telescopes participating in the stereo reconstruction is
+       optionally restricted before any combination step:
 
-    3. A second weighted mean FoV direction of all telescope-pair minima is computed
-       afterwards and transformed into horizontal (Alt/Az) coordinates.
+       - If ``n_best_tels`` is set, only the ``n_best_tels`` telescopes with
+         the highest weights are kept per array event; all other telescopes
+         are excluded from further processing.
+       - For array events with multiplicity exactly two, and if
+         ``min_ang_diff`` is set, events whose Hillas main shower axes are
+         nearly parallel (angular difference below ``min_ang_diff``) are
+         rejected entirely.
 
-    See :class:`StereoCombiner` for a description of the general interface.
+       These selections reduce the effective telescope multiplicity used in
+       the subsequent steps.
+
+    1. For every remaining valid telescope, compute the two possible FoV
+       positions (longitude and latitude) from the Hillas centroid, the
+       reconstructed DISP distance, and the Hillas orientation angle
+       (``psi``), corresponding to DISP sign = ±1.
+
+    2. For each telescope combination of size ``n_tel_combinations``, evaluate
+       all possible DISP sign assignments and select the sign combination that
+       minimizes the angular distance between the participating telescopes.
+
+    3. Combine the resulting per-combination FoV positions using the selected
+       telescope weights and compute a weighted mean FoV direction for each
+       array event.
+
+    4. Convert the final FoV direction to horizontal coordinates (Alt/Az).
+
+    **Handling of lower multiplicities**
+
+    If an array event has an effective telescope multiplicity smaller than
+    ``n_tel_combinations`` (after applying ``n_best_tels`` and any angular
+    difference cuts), but at least two telescopes remain, the reconstruction
+    is performed using all available telescopes of that event. In this case,
+    just one combinationa is formed with a size equal to the event multiplicity
+    and the optimal DISP sign assignment is determined accordingly. Single-
+    telescope events are handled separately using the mono reconstruction.
+
+    **Traits**
+
+    - ``n_tel_combinations``: Size of each telescope combination (minimum 2).
+      Larger values increase computation time. For events with lower effective
+      multiplicity, all available telescopes are used.
+    - ``n_best_tels``: If set, restricts the reconstruction to the
+      ``n_best_tels`` highest-weight telescopes per event.
+    - ``min_ang_diff``: For multiplicity-2 events only, reject events with
+      nearly parallel main shower axes (difference below this angle).
+    - ``weights``: Telescope weights used in the per-combination and final
+      mean (``none``, ``intensity``, ``aspect-weighted-intensity``).
 
     Notes
     -----
     - Only geometry (:class:`~ctapipe.reco.ReconstructionProperty.GEOMETRY`)
       is supported.
-    - Weighting options follow the same convention as in :class:`StereoMeanCombiner`
-      (none, intensity, aspect-weighted-intensity).
-    - The ``n_tel_combinations`` trait controls how many telescopes form a
-      combination (minimum 2). The ``n_best_tels`` trait optionally limits the
-      reconstruction to the best ``n_best_tels`` telescopes by weight; set it to
-      ``None`` to use all valid telescopes.
+    - To reproduce the behavior of EventDisplay, set both
+      ``n_tel_combinations`` and ``n_best_tels`` to 5.
+    - Choosing large values of ``n_tel_combinations`` together with an
+      unrestricted ``n_best_tels`` can lead to a rapid increase in the number
+      of telescope combinations and thus to a significantly increased
+      processing time.
     """
 
     n_tel_combinations = Integer(
