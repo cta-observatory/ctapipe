@@ -66,26 +66,34 @@ def _get_subarray_index(obs_ids, event_ids):
 
 def get_subarray_index(tel_table):
     """
-    Get the subarray-event-wise information from a table of telescope events.
+    Get subarray-event-wise information from a table of telescope events.
 
-    Extract obs_ids and event_ids of all subarray events contained
-    in a table of telescope events, their multiplicity and an array
-    giving the index of the subarray event for each telescope event.
+    Extract the unique subarray events contained in a table of telescope-event
+    rows and return their observation IDs, event IDs, multiplicities, and an
+    index mapping from each telescope-event row to its corresponding subarray
+    event.
 
-    This requires the telescope events of one subarray event to be
-    in a single block.
+    This requires that all telescope events belonging to the same subarray
+    event appear in a single contiguous block in ``tel_table``.
 
     Parameters
     ----------
-    tel_table: astropy.table.Table
-        table with telescope events as rows
+    tel_table : astropy.table.Table
+        Table with telescope events as rows. Must contain the columns
+        ``obs_id`` and ``event_id`` and be ordered such that telescope rows
+        of the same (obs_id, event_id) are contiguous.
 
     Returns
     -------
-    Tuple(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
-        obs_ids of subarray events, event_ids of subarray events,
-        multiplicity of subarray events, index of the subarray event
-        for each telescope event
+    obs_ids : np.ndarray
+        Observation IDs of the subarray events. One entry per subarray event.
+    event_ids : np.ndarray
+        Event IDs of the subarray events. One entry per subarray event.
+    multiplicity : np.ndarray
+        Number of telescope-event rows contributing to each subarray event.
+    tel_to_array_index : np.ndarray
+        Integer array mapping each telescope-event row to the corresponding
+        subarray-event index. Has the same length as ``tel_table``.
     """
     obs_idx = tel_table["obs_id"]
     event_idx = tel_table["event_id"]
@@ -94,24 +102,26 @@ def get_subarray_index(tel_table):
 
 def _grouped_add(tel_data, n_array_events, indices):
     """
-    Compute the sum of telescope event data for each corresponding array event.
+    Sum telescope-event values per array event.
 
-    It groups telescope event values by their corresponding
-    array event indices and computes the sum for each group.
+    Groups telescope-event values by their corresponding array-event index
+    and computes the group-wise sum using ``np.add.at``.
 
     Parameters
     ----------
     tel_data : np.ndarray
-        Array of telescope event data to be summed.
+        Values for each telescope event (one value per telescope-event row).
     n_array_events : int
-        Total number of array events.
+        Total number of array events (size of the grouped output).
     indices : np.ndarray
-        Index array mapping each telescope event to its corresponding array event.
+        Integer array mapping each telescope-event row to its corresponding
+        array-event index. Must have the same length as ``tel_data``.
 
     Returns
     -------
-    np.ndarray
-        Array of summed values for each array event.
+    summed : np.ndarray
+        Array of shape ``(n_array_events,)`` containing the sum of ``tel_data``
+        over all telescope-event rows belonging to each array event.
     """
     combined_values = np.zeros(n_array_events)
     np.add.at(combined_values, indices, tel_data)
@@ -126,28 +136,44 @@ def weighted_mean_std_ufunc(
     weights=np.array([1]),
 ):
     """
-    Calculate the weighted mean and standard deviation for each array event
-    over the corresponding telescope events.
+    Compute weighted mean and standard deviation per subarray (array) event.
+
+    Telescope-event values (``tel_values``) are grouped by subarray event using
+    ``indices`` (mapping each telescope-event row to an array-event index).
+    For each array event, the function computes the weighted mean and the
+    weighted standard deviation over the corresponding telescope-event rows.
+
+    Invalid telescope rows are excluded using ``valid_tel``. Events without any
+    valid telescope contribution return ``NaN`` for both mean and standard
+    deviation.
 
     Parameters
     ----------
-    tel_values: np.ndarray
-        values for each telescope event
-    valid_tel: array-like
-        boolean mask giving the valid values of ``tel_values``
-    indices: np.ndarray
-        index of the subarray event for each telescope event, returned as
-        the fourth return value of ``get_subarray_index``
-    multiplicity: np.ndarray
-        multiplicity of the subarray events in the same order as the order of
-        subarray events in ``indices``
-    weights: np.ndarray
-        weights used for averaging (equal/no weights are used by default)
+    tel_values : np.ndarray
+        Values for each telescope event (one value per telescope-event row).
+    valid_tel : array-like
+        Boolean mask selecting valid telescope-event rows in ``tel_values``.
+        Must have the same length as ``tel_values``.
+    indices : np.ndarray
+        Integer array mapping each telescope-event row to the corresponding
+        subarray-event index. This is the fourth return value of
+        ``get_subarray_index``. Must have the same length as ``tel_values``.
+    multiplicity : np.ndarray
+        Number of telescope-event rows per subarray event (one entry per
+        array event), in the same order as the subarray events encoded in
+        ``indices``.
+    weights : np.ndarray, optional
+        Weights used for averaging. Must be broadcastable to ``tel_values``.
+        If not provided, equal weights are used.
 
     Returns
     -------
-    Tuple(np.ndarray, np.ndarray)
-        weighted mean and standard deviation for each array event
+    mean : np.ndarray
+        Weighted mean value for each subarray (array) event. Entries are
+        ``NaN`` for events without valid telescope contributions.
+    std : np.ndarray
+        Weighted standard deviation for each subarray (array) event.
+        Entries are ``NaN`` where the mean is undefined.
     """
     n_array_events = len(multiplicity)
     # avoid numerical problems by very large or small weights
@@ -182,22 +208,24 @@ def weighted_mean_std_ufunc(
 @lru_cache(maxsize=4096)
 def get_combinations(array_length: int, comb_size: int) -> np.ndarray:
     """
-    Generate all possible index combinations of elements of a given `comb_size`
-    from an array with a given `array_length`.
+    Generate all index combinations of a fixed size.
 
-    Uses ``itertools.combinations`` and caching to speed up repeated calls.
+    Returns all ``comb_size``-element combinations chosen from the index range
+    ``0 .. array_length - 1``. Results are cached to speed up repeated calls
+    with the same arguments.
 
     Parameters
     ----------
-    array_length: int
-        Length of the list or array to generate index combinations from.
+    array_length : int
+        Length of the index range to draw from.
     comb_size : int
-        The size of each combination.
+        Size of each combination.
 
     Returns
     -------
-    np.ndarray
-        Array of index combinations of the specified size.
+    combs : np.ndarray
+        Integer array of shape ``(n_combs, comb_size)`` containing all index
+        combinations, where ``n_combs = binom(array_length, comb_size)``.
     """
     return np.array(list(combinations(range(array_length), comb_size)))
 
@@ -205,59 +233,48 @@ def get_combinations(array_length: int, comb_size: int) -> np.ndarray:
 @lru_cache(maxsize=4096)
 def binary_combinations(k: int) -> np.ndarray:
     """
-    Generate all binary (0/1) combinations of length k.
+    Generate all binary (0/1) vectors of length ``k``.
 
-    Uses ``itertools.product`` and caching to speed up repeated calls.
+    Returns the full set of binary sign assignments used e.g. to enumerate
+    DISP head–tail sign choices. Results are cached to speed up repeated calls.
 
     Parameters
     ----------
     k : int
-        Length of each binary combination.
+        Length of each binary vector.
 
     Returns
     -------
-    np.ndarray
-        A NumPy array of shape (2**k, k) containing all possible binary
-        combinations, where each row represents one combination.
+    combs : np.ndarray
+        Integer array of shape ``(2**k, k)`` containing all possible binary
+        combinations. Each row is one assignment.
     """
     return np.array(list(product([0, 1], repeat=k)), dtype=int)
 
 
 def check_ang_diff(min_ang_diff, psi1, psi2):
     """
-    Check whether the angular separation between two reconstructed main shower
-    axes is larger than a configured minimum value.
+    Check whether two Hillas main-axis orientations are sufficiently separated.
 
-    This function compares the orientation angles of two Hillas main axes and
-    computes an axis-invariant angular difference, where angles differing by
-    180° are treated as parallel. It is therefore suitable for resolving the
-    near-parallel-axis ambiguity in stereo reconstruction.
-
-    The method supports both scalar (event-wise) and array-like (table-wise)
-    inputs, enabling vectorized application to multiple two-telescope events.
+    Computes an axis-invariant angular difference between two orientation angles,
+    treating directions that differ by 180° as parallel. The resulting difference
+    is folded into the interval [0°, 90°] and compared against ``min_ang_diff``.
 
     Parameters
     ----------
+    min_ang_diff : float
+        Minimum required angular separation in degrees.
     psi1, psi2 : astropy.units.Quantity
-        Orientation angles of the Hillas main shower axes. The inputs may be
-        scalars or array-like objects of equal shape and must carry angular
-        units (e.g. degrees).
+        Orientation angles of the Hillas main axes. Scalars or array-like objects
+        of identical shape with angular units (e.g. degrees).
 
     Returns
     -------
-    bool or numpy.ndarray
-        Boolean value or boolean array indicating whether the angular
-        separation is greater than or equal to ``self.min_ang_diff``.
-        ``True`` means the axes are sufficiently separated and the event
-        should be kept; ``False`` means the axes are too parallel and the
-        event should be rejected.
-
-    Notes
-    -----
-    - The angular separation is folded into the range [0°, 90°], such that
-      axis orientations differing by 0° or 180° are treated equivalently.
-    - If used in a table-wise context, the comparison is fully vectorized
-      and no Python-level loops are required.
+    keep : bool or np.ndarray
+        Boolean value or boolean array indicating whether the (axis-invariant)
+        angular separation is greater than or equal to ``min_ang_diff``.
+        ``True`` means the event should be kept; ``False`` means the axes are
+        too parallel.
     """
     ang_diff = np.abs(psi1 - psi2) % (180 * u.deg)
     ang_diff = np.minimum(ang_diff, 180 * u.deg - ang_diff)
@@ -266,48 +283,45 @@ def check_ang_diff(min_ang_diff, psi1, psi2):
 
 def calc_combs_min_distances(index_tel_combs, fov_lon_values, fov_lat_values, weights):
     """
-    Determine the optimal DISP sign combination for each telescope combination
-    by minimizing the weighted sum of squared distances (SSE) to the
-    weighted mean direction.
+    Select the DISP sign assignment that minimizes the weighted SSE per combination.
 
-    For each telescope combination of size ``k``, all ``2**k`` possible
-    sign assignments (corresponding to the DISP head–tail ambiguity) are
-    evaluated. For every sign assignment, the weighted mean field-of-view
-    (FoV) position is computed and the weighted sum of squared distances
-    of the individual telescope directions to this mean (SSE) is calculated.
-    The sign assignment that minimizes this SSE is selected.
+    For each telescope combination (size ``k``), evaluate all ``2**k`` possible
+    binary sign assignments (DISP head–tail ambiguity). For each assignment,
+    compute the weighted mean FoV direction and the weighted sum of squared
+    distances (SSE) of the telescope directions to this mean. The assignment
+    with minimal SSE is chosen.
 
-    The function then returns the weighted mean FoV longitude and latitude
-    for the best sign assignment of each telescope combination, together
-    with the combined weight of the combination.
+    The function returns the weighted mean FoV longitude/latitude for the best
+    assignment of each telescope combination, plus the summed weight per
+    combination.
 
     Parameters
     ----------
     index_tel_combs : np.ndarray
-        Array of shape ``(n_combs, k)`` containing index combinations of
+        Integer array of shape ``(n_combs, k)`` containing index combinations of
         telescope events forming each combination.
     fov_lon_values : np.ndarray
-        Array of shape ``(n_tel, 2)`` containing the two possible FoV longitude
-        values (SIGN = ±1) for each telescope event, in degrees.
+        Array of shape ``(n_tel_events, 2)`` containing the two possible FoV
+        longitude values (SIGN = 0/1, i.e. DISP sign choices) for each telescope
+        event, in degrees.
     fov_lat_values : np.ndarray
-        Array of shape ``(n_tel, 2)`` containing the two possible FoV latitude
-        values (SIGN = ±1) for each telescope event, in degrees.
+        Array of shape ``(n_tel_events, 2)`` containing the two possible FoV
+        latitude values (SIGN = 0/1) for each telescope event, in degrees.
     weights : np.ndarray
-        Array of shape ``(n_tel,)`` with the weight assigned to each
-        telescope event.
+        Array of shape ``(n_tel_events,)`` containing the weight per telescope
+        event.
 
     Returns
     -------
     weighted_lons : np.ndarray
-        Array of shape ``(n_combs,)`` containing the weighted mean FoV
-        longitudes of the best sign assignment for each telescope combination.
+        Array of shape ``(n_combs,)`` with the weighted mean FoV longitudes of
+        the best sign assignment for each telescope combination.
     weighted_lats : np.ndarray
-        Array of shape ``(n_combs,)`` containing the weighted mean FoV
-        latitudes of the best sign assignment for each telescope combination.
+        Array of shape ``(n_combs,)`` with the weighted mean FoV latitudes of
+        the best sign assignment for each telescope combination.
     combined_weights : np.ndarray
-        Array of shape ``(n_combs,)`` containing the sum of weights of the
-        telescopes contributing to each combination.
-
+        Array of shape ``(n_combs,)`` containing the sum of telescope weights
+        contributing to each combination.
     """
     mapped_weights = weights[index_tel_combs]  # (n_combs, k)
     combined_weights = mapped_weights.sum(axis=1)
@@ -404,62 +418,48 @@ def fill_lower_multiplicities(
     weights,
 ):
     """
-    Fill stereo FoV longitude and latitude estimates for array events with
-    multiplicities smaller than ``n_tel_combinations``.
+    Fill stereo FoV estimates for events with multiplicity < ``n_tel_combinations``.
 
-    For array events whose telescope multiplicity is lower than
-    ``n_tel_combinations`` but at least two, this function recomputes the
-    stereo direction using all available telescopes of the event
-    (i.e. combinations of size equal to the event multiplicity).
-    The optimal DISP sign assignment for each event is determined via
+    For array events whose multiplicity is smaller than ``n_tel_combinations``
+    but at least 2, recompute the stereo direction using *all* available
+    telescopes of the event (i.e. combination size equals the event multiplicity).
+    The optimal DISP sign assignment is determined via
     :func:`calc_combs_min_distances`.
 
-    The resulting weighted mean FoV longitude and latitude values are written
-    in-place into ``fov_lon_combs_mean`` and ``fov_lat_combs_mean`` at the
-    positions corresponding to the affected array events.
+    Results are written in-place into ``fov_lon_combs_mean`` and
+    ``fov_lat_combs_mean`` at the positions of the affected events.
 
     Parameters
     ----------
     fov_lon_combs_mean : np.ndarray
-        Array of shape ``(n_array_events,)`` holding the mean FoV longitudes
-        per array event. Values for lower-multiplicity events are updated
-        in-place.
+        Array of shape ``(n_array_events,)`` holding the mean FoV longitudes per
+        array event. Updated in-place for lower-multiplicity events.
     fov_lat_combs_mean : np.ndarray
-        Array of shape ``(n_array_events,)`` holding the mean FoV latitudes
-        per array event. Values for lower-multiplicity events are updated
-        in-place.
+        Array of shape ``(n_array_events,)`` holding the mean FoV latitudes per
+        array event. Updated in-place for lower-multiplicity events.
     n_tel_combinations : int
-        Nominal number of telescopes used per combination in the stereo
-        reconstruction.
+        Nominal number of telescopes used per stereo combination.
     valid_tel_to_array_indices : np.ndarray
-        Array mapping each valid telescope event to its corresponding
-        array-event index. Telescope events must be grouped contiguously
-        by array event.
+        One-dimensional array mapping each valid telescope-event row to its
+        corresponding array-event index. Telescope rows must be grouped
+        contiguously by array event.
     valid_multiplicity : np.ndarray
-        Array of telescope multiplicities for each valid array event.
+        Multiplicity per valid array event (one entry per array event), aligned
+        with the indices used in ``valid_tel_to_array_indices``.
     fov_lon_values : np.ndarray
         Array of shape ``(n_valid_tel_events, 2)`` containing the two possible
-        FoV longitude values (SIGN = ±1) for each valid telescope event.
+        FoV longitude values (DISP sign choices) for each valid telescope event.
     fov_lat_values : np.ndarray
         Array of shape ``(n_valid_tel_events, 2)`` containing the two possible
-        FoV latitude values (SIGN = ±1) for each valid telescope event.
+        FoV latitude values (DISP sign choices) for each valid telescope event.
     weights : np.ndarray
-        Array of weights for each valid telescope event.
+        Array of shape ``(n_valid_tel_events,)`` with the weight per valid
+        telescope event.
 
     Returns
     -------
     None
-        The function operates in-place and does not return a value.
-
-    Notes
-    -----
-    - Only multiplicities of two or larger are considered; single-telescope
-      events are handled separately.
-    - The correctness of this function relies on the telescope-event rows
-      being grouped contiguously by array event.
-    - Using a block-based mask via :func:`valid_tels_of_multi` avoids repeated
-      membership tests and is typically faster than approaches based on
-      ``np.isin`` for large tables.
+        Operates in-place and does not return a value.
     """
     for multi in range(n_tel_combinations - 1, 1, -1):
         multi_mask = valid_multiplicity == multi
@@ -483,43 +483,34 @@ def fill_lower_multiplicities(
 
 def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
     """
-    Compute possible field-of-view (FoV) longitude and latitude coordinates
-    for each telescope event, accounting for the DISP sign ambiguity.
+    Compute the two possible FoV longitude/latitude coordinates per telescope event.
 
-    For every telescope event, two candidate shower directions in the
-    telescope FoV are calculated corresponding to the two possible DISP
-    sign assignments (SIGN = −1 and +1). The directions are obtained by
-    shifting the Hillas image centroid along the main shower axis by the
-    absolute DISP distance.
-
-    The resulting FoV longitude and latitude values are returned as
-    two-element arrays per telescope event and are typically used as
-    inputs to subsequent stereo-combination steps (e.g. via
-    :func:`calc_combs_min_distances`).
+    For each telescope event, compute two candidate shower directions in the
+    telescope FoV corresponding to the two possible DISP sign assignments
+    (SIGN = −1 and +1). The candidates are obtained by shifting the Hillas
+    centroid along the main shower axis by the absolute DISP distance.
 
     Parameters
     ----------
     tel_table : astropy.table.Table
         Table containing Hillas parameters and DISP reconstruction results.
-        Must include the following columns:
-        - ``hillas_fov_lon`` : Hillas ellipse centroid longitude (Quantity)
-        - ``hillas_fov_lat`` : Hillas ellipse centroid latitude (Quantity)
-        - ``hillas_psi`` : Hillas ellipse orientation angle (Quantity)
-        - ``<prefix>_parameter`` : DISP distance from image centroid (float)
+        Must include:
+        - ``hillas_fov_lon`` : Hillas centroid longitude (Quantity)
+        - ``hillas_fov_lat`` : Hillas centroid latitude (Quantity)
+        - ``hillas_psi`` : Hillas orientation angle (Quantity)
+        - ``<prefix>_parameter`` : DISP distance from the centroid (float)
     prefix : str, optional
-        Prefix used to access the DISP parameter (default: "DispReconstructor_tel").
+        Prefix used to access the DISP parameter column
+        (default: "DispReconstructor_tel").
 
     Returns
     -------
     fov_lon : np.ndarray
-        Array of shape ``(n_tel_events, 2)`` containing the possible FoV
-        longitude values (in degrees) for each telescope event, corresponding
-        to DISP signs −1 and +1.
+        Array of shape ``(n_tel_events, 2)`` containing the candidate FoV
+        longitudes (in degrees) for each telescope event (DISP signs −1 and +1).
     fov_lat : np.ndarray
-        Array of shape ``(n_tel_events, 2)`` containing the possible FoV
-        latitude values (in degrees) for each telescope event, corresponding
-        to DISP signs −1 and +1.
-
+        Array of shape ``(n_tel_events, 2)`` containing the candidate FoV
+        latitudes (in degrees) for each telescope event (DISP signs −1 and +1).
     """
     hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
     hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
@@ -538,24 +529,38 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
 
 def create_combs_array(max_multiplicity, k):
     """
-    Generate an array of all possible `k`-combinations for multiplicities up to
-    `max_multiplicity`.
+    Precompute all possible ``k``-combinations for multiplicities up to
+    ``max_multiplicity``.
 
-    Precomputes and stores combinations for different multiplicities to reach them
-    by index afterwards.
+    For each multiplicity ``m`` in the range ``k .. max_multiplicity``, this
+    function generates all index combinations of size ``k`` chosen from
+    ``0 .. m-1`` (using ``get_combinations(m, k)``) and concatenates them into
+    a single array.
+
+    In addition, it returns an array mapping each combination row to the
+    multiplicity ``m`` it was generated from. This mapping can later be used
+    to quickly select the correct subset of combinations for a given event
+    multiplicity without recomputing combinations.
 
     Parameters
     ----------
     max_multiplicity : int
-        Maximum multiplicity to consider.
+        Maximum multiplicity to consider (inclusive).
     k : int
-        The size of the combinations.
+        Size of the combinations (must satisfy ``k >= 2`` and
+        ``k <= max_multiplicity``).
 
     Returns
     -------
-    Tuple(np.ndarray, np.ndarray)
-        - An array of all k-combinations for different multiplicities.
-        - An array mapping each combination to its respective multiplicity.
+    combs_array : np.ndarray
+        Array of shape ``(n_total_combinations, k)`` containing all possible
+        ``k``-combinations for multiplicities ranging from ``k`` up to
+        ``max_multiplicity``. Combinations are ordered by increasing
+        multiplicity.
+    combs_to_multi_indices : np.ndarray
+        One-dimensional integer array mapping each row in ``combs_array`` to
+        the multiplicity it was generated from. Has the same length as
+        ``combs_array``.
     """
     combs_array = get_combinations(k, k)
     for i in range(k + 1, max_multiplicity + 1):
@@ -597,19 +602,21 @@ def _binomial(n, k):
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _calc_n_combs(multiplicity, k):
     """
-    Calculate the number of possible `k`-combinations for each `multiplicity` value.
+    Compute the number of ``k``-combinations for each multiplicity.
 
     Parameters
     ----------
     multiplicity : np.ndarray
-        Array of multiplicity values for each array event.
+        One-dimensional array of multiplicities (number of telescope-event rows)
+        for each array event.
     k : int
-        The size of the combinations.
+        Size of the combinations.
 
     Returns
     -------
-    np.ndarray
-        Array of combination counts corresponding to each multiplicity.
+    n_combs : np.ndarray
+        One-dimensional integer array containing the number of possible
+        ``k``-combinations for each entry in ``multiplicity``.
     """
     n_combs = np.empty(len(multiplicity), dtype=np.int64)
     for i in range(len(multiplicity)):
@@ -621,27 +628,42 @@ def _calc_n_combs(multiplicity, k):
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def get_index_combs(multiplicities, combs_array, combs_to_multi_indices, k):
     """
-    Generate the telescope event indices for all `k`-combinations of telescope events based on
-    `multiplicities`.
+    Build telescope-event index combinations for all array events.
 
-    Returns also an array containing the number of combinations per multiplicity.
+    For each array event with multiplicity ``m = multiplicities[i]``, this
+    function selects the precomputed ``k``-combinations corresponding to ``m``
+    from ``combs_array`` (using ``combs_to_multi_indices``) and offsets them
+    into the global telescope-event indexing scheme.
+
+    The global telescope-event ordering is assumed to be the concatenation of
+    telescope-event blocks per array event. Under this assumption, the start
+    index of event ``i`` equals the cumulative sum of previous multiplicities,
+    and combinations for event ``i`` can be obtained by adding that offset.
 
     Parameters
     ----------
     multiplicities : np.ndarray
-        Array of multiplicity values for each array event.
+        One-dimensional array of multiplicities (number of telescope-event rows)
+        for each array event.
     combs_array : np.ndarray
-        Precomputed combinations for different multiplicities.
+        Precomputed combination indices for multiplicities in the range
+        ``k .. max_multiplicity``. Usually produced by ``create_combs_array``.
+        Shape: ``(n_total_combinations, k)``.
     combs_to_multi_indices : np.ndarray
-        Array mapping combinations to corresponding multiplicities.
+        One-dimensional array mapping each row in ``combs_array`` to the
+        multiplicity it was generated from. Same length as ``combs_array``.
     k : int
-        The size of the combinations.
+        Size of the combinations.
 
     Returns
     -------
-    Tuple(np.ndarray, np.ndarray)
-        - Array of index combinations for telescope events.
-        - Array containing the number of combinations per multiplicity.
+    index_tel_combs : np.ndarray
+        Array of shape ``(n_total_combinations_over_events, k)`` containing the
+        telescope-event indices for all ``k``-combinations across all array
+        events. Indices refer to the flattened telescope-event ordering.
+    n_combs : np.ndarray
+        One-dimensional array giving the number of ``k``-combinations for each
+        array event, in the same order as ``multiplicities``.
     """
     n_combs = _calc_n_combs(multiplicities, k)
     total_combs = np.sum(n_combs)
