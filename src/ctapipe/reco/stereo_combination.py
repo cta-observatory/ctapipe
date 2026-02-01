@@ -30,6 +30,7 @@ from .preprocessing import telescope_to_horizontal
 from .telescope_event_handling import (
     calc_combs_min_distances,
     calc_fov_lon_lat,
+    check_ang_diff,
     create_combs_array,
     fill_lower_multiplicities,
     get_combinations,
@@ -580,11 +581,6 @@ class StereoDispCombiner(StereoCombiner):
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
-    def _check_ang_diff(self, psi1, psi2):
-        ang_diff = np.abs(psi1 - psi2) % (180 * u.deg)
-        ang_diff = np.minimum(ang_diff, 180 * u.deg - ang_diff)
-        return ang_diff >= (self.min_ang_diff * u.deg)
-
     def _combine_altaz(self, event):
         ids = []
         hillas_psis = []
@@ -631,7 +627,9 @@ class StereoDispCombiner(StereoCombiner):
             if (
                 multiplicity == 2
                 and self.min_ang_diff is not None
-                and not self._check_ang_diff(hillas_psis[0], hillas_psis[1])
+                and not check_ang_diff(
+                    self.min_ang_diff, hillas_psis[0], hillas_psis[1]
+                )
             ):
                 pass
 
@@ -715,7 +713,8 @@ class StereoDispCombiner(StereoCombiner):
                 valid_idx = np.flatnonzero(valid)
                 pairs_in_valid = np.flatnonzero(mask_multi2_tels).reshape(-1, 2)
                 valid_psis = mono_predictions["hillas_psi"][valid]
-                keep_pairs = self._check_ang_diff(
+                keep_pairs = check_ang_diff(
+                    self.min_ang_diff,
                     valid_psis[pairs_in_valid[:, 0]],
                     valid_psis[pairs_in_valid[:, 1]],
                 )

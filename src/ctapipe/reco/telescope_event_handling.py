@@ -14,6 +14,7 @@ __all__ = [
     "weighted_mean_std_ufunc",
     "get_combinations",
     "binary_combinations",
+    "check_ang_diff",
     "calc_combs_min_distances",
     "valid_tels_of_multi",
     "fill_lower_multiplicities",
@@ -220,6 +221,47 @@ def binary_combinations(k: int) -> np.ndarray:
         combinations, where each row represents one combination.
     """
     return np.array(list(product([0, 1], repeat=k)), dtype=int)
+
+
+def check_ang_diff(min_ang_diff, psi1, psi2):
+    """
+    Check whether the angular separation between two reconstructed main shower
+    axes is larger than a configured minimum value.
+
+    This function compares the orientation angles of two Hillas main axes and
+    computes an axis-invariant angular difference, where angles differing by
+    180° are treated as parallel. It is therefore suitable for resolving the
+    near-parallel-axis ambiguity in stereo reconstruction.
+
+    The method supports both scalar (event-wise) and array-like (table-wise)
+    inputs, enabling vectorized application to multiple two-telescope events.
+
+    Parameters
+    ----------
+    psi1, psi2 : astropy.units.Quantity
+        Orientation angles of the Hillas main shower axes. The inputs may be
+        scalars or array-like objects of equal shape and must carry angular
+        units (e.g. degrees).
+
+    Returns
+    -------
+    bool or numpy.ndarray
+        Boolean value or boolean array indicating whether the angular
+        separation is greater than or equal to ``self.min_ang_diff``.
+        ``True`` means the axes are sufficiently separated and the event
+        should be kept; ``False`` means the axes are too parallel and the
+        event should be rejected.
+
+    Notes
+    -----
+    - The angular separation is folded into the range [0°, 90°], such that
+      axis orientations differing by 0° or 180° are treated equivalently.
+    - If used in a table-wise context, the comparison is fully vectorized
+      and no Python-level loops are required.
+    """
+    ang_diff = np.abs(psi1 - psi2) % (180 * u.deg)
+    ang_diff = np.minimum(ang_diff, 180 * u.deg - ang_diff)
+    return ang_diff >= (min_ang_diff * u.deg)
 
 
 def calc_combs_min_distances(index_tel_combs, fov_lon_values, fov_lat_values, weights):
