@@ -14,8 +14,6 @@ __all__ = [
     "weighted_mean_std_ufunc",
     "get_combinations",
     "binary_combinations",
-    "calc_combs_min_distances_event",
-    "calc_combs_min_distances_table",
     "calc_combs_min_distances",
     "valid_tels_of_multi",
     "fill_lower_multiplicities",
@@ -224,85 +222,6 @@ def binary_combinations(k: int) -> np.ndarray:
     return np.array(list(product([0, 1], repeat=k)), dtype=int)
 
 
-@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
-def calc_combs_min_distances_event(
-    index_tel_combs, fov_lon_values, fov_lat_values, weights
-):
-    """
-    Calculate the weighted mean field-of-view (FoV) coordinates for each telescope combination.
-
-    Determines the weighted minimum distance between all possible telescopes SIGN
-    combination per telescope combination and computes their weighted mean FoV longitude and latitude.
-    Used event-wise with njit decorator.
-
-    Parameters
-    ----------
-    index_tel_combs : np.ndarray
-        Array of shape (n_combs, k) containing index combinations of the valid telescope
-        IDs per array event forming combinations.
-    fov_lon_values : np.ndarray
-        Array of shape (n_tels, 2) containing the field-of-view longitude values for each
-        SIGN value (-1, 1) per telescope event.
-    fov_lat_values : np.ndarray
-        Array of shape (n_tels, 2) containing the field-of-view latitude values for each
-        SIGN value (-1, 1) per telescope event.
-    weights : np.ndarray
-        Array of weights for each telescope event.
-
-    Returns
-    -------
-    Tuple(np.ndarray, np.ndarray, np.ndarray)
-        - Weighted mean FoV longitude values for each combination with the minimum distance
-          SIGN combination.
-        - Weighted mean FoV latitude values for each combination with the minimum distance
-          SIGN combination.
-        - Combined weights of each telescope combination.
-    """
-    n_combs = len(index_tel_combs)
-
-    combined_weights = np.empty(n_combs, dtype=np.float64)
-    fov_lons = np.empty(n_combs, dtype=np.float64)
-    fov_lats = np.empty(n_combs, dtype=np.float64)
-
-    sign_combs = binary_combinations(index_tel_combs.shape[1])
-
-    for i in range(n_combs):
-        tel_1, tel_2 = index_tel_combs[i]
-
-        # Calculate weights
-        w1, w2 = weights[tel_1], weights[tel_2]
-        combined_weights[i] = w1 + w2
-
-        # Calculate all 4 possible distances and weight them
-        lon_diffs = (
-            fov_lon_values[tel_1, sign_combs[:, 0]]
-            - fov_lon_values[tel_2, sign_combs[:, 1]]
-        )
-        lat_diffs = (
-            fov_lat_values[tel_1, sign_combs[:, 0]]
-            - fov_lat_values[tel_2, sign_combs[:, 1]]
-        )
-
-        distances = np.hypot(lon_diffs, lat_diffs)
-        argmin_distance = np.argmin(distances)
-
-        # Weighted mean for minimum distances
-        lon_vals = [
-            fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
-            fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
-        ]
-
-        lat_vals = [
-            fov_lat_values[tel_1, sign_combs[argmin_distance, 0]],
-            fov_lat_values[tel_2, sign_combs[argmin_distance, 1]],
-        ]
-
-        fov_lons[i] = np.average(lon_vals, weights=[w1, w2])
-        fov_lats[i] = np.average(lat_vals, weights=[w1, w2])
-
-    return fov_lons, fov_lats, combined_weights
-
-
 def calc_combs_min_distances(index_tel_combs, fov_lon_values, fov_lat_values, weights):
     """
     Determine the optimal DISP sign combination for each telescope combination
@@ -444,7 +363,7 @@ def fill_lower_multiplicities(
 ):
     """
     Fill stereo FoV longitude and latitude estimates for array events with
-    multiplicities smaller than the nominal number of telescope combinations.
+    multiplicities smaller than ``n_tel_combinations``.
 
     For array events whose telescope multiplicity is lower than
     ``n_tel_combinations`` but at least two, this function recomputes the
@@ -520,85 +439,21 @@ def fill_lower_multiplicities(
         fov_lat_combs_mean[multi_mask] = lats
 
 
-def calc_combs_min_distances_table(
-    index_tel_combs,
-    fov_lon_values,
-    fov_lat_values,
-    weights,
-):
-    """
-    Calculate the weighted mean field-of-view (FoV) coordinates for each telescope combination.
-
-    Determines the minimum distance between all possible telescopes SIGN
-    pairs per telescope combination and computes their weighted mean FoV longitude and latitude.
-    Used for table-wise broadcasting.
-
-    Parameters
-    ----------
-    index_tel_combs : np.ndarray
-        Array of shape (n_combs, 2) containing index pairs of the valid telescope IDs per
-        array event forming combinations.
-    fov_lon_values : np.ndarray
-        Array of shape (n_tels, 2) containing the field-of-view longitude values for each
-        SIGN value (-1, 1) per telescope event.
-    fov_lat_values : np.ndarray
-        Array of shape (n_tels, 2) containing the field-of-view latitude values for each
-        SIGN value (-1, 1) per telescope event.
-    weights : np.ndarray
-        Array of weights for each telescope event.
-
-    Returns
-    -------
-    Tuple(np.ndarray, np.ndarray, np.ndarray)
-        - Weighted mean FoV longitude values for each combination with the minimum distance
-          SIGN pair.
-        - Weighted mean FoV latitude values for each combination with the minimum distance
-          SIGN pair.
-        - Combined weights for each telescope combination.
-    """
-    # Adding weights for each telescope combination
-    mapped_weights = weights[index_tel_combs]
-    combined_weights = np.add(mapped_weights[:, 0], mapped_weights[:, 1])
-
-    sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-
-    lon_combs = fov_lon_values[index_tel_combs]
-    lon_diffs = lon_combs[:, 0, sign_combs[:, 0]] - lon_combs[:, 1, sign_combs[:, 1]]
-
-    lat_combs = fov_lat_values[index_tel_combs]
-    lat_diffs = lat_combs[:, 0, sign_combs[:, 0]] - lat_combs[:, 1, sign_combs[:, 1]]
-
-    distances = np.hypot(lon_diffs, lat_diffs)
-    argmin_distance = np.argmin(distances, axis=1)
-
-    # Weighted mean for minimum distances
-    lon_values = np.array(
-        [
-            fov_lon_values[index_tel_combs[:, 0], sign_combs[argmin_distance, 0]],
-            fov_lon_values[index_tel_combs[:, 1], sign_combs[argmin_distance, 1]],
-        ]
-    )
-
-    lat_values = np.array(
-        [
-            fov_lat_values[index_tel_combs[:, 0], sign_combs[argmin_distance, 0]],
-            fov_lat_values[index_tel_combs[:, 1], sign_combs[argmin_distance, 1]],
-        ]
-    )
-
-    weighted_lons = np.average(lon_values, weights=mapped_weights.T, axis=0)
-    weighted_lats = np.average(lat_values, weights=mapped_weights.T, axis=0)
-
-    return weighted_lons, weighted_lats, combined_weights
-
-
 def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
     """
-    Calculate possible field-of-view (FoV) longitude and latitude coordinates.
+    Compute possible field-of-view (FoV) longitude and latitude coordinates
+    for each telescope event, accounting for the DISP sign ambiguity.
 
-    For each telescope event, this function computes the two possible
-    (fov_lon, fov_lat) positions in the telescope frame corresponding to the
-    DISP direction ambiguity (SIGN = ±1).
+    For every telescope event, two candidate shower directions in the
+    telescope FoV are calculated corresponding to the two possible DISP
+    sign assignments (SIGN = −1 and +1). The directions are obtained by
+    shifting the Hillas image centroid along the main shower axis by the
+    absolute DISP distance.
+
+    The resulting FoV longitude and latitude values are returned as
+    two-element arrays per telescope event and are typically used as
+    inputs to subsequent stereo-combination steps (e.g. via
+    :func:`calc_combs_min_distances`).
 
     Parameters
     ----------
@@ -614,13 +469,15 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
 
     Returns
     -------
-    tuple of np.ndarray
-        (fov_lon, fov_lat)
+    fov_lon : np.ndarray
+        Array of shape ``(n_tel_events, 2)`` containing the possible FoV
+        longitude values (in degrees) for each telescope event, corresponding
+        to DISP signs −1 and +1.
+    fov_lat : np.ndarray
+        Array of shape ``(n_tel_events, 2)`` containing the possible FoV
+        latitude values (in degrees) for each telescope event, corresponding
+        to DISP signs −1 and +1.
 
-        - ``fov_lon`` : array of shape (n_tel_events, 2)
-          Possible FoV longitudes for each sign (-1, +1) in degrees.
-        - ``fov_lat`` : array of shape (n_tel_events, 2)
-          Possible FoV latitudes for each sign (-1, +1) in degrees.
     """
     hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
     hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
