@@ -497,11 +497,11 @@ class StereoDispCombiner(StereoCombiner):
     Stereo combination algorithm for DISP-based direction reconstruction.
 
     This combiner is essentially an implementation of Algorithm 3
-    of :cite:p:`hofmann-1999-comparison` and quite similar to the EventDisplay
-    implementation where each telescope predicts two possible directions (SIGN = ±1).
-    Especially at low energies, the DISP sign reconstruction can be quite uncertain.
-    To solve this head-tail ambiguity this algorithm does the following for all valid
-    telescopes of an array event:
+    of :cite:p:`hofmann-1999-comparison` and a generalized implementation of the
+    EventDisplay implementation where each telescope predicts two possible
+    directions (SIGN = ±1). Especially at low energies, the DISP sign reconstruction
+    can be quite uncertain. To solve this head-tail ambiguity this algorithm does
+    the following for all valid telescopes of an array event:
 
     1. Two possible FoV positions (lon/lat) are computed from the Hillas centroid,
        the DISP parameter, and the Hillas orientation angle (Hillas psi).
@@ -560,6 +560,12 @@ class StereoDispCombiner(StereoCombiner):
             "Set to None to disable this cut."
         ),
     ).tag(config=True)
+
+    property = UseEnum(
+        ReconstructionProperty,
+        default_value=ReconstructionProperty.GEOMETRY,
+        help="Reconstruction property produced by this combiner (fixed to GEOMETRY).",
+    ).tag(config=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -720,6 +726,7 @@ class StereoDispCombiner(StereoCombiner):
         weights = self._calculate_weights(mono_predictions[valid])
         # Select the best n_best_tels telescopes by weight
         if self.n_best_tels is not None:
+            valid_idx = np.flatnonzero(valid)
             valid_tel_to_array_indices = tel_to_array_indices[valid]
 
             order = np.lexsort((-np.array(weights), tel_to_array_indices))
@@ -734,6 +741,7 @@ class StereoDispCombiner(StereoCombiner):
 
             keep_in_valid = np.zeros(tel_to_array_indices.size, dtype=bool)
             keep_in_valid[order[keep_n]] = True
+            valid[valid_idx[~keep_in_valid]] = False
 
         _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
 
@@ -791,7 +799,7 @@ class StereoDispCombiner(StereoCombiner):
             valid_tel_to_array_indices = tel_to_array_indices[valid]
             valid_array_indices = np.unique(valid_tel_to_array_indices)
 
-            if self.n_tel_combinations > 2:
+            if self.n_tel_combinations >= 3:
                 fill_lower_multiplicities(
                     fov_lon_combs_mean,
                     fov_lat_combs_mean,
