@@ -660,6 +660,13 @@ class StereoDispCombiner(StereoCombiner):
         for tel_id, dl2 in event.dl2.tel.items():
             if not dl2.geometry[self.prefix].is_valid:
                 continue
+            if self.prefix not in dl2.disp:
+                raise RuntimeError(
+                    f"No valid DISP reconstruction parameter found for "
+                    f"prefix='{self.prefix}'). "
+                    f"Make sure to apply the DispReconstructor before using the "
+                    f"StereoDispCombiner or adapt the prefix accordingly."
+                )
             dl1 = event.dl1.tel[tel_id].parameters
             quality_checks = self.quality_query(parameters=dl1)
             if not all(quality_checks):
@@ -669,13 +676,6 @@ class StereoDispCombiner(StereoCombiner):
             hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
             hillas_psi = dl1.hillas.psi
             disp = dl2.disp[self.prefix].parameter.to_value(u.deg)
-            if np.isnan(disp):
-                raise RuntimeError(
-                    f"No valid DISP reconstruction parameter found for "
-                    f"prefix='{self.prefix}'). "
-                    f"Make sure to apply the DispReconstructor before using the "
-                    f"StereoDispCombiner or adapt the prefix accordingly."
-                )
 
             fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
             fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
