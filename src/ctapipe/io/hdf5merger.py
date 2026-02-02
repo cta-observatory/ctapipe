@@ -404,6 +404,9 @@ class HDF5Merger(Component):
             if key in other.root:
                 self._append_table(other, other.root[key])
 
+        if not self.telescope_events:
+            return
+
         if FIXED_POINTING_GROUP in other.root:
             self._append_table_group(
                 other,
@@ -411,8 +414,6 @@ class HDF5Merger(Component):
                 once=self.single_ob,
             )
 
-        if not self.telescope_events:
-            return
         if SIMULATION_IMPACT_GROUP in other.root:
             self._append_table_group(other, other.root[SIMULATION_IMPACT_GROUP])
 
