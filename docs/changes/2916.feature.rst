@@ -1,0 +1,1 @@
+Add a new merge_strategy option 'combine-telescope-events' to HDF5Merger component to support the merging of telescope-wise data from different files for the same observation block.

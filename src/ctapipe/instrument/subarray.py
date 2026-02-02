@@ -614,12 +614,18 @@ class SubarrayDescription:
         """
         # here to prevent circular import
         from ..io import write_table
+        from ..io.hdf5dataformat import (
+            CONFIG_INSTRUMENT_SUBARRAY,
+            CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
+            CONFIG_INSTRUMENT_TEL_CAMERA,
+            CONFIG_INSTRUMENT_TEL_OPTICS,
+        )
 
         with ExitStack() as stack:
             if not isinstance(h5file, tables.File):
                 h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
-            if "/configuration/instrument/subarray" in h5file.root and not overwrite:
+            if CONFIG_INSTRUMENT_SUBARRAY in h5file.root and not overwrite:
                 raise OSError(
                     "File already contains a SubarrayDescription and overwrite=False"
                 )
@@ -630,26 +636,26 @@ class SubarrayDescription:
             write_table(
                 subarray_table,
                 h5file,
-                path="/configuration/instrument/subarray/layout",
+                path=CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
                 overwrite=overwrite,
             )
             write_table(
                 self.to_table(kind="optics"),
                 h5file,
-                path="/configuration/instrument/telescope/optics",
+                path=CONFIG_INSTRUMENT_TEL_OPTICS,
                 overwrite=overwrite,
             )
             for i, camera in enumerate(self.camera_types):
                 write_table(
                     camera.geometry.to_table(),
                     h5file,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{i}",
+                    path=f"{CONFIG_INSTRUMENT_TEL_CAMERA}/geometry_{i}",
                     overwrite=overwrite,
                 )
                 write_table(
                     camera.readout.to_table(),
                     h5file,
-                    path=f"/configuration/instrument/telescope/camera/readout_{i}",
+                    path=f"{CONFIG_INSTRUMENT_TEL_CAMERA}/readout_{i}",
                     overwrite=overwrite,
                 )
 
@@ -657,13 +663,16 @@ class SubarrayDescription:
     def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
         # here to prevent circular import
         from ..io import read_table
+        from ..io.hdf5dataformat import (
+            CONFIG_INSTRUMENT_SUBARRAY_LAYOUT,
+            CONFIG_INSTRUMENT_TEL_CAMERA,
+            CONFIG_INSTRUMENT_TEL_OPTICS,
+        )
 
         if isinstance(focal_length_choice, str):
             focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
 
-        layout = read_table(
-            path, "/configuration/instrument/subarray/layout", table_cls=QTable
-        )
+        layout = read_table(path, CONFIG_INSTRUMENT_SUBARRAY_LAYOUT, table_cls=QTable)
 
         version = layout.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_VERSIONS:
@@ -677,22 +686,16 @@ class SubarrayDescription:
 
         for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
-                read_table(
-                    path, f"/configuration/instrument/telescope/camera/geometry_{idx}"
-                )
+                read_table(path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/geometry_{idx}")
             )
             readout = CameraReadout.from_table(
-                read_table(
-                    path, f"/configuration/instrument/telescope/camera/readout_{idx}"
-                )
+                read_table(path, f"{CONFIG_INSTRUMENT_TEL_CAMERA}/readout_{idx}")
             )
             cameras[idx] = CameraDescription(
                 name=geometry.name, readout=readout, geometry=geometry
             )
 
-        optics_table = read_table(
-            path, "/configuration/instrument/telescope/optics", table_cls=QTable
-        )
+        optics_table = read_table(path, CONFIG_INSTRUMENT_TEL_OPTICS, table_cls=QTable)
 
         optics_version = optics_table.meta.get("TAB_VER")
         if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
@@ -808,3 +811,81 @@ class SubarrayDescription:
             set(subarray.tel_ids) == set(subarray_list[0].tel_ids)
             for subarray in subarray_list
         )
+
+    @staticmethod
+    def merge_subarrays(
+        subarray_list: list,
+        name=None,
+        overwrite_tel_ids: bool = False,
+    ) -> "SubarrayDescription":
+        """Merge multiple subarrays into one
+
+        Parameters
+        ----------
+        subarray_list: list(SubarrayDescription)
+            list of subarrays to merge
+        name: str
+            name of new merged subarray
+        overwrite_tel_ids: bool
+            if True, telescope entries from later subarrays replace earlier ones;
+            if False (default), encountering a duplicate telescope id raises a
+            ValueError.
+        Returns
+        -------
+        SubarrayDescription
+
+        """
+
+        tel_positions, tel_descriptions = {}, {}
+        tel_ids, tid_to_subarray = set(), {}
+        reference_location = subarray_list[
+            0
+        ].reference_location  # Get the reference location from the first subarray
+        for s, subarray in enumerate(subarray_list):
+            if not isinstance(subarray, SubarrayDescription):
+                raise TypeError(
+                    "All elements of subarray_list must be 'SubarrayDescription' "
+                    f"instances, got '{type(subarray)}' for element '{s}'."
+                )
+            for tid in subarray.tel_ids:
+                if tid in tel_ids:
+                    if overwrite_tel_ids:
+                        # Warn about overwriting telescope entry
+                        msg = (
+                            f"Overwriting telescope id '{tid}' from subarray "
+                            f"'{subarray.name}' into merged subarray."
+                        )
+                        warnings.warn(msg, UserWarning)
+                    else:
+                        raise ValueError(
+                            "Duplicate telescope id encountered while merging subarrays. "
+                            f"Telescope '{tid}' already defined; set overwrite_tel_ids=True to "
+                            "allow later subarrays to replace earlier entries."
+                        )
+                tid_to_subarray[tid] = subarray
+                tel_ids.add(tid)
+            if subarray.reference_location != reference_location:
+                raise ValueError(
+                    "All subarrays must have the same reference_location to be merged. "
+                    f"Subarray '{subarray.name}' ({subarray.reference_location}) does not match "
+                    f"the reference location of the first subarray '{subarray_list[0].name}' "
+                    f"({reference_location})."
+                )
+
+        # Merge telescope positions and descriptions, optionally allowing later entries to overwrite
+        for tid in sorted(tel_ids):
+            # Copy/overwrite telescope position and description from the current subarray
+            subarray = tid_to_subarray[tid]
+            tel_positions[tid] = subarray.positions[tid]
+            tel_descriptions[tid] = subarray.tels[tid]
+
+        if name is None:
+            name = "Merged_" + _range_extraction(sorted(tel_ids))
+
+        newsub = SubarrayDescription(
+            name,
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+            reference_location=reference_location,
+        )
+        return newsub

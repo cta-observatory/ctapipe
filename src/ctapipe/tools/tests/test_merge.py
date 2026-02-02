@@ -14,6 +14,14 @@ from astropy.utils.diff import report_diff_values
 from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.io import DataWriter, EventSource, TableLoader
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.io.hdf5dataformat import (
+    DL1_TEL_MUON_GROUP,
+    DL2_EVENT_STATISTICS_GROUP,
+    DL2_SUBARRAY_GEOMETRY_GROUP,
+    OBSERVATION_BLOCK_TABLE,
+    SCHEDULING_BLOCK_TABLE,
+    SIMULATION_IMAGES_GROUP,
+)
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 from ctapipe.tools.process import ProcessorTool
 
@@ -108,7 +116,7 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
         assert "images" in f.root.simulation.event.telescope
         assert "parameters" in f.root.dl1.event.telescope
 
-    t = read_table(output, "/simulation/event/telescope/images/tel_001")
+    t = read_table(output, f"{SIMULATION_IMAGES_GROUP}/tel_001")
     assert "true_image" not in t.colnames
     assert "true_image_sum" in t.colnames
 
@@ -128,13 +136,13 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
     )
 
     table1 = read_table(
-        dl2_shower_geometry_file, "/dl2/event/subarray/geometry/HillasReconstructor"
+        dl2_shower_geometry_file, f"{DL2_SUBARRAY_GEOMETRY_GROUP}/HillasReconstructor"
     )
     table2 = read_table(
-        dl2_proton_geometry_file, "/dl2/event/subarray/geometry/HillasReconstructor"
+        dl2_proton_geometry_file, f"{DL2_SUBARRAY_GEOMETRY_GROUP}/HillasReconstructor"
     )
     table_merged = read_table(
-        output, "/dl2/event/subarray/geometry/HillasReconstructor"
+        output, f"{DL2_SUBARRAY_GEOMETRY_GROUP}/HillasReconstructor"
     )
 
     diff = StringIO()
@@ -143,7 +151,7 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
         f"Merged table not equal to individual tables. Diff:\n {diff.getvalue()}"
     )
 
-    stats_key = "/dl2/service/tel_event_statistics/HillasReconstructor"
+    stats_key = f"{DL2_EVENT_STATISTICS_GROUP}/HillasReconstructor"
     merged_stats = read_table(output, stats_key)
     stats1 = read_table(dl2_shower_geometry_file, stats_key)
     stats2 = read_table(dl2_proton_geometry_file, stats_key)
@@ -152,8 +160,8 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
         assert np.all(merged_stats[col] == (stats1[col] + stats2[col]))
 
     # test reading configurations as well:
-    obs = read_table(output, "/configuration/observation/observation_block")
-    sbs = read_table(output, "/configuration/observation/scheduling_block")
+    obs = read_table(output, OBSERVATION_BLOCK_TABLE)
+    sbs = read_table(output, SCHEDULING_BLOCK_TABLE)
 
     assert len(obs) == 2, "should have two OB entries"
     assert len(sbs) == 2, "should have two SB entries"
@@ -182,8 +190,8 @@ def test_muon(tmp_path, dl1_muon_output_file):
         raises=True,
     )
 
-    table = read_table(output, "/dl1/event/telescope/muon/tel_001")
-    input_table = read_table(dl1_muon_output_file, "/dl1/event/telescope/muon/tel_001")
+    table = read_table(output, f"{DL1_TEL_MUON_GROUP}/tel_001")
+    input_table = read_table(dl1_muon_output_file, f"{DL1_TEL_MUON_GROUP}/tel_001")
 
     n_input = len(input_table)
     assert len(table) == n_input
@@ -293,6 +301,195 @@ def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):
         initial_tel_events = loader.read_telescope_events()
 
     assert_table_equal(merged_tel_events, initial_tel_events)
+
+
+def test_merge_telescope_data(tmp_path, prod6_gamma_simtel_path):
+    """
+    Test merging telescope events from different files produces same result
+    as processing all telescopes together.
+    """
+
+    from ctapipe.core import traits
+    from ctapipe.io.hdf5merger import CannotMerge
+    from ctapipe.tools.merge import MergeTool
+    from ctapipe.tools.process import ProcessorTool
+
+    # To be dropped from comparison
+    TIMING_COLUMNS = [
+        "timing_intercept",
+        "timing_deviation",
+        "timing_slope",
+    ]
+    common_argv = [
+        f"--input={prod6_gamma_simtel_path}",
+        "--write-images",
+    ]
+    outputs = {
+        "ref": tmp_path / "gamma_ref.dl1.h5",
+        "sub1": tmp_path / "gamma_sub1.dl1.h5",
+        "sub2": tmp_path / "gamma_sub2.dl1.h5",
+        "sub2_dl1b": tmp_path / "gamma_sub2_noimages.dl1b.h5",
+        "merged": tmp_path / "gamma_merged.dl1.h5",
+        "merged_appendmode": tmp_path / "gamma_merged_appendmode.dl1.h5",
+        "invalid": tmp_path / "invalid.dl1.h5",
+        "required_node_invalid": tmp_path / "required_node_invalid.dl1.h5",
+    }
+    # Select a few telescopes that cover different telescope types
+    # and have at least one triggered event in the simulated file.
+    allowed_tels = [1, 4, 5, 9, 13, 17, 25]
+    allowed_tels_strings = [
+        f"--EventSource.allowed_tels={tel_id}" for tel_id in allowed_tels
+    ]
+    tel_sets = [
+        ("ref", allowed_tels_strings),
+        ("sub1", allowed_tels_strings[:4]),
+        ("sub2", allowed_tels_strings[4:]),
+    ]
+    # Run ProcessorTool for each subset
+    for name, tel_args in tel_sets:
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                *common_argv,
+                *tel_args,
+                f"--output={outputs[name]}",
+            ],
+            cwd=tmp_path,
+        )
+
+    # For append mode test, copy one of the subset files to start with
+    shutil.copy(outputs["sub1"], outputs["merged_appendmode"])
+    # Merge subset files into single file which should match reference
+    # Test both normal merge and append mode
+    merger_mode_argv = {
+        "merged": [str(outputs["sub1"])],
+        "merged_appendmode": ["--append"],
+    }
+    for merged_mode_name in ["merged", "merged_appendmode"]:
+        run_tool(
+            MergeTool(),
+            argv=merger_mode_argv[merged_mode_name]
+            + [
+                str(outputs["sub2"]),
+                f"--output={outputs[merged_mode_name]}",
+                "--telescope-events",
+                "--no-dl2-telescope",
+                "--no-dl2-subarray",
+                "--combine-telescope-data",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+        # Compare merged result with reference
+        with (
+            TableLoader(outputs[merged_mode_name]) as merged_loader,
+            TableLoader(outputs["ref"]) as ref_loader,
+        ):
+            # Compare telescope data for each telescope
+            for tel_id in allowed_tels:
+                merged_telescope_data = merged_loader.read_telescope_events(
+                    telescopes=[tel_id], dl1_images=True
+                )
+                reference_telescope_data = ref_loader.read_telescope_events(
+                    telescopes=[tel_id], dl1_images=True
+                )
+                # Assert equality of the two tables after removing timing columns
+                merged_telescope_data.remove_columns(TIMING_COLUMNS)
+                reference_telescope_data.remove_columns(TIMING_COLUMNS)
+                assert_table_equal(merged_telescope_data, reference_telescope_data)
+            # Compare subarray data
+            merged_subarray_data = merged_loader.read_subarray_events()
+            reference_subarray_data = ref_loader.read_subarray_events()
+            assert_table_equal(merged_subarray_data, reference_subarray_data)
+
+    # Check that merging files with overlapping telescope IDs raises an error
+    # When combining telescope data, telescope IDs must be unique.
+    argv_options = [
+        str(outputs["sub1"]),
+        str(outputs[merged_mode_name]),
+        f"--output={outputs['invalid']}",
+        "--combine-telescope-data",
+    ]
+    with pytest.raises(
+        ValueError, match="Duplicate telescope IDs found when merging file"
+    ):
+        run_tool(
+            MergeTool(),
+            argv=[
+                *argv_options,
+                "--telescope-events",
+                "--no-dl2-telescope",
+                "--no-dl2-subarray",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    # Check that merging files with incompatible options raises a TraitError
+    traits_error_msg = "Merge strategy 'combine-telescope-data' requires"
+    with pytest.raises(traits.TraitError, match=traits_error_msg):
+        run_tool(
+            MergeTool(),
+            argv=[
+                *argv_options,
+                "--no-telescope-events",
+                "--no-dl2-subarray",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+    with pytest.raises(traits.TraitError, match=traits_error_msg):
+        run_tool(
+            MergeTool(),
+            argv=[
+                *argv_options,
+                "--telescope-events",
+                "--no-dl2-telescope",
+                "--dl2-subarray",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+    with pytest.raises(traits.TraitError, match=traits_error_msg):
+        run_tool(
+            MergeTool(),
+            argv=[
+                *argv_options,
+                "--telescope-events",
+                "--dl2-telescope",
+                "--no-dl2-subarray",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+    # Check that merging files. with different data levels raises an error
+    # When combining telescope data, data levels must match.
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={prod6_gamma_simtel_path}",
+            "--no-write-images",
+            *allowed_tels_strings[4:],
+            f"--output={outputs['sub2_dl1b']}",
+        ],
+        cwd=tmp_path,
+    )
+    with pytest.raises(CannotMerge, match="Required node"):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(outputs["sub1"]),
+                str(outputs["sub2_dl1b"]),
+                "--telescope-events",
+                "--combine-telescope-data",
+                "--no-dl2-subarray",
+                "--no-dl2-telescope",
+                f"--output={outputs['required_node_invalid']}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
 
 
 def test_merge_exceptions(
