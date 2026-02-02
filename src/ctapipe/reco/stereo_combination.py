@@ -27,6 +27,7 @@ from ..containers import (
     ReconstructedGeometryContainer,
 )
 from .preprocessing import telescope_to_horizontal
+from .reconstructor import StereoQualityQuery
 from .telescope_event_handling import (
     calc_combs_min_distances,
     calc_fov_lon_lat,
@@ -107,6 +108,11 @@ class StereoCombiner(Component):
             "PARTICLE_TYPE). Subclasses may support only a subset."
         ),
     ).tag(config=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.quality_query = StereoQualityQuery(parent=self)
 
     def _calculate_weights(self, data):
         if isinstance(data, ImageParametersContainer):
@@ -212,14 +218,18 @@ class StereoMeanCombiner(StereoCombiner):
 
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.energy[self.prefix]
-            if mono.is_valid:
-                values.append(mono.energy.to_value(u.TeV))
-                if tel_id not in event.dl1.tel:
-                    raise ValueError("No parameters for weighting available")
-                weights.append(
-                    self._calculate_weights(event.dl1.tel[tel_id].parameters)
-                )
-                ids.append(tel_id)
+            dl1_params = event.dl1.tel[tel_id].parameters
+            quality_checks = self.quality_query(parameters=dl1_params)
+            if not mono.is_valid:
+                continue
+            if not all(quality_checks):
+                continue
+
+            values.append(mono.energy.to_value(u.TeV))
+            if tel_id not in event.dl1.tel:
+                raise ValueError("No parameters for weighting available")
+            weights.append(self._calculate_weights(event.dl1.tel[tel_id].parameters))
+            ids.append(tel_id)
 
         if len(values) > 0:
             weights = np.array(weights, dtype=np.float64)
@@ -255,11 +265,17 @@ class StereoMeanCombiner(StereoCombiner):
 
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.particle_type[self.prefix]
-            if mono.is_valid:
-                values.append(mono.prediction)
-                dl1 = event.dl1.tel[tel_id].parameters
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
-                ids.append(tel_id)
+            dl1_params = event.dl1.tel[tel_id].parameters
+            quality_checks = self.quality_query(parameters=dl1_params)
+            if not mono.is_valid:
+                continue
+            if not all(quality_checks):
+                continue
+
+            values.append(mono.prediction)
+            dl1 = event.dl1.tel[tel_id].parameters
+            weights.append(self._calculate_weights(dl1) if dl1 else 1)
+            ids.append(tel_id)
 
         if len(values) > 0:
             mean = np.average(values, weights=weights)
@@ -281,12 +297,18 @@ class StereoMeanCombiner(StereoCombiner):
 
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.geometry[self.prefix]
-            if mono.is_valid:
-                alt_values.append(mono.alt)
-                az_values.append(mono.az)
-                dl1 = event.dl1.tel[tel_id].parameters
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
-                ids.append(tel_id)
+            dl1_params = event.dl1.tel[tel_id].parameters
+            quality_checks = self.quality_query(parameters=dl1_params)
+            if not mono.is_valid:
+                continue
+            if not all(quality_checks):
+                continue
+
+            alt_values.append(mono.alt)
+            az_values.append(mono.az)
+            dl1 = event.dl1.tel[tel_id].parameters
+            weights.append(self._calculate_weights(dl1) if dl1 else 1)
+            ids.append(tel_id)
 
         if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
             coord = AltAz(alt=alt_values, az=az_values)
@@ -356,8 +378,9 @@ class StereoMeanCombiner(StereoCombiner):
         """
 
         prefix = f"{self.prefix}_tel"
-        # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
+        quality_mask = self.quality_query.get_table_mask(mono_predictions)
+        valid &= quality_mask
 
         obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
             mono_predictions
@@ -635,27 +658,32 @@ class StereoDispCombiner(StereoCombiner):
         signs = np.array([-1, 1])
 
         for tel_id, dl2 in event.dl2.tel.items():
-            if dl2.geometry[self.prefix].is_valid:
-                dl1 = event.dl1.tel[tel_id].parameters
-                hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
-                hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
-                hillas_psi = dl1.hillas.psi
-                disp = dl2.disp[self.prefix].parameter.to_value(u.deg)
-                if np.isnan(disp):
-                    raise RuntimeError(
-                        f"No valid DISP reconstruction parameter found for "
-                        f"prefix='{self.prefix}'). "
-                        f"Make sure to apply the DispReconstructor before using the "
-                        f"StereoDispCombiner or adapt the prefix accordingly."
-                    )
+            if not dl2.geometry[self.prefix].is_valid:
+                continue
+            dl1 = event.dl1.tel[tel_id].parameters
+            quality_checks = self.quality_query(parameters=dl1)
+            if not all(quality_checks):
+                continue
 
-                fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
-                fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
-                fov_lon_values.append(fov_lons)
-                fov_lat_values.append(fov_lats)
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
-                ids.append(tel_id)
-                hillas_psis.append(hillas_psi)
+            hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
+            hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
+            hillas_psi = dl1.hillas.psi
+            disp = dl2.disp[self.prefix].parameter.to_value(u.deg)
+            if np.isnan(disp):
+                raise RuntimeError(
+                    f"No valid DISP reconstruction parameter found for "
+                    f"prefix='{self.prefix}'). "
+                    f"Make sure to apply the DispReconstructor before using the "
+                    f"StereoDispCombiner or adapt the prefix accordingly."
+                )
+
+            fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
+            fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+            fov_lon_values.append(fov_lons)
+            fov_lat_values.append(fov_lats)
+            weights.append(self._calculate_weights(dl1) if dl1 else 1)
+            ids.append(tel_id)
+            hillas_psis.append(hillas_psi)
 
         multiplicity = len(ids)
         alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
@@ -737,6 +765,8 @@ class StereoDispCombiner(StereoCombiner):
 
         prefix = f"{self.prefix}_tel"
         valid = mono_predictions[f"{prefix}_is_valid"]
+        quality_mask = self.quality_query.get_table_mask(mono_predictions)
+        valid &= quality_mask
 
         disp_col = f"{prefix}_parameter"
         if disp_col not in mono_predictions.colnames:
