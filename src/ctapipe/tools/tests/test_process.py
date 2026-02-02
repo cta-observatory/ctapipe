@@ -664,3 +664,46 @@ def test_prod6_issues(tmp_path):
         images = loader.read_telescope_events([32], true_images=True)
         images.add_index("event_id")
         np.testing.assert_array_equal(images.loc[1664106]["true_image"], -1)
+
+
+def test_readout_window_reducer(tmp_path, provenance):
+    """Test ReadoutWindowReducer in process tool."""
+    output = tmp_path / "test_reduced_window.dl1.h5"
+
+    config = {
+        "ProcessorTool": {
+            "reduce_readout_window": True,
+            "ReadoutWindowReducer": {
+                "window_start": [
+                    ("type", "*", None),
+                    ("type", "LST*", 10),
+                ],
+                "window_end": [
+                    ("type", "*", None),
+                    ("type", "LST*", 20),
+                ],
+            },
+            "DataWriter": {
+                "write_r1_waveforms": True,
+                "write_dl1_images": True,
+                "write_dl1_parameters": False,
+            },
+        }
+    }
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps(config))
+
+    provenance_log = tmp_path / "provenance.log"
+    input_path = get_dataset_path("gamma_prod5.simtel.zst")
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config_path}",
+            f"--input={input_path}",
+            f"--output={output}",
+            f"--provenance-log={provenance_log}",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
