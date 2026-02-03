@@ -1,5 +1,6 @@
 import astropy.units as u
 import numpy as np
+import pytest
 from astropy.table import Table
 
 from ctapipe.io import TableLoader, read_table
@@ -65,40 +66,54 @@ def test_get_combinations():
     assert np.allclose(index_combinations, expected_combinations)
 
 
-def test_calc_combs_min_distances():
-    from ctapipe.reco.telescope_event_handling import (
-        calc_combs_min_distances_event,
-        calc_combs_min_distances_table,
+def test_calc_combs_min_distances_multiple_events():
+    from ctapipe.reco.telescope_event_handling import calc_combs_min_distances
+
+    index_tel_combs = np.array(
+        [
+            [0, 1, 2],
+            [3, 4, 5],
+            [3, 4, 6],
+            [3, 5, 6],
+            [4, 5, 6],
+            [7, 8, 9],
+            [7, 8, 10],
+            [7, 8, 11],
+            [7, 9, 10],
+            [7, 9, 11],
+            [7, 10, 11],
+            [8, 9, 10],
+            [8, 9, 11],
+            [8, 10, 11],
+            [9, 10, 11],
+        ]
+    )
+    tel_ids = np.arange(12)
+    fov_lon_values = np.column_stack((tel_ids, tel_ids)).astype(float)
+    fov_lat_values = np.column_stack((tel_ids + 100, tel_ids + 100)).astype(float)
+    weights = tel_ids + 1
+
+    fov_lons, fov_lats, comb_weights = calc_combs_min_distances(
+        index_tel_combs, fov_lon_values, fov_lat_values, weights
     )
 
-    index_tel_combs = np.array([[0, 1], [0, 2], [1, 2]])
-    fov_lon_values = np.array([[1, 2], [3, 4], [5, 6]])
-    fov_lat_values = np.array([[7, 8], [9, 10], [11, 12]])
-    weights = np.array([1, 2, 3])
-
-    exp_comb_weights = np.array([3, 4, 5])
-    exp_fov_lons = np.array([2.66666667, 4.25, 4.6])
-    exp_fov_lats = np.array([8.66666667, 10.25, 10.6])
-
-    fov_lons_ev, fov_lats_ev, comb_weights_ev = calc_combs_min_distances_event(
-        index_tel_combs,
-        fov_lon_values,
-        fov_lat_values,
-        weights,
+    expected_lons = np.array(
+        [
+            np.average(tel_ids[combo], weights=weights[combo])
+            for combo in index_tel_combs
+        ]
     )
-
-    fov_lons_tab, fov_lats_tab, comb_weights_tab = calc_combs_min_distances_table(
-        index_tel_combs,
-        fov_lon_values,
-        fov_lat_values,
-        weights,
+    expected_lats = np.array(
+        [
+            np.average(tel_ids[combo] + 100, weights=weights[combo])
+            for combo in index_tel_combs
+        ]
     )
-    assert np.allclose(fov_lons_ev, exp_fov_lons)
-    assert np.allclose(fov_lons_tab, exp_fov_lons)
-    assert np.allclose(fov_lats_ev, exp_fov_lats)
-    assert np.allclose(fov_lats_tab, exp_fov_lats)
-    assert np.allclose(comb_weights_ev, exp_comb_weights)
-    assert np.allclose(comb_weights_tab, exp_comb_weights)
+    expected_weights = np.array([weights[combo].sum() for combo in index_tel_combs])
+
+    assert np.allclose(fov_lons, expected_lons)
+    assert np.allclose(fov_lats, expected_lats)
+    assert np.allclose(comb_weights, expected_weights)
 
 
 def test_calc_fov_lon_lat():
@@ -155,3 +170,140 @@ def test_get_index_combs():
 
     assert np.allclose(index_tel_combs, exp_index_tel_combs)
     assert np.allclose(num_combs, exp_num_combs)
+
+
+@pytest.mark.parametrize(
+    ("k", "expected"),
+    [
+        (2, np.array([[0, 0], [0, 1], [1, 0], [1, 1]])),
+        (0, np.empty((1, 0), dtype=int)),
+    ],
+)
+def test_binary_combinations(k, expected):
+    from ctapipe.reco.telescope_event_handling import binary_combinations
+
+    combinations = binary_combinations(k)
+
+    assert combinations.shape == expected.shape
+    assert np.array_equal(combinations, expected)
+
+
+@pytest.mark.parametrize(
+    ("min_ang_diff", "psi1", "psi2", "expected"),
+    [
+        (20.0, 10.0 * u.deg, 50.0 * u.deg, True),
+        (10.0, 0.0 * u.deg, 180.0 * u.deg, False),
+    ],
+)
+def test_check_ang_diff(min_ang_diff, psi1, psi2, expected):
+    from ctapipe.reco.telescope_event_handling import check_ang_diff
+
+    result = check_ang_diff(min_ang_diff, psi1, psi2)
+
+    assert bool(result) is expected
+
+
+def test_check_ang_diff_array():
+    from ctapipe.reco.telescope_event_handling import check_ang_diff
+
+    min_ang_diff = 20.0
+    psi1 = np.array([0.0, 10.0, 0.0]) * u.deg
+    psi2 = np.array([30.0, 25.0, 180.0]) * u.deg
+
+    result = check_ang_diff(min_ang_diff, psi1, psi2)
+    expected = np.array([True, False, False])
+
+    assert np.all(result == expected)
+
+
+def test_valid_tels_of_multi():
+    from ctapipe.reco.telescope_event_handling import valid_tels_of_multi
+
+    valid_tel_to_array_indices = np.array([0, 0, 1, 1, 1, 2])
+
+    mask = valid_tels_of_multi(2, valid_tel_to_array_indices)
+    expected = np.array([True, True, False, False, False, False])
+
+    assert np.array_equal(mask, expected)
+
+
+def test_valid_tels_of_multi_noop():
+    from ctapipe.reco.telescope_event_handling import valid_tels_of_multi
+
+    valid_tel_to_array_indices = np.array([0, 0, 1, 1, 1, 2])
+
+    mask = valid_tels_of_multi(4, valid_tel_to_array_indices)
+
+    assert not np.any(mask)
+
+
+def test_fill_lower_multiplicities():
+    from ctapipe.reco.telescope_event_handling import fill_lower_multiplicities
+
+    fov_lon_combs_mean = np.array([10.0, np.nan, 30.0])
+    fov_lat_combs_mean = np.array([0.0, np.nan, 1.0])
+    n_tel_combinations = 3
+    valid_tel_to_array_indices = np.array([0, 0, 0, 1, 1, 2])
+    valid_multiplicity = np.array([3, 2, 1])
+    fov_lon_values = np.array(
+        [
+            [0.0, 1.0],
+            [0.0, 1.0],
+            [0.0, 1.0],
+            [1.0, 11.0],
+            [2.0, 12.0],
+            [5.0, 15.0],
+        ]
+    )
+    fov_lat_values = np.array(
+        [
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [1.0, 1.0],
+        ]
+    )
+    weights = np.ones(len(valid_tel_to_array_indices))
+
+    fill_lower_multiplicities(
+        fov_lon_combs_mean,
+        fov_lat_combs_mean,
+        n_tel_combinations,
+        valid_tel_to_array_indices,
+        valid_multiplicity,
+        fov_lon_values,
+        fov_lat_values,
+        weights,
+    )
+
+    assert np.allclose(fov_lon_combs_mean, np.array([10.0, 1.5, 30.0]), equal_nan=True)
+    assert np.allclose(fov_lat_combs_mean, np.array([0.0, 0.0, 1.0]), equal_nan=True)
+
+
+def test_fill_lower_multiplicities_noop():
+    from ctapipe.reco.telescope_event_handling import fill_lower_multiplicities
+
+    fov_lon_combs_mean = np.array([10.0, 20.0])
+    fov_lat_combs_mean = np.array([0.0, 1.0])
+    n_tel_combinations = 2
+    valid_tel_to_array_indices = np.array([0, 0, 1, 1])
+    valid_multiplicity = np.array([2, 2])
+    fov_lon_values = np.array([[0.0, 1.0], [0.0, 1.0], [2.0, 3.0], [2.0, 3.0]])
+    fov_lat_values = np.zeros_like(fov_lon_values)
+    weights = np.ones(len(valid_tel_to_array_indices))
+
+    fill_lower_multiplicities(
+        fov_lon_combs_mean,
+        fov_lat_combs_mean,
+        n_tel_combinations,
+        valid_tel_to_array_indices,
+        valid_multiplicity,
+        fov_lon_values,
+        fov_lat_values,
+        weights,
+    )
+
+    assert np.allclose(fov_lon_combs_mean, np.array([10.0, 20.0]))
+    assert np.allclose(fov_lat_combs_mean, np.array([0.0, 1.0]))
