@@ -132,6 +132,9 @@ class EventWeighter(Component):
 class SimpleEventWeighter(EventWeighter):
     """Weights all events spectrally with no spatial binning.
 
+    This should be used for point-like signal gammas and diffuse background
+    events (protons, electrons).
+
     Calling this class adds a column to the output table with the event-wise
     spectral weights, with column name ``weight_column``.
     """
@@ -161,6 +164,9 @@ class SimpleEventWeighter(EventWeighter):
 class RadialEventWeighter(EventWeighter, DefaultFoVOffsetBins):
     """
     Weights in radial (FOV) offset bins in the `~ctapipe.coordinates.NominalFrame`.
+
+    This should only be used for diffuse signal (gamma) events where you want to
+    weight them to a point-source spectrum in radial offset bins.
 
     Calling this class adds a column to the output table with the event-wise
     spectral-spatial weights, with column name ``weight_column``. This
