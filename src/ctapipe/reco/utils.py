@@ -1,3 +1,7 @@
+import astropy.units as u
+import numpy as np
+
+
 def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
     """
     Fill column descriptions and default values into table for container
@@ -27,7 +31,15 @@ def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
             colname = f"{prefix}_{name}"
 
         if colname not in table.colnames and field.default is not None:
-            table[colname] = field.default
+            default = field.default
+            # Handle empty tables separately to avoid issues with units
+            if len(table) == 0:
+                if isinstance(default, u.Quantity):
+                    table[colname] = u.Quantity([], unit=default.unit)
+                else:
+                    table[colname] = np.full(0, default)
+            else:
+                table[colname] = default
 
         if colname in table.colnames:
             table[colname].description = field.description
