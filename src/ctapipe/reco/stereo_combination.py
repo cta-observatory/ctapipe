@@ -937,7 +937,9 @@ class StereoDispCombiner(StereoCombiner):
             np.isfinite(stereo_table[f"{self.prefix}_alt"]),
             np.isfinite(stereo_table[f"{self.prefix}_az"]),
         )
-        stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+        stereo_table[f"{self.prefix}_goodness_of_fit"] = np.full(
+            len(stereo_table), np.nan
+        )
 
         tel_ids = [[] for _ in range(n_array_events)]
 
