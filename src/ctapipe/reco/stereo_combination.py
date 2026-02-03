@@ -80,6 +80,8 @@ class StereoCombiner(Component):
     required for combining the chosen :class:`~ctapipe.reco.ReconstructionProperty`.
     """
 
+    classes = [StereoQualityQuery]
+
     weights = CaselessStrEnum(
         ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
@@ -379,8 +381,6 @@ class StereoMeanCombiner(StereoCombiner):
 
         prefix = f"{self.prefix}_tel"
         valid = mono_predictions[f"{prefix}_is_valid"]
-        quality_mask = self.quality_query.get_table_mask(mono_predictions)
-        valid &= quality_mask
 
         obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
             mono_predictions
@@ -764,9 +764,7 @@ class StereoDispCombiner(StereoCombiner):
         """
 
         prefix = f"{self.prefix}_tel"
-        valid = mono_predictions[f"{prefix}_is_valid"]
-        quality_mask = self.quality_query.get_table_mask(mono_predictions)
-        valid &= quality_mask
+        valid = mono_predictions[f"{prefix}_is_valid"].copy()
 
         disp_col = f"{prefix}_parameter"
         if disp_col not in mono_predictions.colnames:
@@ -796,26 +794,28 @@ class StereoDispCombiner(StereoCombiner):
                     tels_to_invalidate = valid_idx[pairs_in_valid[~keep_pairs].ravel()]
                     valid[tels_to_invalidate] = False
 
-        weights = self._calculate_weights(mono_predictions[valid])
         # Select the best n_best_tels telescopes by weight
         if self.n_best_tels is not None:
+            weights = self._calculate_weights(mono_predictions[valid])
             valid_idx = np.flatnonzero(valid)
             valid_tel_to_array_indices = tel_to_array_indices[valid]
 
-            order = np.lexsort((-np.array(weights), tel_to_array_indices))
-            array_idx = tel_to_array_indices[order]
+            order = np.lexsort((-np.array(weights), valid_tel_to_array_indices))
 
-            starts = np.r_[True, array_idx[1:] != array_idx[:-1]]
-            start_pos = np.where(starts, np.arange(array_idx.size), 0)
+            starts = np.empty(len(valid_tel_to_array_indices), dtype=bool)
+            starts[0] = True
+            starts[1:] = (
+                valid_tel_to_array_indices[1:] != valid_tel_to_array_indices[:-1]
+            )
+            start_pos = np.where(starts, np.arange(valid_tel_to_array_indices.size), 0)
             group_start = np.maximum.accumulate(start_pos)
 
-            rank = np.arange(array_idx.size) - group_start
-            keep_n = rank < self.n_best_tels
+            rank = np.arange(valid_tel_to_array_indices.size) - group_start
+            drop_n = rank >= self.n_best_tels
 
-            keep_in_valid = np.zeros(tel_to_array_indices.size, dtype=bool)
-            keep_in_valid[order[keep_n]] = True
-            valid[valid_idx[~keep_in_valid]] = False
+            valid[valid_idx[order[drop_n]]] = False
 
+        weights = self._calculate_weights(mono_predictions[valid])
         _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
 
         n_array_events = len(obs_ids)
