@@ -57,8 +57,8 @@ __all__ = [
 
 class StereoCombiner(Component):
     """
-    Base class for algorithms that combine telescope-wise (mono) predictions
-    into a single array-level (stereo) reconstruction.
+    Base class for algorithms combining telescope-wise predictions
+    to common predictions.
 
     A StereoCombiner defines the interface for transforming per-telescope
     DL2 predictions (energy, direction, particle type) into a unified
@@ -73,7 +73,7 @@ class StereoCombiner(Component):
 
     2. **Table-wise combination** via :meth:`predict_table`
        Takes a table of DL2 mono predictions (one row per telescope-event)
-       and constructs an output table with one row per array event containing
+       and constructs an output table with one row per subarray event containing
        the stereo predictions.
 
     Subclasses must implement both methods, as well as any additional logic
@@ -147,18 +147,18 @@ class StereoCombiner(Component):
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Compute the stereo prediction for a single array event.
+        Compute the stereo prediction for a single subarray event.
 
         Parameters
         ----------
         event : ArrayEventContainer
-            Event containing DL1 parameters and per-telescope DL2 predictions.
+            Subarray event containing DL1 parameters and per-telescope DL2 predictions.
             Implementations must write the combined stereo prediction into
             ``event.dl2.stereo`` under the configured ``prefix``.
 
         Notes
         -----
-        - This method modifies the event container *in place*.
+        - This method modifies the subarray event container *in place*.
         """
 
     @abstractmethod
@@ -175,7 +175,7 @@ class StereoCombiner(Component):
         Returns
         -------
         stereo_table : astropy.table.Table
-            A table with one row per array event, containing the combined
+            A table with one row per subarray event, containing the combined
             stereo predictions.
         """
 
@@ -210,7 +210,8 @@ class StereoMeanCombiner(StereoCombiner):
         }
         if self.property not in self.supported:
             raise NotImplementedError(
-                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
+                f"Combination of {self.property} not implemented in "
+                "{self.__class__.__name__}."
             )
 
     def _combine_energy(self, event):
@@ -369,7 +370,7 @@ class StereoMeanCombiner(StereoCombiner):
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
-        Calculates the (array-)event-wise mean.
+        Calculates the (subarray-)event-wise mean.
 
         Telescope events, that are nan, get discarded. This means
         you might end up with less events if all telescope predictions
@@ -532,17 +533,16 @@ class StereoDispCombiner(StereoCombiner):
 
     **Algorithm overview**
 
-    0. **Pre-selection of valid telescopes (per array event)**
+    0. **Pre-selection of valid telescopes (per subarray event)**
        The set of telescopes participating in the stereo reconstruction is
        optionally restricted before any combination step:
 
        - If ``n_best_tels`` is set, only the ``n_best_tels`` telescopes with
-         the highest weights are kept per array event; all other telescopes
+         the highest weights are kept per subarray event; all other telescopes
          are excluded from further processing.
-       - For array events with multiplicity exactly two, and if
-         ``min_ang_diff`` is set, events whose Hillas main shower axes are
-         nearly parallel (angular difference below ``min_ang_diff``) are
-         rejected entirely.
+       - If ``min_ang_diff`` is set, subarray events of multiplicity = 2 that
+         have a nearly parallel main shower axis (angular difference below
+         ``min_ang_diff``) are rejected entirely.
 
        These selections reduce the effective telescope multiplicity used in
        the subsequent steps.
@@ -554,21 +554,22 @@ class StereoDispCombiner(StereoCombiner):
 
     2. For each telescope combination of size ``n_tel_combinations``, evaluate
        all possible DISP sign assignments and select the sign combination that
-       minimizes the angular distance between the participating telescopes.
+       minimizes the Sum of Squared Errors (SSE) between the participating
+       telescopes.
 
     3. Combine the resulting per-combination FoV positions using the selected
        telescope weights and compute a weighted mean FoV direction for each
-       array event.
+       subarray event.
 
     4. Convert the final FoV direction to horizontal coordinates (Alt/Az).
 
     **Handling of lower multiplicities**
 
-    If an array event has an effective telescope multiplicity smaller than
+    If an subarray event has an effective telescope multiplicity smaller than
     ``n_tel_combinations`` (after applying ``n_best_tels`` and any angular
     difference cuts), but at least two telescopes remain, the reconstruction
-    is performed using all available telescopes of that event. In this case,
-    just one combinationa is formed with a size equal to the event multiplicity
+    is performed using all available telescopes of that subevent. In this case,
+    just one combination is formed with a size equal to the event multiplicity
     and the optimal DISP sign assignment is determined accordingly. Single-
     telescope events are handled separately using the mono reconstruction.
 
@@ -620,12 +621,12 @@ class StereoDispCombiner(StereoCombiner):
         min=0.0,
         allow_none=True,
         help=(
-            "Minimum angular separation (in degrees) between the reconstructed main shower "
-            "axes of two telescopes. This cut is applied only to array events with exactly "
-            "two participating telescopes (multiplicity = 2). Events for which the angular "
-            "difference between the two shower axes is smaller than this value are rejected, "
-            "as nearly parallel axes lead to problems solving the head-tail ambiguity. "
-            "Set to None to disable this cut."
+            "Minimum angular separation (in degrees) between the reconstructed main "
+            "shower axes of two telescopes. This cut is applied only to subarray events "
+            "with exactly two participating telescopes (multiplicity = 2). Events for "
+            "which the angular difference between the two shower axes is smaller than "
+            "this value are rejected, as nearly parallel axes lead to problems solving "
+            "the head-tail ambiguity. Set to None to disable this cut."
         ),
     ).tag(config=True)
 
@@ -742,7 +743,8 @@ class StereoDispCombiner(StereoCombiner):
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Perform DISP-based stereo direction reconstruction for a single event.
+        Perform DISP-based stereo direction reconstruction for a single subarray
+        event.
 
         This is the entry point used for event-wise processing.
         Calls :meth:`_combine_altaz` and stores the resulting stereo geometry
@@ -758,9 +760,9 @@ class StereoDispCombiner(StereoCombiner):
 
         This is the table-wise / batch version of the DISP stereo combination.
         Each row in ``mono_predictions`` corresponds to a telescope-event.
-        The function groups rows by array event (obs_id, event_id), performs
-        DISP-based direction reconstruction for each array event, and returns
-        one row per array event.
+        The function groups rows by subarray event (obs_id, event_id), performs
+        DISP-based direction reconstruction for each subarray event, and returns
+        one row per subarray event.
 
         See :meth:`StereoCombiner.predict_table` for the general
         input/output conventions.
@@ -774,7 +776,8 @@ class StereoDispCombiner(StereoCombiner):
             raise KeyError(
                 f"Required DISP column '{disp_col}' not found in mono prediction table. "
                 f"Make sure the mono events were reconstructed with the corresponding "
-                f"DispReconstructor (prefix='{self.prefix}') before running StereoDispCombiner."
+                f"DispReconstructor (prefix='{self.prefix}') before running "
+                f"StereoDispCombiner."
             )
 
         obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(

@@ -102,9 +102,9 @@ def get_subarray_index(tel_table):
 
 def _grouped_add(tel_data, n_array_events, indices):
     """
-    Sum telescope-event values per array event.
+    Sum telescope-event values per subarray event.
 
-    Groups telescope-event values by their corresponding array-event index
+    Groups telescope-event values by their corresponding subarray-event index
     and computes the group-wise sum using ``np.add.at``.
 
     Parameters
@@ -112,16 +112,16 @@ def _grouped_add(tel_data, n_array_events, indices):
     tel_data : np.ndarray
         Values for each telescope event (one value per telescope-event row).
     n_array_events : int
-        Total number of array events (size of the grouped output).
+        Total number of subarray events (size of the grouped output).
     indices : np.ndarray
         Integer array mapping each telescope-event row to its corresponding
-        array-event index. Must have the same length as ``tel_data``.
+        subarray-event index. Must have the same length as ``tel_data``.
 
     Returns
     -------
     summed : np.ndarray
         Array of shape ``(n_array_events,)`` containing the sum of ``tel_data``
-        over all telescope-event rows belonging to each array event.
+        over all telescope-event rows belonging to each subarray event.
     """
     combined_values = np.zeros(n_array_events)
     np.add.at(combined_values, indices, tel_data)
@@ -136,16 +136,16 @@ def weighted_mean_std_ufunc(
     weights=np.array([1]),
 ):
     """
-    Compute weighted mean and standard deviation per subarray (array) event.
+    Compute weighted mean and standard deviation per subarray  event.
 
     Telescope-event values (``tel_values``) are grouped by subarray event using
-    ``indices`` (mapping each telescope-event row to an array-event index).
-    For each array event, the function computes the weighted mean and the
+    ``indices`` (mapping each telescope-event row to an subarray-event index).
+    For each subarray event, the function computes the weighted mean and the
     weighted standard deviation over the corresponding telescope-event rows.
 
-    Invalid telescope rows are excluded using ``valid_tel``. Events without any
-    valid telescope contribution return ``NaN`` for both mean and standard
-    deviation.
+    Invalid telescope rows are excluded using ``valid_tel``. Subarray events
+    without any valid telescope contribution return ``NaN`` for both mean and
+    standard deviation.
 
     Parameters
     ----------
@@ -160,7 +160,7 @@ def weighted_mean_std_ufunc(
         ``get_subarray_index``. Must have the same length as ``tel_values``.
     multiplicity : np.ndarray
         Number of telescope-event rows per subarray event (one entry per
-        array event), in the same order as the subarray events encoded in
+        subarray event), in the same order as the subarray events encoded in
         ``indices``.
     weights : np.ndarray, optional
         Weights used for averaging. Must be broadcastable to ``tel_values``.
@@ -169,10 +169,10 @@ def weighted_mean_std_ufunc(
     Returns
     -------
     mean : np.ndarray
-        Weighted mean value for each subarray (array) event. Entries are
+        Weighted mean value for each subarray event. Entries are
         ``NaN`` for events without valid telescope contributions.
     std : np.ndarray
-        Weighted standard deviation for each subarray (array) event.
+        Weighted standard deviation for each subarray event.
         Entries are ``NaN`` where the mean is undefined.
     """
     n_array_events = len(multiplicity)
@@ -363,35 +363,35 @@ def calc_combs_min_distances(index_tel_combs, fov_lon_values, fov_lat_values, we
 def valid_tels_of_multi(multi, valid_tel_to_array_indices):
     """
     Create a boolean mask selecting telescope-event rows that belong to
-    array events with a given multiplicity.
+    subarray events with a given multiplicity.
 
     The function assumes that telescope events are grouped contiguously
-    by array event, i.e. all rows belonging to the same array event appear
+    by subarray event, i.e. all rows belonging to the same subarray event appear
     in a single consecutive block in ``valid_tel_to_array_indices``.
-    Under this assumption, the multiplicity of an array event corresponds
+    Under this assumption, the multiplicity of an subarray event corresponds
     to the length of its contiguous block.
 
-    For all array events whose block length equals ``multi``, the function
+    For all subarray events whose block length equals ``multi``, the function
     returns a boolean mask that is ``True`` for all telescope rows belonging
     to those events and ``False`` otherwise.
 
     This block-based approach avoids repeated membership tests (e.g.
-    ``np.isin``) and is therefore typically faster for large arrays.
+    ``np.isin``) and is faster for large arrays.
 
     Parameters
     ----------
     multi : int
-        Target multiplicity (number of telescope events per array event).
+        Target multiplicity (number of telescope events per subarray event).
     valid_tel_to_array_indices : np.ndarray
         One-dimensional array mapping each valid telescope event to its
-        corresponding array-event index. Must be ordered such that
-        telescope events of the same array event are contiguous.
+        corresponding subarray-event index. Must be ordered such that
+        telescope events of the same subarray event are contiguous.
 
     Returns
     -------
     mask : np.ndarray
         Boolean array of the same length as ``valid_tel_to_array_indices``.
-        Entries are ``True`` for telescope-event rows belonging to array
+        Entries are ``True`` for telescope-event rows belonging to subarray
         events with multiplicity ``multi`` and ``False`` otherwise.
 
     """
@@ -420,7 +420,7 @@ def fill_lower_multiplicities(
     """
     Fill stereo FoV estimates for events with multiplicity < ``n_tel_combinations``.
 
-    For array events whose multiplicity is smaller than ``n_tel_combinations``
+    For subarray events whose multiplicity is smaller than ``n_tel_combinations``
     but at least 2, recompute the stereo direction using *all* available
     telescopes of the event (i.e. combination size equals the event multiplicity).
     The optimal DISP sign assignment is determined via
@@ -433,18 +433,18 @@ def fill_lower_multiplicities(
     ----------
     fov_lon_combs_mean : np.ndarray
         Array of shape ``(n_array_events,)`` holding the mean FoV longitudes per
-        array event. Updated in-place for lower-multiplicity events.
+        subarray event. Updated in-place for lower-multiplicity events.
     fov_lat_combs_mean : np.ndarray
         Array of shape ``(n_array_events,)`` holding the mean FoV latitudes per
-        array event. Updated in-place for lower-multiplicity events.
+        subarray event. Updated in-place for lower-multiplicity events.
     n_tel_combinations : int
         Nominal number of telescopes used per stereo combination.
     valid_tel_to_array_indices : np.ndarray
         One-dimensional array mapping each valid telescope-event row to its
-        corresponding array-event index. Telescope rows must be grouped
-        contiguously by array event.
+        corresponding subarray-event index. Telescope rows must be grouped
+        contiguously by subarray event.
     valid_multiplicity : np.ndarray
-        Multiplicity per valid array event (one entry per array event), aligned
+        Multiplicity per valid subarray event (one entry per subarray event), aligned
         with the indices used in ``valid_tel_to_array_indices``.
     fov_lon_values : np.ndarray
         Array of shape ``(n_valid_tel_events, 2)`` containing the two possible
@@ -608,7 +608,7 @@ def _calc_n_combs(multiplicity, k):
     ----------
     multiplicity : np.ndarray
         One-dimensional array of multiplicities (number of telescope-event rows)
-        for each array event.
+        for each subarray event.
     k : int
         Size of the combinations.
 
@@ -628,15 +628,15 @@ def _calc_n_combs(multiplicity, k):
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def get_index_combs(multiplicities, combs_array, combs_to_multi_indices, k):
     """
-    Build telescope-event index combinations for all array events.
+    Build telescope-event index combinations for all subarray events.
 
-    For each array event with multiplicity ``m = multiplicities[i]``, this
+    For each subarray event with multiplicity ``m = multiplicities[i]``, this
     function selects the precomputed ``k``-combinations corresponding to ``m``
     from ``combs_array`` (using ``combs_to_multi_indices``) and offsets them
     into the global telescope-event indexing scheme.
 
     The global telescope-event ordering is assumed to be the concatenation of
-    telescope-event blocks per array event. Under this assumption, the start
+    telescope-event blocks per subarray event. Under this assumption, the start
     index of event ``i`` equals the cumulative sum of previous multiplicities,
     and combinations for event ``i`` can be obtained by adding that offset.
 
@@ -644,7 +644,7 @@ def get_index_combs(multiplicities, combs_array, combs_to_multi_indices, k):
     ----------
     multiplicities : np.ndarray
         One-dimensional array of multiplicities (number of telescope-event rows)
-        for each array event.
+        for each subarray event.
     combs_array : np.ndarray
         Precomputed combination indices for multiplicities in the range
         ``k .. max_multiplicity``. Usually produced by ``create_combs_array``.
@@ -659,11 +659,11 @@ def get_index_combs(multiplicities, combs_array, combs_to_multi_indices, k):
     -------
     index_tel_combs : np.ndarray
         Array of shape ``(n_total_combinations_over_events, k)`` containing the
-        telescope-event indices for all ``k``-combinations across all array
+        telescope-event indices for all ``k``-combinations across all subarray
         events. Indices refer to the flattened telescope-event ordering.
     n_combs : np.ndarray
         One-dimensional array giving the number of ``k``-combinations for each
-        array event, in the same order as ``multiplicities``.
+        subarray event, in the same order as ``multiplicities``.
     """
     n_combs = _calc_n_combs(multiplicities, k)
     total_combs = np.sum(n_combs)
