@@ -632,7 +632,10 @@ class StereoDispCombiner(StereoCombiner):
     property = UseEnum(
         ReconstructionProperty,
         default_value=ReconstructionProperty.GEOMETRY,
-        help="Reconstruction property produced by this combiner (fixed to GEOMETRY).",
+        help=(
+            "Reconstruction property produced by this combiner (not configurable - "
+            "fixed to GEOMETRY)."
+        ),
     ).tag(config=False)
 
     def __init__(self, *args, **kwargs):
