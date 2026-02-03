@@ -101,18 +101,19 @@ def spectrum_from_simulation_config(
     # Currently we do not support those, so we raise exceptions here to
     # avoid that we incorrectly compute the effective area, which would have
     # a high scientific impact.
-    for itm in [
+    cols = [
         "spectral_index",
         "energy_range_min",
         "energy_range_max",
         "max_scatter_range",
         "max_viewcone_radius",
         "min_viewcone_radius",
-    ]:
-        if len(np.unique(simulation_configuration_table[itm])) > 1:
-            raise NotImplementedError(
-                f"Unsupported: '{itm}' differs across simulation runs"
-            )
+    ]
+
+    if len(np.unique(simulation_configuration_table[cols], axis=0)) > 1:
+        raise NotImplementedError(
+            f"Unsupported: {', '.join(cols)} must not differ across simulation runs"
+        )
 
     n_showers_config = (
         simulation_configuration_table["n_showers"]
