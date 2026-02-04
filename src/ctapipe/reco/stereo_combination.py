@@ -657,14 +657,11 @@ class StereoDispCombiner(StereoCombiner):
         Perform DISP-based stereo direction reconstruction for a single subarray
         event.
 
-        This is the entry point used for event-wise processing.
-        Calls :meth:`_combine_altaz` and stores the resulting stereo geometry
-        inside ``event.dl2.stereo`` under the configured prefix.
+        This is the entry point used for event-wise processing and stores the
+        resulting stereo geometry inside ``event.dl2.stereo`` under the
+        configured prefix.
         """
 
-        self._combine_altaz(event)
-
-    def _combine_altaz(self, event: ArrayEventContainer) -> None:
         ids, hillas_psis, fov_lon_values, fov_lat_values, weights = (
             self._collect_valid_tel_data(event)
         )
@@ -880,7 +877,6 @@ class StereoDispCombiner(StereoCombiner):
             return valid
 
         tels_to_invalidate = valid_idx[pairs_in_valid[~keep_pairs].ravel()]
-        valid = valid.copy()
         valid[tels_to_invalidate] = False
         return valid
 
@@ -915,7 +911,6 @@ class StereoDispCombiner(StereoCombiner):
         if not np.any(drop_n):
             return valid
 
-        valid = valid.copy()
         valid[valid_idx[order[drop_n]]] = False
         return valid
 
