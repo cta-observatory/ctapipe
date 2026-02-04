@@ -323,36 +323,39 @@ def calc_combs_min_distances(index_tel_combs, fov_lon_values, fov_lat_values, we
         Array of shape ``(n_combs,)`` containing the sum of telescope weights
         contributing to each combination.
     """
-    mapped_weights = weights[index_tel_combs]  # (n_combs, k)
+    mapped_weights = weights[index_tel_combs]
     combined_weights = mapped_weights.sum(axis=1)
 
     _, k = index_tel_combs.shape
-    sign_combs = binary_combinations(k)  # (2**k, k)
+    sign_combs = binary_combinations(k)
 
     lon_combs = fov_lon_values[index_tel_combs]  # (n_combs, k, 2)
     lat_combs = fov_lat_values[index_tel_combs]  # (n_combs, k, 2)
 
-    sign_idx = sign_combs.T[None, :, :]  # (1, k, 2**k) broadcasted
-    lon_vals = np.take_along_axis(lon_combs, sign_idx, axis=2)  # (n_combs, k, 2**k)
-    lat_vals = np.take_along_axis(lat_combs, sign_idx, axis=2)  # (n_combs, k, 2**k)
+    lon0 = lon_combs[..., 0]
+    lon1 = lon_combs[..., 1]
+    lat0 = lat_combs[..., 0]
+    lat1 = lat_combs[..., 1]
 
-    w = mapped_weights[:, :, None]  # (n_combs, k, 1)
-    wsum = w.sum(axis=1)  # (n_combs, 1)
+    s = sign_combs.T[None, :, :]  # (1, k, 2**k), 0/1
+    lon_vals = lon0[..., None] * (1 - s) + lon1[..., None] * s
+    lat_vals = lat0[..., None] * (1 - s) + lat1[..., None] * s
 
-    lon_mu = (lon_vals * w).sum(axis=1) / wsum  # (n_combs, 2**k)
-    lat_mu = (lat_vals * w).sum(axis=1) / wsum  # (n_combs, 2**k)
+    w = mapped_weights[:, :, None]
+    wsum = w.sum(axis=1)
 
-    # SSE
+    lon_mu = (lon_vals * w).sum(axis=1) / wsum
+    lat_mu = (lat_vals * w).sum(axis=1) / wsum
+
     dlon = lon_vals - lon_mu[:, None, :]
     dlat = lat_vals - lat_mu[:, None, :]
-    sse = (w * (dlon * dlon + dlat * dlat)).sum(axis=1)  # (n_combs, 2**k)
+    sse = (w * (dlon * dlon + dlat * dlat)).sum(axis=1)
 
-    argmin = np.argmin(sse, axis=1)  # (n_combs,)
-    best_signs = sign_combs[argmin]  # (n_combs, k)
+    argmin = np.argmin(sse, axis=1)
+    best_signs = sign_combs[argmin]
 
-    best_idx = best_signs[:, :, None]  # (n_combs, k, 1)
-    best_lon = np.take_along_axis(lon_combs, best_idx, axis=2)[:, :, 0]  # (n_combs, k)
-    best_lat = np.take_along_axis(lat_combs, best_idx, axis=2)[:, :, 0]  # (n_combs, k)
+    best_lon = lon0 * (1 - best_signs) + lon1 * best_signs
+    best_lat = lat0 * (1 - best_signs) + lat1 * best_signs
 
     weighted_lons = np.average(best_lon, weights=mapped_weights, axis=1)
     weighted_lats = np.average(best_lat, weights=mapped_weights, axis=1)
