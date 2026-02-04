@@ -1,18 +1,20 @@
 import pytest
 from astropy import units as u
+from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.io import EventSource
 from ctapipe.reco import HillasIntersection, HillasReconstructor
 from ctapipe.reco.impact import ImPACTReconstructor
+from ctapipe.reco.impact_utilities import create_dummy_templates
 from ctapipe.utils import get_dataset_path
 
 reconstructors = [HillasIntersection, HillasReconstructor, ImPACTReconstructor]
 
 
 @pytest.mark.parametrize("cls", reconstructors)
-def test_reconstructors(cls):
+def test_reconstructors(cls, tmp_path):
     """
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
@@ -24,7 +26,6 @@ def test_reconstructors(cls):
     filename = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
-    template_file = get_dataset_path("LSTCam.template.gz")
 
     source = EventSource(filename, max_events=4, focal_length_choice="EQUIVALENT")
     subarray = source.subarray
@@ -35,15 +36,42 @@ def test_reconstructors(cls):
         calib(event)
         image_processor(event)
 
+        reco_config = Config()
+
         if cls is ImPACTReconstructor:
             pytest.importorskip("iminuit")
 
-        reconstructor = cls(
-            subarray, atmosphere_profile=source.atmosphere_density_profile
-        )
-        if cls is ImPACTReconstructor:
-            reconstructor.root_dir = str(template_file.parents[0])
+            for tel_type in subarray.telescope_types:
+                create_dummy_templates(
+                    str(tmp_path) + "/{}.template.gz".format(str(tel_type)),
+                    1,
+                    str(tel_type),
+                )
 
+            reco_config = Config(
+                {
+                    "ImPACTReconstructor": {
+                        "image_template_path": [
+                            [
+                                "type",
+                                "LST_LST_LSTCam",
+                                str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                            ],
+                            [
+                                "type",
+                                "MST_MST_NectarCam",
+                                str(tmp_path) + "/MST_MST_NectarCam.template.gz",
+                            ],
+                        ]
+                    }
+                }
+            )
+
+        reconstructor = cls(
+            subarray,
+            atmosphere_profile=source.atmosphere_density_profile,
+            config=reco_config,
+        )
         reconstructor(event)
 
         name = cls.__name__
