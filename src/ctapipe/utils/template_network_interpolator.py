@@ -646,8 +646,8 @@ class FreePACTInterpolator(BaseTemplate):
             (
                 xb.ravel(),
                 yb.ravel(),
-                np.repeat(impact, repeat_num, axis=-1),
                 np.repeat(energy, repeat_num, axis=-1),
+                np.repeat(impact, repeat_num, axis=-1),
                 np.repeat(xmax, repeat_num, axis=-1),
                 amplitude.ravel(),
             ),
