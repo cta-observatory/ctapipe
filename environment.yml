@@ -20,7 +20,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba>=0.59
-  - numpy>=1.24
+  - numpy>=1.26
   - numpydoc
   - pandas
   - pypandoc
