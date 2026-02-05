@@ -4,14 +4,13 @@ Tool for training a Pixel Classifier using a Keras MLP.
 
 import astropy.units as u
 import numpy as np
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Int, IntTelescopeParameter, Path
-from ctapipe.exceptions import InputMissing
+from ctapipe.core.traits import Float, Int, IntTelescopeParameter, List, Path
 from ctapipe.image import dilate, tailcuts_clean
 from ctapipe.io import TableLoader
 from ctapipe.utils.template_network_interpolator import custom_symlog
@@ -56,7 +55,7 @@ class TrainFreePACT(Tool):
     ).tag(config=True)
 
     chunk_size = Int(
-        default_value=1000,
+        default_value=10000,
         help="Number of events to load at once.",
     ).tag(config=True)
 
@@ -66,14 +65,61 @@ class TrainFreePACT(Tool):
         help="Limit on images used in training",
     ).tag(config=True)
 
+    reweight_index = Float(
+        default_value=0,
+        allow_none=True,
+        help="Index for reweighting events by energy",
+    ).tag(config=True)
+
+    reweight_energy = Float(
+        default_value=1,
+        allow_none=True,
+        help="Energy for reweighting events by energy",
+    ).tag(config=True)
+
+    input_url = List(
+        Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="Input DL1 files",
+    ).tag(config=True)
+
+    layer_number = Int(
+        default_value=10,
+        help="Number of hidden layers in the MLP.",
+    ).tag(config=True)
+
+    layer_neurons = Int(
+        default_value=50,
+        help="Number of neurons in each hidden layer.",
+    ).tag(config=True)
+
+    tailcut_threshold1 = Float(
+        default_value=10,
+        help="Threshold 1 for tailcut cleaning.",
+    ).tag(config=True)
+
+    tailcut_threshold2 = Float(
+        default_value=5,
+        help="Threshold 2 for tailcut cleaning.",
+    ).tag(config=True)
+
+    tailcut_additional_rows = Int(
+        default_value=4,
+        help="Additional rows to clean around the core.",
+    ).tag(config=True)
+
     aliases = {
-        ("i", "input"): "TableLoader.input_url",
+        ("i", "input"): "TrainFreePACT.input_url",
         ("o", "output"): "TrainFreePACT.output_path",
         "epochs": "TrainFreePACT.epochs",
         "n_events": "TrainFreePACT.n_events",
         "batch_size": "TrainFreePACT.batch_size",
         "chunk_size": "TrainFreePACT.chunk_size",
         "imagelimit": "TrainFreePACT.limit",
+        "reweight_index": "TrainFreePACT.reweight_index",
+        "reweight_energy": "TrainFreePACT.reweight_energy",
+        "layer_number": "TrainFreePACT.layer_number",
+        "layer_neurons": "TrainFreePACT.layer_neurons",
     }
 
     classes = [TableLoader]
@@ -87,18 +133,24 @@ class TrainFreePACT(Tool):
             self.log.critical("tensorflow is required for this tool.")
             self.exit(1)
 
+        if not self.input_url:
+            self.log.critical("Specifying input file(s) is required.")
+            self.exit(1)
+
+        # Open the first file to get the subarray description
+        # We assume all files have the same subarray
         try:
-            self.loader = self.enter_context(
-                TableLoader(
-                    parent=self,
-                    dl1_images=True,
-                    simulated=True,
-                    true_parameters=True,
-                    instrument=True,
-                )
-            )
-        except InputMissing:
-            self.log.critical("Specifying TableLoader.input_url is required.")
+            with TableLoader(
+                input_url=self.input_url[0],
+                parent=self,
+                dl1_images=True,
+                simulated=True,
+                true_parameters=True,
+                instrument=True,
+            ) as loader:
+                self.subarray = loader.subarray
+        except Exception as e:
+            self.log.critical(f"Could not read subarray from first file: {e}")
             self.exit(1)
 
         if self.output_path is None:
@@ -109,7 +161,7 @@ class TrainFreePACT(Tool):
         """Load data and train models."""
         # We will train one model per telescope type
 
-        types = self.loader.subarray.telescope_types
+        types = self.subarray.telescope_types
         self.log.info("Found telescope types: %s", types)
 
         for tel_type in types:
@@ -128,7 +180,14 @@ class TrainFreePACT(Tool):
                 self.epochs,
             )
 
-            model = self._build_model(input_shape=(X.shape[1],))
+            model = self._build_model(
+                input_shape=(X.shape[1],),
+                layer_number=self.layer_number,
+                layer_neurons=self.layer_neurons,
+            )
+            out_name = str(self.output_path).replace(".keras", "").replace(".h5", "")
+            save_path = f"{out_name}_{tel_type}.keras"
+
             callbacks = [
                 EarlyStopping(
                     monitor="val_loss", patience=50, verbose=1, start_from_epoch=50
@@ -139,6 +198,12 @@ class TrainFreePACT(Tool):
                     patience=20,
                     verbose=1,
                     start_from_epoch=50,
+                ),
+                ModelCheckpoint(
+                    filepath=save_path,
+                    monitor="val_loss",
+                    save_best_only=True,
+                    verbose=1,
                 ),
             ]
             model.fit(
@@ -157,8 +222,7 @@ class TrainFreePACT(Tool):
             # or save a dictionary of models?
             # Keras models are usually saved as directories or files.
             # Let's append the telescope type to the output name.
-            out_name = str(self.output_path).replace(".keras", "").replace(".h5", "")
-            save_path = f"{out_name}_{tel_type}.keras"
+
             self.log.info("Saving model to %s", save_path)
             model.save(save_path)
 
@@ -166,18 +230,23 @@ class TrainFreePACT(Tool):
         """Read chunked data and create pixel-wise dataset."""
         from astropy.coordinates import AltAz, SkyCoord
 
-        from ctapipe.coordinates import GroundFrame, NominalFrame, TiltedGroundFrame
+        from ctapipe.coordinates import (
+            CameraFrame,
+            GroundFrame,
+            NominalFrame,
+            TiltedGroundFrame,
+        )
 
         # Get camera geometry to map pixels to positions
         example_tel_id = None
-        for tel_id, tel in self.loader.subarray.tel.items():
+        for tel_id, tel in self.subarray.tel.items():
             if str(tel) == str(tel_type):
                 example_tel_id = tel_id
                 break
 
         if example_tel_id is None:
             # Try matching by string representation if direct comparison failed
-            for tel_id, tel in self.loader.subarray.tel.items():
+            for tel_id, tel in self.subarray.tel.items():
                 if str(tel) == str(tel_type):
                     example_tel_id = tel_id
                     break
@@ -186,177 +255,213 @@ class TrainFreePACT(Tool):
             self.log.error("Could not find telescope for type %s", tel_type)
             return np.array([]), np.array([])
 
-        geometry = self.loader.subarray.tel[example_tel_id].camera.geometry
-        focal_length = self.loader.subarray.tel[
-            example_tel_id
-        ].optics.equivalent_focal_length
+        geometry = self.subarray.tel[example_tel_id].camera.geometry
+        focal_length = self.subarray.tel[example_tel_id].optics.effective_focal_length
 
         pix_x = geometry.pix_x
         pix_y = geometry.pix_y
 
-        # Convert pixels to Nominal Frame (Field of View)
-        # Using a simple approximation where Nominal Frame is centered on the telescope optical axis
-        # and aligned with the camera. This neglects mispointing of the telescope relative to the array.
-        # If full transformation is needed, we would need to rotate for each event.
-        # For training a pixel classifier on single telescope images,
-        # using the telescope field of view coordinates is usually what is meant by "nominal frame".
-
-        fov_lon = np.arctan(pix_x / focal_length).to_value(u.deg)
-        fov_lat = np.arctan(pix_y / focal_length).to_value(u.deg)
-
-        # Iterate over chunks
-        iterator = self.loader.read_telescope_events_chunked(
-            chunk_size=self.chunk_size,
-            telescopes=[tel_type],
-            dl1_images=True,
-            dl1_parameters=False,
-            simulated=True,
-            true_parameters=True,
-            instrument=True,
-            pointing=True,
-        )
-
         pixel_features_list = []
         n_loaded = 0
 
-        for chunk in iterator:
-            data = chunk.data
-            if len(data) == 0:
-                continue
+        for input_file in self.input_url:
+            self.log.info("Loading data from %s", input_file)
 
-            # Extract features
-            images = data["image"]
-            mask_array = np.zeros(images.shape, dtype=bool)
+            with TableLoader(
+                input_url=input_file,
+                parent=self,
+                dl1_images=True,
+                simulated=True,
+                true_parameters=True,
+                instrument=True,
+                pointing=True,
+                dl1_parameters=False,
+            ) as loader:
+                # Iterate over chunks
+                iterator = loader.read_telescope_events_chunked(
+                    chunk_size=self.chunk_size,
+                    telescopes=[tel_type],
+                    dl1_images=True,
+                    dl1_parameters=False,
+                    simulated=True,
+                    true_parameters=True,
+                    instrument=True,
+                    pointing=True,
+                )
 
-            for i in range(len(images)):
-                mask = tailcuts_clean(geometry, images[i], 10, 5)
-                if images[i].sum() < 60:
-                    mask_array[i] = False
-                    continue
-                for j in range(2):
-                    mask = dilate(geometry, mask)
-                mask_array[i] = mask
+                for chunk in iterator:
+                    data = chunk.data
+                    if len(data) == 0:
+                        continue
 
-            energies = data["true_energy"].quantity.to_value(u.TeV)
-            core_x = data["true_core_x"].quantity
-            core_y = data["true_core_y"].quantity
+                    # Extract features
+                    images = data["image"]
+                    mask_array = np.zeros(images.shape, dtype=bool)
 
-            # X max
-            if "true_x_max" in data.colnames:
-                x_max = data["true_x_max"].quantity.to_value(u.g / (u.cm**2))
-            else:
-                x_max = np.zeros(len(data))
-                if "true_h_max" not in data.colnames:  # Avoid redundant warnings
-                    self.log.warning("true_x_max not found, using 0")
+                    for i in range(len(images)):
+                        mask = tailcuts_clean(
+                            geometry,
+                            images[i],
+                            self.tailcut_threshold1,
+                            self.tailcut_threshold2,
+                        )
+                        for j in range(self.tailcut_additional_rows):
+                            mask = dilate(geometry, mask)
+                        mask_array[i] = mask
 
-            # Telescope position
-            # TableLoader with instrument=True usually adds pos_x, pos_y, pos_z in GroundFrame
-            if "pos_x" in data.colnames:
-                tel_x = data["pos_x"].quantity
-                tel_y = data["pos_y"].quantity
-                tel_z = data["pos_z"].quantity
-            else:
-                # Fallback to older names if necessary, but user suggested 'pos_x'
-                tel_x = data["tel_pos_x"].quantity
-                tel_y = data["tel_pos_y"].quantity
-                tel_z = data["tel_pos_z"].quantity
+                    energies = data["true_energy"].quantity.to_value(u.TeV)
+                    if self.reweight_index != 0:
+                        weight_factor = (
+                            energies / (self.reweight_energy * u.TeV)
+                        ) ** self.reweight_index
+                        random_value = np.random.rand(mask_array.shape[0])
+                        reweight_mask = random_value < weight_factor.value
+                        mask_array = np.logical_and(
+                            mask_array, reweight_mask[:, np.newaxis]
+                        )
 
-            # Tilted Frame Transformation
-            # correct core and telescope positions to be in the tilted frame
-            pointing_alt = data["telescope_pointing_altitude"].quantity
-            pointing_az = data["telescope_pointing_azimuth"].quantity
+                    core_x = data["true_core_x"].quantity
+                    core_y = data["true_core_y"].quantity
+                    true_zenith = 90 * u.deg - data["true_alt"].quantity
 
-            # Create SkyCoord for pointing (one per event)
-            # TiltedGroundFrame needs a pointing direction.
+                    # X max
+                    if "true_x_max" in data.colnames:
+                        x_max = data["true_x_max"].quantity.to_value(u.g / (u.cm**2))
+                        x_max /= np.cos(true_zenith)  # convert to slant depth
+                    else:
+                        x_max = np.zeros(len(data))
+                        if (
+                            "true_h_max" not in data.colnames
+                        ):  # Avoid redundant warnings
+                            self.log.warning("true_x_max not found, using 0")
 
-            p_dir = AltAz(alt=pointing_alt, az=pointing_az)
-            tilted_frame = TiltedGroundFrame(pointing_direction=p_dir)
-            nominal_frame = NominalFrame(origin=p_dir)
+                    # Telescope position
+                    # TableLoader with instrument=True usually adds pos_x, pos_y, pos_z in GroundFrame
+                    if "pos_x" in data.colnames:
+                        tel_x = data["pos_x"].quantity
+                        tel_y = data["pos_y"].quantity
+                        tel_z = data["pos_z"].quantity
+                    else:
+                        # Fallback to older names if necessary, but user suggested 'pos_x'
+                        tel_x = data["tel_pos_x"].quantity
+                        tel_y = data["tel_pos_y"].quantity
+                        tel_z = data["tel_pos_z"].quantity
 
-            source_alt = data["true_alt"].quantity
-            source_az = data["true_az"].quantity
-            source_sky_coord = SkyCoord(alt=source_alt, az=source_az, frame=AltAz())
-            source_nominal = source_sky_coord.transform_to(nominal_frame)
+                    # Tilted Frame Transformation
+                    # correct core and telescope positions to be in the tilted frame
+                    pointing_alt = data["telescope_pointing_altitude"].quantity
+                    pointing_az = data["telescope_pointing_azimuth"].quantity
 
-            source_x = source_nominal.fov_lon.to_value(u.radian)
-            source_y = source_nominal.fov_lat.to_value(u.radian)
+                    p_dir = AltAz(alt=pointing_alt, az=pointing_az)
+                    tilted_frame = TiltedGroundFrame(pointing_direction=p_dir)
+                    # nominal_frame not needed here specifically, we do it per pixel
 
-            # Transform Core
-            # GroundFrame -> TiltedGroundFrame
-            # We assume core_z = 0 for the core position on ground?
-            # Usually true_core is on the ground plane (z=0 in GroundFrame).
-            core_ground = SkyCoord(x=core_x, y=core_y, z=0 * u.m, frame=GroundFrame())
-            core_tilted = core_ground.transform_to(tilted_frame)
-            core_acc_x = core_tilted.x.to_value(u.m)
-            core_acc_y = core_tilted.y.to_value(u.m)
+                    # Transform Core
+                    # GroundFrame -> TiltedGroundFrame
+                    # We assume core_z = 0 for the core position on ground?
+                    # Usually true_core is on the ground plane (z=0 in GroundFrame).
+                    core_ground = SkyCoord(
+                        x=core_x, y=core_y, z=0 * u.m, frame=GroundFrame()
+                    )
+                    core_tilted = core_ground.transform_to(tilted_frame)
+                    core_acc_x = core_tilted.x.to_value(u.m)
+                    core_acc_y = core_tilted.y.to_value(u.m)
 
-            # Transform Telescope Position
-            tel_ground = SkyCoord(x=tel_x, y=tel_y, z=tel_z, frame=GroundFrame())
-            tel_tilted = tel_ground.transform_to(tilted_frame)
-            tel_acc_x = tel_tilted.x.to_value(u.m)
-            tel_acc_y = tel_tilted.y.to_value(u.m)
+                    # Transform Telescope Position
+                    tel_ground = SkyCoord(
+                        x=tel_x, y=tel_y, z=tel_z, frame=GroundFrame()
+                    )
+                    tel_tilted = tel_ground.transform_to(tilted_frame)
+                    tel_acc_x = tel_tilted.x.to_value(u.m)
+                    tel_acc_y = tel_tilted.y.to_value(u.m)
 
-            # Calculate impact distance in Tilted Frame
-            dx = core_acc_x - tel_acc_x
-            dy = core_acc_y - tel_acc_y
-            phi = np.arctan2(dy, dx)
-            impact = np.sqrt(dx**2 + dy**2)
+                    # Calculate impact distance in Tilted Frame
+                    dx = core_acc_x - tel_acc_x
+                    dy = core_acc_y - tel_acc_y
+                    phi = np.arctan2(dy, dx)
+                    impact = np.sqrt(dx**2 + dy**2)
 
-            # Memory Optimization: Use mask indices instead of tiling
-            # Get indices of valid pixels (rows=event_idx, cols=pixel_idx)
-            rows, cols = np.nonzero(mask_array)
+                    # Memory Optimization: Use mask indices instead of tiling
+                    # Get indices of valid pixels (rows=event_idx, cols=pixel_idx)
+                    rows, cols = np.nonzero(mask_array)
 
-            # Select features for valid pixels
-            energies_sel = energies[rows]
-            impact_sel = impact[rows]
-            xmax_sel = x_max[rows]
+                    # Select features for valid pixels
+                    energies_sel = energies[rows]
+                    impact_sel = impact[rows]
+                    xmax_sel = x_max[rows]
 
-            # Select coordinates (Nominal Frame / FOV)
-            # fov_lon/lat are 1D arrays of pixel positions (Radians)
-            pix_lon_sel = fov_lon[cols]
-            pix_lat_sel = fov_lat[cols]
+                    # Transform Camera Coordinates to Nominal Frame for valid pixels
+                    # We need to construct the pointing for each valid pixel
+                    pointing_alt_sel = pointing_alt[rows]
+                    pointing_az_sel = pointing_az[rows]
+                    pointing_sel = AltAz(alt=pointing_alt_sel, az=pointing_az_sel)
 
-            # Select Source Position and Rotation Angle
-            # source_x/y and phi are per event (Radians)
-            source_x_sel = source_x[rows]
-            source_y_sel = source_y[rows]
-            phi_sel = phi[rows]
+                    # Construct frames for each valid pixel (vectorized)
+                    # Note: CameraFrame and NominalFrame can broadcast their parameters
+                    cam_frame = CameraFrame(
+                        focal_length=focal_length, telescope_pointing=pointing_sel
+                    )
+                    nom_frame = NominalFrame(origin=pointing_sel)
 
-            # Rotation center on source
-            diff_lon = pix_lon_sel - source_x_sel
-            diff_lat = pix_lat_sel - source_y_sel
+                    pixel_coords = SkyCoord(
+                        x=pix_x[cols], y=pix_y[cols], frame=cam_frame
+                    )
+                    pixel_nominal = pixel_coords.transform_to(nom_frame)
 
-            # Rotate
-            cos_phi = np.cos(-phi_sel)
-            sin_phi = np.sin(-phi_sel)
+                    pix_lon_sel = pixel_nominal.fov_lon.to_value(u.deg)
+                    pix_lat_sel = pixel_nominal.fov_lat.to_value(u.deg)
 
-            pix_lon_rot = diff_lon * cos_phi - diff_lat * sin_phi
-            pix_lat_rot = diff_lon * sin_phi + diff_lat * cos_phi
+                    # Select Source Position and Rotation Angle
+                    # source_x/y and phi are per event (Radians)
+                    # We need source position in Nominal Frame too to calculate rotation
+                    source_alt_sel = data["true_alt"].quantity[rows]
+                    source_az_sel = data["true_az"].quantity[rows]
+                    source_sky_coord_sel = SkyCoord(
+                        alt=source_alt_sel, az=source_az_sel, frame=AltAz()
+                    )
+                    source_nominal_sel = source_sky_coord_sel.transform_to(nom_frame)
 
-            # Select Images (Amplitudes)
-            images_sel = images[mask_array]
+                    source_x_sel = source_nominal_sel.fov_lon.to_value(u.deg)
+                    source_y_sel = source_nominal_sel.fov_lat.to_value(u.deg)
 
-            #                custom_symlog(np.array([images_sel/ 10]).ravel(), linear_threshold=2)
-            # tf.config.set_visible_devices([], "GPU")
-            # Stack features
-            X_chunk = np.stack(
-                [
-                    pix_lon_rot,
-                    pix_lat_rot,
-                    np.log10(energies_sel),
-                    impact_sel / 100,
-                    xmax_sel / 100,
-                    custom_symlog(
-                        np.array([images_sel / 10]), linear_threshold=2
-                    ).ravel(),
-                ],
-                axis=1,
-            ).astype(np.float32)
+                    phi_sel = phi[rows]
 
-            pixel_features_list.append(X_chunk)
-            n_ev = np.sum(mask_array)
+                    # Rotation center on source
+                    diff_lon = pix_lon_sel - source_x_sel
+                    diff_lat = pix_lat_sel - source_y_sel
 
-            n_loaded += n_ev
+                    # Rotate
+                    cos_phi = np.cos(-phi_sel)
+                    sin_phi = np.sin(-phi_sel)
+
+                    pix_lon_rot = diff_lat * cos_phi - diff_lon * sin_phi
+                    pix_lat_rot = diff_lat * sin_phi + diff_lon * cos_phi
+
+                    # Select Images (Amplitudes)
+                    images_sel = images[mask_array]
+
+                    # Stack features
+                    X_chunk = np.stack(
+                        [
+                            pix_lon_rot,
+                            pix_lat_rot,
+                            np.log10(energies_sel),
+                            impact_sel / 100,
+                            xmax_sel / 100,
+                            custom_symlog(
+                                np.array([images_sel / 10]), linear_threshold=2
+                            ).ravel(),
+                        ],
+                        axis=1,
+                    ).astype(np.float32)
+
+                    pixel_features_list.append(X_chunk)
+                    n_ev = np.sum(mask_array)
+
+                    n_loaded += n_ev
+                    if self.limit and n_loaded >= self.limit:
+                        break
+
             if self.limit and n_loaded >= self.limit:
                 break
 
@@ -364,7 +469,6 @@ class TrainFreePACT(Tool):
             return np.array([]), np.array([])
 
         X_all = np.concatenate(pixel_features_list)
-        print(X_all.shape)
         # Dataset creation (Signal vs Background)
         n_total_pixels = len(X_all)
         n_samples = n_total_pixels // 2
@@ -389,27 +493,18 @@ class TrainFreePACT(Tool):
 
         return X, y
 
-    def _build_model(self, input_shape):
+    def _build_model(self, input_shape, layer_number=10, layer_neurons=50):
         """Build Keras MLP."""
         from tensorflow.keras.layers import Input
 
-        model = Sequential(
-            [
-                Input(shape=input_shape),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(64, activation="swish"),
-                Dense(1, activation="sigmoid"),
-            ]
-        )
+        layers = [Input(shape=input_shape)]
+
+        for _ in range(layer_number):
+            layers.append(Dense(layer_neurons, activation="swish"))
+
+        layers.append(Dense(1, activation="sigmoid"))
+
+        model = Sequential(layers)
 
         model.compile(
             optimizer=Adam(learning_rate=0.001),
@@ -420,7 +515,7 @@ class TrainFreePACT(Tool):
 
     def finish(self):
         """Cleanup."""
-        self.loader.close()
+        pass
 
 
 def main():
