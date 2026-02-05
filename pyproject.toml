@@ -67,7 +67,7 @@ tests = [
     "ctapipe[eventio]",
     "h5py",
     "pandas",
-    "pytest >= 7.0",
+    "pytest >=9.0",
     "pytest-cov",
     "pytest-xdist",
     "pytest_astropy_header",
@@ -149,12 +149,15 @@ exclude = ["ctapipe._dev_version"]
 [tool.setuptools_scm]
 write_to = "src/ctapipe/_version.py"
 
-[tool.pytest.ini_options]
-minversion = "7"
-testpaths = ["src"]
+[tool.pytest]
+minversion = "9"
+testpaths = ["src/ctapipe", "docs"]
 log_cli_level = "INFO"
 xfail_strict = true
 astropy_header = true
+markers = [
+  "vizier"
+]
 
 # print summary of failed tests, force errors if settings are misspelled
 addopts = ["-ra", "--strict-config", "--strict-markers", "--ignore-glob=src/ctapipe/_dev_version"]
@@ -194,9 +197,12 @@ norecursedirs = [
 ]
 
 [tool.coverage.run]
-include = ["src/*"]
 relative_files = true
+source = ["src"]
+parallel = true
+concurrency = ["multiprocessing", "thread"]
 omit = ["src/ctapipe/_version.py"]
+patch = ["subprocess"]
 
 [tool.towncrier]
     package = "ctapipe"

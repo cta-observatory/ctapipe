@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from astropy.table import Table
+from astropy.table import QTable, Table
 
 from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.feature_generator import FeatureGenerator, FeatureGeneratorException
@@ -60,14 +60,15 @@ def test_to_unit():
 
     expressions = [
         ("length_meter", "length.to(u.m)"),
-        ("log_length_meter", "log10(length.quantity.to_value(u.m))"),
+        ("log_length_meter", "log10(length.to_value(u.m))"),
     ]
     generator = FeatureGenerator(features=expressions)
     table = Table({"length": [1 * u.km]})
 
     table = generator(table)
-    assert table["length_meter"] == 1000
+    assert table["length_meter"] == 1000 * u.m
     assert table["log_length_meter"] == 3
+    assert table["length_meter"].unit == u.m
 
 
 def test_multiplicity(subarray_prod5_paranal):
@@ -102,3 +103,45 @@ def test_multiplicity(subarray_prod5_paranal):
     np.testing.assert_equal(table["n_lsts"], [1, 2])
     np.testing.assert_equal(table["n_msts"], [2, 1])
     np.testing.assert_equal(table["n_ssts"], [0, 1])
+
+
+@pytest.mark.parametrize("table_class", [QTable, Table])
+def test_unit_propagation(table_class):
+    """
+    Check that units propagate to features.
+
+    If a column in the input table has a unit, and a feature does math on that
+    unit, the feature should have the appropriate unit.
+    """
+
+    import astropy.units as u
+
+    table = table_class(dict(x=np.arange(11) * u.cm, E=np.linspace(-2, 2, 11) * u.TeV))
+    features = [
+        ("x2", "x**2"),
+        ("E_per_area", "E/x**2"),
+    ]
+
+    feature_gen = FeatureGenerator(features=features)
+    new_table = feature_gen(table)
+
+    assert new_table["x2"].unit.is_equivalent("cm2")
+    assert new_table["E_per_area"].unit.is_equivalent("TeV cm-2")
+
+
+@pytest.mark.parametrize("table_class", [QTable, Table])
+def test_input_output_class(table_class):
+    """Ensure output table class is same as input."""
+
+    import astropy.units as u
+
+    table = table_class(dict(x=np.arange(11) * u.cm, E=np.linspace(-2, 2, 11) * u.TeV))
+    features = [
+        ("x2", "x**2"),
+        ("E_per_area", "E/x**2"),
+    ]
+
+    feature_gen = FeatureGenerator(features=features)
+    new_table = feature_gen(table)
+
+    assert new_table.__class__ == table.__class__

@@ -46,12 +46,14 @@ jobs:
             install-method: mamba
             extras: tests,all,impact
             extra-args: ["oldest-deps"]
+            pytest-markers: "-m 'not vizier'"
 
           - name: Linux (3.12, pip, minimal-dependencies)
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: pip
             extras: tests
+            pytest-markers: "-m 'not vizier'"
 
           - name: Linux (3.12, pip, coverage)
             os: ubuntu-24.04
@@ -65,24 +67,28 @@ jobs:
             python-version: "3.13"
             install-method: mamba
             extras: tests,all
+            pytest-markers: "-m 'not vizier'"
 
           - name: Linux (3.14, mamba)
             os: ubuntu-24.04
             python-version: "3.14"
             install-method: mamba
             extras: tests,all
+            pytest-markers: "-m 'not vizier'"
 
           - name: macos (3.12, x86-64, pip)
             os: macos-15-intel
             python-version: "3.12"
             install-method: pip
-            extras: tests,all,impact
+            extras: tests,all
+            pytest-markers: "-m 'not vizier'"
 
           - name: macos (3.14, arm64, mamba)
             os: macos-15
             python-version: "3.14"
             install-method: mamba
             extras: tests,all
+            pytest-markers: "-m 'not vizier'"
 
 
     defaults:
@@ -171,10 +177,9 @@ jobs:
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
-          pytest -n auto --dist loadscope \
+          pytest -n auto --dist loadscope ${{ matrix.pytest-markers }} \
             --doctest-modules --doctest-glob='*.rst' \
-            --ignore=docs/conf.py \
-            src/ctapipe docs
+            --ignore=docs/conf.py
 
           ctapipe-info --version
 
