@@ -1,0 +1,4 @@
+Extended ``MonitoringSource`` with ``get_table()`` and ``get_values()`` methods
+for direct table access and time-based value interpolation. Implemented these
+methods in ``HDF5MonitoringSource`` with proper coordinate frame handling for
+telescope pointings.
