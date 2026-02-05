@@ -409,11 +409,10 @@ class HDF5MonitoringSource(MonitoringSource):
                 f"Available types: {self.monitoring_types}"
             )
 
-        if monitoring_type in TELESCOPE_SPECIFIC_MONITORING:
-            if tel_id is None:
-                raise TypeError(
-                    f"tel_id is required for {monitoring_type.name} monitoring type"
-                )
+        if monitoring_type in TELESCOPE_SPECIFIC_MONITORING and tel_id is None:
+            raise TypeError(
+                f"tel_id is required for {monitoring_type.name} monitoring type"
+            )
 
         if monitoring_type == MonitoringType.PIXEL_STATISTICS:
             subtype = kwargs.get("subtype")
