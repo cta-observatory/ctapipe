@@ -4,14 +4,25 @@ Tool for training a Pixel Classifier using a Keras MLP.
 
 import astropy.units as u
 import numpy as np
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
+
+try:
+    import tensorflow as tf
+    from tensorflow.keras.callbacks import (
+        EarlyStopping,
+        ModelCheckpoint,
+        ReduceLROnPlateau,
+    )
+    from tensorflow.keras.layers import Dense
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.optimizers import Adam
+except ImportError:
+    tf = None
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Float, Int, IntTelescopeParameter, List, Path
+from ctapipe.exceptions import OptionalDependencyMissing
 from ctapipe.image import dilate, tailcuts_clean
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import TableLoader
 from ctapipe.utils.template_network_interpolator import custom_symlog
 
@@ -29,6 +40,8 @@ class TrainFreePACT(Tool):
 
     name = "ctapipe-train-freepact"
     description = __doc__
+    if tf is None:
+        raise OptionalDependencyMissing("tensorflow")
 
     output_path = Path(
         directory_ok=False,
@@ -140,15 +153,7 @@ class TrainFreePACT(Tool):
         # Open the first file to get the subarray description
         # We assume all files have the same subarray
         try:
-            with TableLoader(
-                input_url=self.input_url[0],
-                parent=self,
-                dl1_images=True,
-                simulated=True,
-                true_parameters=True,
-                instrument=True,
-            ) as loader:
-                self.subarray = loader.subarray
+            self.subarray = SubarrayDescription.from_hdf(self.input_url[0])
         except Exception as e:
             self.log.critical(f"Could not read subarray from first file: {e}")
             self.exit(1)
