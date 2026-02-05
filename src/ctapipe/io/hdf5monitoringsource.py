@@ -461,8 +461,13 @@ class HDF5MonitoringSource(MonitoringSource):
             # Get individual telescope location for proper AltAz frame
             tel_index = self.subarray.tel_index_array[tel_id]
             location = self.subarray.tel_coords[tel_index].to_earth_location()
+            # TODO: Get pressure from weather station data
+            # Hardcoded for nominal pressure at 2200m a.s.l. (CTA North, La Palma)
+            pressure = 780.0 * u.hPa
             return SkyCoord(
-                alt=alt, az=az, frame=AltAz(obstime=time, location=location)
+                alt=alt,
+                az=az,
+                frame=AltAz(obstime=time, location=location, pressure=pressure),
             )
         elif monitoring_type == MonitoringType.CAMERA_COEFFICIENTS:
             # For simulation, use first entry if time is None
