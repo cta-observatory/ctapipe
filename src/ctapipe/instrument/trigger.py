@@ -1,8 +1,8 @@
 import numpy as np
 
-from ctapipe.containers import ArrayEventContainer
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import Integer, IntTelescopeParameter
+from ..containers import ArrayEventContainer, EventType
+from ..core import TelescopeComponent
+from ..core.traits import Integer, IntTelescopeParameter, Set, UseEnum
 
 __all__ = ["SoftwareTrigger"]
 
@@ -37,6 +37,14 @@ class SoftwareTrigger(TelescopeComponent):
             min_telescopes_of_type:
                 - ["type", "*", 0]
                 - ["type", "LST*", 2]
+
+    With this class it is also possible to filter for specific telescope event types,
+    e.g. to analyze the RANDOM_MONO or MUON tagged telescope events in isolation:
+
+    ..
+        SoftwareTrigger:
+            allowed_telescope_event_types:
+                - "RANDOM_MONO"
     """
 
     min_telescopes = Integer(
@@ -58,8 +66,21 @@ class SoftwareTrigger(TelescopeComponent):
         ),
     ).tag(config=True)
 
+    allowed_telescope_event_types = Set(
+        UseEnum(EventType),
+        default_value=None,
+        allow_none=True,
+        help="If given, filter out telescope events that do not match any of the given event types.",
+    ).tag(config=True)
+
     def __init__(self, subarray, *args, **kwargs):
         super().__init__(subarray, *args, **kwargs)
+
+        if self.allowed_telescope_event_types is not None:
+            self.log.warning(
+                "Removing all telescope events that are not of types %r",
+                self.allowed_telescope_event_types,
+            )
 
         # we are grouping telescopes by the str repr of the type
         # this is needed since e.g. in prod6, LST-1 is slightly different
@@ -71,6 +92,26 @@ class SoftwareTrigger(TelescopeComponent):
             if tel_str not in self._ids_by_type:
                 self._ids_by_type[tel_str] = set()
             self._ids_by_type[tel_str].update(self.subarray.get_tel_ids_for_type(tel))
+
+    def _remove_tel_event(self, tel_id: int, event: ArrayEventContainer):
+        # remove any related data
+        for container in event.values():
+            if hasattr(container, "tel"):
+                tel_map = container.tel
+                if tel_id in tel_map:
+                    del tel_map[tel_id]
+
+    def _filter_telescope_event_types(self, event: ArrayEventContainer) -> set[int]:
+        to_remove = set()
+
+        for tel_id, trigger in event.trigger.tel.items():
+            if trigger.event_type not in self.allowed_telescope_event_types:
+                to_remove.add(tel_id)
+
+        for tel_id in to_remove:
+            self._remove_tel_event(tel_id, event)
+
+        return to_remove
 
     def __call__(self, event: ArrayEventContainer) -> bool:
         """
@@ -85,8 +126,13 @@ class SoftwareTrigger(TelescopeComponent):
         triggered : bool
             Whether or not this event would have triggered the stereo trigger
         """
-
         tels_removed = set()
+        tels_with_trigger = set(event.trigger.tels_with_trigger)
+
+        if self.allowed_telescope_event_types is not None:
+            tels_removed = self._filter_telescope_event_types(event)
+            tels_with_trigger -= tels_removed
+
         for tel_type, tel_ids in self._ids_by_type.items():
             min_tels = self.min_telescopes_of_type.tel[tel_type]
 
@@ -94,7 +140,6 @@ class SoftwareTrigger(TelescopeComponent):
             if min_tels == 0:
                 continue
 
-            tels_with_trigger = set(event.trigger.tels_with_trigger)
             tels_in_event = tels_with_trigger.intersection(tel_ids)
 
             if len(tels_in_event) < min_tels:
@@ -107,13 +152,7 @@ class SoftwareTrigger(TelescopeComponent):
 
                     # remove from tels_with_trigger
                     tels_removed.add(tel_id)
-
-                    # remove any related data
-                    for container in event.values():
-                        if hasattr(container, "tel"):
-                            tel_map = container.tel
-                            if tel_id in tel_map:
-                                del tel_map[tel_id]
+                    self._remove_tel_event(tel_id, event)
 
         if len(tels_removed) > 0:
             # convert to array with correct dtype to have setdiff1d work correctly
