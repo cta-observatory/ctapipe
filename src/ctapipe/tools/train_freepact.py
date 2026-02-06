@@ -40,8 +40,6 @@ class TrainFreePACT(Tool):
 
     name = "ctapipe-train-freepact"
     description = __doc__
-    if tf is None:
-        raise OptionalDependencyMissing("tensorflow")
 
     output_path = Path(
         directory_ok=False,
@@ -140,11 +138,8 @@ class TrainFreePACT(Tool):
     def setup(self):
         """Initialize components."""
         # Check for tensorflow
-        try:
-            import tensorflow  # noqa: F401
-        except ImportError:
-            self.log.critical("tensorflow is required for this tool.")
-            self.exit(1)
+        if tf is None:
+            raise OptionalDependencyMissing("tensorflow")
 
         if not self.input_url:
             self.log.critical("Specifying input file(s) is required.")
