@@ -340,3 +340,239 @@ def test_tel_earth_locations(example_subarray):
     # Verify it's cached (same object returned)
     earth_locs_2 = example_subarray.tel_earth_locations
     assert earth_locs is earth_locs_2
+
+
+def test_load_array_element_ids():
+    """Test loading array element IDs from service data"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+
+    # Suppress expected warning about missing reference metadata in service data
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        data = SubarrayDescription.load_array_element_ids()
+
+    assert isinstance(data, dict)
+    assert "metadata" in data
+    assert "array_elements" in data
+
+    array_elements = data["array_elements"]
+    assert isinstance(array_elements, list)
+    assert len(array_elements) > 0
+
+    # Check structure of first element
+    first_element = array_elements[0]
+    assert "id" in first_element
+    assert "name" in first_element
+    assert isinstance(first_element["id"], int)
+    assert isinstance(first_element["name"], str)
+
+
+def test_load_array_element_positions():
+    """Test loading array element positions from service data"""
+    # Test for CTAO North
+    positions_n = SubarrayDescription.load_array_element_positions("ctao_n")
+
+    assert "ae_id" in positions_n.colnames
+    assert "name" in positions_n.colnames
+    assert "x" in positions_n.colnames
+    assert "y" in positions_n.colnames
+    assert "z" in positions_n.colnames
+
+    # Check metadata contains reference location
+    assert "reference_x" in positions_n.meta
+    assert "reference_y" in positions_n.meta
+    assert "reference_z" in positions_n.meta
+
+    # Check some positions are valid
+    assert len(positions_n) > 0
+    assert positions_n["x"].unit == u.m
+    assert positions_n["y"].unit == u.m
+    assert positions_n["z"].unit == u.m
+
+
+def test_load_subarray_info():
+    """Test loading subarray definitions from service data"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+
+    # Suppress expected warning about missing reference metadata in service data
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        # Load all subarray info
+        all_data = SubarrayDescription.load_subarray_info()
+
+        assert isinstance(all_data, dict)
+        assert "metadata" in all_data
+        assert "subarrays" in all_data
+
+        subarrays = all_data["subarrays"]
+        assert isinstance(subarrays, list)
+        assert len(subarrays) > 0
+
+        # Check structure of first subarray
+        first_subarray = subarrays[0]
+        assert "id" in first_subarray
+        assert "name" in first_subarray
+        assert "array_element_ids" in first_subarray
+        assert "site" in first_subarray
+
+        # Load specific subarray by ID
+        subarray_id = first_subarray["id"]
+        specific = SubarrayDescription.load_subarray_info(subarray_id)
+
+        assert specific["id"] == subarray_id
+        assert specific["name"] == first_subarray["name"]
+
+        # Test with invalid ID
+        with pytest.raises(ValueError, match="Subarray ID .* not found"):
+            SubarrayDescription.load_subarray_info(99999)
+
+
+def test_from_service_data_minimal(svc_path):
+    """Test creating SubarrayDescription from service data with minimal parameters"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+
+    # Use subarray ID 1 (LST1) which should exist in the test data
+    # Suppress expected warnings about service data files and from_name usage
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+        subarray = SubarrayDescription.from_service_data(subarray_id=1, site="ctao_n")
+
+    assert isinstance(subarray, SubarrayDescription)
+    assert subarray.name == "LST1"  # From the JSON data
+    assert subarray.n_tels >= 1
+    assert isinstance(subarray.reference_location, EarthLocation)
+
+    # Check that telescopes have proper descriptions
+    for tel_id, tel_desc in subarray.tel.items():
+        assert isinstance(tel_desc, TelescopeDescription)
+        assert tel_desc.camera is not None
+        assert tel_desc.optics is not None
+
+
+def test_from_service_data_with_camera_optics_names(svc_path):
+    """Test creating SubarrayDescription with explicit camera and optics names"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+
+    subarray_id = 2  # CTAO-N LSTs
+
+    # Suppress expected warnings about service data and from_name usage
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+
+        # Get the array element IDs first
+        info = SubarrayDescription.load_subarray_info(subarray_id)
+        ae_ids = info["array_element_ids"]
+
+        # Create camera and optics mappings
+        camera_names = {ae_id: "LSTCam" for ae_id in ae_ids}
+        optics_names = {ae_id: "LST" for ae_id in ae_ids}
+        subarray = SubarrayDescription.from_service_data(
+            subarray_id=subarray_id,
+            site="ctao_n",
+            camera_names=camera_names,
+            optics_names=optics_names,
+        )
+
+    assert isinstance(subarray, SubarrayDescription)
+    assert subarray.n_tels == len(ae_ids)
+
+    # Check all telescopes have LSTCam camera and LST optics
+    for tel_desc in subarray.tel.values():
+        assert tel_desc.camera.name == "LSTCam"
+        assert tel_desc.optics.name == "LST"
+
+
+def test_infer_camera_names_north():
+    """Test camera name inference for CTAO North"""
+    tel_positions = {1: u.Quantity([0, 0, 0], u.m)}
+    ae_id_to_name = {1: "LSTN-01"}
+
+    camera_names = SubarrayDescription._infer_camera_names(
+        tel_positions, ae_id_to_name, "ctao_n"
+    )
+    assert camera_names[1] == "LSTCam"
+
+    # Test MST North
+    ae_id_to_name = {1: "MSTN-01"}
+    camera_names = SubarrayDescription._infer_camera_names(
+        tel_positions, ae_id_to_name, "ctao_n"
+    )
+    assert camera_names[1] == "NectarCam"
+
+    # Test SST
+    ae_id_to_name = {1: "SSTS-01"}
+    camera_names = SubarrayDescription._infer_camera_names(
+        tel_positions, ae_id_to_name, "ctao_n"
+    )
+    assert camera_names[1] == "SSTCam"
+
+
+def test_infer_camera_names_south():
+    """Test camera name inference for CTAO South"""
+    tel_positions = {1: u.Quantity([0, 0, 0], u.m)}
+    ae_id_to_name = {1: "MSTS-01"}
+
+    camera_names = SubarrayDescription._infer_camera_names(
+        tel_positions, ae_id_to_name, "ctao_s"
+    )
+    assert camera_names[1] == "FlashCam"
+
+
+def test_infer_optics_names():
+    """Test optics name inference from telescope names"""
+    tel_positions = {1: u.Quantity([0, 0, 0], u.m), 2: u.Quantity([1, 1, 1], u.m)}
+    ae_id_to_name = {1: "LSTN-01", 2: "MSTN-01"}
+
+    optics_names = SubarrayDescription._infer_optics_names(tel_positions, ae_id_to_name)
+
+    assert optics_names[1] == "LST"
+    assert optics_names[2] == "MST"
+
+
+def test_build_tel_positions():
+    """Test building telescope positions from table"""
+    import warnings
+
+    from astropy.table import Table
+
+    positions_table = Table(
+        {
+            "ae_id": [1, 2, 3],
+            "x": [100.0, 200.0, np.nan] * u.m,
+            "y": [150.0, 250.0, np.nan] * u.m,
+            "z": [2000.0, 2010.0, np.nan] * u.m,
+        }
+    )
+
+    array_element_ids = [1, 2, 3, 4]  # 3 has NaN, 4 doesn't exist
+
+    # Suppress expected warnings about NaN and missing positions
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Array element .* has NaN position")
+        warnings.filterwarnings("ignore", message="Array element .* not found")
+        tel_positions = SubarrayDescription._build_tel_positions(
+            positions_table, array_element_ids
+        )
+
+    # Should only have positions for 1 and 2 (3 has NaN, 4 doesn't exist)
+    assert len(tel_positions) == 2
+    assert 1 in tel_positions
+    assert 2 in tel_positions
+    assert 3 not in tel_positions  # NaN position
+    assert 4 not in tel_positions  # Not in table
+
+    # Check values
+    assert np.allclose(tel_positions[1].value, [100.0, 150.0, 2000.0])
+    assert np.allclose(tel_positions[2].value, [200.0, 250.0, 2010.0])
