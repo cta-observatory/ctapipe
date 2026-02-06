@@ -42,7 +42,7 @@ class MonitoringSource(TelescopeComponent):
 
     def __init__(self, subarray=None, config=None, parent=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self.metadata = dict(is_simulation=False)
+        self.metadata = {"is_simulation": False}
 
     @property
     @abstractmethod
@@ -93,7 +93,7 @@ class MonitoringSource(TelescopeComponent):
 
         Raises
         ------
-        ValueError
+        KeyError
             If monitoring_type is not available.
         TypeError
             If tel_id scope doesn't match monitoring_type requirements.
@@ -125,15 +125,15 @@ class MonitoringSource(TelescopeComponent):
 
         Returns
         -------
-        astropy.units.Quantity or astropy.coordinates.SkyCoord
+        dict[str, astropy.units.Quantity | numpy.ndarray] or astropy.coordinates.SkyCoord
             Monitoring values at requested time(s). Return type depends on monitoring_type.
-            Scalar if time is scalar, array if time is array.
-            E.g., pointing returns SkyCoord, calibration coefficients return Quantity.
 
         Raises
         ------
+        KeyError
+            If monitoring_type unavailable
         ValueError
-            If monitoring_type unavailable or time out of bounds.
+            If time out of bounds.
         TypeError
             If tel_id scope doesn't match monitoring_type requirements.
         """
