@@ -317,14 +317,16 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
                 monitoring_source.fill_monitoring_container(e)
             # Set the trigger time to the pointing time
             e.trigger.time = pointing_time
-            # Save the old pointing values
+            # Set pointing to different values to ensure they get overwritten
+            e.monitoring.tel[tel_id].pointing.azimuth = 90.0 * u.deg
+            e.monitoring.tel[tel_id].pointing.altitude = 45.0 * u.deg
             old_az = e.monitoring.tel[tel_id].pointing.azimuth
             old_alt = e.monitoring.tel[tel_id].pointing.altitude
             # Fill the monitoring container for the event and overwrite the pointing
             monitoring_source.fill_monitoring_container(e)
-            # Check that the values do not match
-            assert e.monitoring.tel[tel_id].pointing.azimuth != old_az
-            assert e.monitoring.tel[tel_id].pointing.altitude != old_alt
+            # Check that the values changed
+            assert not u.isclose(e.monitoring.tel[tel_id].pointing.azimuth, old_az)
+            assert not u.isclose(e.monitoring.tel[tel_id].pointing.altitude, old_alt)
 
 
 def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks):
@@ -515,7 +517,7 @@ def test_get_table(calibpipe_camcalib_sims_single_chunk):
         assert "std" in flatfield_table.colnames
 
         # Test error when monitoring type not available
-        with pytest.raises(ValueError, match="not available"):
+        with pytest.raises(KeyError, match="not available"):
             source.get_table(MonitoringType.TELESCOPE_POINTINGS, tel_id=tel_id)
 
         # Test error when tel_id missing for telescope-level data
@@ -523,11 +525,11 @@ def test_get_table(calibpipe_camcalib_sims_single_chunk):
             source.get_table(MonitoringType.CAMERA_COEFFICIENTS)
 
         # Test error when subtype missing for pixel statistics
-        with pytest.raises(ValueError, match="subtype parameter is required"):
+        with pytest.raises(KeyError, match="subtype parameter is required"):
             source.get_table(MonitoringType.PIXEL_STATISTICS, tel_id=tel_id)
 
         # Test error for invalid subtype
-        with pytest.raises(ValueError, match="Unknown subtype"):
+        with pytest.raises(KeyError, match="Unknown subtype"):
             source.get_table(
                 MonitoringType.PIXEL_STATISTICS,
                 tel_id=tel_id,
@@ -597,7 +599,7 @@ def test_get_values_pixel_statistics(calibpipe_camcalib_sims_single_chunk):
         assert "std" in values
 
         # Test error when subtype missing
-        with pytest.raises(ValueError, match="subtype parameter is required"):
+        with pytest.raises(KeyError, match="subtype parameter is required"):
             source.get_values(MonitoringType.PIXEL_STATISTICS, time=None, tel_id=tel_id)
 
 
@@ -637,7 +639,7 @@ def test_get_values_errors(calibpipe_camcalib_sims_single_chunk):
         input_files=[calibpipe_camcalib_sims_single_chunk]
     ) as source:
         # Test error when monitoring type not available
-        with pytest.raises(ValueError, match="not available"):
+        with pytest.raises(KeyError, match="not available"):
             source.get_values(
                 MonitoringType.TELESCOPE_POINTINGS, time=None, tel_id=tel_id
             )
