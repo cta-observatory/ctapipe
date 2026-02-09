@@ -9,6 +9,7 @@ from astropy.coordinates import SkyCoord
 from astropy.coordinates.earth import EarthLocation
 
 from ctapipe.coordinates import TelescopeFrame
+from ctapipe.exceptions import UnknownSubarray
 from ctapipe.instrument import (
     CameraDescription,
     OpticsDescription,
@@ -427,7 +428,7 @@ def test_load_subarray_info():
         assert specific["name"] == first_subarray["name"]
 
         # Test with invalid ID
-        with pytest.raises(ValueError, match="Subarray ID .* not found"):
+        with pytest.raises(UnknownSubarray, match="Subarray ID .* not found"):
             SubarrayDescription.load_subarray_info(99999)
 
 
