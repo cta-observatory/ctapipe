@@ -20,6 +20,7 @@ from astropy.utils import lazyproperty
 from .. import __version__ as CTAPIPE_VERSION
 from ..compat import COPY_IF_NEEDED
 from ..coordinates import CameraFrame, GroundFrame
+from ..exceptions import UnknownSubarray
 from ..utils.datasets import get_structured_dataset, get_table_dataset
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import FocalLengthKind, OpticsDescription
@@ -1075,7 +1076,7 @@ class SubarrayDescription:
             for subarray in subarray_data["subarrays"]:
                 if subarray["id"] == subarray_id:
                     return subarray
-            raise ValueError(f"Subarray ID {subarray_id} not found")
+            raise UnknownSubarray(f"Subarray ID {subarray_id} not found")
 
         return subarray_data
 
