@@ -15,6 +15,7 @@ from traitlets import validate
 from ..core import TelescopeComponent
 from ..core.traits import Float, List, TraitError
 from ..utils import get_table_dataset
+from ..utils.coordinates import cartesian_to_polar
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
 
@@ -278,10 +279,9 @@ class PSFModel(TelescopeComponent):
     """
 
     @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
-    @abstractmethod
-    def pdf(self, x, y, x0, y0) -> np.ndarray:
+    def pdf_from_cartesian(self, x, y, x0, y0) -> np.ndarray:
         """
-        Calculates the value of the psf at a given location
+        Calculates the value of the psf at a given location in cartesian coordinates.
 
         Parameters
         ----------
@@ -298,14 +298,33 @@ class PSFModel(TelescopeComponent):
         psf : np.ndarray
             value of the PSF at the specified location with the specified position of the point source
         """
+        r, phi = cartesian_to_polar(x, y)
+        r0, phi0 = cartesian_to_polar(x0, y0)
+        return self.pdf_from_polar(r, phi, r0, phi0)
+
+    @u.quantity_input(r=u.m, phi=u.rad, r0=u.m, phi0=u.rad)
+    @abstractmethod
+    def pdf_from_polar(self, r, phi, r0, phi0) -> np.ndarray:
+        """
+        Calculates the value of the psf at a given location in polar coordinates.
+
+        Parameters
+        ----------
+        r : u.Quantity[length]
+            radial coordinate of the point on the focal plane where the psf is evaluated
+        phi : u.Quantity[angle]
+            angular coordinate of the point on the focal plane where the psf is evaluated
+        r0 : u.Quantity[length]
+            radial coordinate of the point source on the focal plane
+        phi0 : u.Quantity[angle]
+            angular coordinate of the point source on the focal plane
+        Returns
+        ----------
+        psf : np.ndarray
+            value of the PSF at the specified location with the specified position of the point source
+        """
 
         pass
-
-
-def _cartesian_to_polar(x, y):
-    r = np.sqrt(x**2 + y**2)
-    phi = np.arctan2(y, x)
-    return r, phi
 
 
 class ComaPSFModel(PSFModel):
@@ -398,11 +417,10 @@ class ComaPSFModel(PSFModel):
         a1, a2, a3 = self.phi_scale_params
         return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
-    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
-    def pdf(self, x, y, x0, y0) -> np.ndarray:
-        x, y, x0, y0 = all_to_value(x, y, x0, y0, unit=u.m)
-        r, phi = _cartesian_to_polar(x, y)
-        r0, phi0 = _cartesian_to_polar(x0, y0)
+    @u.quantity_input(r=u.m, phi=u.rad, r0=u.m, phi0=u.rad)
+    def pdf_from_polar(self, r, phi, r0, phi0) -> np.ndarray:
+        r, r0 = all_to_value(r, r0, unit=u.m)
+        phi, phi0 = all_to_value(phi, phi0, unit=u.rad)
 
         k = self._k(r0)
         s_r = self._s_r(r0)
