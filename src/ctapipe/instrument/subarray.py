@@ -843,14 +843,14 @@ class SubarrayDescription:
         )
 
     @classmethod
-    def load_array_element_positions(cls, site="ctao_n"):
+    def load_array_element_positions(cls, site="CTAO-North"):
         """
         Load array element positions from service data.
 
         Parameters
         ----------
         site : str
-            Site identifier (e.g., 'ctao_n', 'ctao_s')
+            Site identifier (e.g., 'CTAO-North', 'CTAO-South')
 
         Returns
         -------
@@ -911,7 +911,7 @@ class SubarrayDescription:
         ae_id_to_name : dict
             Mapping of array element IDs to names
         site : str
-            Site identifier (e.g., 'ctao_n', 'ctao_s')
+            Site identifier (e.g., 'CTAO-North', 'CTAO-South')
 
         Returns
         -------
@@ -924,9 +924,9 @@ class SubarrayDescription:
             if "LST" in tel_name:
                 camera_names[ae_id] = "LSTCam"
             elif "MST" in tel_name:
-                if site.lower() == "ctao_n":
+                if site.lower() == "ctao-north":
                     camera_names[ae_id] = "NectarCam"
-                elif site.lower() == "ctao_s":
+                elif site.lower() == "ctao-south":
                     camera_names[ae_id] = "FlashCam"
             elif "SST" in tel_name:
                 camera_names[ae_id] = "SSTCam"
@@ -1085,7 +1085,7 @@ class SubarrayDescription:
         cls,
         subarray_id,
         tel_descriptions=None,
-        site="ctao_n",
+        site="CTAO-North",
         camera_names=None,
         optics_names=None,
     ):
@@ -1104,7 +1104,7 @@ class SubarrayDescription:
             will attempt to load from camera_names and optics_names if provided,
             otherwise inferred from telescope names.
         site : str
-            Site identifier (e.g., 'ctao_n', 'ctao_s')
+            Site identifier (e.g., 'CTAO-North', 'CTAO-South')
         camera_names : dict[int, str], optional
             Mapping of array element IDs to camera names for loading
             camera descriptions from service data. Only used if tel_descriptions

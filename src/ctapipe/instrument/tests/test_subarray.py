@@ -373,7 +373,7 @@ def test_load_array_element_ids(svc_path):
 def test_load_array_element_positions():
     """Test loading array element positions from service data"""
     # Test for CTAO North
-    positions_n = SubarrayDescription.load_array_element_positions("ctao_n")
+    positions_n = SubarrayDescription.load_array_element_positions("CTAO-North")
 
     assert "ae_id" in positions_n.colnames
     assert "name" in positions_n.colnames
@@ -444,7 +444,9 @@ def test_from_service_data_minimal(svc_path):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
         warnings.filterwarnings("ignore", category=FromNameWarning)
-        subarray = SubarrayDescription.from_service_data(subarray_id=1, site="ctao_n")
+        subarray = SubarrayDescription.from_service_data(
+            subarray_id=1, site="CTAO-North"
+        )
 
     assert isinstance(subarray, SubarrayDescription)
     assert subarray.name == "CTAO-N LST Subarray"  # From the JSON data
@@ -481,7 +483,7 @@ def test_from_service_data_with_camera_optics_names(svc_path):
         optics_names = {ae_id: "LST" for ae_id in ae_ids}
         subarray = SubarrayDescription.from_service_data(
             subarray_id=subarray_id,
-            site="ctao_n",
+            site="CTAO-North",
             camera_names=camera_names,
             optics_names=optics_names,
         )
@@ -501,21 +503,21 @@ def test_infer_camera_names_north():
     ae_id_to_name = {1: "LSTN-01"}
 
     camera_names = SubarrayDescription._infer_camera_names(
-        tel_positions, ae_id_to_name, "ctao_n"
+        tel_positions, ae_id_to_name, "CTAO-North"
     )
     assert camera_names[1] == "LSTCam"
 
     # Test MST North
     ae_id_to_name = {1: "MSTN-01"}
     camera_names = SubarrayDescription._infer_camera_names(
-        tel_positions, ae_id_to_name, "ctao_n"
+        tel_positions, ae_id_to_name, "CTAO-North"
     )
     assert camera_names[1] == "NectarCam"
 
     # Test SST
     ae_id_to_name = {1: "SSTS-01"}
     camera_names = SubarrayDescription._infer_camera_names(
-        tel_positions, ae_id_to_name, "ctao_n"
+        tel_positions, ae_id_to_name, "CTAO-North"
     )
     assert camera_names[1] == "SSTCam"
 
@@ -526,7 +528,7 @@ def test_infer_camera_names_south():
     ae_id_to_name = {1: "MSTS-01"}
 
     camera_names = SubarrayDescription._infer_camera_names(
-        tel_positions, ae_id_to_name, "ctao_s"
+        tel_positions, ae_id_to_name, "CTAO-South"
     )
     assert camera_names[1] == "FlashCam"
 
