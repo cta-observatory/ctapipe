@@ -343,7 +343,7 @@ def test_tel_earth_locations(example_subarray):
     assert earth_locs is earth_locs_2
 
 
-def test_load_array_element_ids():
+def test_load_array_element_ids(svc_path):
     """Test loading array element IDs from service data"""
     import warnings
 
@@ -393,7 +393,7 @@ def test_load_array_element_positions():
     assert positions_n["z"].unit == u.m
 
 
-def test_load_subarray_info():
+def test_load_subarray_info(svc_path):
     """Test loading subarray definitions from service data"""
     import warnings
 
@@ -447,7 +447,7 @@ def test_from_service_data_minimal(svc_path):
         subarray = SubarrayDescription.from_service_data(subarray_id=1, site="ctao_n")
 
     assert isinstance(subarray, SubarrayDescription)
-    assert subarray.name == "LST1"  # From the JSON data
+    assert subarray.name == "CTAO-N LST Subarray"  # From the JSON data
     assert subarray.n_tels >= 1
     assert isinstance(subarray.reference_location, EarthLocation)
 
@@ -465,7 +465,7 @@ def test_from_service_data_with_camera_optics_names(svc_path):
     from ctapipe.core.provenance import MissingReferenceMetadata
     from ctapipe.instrument.warnings import FromNameWarning
 
-    subarray_id = 2  # CTAO-N LSTs
+    subarray_id = 1  # CTAO-N LST Subarray
 
     # Suppress expected warnings about service data and from_name usage
     with warnings.catch_warnings():
