@@ -270,6 +270,37 @@ def test_skip_r1_calibration():
     assert n_processed == n_expected
 
 
+def test_skip_r1_calibration_with_gain_selection():
+    n_expected = 5
+    with SimTelEventSource(
+        input_url=calib_events_path,
+        max_events=n_expected,
+        skip_calibration_events=False,
+        select_gain=True,
+        focal_length_choice="EQUIVALENT",
+    ) as reader:
+        n_processed = 0
+        for event in reader:
+            n_processed += 1
+            # R0 should have 2 channels (high gain and low gain)
+            assert event.r0.tel[1].waveform.ndim == 3
+            assert event.r0.tel[1].waveform.shape[0] == 2, (
+                f"R0 waveforms should have 2 channels, got {event.r0.tel[1].waveform.shape[0]}"
+            )
+            # R1 should have 1 channel after gain selection
+            assert event.r1.tel[1].waveform.ndim == 3
+            assert event.r1.tel[1].waveform.shape[0] == 1, (
+                f"R1 waveforms should have 1 channel after gain selection, got {event.r1.tel[1].waveform.shape[0]}"
+            )
+            # Check that selected_gain_channel exists and has correct shape
+            assert event.r1.tel[1].selected_gain_channel is not None
+            assert (
+                event.r1.tel[1].selected_gain_channel.shape[0]
+                == event.r1.tel[1].waveform.shape[1]
+            ), "selected_gain_channel should have one entry per pixel"
+    assert n_processed == n_expected
+
+
 def test_time_shift():
     source = SimTelEventSource(
         input_url=calib_events_path,
