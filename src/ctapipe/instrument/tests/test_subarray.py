@@ -313,3 +313,71 @@ def test_check_matchings_subarray(example_subarray, subarray_prod5_paranal):
     assert not SubarrayDescription.check_matching_subarrays(
         [example_subarray, subarray_prod5_paranal]
     )
+
+
+def test_merge_subarrays(example_subarray):
+    """Test SubarrayDescription.merge_subarrays static method"""
+
+    sub1 = example_subarray.select_subarray([1, 2], name="s1")
+    sub2 = example_subarray.select_subarray([3, 4], name="s2")
+    expected_sub = example_subarray.select_subarray([1, 2, 3, 4], name="Merged_1-4")
+    merged_sub = SubarrayDescription.merge_subarrays([sub1, sub2])
+
+    assert expected_sub == merged_sub
+
+
+def test_merge_subarrays_exceptions(example_subarray):
+    """Merging subarrays with invalid parameters should raise exceptions."""
+
+    sub1 = example_subarray.select_subarray([1, 2], name="s1")
+    sub2 = example_subarray.select_subarray([3, 4], name="s2")
+
+    # Check that invalid inputs raise exceptions
+    with pytest.raises(
+        TypeError, match="All elements of subarray_list must be 'SubarrayDescription'"
+    ):
+        SubarrayDescription.merge_subarrays([sub1, int(67)])
+
+    # Check that duplicate telescope ids without overwrite raises exception
+    with pytest.raises(ValueError, match="Duplicate telescope id encountered"):
+        SubarrayDescription.merge_subarrays([sub1, sub1], overwrite_tel_ids=False)
+
+    # Check that different reference locations raises exception
+    shifted_location = EarthLocation(
+        lon=sub2.reference_location.lon,
+        lat=sub2.reference_location.lat,
+        height=sub2.reference_location.height + 1 * u.m,
+    )
+    sub2_shifted = SubarrayDescription(
+        name="shifted",
+        tel_positions=sub2.positions,
+        tel_descriptions=sub2.tel,
+        reference_location=shifted_location,
+    )
+    with pytest.raises(
+        ValueError, match="All subarrays must have the same reference_location"
+    ):
+        SubarrayDescription.merge_subarrays(
+            [sub1, sub2_shifted], overwrite_tel_ids=True
+        )
+
+
+def test_merge_subarrays_overwrite_tel_ids(example_subarray):
+    """Later subarrays overwrite earlier telescope entries when enabled."""
+
+    sub1 = example_subarray.select_subarray([1, 2], name="s1")
+    sub2 = example_subarray.select_subarray([1, 2], name="s2")
+
+    # Overwrite positions of the telescopes in sub2
+    sub2.positions[1] = np.array([10, 0, 0]) * u.m
+    sub2.positions[2] = np.array([-10, 0, 0]) * u.m
+
+    with pytest.warns(UserWarning, match="Overwriting telescope id"):
+        merged_sub = SubarrayDescription.merge_subarrays(
+            [sub1, sub2], overwrite_tel_ids=True
+        )
+
+    assert merged_sub.name == "Merged_1,2"
+    assert merged_sub.n_tels == 2
+    np.testing.assert_allclose(merged_sub.positions[1], [10, 0, 0] * u.m)
+    np.testing.assert_allclose(merged_sub.positions[2], [-10, 0, 0] * u.m)
