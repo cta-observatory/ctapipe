@@ -444,9 +444,7 @@ def test_from_service_data_minimal(svc_path):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
         warnings.filterwarnings("ignore", category=FromNameWarning)
-        subarray = SubarrayDescription.from_service_data(
-            subarray_id=1, site="CTAO-North"
-        )
+        subarray = SubarrayDescription.from_service_data(subarray_id=1)
 
     assert isinstance(subarray, SubarrayDescription)
     assert subarray.name == "CTAO-N LST Subarray"  # From the JSON data
@@ -483,7 +481,6 @@ def test_from_service_data_with_camera_optics_names(svc_path):
         optics_names = {ae_id: "LST" for ae_id in ae_ids}
         subarray = SubarrayDescription.from_service_data(
             subarray_id=subarray_id,
-            site="CTAO-North",
             camera_names=camera_names,
             optics_names=optics_names,
         )
