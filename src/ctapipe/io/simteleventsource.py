@@ -385,12 +385,15 @@ def apply_simtel_r1_calibration(
     return r1_waveforms
 
 
-def apply_gain_selection(r1_waveforms, gain_selector):
+def apply_gain_selection(r0_waveforms, r1_waveforms, gain_selector):
     """
     Apply gain selection to the R1 waveform.
 
     Parameters
     ----------
+    r0_waveforms : ndarray
+        Raw ADC waveforms from a simtel file. All gain channels available.
+        Shape: (n_channels, n_pixels, n_samples)
     r1_waveforms : ndarray
         Calibrated waveforms not gain-selected, in units of photoelectrons (p.e.).
         Shape: (n_channels, n_pixels, n_samples)
@@ -405,11 +408,11 @@ def apply_gain_selection(r1_waveforms, gain_selector):
     selected_gain_channel : ndarray
         The gain channel selected for each pixel. Shape: (n_pixels,)
     """
-    selected_gain_channel = gain_selector(r1_waveforms)
+    selected_gain_channel = gain_selector(r0_waveforms)
     r1_waveforms = r1_waveforms[
         np.newaxis,
         selected_gain_channel,
-        _get_pixel_index(r1_waveforms.shape[1]),
+        _get_pixel_index(r0_waveforms.shape[-2]),
     ]
     return r1_waveforms, selected_gain_channel
 
@@ -1101,7 +1104,7 @@ class SimTelEventSource(EventSource):
                 )
                 if select_gain:
                     r1_waveform, selected_gain_channel = apply_gain_selection(
-                        r1_waveform, self.gain_selector
+                        adc_samples, r1_waveform, self.gain_selector
                     )
                 else:
                     selected_gain_channel = None

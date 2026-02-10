@@ -360,7 +360,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms = apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe)
     r1_waveforms, selected_gain_channel = apply_gain_selection(
-        r1_waveforms, gain_selector
+        r0_waveforms, r1_waveforms, gain_selector
     )
 
     assert (selected_gain_channel == 0).all()
@@ -392,16 +392,16 @@ def test_apply_simtel_r1_calibration_2_channel():
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms = apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe)
     r1_waveforms, selected_gain_channel = apply_gain_selection(
-        r1_waveforms, gain_selector
+        r0_waveforms, r1_waveforms, gain_selector
     )
 
-    assert selected_gain_channel[0] == 0
+    assert selected_gain_channel[0] == 1
     assert (selected_gain_channel[np.arange(1, 2048)] == 0).all()
     assert r1_waveforms.ndim == 3
     assert r1_waveforms.shape == (1, n_pixels, n_samples)
 
     ped = pedestal
-    assert r1_waveforms[0, 0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
+    assert r1_waveforms[0, 0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[0, 1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
 
