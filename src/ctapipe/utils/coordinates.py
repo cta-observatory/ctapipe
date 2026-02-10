@@ -3,6 +3,7 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
+
 from .quantities import all_to_value
 
 __all__ = [
