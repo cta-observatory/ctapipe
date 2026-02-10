@@ -19,6 +19,7 @@ from ctapipe.io import DataLevel
 from ctapipe.io.simteleventsource import (
     AtmosphereProfileKind,
     SimTelEventSource,
+    apply_gain_selection,
     apply_simtel_r1_calibration,
     read_atmosphere_profile_from_simtel,
 )
@@ -271,7 +272,7 @@ def test_skip_r1_calibration():
 
 
 def test_skip_r1_calibration_with_gain_selection():
-    n_expected = 5
+    n_expected = 1
     with SimTelEventSource(
         input_url=calib_events_path,
         max_events=n_expected,
@@ -357,8 +358,9 @@ def test_apply_simtel_r1_calibration_1_channel():
     dc_to_pe = np.full((n_channels, n_pixels), 0.5)
 
     gain_selector = ThresholdGainSelector(threshold=90)
-    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    r1_waveforms = apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe)
+    r1_waveforms, selected_gain_channel = apply_gain_selection(
+        r1_waveforms, gain_selector
     )
 
     assert (selected_gain_channel == 0).all()
@@ -388,17 +390,18 @@ def test_apply_simtel_r1_calibration_2_channel():
     dc_to_pe[1] = 0.1
 
     gain_selector = ThresholdGainSelector(threshold=90)
-    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    r1_waveforms = apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe)
+    r1_waveforms, selected_gain_channel = apply_gain_selection(
+        r1_waveforms, gain_selector
     )
 
-    assert selected_gain_channel[0] == 1
+    assert selected_gain_channel[0] == 0
     assert (selected_gain_channel[np.arange(1, 2048)] == 0).all()
     assert r1_waveforms.ndim == 3
     assert r1_waveforms.shape == (1, n_pixels, n_samples)
 
     ped = pedestal
-    assert r1_waveforms[0, 0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
+    assert r1_waveforms[0, 0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
     assert r1_waveforms[0, 1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
 

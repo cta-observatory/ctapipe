@@ -3,6 +3,7 @@ import pathlib
 import warnings
 from contextlib import nullcontext
 from enum import Enum, IntFlag, auto, unique
+from functools import lru_cache
 from gzip import GzipFile
 from io import BufferedReader
 
@@ -117,6 +118,11 @@ class SimTelTriggerMask(IntFlag):
     LONG_EVENT = auto()
     MUON = auto()
     RANDOM_MONO = auto()
+
+
+@lru_cache()
+def _get_pixel_index(n_pixels):
+    return np.arange(n_pixels)
 
 
 def _trigger_mask_to_event_type(trigger_mask):
@@ -333,11 +339,10 @@ def _telescope_from_meta(telescope_meta, mirror_area):
 
 
 def apply_simtel_r1_calibration(
-    r0_waveforms, pedestal, factor, gain_selector, calib_scale=1.0, calib_shift=0.0
+    r0_waveforms, pedestal, factor, calib_scale=1.0, calib_shift=0.0
 ):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
-        - Gain selection
         - Pedestal subtraction
         - Conversion of samples into units proportional to photoelectrons
           (If the full signal in the waveform was integrated, then the resulting
@@ -356,7 +361,6 @@ def apply_simtel_r1_calibration(
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
-    gain_selector : ctapipe.calib.camera.gainselection.GainSelector
     calib_scale : float
         Extra global scale factor for calibration.
         Conversion factor to transform the integrated charges
@@ -369,27 +373,44 @@ def apply_simtel_r1_calibration(
     Returns
     -------
     r1_waveforms : ndarray
-        Calibrated waveforms
+        Calibrated waveforms not gain-selected, in units of photoelectrons (p.e.).
         Shape: (n_channels, n_pixels, n_samples)
-    selected_gain_channel : ndarray
-        The gain channel selected for each pixel
-        Shape: (n_pixels)
     """
-    n_pixels = r0_waveforms.shape[-2]
     ped = pedestal[..., np.newaxis]
     factor = factor[..., np.newaxis]
     gain = factor * calib_scale
 
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
 
-    if gain_selector is not None:
-        selected_gain_channel = gain_selector(r0_waveforms)
-        r1_waveforms = r1_waveforms[
-            np.newaxis, selected_gain_channel, np.arange(n_pixels)
-        ]
-    else:
-        selected_gain_channel = None
+    return r1_waveforms
 
+
+def apply_gain_selection(r1_waveforms, gain_selector):
+    """
+    Apply gain selection to the R1 waveform.
+
+    Parameters
+    ----------
+    r1_waveforms : ndarray
+        Calibrated waveforms not gain-selected, in units of photoelectrons (p.e.).
+        Shape: (n_channels, n_pixels, n_samples)
+    gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+        The GainSelector to use for selecting the gain channel.
+
+    Returns
+    -------
+    r1_waveforms : ndarray
+        Calibrated waveforms after gain selection, in units of photoelectrons (p.e.).
+        Shape: (1, n_pixels, n_samples)
+    selected_gain_channel : ndarray
+        The gain channel selected for each pixel. Shape: (n_pixels,)
+    """
+    selected_gain_channel = gain_selector(r1_waveforms)
+    r1_waveforms = r1_waveforms[
+        np.newaxis,
+        selected_gain_channel,
+        _get_pixel_index(r1_waveforms.shape[1]),
+    ]
     return r1_waveforms, selected_gain_channel
 
 
@@ -1060,37 +1081,30 @@ class SimTelEventSource(EventSource):
                 factor = array_event["laser_calibrations"][tel_id]["calib"]
                 disabled_pixel_mask = self._get_disabled_pixel_mask(tel_id)
 
+                if self.skip_r1_calibration:
+                    # Skip the simtel R1 calibration
+                    r1_waveform = adc_samples.astype(np.float32)
+                else:
+                    # Apply the simtel R1 calibration to get waveforms in units of photoelectrons (p.e.)
+                    r1_waveform = apply_simtel_r1_calibration(
+                        adc_samples,
+                        pedestal,
+                        factor,
+                        self.calib_scale,
+                        self.calib_shift,
+                    )
+                # Perform the gain selection if requested.
+                # By default, the cosmic events will be gain-selected, not for calibration events.
                 select_gain = self.select_gain is True or (
                     self.select_gain is None
                     and trigger.event_type is EventType.SUBARRAY
                 )
                 if select_gain:
-                    gain_selector = self.gain_selector
-                else:
-                    gain_selector = None
-
-                if self.skip_r1_calibration:
-                    # Skip the simtel R1 calibration
-                    r1_waveform = adc_samples.astype(np.float32)
-                    if gain_selector is not None:
-                        selected_gain_channel = gain_selector(r1_waveform)
-                        r1_waveform = r1_waveform[
-                            np.newaxis,
-                            selected_gain_channel,
-                            np.arange(r1_waveform.shape[-2]),
-                        ]
-                    else:
-                        selected_gain_channel = None
-                else:
-                    # Apply the simtel R1 calibration and the gain selector if selected
-                    r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
-                        adc_samples,
-                        pedestal,
-                        factor,
-                        gain_selector,
-                        self.calib_scale,
-                        self.calib_shift,
+                    r1_waveform, selected_gain_channel = apply_gain_selection(
+                        r1_waveform, self.gain_selector
                     )
+                else:
+                    selected_gain_channel = None
 
                 pixel_status = self._get_r1_pixel_status(
                     tel_id=tel_id,
