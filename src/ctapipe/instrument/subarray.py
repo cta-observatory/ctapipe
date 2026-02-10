@@ -1085,7 +1085,6 @@ class SubarrayDescription:
         cls,
         subarray_id,
         tel_descriptions=None,
-        site="CTAO-North",
         camera_names=None,
         optics_names=None,
     ):
@@ -1103,8 +1102,6 @@ class SubarrayDescription:
             Telescope descriptions by array element ID. If not provided,
             will attempt to load from camera_names and optics_names if provided,
             otherwise inferred from telescope names.
-        site : str
-            Site identifier (e.g., 'CTAO-North', 'CTAO-South')
         camera_names : dict[int, str], optional
             Mapping of array element IDs to camera names for loading
             camera descriptions from service data. Only used if tel_descriptions
@@ -1122,6 +1119,9 @@ class SubarrayDescription:
         """
         # Load subarray definition
         subarray_info = cls.load_subarray_info(subarray_id)
+
+        # Extract site from subarray info
+        site = subarray_info["site"]
 
         # Load array element IDs for name mapping
         array_element_data = cls.load_array_element_ids()
