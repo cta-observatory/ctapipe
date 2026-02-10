@@ -8,6 +8,7 @@ import pytest
 
 from ctapipe.core.traits import TraitError
 from ctapipe.instrument.optics import PSFModel
+from ctapipe.utils.coordinates import cartesian_to_polar
 
 
 @pytest.fixture(scope="session")
@@ -59,4 +60,11 @@ def test_psf(example_subarray):
 
 
 def test_asymptotic_behavior(coma_psf):
-    assert np.isclose(coma_psf.pdf(*([10.0, 0.0, 1.0, 0.0] * u.m)), 0.0)
+    x, y, x0, y0 = 10.0 * u.m, 0.0 * u.m, 1.0 * u.m, 0.0 * u.m
+    assert np.isclose(coma_psf.pdf_from_cartesian(x, y, x0, y0), 0.0)
+    r, phi = cartesian_to_polar(x, y)
+    r0, phi0 = cartesian_to_polar(x0, y0)
+    assert np.isclose(
+        coma_psf.pdf_from_cartesian(x, y, x0, y0),
+        coma_psf.pdf_from_polar(r, phi, r0, phi0),
+    )
