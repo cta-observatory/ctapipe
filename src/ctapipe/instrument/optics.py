@@ -385,7 +385,7 @@ class ComaPSFModel(PSFModel):
         default_value=0.1 * u.deg,
         physical_type=u.physical.angle,
         help="Width of a pixel in FoV coordinates",
-    )
+    ).tag(config=True) 
 
     def _k(self, r):
         c1, c2, c3 = self.asymmetry_params
