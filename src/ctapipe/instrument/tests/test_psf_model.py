@@ -59,4 +59,13 @@ def test_psf(example_subarray):
 
 
 def test_asymptotic_behavior(coma_psf):
-    assert np.isclose(coma_psf.pdf(*([20.0, 0.0, 2.0, 0.0] * u.deg)), 0.0)
+    assert np.isclose(
+        coma_psf.pdf(
+            tel_id=1,
+            lon=20.0 * u.deg,
+            lat=0.0 * u.deg,
+            lon0=2.0 * u.deg,
+            lat0=0.0 * u.deg,
+        ),
+        0.0,
+    )
