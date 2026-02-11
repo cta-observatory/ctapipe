@@ -1,0 +1,1 @@
+Polish the PSFModel class to calculate the PSF with inputs in FoV coordinates in degrees.

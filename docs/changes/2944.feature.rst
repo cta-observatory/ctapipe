@@ -1,1 +1,0 @@
-Polish the PSFModel class to also calculate the PSF with inputs in polar coordinates.
