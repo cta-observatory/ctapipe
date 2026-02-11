@@ -13,9 +13,8 @@ from scipy.stats import laplace, laplace_asymmetric
 from traitlets import validate
 
 from ..core import TelescopeComponent
-from ..core.traits import Float, List, TraitError
+from ..core.traits import AstroQuantity, List, TraitError
 from ..utils import get_table_dataset
-from ..utils.coordinates import cartesian_to_polar
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
 
@@ -278,46 +277,27 @@ class PSFModel(TelescopeComponent):
     Base component to describe image distortion due to the optics of the different cameras.
     """
 
-    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
-    def pdf_from_cartesian(self, x, y, x0, y0) -> np.ndarray:
-        """
-        Calculates the value of the psf at a given location in cartesian coordinates.
-
-        Parameters
-        ----------
-        x : u.Quantity[length]
-            x-coordinate of the point on the focal plane where the psf is evaluated
-        y : u.Quantity[length]
-            y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : u.Quantity[length]
-            x-coordinate of the point source on the focal plane
-        y0 : u.Quantity[length]
-            y-coordinate of the point source on the focal plane
-        Returns
-        ----------
-        psf : np.ndarray
-            value of the PSF at the specified location with the specified position of the point source
-        """
-        r, phi = cartesian_to_polar(x, y)
-        r0, phi0 = cartesian_to_polar(x0, y0)
-        return self.pdf_from_polar(r, phi, r0, phi0)
-
-    @u.quantity_input(r=u.m, phi=u.rad, r0=u.m, phi0=u.rad)
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
     @abstractmethod
-    def pdf_from_polar(self, r, phi, r0, phi0) -> np.ndarray:
+    def pdf(self, lon, lat, lon0, lat0) -> np.ndarray:
         """
-        Calculates the value of the psf at a given location in polar coordinates.
+        Calculates the value of the psf at a given location.
 
         Parameters
         ----------
-        r : u.Quantity[length]
-            radial coordinate of the point on the focal plane where the psf is evaluated
-        phi : u.Quantity[angle]
-            angular coordinate of the point on the focal plane where the psf is evaluated
-        r0 : u.Quantity[length]
-            radial coordinate of the point source on the focal plane
-        phi0 : u.Quantity[angle]
-            angular coordinate of the point source on the focal plane
+        lon : u.Quantity[angle]
+            longitude coordinate of the point on the focal plane where the psf is evaluated
+        lat : u.Quantity[angle]
+            latitude coordinate of the point on the focal plane where the psf is evaluated
+        lon0 : u.Quantity[angle]
+            longitude coordinate of the point source on the focal plane
+        lat0 : u.Quantity[angle]
+            latitude coordinate of the point source on the focal plane
         Returns
         ----------
         psf : np.ndarray
@@ -346,20 +326,20 @@ class ComaPSFModel(PSFModel):
     Attributes
     ----------
     asymmetry_params : list
-        Describes the dependency of the PSF on the distance to the center of the camera.
+        Describes the dependency of the PSF on the distance to the optical axis.
         Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
         of the PSF as a function of the distance r to the optical axis.
 
         .. math:: K(r) = 1 - c_0 \tanh(c_1 r) - c_2 r
 
     radial_scale_params : list
-        Describes the dependency of the radial scale on the distance to the center of the camera.
+        Describes the dependency of the radial scale on the distance to the optical axis.
         Used to calculate width Sr of the asymmetric radial Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
 
         .. math:: S_{R}(r) = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
     phi_scale_params : list
-        Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the center of the camera.
+        Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the optical axis.
         Used to calculate the width Sf of the polar Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
 
         .. math:: S_{\phi}(r) = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
@@ -377,7 +357,7 @@ class ComaPSFModel(PSFModel):
     asymmetry_params = List(
         help=(
             "Describes the dependency of the PSF on the distance "
-            "to the center of the camera. Used to calculate a PDF "
+            "to the optical axis. Used to calculate a PDF "
             "asymmetry parameter :math:`K` of the asymmetric radial Laplacian "
             "of the PSF as a function of the distance r to the optical axis"
         )
@@ -386,7 +366,7 @@ class ComaPSFModel(PSFModel):
     radial_scale_params = List(
         help=(
             "Describes the dependency of the radial scale on the "
-            "distance to the center of the camera. Used to calculate "
+            "distance to the optical axis. Used to calculate "
             "width :math:`S_R` of the asymmetric radial Laplacian in the PSF "
             "as a function of the distance r to the optical axis"
         )
@@ -395,16 +375,17 @@ class ComaPSFModel(PSFModel):
     phi_scale_params = List(
         help=(
             "Describes the dependency of the polar scale on the "
-            "distance to the center of the camera. Used to calculate "
+            "distance to the optical axis. Used to calculate "
             r"the width :math:`S_\phi` of the polar Laplacian in the PSF "
             "as a function of the distance r to the optical axis"
         )
     ).tag(config=True)
 
-    pixel_width = Float(
-        default_value=0.05,
-        help="Width of a pixel of the camera in meters",
-    ).tag(config=True)
+    pixel_width = AstroQuantity(
+        default_value=0.1 * u.deg,
+        physical_type=u.physical.angle,
+        help="Width of a pixel in FoV coordinates",
+    )
 
     def _k(self, r):
         c1, c2, c3 = self.asymmetry_params
@@ -417,28 +398,44 @@ class ComaPSFModel(PSFModel):
         a1, a2, a3 = self.phi_scale_params
         return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
-    @u.quantity_input(r=u.m, phi=u.rad, r0=u.m, phi0=u.rad)
-    def pdf_from_polar(self, r, phi, r0, phi0) -> np.ndarray:
-        r, r0 = all_to_value(r, r0, unit=u.m)
-        phi, phi0 = all_to_value(phi, phi0, unit=u.rad)
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
+    def pdf(self, lon, lat, lon0, lat0):
+        lon, lat, lon0, lat0, pixel_width = all_to_value(
+            lon, lat, lon0, lat0, self.pixel_width, unit=u.rad
+        )
 
+        r0 = np.sqrt(lon0**2 + lat0**2)
+
+        # Evaluate PSF parameters at source position
         k = self._k(r0)
         s_r = self._s_r(r0)
         s_phi = self._s_phi(r0)
 
-        radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
-        polar_pdf = laplace.pdf(phi, phi0, s_phi)
+        dlon = lon - lon0
+        dlat = lat - lat0
 
-        # Phi is not defined at the center
-        at_center = np.isclose(r0, 0, atol=self.pixel_width)
+        r = np.sqrt(dlon**2 + dlat**2)
+        phi = np.arctan2(dlat, dlon)
+
+        radial_pdf = laplace_asymmetric.pdf(r, k, 0.0, s_r)
+        polar_pdf = laplace.pdf(phi, 0.0, s_phi)
+
+        at_center = np.isclose(r0, 0, atol=pixel_width)
         polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
+
         # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
-        chord_length = min(6 * self.pixel_width, 0.5 * r0)
-        if r0 != 0:
+        chord_length = min(6 * pixel_width, 0.5 * r0)
+
+        if not np.isclose(r0, 0, atol=pixel_width):
             dphi = np.arcsin(chord_length / (2 * r0))
-            polar_pdf[phi < phi0 - dphi] = 0
-            polar_pdf[phi > phi0 + dphi] = 0
+            mask = np.abs(phi) <= dphi
+            polar_pdf = np.where(mask, polar_pdf, 0.0)
 
         return radial_pdf * polar_pdf
 
