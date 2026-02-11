@@ -1,1 +1,3 @@
-Update PSFModel class to calculate the PSF with inputs in FoV coordinates in degrees.
+Update PSFModel components to calculate the PSF with inputs in FoV coordinates in degrees.
+In addition, the model parameters of the ComaPSFModel component are now distinct TelescopeParameter configurations.
+The pixel width of each telescope type is not a configuration parameter of the ComaPSFModel component anymore, but instead it is obtained from the camera geometries of the subarray information.
