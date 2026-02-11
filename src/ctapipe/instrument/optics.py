@@ -8,12 +8,14 @@ from enum import Enum, StrEnum, auto, unique
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import QTable
 from scipy.stats import laplace, laplace_asymmetric
 from traitlets import validate
 
+from ..coordinates import TelescopeFrame
 from ..core import TelescopeComponent
-from ..core.traits import AstroQuantity, List, TraitError
+from ..core.traits import List, TraitError
 from ..utils import get_table_dataset
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
@@ -26,6 +28,10 @@ __all__ = [
     "PSFModel",
     "ComaPSFModel",
 ]
+
+ZENITH_TELESCOPE_FRAME = TelescopeFrame(
+    telescope_pointing=SkyCoord(alt=90 * u.deg, az=0 * u.deg, frame=AltAz())
+)
 
 
 @unique
@@ -284,12 +290,14 @@ class PSFModel(TelescopeComponent):
         lat0=u.deg,
     )
     @abstractmethod
-    def pdf(self, lon, lat, lon0, lat0) -> np.ndarray:
+    def pdf(self, tel_id, lon, lat, lon0, lat0) -> np.ndarray:
         """
         Calculates the value of the psf at a given location.
 
         Parameters
         ----------
+        tel_id : int
+            ID of the telescope for which the PSF is evaluated
         lon : u.Quantity[angle]
             longitude coordinate of the point on the focal plane where the psf is evaluated
         lat : u.Quantity[angle]
@@ -381,12 +389,6 @@ class ComaPSFModel(PSFModel):
         )
     ).tag(config=True)
 
-    pixel_width = AstroQuantity(
-        default_value=0.1 * u.deg,
-        physical_type=u.physical.angle,
-        help="Width of a pixel in FoV coordinates",
-    ).tag(config=True)
-
     def _k(self, r):
         c1, c2, c3 = self.asymmetry_params
         return 1 - c1 * np.tanh(c2 * r) - c3 * r
@@ -404,10 +406,17 @@ class ComaPSFModel(PSFModel):
         lon0=u.deg,
         lat0=u.deg,
     )
-    def pdf(self, lon, lat, lon0, lat0):
-        lon, lat, lon0, lat0, pixel_width = all_to_value(
-            lon, lat, lon0, lat0, self.pixel_width, unit=u.rad
+    def pdf(self, tel_id, lon, lat, lon0, lat0):
+        # Convert all inputs to radians for the calculations
+        lon, lat, lon0, lat0 = all_to_value(lon, lat, lon0, lat0, unit=u.rad)
+        # Point the telescope to the zenith and transform the camera geometry
+        # to the telescope frame to get the pixel size in radians for the given telescope.
+        geom_tel_frame = self.subarray.tel[tel_id].camera.geometry.transform_to(
+            ZENITH_TELESCOPE_FRAME
         )
+        pixel_width = geom_tel_frame.guess_pixel_width(
+            geom_tel_frame.pix_x, geom_tel_frame.pix_y
+        ).to_value(u.rad)
 
         r0 = np.sqrt(lon0**2 + lat0**2)
 
