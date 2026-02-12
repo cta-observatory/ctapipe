@@ -1,0 +1,5 @@
+Add option to filter out telescope events using their trigger ``EventType``
+in ``SoftwareTrigger``.
+This is can be used e.g. to study mono telescope performance from Prod6
+simulations by analyzing only telescope events with ``RANDOM_MONO`` event type
+or muon tagging by only analyzing ``MUON`` events.
