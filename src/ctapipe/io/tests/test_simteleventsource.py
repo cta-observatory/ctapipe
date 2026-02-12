@@ -19,6 +19,7 @@ from ctapipe.io import DataLevel
 from ctapipe.io.simteleventsource import (
     AtmosphereProfileKind,
     SimTelEventSource,
+    apply_gain_selection,
     apply_simtel_r1_calibration,
     read_atmosphere_profile_from_simtel,
 )
@@ -270,6 +271,37 @@ def test_skip_r1_calibration():
     assert n_processed == n_expected
 
 
+def test_skip_r1_calibration_with_gain_selection():
+    n_expected = 1
+    with SimTelEventSource(
+        input_url=calib_events_path,
+        max_events=n_expected,
+        skip_calibration_events=False,
+        select_gain=True,
+        focal_length_choice="EQUIVALENT",
+    ) as reader:
+        n_processed = 0
+        for event in reader:
+            n_processed += 1
+            # R0 should have 2 channels (high gain and low gain)
+            assert event.r0.tel[1].waveform.ndim == 3
+            assert event.r0.tel[1].waveform.shape[0] == 2, (
+                f"R0 waveforms should have 2 channels, got {event.r0.tel[1].waveform.shape[0]}"
+            )
+            # R1 should have 1 channel after gain selection
+            assert event.r1.tel[1].waveform.ndim == 3
+            assert event.r1.tel[1].waveform.shape[0] == 1, (
+                f"R1 waveforms should have 1 channel after gain selection, got {event.r1.tel[1].waveform.shape[0]}"
+            )
+            # Check that selected_gain_channel exists and has correct shape
+            assert event.r1.tel[1].selected_gain_channel is not None
+            assert (
+                event.r1.tel[1].selected_gain_channel.shape[0]
+                == event.r1.tel[1].waveform.shape[1]
+            ), "selected_gain_channel should have one entry per pixel"
+    assert n_processed == n_expected
+
+
 def test_time_shift():
     source = SimTelEventSource(
         input_url=calib_events_path,
@@ -326,8 +358,9 @@ def test_apply_simtel_r1_calibration_1_channel():
     dc_to_pe = np.full((n_channels, n_pixels), 0.5)
 
     gain_selector = ThresholdGainSelector(threshold=90)
-    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    r1_waveforms = apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe)
+    r1_waveforms, selected_gain_channel = apply_gain_selection(
+        r0_waveforms, r1_waveforms, gain_selector
     )
 
     assert (selected_gain_channel == 0).all()
@@ -357,8 +390,9 @@ def test_apply_simtel_r1_calibration_2_channel():
     dc_to_pe[1] = 0.1
 
     gain_selector = ThresholdGainSelector(threshold=90)
-    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    r1_waveforms = apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe)
+    r1_waveforms, selected_gain_channel = apply_gain_selection(
+        r0_waveforms, r1_waveforms, gain_selector
     )
 
     assert selected_gain_channel[0] == 1

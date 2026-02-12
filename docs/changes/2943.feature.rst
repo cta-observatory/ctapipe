@@ -1,0 +1,1 @@
+Allow to select gain for calibration events in SimTelEventSource, when skipping R1 calibration.
