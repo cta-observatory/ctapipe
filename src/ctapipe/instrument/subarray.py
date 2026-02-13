@@ -169,6 +169,22 @@ class SubarrayDescription:
         return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=frame)
 
     @lazyproperty
+    def tel_earth_locations(self):
+        """
+        Telescope positions as `~astropy.coordinates.EarthLocation` objects.
+
+        Returns
+        -------
+        dict[int, EarthLocation]
+            Dictionary mapping telescope IDs to their EarthLocation.
+            This is cached to avoid expensive repeated conversions.
+        """
+        return {
+            tel_id: coord.to_earth_location()
+            for tel_id, coord in zip(self.tel_ids, self.tel_coords)
+        }
+
+    @lazyproperty
     def tel_ids(self):
         """Array of telescope ids in order of telescope indices"""
         return np.array(list(self.tel.keys()))
