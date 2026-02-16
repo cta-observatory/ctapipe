@@ -346,3 +346,25 @@ def test_read_dl2_tel_ml(gamma_diffuse_full_reco_file):
             assert energy.prefix == algorithm + "_tel"
             assert energy.energy is not None
             assert np.isfinite(energy.energy)
+
+
+def test_is_compatible_with_only_trigger(tmp_path):
+    """
+    Regression test for has_trigger copy-paste bug.
+    """
+
+    import tables
+
+    filename = tmp_path / "only_trigger.h5"
+
+    with tables.open_file(filename, mode="w") as h5:
+        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = "v7.3.0"
+
+        h5.root._v_attrs["CTA PRODUCT DATA LEVELS"] = "R0"
+
+        h5.create_group("/", "dl1")
+        h5.create_group("/dl1", "event")
+        h5.create_group("/dl1/event", "subarray")
+        h5.create_group("/dl1/event/subarray", "trigger")
+
+    assert HDF5EventSource.is_compatible(str(filename))
