@@ -192,10 +192,12 @@ jobs:
           SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
           TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
+          pip install setuptools_scm
           echo "PR_NUMBER=${PR_NUMBER}" >> sonar_env
           echo "SOURCE_REPOSITORY=${SOURCE_REPOSITORY}" >> sonar_env
           echo "SOURCE_BRANCH=${SOURCE_BRANCH}" >> sonar_env
           echo "TARGET_BRANCH=${TARGET_BRANCH}" >> sonar_env
+          echo "PROJECT_VERSION=$(python -m setuptools_scm)" >> sonar_env
           cat sonar_env
 
       # upload coverage report for sonar workflow
