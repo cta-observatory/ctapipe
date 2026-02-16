@@ -1,0 +1,4 @@
+Fixed incorrect trigger compatibility check in ``HDF5EventSource.is_compatible``.
+
+``has_trigger`` was mistakenly checking ``SIMULATION_TEL_TABLE`` due to a
+copy-paste error. It now correctly checks for the presence of DL1 trigger tables.
