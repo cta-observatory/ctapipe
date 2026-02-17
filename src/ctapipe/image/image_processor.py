@@ -251,8 +251,10 @@ class ImageProcessor(TelescopeComponent):
                     peak_time=None,  # true image from simulation has no peak time
                     default=DEFAULT_TRUE_IMAGE_PARAMETERS,
                 )
+                from ctapipe.core import Container
+
                 for container in sim_camera.true_parameters.values():
-                    if not container.prefix.startswith("true_"):
+                    if isinstance(container, Container) and not container.prefix.startswith("true_"):
                         container.prefix = f"true_{container.prefix}"
 
                 self.log.debug(

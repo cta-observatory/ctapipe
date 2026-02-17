@@ -660,6 +660,7 @@ class DataWriter(Component):
                             true_parameters.concentration,
                             true_parameters.morphology,
                             true_parameters.intensity_statistics,
+                            true_parameters.true_disp,
                         ],
                     )
 
