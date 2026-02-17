@@ -77,7 +77,7 @@ We provide a conda environment with all packages needed for development of ctapi
 
 .. code-block:: console
 
-    $ mamba env create -n ctapipe-dev -f environment.yml
+    $ mamba env create -f environment.yml
 
 
 Next, switch to this new virtual environment:
