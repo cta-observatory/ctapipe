@@ -11,6 +11,7 @@ from ctapipe.io.hdf5dataformat import SIMULATION_PARAMETERS_GROUP
 
 def test_true_disp_calculation(tmp_path, dl1_image_file):
     """check true_disp calculation in ctapipe-process"""
+    print("DEBUG: Starting test_true_disp_calculation", flush=True)
     config = resource_file("stage1_config.json")
     
     output_file = tmp_path / "true_disp_test.dl1.h5"
@@ -42,9 +43,7 @@ def test_true_disp_calculation(tmp_path, dl1_image_file):
         output_file, f"{SIMULATION_PARAMETERS_GROUP}/{first_tel_group}"
     )
 
-    assert "true_disp_norm" in true_params.columns
-    assert "true_disp_sign" in true_params.columns
+    assert "true_disp" in true_params.columns
     
     # Check that we have some valid values
-    assert np.count_nonzero(np.isfinite(true_params["true_disp_norm"])) > 0
-    assert np.count_nonzero(np.isfinite(true_params["true_disp_sign"])) > 0
+    assert np.count_nonzero(np.isfinite(true_params["true_disp"])) > 0

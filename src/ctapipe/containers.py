@@ -483,15 +483,6 @@ class CoreParametersContainer(Container):
     psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
 
 
-class TrueDispContainer(Container):
-    """
-    Container for true disp parameters
-    """
-    default_prefix = "true_disp"
-    norm = Field(nan * u.deg, "True disp norm", unit=u.deg)
-    sign = Field(nan, "True disp sign")
-
-
 class ImageParametersContainer(Container):
     """Collection of image parameters"""
 
@@ -528,10 +519,6 @@ class ImageParametersContainer(Container):
     core = Field(
         default_factory=CoreParametersContainer,
         description="Image direction in the Tilted/Ground Frame",
-    )
-    true_disp = Field(
-        default_factory=TrueDispContainer,
-        description="True disp parameters (only filled for true_parameters)",
     )
 
 
@@ -799,6 +786,12 @@ class SimulatedCameraContainer(Container):
     impact = Field(
         default_factory=TelescopeImpactParameterContainer,
         description="true impact parameter",
+    )
+
+    true_disp = Field(
+        nan * u.deg,
+        description="True disp parameter",
+        unit=u.deg,
     )
 
 

@@ -263,3 +263,34 @@ class ImageProcessor(TelescopeComponent):
                         recursive=True
                     ),
                 )
+
+                if (
+                    dl1_camera.parameters.hillas is not None
+                    and np.isfinite(dl1_camera.parameters.hillas.fov_lat)
+                    and np.isfinite(dl1_camera.parameters.hillas.fov_lon)
+                ):
+                    pointing = event.monitoring.tel[tel_id].pointing
+                    shower = event.simulation.shower
+
+                    from ctapipe.reco.preprocessing import (
+                        horizontal_to_telescope,
+                        calculate_true_disp,
+                    )
+                    
+                    fov_lon, fov_lat = horizontal_to_telescope(
+                        alt=shower.alt,
+                        az=shower.az,
+                        pointing_alt=pointing.altitude,
+                        pointing_az=pointing.azimuth,
+                    )
+                    
+                    hillas = dl1_camera.parameters.hillas
+                    
+                    sim_camera.true_disp = calculate_true_disp(
+                        fov_lon=fov_lon,
+                        fov_lat=fov_lat,
+                        hillas_psi=hillas.psi,
+                        hillas_lon=hillas.fov_lon,
+                        hillas_lat=hillas.fov_lat,
+                    )
+
