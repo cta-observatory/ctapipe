@@ -340,3 +340,75 @@ def test_tel_earth_locations(example_subarray):
     # Verify it's cached (same object returned)
     earth_locs_2 = example_subarray.tel_earth_locations
     assert earth_locs is earth_locs_2
+
+
+def test_from_service_data_complete(svc_path):
+    """Test loading SubarrayDescription from complete service data fixture"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+
+    # Suppress expected warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+
+        # Load subarray ID 1 (LST subarray)
+        subarray = SubarrayDescription.from_service_data(subarray_id=1)
+
+    # Verify basic properties
+    assert isinstance(subarray, SubarrayDescription)
+    assert subarray.name == "CTAO-N LST Subarray"
+    assert subarray.n_tels == 4  # 4 LSTs in test data
+    assert len(subarray.tel_ids) == 4
+
+    # Verify reference location
+    assert isinstance(subarray.reference_location, EarthLocation)
+    assert subarray.reference_location.geodetic.lon.value == pytest.approx(
+        -17.8920, abs=0.01
+    )
+    assert subarray.reference_location.geodetic.lat.value == pytest.approx(
+        28.7569, abs=0.01
+    )
+
+    # Verify all telescopes have proper descriptions
+    for tel_id in [1, 2, 3, 4]:
+        assert tel_id in subarray.tel
+        tel_desc = subarray.tel[tel_id]
+        assert isinstance(tel_desc, TelescopeDescription)
+        assert tel_desc.camera is not None
+        assert tel_desc.camera.name == "LSTCam"
+        assert tel_desc.optics is not None
+        assert tel_desc.optics.name == "LSTN"
+        assert tel_desc.name.startswith("LSTN-")
+
+    # Test mixed subarray (LSTs + MSTs)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+
+        subarray_mixed = SubarrayDescription.from_service_data(subarray_id=3)
+
+    assert subarray_mixed.name == "CTAO-N Test Array"
+    assert subarray_mixed.n_tels == 4  # 2 LSTs + 2 MSTs
+    assert len(subarray_mixed.telescope_types) == 2  # LST and MST
+    assert len(subarray_mixed.camera_types) == 2  # LSTCam and NectarCam
+
+    # Verify LSTs
+    lst_ids = [1, 2]
+    for tel_id in lst_ids:
+        assert subarray_mixed.tel[tel_id].camera.name == "LSTCam"
+        assert subarray_mixed.tel[tel_id].optics.name == "LSTN"
+
+    # Verify MSTs
+    mst_ids = [5, 6]
+    for tel_id in mst_ids:
+        assert subarray_mixed.tel[tel_id].camera.name == "NectarCam"
+        assert subarray_mixed.tel[tel_id].optics.name == "MSTN"
+
+
+def test_from_service_data_unknown_subarray(svc_path):
+    """Test that loading an unknown subarray ID raises an error"""
+    with pytest.raises(UnknownSubarray, match="Subarray ID 999 not found"):
+        SubarrayDescription.from_service_data(subarray_id=999)
