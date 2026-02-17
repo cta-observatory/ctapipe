@@ -365,44 +365,7 @@ class ProcessorTool(Tool):
             if self.should_compute_dl1:
                 self.process_images(event)
 
-                if event.simulation is not None:
-                    shower = event.simulation.shower
-                    for tel_id, dl1 in event.dl1.tel.items():
-                        if (
-                            tel_id not in event.simulation.tel
-                            or event.simulation.tel[tel_id].true_parameters is None
-                        ):
-                            continue
 
-                        true_param = event.simulation.tel[tel_id].true_parameters
-                        hillas = dl1.parameters.hillas
-
-                        if (
-                            hillas is not None
-                            and np.isfinite(hillas.fov_lat)
-                            and np.isfinite(hillas.fov_lon)
-                        ):
-                            pointing = event.monitoring.tel[tel_id].pointing
-                            # calculate true disp
-                            fov_lon, fov_lat = horizontal_to_telescope(
-                                alt=shower.alt,
-                                az=shower.az,
-                                pointing_alt=pointing.altitude,
-                                pointing_az=pointing.azimuth,
-                            )
-                            # numpy's trigonometric functions need radians
-                            psi = hillas.psi.to_value(u.rad)
-                            cog_lon = hillas.fov_lon
-                            cog_lat = hillas.fov_lat
-
-                            delta_lon = fov_lon - cog_lon
-                            delta_lat = fov_lat - cog_lat
-
-                            true_disp = (
-                                np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
-                            )
-                            true_param.true_disp.norm = np.abs(true_disp)
-                            true_param.true_disp.sign = np.sign(true_disp.value)
 
             if self.should_compute_muon_parameters:
                 self.process_muons(event)

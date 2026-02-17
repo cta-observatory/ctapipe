@@ -270,8 +270,6 @@ class Path(TraitType):
             value = get_dataset_path(value.partition("dataset://")[2])
         elif url.scheme in ("", "file"):
             value = pathlib.Path(url.netloc, url.path)
-        elif os.name == "nt" and len(url.scheme) == 1:
-            value = pathlib.Path(value)
         else:
             self.error(obj, value)
 
