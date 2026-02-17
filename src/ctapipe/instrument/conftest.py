@@ -137,7 +137,7 @@ def svc_path(tmp_path, instrument_dir):
     lst_dir = array_elements_dir / "LSTN"
     lst_dir.mkdir()
 
-    # Copy existing LSTCam FITS files (source uses lowercase 'cam')
+    # Copy existing LSTcam FITS files (source uses lowercase 'cam')
     lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
     shutil.copy(lst_geom_path, lst_dir / "LSTN.camgeom.fits.gz")
 
