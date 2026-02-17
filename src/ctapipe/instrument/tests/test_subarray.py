@@ -379,7 +379,7 @@ def test_from_service_data_complete(svc_path):
         tel_desc = subarray.tel[tel_id]
         assert isinstance(tel_desc, TelescopeDescription)
         assert tel_desc.camera is not None
-        assert tel_desc.camera.name == "LSTCam"
+        assert tel_desc.camera.name == "LSTcam"
         assert tel_desc.optics is not None
         assert tel_desc.optics.name == "LSTN"
         assert tel_desc.name.startswith("LSTN-")
@@ -399,7 +399,7 @@ def test_from_service_data_complete(svc_path):
     # Verify LSTs
     lst_ids = [1, 2]
     for tel_id in lst_ids:
-        assert subarray_mixed.tel[tel_id].camera.name == "LSTCam"
+        assert subarray_mixed.tel[tel_id].camera.name == "LSTcam"
         assert subarray_mixed.tel[tel_id].optics.name == "LSTN"
 
     # Verify MSTs
