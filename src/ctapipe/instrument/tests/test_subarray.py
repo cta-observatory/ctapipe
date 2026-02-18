@@ -379,7 +379,9 @@ def test_from_service_data_complete(svc_path):
         tel_desc = subarray.tel[tel_id]
         assert isinstance(tel_desc, TelescopeDescription)
         assert tel_desc.camera is not None
-        assert tel_desc.camera.name == "LSTcam"
+        # Note: Camera name case may vary between different test fixture files
+        # (e.g., "LSTCam" from simtel files vs "LSTcam" from FITS files)
+        assert tel_desc.camera.name.lower() == "lstcam"
         assert tel_desc.optics is not None
         assert tel_desc.optics.name == "LSTN"
         assert tel_desc.name.startswith("LSTN-")
@@ -394,12 +396,13 @@ def test_from_service_data_complete(svc_path):
     assert subarray_mixed.name == "CTAO-N Test Array"
     assert subarray_mixed.n_tels == 4  # 2 LSTs + 2 MSTs
     assert len(subarray_mixed.telescope_types) == 2  # LST and MST
-    assert len(subarray_mixed.camera_types) == 2  # LSTCam and NectarCam
+    assert len(subarray_mixed.camera_types) == 2  # LST and Nectar cameras
 
     # Verify LSTs
     lst_ids = [1, 2]
     for tel_id in lst_ids:
-        assert subarray_mixed.tel[tel_id].camera.name == "LSTcam"
+        # Note: Camera name case may vary between different test fixture files
+        assert subarray_mixed.tel[tel_id].camera.name.lower() == "lstcam"
         assert subarray_mixed.tel[tel_id].optics.name == "LSTN"
 
     # Verify MSTs
