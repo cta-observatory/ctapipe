@@ -34,6 +34,7 @@ Submodules
     benchmarks
     binning
     spectra
+    event_weighter
 
 
 Reference/API
