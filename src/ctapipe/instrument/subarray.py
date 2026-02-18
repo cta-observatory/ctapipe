@@ -953,13 +953,13 @@ class SubarrayDescription:
         Create a SubarrayDescription from CTAO service data files.
 
         This method loads subarray definitions from the CTAO data model format:
+
         - array-element-ids.json: mapping of telescope IDs to names
         - subarray-ids.json: subarray definitions
         - positions/: ECSV files with telescope positions
-        - array-elements/{ae_id:03d}/: symlinks to telescope-type directories containing:
-          - {type}.optics.ecsv
-          - {type}.camgeom.fits.gz
-          - {type}.camreadout.fits.gz
+        - array-elements/{ae_id:03d}/: symlinks to telescope-type directories
+          containing {type}.optics.ecsv, {type}.camgeom.fits.gz, and
+          {type}.camreadout.fits.gz
 
         Parameters
         ----------
