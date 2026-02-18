@@ -121,7 +121,7 @@ class IrfTool(Tool):
         help="Output file",
     ).tag(config=True)
 
-    benchmarks = Bool(
+    benchmark = Bool(
         default_value=None,
         allow_none=True,
         help="Produce benchmarks, by default will be saved in same file as IRFs",
@@ -202,6 +202,7 @@ class IrfTool(Tool):
         "electron-file": "IrfTool.electron_file",
         "output": "IrfTool.output_path",
         "benchmark": "IrfTool.benchmark",
+        "benchmark-output": "IrfTool.benchmarks_output_path",
         "chunk_size": "IrfTool.chunk_size",
     }
 
@@ -535,7 +536,7 @@ class IrfTool(Tool):
             if self.do_background:
                 # Sensitivity is only calculated, if do_background is true
                 # and benchmarking is requested.
-                if self.benchmarks is not None:
+                if self.benchmark is not None:
                     events = loader.make_event_weights(
                         events,
                         meta["spectrum"],
@@ -581,7 +582,7 @@ class IrfTool(Tool):
             if self.do_background and self.background_maker.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
-            if self.benchmarks is not None and (
+            if self.benchmark is not None and (
                 self.angular_resolution_maker.fov_offset_n_bins > 1
                 or self.bias_resolution_maker.fov_offset_n_bins > 1
                 or self.sensitivity_maker.fov_offset_n_bins > 1
@@ -657,7 +658,7 @@ class IrfTool(Tool):
                 overwrite=self.overwrite,
             )
             Provenance().add_output_file(self.benchmarks_output_path, role="Benchmark")
-        elif
+        elif self.benchmark:
             hdus += self.b_hdus
 
         fits.HDUList(hdus).writeto(

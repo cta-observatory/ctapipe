@@ -84,6 +84,13 @@ def test_irf_tool(
     output_path.unlink()  # Delete output file
 
     # Include benchmarks
+    argv.append(f"--benchmark True")
+    ret = run_tool(IrfTool(), argv=argv)
+    assert ret == 0
+    assert output_path.exists()
+    output_path.unlink()  # Delete output file
+
+    # Include benchmarks
     argv.append(f"--benchmark-output={output_benchmarks_path}")
     ret = run_tool(IrfTool(), argv=argv)
     assert ret == 0
