@@ -1,0 +1,1 @@
+Added ``tel_earth_locations`` lazy property to ``SubarrayDescription`` that caches telescope positions as ``EarthLocation`` objects.
