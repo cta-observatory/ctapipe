@@ -1,0 +1,1 @@
+Improve clarity and correctness of the Getting Started developer guide, fixing typos, outdated Git commands, and inconsistent terminology.

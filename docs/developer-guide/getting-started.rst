@@ -12,7 +12,7 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
    The following guide is used only if you want to *develop* the
    ``ctapipe`` package, if you just want to write code that uses it
    as a dependency, you can install ``ctapipe`` from PyPI or conda-forge.
-   See :ref:`getting_started_users`
+   See :ref:`getting_started_users`.
 
 
 Forking vs. Working in the Main Repository
@@ -60,7 +60,7 @@ See `the GitHub documentation <https://docs.github.com/en/authentication/connect
       having write access to the main repository at ``cta-observatory/ctapipe``, you
       `need to fork <https://help.github.com/articles/fork-a-repo/>`_ it.
 
-      After that, clone your fork of the repository and add the main reposiory as a second
+      After that, clone your fork of the repository and add the main repository as a second
       remote called ``upstream``, so that you can keep your fork synchronized with the main repository.
 
       .. code-block:: console
@@ -93,7 +93,7 @@ terminal to activate the conda environment.
 Installing ctapipe in Development Mode
 ======================================
 
-Now setup this cloned version for development.
+Now set up this cloned version for development.
 The following command will use the editable installation feature of python packages.
 From then on, all the ctapipe executables and the library itself will be
 usable from anywhere, given you have activated the ``cta-dev`` conda environment.
@@ -116,7 +116,7 @@ test plugin via
     $ pip install -e ./test_plugin
 
 
-We are using the ``pre-commit``, ``code-spell`` and ``ruff`` tools
+We are using the ``pre-commit``, ``codespell`` and ``ruff`` tools
 for automatic adherence to the code style
 (see our :doc:`/developer-guide/style-guide`).
 To enforce running these tools whenever you make a commit, setup the
@@ -128,7 +128,7 @@ To enforce running these tools whenever you make a commit, setup the
 
 The pre-commit hook will then execute the tools with the same settings as when a pull request is checked on GitHub,
 and if any problems are reported the commit will be rejected.
-You then have to fix the reported issues before tying to commit again.
+You then have to fix the reported issues before trying to commit again.
 Note that a common problem is code not complying with the style guide, and that whenever this was the only problem found,
 simply adding the changes resulting from the pre-commit hook to the commit will result in your changes being accepted.
 
@@ -200,7 +200,7 @@ to keep forks in sync.
 
 Remember that ``git switch <name>`` [#switch]_ switches between branches,
 ``git switch -c <name>`` creates a new branch and switches to it,
-and ``git branch`` on it's own will tell you which branches are available
+and ``git branch`` on its own will tell you which branches are available
 and which one you are currently on.
 
 
@@ -267,8 +267,8 @@ sub-module), check the style, and make sure the docs render correctly
    (e.g it should not mix changes that are logically different).
    Therefore it's best to group related changes with ``git
    add <files>``. You may even commit only *parts* of a changed file
-   using and ``git add -p``.  If you want to keep your git commit
-   history clean, learn to use commands like ``git commit --ammend``
+   using ``git add -p``.  If you want to keep your git commit
+   history clean, learn to use commands like ``git commit --amend``
    (append to previous commit without creating a new one, e.g. when
    you find a typo or something small).
 
@@ -358,7 +358,7 @@ For differences between rebasing and merging and when to use which, see `this tu
 Create a *Pull Request*
 -----------------------
 
-When you're happy, you create PR on on your github fork page by clicking
+When you're happy, you create a PR on your GitHub fork page by clicking
 "pull request".  You can also do this via *GitHub Desktop* if you have
 that installed, by pushing the pull-request button in the
 upper-right-hand corner.
@@ -402,7 +402,7 @@ since it is no longer needed (assuming it was accepted and merged in):
 
 .. code-block:: console
 
-    $ git switch main  # switch back to your master branch
+    $ git switch main  # switch back to your main branch
 
 pull in the upstream changes, which should include your new features, and
 remove the branch from the local and remote (github).
@@ -428,7 +428,9 @@ And then delete your branch:
 
 .. code-block:: console
 
-   $ git branch --delete --remotes implement_feature_1
+   $ git push origin --delete implement_feature_1
+   $ git pull
+   $ git fetch --prune
 
 
 Debugging Your Code
