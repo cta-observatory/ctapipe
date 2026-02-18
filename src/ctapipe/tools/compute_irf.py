@@ -121,6 +121,12 @@ class IrfTool(Tool):
         help="Output file",
     ).tag(config=True)
 
+    benchmarks = Bool(
+        default_value=None,
+        allow_none=True,
+        help="Produce benchmarks, by default will be saved in same file as IRFs",
+    ).tag(config=True)
+
     benchmarks_output_path = traits.Path(
         default_value=None,
         allow_none=True,
@@ -195,7 +201,7 @@ class IrfTool(Tool):
         "proton-file": "IrfTool.proton_file",
         "electron-file": "IrfTool.electron_file",
         "output": "IrfTool.output_path",
-        "benchmark-output": "IrfTool.benchmarks_output_path",
+        "benchmark": "IrfTool.benchmark",
         "chunk_size": "IrfTool.chunk_size",
     }
 
@@ -313,7 +319,11 @@ class IrfTool(Tool):
         )
         self.psf_maker = PSFMakerBase.from_name(self.psf_maker_name, parent=self)
 
+
         if self.benchmarks_output_path is not None:
+            self.benchmark = True
+
+        if self.benchmark:
             self.angular_resolution_maker = AngularResolutionMakerBase.from_name(
                 self.angular_resolution_maker_name, parent=self
             )
@@ -524,8 +534,8 @@ class IrfTool(Tool):
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:
                 # Sensitivity is only calculated, if do_background is true
-                # and benchmarks_output_path is given.
-                if self.benchmarks_output_path is not None:
+                # and benchmarking is requested.
+                if self.benchmarks is not None:
                     events = loader.make_event_weights(
                         events,
                         meta["spectrum"],
@@ -571,7 +581,7 @@ class IrfTool(Tool):
             if self.do_background and self.background_maker.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
-            if self.benchmarks_output_path is not None and (
+            if self.benchmarks is not None and (
                 self.angular_resolution_maker.fov_offset_n_bins > 1
                 or self.bias_resolution_maker.fov_offset_n_bins > 1
                 or self.sensitivity_maker.fov_offset_n_bins > 1
@@ -626,7 +636,7 @@ class IrfTool(Tool):
                 )
         self.hdus = hdus
 
-        if self.benchmarks_output_path is not None:
+        if self.benchmark is not None:
             b_hdus = [fits.PrimaryHDU()]
             b_hdus = self._make_benchmark_hdus(b_hdus)
             self.b_hdus = b_hdus
@@ -636,11 +646,8 @@ class IrfTool(Tool):
         Write the irf (and the benchmarks) to the (respective) output file(s).
         """
         self.log.info("Writing outputfile '%s'" % self.output_path)
-        fits.HDUList(self.hdus).writeto(
-            self.output_path,
-            overwrite=self.overwrite,
-        )
-        Provenance().add_output_file(self.output_path, role="IRF")
+        hdus = self.hdus
+
         if self.benchmarks_output_path is not None:
             self.log.info(
                 "Writing benchmark file to '%s'" % self.benchmarks_output_path
@@ -650,7 +657,13 @@ class IrfTool(Tool):
                 overwrite=self.overwrite,
             )
             Provenance().add_output_file(self.benchmarks_output_path, role="Benchmark")
+        elif
+            hdus += self.b_hdus
 
+        fits.HDUList(hdus).writeto(
+            self.output_path,
+            overwrite=self.overwrite,
+        )
 
 def main():
     tool = IrfTool()
