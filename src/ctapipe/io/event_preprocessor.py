@@ -1,9 +1,6 @@
 """Module containing classes related to event loading and preprocessing"""
 
-from enum import StrEnum, auto
-
 from astropy.coordinates import angular_separation
-from traitlets import default
 
 from ..coordinates import altaz_to_nominal
 from ..core import (
@@ -17,11 +14,113 @@ from ..core import (
 __all__ = ["EventPreprocessor"]
 
 
-class PreprocessorFeatureSet(StrEnum):
-    """Pre-defined configurations for DL2EventPreprocessor for specific use cases."""
+from typing import Callable
 
-    custom = auto()  #: use user-supplied configuration
-    dl2_irf = auto()  #: support IRF preprocessing use case
+
+class FeatureSetRegistry:
+    """Registry for custom feature set configurations."""
+
+    _registry = {}
+
+    @classmethod
+    def register(cls, name: str):
+        """Register a feature set configuration.
+
+        Examples
+        --------
+        >>> @FeatureSetRegistry.register("my_analysis")
+        ... def my_config(preprocessor):
+        ...     return {
+        ...         "features_to_generate": [("custom", "col_a / col_b")],
+        ...         "quality_criteria": [("cut", "custom > 0.5")],
+        ...         "output_features": ["event_id", "custom"]
+        ...     }
+        """
+
+        def decorator(func: Callable):
+            cls._registry[name] = func
+            return func
+
+        return decorator
+
+    @classmethod
+    def get(cls, name: str):
+        """Get a registered configuration function."""
+        return cls._registry.get(name)
+
+    @classmethod
+    def list_available(cls):
+        """List all registered feature set names."""
+        return list(cls._registry.keys())
+
+
+@FeatureSetRegistry.register("dl2_irf")
+def _dl2_irf_config(preprocessor):
+    """Built-in configuration for DL2 IRF generation."""
+    return {
+        "features_to_generate": [
+            ("reco_energy", f"{preprocessor.energy_reconstructor}_energy"),
+            ("reco_alt", f"{preprocessor.geometry_reconstructor}_alt"),
+            ("reco_az", f"{preprocessor.geometry_reconstructor}_az"),
+            ("gh_score", f"{preprocessor.gammaness_reconstructor}_prediction"),
+            ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
+            (
+                "reco_fov_coord",
+                "altaz_to_nominal(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            (
+                "reco_fov_lon",
+                "reco_fov_coord[:,0]",
+            ),  # note: GADF IRFs use the negative of this
+            ("reco_fov_lat", "reco_fov_coord[:,1]"),
+            (
+                "true_fov_coord",
+                "altaz_to_nominal(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            (
+                "true_fov_lon",
+                "true_fov_coord[:,0]",
+            ),  # note: GADF IRFs use the negative of this
+            ("true_fov_lat", "true_fov_coord[:,1]"),
+            (
+                "true_fov_offset",
+                "angular_separation(true_fov_lon, true_fov_lat, 0*u.deg, 0*u.deg)",
+            ),
+            (
+                "reco_fov_offset",
+                "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+            ),
+            (
+                "multiplicity",
+                f"np.count_nonzero({preprocessor.gammaness_reconstructor}_telescopes,axis=1)",
+            ),
+        ],
+        "quality_criteria": [
+            ("Valid geometry", f"{preprocessor.geometry_reconstructor}_is_valid"),
+            ("valid energy", f"{preprocessor.energy_reconstructor}_is_valid"),
+            ("valid gammaness", f"{preprocessor.gammaness_reconstructor}_is_valid"),
+            ("sufficient multiplicity", "multiplicity >= 4"),
+        ],
+        "output_features": [
+            "event_id",
+            "obs_id",
+            "reco_energy",
+            "reco_alt",
+            "reco_az",
+            "gh_score",
+            "true_energy",
+            "true_alt",
+            "true_az",
+            "true_fov_offset",
+            "reco_fov_offset",
+            "theta",
+            "reco_fov_lat",
+            "true_fov_lat",
+            "reco_fov_lon",
+            "true_fov_lon",
+            "multiplicity",
+        ],
+    }
 
 
 class EventPreprocessor(Component):
@@ -56,9 +155,9 @@ class EventPreprocessor(Component):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-    feature_set = traits.UseEnum(
-        PreprocessorFeatureSet,
-        default_value=PreprocessorFeatureSet.dl2_irf,
+    feature_set = traits.CaselessStrEnum(
+        ["custom"] + FeatureSetRegistry.list_available(),
+        default_value="custom",
         help=(
             "Set up the FeatureGenerator.features, output features, and quality criteria "
             "based on standard use cases."
@@ -79,16 +178,18 @@ class EventPreprocessor(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
-        if self.feature_set == PreprocessorFeatureSet.custom:
+        if self.feature_set == "custom":
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = QualityQuery(parent=self)
-        else:
+        else:  # use a pre-registered feature set
+            feature_set = FeatureSetRegistry.get(self.feature_set)(self)
             self.feature_generator = FeatureGenerator(
-                parent=self, features=self._get_predefined_features_to_generate()
+                parent=self, features=feature_set["features_to_generate"]
             )
             self.quality_query = QualityQuery(
-                parent=self, quality_criteria=self._get_predefined_quality_criteria()
+                parent=self, quality_criteria=feature_set["quality_criteria"]
             )
+            self.features = feature_set["output_features"]
         # sanity checks:
         if len(self.features) == 0:
             raise ToolConfigurationError(
@@ -114,92 +215,3 @@ class EventPreprocessor(Component):
         # return only the columns specified in `self.features`, and rows in
         # `selected_mask`
         return generated[self.features][selected_mask]
-
-    def _get_predefined_features_to_generate(self) -> list[tuple]:
-        """Return a default list of FeatureGenerator features."""
-        if self.feature_set == PreprocessorFeatureSet.dl2_irf:
-            # Default features for DL2/Subarray events
-            return [
-                ("reco_energy", f"{self.energy_reconstructor}_energy"),
-                ("reco_alt", f"{self.geometry_reconstructor}_alt"),
-                ("reco_az", f"{self.geometry_reconstructor}_az"),
-                ("gh_score", f"{self.gammaness_reconstructor}_prediction"),
-                ("theta", "angular_separation(reco_az, reco_alt, true_az, true_alt)"),
-                (
-                    "reco_fov_coord",
-                    "altaz_to_nominal(reco_az, reco_alt, subarray_pointing_lon, subarray_pointing_lat)",
-                ),
-                (
-                    "reco_fov_lon",
-                    "reco_fov_coord[:,0]",
-                ),  # note: GADF IRFs use the negative of this
-                ("reco_fov_lat", "reco_fov_coord[:,1]"),
-                (
-                    "true_fov_coord",
-                    "altaz_to_nominal(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
-                ),
-                (
-                    "true_fov_lon",
-                    "true_fov_coord[:,0]",
-                ),  # note: GADF IRFs use the negative of this
-                ("true_fov_lat", "true_fov_coord[:,1]"),
-                (
-                    "true_fov_offset",
-                    "angular_separation(true_fov_lon, true_fov_lat, 0*u.deg, 0*u.deg)",
-                ),
-                (
-                    "reco_fov_offset",
-                    "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
-                ),
-                (
-                    "multiplicity",
-                    f"np.count_nonzero({self.gammaness_reconstructor}_telescopes,axis=1)",
-                ),
-            ]
-        else:
-            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
-
-    def _get_predefined_quality_criteria(self) -> list[tuple]:
-        """
-        Set the quality criteria for a DL2FeatureSet.
-
-        Here you can use any columns in the input table, or any that are
-        specified in the FeatureGenerator.
-        """
-        if self.feature_set == PreprocessorFeatureSet.dl2_irf:
-            return [
-                ("Valid geometry", f"{self.geometry_reconstructor}_is_valid"),
-                ("valid energy", f"{self.energy_reconstructor}_is_valid"),
-                ("valid gammaness", f"{self.gammaness_reconstructor}_is_valid"),
-                ("sufficient multiplicity", "multiplicity >= 4"),
-            ]
-        else:
-            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")
-
-    @default("features")
-    def _features(self):
-        """Set the columns to output, for a given FeatureSet."""
-        if self.feature_set == PreprocessorFeatureSet.dl2_irf:
-            return [
-                "event_id",
-                "obs_id",
-                "reco_energy",
-                "reco_alt",
-                "reco_az",
-                "gh_score",
-                "true_energy",
-                "true_alt",
-                "true_az",
-                "true_fov_offset",
-                "reco_fov_offset",
-                "theta",
-                "reco_fov_lat",
-                "true_fov_lat",
-                "reco_fov_lon",
-                "true_fov_lon",
-                "multiplicity",
-            ]
-        elif self.feature_set == PreprocessorFeatureSet.custom:
-            return []
-        else:
-            raise NotImplementedError(f"unsupported feature_set: {self.feature_set}")

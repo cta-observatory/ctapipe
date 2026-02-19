@@ -5,7 +5,7 @@ import pytest
 from astropy import units as u
 from astropy.table import QTable
 
-from ctapipe.io import PreprocessorFeatureSet
+from ctapipe.io.event_preprocessor import FeatureSetRegistry
 
 
 @pytest.fixture(scope="function")
@@ -39,7 +39,7 @@ def minimal_dl2_table():
     )
 
 
-@pytest.mark.parametrize("feature_set", list(PreprocessorFeatureSet))
+@pytest.mark.parametrize("feature_set", FeatureSetRegistry.list_available())
 def test_event_preprocessing(feature_set, minimal_dl2_table):
     from traitlets.config import Config
 
@@ -65,10 +65,10 @@ def test_event_preprocessing(feature_set, minimal_dl2_table):
 def test_no_output():
     """Check error is raised if no columns are specified for output."""
     from ctapipe.core import ToolConfigurationError
-    from ctapipe.io import EventPreprocessor, PreprocessorFeatureSet
+    from ctapipe.io import EventPreprocessor
 
     with pytest.raises(ToolConfigurationError):
-        EventPreprocessor(feature_set=PreprocessorFeatureSet.custom)
+        EventPreprocessor(feature_set="custom")
 
 
 def test_nondefault_reconstructors(minimal_dl2_table):
@@ -94,7 +94,7 @@ def test_nondefault_reconstructors(minimal_dl2_table):
     table[f"{gammaness}_telescopes"] = table["RandomForestClassifier_telescopes"]
 
     preprocess = EventPreprocessor(
-        feature_set=PreprocessorFeatureSet.dl2_irf,
+        feature_set="dl2_irf",
         geometry_reconstructor=geom,
         energy_reconstructor=energy,
         gammaness_reconstructor=gammaness,
