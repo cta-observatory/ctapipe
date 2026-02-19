@@ -25,14 +25,14 @@ The functionality of `~ctapipe.io.DL2EventLoader` can be mimicked with the follo
     from astropy.table import vstack
 
     DL2FILE = "some_dl2_file.h5"
-    loader = TableLoader(DL2FILE, dl2=True, simulated=True, observation_info=True)
-    preprocess = EventPreprocessor(feature_set="dl2_irf")
-    events = vstack(
-        [
-            preprocess(QTable(c.data))
-            for c in loader.read_subarray_events_chunked(chunk_size=100_000)
-        ]
-    )
+    with TableLoader(DL2FILE, dl2=True, simulated=True, observation_info=True) as loader:
+        preprocess = EventPreprocessor(feature_set="dl2_irf")
+        events = vstack(
+            [
+                preprocess(QTable(c.data))
+                for c in loader.read_subarray_events_chunked(chunk_size=100_000)
+             ]
+        )
 
 
 This also introduces a helper function `~ctapipe.coordinates.altaz_to_nominal`
