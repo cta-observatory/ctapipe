@@ -7,16 +7,15 @@ transform an event table by applying the following steps:
   attribute of the `~ctapipe.io.EventPreprocessor`)
 
 This is useful for doing the final steps of DL2 processing, and will eventually
-replace what is in `~ctapipe.io.DL2EventPreprocessor` and `~ctapipe.io.DL2EventLoader`, which will be
-deprecated in a future release.
+replace what is in `~ctapipe.io.DL2EventPreprocessor` and `~ctapipe.io.DL2EventLoader`, which will be deprecated in a future release.
 
 The `~ctapipe.io.EventPreprocessor` also includes the ability to pre-configure
 itself for specific use cases by setting the ``feature_set`` option. Currently
-only two `~ctapipe.io.PreprocessorFeatureSet` are implemented:
-``feature_set=dl2_irf``, which defines the transforms, event selection, and output
-features for processing simulated DL2 events, and ``feature_set=custom``, which
-has no pre-configuration and requires all parameters to be set by the user in a
-config file.
+only two are implemented: ``feature_set=dl2_irf``, which defines the transforms,
+event selection, and output features for processing simulated DL2 events, and
+``feature_set=custom``, which has no pre-configuration and requires all
+parameters to be set by the user in a config file. More can be added by adding
+to the registry.
 
 The functionality of `~ctapipe.io.DL2EventLoader` can be mimicked with the following:
 
@@ -27,7 +26,7 @@ The functionality of `~ctapipe.io.DL2EventLoader` can be mimicked with the follo
 
     DL2FILE = "some_dl2_file.h5"
     loader = TableLoader(DL2FILE, dl2=True, simulated=True, observation_info=True)
-    preprocess = EventPreprocessor(feature_set="dl2_simulation")
+    preprocess = EventPreprocessor(feature_set="dl2_irf")
     events = vstack(
         [
             preprocess(QTable(c.data))
