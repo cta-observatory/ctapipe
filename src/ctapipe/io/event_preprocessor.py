@@ -145,11 +145,11 @@ class EventPreprocessor(Component):
                 ("true_fov_lat", "true_fov_coord[:,1]"),
                 (
                     "true_fov_offset",
-                    "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+                    "angular_separation(true_fov_lon, true_fov_lat, 0*u.deg, 0*u.deg)",
                 ),
                 (
                     "reco_fov_offset",
-                    "angular_separation(true_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
+                    "angular_separation(reco_fov_lon, reco_fov_lat, 0*u.deg, 0*u.deg)",
                 ),
                 (
                     "multiplicity",
