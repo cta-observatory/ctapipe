@@ -952,11 +952,31 @@ class SubarrayDescription:
         """
         Create a SubarrayDescription from CTAO service data files.
 
-        This method loads subarray definitions from the CTAO data model format:
+        This method loads subarray definitions from the CTAO data model format.
+
+        Expected directory structure::
+
+            instrument/
+            ├── array-element-ids.json
+            ├── array-elements/
+            │   ├── 001 -> LSTN
+            │   ├── 002 -> LSTN
+            │   ├── 003 -> LSTN
+            │   ├── 004 -> LSTN
+            │   └── LSTN/
+            │       ├── LSTN.camgeom.fits.gz
+            │       ├── LSTN.camreadout.fits.gz
+            │       └── LSTN.optics.ecsv
+            ├── positions/
+            │   ├── CTAO-North_ArrayElementPositions.ecsv
+            │   └── CTAO-South_ArrayElementPositions.ecsv
+            └── subarray-ids.json
+
+        Files:
 
         - array-element-ids.json: mapping of telescope IDs to names
         - subarray-ids.json: subarray definitions
-        - positions/: ECSV files with telescope positions
+        - positions/\*.ecsv: ECSV files with telescope positions for each site
         - array-elements/{ae_id:03d}/: symlinks to telescope-type directories
           containing {type}.optics.ecsv, {type}.camgeom.fits.gz, and
           {type}.camreadout.fits.gz
