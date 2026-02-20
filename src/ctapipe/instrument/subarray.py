@@ -20,6 +20,8 @@ from astropy.utils import lazyproperty
 from .. import __version__ as CTAPIPE_VERSION
 from ..compat import COPY_IF_NEEDED
 from ..coordinates import CameraFrame, GroundFrame
+from ..exceptions import UnknownSubarray
+from ..utils.datasets import get_structured_dataset, get_table_dataset
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import FocalLengthKind, OpticsDescription
 from .telescope import TelescopeDescription
@@ -823,4 +825,343 @@ class SubarrayDescription:
         return all(
             set(subarray.tel_ids) == set(subarray_list[0].tel_ids)
             for subarray in subarray_list
+        )
+
+    @classmethod
+    def load_array_element_ids(cls):
+        """
+        Load array element ID to name mapping from service data.
+
+        Returns
+        -------
+        dict
+            Dictionary with 'metadata' and 'array_elements' keys.
+            'array_elements' is a list of dicts with 'id' and 'name' keys.
+        """
+        return get_structured_dataset(
+            "array-element-ids", role="dl0.sub.svc.array_elements"
+        )
+
+    @classmethod
+    def load_array_element_positions(cls, site="CTAO-North"):
+        """
+        Load array element positions from service data.
+
+        Parameters
+        ----------
+        site : str
+            Site identifier (e.g., 'CTAO-North', 'CTAO-South')
+
+        Returns
+        -------
+        astropy.table.Table
+            Table containing array element positions with columns:
+            ae_id, name, x, y, z, and metadata including reference location
+        """
+        filename = f"array_element_positions_{site}"
+        positions_table = get_table_dataset(filename, role="dl0.sub.svc.arraylayout")
+        return positions_table
+
+    @classmethod
+    def _build_tel_positions(cls, positions_table, array_element_ids):
+        """
+        Build telescope positions dictionary from positions table.
+
+        Parameters
+        ----------
+        positions_table : astropy.table.Table
+            Table with array element positions
+        array_element_ids : list[int]
+            List of array element IDs to include
+
+        Returns
+        -------
+        dict[int, astropy.units.Quantity]
+            Dictionary mapping array element IDs to position quantities
+        """
+        tel_positions = {}
+        for ae_id in array_element_ids:
+            row = positions_table[positions_table["ae_id"] == ae_id]
+            if len(row) == 0:
+                warnings.warn(f"Array element {ae_id} not found in positions table")
+                continue
+            if len(row) > 1:
+                warnings.warn(
+                    f"Multiple entries for array element {ae_id}, using first"
+                )
+
+            row = row[0]
+            # Skip if position is NaN
+            if np.isnan(row["x"]) or np.isnan(row["y"]) or np.isnan(row["z"]):
+                warnings.warn(f"Array element {ae_id} has NaN position, skipping")
+                continue
+
+            tel_positions[ae_id] = u.Quantity([row["x"], row["y"], row["z"]], u.m)
+        return tel_positions
+
+    @classmethod
+    def _infer_camera_names(cls, tel_positions, ae_id_to_name, site):
+        """
+        Infer camera names from telescope names and site.
+
+        Parameters
+        ----------
+        tel_positions : dict
+            Dictionary of telescope positions
+        ae_id_to_name : dict
+            Mapping of array element IDs to names
+        site : str
+            Site identifier (e.g., 'CTAO-North', 'CTAO-South')
+
+        Returns
+        -------
+        dict[int, str]
+            Dictionary mapping array element IDs to camera names
+        """
+        camera_names = {}
+        for ae_id in tel_positions.keys():
+            tel_name = ae_id_to_name.get(ae_id, "")
+            if "LST" in tel_name:
+                camera_names[ae_id] = "LSTCam"
+            elif "MST" in tel_name:
+                if site.lower() == "ctao-north":
+                    camera_names[ae_id] = "NectarCam"
+                elif site.lower() == "ctao-south":
+                    camera_names[ae_id] = "FlashCam"
+            elif "SST" in tel_name:
+                camera_names[ae_id] = "SSTCam"
+        return camera_names
+
+    @classmethod
+    def _infer_optics_names(cls, tel_positions, ae_id_to_name):
+        """
+        Infer optics names from telescope names.
+
+        Parameters
+        ----------
+        tel_positions : dict
+            Dictionary of telescope positions
+        ae_id_to_name : dict
+            Mapping of array element IDs to names
+
+        Returns
+        -------
+        dict[int, str]
+            Dictionary mapping array element IDs to optics names
+        """
+        optics_names = {}
+        for ae_id in tel_positions.keys():
+            tel_name = ae_id_to_name.get(ae_id, "")
+            if "LST" in tel_name:
+                optics_names[ae_id] = "LST"
+            elif "MST" in tel_name:
+                optics_names[ae_id] = "MST"
+            elif "SST" in tel_name:
+                optics_names[ae_id] = "SST"
+        return optics_names
+
+    @classmethod
+    def _create_tel_descriptions(
+        cls, tel_positions, camera_names, optics_names, ae_id_to_name
+    ):
+        """
+        Create telescope descriptions from camera and optics names.
+
+        Parameters
+        ----------
+        tel_positions : dict
+            Dictionary of telescope positions
+        camera_names : dict[int, str]
+            Mapping of array element IDs to camera names
+        optics_names : dict[int, str]
+            Mapping of array element IDs to optics names
+        ae_id_to_name : dict
+            Mapping of array element IDs to telescope names
+
+        Returns
+        -------
+        dict[int, TelescopeDescription]
+            Dictionary mapping array element IDs to telescope descriptions
+        """
+        tel_descriptions = {}
+
+        for ae_id in tel_positions.keys():
+            if ae_id not in camera_names:
+                warnings.warn(
+                    f"No camera name provided for array element {ae_id}, skipping"
+                )
+                continue
+
+            camera_name = camera_names[ae_id]
+            try:
+                camera = CameraDescription.from_name(camera_name)
+
+                # Load optics description from service data if available
+                if optics_names is not None and ae_id in optics_names:
+                    try:
+                        from .optics import OpticsDescription
+
+                        optics = OpticsDescription.from_name(optics_names[ae_id])
+                    except (FileNotFoundError, ValueError) as e:
+                        # Optics table not available, create dummy
+                        warnings.warn(
+                            f"Could not load optics '{optics_names[ae_id]}' for "
+                            f"array element {ae_id}: {e}. Creating dummy optics description."
+                        )
+                        from .optics import OpticsDescription, ReflectorShape, SizeType
+
+                        optics = OpticsDescription(
+                            name="Unknown",
+                            size_type=SizeType.UNKNOWN,
+                            reflector_shape=ReflectorShape.PARABOLIC,
+                            equivalent_focal_length=16 * u.m,
+                            effective_focal_length=16 * u.m,
+                            mirror_area=100 * u.m**2,
+                            n_mirrors=1,
+                            n_mirror_tiles=1,
+                        )
+                else:
+                    # Create minimal optics description as fallback
+                    warnings.warn(
+                        f"No optics name provided for array element {ae_id}, "
+                        "creating dummy optics description"
+                    )
+                    from .optics import OpticsDescription, ReflectorShape, SizeType
+
+                    optics = OpticsDescription(
+                        name="Unknown",
+                        size_type=SizeType.UNKNOWN,
+                        reflector_shape=ReflectorShape.PARABOLIC,
+                        equivalent_focal_length=16 * u.m,
+                        effective_focal_length=16 * u.m,
+                        mirror_area=100 * u.m**2,
+                        n_mirrors=1,
+                        n_mirror_tiles=1,
+                    )
+
+                tel_name = ae_id_to_name.get(ae_id, f"Unknown-{ae_id}")
+                tel_descriptions[ae_id] = TelescopeDescription(
+                    name=tel_name,
+                    optics=optics,
+                    camera=camera,
+                )
+            except FileNotFoundError as e:
+                warnings.warn(
+                    f"Could not load description for array element {ae_id}: {e}"
+                )
+
+        return tel_descriptions
+
+    @classmethod
+    def load_subarray_info(cls, subarray_id=None):
+        """
+        Load subarray definitions from service data.
+
+        Parameters
+        ----------
+        subarray_id : int, optional
+            If provided, return only the subarray with this ID
+
+        Returns
+        -------
+        dict or list
+            If subarray_id is provided, returns the subarray dict.
+            Otherwise, returns the full structure with metadata and all subarrays.
+        """
+        subarray_data = get_structured_dataset(
+            "subarray-ids", role="dl0.sub.svc.subarray"
+        )
+
+        if subarray_id is not None:
+            for subarray in subarray_data["subarrays"]:
+                if subarray["id"] == subarray_id:
+                    return subarray
+            raise UnknownSubarray(f"Subarray ID {subarray_id} not found")
+
+        return subarray_data
+
+    @classmethod
+    def from_service_data(
+        cls,
+        subarray_id,
+        tel_descriptions=None,
+        camera_names=None,
+        optics_names=None,
+    ):
+        """
+        Create a SubarrayDescription from service data files.
+
+        This method loads subarray definitions and array element positions
+        from the ctapipe service data files.
+
+        Parameters
+        ----------
+        subarray_id : int
+            The subarray ID to load
+        tel_descriptions : dict[int, TelescopeDescription], optional
+            Telescope descriptions by array element ID. If not provided,
+            will attempt to load from camera_names and optics_names if provided,
+            otherwise inferred from telescope names.
+        camera_names : dict[int, str], optional
+            Mapping of array element IDs to camera names for loading
+            camera descriptions from service data. Only used if tel_descriptions
+            is None. Example: {1: 'LSTCam', 5: 'NectarCam'}
+        optics_names : dict[int, str], optional
+            Mapping of array element IDs to optics names for loading
+            optics descriptions from service data using OpticsDescription.from_name().
+            Only used if tel_descriptions is None.
+            Example: {1: 'LST', 5: 'MST'}
+
+        Returns
+        -------
+        SubarrayDescription
+            New SubarrayDescription instance
+        """
+        # Load subarray definition
+        subarray_info = cls.load_subarray_info(subarray_id)
+
+        # Extract site from subarray info
+        site = subarray_info["site"]
+
+        # Load array element IDs for name mapping
+        array_element_data = cls.load_array_element_ids()
+        ae_id_to_name = {
+            ae["id"]: ae["name"] for ae in array_element_data["array_elements"]
+        }
+
+        # Load positions
+        positions_table = cls.load_array_element_positions(site)
+
+        # Extract reference location from metadata
+        meta = positions_table.meta
+        reference_location = EarthLocation(
+            x=u.Quantity(meta["reference_x"]),
+            y=u.Quantity(meta["reference_y"]),
+            z=u.Quantity(meta["reference_z"]),
+        )
+
+        # Build telescope positions dict
+        array_element_ids = subarray_info["array_element_ids"]
+        tel_positions = cls._build_tel_positions(positions_table, array_element_ids)
+
+        # Infer camera and optics names from telescope names if not provided
+        if tel_descriptions is None:
+            if camera_names is None:
+                camera_names = cls._infer_camera_names(
+                    tel_positions, ae_id_to_name, site
+                )
+
+            if optics_names is None:
+                optics_names = cls._infer_optics_names(tel_positions, ae_id_to_name)
+
+            # Create telescope descriptions
+            tel_descriptions = cls._create_tel_descriptions(
+                tel_positions, camera_names, optics_names, ae_id_to_name
+            )
+
+        return cls(
+            name=subarray_info["name"],
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+            reference_location=reference_location,
         )

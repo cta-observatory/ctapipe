@@ -17,3 +17,7 @@ class OptionalDependencyMissing(ModuleNotFoundError):
 
 class InputMissing(ValueError):
     """Raised in case an input was not specified."""
+
+
+class UnknownSubarray(CTAPipeException):
+    """Raised if a subarray id is not found in the service data."""
