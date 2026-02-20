@@ -455,3 +455,116 @@ def test_from_service_data_aeid_specific(svc_path_aeid_specific):
     assert tel_002.camera.name.lower() == "lstcam"
 
     assert tel_002.camera.name.lower() == "lstcam"
+
+
+def test_service_data_roundtrip(tmp_path, monkeypatch):
+    """Test that we can write to service data format and read it back"""
+    import os
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+    from ctapipe.io import EventSource
+    from ctapipe.tools.dump_instrument import DumpInstrumentTool
+
+    # Use a prod5 simulation file to create a subarray
+    from ctapipe.utils import get_dataset_path
+
+    input_file = get_dataset_path("gamma_prod5.simtel.zst")
+
+    # Load the original subarray from simulation file
+    with EventSource(input_file) as source:
+        original_subarray = source.subarray
+
+    # Write to service data format using the tool
+    tool = DumpInstrumentTool()
+    tool.subarray = original_subarray
+    tool.infile = input_file
+    tool.outdir = tmp_path
+    tool.format = "service"
+    tool.write_service_data(subarray_id=1, site="CTAO-South")
+
+    service_dir = tmp_path / "instrument"
+
+    # Set CTAPIPE_SVC_PATH to point to the service data directory
+    # With ae_id-based structure, we need to add each ae_id directory to the path
+    array_elements_dir = service_dir / "array-elements"
+    positions_dir = service_dir / "positions"
+    search_paths = [str(service_dir), str(positions_dir)]
+    for tel_id in original_subarray.tel_ids:
+        ae_id_str = f"{tel_id:03d}"
+        search_paths.append(str(array_elements_dir / ae_id_str))
+
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
+
+    # Read back from service data format
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+        loaded_subarray = SubarrayDescription.from_service_data(subarray_id=1)
+
+    # Compare the original and loaded subarrays
+    assert loaded_subarray.n_tels == original_subarray.n_tels
+    assert set(loaded_subarray.tel_ids) == set(original_subarray.tel_ids)
+    assert len(loaded_subarray.telescope_types) == len(
+        original_subarray.telescope_types
+    )
+    assert len(loaded_subarray.camera_types) == len(original_subarray.camera_types)
+    assert len(loaded_subarray.optics_types) == len(original_subarray.optics_types)
+
+    # Check reference location (allow some tolerance due to round-trip precision)
+    assert u.isclose(
+        loaded_subarray.reference_location.geodetic.lon,
+        original_subarray.reference_location.geodetic.lon,
+        atol=0.01 * u.deg,
+    )
+    assert u.isclose(
+        loaded_subarray.reference_location.geodetic.lat,
+        original_subarray.reference_location.geodetic.lat,
+        atol=0.01 * u.deg,
+    )
+    assert u.isclose(
+        loaded_subarray.reference_location.geodetic.height,
+        original_subarray.reference_location.geodetic.height,
+        atol=1 * u.m,
+    )
+
+    # Check telescope positions
+    for tel_id in original_subarray.tel_ids:
+        assert tel_id in loaded_subarray.tel
+        orig_pos = original_subarray.positions[tel_id]
+        loaded_pos = loaded_subarray.positions[tel_id]
+        assert u.allclose(orig_pos, loaded_pos, atol=0.01 * u.m)
+
+    # Check optics descriptions
+    for tel_id in original_subarray.tel_ids:
+        orig_optics = original_subarray.tel[tel_id].optics
+        loaded_optics = loaded_subarray.tel[tel_id].optics
+
+        assert orig_optics.size_type == loaded_optics.size_type
+        assert orig_optics.reflector_shape == loaded_optics.reflector_shape
+        assert orig_optics.n_mirrors == loaded_optics.n_mirrors
+        assert u.isclose(
+            orig_optics.equivalent_focal_length,
+            loaded_optics.equivalent_focal_length,
+            rtol=0.01,
+        )
+        assert u.isclose(
+            orig_optics.effective_focal_length,
+            loaded_optics.effective_focal_length,
+            rtol=0.01,
+        )
+        assert u.isclose(orig_optics.mirror_area, loaded_optics.mirror_area, rtol=0.01)
+
+    # Check camera geometry
+    for tel_id in original_subarray.tel_ids:
+        orig_camera = original_subarray.tel[tel_id].camera
+        loaded_camera = loaded_subarray.tel[tel_id].camera
+
+        assert orig_camera.geometry.n_pixels == loaded_camera.geometry.n_pixels
+        assert np.allclose(
+            orig_camera.geometry.pix_x.value, loaded_camera.geometry.pix_x.value
+        )
+        assert np.allclose(
+            orig_camera.geometry.pix_y.value, loaded_camera.geometry.pix_y.value
+        )

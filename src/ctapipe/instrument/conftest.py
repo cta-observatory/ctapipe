@@ -209,12 +209,13 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
         symlink_path = array_elements_dir / f"{ae_id:03d}"
         symlink_path.symlink_to("MSTN")
 
-    # Set CTAPIPE_SVC_PATH to include tmp_path, telescope type directories,
-    # and instrument_dir (for legacy from_name methods)
+    # Set CTAPIPE_SVC_PATH to include tmp_path, positions directory,
+    # telescope type directories, and instrument_dir (for legacy from_name methods)
     # This allows get_table_dataset to find files named LSTN.optics.ecsv, etc.
     # and also the legacy optics.fits.gz and camera files
     search_paths = [
         str(tmp_path),
+        str(positions_dir),
         str(lst_dir),
         str(mst_nectarcam_dir),
         str(instrument_dir),
@@ -370,6 +371,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     # Set CTAPIPE_SVC_PATH
     search_paths = [
         str(tmp_path),
+        str(positions_dir),
         str(lst_dir),
         str(instrument_dir),
     ]

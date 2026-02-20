@@ -117,6 +117,36 @@ def test_dump_instrument(tmp_path):
     assert ret == 0
     assert (tmp_path / "subarray.h5").exists()
 
+    # Test service data format
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [f"--input={PROD5B_PATH}", "--format=service"],
+        cwd=tmp_path,
+        raises=True,
+    )
+    assert ret == 0
+    service_dir = tmp_path / "instrument"
+    assert service_dir.exists()
+    assert (service_dir / "instrument.meta.json").exists()
+    assert (service_dir / "array-element-ids.json").exists()
+    assert (service_dir / "subarray-ids.json").exists()
+    assert (service_dir / "positions").exists()
+
+    # Check array-elements directory with ae_id subdirectories
+    array_elements_dir = service_dir / "array-elements"
+    assert array_elements_dir.exists()
+
+    # Check that at least one ae_id directory exists (e.g., 001)
+    ae_dirs = list(array_elements_dir.glob("[0-9][0-9][0-9]"))
+    assert len(ae_dirs) > 0, "No ae_id directories found in array-elements"
+
+    # Check first ae_id directory contains required files
+    first_ae_dir = ae_dirs[0]
+    ae_id = first_ae_dir.name
+    assert (first_ae_dir / f"{ae_id}.optics.ecsv").exists()
+    assert (first_ae_dir / f"{ae_id}.camgeom.fits.gz").exists()
+    assert (first_ae_dir / f"{ae_id}.camreadout.fits.gz").exists()
+
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0
 
