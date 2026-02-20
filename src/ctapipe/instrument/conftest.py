@@ -137,7 +137,7 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     positions_north.meta["reference_z"] = str(itrs.z)
     positions_north.meta["site"] = "CTAO-North"
 
-    positions_file = positions_dir / "CTAO-North_array_element_positions.ecsv"
+    positions_file = positions_dir / "CTAO-North_ArrayElementPositions.ecsv"
     ascii.write(positions_north, positions_file, format="ecsv", overwrite=True)
 
     # Create array-elements directory with telescope-type subdirectories
@@ -312,7 +312,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     positions_north.meta["reference_z"] = str(itrs.z)
     positions_north.meta["site"] = "CTAO-North"
 
-    positions_file = positions_dir / "CTAO-North_array_element_positions.ecsv"
+    positions_file = positions_dir / "CTAO-North_ArrayElementPositions.ecsv"
     ascii.write(positions_north, positions_file, format="ecsv", overwrite=True)
 
     # Create array-elements directory

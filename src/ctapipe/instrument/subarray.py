@@ -996,7 +996,7 @@ class SubarrayDescription:
         - instrument.meta.json: metadata about the service data version for backwards compatibility
         - array-element-ids.json: mapping of telescope IDs to names
         - subarray-ids.json: subarray definitions
-        - positions/<site name>_ArrayElementPositions.ecsv: ECSV files with telescope positions for each site
+        - positions/{site}_ArrayElementPositions.ecsv: ECSV files with telescope positions for each site
         - array-elements/``{ae_id:03d}``/: Instrument description files for each array element. Symlinks may be used to de-duplicate descriptions.
           Each directory should contain optics.ecsv, camgeom.fits.gz, and camreadout.fits.gz files.
           Files can be named either ``{ae_id:03d}.*`` (e.g., 001.optics.ecsv) for telescope-specific configurations
@@ -1043,7 +1043,7 @@ class SubarrayDescription:
 
         # Load positions
         site = subarray_info["site"]
-        filename = f"array_element_positions_{site}"
+        filename = f"{site}_ArrayElementPositions"
         positions_table = QTable(
             get_table_dataset(filename, role="dl0.sub.svc.arraylayout")
         )
