@@ -1,0 +1,1 @@
+Implement calculation of ``true_disp`` parameters (norm and sign) in ``ctapipe-process`` for simulated events.
