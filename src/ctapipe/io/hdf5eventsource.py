@@ -348,7 +348,9 @@ class HDF5EventSource(EventSource):
             # we can now read both R1 and DL1
             has_muons = DL1_TEL_MUON_GROUP in f.root
             has_sim = SIMULATION_TEL_TABLE in f.root
-            has_trigger = SIMULATION_TEL_TABLE in f.root
+            has_trigger = (DL1_SUBARRAY_TRIGGER_TABLE in f) or (
+                DL1_TEL_TRIGGER_TABLE in f
+            )
 
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
             datalevels = (
