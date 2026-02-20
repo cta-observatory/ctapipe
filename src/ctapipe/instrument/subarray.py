@@ -976,7 +976,7 @@ class SubarrayDescription:
 
         - array-element-ids.json: mapping of telescope IDs to names
         - subarray-ids.json: subarray definitions
-        - positions/\*.ecsv: ECSV files with telescope positions for each site
+        - positions/<site name>_ArrayElementPositions.ecsv: ECSV files with telescope positions for each site
         - array-elements/{ae_id:03d}/: symlinks to telescope-type directories
           containing {type}.optics.ecsv, {type}.camgeom.fits.gz, and
           {type}.camreadout.fits.gz
