@@ -20,15 +20,17 @@ from astropy.utils import lazyproperty
 from .. import __version__ as CTAPIPE_VERSION
 from ..compat import COPY_IF_NEEDED
 from ..coordinates import CameraFrame, GroundFrame
+from ..exceptions import (
+    IncompatibleDataModelVersion,
+    UnknownSubarray,
+    UnknownTelescopeID,
+)
+from ..utils.datasets import get_structured_dataset, get_table_dataset
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import FocalLengthKind, OpticsDescription
 from .telescope import TelescopeDescription
 
 __all__ = ["SubarrayDescription"]
-
-
-class UnknownTelescopeID(KeyError):
-    """Raised when an unknown telescope id is encountered"""
 
 
 def _group_consecutives(sequence):
@@ -69,6 +71,10 @@ class SubarrayDescription:
     CURRENT_TAB_VERSION = "2.0"
     #: Version numbers supported by `SubarrayDescription.from_hdf`
     COMPATIBLE_VERSIONS = {"2.0"}
+    #: Current version of the service data format expected by `SubarrayDescription.from_service_data`
+    CURRENT_SERVICE_DATA_VERSION = "1.0"
+    #: Service data versions supported by `SubarrayDescription.from_service_data`
+    COMPATIBLE_SERVICE_DATA_VERSIONS = {"1.0"}
 
     def __init__(
         self,
@@ -683,7 +689,10 @@ class SubarrayDescription:
 
         version = layout.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_VERSIONS:
-            raise OSError(f"Unsupported version of subarray table: {version}")
+            raise IncompatibleDataModelVersion(
+                f"Unsupported HDF subarray table version: {version}. "
+                f"Compatible versions: {cls.COMPATIBLE_VERSIONS}"
+            )
 
         cameras = {}
 
@@ -712,7 +721,10 @@ class SubarrayDescription:
 
         optics_version = optics_table.meta.get("TAB_VER")
         if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
-            raise OSError(f"Unsupported version of optics table: {optics_version}")
+            raise IncompatibleDataModelVersion(
+                f"Unsupported HDF optics table version: {optics_version}. "
+                f"Compatible versions: {OpticsDescription.COMPATIBLE_VERSIONS}"
+            )
 
         # for backwards compatibility
         # if optics_index not in table, guess via telescope_description string
@@ -823,4 +835,246 @@ class SubarrayDescription:
         return all(
             set(subarray.tel_ids) == set(subarray_list[0].tel_ids)
             for subarray in subarray_list
+        )
+
+    @staticmethod
+    def _resolve_telescope_type(ae_id):
+        """Resolve telescope type by following symlink from ae_id directory.
+
+        Parameters
+        ----------
+        ae_id : int
+            Array element ID
+
+        Returns
+        -------
+        str
+            Telescope type name (e.g., 'LSTN', 'MSTN')
+        """
+        import os
+        from pathlib import Path
+
+        searchpath = os.getenv("CTAPIPE_SVC_PATH")
+        if not searchpath:
+            raise FileNotFoundError("CTAPIPE_SVC_PATH not set")
+
+        ae_id_str = f"{ae_id:03d}"
+        for search_dir in searchpath.split(os.pathsep):
+            candidate = Path(search_dir) / "array-elements" / ae_id_str
+            if candidate.exists():
+                return candidate.resolve().name
+
+        raise FileNotFoundError(f"array-elements/{ae_id_str} not found")
+
+    @staticmethod
+    def _load_telescope_description(ae_id, tel_name, tel_type):
+        """Load telescope description from service data files.
+
+        Tries to load files with ae_id prefix first (e.g., 001.optics),
+        then falls back to tel_type prefix (e.g., LSTN.optics).
+
+        Parameters
+        ----------
+        ae_id : int
+            Array element ID
+        tel_name : str
+            Telescope name
+        tel_type : str
+            Telescope type (e.g., 'LSTN', 'MSTN')
+
+        Returns
+        -------
+        TelescopeDescription
+        """
+        ae_id_str = f"{ae_id:03d}"
+
+        # Helper function to try ae_id file first, then fall back to tel_type
+        def load_with_fallback(file_type, role):
+            try:
+                return get_table_dataset(f"{ae_id_str}.{file_type}", role=role)
+            except FileNotFoundError:
+                return get_table_dataset(f"{tel_type}.{file_type}", role=role)
+
+        # Load optics
+        optics_table = QTable(load_with_fallback("optics", "dl0.sub.svc.optics"))
+        optics_meta = optics_table.meta
+
+        optics = OpticsDescription(
+            name=str(optics_meta["optics_name"]),
+            size_type=optics_meta["size_type"],
+            reflector_shape=optics_meta["reflector_shape"],
+            n_mirrors=optics_meta["n_mirrors"],
+            equivalent_focal_length=u.Quantity(optics_meta["equivalent_focal_length"]),
+            effective_focal_length=u.Quantity(optics_meta["effective_focal_length"]),
+            mirror_area=u.Quantity(optics_meta["mirror_area"]),
+            n_mirror_tiles=optics_meta["n_mirror_tiles"],
+        )
+
+        # Use effective focal length for camera frame, fall back to equivalent
+        focal_length = optics.effective_focal_length
+        if np.isnan(focal_length.value):
+            focal_length = optics.equivalent_focal_length
+
+        # Load camera geometry and readout
+        geom_table = load_with_fallback("camgeom", "dl0.sub.svc.camera")
+        readout_table = load_with_fallback("camreadout", "dl0.sub.svc.camera")
+
+        geometry = CameraGeometry.from_table(geom_table)
+        readout = CameraReadout.from_table(readout_table)
+        camera = CameraDescription(
+            name=geometry.name, geometry=geometry, readout=readout
+        )
+        camera.geometry.frame = CameraFrame(focal_length=focal_length)
+
+        return TelescopeDescription(
+            name=tel_name,
+            optics=optics,
+            camera=camera,
+        )
+
+    @staticmethod
+    def _load_telescope_positions(subarray_info, positions_table):
+        """Load telescope positions for a subarray.
+
+        Parameters
+        ----------
+        subarray_info : dict
+            Subarray information from subarray-ids.json
+        positions_table : QTable
+            Table with telescope positions
+
+        Returns
+        -------
+        dict
+            Dictionary mapping ae_id to position Quantity
+        """
+        tel_positions = {}
+        for ae_id in subarray_info["array_element_ids"]:
+            row = positions_table[positions_table["ae_id"] == ae_id]
+            if len(row) == 0:
+                warnings.warn(f"Array element {ae_id} not found in positions table")
+                continue
+            if len(row) > 1:
+                warnings.warn(
+                    f"Multiple entries for array element {ae_id}, using first"
+                )
+            row = row[0]
+            if np.isnan(row["x"]) or np.isnan(row["y"]) or np.isnan(row["z"]):
+                warnings.warn(f"Array element {ae_id} has NaN position, skipping")
+                continue
+            tel_positions[ae_id] = u.Quantity([row["x"], row["y"], row["z"]], u.m)
+        return tel_positions
+
+    @classmethod
+    def from_service_data(cls, subarray_id):
+        """
+        Create a SubarrayDescription from CTAO service data files.
+
+        This method loads subarray definitions from the service data.
+
+        Expected directory structure::
+
+            instrument/
+            ├── instrument.meta.json
+            ├── array-element-ids.json
+            ├── array-elements/
+            │   ├── 001 -> LSTN
+            │   ├── 002 -> LSTN
+            │   ├── 003 -> LSTN
+            │   ├── 004 -> LSTN
+            │   └── LSTN/
+            │       ├── LSTN.camgeom.fits.gz
+            │       ├── LSTN.camreadout.fits.gz
+            │       └── LSTN.optics.ecsv
+            ├── positions/
+            │   ├── CTAO-North_ArrayElementPositions.ecsv
+            │   └── CTAO-South_ArrayElementPositions.ecsv
+            └── subarray-ids.json
+
+        Files:
+
+        - instrument.meta.json: metadata about the service data version for backwards compatibility
+        - array-element-ids.json: mapping of telescope IDs to names
+        - subarray-ids.json: subarray definitions
+        - positions/{site}_ArrayElementPositions.ecsv: ECSV files with telescope positions for each site
+        - array-elements/``{ae_id:03d}``/: Instrument description files for each array element. Symlinks may be used to de-duplicate descriptions.
+          Each directory should contain optics.ecsv, camgeom.fits.gz, and camreadout.fits.gz files.
+          Files can be named either ``{ae_id:03d}.*`` (e.g., 001.optics.ecsv) for telescope-specific configurations
+          or ``{type}.*`` (e.g., LSTN.optics.ecsv) for shared configurations across multiple telescopes
+
+        Parameters
+        ----------
+        subarray_id : int
+            The subarray ID to load
+
+        Returns
+        -------
+        SubarrayDescription
+            New SubarrayDescription instance
+        """
+        # Check service data version
+        version_data = get_structured_dataset(
+            "instrument.meta", role="dl0.sub.svc.meta"
+        )
+        version = version_data.get("version", "unknown")
+        if version not in cls.COMPATIBLE_SERVICE_DATA_VERSIONS:
+            raise IncompatibleDataModelVersion(
+                f"Incompatible service data version: {version}. "
+                f"Compatible versions: {cls.COMPATIBLE_SERVICE_DATA_VERSIONS}"
+            )
+
+        # Load array element IDs
+        ae_data = get_structured_dataset(
+            "array-element-ids", role="dl0.sub.svc.array_elements"
+        )
+        ae_id_to_name = {ae["id"]: ae["name"] for ae in ae_data["array_elements"]}
+
+        # Load subarray definition
+        subarray_data = get_structured_dataset(
+            "subarray-ids", role="dl0.sub.svc.subarray"
+        )
+        subarray_info = None
+        for sa in subarray_data["subarrays"]:
+            if sa["id"] == subarray_id:
+                subarray_info = sa
+                break
+        if subarray_info is None:
+            raise UnknownSubarray(f"Subarray ID {subarray_id} not found")
+
+        # Load positions
+        site = subarray_info["site"]
+        filename = f"{site}_ArrayElementPositions"
+        positions_table = QTable(
+            get_table_dataset(filename, role="dl0.sub.svc.arraylayout")
+        )
+
+        # Extract reference location from metadata
+        reference_location = EarthLocation(
+            x=u.Quantity(positions_table.meta["reference_x"]),
+            y=u.Quantity(positions_table.meta["reference_y"]),
+            z=u.Quantity(positions_table.meta["reference_z"]),
+        )
+
+        # Build telescope positions
+        tel_positions = cls._load_telescope_positions(subarray_info, positions_table)
+
+        # Build telescope descriptions
+        tel_descriptions = {}
+        for ae_id in tel_positions.keys():
+            tel_name = ae_id_to_name.get(ae_id, f"Unknown-{ae_id}")
+            try:
+                tel_type = cls._resolve_telescope_type(ae_id)
+                tel_descriptions[ae_id] = cls._load_telescope_description(
+                    ae_id, tel_name, tel_type
+                )
+            except (FileNotFoundError, ValueError, KeyError) as e:
+                raise type(e)(
+                    f"Could not load telescope description for element {ae_id} ({tel_name}): {e}"
+                ) from e
+
+        return cls(
+            name=subarray_info["name"],
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+            reference_location=reference_location,
         )
