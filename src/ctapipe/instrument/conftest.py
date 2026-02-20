@@ -37,7 +37,7 @@ def instrument_dir(tmp_path_factory):
 
 
 @pytest.fixture(scope="function")
-def svc_path(tmp_path, instrument_dir):
+def svc_path(tmp_path, instrument_dir, monkeypatch):
     """
     Set up CTAPIPE_SVC_PATH for testing with complete CTAO service data structure.
 
@@ -57,6 +57,17 @@ def svc_path(tmp_path, instrument_dir):
     from ctapipe.instrument.optics import ReflectorShape, SizeType
 
     metadata = _get_schema_metadata()
+
+    # Create instrument.meta.json with version information
+    instrument_meta = {
+        "version": "1.0",
+        "format": "CTAO Service Data",
+        "description": "Instrument description service data for CTAO",
+    }
+
+    instrument_meta_path = tmp_path / "instrument.meta.json"
+    with open(instrument_meta_path, "w") as f:
+        json.dump(instrument_meta, f, indent=2)
 
     # Create array-element-ids.json (fixed schema, no type field)
     array_element_ids = {
@@ -144,19 +155,16 @@ def svc_path(tmp_path, instrument_dir):
     lst_readout_path = get_dataset_path("LSTcam.camreadout.fits.gz")
     shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
 
-    # LSTN optics
-    lst_optics = QTable(
-        {
-            "optics_name": ["LSTN"],
-            "size_type": [SizeType.LST.value],
-            "reflector_shape": [ReflectorShape.PARABOLIC.value],
-            "n_mirrors": [1],
-            "equivalent_focal_length": [28.0] * u.m,
-            "effective_focal_length": [28.3] * u.m,
-            "mirror_area": [386.0] * u.m**2,
-            "n_mirror_tiles": [198],
-        }
-    )
+    # LSTN optics (empty table with metadata)
+    lst_optics = QTable()
+    lst_optics.meta["optics_name"] = "LSTN"
+    lst_optics.meta["size_type"] = SizeType.LST.value
+    lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
+    lst_optics.meta["n_mirrors"] = 1
+    lst_optics.meta["equivalent_focal_length"] = str(28.0 * u.m)
+    lst_optics.meta["effective_focal_length"] = str(28.3 * u.m)
+    lst_optics.meta["mirror_area"] = str(386.0 * u.m**2)
+    lst_optics.meta["n_mirror_tiles"] = 198
     ascii.write(lst_optics, lst_dir / "LSTN.optics.ecsv", format="ecsv", overwrite=True)
 
     # Create MSTN telescope type directory and files
@@ -173,19 +181,16 @@ def svc_path(tmp_path, instrument_dir):
         mst_nectarcam_dir / "MSTN.camreadout.fits.gz",
     )
 
-    # MSTN optics
-    mst_optics = QTable(
-        {
-            "optics_name": ["MSTN"],
-            "size_type": [SizeType.MST.value],
-            "reflector_shape": [ReflectorShape.DAVIES_COTTON.value],
-            "n_mirrors": [1],
-            "equivalent_focal_length": [16.0] * u.m,
-            "effective_focal_length": [16.445] * u.m,
-            "mirror_area": [88.7] * u.m**2,
-            "n_mirror_tiles": [86],
-        }
-    )
+    # MSTN optics (empty table with metadata)
+    mst_optics = QTable()
+    mst_optics.meta["optics_name"] = "MSTN"
+    mst_optics.meta["size_type"] = SizeType.MST.value
+    mst_optics.meta["reflector_shape"] = ReflectorShape.DAVIES_COTTON.value
+    mst_optics.meta["n_mirrors"] = 1
+    mst_optics.meta["equivalent_focal_length"] = str(16.0 * u.m)
+    mst_optics.meta["effective_focal_length"] = str(16.445 * u.m)
+    mst_optics.meta["mirror_area"] = str(88.7 * u.m**2)
+    mst_optics.meta["n_mirror_tiles"] = 86
     ascii.write(
         mst_optics,
         mst_nectarcam_dir / "MSTN.optics.ecsv",
@@ -208,21 +213,169 @@ def svc_path(tmp_path, instrument_dir):
     # and instrument_dir (for legacy from_name methods)
     # This allows get_table_dataset to find files named LSTN.optics.ecsv, etc.
     # and also the legacy optics.fits.gz and camera files
-    before = os.getenv("CTAPIPE_SVC_PATH")
     search_paths = [
         str(tmp_path),
         str(lst_dir),
         str(mst_nectarcam_dir),
         str(instrument_dir),
     ]
-    os.environ["CTAPIPE_SVC_PATH"] = os.pathsep.join(search_paths)
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
 
     yield tmp_path
 
-    if before is None:
-        del os.environ["CTAPIPE_SVC_PATH"]
-    else:
-        os.environ["CTAPIPE_SVC_PATH"] = before
+
+@pytest.fixture(scope="function")
+def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
+    """
+    Set up CTAPIPE_SVC_PATH with ae_id-specific files (no deduplication).
+
+    This fixture creates a service data structure where each telescope has
+    its own configuration files named with ae_id (e.g., 001.optics.ecsv)
+    instead of shared telescope-type files (e.g., LSTN.optics.ecsv).
+
+    This tests the fallback mechanism: files are first searched as {ae_id}.{type},
+    then as {tel_type}.{type} if not found.
+    """
+    from astropy.io import ascii
+    from astropy.table import QTable
+
+    from ctapipe.instrument.optics import ReflectorShape, SizeType
+
+    metadata = _get_schema_metadata()
+
+    # Create instrument.meta.json with version information
+    instrument_meta = {
+        "version": "1.0",
+        "format": "CTAO Service Data",
+        "description": "Instrument description service data for CTAO with ae_id-specific files",
+    }
+
+    instrument_meta_path = tmp_path / "instrument.meta.json"
+    with open(instrument_meta_path, "w") as f:
+        json.dump(instrument_meta, f, indent=2)
+
+    # Create array-element-ids.json
+    array_element_ids = {
+        "metadata": metadata["array_elements"],
+        "array_elements": [
+            {"id": 1, "name": "LSTN-01"},
+            {"id": 2, "name": "LSTN-02"},
+        ],
+    }
+
+    array_element_ids_path = tmp_path / "array-element-ids.json"
+    with open(array_element_ids_path, "w") as f:
+        json.dump(array_element_ids, f, indent=2)
+
+    # Create subarray-ids.json
+    subarray_ids = {
+        "metadata": metadata["subarrays"],
+        "subarrays": [
+            {
+                "id": 1,
+                "name": "CTAO-N Test Subarray",
+                "site": "CTAO-North",
+                "array_element_ids": [1, 2],
+            },
+        ],
+    }
+
+    subarray_ids_path = tmp_path / "subarray-ids.json"
+    with open(subarray_ids_path, "w") as f:
+        json.dump(subarray_ids, f, indent=2)
+
+    # Create positions directory
+    positions_dir = tmp_path / "positions"
+    positions_dir.mkdir()
+
+    # Reference location for CTAO-North
+    from astropy import units as u
+    from astropy.coordinates.earth import EarthLocation
+
+    reference_location = EarthLocation(
+        lon=-17.8920 * u.deg, lat=28.7569 * u.deg, height=2200 * u.m
+    )
+    itrs = reference_location.itrs
+
+    # Create positions table
+    positions_north = QTable(
+        {
+            "ae_id": [1, 2],
+            "name": ["LSTN-01", "LSTN-02"],
+            "x": [0.0, 50.0] * u.m,
+            "y": [0.0, 50.0] * u.m,
+            "z": [0.0, 0.0] * u.m,
+        }
+    )
+    positions_north.meta["reference_x"] = str(itrs.x)
+    positions_north.meta["reference_y"] = str(itrs.y)
+    positions_north.meta["reference_z"] = str(itrs.z)
+    positions_north.meta["site"] = "CTAO-North"
+
+    positions_file = positions_dir / "CTAO-North_array_element_positions.ecsv"
+    ascii.write(positions_north, positions_file, format="ecsv", overwrite=True)
+
+    # Create array-elements directory
+    array_elements_dir = tmp_path / "array-elements"
+    array_elements_dir.mkdir()
+
+    # Create LSTN telescope type directory (for symlink resolution)
+    lst_dir = array_elements_dir / "LSTN"
+    lst_dir.mkdir()
+
+    # For telescope 001: create ae_id-specific files with custom optics
+    ae_001_dir = array_elements_dir / "001"
+    ae_001_dir.symlink_to("LSTN")
+
+    # Create 001.optics with slightly different parameters (empty table with metadata)
+    optics_001 = QTable()
+    optics_001.meta["optics_name"] = "LSTN-01-Custom"
+    optics_001.meta["size_type"] = SizeType.LST.value
+    optics_001.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
+    optics_001.meta["n_mirrors"] = 1
+    optics_001.meta["equivalent_focal_length"] = str(28.0 * u.m)
+    optics_001.meta["effective_focal_length"] = str(
+        28.5 * u.m
+    )  # Different from default
+    optics_001.meta["mirror_area"] = str(390.0 * u.m**2)  # Different from default
+    optics_001.meta["n_mirror_tiles"] = 198
+    ascii.write(optics_001, lst_dir / "001.optics.ecsv", format="ecsv", overwrite=True)
+
+    # Copy camera files with 001 prefix
+    lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
+    shutil.copy(lst_geom_path, lst_dir / "001.camgeom.fits.gz")
+
+    lst_readout_path = get_dataset_path("LSTcam.camreadout.fits.gz")
+    shutil.copy(lst_readout_path, lst_dir / "001.camreadout.fits.gz")
+
+    # For telescope 002: create symlink but use shared telescope-type files as fallback
+    ae_002_dir = array_elements_dir / "002"
+    ae_002_dir.symlink_to("LSTN")
+
+    # Create shared LSTN files (002 will fall back to these, empty table with metadata)
+    lst_optics = QTable()
+    lst_optics.meta["optics_name"] = "LSTN"
+    lst_optics.meta["size_type"] = SizeType.LST.value
+    lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
+    lst_optics.meta["n_mirrors"] = 1
+    lst_optics.meta["equivalent_focal_length"] = str(28.0 * u.m)
+    lst_optics.meta["effective_focal_length"] = str(28.3 * u.m)
+    lst_optics.meta["mirror_area"] = str(386.0 * u.m**2)
+    lst_optics.meta["n_mirror_tiles"] = 198
+    ascii.write(lst_optics, lst_dir / "LSTN.optics.ecsv", format="ecsv", overwrite=True)
+
+    shutil.copy(lst_geom_path, lst_dir / "LSTN.camgeom.fits.gz")
+    shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
+
+    # Set CTAPIPE_SVC_PATH
+    search_paths = [
+        str(tmp_path),
+        str(lst_dir),
+        str(instrument_dir),
+    ]
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
+
+    yield tmp_path
 
 
 def _get_schema_metadata():

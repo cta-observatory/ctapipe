@@ -416,3 +416,42 @@ def test_from_service_data_unknown_subarray(svc_path):
     """Test that loading an unknown subarray ID raises an error"""
     with pytest.raises(UnknownSubarray, match="Subarray ID 999 not found"):
         SubarrayDescription.from_service_data(subarray_id=999)
+
+
+def test_from_service_data_aeid_specific(svc_path_aeid_specific):
+    """Test loading from service data with ae_id-specific files (no deduplication)"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+
+        subarray = SubarrayDescription.from_service_data(subarray_id=1)
+
+    # Verify basic properties
+    assert isinstance(subarray, SubarrayDescription)
+    assert subarray.name == "CTAO-N Test Subarray"
+    assert subarray.n_tels == 2
+
+    # Telescope 001 should have ae_id-specific optics (001.optics.ecsv)
+    tel_001 = subarray.tel[1]
+    assert tel_001.optics.name == "LSTN-01-Custom"
+    # Verify custom parameters from 001.optics.ecsv
+    assert u.isclose(tel_001.optics.effective_focal_length, 28.5 * u.m)
+    assert u.isclose(tel_001.optics.mirror_area, 390.0 * u.m**2)
+
+    # Telescope 002 should fall back to shared telescope-type files (LSTN.optics.ecsv)
+    tel_002 = subarray.tel[2]
+    assert tel_002.optics.name == "LSTN"
+    # Verify default parameters from LSTN.optics.ecsv
+    assert u.isclose(tel_002.optics.effective_focal_length, 28.3 * u.m)
+    assert u.isclose(tel_002.optics.mirror_area, 386.0 * u.m**2)
+
+    # Both should have the same camera (LSTcam)
+    assert tel_001.camera.name.lower() == "lstcam"
+    assert tel_002.camera.name.lower() == "lstcam"
+
+    assert tel_002.camera.name.lower() == "lstcam"

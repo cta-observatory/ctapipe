@@ -21,14 +21,14 @@ def test_find_datasets():
     assert not str(r[0]).endswith("gz")
 
 
-def test_datasets_in_custom_path(tmpdir_factory):
+def test_datasets_in_custom_path(tmpdir_factory, monkeypatch):
     """
     check that a dataset in a user-defined CTAPIPE_SVC_PATH is located
     """
 
     tmpdir1 = tmpdir_factory.mktemp("datasets1")
     tmpdir2 = tmpdir_factory.mktemp("datasets2")
-    os.environ["CTAPIPE_SVC_PATH"] = ":".join([str(tmpdir1), str(tmpdir2)])
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", ":".join([str(tmpdir1), str(tmpdir2)]))
 
     # create a dummy dataset to search for:
 
@@ -53,38 +53,31 @@ def test_datasets_in_custom_path(tmpdir_factory):
     assert dataset_name in {d.name for d in ds}
 
 
-def test_structured_datasets(tmpdir):
+def test_structured_datasets(tmpdir, monkeypatch):
     import warnings
 
     from ctapipe.core.provenance import MissingReferenceMetadata
 
     test_data = dict(x=[1, 2, 3, 4, 5], y="test_json")
 
-    before = os.environ.get("CTAPIPE_SVC_PATH")
-    os.environ["CTAPIPE_SVC_PATH"] = ":".join([str(tmpdir)])
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", ":".join([str(tmpdir)]))
 
-    try:
-        with tmpdir.join("data_test.json").open(mode="w") as fp:
-            json.dump(test_data, fp)
+    with tmpdir.join("data_test.json").open(mode="w") as fp:
+        json.dump(test_data, fp)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-            data1 = datasets.get_structured_dataset("data_test")
-        assert data1["x"] == [1, 2, 3, 4, 5]
-        assert data1["y"] == "test_json"
-        tmpdir.join("data_test.json").remove()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        data1 = datasets.get_structured_dataset("data_test")
+    assert data1["x"] == [1, 2, 3, 4, 5]
+    assert data1["y"] == "test_json"
+    tmpdir.join("data_test.json").remove()
 
-        test_data["y"] = "test_yaml"
-        with tmpdir.join("data_test.yaml").open(mode="w") as fp:
-            yaml.dump(test_data, fp)
+    test_data["y"] = "test_yaml"
+    with tmpdir.join("data_test.yaml").open(mode="w") as fp:
+        yaml.dump(test_data, fp)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-            data1 = datasets.get_structured_dataset("data_test")
-        assert data1["x"] == [1, 2, 3, 4, 5]
-        assert data1["y"] == "test_yaml"
-    finally:
-        if before is None:
-            del os.environ["CTAPIPE_SVC_PATH"]
-        else:
-            os.environ["CTAPIPE_SVC_PATH"] = before
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        data1 = datasets.get_structured_dataset("data_test")
+    assert data1["x"] == [1, 2, 3, 4, 5]
+    assert data1["y"] == "test_yaml"

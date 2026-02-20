@@ -21,3 +21,11 @@ class InputMissing(ValueError):
 
 class UnknownSubarray(CTAPipeException):
     """Raised if a subarray id is not found in the service data."""
+
+
+class UnknownTelescopeID(KeyError):
+    """Raised when an unknown telescope id is encountered"""
+
+
+class IncompatibleDataModelVersion(CTAPipeException):
+    """Raised when data model version is not compatible"""
