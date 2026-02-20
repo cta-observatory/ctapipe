@@ -39,3 +39,13 @@ def test_asymptotic_behavior(coma_psf):
         ),
         0.0,
     )
+
+
+def test_for_missing_config_parameters(example_subarray):
+    with pytest.raises(
+        ValueError, match="Missing ComaPSFModel configuration parameters:"
+    ):
+        PSFModel.from_name(
+            "ComaPSFModel",
+            subarray=example_subarray,
+        )
