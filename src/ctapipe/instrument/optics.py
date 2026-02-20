@@ -327,27 +327,18 @@ class ComaPSFModel(PSFModel):
 
     .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
-    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis.
-    Their detailed description is provided in the attributes section.
+    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis,
+    configured via telescope traitlets:
 
-    Attributes
-    ----------
-    asymmetry_params : list
-        Describes the dependency of the PSF on the distance to the optical axis.
-        Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
-        of the PSF as a function of the distance r to the optical axis.
+    - Asymmetry parameters (:math:`K`):
 
         .. math:: K(r) = 1 - c_0 \tanh(c_1 r) - c_2 r
 
-    radial_scale_params : list
-        Describes the dependency of the radial scale on the distance to the optical axis.
-        Used to calculate width Sr of the asymmetric radial Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+    - Radial scale parameters (:math:`S_R`):
 
         .. math:: S_{R}(r) = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
-    phi_scale_params : list
-        Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the optical axis.
-        Used to calculate the width Sf of the polar Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+    - Polar scale parameters (:math:`S_\phi`):
 
         .. math:: S_{\phi}(r) = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
 
@@ -362,44 +353,91 @@ class ComaPSFModel(PSFModel):
     """
 
     asymmetry_max = FloatTelescopeParameter(
-        help="Maximum asymmetry parameter K at large distance from the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Maximum asymmetry parameter K at large distance from the optical axis (:math:`c_0`)",
     ).tag(config=True)
 
     asymmetry_decay_rate = FloatTelescopeParameter(
-        help="Tanh saturation rate of the asymmetry parameter K with distance to the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Tanh saturation rate of the asymmetry parameter K with distance to the optical axis (:math:`c_1`)",
     ).tag(config=True)
 
     asymmetry_linear_term = FloatTelescopeParameter(
-        help="Linear term for the asymmetry parameter K with distance to the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Linear term for the asymmetry parameter K with distance to the optical axis (:math:`c_2`)",
     ).tag(config=True)
 
     radial_scale_center = FloatTelescopeParameter(
-        help=r"Initial width :math:`S_R` at the center of the camera (r=0)"
+        default_value=None,
+        allow_none=True,
+        help=r"Initial width :math:`S_R` at the center of the camera (r=0) (:math:`b_1`)",
     ).tag(config=True)
 
     radial_scale_linear = FloatTelescopeParameter(
-        help=r"Linear growth of the radial scale :math:`S_R` with distance to the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Linear growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_2`)",
     ).tag(config=True)
 
     radial_scale_quadratic = FloatTelescopeParameter(
-        help=r"Quadratic growth of the radial scale :math:`S_R` with distance to the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Quadratic growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_3`)",
     ).tag(config=True)
 
     radial_scale_cubic = FloatTelescopeParameter(
-        help=r"Cubic growth of the radial scale :math:`S_R` with distance to the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Cubic growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_4`)",
     ).tag(config=True)
 
     polar_scale_amplitude = FloatTelescopeParameter(
-        help=r"Initial width :math:`S_\phi` at the center of the camera (r=0)"
+        default_value=None,
+        allow_none=True,
+        help=r"Initial width :math:`S_\phi` at the center of the camera (r=0) (:math:`a_1`)",
     ).tag(config=True)
 
     polar_scale_decay = FloatTelescopeParameter(
-        help=r"Exponential decay of the polar scale :math:`S_\phi` with distance to the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Exponential decay of the polar scale :math:`S_\phi` with distance to the optical axis (:math:`a_2`)",
     ).tag(config=True)
 
     polar_scale_offset = FloatTelescopeParameter(
-        help=r"Offset controlling width :math:`S_\phi` at large distance from the optical axis"
+        default_value=None,
+        allow_none=True,
+        help=r"Offset controlling width :math:`S_\phi` at large distance from the optical axis (:math:`a_3`)",
     ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """Initialize the ComaPSFModel component and check for missing configuration parameters."""
+
+        super().__init__(
+            subarray=subarray,
+            config=config,
+            parent=parent,
+            **kwargs,
+        )
+
+        # Check for missing config parameters and raise an error if any are missing.
+        missing_config_parameters = []
+        config_parameter_names = [
+            name
+            for name, trait in self.class_traits().items()
+            if isinstance(trait, FloatTelescopeParameter)
+        ]
+        for name in config_parameter_names:
+            config_parameter = getattr(self, name)
+            if config_parameter.tel[self.subarray.tel_ids[0]] is None:
+                missing_config_parameters.append(name)
+
+        if missing_config_parameters:
+            raise ValueError(
+                f"Missing ComaPSFModel configuration parameters: {missing_config_parameters}"
+            )
 
     def _k(self, tel_id, r):
         return (
