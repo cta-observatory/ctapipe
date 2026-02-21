@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -6,6 +8,7 @@ from traitlets.config import Config
 
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import EventSource
 
 
 @pytest.fixture(scope="module")
@@ -92,3 +95,72 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
 
     assert (reduced_waveforms != 0).sum() == (1 + 4 + 14) * n_samples
     assert_array_equal(expected_waveforms, reduced_waveforms)
+
+
+def test_readout_window_reducer(prod5_gamma_simtel_path):
+    from ctapipe.image.reducer import ReadoutWindowReducer
+
+    def check(subarray, event, event_reduced, event_no_op):
+        checked = 0
+        for dl in ("r0", "r1", "dl0"):
+            for tel_id in getattr(event, dl).tel.keys():
+                if str(subarray.tel[tel_id]).startswith("LST"):
+                    start = 10
+                    end = 20
+                    n_samples = end - start
+                elif "Nectar" in str(subarray.tel[tel_id]):
+                    start = 15
+                    end = 40
+                    n_samples = end - start
+                else:
+                    start = None
+                    end = None
+                    n_samples = subarray.tel[tel_id].camera.readout.n_samples
+
+                original_waveform = getattr(event, dl).tel[tel_id].waveform
+                reduced_waveform = getattr(event_reduced, dl).tel[tel_id].waveform
+                no_op_waveform = getattr(event_no_op, dl).tel[tel_id].waveform
+
+                assert reduced_waveform.ndim == 3
+                assert reduced_waveform.shape[-1] == n_samples
+                np.testing.assert_array_equal(original_waveform, no_op_waveform)
+                np.testing.assert_array_equal(
+                    original_waveform[..., start:end], reduced_waveform
+                )
+
+                checked += 1
+        return checked
+
+    with EventSource(prod5_gamma_simtel_path) as source:
+        reducer_no_op = ReadoutWindowReducer(source.subarray)
+        reducer = ReadoutWindowReducer(
+            source.subarray,
+            window_start=[
+                ("type", "*", None),
+                ("type", "LST*", 10),
+                ("type", "*Nectar*", 15),
+            ],
+            window_end=[
+                ("type", "*", None),
+                ("type", "LST*", 20),
+                ("type", "*Nectar*", 40),
+            ],
+        )
+
+        # make sure we didn't modify the original subarray
+        assert source.subarray.tel[1].camera.readout.n_samples == 40
+        assert reducer_no_op.subarray.tel[1].camera.readout.n_samples == 40
+        # new subarray should have reduced window
+        assert reducer.subarray.tel[1].camera.readout.n_samples == 10
+
+        n_checked = 0
+        for event in source:
+            event_no_op = deepcopy(event)
+            event_reduced = deepcopy(event)
+
+            reducer(event_reduced)
+            reducer_no_op(event_no_op)
+
+            n_checked += check(source.subarray, event, event_reduced, event_no_op)
+
+        assert n_checked > 0
