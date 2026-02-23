@@ -481,6 +481,7 @@ class ComaPSFModel(PSFModel):
         ).to_value(u.rad)
 
         r0 = np.sqrt(lon0**2 + lat0**2)
+        phi0 = np.arctan2(lat0, lon0)
 
         # Evaluate PSF parameters at source position
         k = self._k(tel_id, r0)
@@ -493,8 +494,8 @@ class ComaPSFModel(PSFModel):
         r = np.sqrt(dlon**2 + dlat**2)
         phi = np.arctan2(dlat, dlon)
 
-        radial_pdf = laplace_asymmetric.pdf(r, k, 0.0, s_r)
-        polar_pdf = laplace.pdf(phi, 0.0, s_phi)
+        radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
+        polar_pdf = laplace.pdf(phi, phi0, s_phi)
 
         at_center = np.isclose(r0, 0, atol=pixel_width)
         polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
@@ -505,7 +506,7 @@ class ComaPSFModel(PSFModel):
 
         if not np.isclose(r0, 0, atol=pixel_width):
             dphi = np.arcsin(chord_length / (2 * r0))
-            mask = np.abs(phi) <= dphi
-            polar_pdf = np.where(mask, polar_pdf, 0.0)
+            polar_pdf[phi < phi0 - dphi] = 0
+            polar_pdf[phi > phi0 + dphi] = 0
 
         return radial_pdf * polar_pdf
