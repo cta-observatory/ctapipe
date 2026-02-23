@@ -260,7 +260,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             docstring = publish_parts(clean_doc, writer=writer)["html_body"]
         lines = [
             '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',
-            f"<b>{name}</b>",
+            f"<h3>{name}</h3>",
             docstring,
             "<table>",
             "    <colgroup>",
@@ -292,6 +292,12 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 )
         lines.append("    </tbody>")
         lines.append("</table>")
+
+        for name, val in self.__dict__.items():
+            if isinstance(val, Component):
+                lines.append(f"<h4>{name}:</h4>")
+                lines.append(val._repr_html_())
+
         lines.append("</div>")
         return "\n".join(lines)
 

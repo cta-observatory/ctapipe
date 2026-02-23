@@ -85,10 +85,6 @@ class QualityQuery(Component):
             cols["func"] = ["True"] + self.expressions
         return Table(cols)
 
-    def _repr_html_(self):
-        """display nicely in Jupyter notebooks"""
-        return self.to_table()._repr_html_()
-
     def __str__(self):
         """Print a formatted string representation of the entire table."""
         return str(self.to_table())
