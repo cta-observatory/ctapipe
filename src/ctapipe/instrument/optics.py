@@ -8,7 +8,6 @@ from enum import Enum, StrEnum, auto, unique
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import QTable
 from scipy.stats import laplace, laplace_asymmetric
 
@@ -27,10 +26,6 @@ __all__ = [
     "PSFModel",
     "ComaPSFModel",
 ]
-
-ZENITH_TELESCOPE_FRAME = TelescopeFrame(
-    telescope_pointing=SkyCoord(alt=90 * u.deg, az=0 * u.deg, frame=AltAz())
-)
 
 
 @unique
@@ -314,6 +309,12 @@ class PSFModel(TelescopeComponent):
         pass
 
 
+def _cartesian_to_polar(x, y):
+    r = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return r, phi
+
+
 class ComaPSFModel(PSFModel):
     r"""
     PSF model describing pure coma aberrations PSF effect.
@@ -370,10 +371,10 @@ class ComaPSFModel(PSFModel):
         help=r"Linear term for the asymmetry parameter K with distance to the optical axis (:math:`c_2`)",
     ).tag(config=True)
 
-    radial_scale_center = FloatTelescopeParameter(
+    radial_scale_offset = FloatTelescopeParameter(
         default_value=None,
         allow_none=True,
-        help=r"Initial width :math:`S_R` at the center of the camera (r=0) (:math:`b_1`)",
+        help=r"Offset of the radial scale :math:`S_R` (:math:`b_1`)",
     ).tag(config=True)
 
     radial_scale_linear = FloatTelescopeParameter(
@@ -421,6 +422,17 @@ class ComaPSFModel(PSFModel):
             parent=parent,
             **kwargs,
         )
+        # Get the pixel size in radians for the given telescopes.
+        self.pixel_width = {}
+        for tel_id in self.subarray.tels:
+            cam_geom = self.subarray.tel[tel_id].camera.geometry
+            # Transform camera geometry to telescope frame if not already in that frame
+            if cam_geom.frame != TelescopeFrame:
+                cam_geom = cam_geom.transform_to(TelescopeFrame())
+            # Guess pixel width from the camera geometry in the telescope frame
+            self.pixel_width[tel_id] = cam_geom.guess_pixel_width(
+                cam_geom.pix_x, cam_geom.pix_y
+            ).to_value(u.rad)
 
         # Check for missing config parameters and raise an error if any are missing.
         missing_config_parameters = []
@@ -448,11 +460,14 @@ class ComaPSFModel(PSFModel):
         )
 
     def _s_r(self, tel_id, r):
-        return (
-            self.radial_scale_center.tel[tel_id]
-            + self.radial_scale_linear.tel[tel_id] * r
-            + self.radial_scale_quadratic.tel[tel_id] * r**2
-            + self.radial_scale_cubic.tel[tel_id] * r**3
+        return np.polyval(
+            [
+                self.radial_scale_cubic.tel[tel_id],
+                self.radial_scale_quadratic.tel[tel_id],
+                self.radial_scale_linear.tel[tel_id],
+                self.radial_scale_offset.tel[tel_id],
+            ],
+            r,
         )
 
     def _s_phi(self, tel_id, r):
@@ -471,40 +486,26 @@ class ComaPSFModel(PSFModel):
     def pdf(self, tel_id, lon, lat, lon0, lat0):
         # Convert all inputs to radians for the calculations
         lon, lat, lon0, lat0 = all_to_value(lon, lat, lon0, lat0, unit=u.rad)
-        # Point the telescope to the zenith and transform the camera geometry
-        # to the telescope frame to get the pixel size in radians for the given telescope.
-        geom_tel_frame = self.subarray.tel[tel_id].camera.geometry.transform_to(
-            ZENITH_TELESCOPE_FRAME
-        )
-        pixel_width = geom_tel_frame.guess_pixel_width(
-            geom_tel_frame.pix_x, geom_tel_frame.pix_y
-        ).to_value(u.rad)
 
-        r0 = np.sqrt(lon0**2 + lat0**2)
-        phi0 = np.arctan2(lat0, lon0)
+        r, phi = _cartesian_to_polar(lon, lat)
+        r0, phi0 = _cartesian_to_polar(lon0, lat0)
 
         # Evaluate PSF parameters at source position
         k = self._k(tel_id, r0)
         s_r = self._s_r(tel_id, r0)
         s_phi = self._s_phi(tel_id, r0)
 
-        dlon = lon - lon0
-        dlat = lat - lat0
-
-        r = np.sqrt(dlon**2 + dlat**2)
-        phi = np.arctan2(dlat, dlon)
-
         radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
         polar_pdf = laplace.pdf(phi, phi0, s_phi)
 
-        at_center = np.isclose(r0, 0, atol=pixel_width)
+        at_center = np.isclose(r0, 0, atol=self.pixel_width[tel_id])
         polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
 
         # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
-        chord_length = min(6 * pixel_width, 0.5 * r0)
+        chord_length = min(6 * self.pixel_width[tel_id], 0.5 * r0)
 
-        if not np.isclose(r0, 0, atol=pixel_width):
+        if r0 != 0:
             dphi = np.arcsin(chord_length / (2 * r0))
             polar_pdf[phi < phi0 - dphi] = 0
             polar_pdf[phi > phi0 + dphi] = 0

@@ -17,7 +17,7 @@ def coma_psf(example_subarray):
         asymmetry_max=0.5,
         asymmetry_decay_rate=10,
         asymmetry_linear_term=0.15,
-        radial_scale_center=0.015,
+        radial_scale_offset=0.015,
         radial_scale_linear=-0.1,
         radial_scale_quadratic=0.06,
         radial_scale_cubic=0.03,
