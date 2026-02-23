@@ -5,6 +5,8 @@ Common test fixtures for the instrument module
 import os
 import shutil
 
+import astropy.units as u
+import numpy as np
 import pytest
 
 from ctapipe.utils.filelock import FileLock
@@ -42,3 +44,37 @@ def svc_path(instrument_dir):
         del os.environ["CTAPIPE_SVC_PATH"]
     else:
         os.environ["CTAPIPE_SVC_PATH"] = before
+
+
+@pytest.fixture()
+def geometry_hexgrid_square_pixels():
+    """A camera with square pixels on a hexagonal grid"""
+    from ctapipe.coordinates import CameraFrame
+    from ctapipe.instrument import CameraGeometry, PixelGridType, PixelShape
+
+    size = 22
+    pix_id = np.arange(256)
+
+    coords = np.arange(-7.5 * size, 7.6 * size, size)
+    pix_x, pix_y = np.meshgrid(coords, coords)
+
+    # offset every second row by half the pixel size
+    pix_x[::2] += 0.5 * size
+    pix_x = pix_x.ravel() * u.mm
+    pix_y = pix_y.ravel() * u.mm
+
+    # introduce some gaps
+    pix_area = (size / 1.05) ** 2
+    pix_area = np.full(len(pix_id), pix_area) * u.mm**2
+
+    geom = CameraGeometry(
+        pix_id=pix_id,
+        pix_x=pix_x,
+        pix_y=pix_y,
+        pix_area=pix_area,
+        pix_type=PixelShape.SQUARE,
+        grid_type=PixelGridType.REGULAR_HEX,
+        name="HEXSQUARECAM",
+        frame=CameraFrame(focal_length=10 * u.m),
+    )
+    return geom
