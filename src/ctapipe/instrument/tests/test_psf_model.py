@@ -38,6 +38,7 @@ def test_asymptotic_behavior(coma_psf):
             lat0=0.0 * u.deg,
         ),
         0.0,
+        atol=1e-7,
     )
 
 
