@@ -74,7 +74,7 @@ or via::
 
   pip install ctapipe
 
-**Note**: to install a specific version of ctapipe take look at the documentation `here <https://ctapipe.readthedocs.io/en/latest/user-guide/index.html>`__.
+**Note**: to install a specific version of ctapipe take a look at the documentation `here <https://ctapipe.readthedocs.io/en/latest/user-guide/index.html>`__.
 
 **Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`__.
 
