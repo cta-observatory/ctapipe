@@ -53,3 +53,18 @@ def test_single_telescope(subarray_prod5_paranal):
     # 10 km is around the shower maximum, should be around 1 degree from the source
     with pytest.warns(MissingFrameAttributeWarning):
         assert u.isclose(source.separation(point), 1.0 * u.deg, atol=0.1 * u.deg)
+
+
+def test_altaz_to_nominal():
+    from ctapipe.coordinates import altaz_to_nominal
+
+    column = altaz_to_nominal(
+        az=[220.0, 220.2] * u.deg,
+        alt=[80.0, 79.2] * u.deg,
+        pointing_az=[220.0, 220.0] * u.deg,
+        pointing_alt=[80.0, 80.0] * u.deg,
+    )
+
+    assert column.unit == u.deg
+    assert np.allclose(column[0].value, 0)
+    assert np.allclose(column[1].value, [0.03747984, -0.79993558])
