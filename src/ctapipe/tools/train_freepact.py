@@ -8,18 +8,20 @@ import numpy as np
 try:
     import tensorflow as tf
     from tensorflow.keras.callbacks import (
+        CSVLogger,
         EarlyStopping,
         ModelCheckpoint,
         ReduceLROnPlateau,
     )
     from tensorflow.keras.layers import Dense
-    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.models import Sequential, load_model
     from tensorflow.keras.optimizers import Adam
+
 except ImportError:
     tf = None
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Float, Int, IntTelescopeParameter, List, Path
+from ctapipe.core.traits import Bool, Float, Int, IntTelescopeParameter, List, Path
 from ctapipe.exceptions import OptionalDependencyMissing
 from ctapipe.image import dilate, tailcuts_clean
 from ctapipe.instrument import SubarrayDescription
@@ -119,6 +121,17 @@ class TrainFreePACT(Tool):
         help="Additional rows to clean around the core.",
     ).tag(config=True)
 
+    max_threads = Int(
+        default_value=None,
+        allow_none=True,
+        help="Maximum number of CPU threads to use for training. Default is all available.",
+    ).tag(config=True)
+
+    no_gpu = Bool(
+        default_value=False,
+        help="Do not use GPU for training, even if available.",
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "TrainFreePACT.input_url",
         ("o", "output"): "TrainFreePACT.output_path",
@@ -131,6 +144,8 @@ class TrainFreePACT(Tool):
         "reweight_energy": "TrainFreePACT.reweight_energy",
         "layer_number": "TrainFreePACT.layer_number",
         "layer_neurons": "TrainFreePACT.layer_neurons",
+        "max_threads": "TrainFreePACT.max_threads",
+        "no_gpu": "TrainFreePACT.no_gpu",
     }
 
     classes = [TableLoader]
@@ -140,6 +155,14 @@ class TrainFreePACT(Tool):
         # Check for tensorflow
         if tf is None:
             raise OptionalDependencyMissing("tensorflow")
+
+        if self.max_threads is not None:
+            self.log.info("Setting maximum number of threads to %d", self.max_threads)
+            tf.config.threading.set_inter_op_parallelism_threads(self.max_threads)
+
+        if self.no_gpu:
+            self.log.info("Disabling GPU usage")
+            tf.config.set_visible_devices([], "GPU")
 
         if not self.input_url:
             self.log.critical("Specifying input file(s) is required.")
@@ -184,13 +207,17 @@ class TrainFreePACT(Tool):
                 input_shape=(X.shape[1],),
                 layer_number=self.layer_number,
                 layer_neurons=self.layer_neurons,
+                activation="swish",
             )
             out_name = str(self.output_path).replace(".keras", "").replace(".h5", "")
             save_path = f"{out_name}_{tel_type}.keras"
 
+            log_path = save_path.replace(".keras", ".csv")
+            self.log.info("Training logs will be saved to %s", log_path)
+
             callbacks = [
                 EarlyStopping(
-                    monitor="val_loss", patience=50, verbose=1, start_from_epoch=50
+                    monitor="val_loss", patience=30, verbose=1, start_from_epoch=50
                 ),
                 ReduceLROnPlateau(
                     monitor="val_loss",
@@ -205,7 +232,9 @@ class TrainFreePACT(Tool):
                     save_best_only=True,
                     verbose=1,
                 ),
+                CSVLogger(log_path, separator=",", append=False),
             ]
+
             model.fit(
                 X,
                 y,
@@ -215,6 +244,7 @@ class TrainFreePACT(Tool):
                 verbose=1,
                 callbacks=callbacks,
             )
+            model.layers[-1].activation = tf.keras.activations.linear
 
             # Save model
             # Construct a filename for this telescope type
@@ -222,9 +252,13 @@ class TrainFreePACT(Tool):
             # or save a dictionary of models?
             # Keras models are usually saved as directories or files.
             # Let's append the telescope type to the output name.
+            model.save(save_path)
+            model_temp = load_model(save_path)
+
+            save_path = f"{out_name}_{tel_type}/"
 
             self.log.info("Saving model to %s", save_path)
-            model.save(save_path)
+            model_temp.export(save_path)
 
     def _load_and_process_data(self, tel_type):
         """Read chunked data and create pixel-wise dataset."""
@@ -263,6 +297,7 @@ class TrainFreePACT(Tool):
 
         pixel_features_list = []
         n_loaded = 0
+        generator = np.random.default_rng()
 
         for input_file in self.input_url:
             self.log.info("Loading data from %s", input_file)
@@ -305,7 +340,7 @@ class TrainFreePACT(Tool):
                             self.tailcut_threshold1,
                             self.tailcut_threshold2,
                         )
-                        for j in range(self.tailcut_additional_rows):
+                        for _ in range(self.tailcut_additional_rows):
                             mask = dilate(geometry, mask)
                         mask_array[i] = mask
 
@@ -314,7 +349,7 @@ class TrainFreePACT(Tool):
                         weight_factor = (
                             energies / (self.reweight_energy * u.TeV)
                         ) ** self.reweight_index
-                        random_value = np.random.rand(mask_array.shape[0])
+                        random_value = generator.random(mask_array.shape[0])
                         reweight_mask = random_value < weight_factor.value
                         mask_array = np.logical_and(
                             mask_array, reweight_mask[:, np.newaxis]
@@ -468,39 +503,41 @@ class TrainFreePACT(Tool):
         if not pixel_features_list:
             return np.array([]), np.array([])
 
-        X_all = np.concatenate(pixel_features_list)
+        x_all = np.concatenate(pixel_features_list)
         # Dataset creation (Signal vs Background)
-        n_total_pixels = len(X_all)
+        n_total_pixels = len(x_all)
         n_samples = n_total_pixels // 2
 
-        indices = np.random.choice(n_total_pixels, size=n_total_pixels, replace=False)
+        indices = generator.choice(n_total_pixels, size=n_total_pixels, replace=False)
         indices_sig = indices[:n_samples]
         indices_bg = indices[n_samples : 2 * n_samples]
 
-        X_sig = X_all[indices_sig]
-        y_sig = np.ones(len(X_sig))
+        x_sig = x_all[indices_sig]
+        y_sig = np.ones(len(x_sig))
 
-        X_bg = X_all[indices_bg].copy()
-        np.random.shuffle(X_bg[:, 5])  # Shuffle amplitude
-        y_bg = np.zeros(len(X_bg))
+        x_bg = x_all[indices_bg].copy()
+        generator.shuffle(x_bg[:, 5])  # Shuffle amplitude
+        y_bg = np.zeros(len(x_bg))
 
-        X = np.concatenate([X_sig, X_bg])
+        x = np.concatenate([x_sig, x_bg])
         y = np.concatenate([y_sig, y_bg])
 
-        train_idx = np.random.permutation(len(X))
-        X = X[train_idx]
+        train_idx = generator.permutation(len(x))
+        x = x[train_idx]
         y = y[train_idx]
 
-        return X, y
+        return x, y
 
-    def _build_model(self, input_shape, layer_number=10, layer_neurons=50):
+    def _build_model(
+        self, input_shape, layer_number=10, layer_neurons=50, activation="swish"
+    ):
         """Build Keras MLP."""
         from tensorflow.keras.layers import Input
 
-        layers = [Input(shape=input_shape)]
+        layers = [Input(shape=input_shape, name="input_1")]
 
         for _ in range(layer_number):
-            layers.append(Dense(layer_neurons, activation="swish"))
+            layers.append(Dense(layer_neurons, activation=activation))
 
         layers.append(Dense(1, activation="sigmoid"))
 

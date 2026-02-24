@@ -120,6 +120,7 @@ ctapipe-calculate-pixel-statistics = "ctapipe.tools.calculate_pixel_stats:main"
 ctapipe-train-energy-regressor = "ctapipe.tools.train_energy_regressor:main"
 ctapipe-train-particle-classifier = "ctapipe.tools.train_particle_classifier:main"
 ctapipe-train-disp-reconstructor = "ctapipe.tools.train_disp_reconstructor:main"
+ctapipe-train-freepact = "ctapipe.tools.train_freepact:main"
 ctapipe-apply-models = "ctapipe.tools.apply_models:main"
 ctapipe-store-astropy-cache = "ctapipe.tools.store_astropy_cache:main"
 
