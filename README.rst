@@ -21,7 +21,7 @@
 Low-level data processing pipeline software for the
 `CTAO (Cherenkov Telescope Array Observatory) <https://www.ctao.org>`__.
 
-This is code is a prototype data processing framework and is under rapid
+This code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an
 expert or developer!
 
