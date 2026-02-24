@@ -1,1 +1,1 @@
-Fix a typo in ``ctapipe.image.hillas.py``.
+Fix typos in ``README.rst`` and ``ctapipe.image.hillas.py``.
