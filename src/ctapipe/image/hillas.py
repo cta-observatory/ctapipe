@@ -69,7 +69,7 @@ def hillas_parameters(geom, image):
     The recommended form is to pass only the sliced geometry and image
     for the pixels to be considered.
 
-    Each method gives the same result, but vary in efficiency
+    Each method gives the same result, but varies in efficiency
 
     Parameters
     ----------
