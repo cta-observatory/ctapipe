@@ -429,10 +429,9 @@ class ComaPSFModel(PSFModel):
             # Transform camera geometry to telescope frame if not already in that frame
             if cam_geom.frame != TelescopeFrame:
                 cam_geom = cam_geom.transform_to(TelescopeFrame())
-            # Guess pixel width from the camera geometry in the telescope frame
-            self.pixel_width[tel_id] = cam_geom.guess_pixel_width(
-                cam_geom.pix_x, cam_geom.pix_y
-            ).to_value(u.rad)
+
+            # pixel width is only used to determine a useful distance measure to the camera center
+            self.pixel_width[tel_id] = cam_geom.pixel_width[0].to_value(u.rad)
 
         # Check for missing config parameters and raise an error if any are missing.
         missing_config_parameters = []
@@ -452,12 +451,10 @@ class ComaPSFModel(PSFModel):
             )
 
     def _k(self, tel_id, r):
-        return (
-            1
-            - self.asymmetry_max.tel[tel_id]
-            * np.tanh(self.asymmetry_decay_rate.tel[tel_id] * r)
-            - self.asymmetry_linear_term.tel[tel_id] * r
-        )
+        c0 = self.asymmetry_max.tel[tel_id]
+        c1 = self.asymmetry_decay_rate.tel[tel_id]
+        c2 = self.asymmetry_linear_term.tel[tel_id]
+        return 1 - c0 * np.tanh(c1 * r) - c2 * r
 
     def _s_r(self, tel_id, r):
         return np.polyval(
@@ -471,11 +468,10 @@ class ComaPSFModel(PSFModel):
         )
 
     def _s_phi(self, tel_id, r):
-        return self.polar_scale_amplitude.tel[tel_id] * np.exp(
-            -self.polar_scale_decay.tel[tel_id] * r
-        ) + self.polar_scale_offset.tel[tel_id] / (
-            self.polar_scale_offset.tel[tel_id] + r
-        )
+        a1 = self.polar_scale_amplitude.tel[tel_id]
+        a2 = self.polar_scale_decay.tel[tel_id]
+        a3 = self.polar_scale_offset.tel[tel_id]
+        return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
     @u.quantity_input(
         lon=u.deg,
