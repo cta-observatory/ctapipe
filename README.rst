@@ -39,7 +39,7 @@ You can find all ctapipe Zenodo records here: `List of ctapipe Records on Zenodo
 
 There is also a Zenodo DOI always pointing to the latest version: |doilatest|
 
-At this point, our latest publication is the `2023 ICRC proceedings <https://doi.org/10.22323/1.444.0703>`_, which you can
+At this point, the latest publication is our contribution in the `2023 ICRC proceedings <https://doi.org/10.22323/1.444.0703>`_, which you can
 cite using this bibtex entry:
 
 .. code::
