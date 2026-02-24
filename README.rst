@@ -78,7 +78,7 @@ or via::
 
 **Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`__.
 
-Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
+Note that this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 Developers should follow the development install instructions found in the
 `documentation <https://ctapipe.readthedocs.io/en/latest/developer-guide/getting-started.html>`__.
