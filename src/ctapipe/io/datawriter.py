@@ -660,6 +660,7 @@ class DataWriter(Component):
                             true_parameters.concentration,
                             true_parameters.morphology,
                             true_parameters.intensity_statistics,
+                            event.simulation.tel[tel_id].true_disp,
                         ],
                     )
 

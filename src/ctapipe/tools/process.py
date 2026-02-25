@@ -5,6 +5,8 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 # pylint: disable=W0201
 import sys
 
+import astropy.units as u
+import numpy as np
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
@@ -30,6 +32,7 @@ from ..io.hdf5dataformat import (
     DL2_EVENT_STATISTICS_GROUP,
 )
 from ..reco import Reconstructor, ShowerProcessor
+from ..reco.preprocessing import horizontal_to_telescope
 from ..utils import EventTypeFilter
 
 COMPATIBLE_DATALEVELS = [
@@ -361,6 +364,8 @@ class ProcessorTool(Tool):
 
             if self.should_compute_dl1:
                 self.process_images(event)
+
+
 
             if self.should_compute_muon_parameters:
                 self.process_muons(event)
