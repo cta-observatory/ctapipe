@@ -1,0 +1,1 @@
+Fix typos in ``README.rst`` and ``ctapipe.image.hillas.py``.
