@@ -10,10 +10,10 @@ import astropy.units as u
 import numpy as np
 from astropy.table import QTable
 from scipy.stats import laplace, laplace_asymmetric
-from traitlets import validate
 
+from ..coordinates import TelescopeFrame
 from ..core import TelescopeComponent
-from ..core.traits import Float, List, TraitError
+from ..core.traits import FloatTelescopeParameter
 from ..utils import get_table_dataset
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
@@ -277,22 +277,29 @@ class PSFModel(TelescopeComponent):
     Base component to describe image distortion due to the optics of the different cameras.
     """
 
-    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
     @abstractmethod
-    def pdf(self, x, y, x0, y0) -> np.ndarray:
+    def pdf(self, tel_id, lon, lat, lon0, lat0) -> np.ndarray:
         """
-        Calculates the value of the psf at a given location
+        Calculates the value of the psf at a given location.
 
         Parameters
         ----------
-        x : u.Quantity[length]
-            x-coordinate of the point on the focal plane where the psf is evaluated
-        y : u.Quantity[length]
-            y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : u.Quantity[length]
-            x-coordinate of the point source on the focal plane
-        y0 : u.Quantity[length]
-            y-coordinate of the point source on the focal plane
+        tel_id : int
+            ID of the telescope for which the PSF is evaluated
+        lon : u.Quantity[angle]
+            longitude coordinate of the point on the focal plane where the psf is evaluated
+        lat : u.Quantity[angle]
+            latitude coordinate of the point on the focal plane where the psf is evaluated
+        lon0 : u.Quantity[angle]
+            longitude coordinate of the point source on the focal plane
+        lat0 : u.Quantity[angle]
+            latitude coordinate of the point source on the focal plane
         Returns
         ----------
         psf : np.ndarray
@@ -321,27 +328,18 @@ class ComaPSFModel(PSFModel):
 
     .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
-    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis.
-    Their detailed description is provided in the attributes section.
+    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis,
+    configured via telescope traitlets:
 
-    Attributes
-    ----------
-    asymmetry_params : list
-        Describes the dependency of the PSF on the distance to the center of the camera.
-        Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
-        of the PSF as a function of the distance r to the optical axis.
+    - Asymmetry parameters (:math:`K`):
 
         .. math:: K(r) = 1 - c_0 \tanh(c_1 r) - c_2 r
 
-    radial_scale_params : list
-        Describes the dependency of the radial scale on the distance to the center of the camera.
-        Used to calculate width Sr of the asymmetric radial Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+    - Radial scale parameters (:math:`S_R`):
 
         .. math:: S_{R}(r) = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
-    phi_scale_params : list
-        Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the center of the camera.
-        Used to calculate the width Sf of the polar Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+    - Polar scale parameters (:math:`S_\phi`):
 
         .. math:: S_{\phi}(r) = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
 
@@ -355,89 +353,157 @@ class ComaPSFModel(PSFModel):
     For reference, see :cite:p:`startracker`
     """
 
-    asymmetry_params = List(
-        help=(
-            "Describes the dependency of the PSF on the distance "
-            "to the center of the camera. Used to calculate a PDF "
-            "asymmetry parameter :math:`K` of the asymmetric radial Laplacian "
-            "of the PSF as a function of the distance r to the optical axis"
+    asymmetry_max = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Maximum asymmetry parameter K at large distance from the optical axis (:math:`c_0`)",
+    ).tag(config=True)
+
+    asymmetry_decay_rate = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Tanh saturation rate of the asymmetry parameter K with distance to the optical axis (:math:`c_1`)",
+    ).tag(config=True)
+
+    asymmetry_linear_term = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Linear term for the asymmetry parameter K with distance to the optical axis (:math:`c_2`)",
+    ).tag(config=True)
+
+    radial_scale_offset = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Offset of the radial scale :math:`S_R` (:math:`b_1`)",
+    ).tag(config=True)
+
+    radial_scale_linear = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Linear growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_2`)",
+    ).tag(config=True)
+
+    radial_scale_quadratic = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Quadratic growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_3`)",
+    ).tag(config=True)
+
+    radial_scale_cubic = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Cubic growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_4`)",
+    ).tag(config=True)
+
+    polar_scale_amplitude = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Initial width :math:`S_\phi` at the center of the camera (r=0) (:math:`a_1`)",
+    ).tag(config=True)
+
+    polar_scale_decay = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Exponential decay of the polar scale :math:`S_\phi` with distance to the optical axis (:math:`a_2`)",
+    ).tag(config=True)
+
+    polar_scale_offset = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Offset controlling width :math:`S_\phi` at large distance from the optical axis (:math:`a_3`)",
+    ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """Initialize the ComaPSFModel component and check for missing configuration parameters."""
+
+        super().__init__(
+            subarray=subarray,
+            config=config,
+            parent=parent,
+            **kwargs,
         )
-    ).tag(config=True)
+        # Get the pixel size in degrees for the given telescopes.
+        self.pixel_width = {}
+        for tel_id in self.subarray.tels:
+            cam_geom = self.subarray.tel[tel_id].camera.geometry
+            # Transform camera geometry to telescope frame if not already in that frame
+            if cam_geom.frame != TelescopeFrame:
+                cam_geom = cam_geom.transform_to(TelescopeFrame())
 
-    radial_scale_params = List(
-        help=(
-            "Describes the dependency of the radial scale on the "
-            "distance to the center of the camera. Used to calculate "
-            "width :math:`S_R` of the asymmetric radial Laplacian in the PSF "
-            "as a function of the distance r to the optical axis"
+            # pixel width is only used to determine a useful distance measure to the camera center
+            self.pixel_width[tel_id] = cam_geom.pixel_width[0].to_value(u.deg)
+
+        # Check for missing config parameters and raise an error if any are missing.
+        missing_config_parameters = []
+        config_parameter_names = [
+            name
+            for name, trait in self.class_traits().items()
+            if isinstance(trait, FloatTelescopeParameter)
+        ]
+        for name in config_parameter_names:
+            config_parameter = getattr(self, name)
+            if config_parameter.tel[self.subarray.tel_ids[0]] is None:
+                missing_config_parameters.append(name)
+
+        if missing_config_parameters:
+            raise ValueError(
+                f"Missing ComaPSFModel configuration parameters: {missing_config_parameters}"
+            )
+
+    def _k(self, tel_id, r):
+        c0 = self.asymmetry_max.tel[tel_id]
+        c1 = self.asymmetry_decay_rate.tel[tel_id]
+        c2 = self.asymmetry_linear_term.tel[tel_id]
+        return 1 - c0 * np.tanh(c1 * r) - c2 * r
+
+    def _s_r(self, tel_id, r):
+        return np.polyval(
+            [
+                self.radial_scale_cubic.tel[tel_id],
+                self.radial_scale_quadratic.tel[tel_id],
+                self.radial_scale_linear.tel[tel_id],
+                self.radial_scale_offset.tel[tel_id],
+            ],
+            r,
         )
-    ).tag(config=True)
 
-    phi_scale_params = List(
-        help=(
-            "Describes the dependency of the polar scale on the "
-            "distance to the center of the camera. Used to calculate "
-            r"the width :math:`S_\phi` of the polar Laplacian in the PSF "
-            "as a function of the distance r to the optical axis"
-        )
-    ).tag(config=True)
-
-    pixel_width = Float(
-        default_value=0.05,
-        help="Width of a pixel of the camera in meters",
-    ).tag(config=True)
-
-    def _k(self, r):
-        c1, c2, c3 = self.asymmetry_params
-        return 1 - c1 * np.tanh(c2 * r) - c3 * r
-
-    def _s_r(self, r):
-        return np.polyval(self.radial_scale_params[::-1], r)
-
-    def _s_phi(self, r):
-        a1, a2, a3 = self.phi_scale_params
+    def _s_phi(self, tel_id, r):
+        a1 = self.polar_scale_amplitude.tel[tel_id]
+        a2 = self.polar_scale_decay.tel[tel_id]
+        a3 = self.polar_scale_offset.tel[tel_id]
         return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
-    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
-    def pdf(self, x, y, x0, y0) -> np.ndarray:
-        x, y, x0, y0 = all_to_value(x, y, x0, y0, unit=u.m)
-        r, phi = _cartesian_to_polar(x, y)
-        r0, phi0 = _cartesian_to_polar(x0, y0)
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
+    def pdf(self, tel_id, lon, lat, lon0, lat0):
+        # Convert all inputs to degrees for the calculations
+        lon, lat, lon0, lat0 = all_to_value(lon, lat, lon0, lat0, unit=u.deg)
 
-        k = self._k(r0)
-        s_r = self._s_r(r0)
-        s_phi = self._s_phi(r0)
+        r, phi = _cartesian_to_polar(lon, lat)
+        r0, phi0 = _cartesian_to_polar(lon0, lat0)
+
+        # Evaluate PSF parameters at source position
+        k = self._k(tel_id, r0)
+        s_r = self._s_r(tel_id, r0)
+        s_phi = self._s_phi(tel_id, r0)
 
         radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
         polar_pdf = laplace.pdf(phi, phi0, s_phi)
 
-        # Phi is not defined at the center
-        at_center = np.isclose(r0, 0, atol=self.pixel_width)
+        at_center = np.isclose(r0, 0, atol=self.pixel_width[tel_id])
         polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
+
         # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
-        chord_length = min(6 * self.pixel_width, 0.5 * r0)
+        chord_length = min(6 * self.pixel_width[tel_id], 0.5 * r0)
+
         if r0 != 0:
             dphi = np.arcsin(chord_length / (2 * r0))
             polar_pdf[phi < phi0 - dphi] = 0
             polar_pdf[phi > phi0 + dphi] = 0
 
         return radial_pdf * polar_pdf
-
-    @validate("asymmetry_params")
-    def _check_asymmetry_params(self, proposal):
-        if len(proposal["value"]) != 3:
-            raise TraitError("asymmetry_params needs to have length 3")
-        return proposal["value"]
-
-    @validate("radial_scale_params")
-    def _check_radial_scale_params(self, proposal):
-        if len(proposal["value"]) != 4:
-            raise TraitError("radial_scale_params needs to have length 4")
-        return proposal["value"]
-
-    @validate("phi_scale_params")
-    def _check_phi_scale_params(self, proposal):
-        if len(proposal["value"]) != 3:
-            raise TraitError("phi_scale_params needs to have length 3")
-        return proposal["value"]
