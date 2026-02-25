@@ -12,7 +12,7 @@ from astropy.units import Quantity
 
 from ctapipe.compat import COPY_IF_NEEDED
 
-from ..core import Component
+from ..core import Component, Container
 from ..instrument import SubarrayDescription
 from ..time import ctao_high_res_to_time, time_to_ctao_high_res
 
