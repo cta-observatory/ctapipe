@@ -11,19 +11,23 @@ from ctapipe.instrument.optics import PSFModel
 
 @pytest.fixture(scope="session")
 def coma_psf(example_subarray):
+    lst_plate_scale = np.rad2deg(
+        1.0 / example_subarray.tel[1].optics.equivalent_focal_length.to_value(u.m)
+    )
+
     psf = PSFModel.from_name(
         "ComaPSFModel",
         subarray=example_subarray,
         asymmetry_max=0.5,
-        asymmetry_decay_rate=10,
-        asymmetry_linear_term=0.15,
+        asymmetry_decay_rate=10 / lst_plate_scale,
+        asymmetry_linear_term=0.15 / lst_plate_scale,
         radial_scale_offset=0.015,
-        radial_scale_linear=-0.1,
-        radial_scale_quadratic=0.06,
-        radial_scale_cubic=0.03,
+        radial_scale_linear=-0.1 / lst_plate_scale,
+        radial_scale_quadratic=0.06 / lst_plate_scale**1,
+        radial_scale_cubic=0.03 / lst_plate_scale**2,
         polar_scale_amplitude=0.25,
-        polar_scale_decay=7.5,
-        polar_scale_offset=0.02,
+        polar_scale_decay=7.5 / lst_plate_scale,
+        polar_scale_offset=0.02 * lst_plate_scale,
     )
     return psf
 
