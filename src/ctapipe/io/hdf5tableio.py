@@ -422,7 +422,8 @@ class HDF5TableWriter(TableWriter):
         table_group, table_basename = split_h5path(table_path)
 
         for container in containers:
-            meta.update(container.meta)  # copy metadata from container
+            if isinstance(container, Container):
+                meta.update(container.meta)  # copy metadata from container
 
         if table_path not in self.h5file:
             table = self.h5file.create_table(
@@ -452,6 +453,9 @@ class HDF5TableWriter(TableWriter):
         row = table.row
 
         for container in containers:
+            if not isinstance(container, Container):
+                continue
+
             selected_fields = filter(
                 lambda kv: kv[0] in table.colnames,
                 container.items(add_prefix=self.add_prefix),
