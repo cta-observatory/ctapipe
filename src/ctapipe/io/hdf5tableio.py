@@ -377,6 +377,9 @@ class HDF5TableWriter(TableWriter):
 
         # create pytables schema description for the given container
         for container in containers:
+            if not isinstance(container, Container):
+                continue
+
             container.validate()  # ensure the data are complete
 
             it = zip(

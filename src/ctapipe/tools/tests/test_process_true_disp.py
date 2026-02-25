@@ -40,7 +40,7 @@ def test_true_disp_calculation(tmp_path, dl1_image_file):
         first_tel_group = list(sim_params_group._v_children.keys())[0]
         
     true_params = pd.read_hdf(
-        output_file, f"{SIMULATION_PARAMETERS_GROUP}/{first_tel_group}"
+        output_file, f"simulation/event/telescope/images/{first_tel_group}"
     )
 
     assert "true_disp" in true_params.columns

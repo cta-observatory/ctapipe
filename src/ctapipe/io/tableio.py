@@ -138,6 +138,9 @@ class TableWriter(Component, metaclass=ABCMeta):
 
             for column_regexp, transform in column_regexp_dict.items():
                 for container in containers:
+                    if not isinstance(container, Container):
+                        continue
+
                     for col_name, _ in container.items(add_prefix=self.add_prefix):
                         if re.fullmatch(column_regexp, col_name):
                             self.log.debug(
