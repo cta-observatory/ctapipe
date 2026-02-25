@@ -422,7 +422,7 @@ class ComaPSFModel(PSFModel):
             parent=parent,
             **kwargs,
         )
-        # Get the pixel size in radians for the given telescopes.
+        # Get the pixel size in degrees for the given telescopes.
         self.pixel_width = {}
         for tel_id in self.subarray.tels:
             cam_geom = self.subarray.tel[tel_id].camera.geometry
@@ -431,7 +431,7 @@ class ComaPSFModel(PSFModel):
                 cam_geom = cam_geom.transform_to(TelescopeFrame())
 
             # pixel width is only used to determine a useful distance measure to the camera center
-            self.pixel_width[tel_id] = cam_geom.pixel_width[0].to_value(u.rad)
+            self.pixel_width[tel_id] = cam_geom.pixel_width[0].to_value(u.deg)
 
         # Check for missing config parameters and raise an error if any are missing.
         missing_config_parameters = []
@@ -480,8 +480,8 @@ class ComaPSFModel(PSFModel):
         lat0=u.deg,
     )
     def pdf(self, tel_id, lon, lat, lon0, lat0):
-        # Convert all inputs to radians for the calculations
-        lon, lat, lon0, lat0 = all_to_value(lon, lat, lon0, lat0, unit=u.rad)
+        # Convert all inputs to degrees for the calculations
+        lon, lat, lon0, lat0 = all_to_value(lon, lat, lon0, lat0, unit=u.deg)
 
         r, phi = _cartesian_to_polar(lon, lat)
         r0, phi0 = _cartesian_to_polar(lon0, lat0)
