@@ -1,0 +1,7 @@
+Add cached telescope EarthLocations and service data loading to SubarrayDescription.
+
+* Add ``SubarrayDescription.tel_earth_locations`` property that caches telescope
+  positions as ``EarthLocation`` objects, avoiding expensive repeated conversions.
+* Add ``SubarrayDescription.from_service_data()`` classmethod to construct
+  subarrays from service data files (array element IDs, positions, and subarray
+  definitions). This also adds mapping between the array elements IDs and CTAO official telescope names (e.g. LSTN-001).
