@@ -1,3 +1,17 @@
+import astropy.units as u
+import numpy as np
+
+
+def _default_column_for_length(default, n_rows):
+    """Create a length-matching column filled with `default` (unit-safe)."""
+    if n_rows == 0:
+        if isinstance(default, u.Quantity):
+            return u.Quantity([], unit=default.unit)
+        return np.full(0, default)
+
+    return default
+
+
 def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
     """
     Fill column descriptions and default values into table for container
@@ -17,17 +31,17 @@ def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
     if prefix is None:
         prefix = container.default_prefix
 
+    n_rows = len(table)
+    col_prefix = f"{prefix}_tel_" if add_tel_prefix else f"{prefix}_"
+
     for name, field in container.fields.items():
         if add_tel_prefix and name == "telescopes":
             continue
 
-        if add_tel_prefix:
-            colname = f"{prefix}_tel_{name}"
-        else:
-            colname = f"{prefix}_{name}"
+        colname = f"{col_prefix}{name}"
 
         if colname not in table.colnames and field.default is not None:
-            table[colname] = field.default
+            table[colname] = _default_column_for_length(field.default, n_rows)
 
         if colname in table.colnames:
             table[colname].description = field.description
