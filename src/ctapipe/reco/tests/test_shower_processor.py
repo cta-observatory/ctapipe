@@ -107,3 +107,12 @@ def test_shower_processor_geometry(
         assert not isfinite(DL2a.core_y)
         assert not DL2a.is_valid
         assert not isfinite(DL2a.average_intensity)
+
+
+def test_shower_processor_requires_atmosphere_profile_for_impact(example_subarray):
+    with pytest.raises(TypeError, match="ImPACTReconstructor"):
+        ShowerProcessor(
+            subarray=example_subarray,
+            atmosphere_profile=None,
+            reconstructor_types=["ImPACTReconstructor"],
+        )

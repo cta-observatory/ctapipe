@@ -69,7 +69,7 @@ class ShowerProcessor(Component):
         self.atmosphere_profile = atmosphere_profile
         if (
             atmosphere_profile is None
-            and "ImPACTReconstrcutor" in self.reconstructor_types
+            and "ImPACTReconstructor" in self.reconstructor_types
         ):
             raise TypeError(
                 "Argument 'atmosphere_profile' can not be 'None' if 'ImPACTReconstructor' is in 'reconstructor_types'"
