@@ -9,6 +9,7 @@ from astropy.coordinates import SkyCoord
 from astropy.coordinates.earth import EarthLocation
 
 from ctapipe.coordinates import TelescopeFrame
+from ctapipe.exceptions import UnknownSubarray
 from ctapipe.instrument import (
     CameraDescription,
     OpticsDescription,
@@ -340,3 +341,230 @@ def test_tel_earth_locations(example_subarray):
     # Verify it's cached (same object returned)
     earth_locs_2 = example_subarray.tel_earth_locations
     assert earth_locs is earth_locs_2
+
+
+def test_from_service_data_complete(svc_path):
+    """Test loading SubarrayDescription from complete service data fixture"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+
+    # Suppress expected warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+
+        # Load subarray ID 1 (LST subarray)
+        subarray = SubarrayDescription.from_service_data(subarray_id=1)
+
+    # Verify basic properties
+    assert isinstance(subarray, SubarrayDescription)
+    assert subarray.name == "CTAO-N LST Subarray"
+    assert subarray.n_tels == 4  # 4 LSTs in test data
+    assert len(subarray.tel_ids) == 4
+
+    # Verify reference location
+    assert isinstance(subarray.reference_location, EarthLocation)
+    assert subarray.reference_location.geodetic.lon.value == pytest.approx(
+        -17.8920, abs=0.01
+    )
+    assert subarray.reference_location.geodetic.lat.value == pytest.approx(
+        28.7569, abs=0.01
+    )
+
+    # Verify all telescopes have proper descriptions
+    for tel_id in [1, 2, 3, 4]:
+        assert tel_id in subarray.tel
+        tel_desc = subarray.tel[tel_id]
+        assert isinstance(tel_desc, TelescopeDescription)
+        assert tel_desc.camera is not None
+        # Note: Camera name case may vary between different test fixture files
+        # (e.g., "LSTCam" from simtel files vs "LSTcam" from FITS files)
+        assert tel_desc.camera.name.lower() == "lstcam"
+        assert tel_desc.optics is not None
+        assert tel_desc.optics.name == "LSTN"
+        assert tel_desc.name.startswith("LSTN-")
+
+    # Test mixed subarray (LSTs + MSTs)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+
+        subarray_mixed = SubarrayDescription.from_service_data(subarray_id=3)
+
+    assert subarray_mixed.name == "CTAO-N Test Array"
+    assert subarray_mixed.n_tels == 4  # 2 LSTs + 2 MSTs
+    assert len(subarray_mixed.telescope_types) == 2  # LST and MST
+    assert len(subarray_mixed.camera_types) == 2  # LST and Nectar cameras
+
+    # Verify LSTs
+    lst_ids = [1, 2]
+    for tel_id in lst_ids:
+        # Note: Camera name case may vary between different test fixture files
+        assert subarray_mixed.tel[tel_id].camera.name.lower() == "lstcam"
+        assert subarray_mixed.tel[tel_id].optics.name == "LSTN"
+
+    # Verify MSTs
+    mst_ids = [5, 6]
+    for tel_id in mst_ids:
+        assert subarray_mixed.tel[tel_id].camera.name == "NectarCam"
+        assert subarray_mixed.tel[tel_id].optics.name == "MSTN"
+
+
+def test_from_service_data_unknown_subarray(svc_path):
+    """Test that loading an unknown subarray ID raises an error"""
+    with pytest.raises(UnknownSubarray, match="Subarray ID 999 not found"):
+        SubarrayDescription.from_service_data(subarray_id=999)
+
+
+def test_from_service_data_aeid_specific(svc_path_aeid_specific):
+    """Test loading from service data with ae_id-specific files (no deduplication)"""
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+
+        subarray = SubarrayDescription.from_service_data(subarray_id=1)
+
+    # Verify basic properties
+    assert isinstance(subarray, SubarrayDescription)
+    assert subarray.name == "CTAO-N Test Subarray"
+    assert subarray.n_tels == 2
+
+    # Telescope 001 should have ae_id-specific optics (001.optics.ecsv)
+    tel_001 = subarray.tel[1]
+    assert tel_001.optics.name == "LSTN-01-Custom"
+    # Verify custom parameters from 001.optics.ecsv
+    assert u.isclose(tel_001.optics.effective_focal_length, 28.5 * u.m)
+    assert u.isclose(tel_001.optics.mirror_area, 390.0 * u.m**2)
+
+    # Telescope 002 should fall back to shared telescope-type files (LSTN.optics.ecsv)
+    tel_002 = subarray.tel[2]
+    assert tel_002.optics.name == "LSTN"
+    # Verify default parameters from LSTN.optics.ecsv
+    assert u.isclose(tel_002.optics.effective_focal_length, 28.3 * u.m)
+    assert u.isclose(tel_002.optics.mirror_area, 386.0 * u.m**2)
+
+    # Both should have the same camera (LSTcam)
+    assert tel_001.camera.name.lower() == "lstcam"
+    assert tel_002.camera.name.lower() == "lstcam"
+
+    assert tel_002.camera.name.lower() == "lstcam"
+
+
+def test_service_data_roundtrip(tmp_path, monkeypatch):
+    """Test that we can write to service data format and read it back"""
+    import os
+    import warnings
+
+    from ctapipe.core.provenance import MissingReferenceMetadata
+    from ctapipe.instrument.warnings import FromNameWarning
+    from ctapipe.io import EventSource
+    from ctapipe.tools.dump_instrument import DumpInstrumentTool
+
+    # Use a prod5 simulation file to create a subarray
+    from ctapipe.utils import get_dataset_path
+
+    input_file = get_dataset_path("gamma_prod5.simtel.zst")
+
+    # Load the original subarray from simulation file
+    with EventSource(input_file) as source:
+        original_subarray = source.subarray
+
+    # Write to service data format using the tool
+    tool = DumpInstrumentTool()
+    tool.subarray = original_subarray
+    tool.infile = input_file
+    tool.outdir = tmp_path
+    tool.format = "service"
+    tool.write_service_data(subarray_id=1, site="CTAO-South")
+
+    service_dir = tmp_path / "instrument"
+
+    # Set CTAPIPE_SVC_PATH to point to the service data directory
+    # With ae_id-based structure, we need to add each ae_id directory to the path
+    array_elements_dir = service_dir / "array-elements"
+    positions_dir = service_dir / "positions"
+    search_paths = [str(service_dir), str(positions_dir)]
+    for tel_id in original_subarray.tel_ids:
+        ae_id_str = f"{tel_id:03d}"
+        search_paths.append(str(array_elements_dir / ae_id_str))
+
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
+
+    # Read back from service data format
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
+        warnings.filterwarnings("ignore", category=FromNameWarning)
+        loaded_subarray = SubarrayDescription.from_service_data(subarray_id=1)
+
+    # Compare the original and loaded subarrays
+    assert loaded_subarray.n_tels == original_subarray.n_tels
+    assert set(loaded_subarray.tel_ids) == set(original_subarray.tel_ids)
+    assert len(loaded_subarray.telescope_types) == len(
+        original_subarray.telescope_types
+    )
+    assert len(loaded_subarray.camera_types) == len(original_subarray.camera_types)
+    assert len(loaded_subarray.optics_types) == len(original_subarray.optics_types)
+
+    # Check reference location (allow some tolerance due to round-trip precision)
+    assert u.isclose(
+        loaded_subarray.reference_location.geodetic.lon,
+        original_subarray.reference_location.geodetic.lon,
+        atol=0.01 * u.deg,
+    )
+    assert u.isclose(
+        loaded_subarray.reference_location.geodetic.lat,
+        original_subarray.reference_location.geodetic.lat,
+        atol=0.01 * u.deg,
+    )
+    assert u.isclose(
+        loaded_subarray.reference_location.geodetic.height,
+        original_subarray.reference_location.geodetic.height,
+        atol=1 * u.m,
+    )
+
+    # Check telescope positions
+    for tel_id in original_subarray.tel_ids:
+        assert tel_id in loaded_subarray.tel
+        orig_pos = original_subarray.positions[tel_id]
+        loaded_pos = loaded_subarray.positions[tel_id]
+        assert u.allclose(orig_pos, loaded_pos, atol=0.01 * u.m)
+
+    # Check optics descriptions
+    for tel_id in original_subarray.tel_ids:
+        orig_optics = original_subarray.tel[tel_id].optics
+        loaded_optics = loaded_subarray.tel[tel_id].optics
+
+        assert orig_optics.size_type == loaded_optics.size_type
+        assert orig_optics.reflector_shape == loaded_optics.reflector_shape
+        assert orig_optics.n_mirrors == loaded_optics.n_mirrors
+        assert u.isclose(
+            orig_optics.equivalent_focal_length,
+            loaded_optics.equivalent_focal_length,
+            rtol=0.01,
+        )
+        assert u.isclose(
+            orig_optics.effective_focal_length,
+            loaded_optics.effective_focal_length,
+            rtol=0.01,
+        )
+        assert u.isclose(orig_optics.mirror_area, loaded_optics.mirror_area, rtol=0.01)
+
+    # Check camera geometry
+    for tel_id in original_subarray.tel_ids:
+        orig_camera = original_subarray.tel[tel_id].camera
+        loaded_camera = loaded_subarray.tel[tel_id].camera
+
+        assert orig_camera.geometry.n_pixels == loaded_camera.geometry.n_pixels
+        assert np.allclose(
+            orig_camera.geometry.pix_x.value, loaded_camera.geometry.pix_x.value
+        )
+        assert np.allclose(
+            orig_camera.geometry.pix_y.value, loaded_camera.geometry.pix_y.value
+        )
