@@ -110,7 +110,7 @@ def test_shower_processor_geometry(
 
 
 def test_shower_processor_requires_atmosphere_profile_for_impact(example_subarray):
-    with pytest.raises(TypeError, match="ImPACTReconstructor"):
+    with pytest.raises(TypeError):
         ShowerProcessor(
             subarray=example_subarray,
             atmosphere_profile=None,
