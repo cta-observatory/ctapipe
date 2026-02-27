@@ -136,6 +136,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     spe = 0.6  # Also hard code single p.e. distribution width
 
     property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
+    needs_atmosphere_profile = True
 
     def __init__(
         self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
