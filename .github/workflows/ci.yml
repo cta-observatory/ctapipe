@@ -44,7 +44,7 @@ jobs:
             os: ubuntu-24.04
             python-version: "3.12"
             install-method: mamba
-            extras: tests,all
+            extras: tests,all,impact
             extra-args: ["oldest-deps"]
             pytest-markers: "-m 'not vizier'"
 
@@ -60,7 +60,7 @@ jobs:
             python-version: "3.12"
             install-method: pip
             extra-args: ["codecov"]
-            extras: tests,all
+            extras: tests,all,impact
 
           - name: Linux (3.13, mamba)
             os: ubuntu-24.04
