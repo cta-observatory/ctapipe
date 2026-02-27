@@ -78,6 +78,8 @@ class Reconstructor(TelescopeComponent):
     #: ctapipe_reco entry points may provide Reconstructor implementations
     plugin_entry_point = "ctapipe_reco"
 
+    needs_atmosphere_profile = False
+
     n_jobs = Integer(
         default_value=None,
         allow_none=True,

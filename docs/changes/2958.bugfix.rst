@@ -1,1 +1,0 @@
-Fix typo in shower_processor resulting in not properly raising a TypeError.
