@@ -92,7 +92,7 @@ class Reconstructor(TelescopeComponent):
     @property
     @abstractmethod
     def needs_atmosphere_profile(self) -> bool:
-        """Whether this reconstructor requires 'atmosphere_profile'."""
+        """Whether this reconstructor requires ``atmosphere_profile``."""
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
