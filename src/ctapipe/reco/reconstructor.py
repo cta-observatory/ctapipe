@@ -89,6 +89,11 @@ class Reconstructor(TelescopeComponent):
         self.quality_query = StereoQualityQuery(parent=self)
         self.atmosphere_profile = atmosphere_profile
 
+    @property
+    @abstractmethod
+    def needs_atmosphere_profile(self) -> bool:
+        """Whether this reconstructor requires ``atmosphere_profile``."""
+
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
         """

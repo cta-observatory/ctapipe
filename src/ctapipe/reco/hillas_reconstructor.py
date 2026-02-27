@@ -107,6 +107,8 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     """
 
+    needs_atmosphere_profile = False
+
     def __init__(
         self, subarray: SubarrayDescription, atmosphere_profile=None, **kwargs
     ):
