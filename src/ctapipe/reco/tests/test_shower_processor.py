@@ -110,6 +110,8 @@ def test_shower_processor_geometry(
 
 
 def test_shower_processor_requires_atmosphere_profile_for_impact(example_subarray):
+    pytest.importorskip("iminuit")
+
     with pytest.raises(TypeError):
         ShowerProcessor(
             subarray=example_subarray,
