@@ -37,7 +37,11 @@ from .hillas import (
 from .image_processor import ImageProcessor
 from .invalid_pixels import InvalidPixelHandler, NeighborAverage
 from .leakage import leakage_parameters
-from .modifications import ImageModifier
+from .modifications import (
+    ImageModifier,
+    NoiseEventTypeFilter,
+    WaveformModifier,
+)
 from .morphology import (
     brightest_island,
     largest_island,
@@ -69,6 +73,8 @@ from .statistics import descriptive_statistics
 from .timing import timing_parameters
 
 __all__ = [
+    "NoiseEventTypeFilter",
+    "WaveformModifier",
     "ImageModifier",
     "ImageProcessor",
     "hillas_parameters",

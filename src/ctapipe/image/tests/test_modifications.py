@@ -1,7 +1,65 @@
 import numpy as np
 
-from ctapipe.image import modifications
+from ctapipe.image import WaveformModifier, modifications
 from ctapipe.instrument import CameraGeometry
+from ctapipe.io import EventSource
+from ctapipe.utils import get_dataset_path
+
+
+def test_waveform_modifier():
+    """
+    Test the addition of noise on R1 waveforms
+    """
+
+    nsb_only_file = get_dataset_path("only_nsb_LaPalma_Alpha__nsb_x0.25.simtel.zst")
+
+    with EventSource(nsb_only_file, skip_calibration_events=False) as source:
+        wf_mod = WaveformModifier(
+            subarray=source.subarray, nsb_file=nsb_only_file, nsb_level=3
+        )
+        original_wfs = dict()
+        modified_wfs = dict()
+
+        # We test adding the noise on the same file from which the noise waveforms
+        # are taken:
+        for event in source:
+            for tel_id in event.trigger.tels_with_trigger:
+                if tel_id in original_wfs:
+                    original_wfs[tel_id].append(event.r1.tel[tel_id].waveform)
+                else:
+                    original_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
+
+                if tel_id in modified_wfs:
+                    modified_wfs[tel_id].append(
+                        wf_mod(tel_id, event.r1.tel[tel_id].waveform)
+                    )
+                else:
+                    modified_wfs[tel_id] = [
+                        wf_mod(tel_id, event.r1.tel[tel_id].waveform)
+                    ]
+
+    for tel_id in original_wfs:
+        original_wfs[tel_id] = np.array(original_wfs[tel_id])
+        modified_wfs[tel_id] = np.array(modified_wfs[tel_id])
+
+    # Check increase of std dev (mean over telescopes of same kind) of the
+    # fully integrated waveforms:
+    for gain in range(2):
+        # LSTS 1-4, MSTs 5-13
+        for tel_list in [np.arange(1, 5), np.arange(5, 14)]:
+            a = np.mean(
+                [
+                    np.sum(original_wfs[tel_id][:, gain], axis=2).std()
+                    for tel_id in tel_list
+                ]
+            )
+            b = np.mean(
+                [
+                    np.sum(modified_wfs[tel_id][:, gain], axis=2).std()
+                    for tel_id in tel_list
+                ]
+            )
+            assert np.allclose(b / a, 2.14, atol=1e-2)
 
 
 def test_add_noise():
