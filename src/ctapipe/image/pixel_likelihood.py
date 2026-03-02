@@ -21,10 +21,6 @@ neg_log_likelihood_numeric(image, prediction, spe, ped)
 neg_log_likelihood(image, prediction, spe, ped)
 59.9 µs per loop
 
-TODO:
-=====
-- Need to implement more tests, particularly checking for error states
-- Additional terms may be useful to add to the likelihood
 """
 
 import numpy as np
