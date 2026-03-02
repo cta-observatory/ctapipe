@@ -31,20 +31,22 @@ class SoftwareTrigger(TelescopeComponent):
     With the default settings, this class is a no-op. To get the correct behavior
     for CTA simulations, use the following configuration:
 
-    ..
-        SoftwareTrigger:
-            min_telescopes: 2
-            min_telescopes_of_type:
-                - ["type", "*", 0]
-                - ["type", "LST*", 2]
+    .. code-block:: yaml
+
+       SoftwareTrigger:
+           min_telescopes: 2
+           min_telescopes_of_type:
+               - ["type", "*", 0]
+               - ["type", "LST*", 2]
 
     With this class it is also possible to filter for specific telescope event types,
     e.g. to analyze the RANDOM_MONO or MUON tagged telescope events in isolation:
 
-    ..
-        SoftwareTrigger:
-            allowed_telescope_event_types:
-                - "RANDOM_MONO"
+    .. code-block:: yaml
+
+       SoftwareTrigger:
+           allowed_telescope_event_types:
+               - "RANDOM_MONO"
     """
 
     min_telescopes = Integer(
