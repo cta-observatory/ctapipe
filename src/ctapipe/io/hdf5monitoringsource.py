@@ -456,8 +456,7 @@ class HDF5MonitoringSource(MonitoringSource):
 
         alt, az = self._pointing_interpolator(tel_id, time)
         # Get individual telescope location for proper AltAz frame
-        tel_index = self.subarray.tel_index_array[tel_id]
-        location = self.subarray.tel_coords[tel_index].to_earth_location()
+        location = self.subarray.tel_earth_locations[tel_id]
         # This is a naive SkyCoord frame that requires meteorological data
         # for proper transformations to the celestial coordinates.
         return SkyCoord(
