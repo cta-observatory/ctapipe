@@ -10,6 +10,7 @@ import astropy
 import astropy.units as u
 import numpy as np
 import tables
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import Row
 from astropy.utils.decorators import lazyproperty
 
@@ -452,8 +453,6 @@ class HDF5MonitoringSource(MonitoringSource):
         astropy.coordinates.SkyCoord
             Sky coordinate with altitude and azimuth in AltAz frame
         """
-        from astropy.coordinates import AltAz, SkyCoord
-
         alt, az = self._pointing_interpolator(tel_id, time)
         # Get individual telescope location for proper AltAz frame
         location = self.subarray.tel_earth_locations[tel_id]
@@ -492,9 +491,8 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         # For simulation, use first entry if time is None
         if self.is_simulation and time is None:
-            from astropy.time import Time
-
-            time = Time(self._camera_coefficients[tel_id]["time"][0], format="mjd")
+            first_row = self._camera_coefficients[tel_id][0]
+            return dict(zip(first_row.colnames, first_row))
         return self._get_table_rows(
             self._camera_coefficients[tel_id], time, timestamp_tolerance
         )
