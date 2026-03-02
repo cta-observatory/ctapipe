@@ -177,6 +177,8 @@ class DumpInstrumentTool(Tool):
 
         from astropy.table import QTable
 
+        from ctapipe.io import metadata as meta
+
         sub = self.subarray
         self.outdir.mkdir(exist_ok=True, parents=True)
 
@@ -194,23 +196,57 @@ class DumpInstrumentTool(Tool):
             else:
                 site = "CTAO-South"
 
+        # Build reference metadata to embed in instrument.meta.json
+        activity = Provenance().current_activity
+        activity_meta = (
+            meta.Activity.from_provenance(activity.provenance)
+            if activity is not None
+            else meta.Activity()
+        )
+        instrument_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Instrument description for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                data_model_name="CTAO Service Data",
+                data_model_version=sub.CURRENT_SERVICE_DATA_VERSION,
+                data_model_url="",
+                format="json",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(
+                site=site,
+                class_="Subarray",
+            ),
+        )
+
         # Create instrument.meta.json
-        instrument_meta = {
-            "version": sub.CURRENT_SERVICE_DATA_VERSION,
-            "format": "CTAO Service Data",
-            "description": f"Instrument description for {sub.name}",
-        }
+        instrument_meta = {"metadata": instrument_reference.to_dict()}
         meta_file = self.outdir / "instrument.meta.json"
         with open(meta_file, "w") as f:
             json.dump(instrument_meta, f, indent=2)
         Provenance().add_output_file(meta_file, "ServiceDataMeta")
 
         # Create array-element-ids.json
+        ae_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Array element IDs for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                data_model_name="ctao.common.identifiers.array_elements",
+                data_model_version="2.0",
+                data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+                format="json",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(site=site),
+        )
         array_element_ids = {
-            "metadata": {
-                "$schema": "https://gitlab.cta-observatory.org/cta-computing/common/identifiers/-/raw/main/array-element-ids.schema.json",
-                "version": "1.0",
-            },
+            "metadata": ae_reference.to_dict(),
             "array_elements": [
                 {"id": int(tel_id), "name": tel.name}
                 for tel_id, tel in sub.tels.items()
@@ -222,11 +258,23 @@ class DumpInstrumentTool(Tool):
         Provenance().add_output_file(ae_ids_file, "ServiceDataArrayElements")
 
         # Create subarray-ids.json
+        subarray_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Subarray IDs for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                data_model_name="ctao.common.identifiers.subarrays",
+                data_model_version="2.0",
+                data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+                format="json",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(site=site),
+        )
         subarray_ids = {
-            "metadata": {
-                "$schema": "https://gitlab.cta-observatory.org/cta-computing/common/identifiers/-/raw/main/subarray-ids.schema.json",
-                "version": "1.0",
-            },
+            "metadata": subarray_reference.to_dict(),
             "subarrays": [
                 {
                     "id": subarray_id,
@@ -262,6 +310,19 @@ class DumpInstrumentTool(Tool):
         positions_table.meta["reference_y"] = str(itrs.y)
         positions_table.meta["reference_z"] = str(itrs.z)
         positions_table.meta["site"] = site
+        positions_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Array element positions for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                format="ecsv",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(site=site),
+        )
+        positions_table.meta.update(positions_reference.to_dict())
 
         positions_file = (
             positions_dir / f"{site.replace(' ', '_')}_ArrayElementPositions.ecsv"
@@ -279,7 +340,7 @@ class DumpInstrumentTool(Tool):
             ae_dir = array_elements_dir / ae_id_str
             ae_dir.mkdir(exist_ok=True)
 
-            type_name = tel_desc.optics.name
+            type_name = tel_desc.name
             self.log.debug(
                 "Writing array element %s (%s) to %s", ae_id_str, type_name, ae_dir
             )
@@ -287,6 +348,8 @@ class DumpInstrumentTool(Tool):
             # Write optics file
             optics_table = QTable()
             optics = tel_desc.optics
+            optics_table.meta["TAB_VER"] = optics.CURRENT_TAB_VERSION
+            optics_table.meta["SOURCE"] = str(self.infile)
             optics_table.meta["optics_name"] = optics.name
             optics_table.meta["size_type"] = optics.size_type.value
             optics_table.meta["reflector_shape"] = optics.reflector_shape.value
