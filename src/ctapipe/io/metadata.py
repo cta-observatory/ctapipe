@@ -402,9 +402,20 @@ def read_reference_metadata(path):
     if first_bytes.startswith(b"# %ECSV"):
         return Reference.from_dict(Table.read(path).meta)
 
+    if first_bytes.startswith(b"{"):
+        return _read_reference_metadata_json(path)
+
     raise ValueError(
-        f"'{path}' is not one of the supported file formats: fits, hdf5, ecsv"
+        f"'{path}' is not one of the supported file formats: fits, hdf5, ecsv, json"
     )
+
+
+def _read_reference_metadata_json(path):
+    import json
+
+    with open(path) as f:
+        data = json.load(f)
+    return Reference.from_dict(data.get("metadata", data))
 
 
 def _read_reference_metadata_hdf5(h5file, path="/"):
