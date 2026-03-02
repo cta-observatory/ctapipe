@@ -178,12 +178,11 @@ class DumpInstrumentTool(Tool):
         from astropy.table import QTable
 
         sub = self.subarray
-        service_dir = self.outdir / "instrument"
-        service_dir.mkdir(exist_ok=True, parents=True)
+        self.outdir.mkdir(exist_ok=True, parents=True)
 
         self.log.info(
             "Writing instrument description in CTAO service data format to %s",
-            service_dir,
+            self.outdir,
         )
 
         # Infer site from coordinates if not provided
@@ -201,7 +200,7 @@ class DumpInstrumentTool(Tool):
             "format": "CTAO Service Data",
             "description": f"Instrument description for {sub.name}",
         }
-        meta_file = service_dir / "instrument.meta.json"
+        meta_file = self.outdir / "instrument.meta.json"
         with open(meta_file, "w") as f:
             json.dump(instrument_meta, f, indent=2)
         Provenance().add_output_file(meta_file, "ServiceDataMeta")
@@ -217,7 +216,7 @@ class DumpInstrumentTool(Tool):
                 for tel_id, tel in sub.tels.items()
             ],
         }
-        ae_ids_file = service_dir / "array-element-ids.json"
+        ae_ids_file = self.outdir / "array-element-ids.json"
         with open(ae_ids_file, "w") as f:
             json.dump(array_element_ids, f, indent=2)
         Provenance().add_output_file(ae_ids_file, "ServiceDataArrayElements")
@@ -237,13 +236,13 @@ class DumpInstrumentTool(Tool):
                 }
             ],
         }
-        subarray_ids_file = service_dir / "subarray-ids.json"
+        subarray_ids_file = self.outdir / "subarray-ids.json"
         with open(subarray_ids_file, "w") as f:
             json.dump(subarray_ids, f, indent=2)
         Provenance().add_output_file(subarray_ids_file, "ServiceDataSubarrays")
 
         # Create positions directory and file
-        positions_dir = service_dir / "positions"
+        positions_dir = self.outdir / "positions"
         positions_dir.mkdir(exist_ok=True)
 
         # Get reference location in ITRS coordinates
@@ -271,7 +270,7 @@ class DumpInstrumentTool(Tool):
         Provenance().add_output_file(positions_file, "ServiceDataPositions")
 
         # Create array-elements directory
-        array_elements_dir = service_dir / "array-elements"
+        array_elements_dir = self.outdir / "array-elements"
         array_elements_dir.mkdir(exist_ok=True)
 
         # Write files for each telescope (using ae_id as directory name)
@@ -316,7 +315,7 @@ class DumpInstrumentTool(Tool):
             finally:
                 self.format = orig_format
 
-        self.log.info("Service data written successfully to %s", service_dir)
+        self.log.info("Service data written successfully to %s", self.outdir)
 
 
 def main():

@@ -483,13 +483,11 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     tool.format = "service"
     tool.write_service_data(subarray_id=1, site="CTAO-South")
 
-    service_dir = tmp_path / "instrument"
-
     # Set CTAPIPE_SVC_PATH to point to the service data directory
     # With ae_id-based structure, we need to add each ae_id directory to the path
-    array_elements_dir = service_dir / "array-elements"
-    positions_dir = service_dir / "positions"
-    search_paths = [str(service_dir), str(positions_dir)]
+    array_elements_dir = tmp_path / "array-elements"
+    positions_dir = tmp_path / "positions"
+    search_paths = [str(tmp_path), str(positions_dir)]
     for tel_id in original_subarray.tel_ids:
         ae_id_str = f"{tel_id:03d}"
         search_paths.append(str(array_elements_dir / ae_id_str))
