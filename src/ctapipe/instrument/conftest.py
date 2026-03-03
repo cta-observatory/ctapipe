@@ -55,23 +55,55 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     from astropy.table import QTable
 
     from ctapipe.instrument.optics import ReflectorShape, SizeType
+    from ctapipe.io import metadata as meta
 
-    metadata = _get_schema_metadata()
+    site = "CTAO-North"
 
-    # Create instrument.meta.json with version information
+    # Create instrument.meta.json with reference metadata
+    instrument_ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Instrument description service data for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="CTAO Service Data",
+            data_model_version="2.0",
+            data_model_url="",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site, class_="Subarray"),
+    )
     instrument_meta = {
-        "version": "1.0",
+        "version": "2.0",
         "format": "CTAO Service Data",
         "description": "Instrument description service data for CTAO",
+        "metadata": instrument_ref.to_dict(),
     }
 
     instrument_meta_path = tmp_path / "instrument.meta.json"
     with open(instrument_meta_path, "w") as f:
         json.dump(instrument_meta, f, indent=2)
 
-    # Create array-element-ids.json (fixed schema, no type field)
+    # Create array-element-ids.json
+    ae_ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Array element IDs for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="ctao.common.identifiers.array_elements",
+            data_model_version="2.0",
+            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site),
+    )
     array_element_ids = {
-        "metadata": metadata["array_elements"],
+        "metadata": ae_ref.to_dict(),
         "array_elements": [
             {"id": 1, "name": "LSTN-01"},
             {"id": 2, "name": "LSTN-02"},
@@ -87,8 +119,23 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
         json.dump(array_element_ids, f, indent=2)
 
     # Create subarray-ids.json
+    subarray_ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Subarray IDs for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="ctao.common.identifiers.subarrays",
+            data_model_version="2.0",
+            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site),
+    )
     subarray_ids = {
-        "metadata": metadata["subarrays"],
+        "metadata": subarray_ref.to_dict(),
         "subarrays": [
             {
                 "id": 1,
@@ -157,6 +204,7 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
 
     # LSTN optics (empty table with metadata)
     lst_optics = QTable()
+    lst_optics.meta["TAB_VER"] = "2.0"
     lst_optics.meta["optics_name"] = "LSTN"
     lst_optics.meta["size_type"] = SizeType.LST.value
     lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
@@ -183,6 +231,7 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
 
     # MSTN optics (empty table with metadata)
     mst_optics = QTable()
+    lst_optics.meta["TAB_VER"] = "2.0"
     mst_optics.meta["optics_name"] = "MSTN"
     mst_optics.meta["size_type"] = SizeType.MST.value
     mst_optics.meta["reflector_shape"] = ReflectorShape.DAVIES_COTTON.value
@@ -241,14 +290,31 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     from astropy.table import QTable
 
     from ctapipe.instrument.optics import ReflectorShape, SizeType
+    from ctapipe.io import metadata as meta
 
-    metadata = _get_schema_metadata()
+    site = "CTAO-North"
 
-    # Create instrument.meta.json with version information
+    # Create instrument.meta.json with reference metadata
+    instrument_ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Instrument description service data for CTAO with ae_id-specific files",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="CTAO Service Data",
+            data_model_version="2.0",
+            data_model_url="",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site, class_="Subarray"),
+    )
     instrument_meta = {
-        "version": "1.0",
+        "version": "2.0",
         "format": "CTAO Service Data",
         "description": "Instrument description service data for CTAO with ae_id-specific files",
+        "metadata": instrument_ref.to_dict(),
     }
 
     instrument_meta_path = tmp_path / "instrument.meta.json"
@@ -256,8 +322,23 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
         json.dump(instrument_meta, f, indent=2)
 
     # Create array-element-ids.json
+    ae_ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Array element IDs for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="ctao.common.identifiers.array_elements",
+            data_model_version="2.0",
+            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site),
+    )
     array_element_ids = {
-        "metadata": metadata["array_elements"],
+        "metadata": ae_ref.to_dict(),
         "array_elements": [
             {"id": 1, "name": "LSTN-01"},
             {"id": 2, "name": "LSTN-02"},
@@ -269,8 +350,23 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
         json.dump(array_element_ids, f, indent=2)
 
     # Create subarray-ids.json
+    subarray_ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Subarray IDs for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="ctao.common.identifiers.subarrays",
+            data_model_version="2.0",
+            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site),
+    )
     subarray_ids = {
-        "metadata": metadata["subarrays"],
+        "metadata": subarray_ref.to_dict(),
         "subarrays": [
             {
                 "id": 1,
