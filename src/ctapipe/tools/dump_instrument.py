@@ -247,7 +247,7 @@ class DumpInstrumentTool(Tool):
         array_element_ids = {
             "metadata": ae_reference.to_dict(),
             "array_elements": [
-                {"id": int(tel_id), "name": tel.name}
+                {"id": int(tel_id), "name": f"{tel.name}{site[6]}-{tel_id:02d}"}
                 for tel_id, tel in sub.tels.items()
             ],
         }
