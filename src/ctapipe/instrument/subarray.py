@@ -899,6 +899,13 @@ class SubarrayDescription:
         optics_table = QTable(load_with_fallback("optics", "dl0.sub.svc.optics"))
         optics_meta = optics_table.meta
 
+        optics_version = optics_meta.get("TAB_VER")
+        if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
+            raise IncompatibleDataModelVersion(
+                f"Incompatible optics table version: {optics_version}. "
+                f"Compatible versions: {OpticsDescription.COMPATIBLE_VERSIONS}"
+            )
+
         optics = OpticsDescription(
             name=str(optics_meta["optics_name"]),
             size_type=optics_meta["size_type"],

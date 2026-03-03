@@ -203,7 +203,7 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
 
     # LSTN optics (empty table with metadata)
     lst_optics = QTable()
-    lst_optics.meta["TAB_VER"] = "2.0"
+    lst_optics.meta["TAB_VER"] = "4.0"
     lst_optics.meta["optics_name"] = "LSTN"
     lst_optics.meta["size_type"] = SizeType.LST.value
     lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
@@ -230,7 +230,7 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
 
     # MSTN optics (empty table with metadata)
     mst_optics = QTable()
-    lst_optics.meta["TAB_VER"] = "2.0"
+    mst_optics.meta["TAB_VER"] = "4.0"
     mst_optics.meta["optics_name"] = "MSTN"
     mst_optics.meta["size_type"] = SizeType.MST.value
     mst_optics.meta["reflector_shape"] = ReflectorShape.DAVIES_COTTON.value
@@ -425,6 +425,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
 
     # Create 001.optics with slightly different parameters (empty table with metadata)
     optics_001 = QTable()
+    optics_001.meta["TAB_VER"] = "4.0"
     optics_001.meta["optics_name"] = "LSTN-01-Custom"
     optics_001.meta["size_type"] = SizeType.LST.value
     optics_001.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
@@ -450,6 +451,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
 
     # Create shared LSTN files (002 will fall back to these, empty table with metadata)
     lst_optics = QTable()
+    lst_optics.meta["TAB_VER"] = "4.0"
     lst_optics.meta["optics_name"] = "LSTN"
     lst_optics.meta["size_type"] = SizeType.LST.value
     lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
