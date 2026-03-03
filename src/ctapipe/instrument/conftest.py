@@ -8,17 +8,128 @@ import shutil
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.coordinates.earth import EarthLocation
+from astropy.io import ascii
+from astropy.table import QTable
 
+from ctapipe.core import run_tool
+from ctapipe.instrument.optics import ReflectorShape, SizeType
+from ctapipe.io import metadata as meta
+from ctapipe.tools.dump_instrument import DumpInstrumentTool
 from ctapipe.utils.datasets import get_dataset_path
 from ctapipe.utils.filelock import FileLock
+
+# ---------------------------------------------------------------------------
+# Private helpers shared between svc_path fixtures
+# ---------------------------------------------------------------------------
+
+_CTAO_IDENTIFIERS_URL = (
+    "https://gitlab.cta-observatory.org/cta-computing/common/identifiers"
+)
+
+
+def _make_ids_reference(description, data_model_name, site="CTAO-North"):
+    """Create a Reference metadata object for CTAO identifier JSON files."""
+
+    return meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description=description,
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name=data_model_name,
+            data_model_version="2.0",
+            data_model_url=_CTAO_IDENTIFIERS_URL,
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site),
+    )
+
+
+def _write_instrument_meta(tmp_path, site="CTAO-North"):
+    """Write instrument.meta.json into *tmp_path*."""
+
+    ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Instrument description service data for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="CTAO Service Data",
+            data_model_version="2.0",
+            data_model_url="",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site, class_="Subarray"),
+    )
+    with open(tmp_path / "instrument.meta.json", "w") as f:
+        json.dump(ref.to_dict(), f, indent=2)
+
+
+def _write_array_element_ids(tmp_path, array_elements, site="CTAO-North"):
+    """Write array-element-ids.json into *tmp_path*."""
+    ref = _make_ids_reference(
+        description="Array element IDs for CTAO",
+        data_model_name="ctao.common.identifiers.array_elements",
+        site=site,
+    )
+    data = {"metadata": ref.to_dict(), "array_elements": array_elements}
+    with open(tmp_path / "array-element-ids.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _write_subarray_ids(tmp_path, subarrays, site="CTAO-North"):
+    """Write subarray-ids.json into *tmp_path*."""
+    ref = _make_ids_reference(
+        description="Subarray IDs for CTAO",
+        data_model_name="ctao.common.identifiers.subarrays",
+        site=site,
+    )
+    data = {"metadata": ref.to_dict(), "subarrays": subarrays}
+    with open(tmp_path / "subarray-ids.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _write_positions_file(
+    positions_dir, ae_ids, names, x_m, y_m, z_m, site="CTAO-North"
+):
+    """Write an ECSV positions file for the given array elements into *positions_dir*."""
+    itrs = EarthLocation(
+        lon=-17.8920 * u.deg, lat=28.7569 * u.deg, height=2200 * u.m
+    ).itrs
+
+    positions = QTable(
+        {
+            "ae_id": ae_ids,
+            "name": names,
+            "x": x_m * u.m,
+            "y": y_m * u.m,
+            "z": z_m * u.m,
+        }
+    )
+    positions.meta["reference_x"] = str(itrs.x)
+    positions.meta["reference_y"] = str(itrs.y)
+    positions.meta["reference_z"] = str(itrs.z)
+    positions.meta["site"] = site
+
+    ascii.write(
+        positions,
+        positions_dir / f"{site}_ArrayElementPositions.ecsv",
+        format="ecsv",
+        overwrite=True,
+    )
+
+
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
 def instrument_dir(tmp_path_factory):
     """Dump instrument of prod5 subarray into a directory as fits"""
-    from ctapipe.core import run_tool
-    from ctapipe.tools.dump_instrument import DumpInstrumentTool
-
     path = tmp_path_factory.mktemp("instrument")
 
     with FileLock(path / ".lock"):
@@ -51,54 +162,13 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     The schemas follow:
     https://gitlab.cta-observatory.org/cta-computing/common/identifiers
     """
-    from astropy.io import ascii
-    from astropy.table import QTable
-
-    from ctapipe.instrument.optics import ReflectorShape, SizeType
-    from ctapipe.io import metadata as meta
-
     site = "CTAO-North"
 
-    # Create instrument.meta.json with reference metadata
-    instrument_ref = meta.Reference(
-        contact=meta.Contact(),
-        product=meta.Product(
-            description="Instrument description service data for CTAO",
-            data_category="Other",
-            data_association="Subarray",
-            data_model_name="CTAO Service Data",
-            data_model_version="2.0",
-            data_model_url="",
-            format="json",
-        ),
-        process=meta.Process(),
-        activity=meta.Activity(),
-        instrument=meta.Instrument(site=site, class_="Subarray"),
-    )
-    instrument_meta_path = tmp_path / "instrument.meta.json"
+    _write_instrument_meta(tmp_path, site)
 
-    with open(instrument_meta_path, "w") as f:
-        json.dump(instrument_ref.to_dict(), f, indent=2)
-
-    # Create array-element-ids.json
-    ae_ref = meta.Reference(
-        contact=meta.Contact(),
-        product=meta.Product(
-            description="Array element IDs for CTAO",
-            data_category="Other",
-            data_association="Subarray",
-            data_model_name="ctao.common.identifiers.array_elements",
-            data_model_version="2.0",
-            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
-            format="json",
-        ),
-        process=meta.Process(),
-        activity=meta.Activity(),
-        instrument=meta.Instrument(site=site),
-    )
-    array_element_ids = {
-        "metadata": ae_ref.to_dict(),
-        "array_elements": [
+    _write_array_element_ids(
+        tmp_path,
+        array_elements=[
             {"id": 1, "name": "LSTN-01"},
             {"id": 2, "name": "LSTN-02"},
             {"id": 3, "name": "LSTN-03"},
@@ -106,31 +176,12 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
             {"id": 5, "name": "MSTN-01"},
             {"id": 6, "name": "MSTN-02"},
         ],
-    }
-
-    array_element_ids_path = tmp_path / "array-element-ids.json"
-    with open(array_element_ids_path, "w") as f:
-        json.dump(array_element_ids, f, indent=2)
-
-    # Create subarray-ids.json
-    subarray_ref = meta.Reference(
-        contact=meta.Contact(),
-        product=meta.Product(
-            description="Subarray IDs for CTAO",
-            data_category="Other",
-            data_association="Subarray",
-            data_model_name="ctao.common.identifiers.subarrays",
-            data_model_version="2.0",
-            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
-            format="json",
-        ),
-        process=meta.Process(),
-        activity=meta.Activity(),
-        instrument=meta.Instrument(site=site),
+        site=site,
     )
-    subarray_ids = {
-        "metadata": subarray_ref.to_dict(),
-        "subarrays": [
+
+    _write_subarray_ids(
+        tmp_path,
+        subarrays=[
             {
                 "id": 1,
                 "name": "CTAO-N LST Subarray",
@@ -144,42 +195,22 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
                 "array_element_ids": [1, 2, 5, 6],
             },
         ],
-    }
-
-    subarray_ids_path = tmp_path / "subarray-ids.json"
-    with open(subarray_ids_path, "w") as f:
-        json.dump(subarray_ids, f, indent=2)
+        site=site,
+    )
 
     # Create positions directory and files
     positions_dir = tmp_path / "positions"
     positions_dir.mkdir()
 
-    # Reference location for CTAO-North (La Palma) in ITRS coordinates
-    from astropy import units as u
-    from astropy.coordinates.earth import EarthLocation
-
-    reference_location = EarthLocation(
-        lon=-17.8920 * u.deg, lat=28.7569 * u.deg, height=2200 * u.m
+    _write_positions_file(
+        positions_dir,
+        ae_ids=[1, 2, 3, 4, 5, 6],
+        names=["LSTN-01", "LSTN-02", "LSTN-03", "LSTN-04", "MSTN-01", "MSTN-02"],
+        x_m=np.array([0.0, 50.0, -50.0, 0.0, 100.0, -100.0]),
+        y_m=np.array([0.0, 50.0, 50.0, -50.0, 0.0, 0.0]),
+        z_m=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        site=site,
     )
-    itrs = reference_location.itrs
-
-    # Create positions table for CTAO-North
-    positions_north = QTable(
-        {
-            "ae_id": [1, 2, 3, 4, 5, 6],
-            "name": ["LSTN-01", "LSTN-02", "LSTN-03", "LSTN-04", "MSTN-01", "MSTN-02"],
-            "x": [0.0, 50.0, -50.0, 0.0, 100.0, -100.0] * u.m,
-            "y": [0.0, 50.0, 50.0, -50.0, 0.0, 0.0] * u.m,
-            "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] * u.m,
-        }
-    )
-    positions_north.meta["reference_x"] = str(itrs.x)
-    positions_north.meta["reference_y"] = str(itrs.y)
-    positions_north.meta["reference_z"] = str(itrs.z)
-    positions_north.meta["site"] = "CTAO-North"
-
-    positions_file = positions_dir / "CTAO-North_ArrayElementPositions.ecsv"
-    ascii.write(positions_north, positions_file, format="ecsv", overwrite=True)
 
     # Create array-elements directory with telescope-type subdirectories
     array_elements_dir = tmp_path / "array-elements"
@@ -280,81 +311,22 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     This tests the fallback mechanism: files are first searched as {ae_id}.{type},
     then as {tel_type}.{type} if not found.
     """
-    from astropy.io import ascii
-    from astropy.table import QTable
-
-    from ctapipe.instrument.optics import ReflectorShape, SizeType
-    from ctapipe.io import metadata as meta
-
     site = "CTAO-North"
 
-    # Create instrument.meta.json with reference metadata
-    instrument_meta = meta.Reference(
-        contact=meta.Contact(),
-        product=meta.Product(
-            description="Instrument description service data for CTAO with ae_id-specific files",
-            data_category="Other",
-            data_association="Subarray",
-            data_model_name="CTAO Service Data",
-            data_model_version="2.0",
-            data_model_url="",
-            format="json",
-        ),
-        process=meta.Process(),
-        activity=meta.Activity(),
-        instrument=meta.Instrument(site=site, class_="Subarray"),
-    )
-    instrument_meta_path = tmp_path / "instrument.meta.json"
-    with open(instrument_meta_path, "w") as f:
-        json.dump(instrument_meta.to_dict(), f, indent=2)
+    _write_instrument_meta(tmp_path, site)
 
-    # Create array-element-ids.json
-    ae_ref = meta.Reference(
-        contact=meta.Contact(),
-        product=meta.Product(
-            description="Array element IDs for CTAO",
-            data_category="Other",
-            data_association="Subarray",
-            data_model_name="ctao.common.identifiers.array_elements",
-            data_model_version="2.0",
-            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
-            format="json",
-        ),
-        process=meta.Process(),
-        activity=meta.Activity(),
-        instrument=meta.Instrument(site=site),
-    )
-    array_element_ids = {
-        "metadata": ae_ref.to_dict(),
-        "array_elements": [
+    _write_array_element_ids(
+        tmp_path,
+        array_elements=[
             {"id": 1, "name": "LSTN-01"},
             {"id": 2, "name": "LSTN-02"},
         ],
-    }
-
-    array_element_ids_path = tmp_path / "array-element-ids.json"
-    with open(array_element_ids_path, "w") as f:
-        json.dump(array_element_ids, f, indent=2)
-
-    # Create subarray-ids.json
-    subarray_ref = meta.Reference(
-        contact=meta.Contact(),
-        product=meta.Product(
-            description="Subarray IDs for CTAO",
-            data_category="Other",
-            data_association="Subarray",
-            data_model_name="ctao.common.identifiers.subarrays",
-            data_model_version="2.0",
-            data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
-            format="json",
-        ),
-        process=meta.Process(),
-        activity=meta.Activity(),
-        instrument=meta.Instrument(site=site),
+        site=site,
     )
-    subarray_ids = {
-        "metadata": subarray_ref.to_dict(),
-        "subarrays": [
+
+    _write_subarray_ids(
+        tmp_path,
+        subarrays=[
             {
                 "id": 1,
                 "name": "CTAO-N Test Subarray",
@@ -362,42 +334,22 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
                 "array_element_ids": [1, 2],
             },
         ],
-    }
-
-    subarray_ids_path = tmp_path / "subarray-ids.json"
-    with open(subarray_ids_path, "w") as f:
-        json.dump(subarray_ids, f, indent=2)
+        site=site,
+    )
 
     # Create positions directory
     positions_dir = tmp_path / "positions"
     positions_dir.mkdir()
 
-    # Reference location for CTAO-North
-    from astropy import units as u
-    from astropy.coordinates.earth import EarthLocation
-
-    reference_location = EarthLocation(
-        lon=-17.8920 * u.deg, lat=28.7569 * u.deg, height=2200 * u.m
+    _write_positions_file(
+        positions_dir,
+        ae_ids=[1, 2],
+        names=["LSTN-01", "LSTN-02"],
+        x_m=np.array([0.0, 50.0]),
+        y_m=np.array([0.0, 50.0]),
+        z_m=np.array([0.0, 0.0]),
+        site=site,
     )
-    itrs = reference_location.itrs
-
-    # Create positions table
-    positions_north = QTable(
-        {
-            "ae_id": [1, 2],
-            "name": ["LSTN-01", "LSTN-02"],
-            "x": [0.0, 50.0] * u.m,
-            "y": [0.0, 50.0] * u.m,
-            "z": [0.0, 0.0] * u.m,
-        }
-    )
-    positions_north.meta["reference_x"] = str(itrs.x)
-    positions_north.meta["reference_y"] = str(itrs.y)
-    positions_north.meta["reference_z"] = str(itrs.z)
-    positions_north.meta["site"] = "CTAO-North"
-
-    positions_file = positions_dir / "CTAO-North_ArrayElementPositions.ecsv"
-    ascii.write(positions_north, positions_file, format="ecsv", overwrite=True)
 
     # Create array-elements directory
     array_elements_dir = tmp_path / "array-elements"
