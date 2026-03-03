@@ -139,11 +139,19 @@ def test_dump_instrument(tmp_path):
     assert len(ae_dirs) > 0, "No ae_id directories found in array-elements"
 
     # Check first ae_id directory contains required files
+    from astropy.table import QTable
+
+    from ctapipe.instrument.optics import OpticsDescription
+
     first_ae_dir = ae_dirs[0]
     ae_id = first_ae_dir.name
-    assert (first_ae_dir / f"{ae_id}.optics.ecsv").exists()
+    optics_file = first_ae_dir / f"{ae_id}.optics.ecsv"
+    assert optics_file.exists()
     assert (first_ae_dir / f"{ae_id}.camgeom.fits.gz").exists()
     assert (first_ae_dir / f"{ae_id}.camreadout.fits.gz").exists()
+
+    optics_table = QTable.read(optics_file, format="ascii.ecsv")
+    assert optics_table.meta.get("TAB_VER") in OpticsDescription.COMPATIBLE_VERSIONS
 
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0
