@@ -223,7 +223,12 @@ class DumpInstrumentTool(Tool):
         )
 
         # Create instrument.meta.json
-        instrument_meta = {"metadata": instrument_reference.to_dict()}
+        instrument_meta = {
+            "version": sub.CURRENT_SERVICE_DATA_VERSION,
+            "format": "CTAO Service Data",
+            "description": f"Instrument description for {sub.name}",
+            "metadata": instrument_reference.to_dict(),
+        }
         meta_file = self.outdir / "instrument.meta.json"
         with open(meta_file, "w") as f:
             json.dump(instrument_meta, f, indent=2)

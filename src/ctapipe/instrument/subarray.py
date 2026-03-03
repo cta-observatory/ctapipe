@@ -72,9 +72,9 @@ class SubarrayDescription:
     #: Version numbers supported by `SubarrayDescription.from_hdf`
     COMPATIBLE_VERSIONS = {"2.0"}
     #: Current version of the service data format expected by `SubarrayDescription.from_service_data`
-    CURRENT_SERVICE_DATA_VERSION = "1.0"
+    CURRENT_SERVICE_DATA_VERSION = "2.0"
     #: Service data versions supported by `SubarrayDescription.from_service_data`
-    COMPATIBLE_SERVICE_DATA_VERSIONS = {"1.0"}
+    COMPATIBLE_SERVICE_DATA_VERSIONS = {"2.0"}
 
     def __init__(
         self,
