@@ -342,6 +342,10 @@ class Reference(HasTraits):
         # of some keys
         return cls.from_dict(header)
 
+    @classmethod
+    def from_json(cls, json_data):
+        return cls.from_dict(json_data)
+
     def __repr__(self):
         return str(self.to_dict())
 
