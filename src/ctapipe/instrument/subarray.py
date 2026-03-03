@@ -1020,10 +1020,12 @@ class SubarrayDescription:
             New SubarrayDescription instance
         """
         # Check service data version
-        version_data = get_structured_dataset(
-            "instrument.meta", role="dl0.sub.svc.meta"
+        from ..io.metadata import Reference
+
+        reference_meta = Reference.from_json(
+            get_structured_dataset("instrument.meta", role="dl0.sub.svc.meta")
         )
-        version = version_data.get("version", "unknown")
+        version = reference_meta.product.data_model_version
         if version not in cls.COMPATIBLE_SERVICE_DATA_VERSIONS:
             raise IncompatibleDataModelVersion(
                 f"Incompatible service data version: {version}. "

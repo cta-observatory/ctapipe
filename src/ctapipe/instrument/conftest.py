@@ -74,16 +74,10 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
         activity=meta.Activity(),
         instrument=meta.Instrument(site=site, class_="Subarray"),
     )
-    instrument_meta = {
-        "version": "2.0",
-        "format": "CTAO Service Data",
-        "description": "Instrument description service data for CTAO",
-        "metadata": instrument_ref.to_dict(),
-    }
-
     instrument_meta_path = tmp_path / "instrument.meta.json"
+
     with open(instrument_meta_path, "w") as f:
-        json.dump(instrument_meta, f, indent=2)
+        json.dump(instrument_ref.to_dict(), f, indent=2)
 
     # Create array-element-ids.json
     ae_ref = meta.Reference(
@@ -294,7 +288,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     site = "CTAO-North"
 
     # Create instrument.meta.json with reference metadata
-    instrument_ref = meta.Reference(
+    instrument_meta = meta.Reference(
         contact=meta.Contact(),
         product=meta.Product(
             description="Instrument description service data for CTAO with ae_id-specific files",
@@ -309,16 +303,9 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
         activity=meta.Activity(),
         instrument=meta.Instrument(site=site, class_="Subarray"),
     )
-    instrument_meta = {
-        "version": "2.0",
-        "format": "CTAO Service Data",
-        "description": "Instrument description service data for CTAO with ae_id-specific files",
-        "metadata": instrument_ref.to_dict(),
-    }
-
     instrument_meta_path = tmp_path / "instrument.meta.json"
     with open(instrument_meta_path, "w") as f:
-        json.dump(instrument_meta, f, indent=2)
+        json.dump(instrument_meta.to_dict(), f, indent=2)
 
     # Create array-element-ids.json
     ae_ref = meta.Reference(
