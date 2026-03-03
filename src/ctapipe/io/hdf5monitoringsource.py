@@ -549,7 +549,7 @@ class HDF5MonitoringSource(MonitoringSource):
         self,
         monitoring_type: MonitoringType,
         time: astropy.time.Time,
-        tel_id: int = None,
+        tel_id: int | None = None,
         **kwargs,
     ):
         import astropy.units as u
