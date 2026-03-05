@@ -1,4 +1,5 @@
 from itertools import zip_longest
+from types import SimpleNamespace
 
 import astropy.units as u
 import numpy as np
@@ -368,3 +369,24 @@ def test_is_compatible_with_only_trigger(tmp_path):
         h5.create_group("/dl1/event/subarray", "trigger")
 
     assert HDF5EventSource.is_compatible(str(filename))
+
+
+def test_is_hillas_in_camera_frame_dict_values_regression():
+    """
+    Regression test for Python3 dict_values indexing bug in
+    HDF5EventSource._is_hillas_in_camera_frame().
+    """
+
+    source = HDF5EventSource.__new__(HDF5EventSource)
+
+    fake_table = SimpleNamespace(colnames={"camera_frame_hillas_intensity"})
+    parameters = SimpleNamespace(_v_children={"tel_001": fake_table})
+
+    source.file_ = SimpleNamespace(
+        root=SimpleNamespace(
+            dl1=SimpleNamespace(
+                event=SimpleNamespace(telescope=SimpleNamespace(parameters=parameters))
+            )
+        )
+    )
+    assert source._is_hillas_in_camera_frame() is True
