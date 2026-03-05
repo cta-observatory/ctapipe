@@ -1,0 +1,1 @@
+Fix crash in HDF5EventSource caused by indexing dict_values in _is_hillas_in_camera_frame.

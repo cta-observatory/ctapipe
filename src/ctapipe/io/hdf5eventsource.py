@@ -479,14 +479,13 @@ class HDF5EventSource(EventSource):
 
     def _is_hillas_in_camera_frame(self):
         parameters_group = self.file_.root.dl1.event.telescope.parameters
-        telescope_tables = parameters_group._v_children.values()
 
-        # in case of no parameters, it doesn't matter, we just return False
-        if len(telescope_tables) == 0:
+        try:
+            one_telescope = next(iter(parameters_group._v_children.values()))
+        except StopIteration:
+            # no parameters tables
             return False
 
-        # check the first telescope table
-        one_telescope = parameters_group._v_children.values()[0]
         return "camera_frame_hillas_intensity" in one_telescope.colnames
 
     def _generator(self):
