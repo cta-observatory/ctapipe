@@ -788,6 +788,12 @@ class SimulatedCameraContainer(Container):
         description="true impact parameter",
     )
 
+    true_disp = Field(
+        nan * u.deg,
+        description="True disp parameter",
+        unit=u.deg,
+    )
+
 
 class SimulatedEventContainer(Container):
     shower = Field(

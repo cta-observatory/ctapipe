@@ -29,6 +29,7 @@ __all__ = [
     "table_to_X",
     "horizontal_to_telescope",
     "telescope_to_horizontal",
+    "calculate_true_disp",
 ]
 
 
@@ -154,3 +155,35 @@ def telescope_to_horizontal(lon, lat, pointing_alt, pointing_az):
         horizontal_coord = tel_coord.transform_to(AltAz())
 
     return horizontal_coord.alt.to(u.deg), horizontal_coord.az.to(u.deg)
+
+
+@u.quantity_input(
+    fov_lon=u.deg, fov_lat=u.deg, hillas_psi=u.rad, hillas_lon=u.deg, hillas_lat=u.deg
+)
+def calculate_true_disp(fov_lon, fov_lat, hillas_psi, hillas_lon, hillas_lat):
+    """
+    Calculate the true disp parameter (distance between hillas cog and source position)
+
+    Parameters
+    ----------
+    fov_lon : u.Quantity
+        Source longitude in telescope frame
+    fov_lat : u.Quantity
+        Source latitude in telescope frame
+    hillas_psi : u.Quantity
+        Hillas psi parameter (angle between major axis and x-axis)
+    hillas_lon : u.Quantity
+        Hillas center longitude
+    hillas_lat : u.Quantity
+        Hillas center latitude
+
+    Returns
+    -------
+    true_disp : u.Quantity
+        The true disp parameter (signed distance)
+    """
+    delta_lon = fov_lon - hillas_lon
+    delta_lat = fov_lat - hillas_lat
+
+    true_disp = np.cos(hillas_psi) * delta_lon + np.sin(hillas_psi) * delta_lat
+    return true_disp
