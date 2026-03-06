@@ -724,6 +724,20 @@ class DL0CameraContainer(Container):
         ),
     )
 
+    pixel_time_shift = Field(
+        None,
+        (
+            "Numpy array containing a time shift value in nanoseconds"
+            "for each pixel and each gain, originating from the DRS4 sampling"
+            "time interval inhomogeneity. This value must be subtracted from"
+            "the reconstructed time to achieve uniform time response for all"
+            "pixels"
+            "Shape: (num_channels, num_pixels)"
+        ),
+        dtype=np.float32,
+        ndim=2,
+    )
+
 
 class DL0Container(Container):
     """
