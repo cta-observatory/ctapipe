@@ -1,0 +1,3 @@
+Add a new component ``ReadoutWindowReducer`` and options
+to enable it in ``ctapipe-process`` to study performance
+with shorter readout windows.
