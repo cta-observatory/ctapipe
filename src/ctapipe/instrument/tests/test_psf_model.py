@@ -6,57 +6,51 @@ import astropy.units as u
 import numpy as np
 import pytest
 
-from ctapipe.core.traits import TraitError
 from ctapipe.instrument.optics import PSFModel
 
 
 @pytest.fixture(scope="session")
 def coma_psf(example_subarray):
+    lst_plate_scale = np.rad2deg(
+        1.0 / example_subarray.tel[1].optics.equivalent_focal_length.to_value(u.m)
+    )
+
     psf = PSFModel.from_name(
         "ComaPSFModel",
         subarray=example_subarray,
-        asymmetry_params=[0.5, 10, 0.15],
-        radial_scale_params=[0.015, -0.1, 0.06, 0.03],
-        phi_scale_params=[0.25, 7.5, 0.02],
+        asymmetry_max=0.5,
+        asymmetry_decay_rate=10 / lst_plate_scale,
+        asymmetry_linear_term=0.15 / lst_plate_scale,
+        radial_scale_offset=0.015 * lst_plate_scale,
+        radial_scale_linear=-0.1,
+        radial_scale_quadratic=0.06 / lst_plate_scale**1,
+        radial_scale_cubic=0.03 / lst_plate_scale**2,
+        polar_scale_amplitude=0.25 * lst_plate_scale,
+        polar_scale_decay=7.5 / lst_plate_scale,
+        polar_scale_offset=0.02 * lst_plate_scale,
     )
     return psf
 
 
-def test_psf(example_subarray):
-    with pytest.raises(
-        TraitError,
-        match="phi_scale_params needs to have length 3",
-    ):
-        PSFModel.from_name(
-            "ComaPSFModel",
-            subarray=example_subarray,
-            asymmetry_params=[0.0, 0.0, 0.0],
-            radial_scale_params=[0.0, 0.0, 0.0, 0.0],
-            phi_scale_params=[0.0],
-        )
-    with pytest.raises(
-        TraitError,
-        match="radial_scale_params needs to have length 4",
-    ):
-        PSFModel.from_name(
-            "ComaPSFModel",
-            subarray=example_subarray,
-            asymmetry_params=[0.0, 0.0, 0.0],
-            radial_scale_params=[0.0, 0.0, 0.0],
-            phi_scale_params=[0.0, 0.0, 0.0],
-        )
-    with pytest.raises(
-        TraitError,
-        match="asymmetry_params needs to have length 3",
-    ):
-        PSFModel.from_name(
-            "ComaPSFModel",
-            subarray=example_subarray,
-            asymmetry_params=[0.0, 0.0, 0.0, 0.0],
-            radial_scale_params=[0.0, 0.0, 0.0, 0.0],
-            phi_scale_params=[0.0, 0.0, 0.0],
-        )
-
-
 def test_asymptotic_behavior(coma_psf):
-    assert np.isclose(coma_psf.pdf(*([10.0, 0.0, 1.0, 0.0] * u.m)), 0.0)
+    assert np.isclose(
+        coma_psf.pdf(
+            tel_id=1,
+            lon=20.0 * u.deg,
+            lat=0.0 * u.deg,
+            lon0=2.0 * u.deg,
+            lat0=0.0 * u.deg,
+        ),
+        0.0,
+        atol=1e-7,
+    )
+
+
+def test_for_missing_config_parameters(example_subarray):
+    with pytest.raises(
+        ValueError, match="Missing ComaPSFModel configuration parameters:"
+    ):
+        PSFModel.from_name(
+            "ComaPSFModel",
+            subarray=example_subarray,
+        )
