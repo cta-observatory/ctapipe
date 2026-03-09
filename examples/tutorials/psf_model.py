@@ -110,6 +110,6 @@ ax1.set(
 )
 ax2.set(
     aspect=1,
-    title=f"PSF at ({lon0:.2f}, {lat0:.2f}°)",
+    title=f"PSF at ({lon0.to_value(u.deg):.2f}°, {lat0.to_value(u.deg):.2f}°)",
 )
 plt.show()
