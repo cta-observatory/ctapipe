@@ -407,3 +407,19 @@ def test_empty(prod5_lst):
     empty = geometry[mask]
 
     assert empty.neighbor_matrix.shape == (0, 0)
+
+
+def test_squre_pixels_on_hexgrid(geometry_hexgrid_square_pixels):
+    geom = geometry_hexgrid_square_pixels
+
+    border = geom.get_border_pixel_mask()
+    # 16 by 16 pixels means 60 border pixels 4 * 14 edge pixels + 4 corrner pixels
+    assert np.count_nonzero(border) == 4 * 14 + 4
+
+    n_neighbors = np.count_nonzero(geom.neighbor_matrix, axis=0)
+    np.testing.assert_array_equal(n_neighbors[~border], 6)
+
+    table = geom.to_table()
+    assert table.meta["GRID"] == "hex"
+    geom_from_table = CameraGeometry.from_table(table)
+    assert geom_from_table == geom

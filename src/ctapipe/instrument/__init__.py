@@ -1,5 +1,11 @@
 from .atmosphere import get_atmosphere_profile_functions
-from .camera import CameraDescription, CameraGeometry, CameraReadout, PixelShape
+from .camera import (
+    CameraDescription,
+    CameraGeometry,
+    CameraReadout,
+    PixelGridType,
+    PixelShape,
+)
 from .guess import guess_telescope
 from .optics import (
     ComaPSFModel,
@@ -21,6 +27,7 @@ __all__ = [
     "get_atmosphere_profile_functions",
     "guess_telescope",
     "OpticsDescription",
+    "PixelGridType",
     "PixelShape",
     "SubarrayDescription",
     "TelescopeDescription",
