@@ -56,9 +56,9 @@ eventio = [
 all = [
     "bokeh ~=3.0",
     "ctapipe[eventio]",
-    "iminuit >=2",
     "matplotlib ~=3.0",
-    "pyirf ~=0.13.0"
+    "pyirf ~=0.13.0",
+    "iminuit >=2",
 ]
 
 tests = [
@@ -101,6 +101,10 @@ dev = [
     "setuptools_scm[toml]",
 ]
 
+impact = [
+    "iminuit >=2",
+    "tensorflow >=2.16.0",
+]
 
 [project.scripts]
 ctapipe-info = "ctapipe.tools.info:main"
@@ -116,6 +120,7 @@ ctapipe-calculate-pixel-statistics = "ctapipe.tools.calculate_pixel_stats:main"
 ctapipe-train-energy-regressor = "ctapipe.tools.train_energy_regressor:main"
 ctapipe-train-particle-classifier = "ctapipe.tools.train_particle_classifier:main"
 ctapipe-train-disp-reconstructor = "ctapipe.tools.train_disp_reconstructor:main"
+ctapipe-train-freepact = "ctapipe.tools.train_freepact:main"
 ctapipe-apply-models = "ctapipe.tools.apply_models:main"
 ctapipe-store-astropy-cache = "ctapipe.tools.store_astropy_cache:main"
 
@@ -177,7 +182,14 @@ filterwarnings = [
     "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
     "ignore:'unquoteResults':DeprecationWarning:matplotlib",
     "ignore:'parseAll':DeprecationWarning:pyparsing",
+    "ignore:'enablePackrat':DeprecationWarning:matplotlib",
+    # tensorflow (FreePACT) related warnings
+    "ignore:__array__ implementation doesn't accept a copy keyword:DeprecationWarning",
+    # protobuf related warnings (via tensorflow)
+    "ignore:Type .* uses PyType_Spec with a metaclass that has custom tp_new:DeprecationWarning",
+    "ignore:datetime.datetime.utcfromtimestamp\\(\\):DeprecationWarning",
 ]
+
 norecursedirs = [
     ".git",
     "_build",
