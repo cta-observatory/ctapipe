@@ -9,7 +9,7 @@ from ctapipe.containers import (
     CameraTimingParametersContainer,
     ObservationBlockContainer,
 )
-from ctapipe.io import DataLevel, EventSource, HDF5EventSource, DATA_MODEL_VERSION
+from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 
 
 def test_is_not_compatible(prod5_gamma_simtel_path):
