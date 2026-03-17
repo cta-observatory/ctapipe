@@ -358,7 +358,7 @@ def test_is_compatible_with_only_trigger(tmp_path):
     filename = tmp_path / "only_trigger.h5"
 
     with tables.open_file(filename, mode="w") as h5:
-        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = "v7.3.0"
+        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = "v7.4.0"
 
         h5.root._v_attrs["CTA PRODUCT DATA LEVELS"] = "R0"
 
