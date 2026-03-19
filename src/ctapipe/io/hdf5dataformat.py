@@ -23,6 +23,14 @@ __all__ = [
     "SIMULATION_PARAMETERS_GROUP",
     "R0_TEL_GROUP",
     "R1_TEL_GROUP",
+    "DL0_TEL_MONITORING_GROUP",
+    "DL0_SUBARRAY_MONITORING_GROUP",
+    "DL0_TEL_QUALITY_GROUP",
+    "DL0_SUBARRAY_QUALITY_GROUP",
+    "DL1_TEL_MONITORING_GROUP",
+    "DL1_SUBARRAY_MONITORING_GROUP",
+    "DL1_SUBARRAY_QUALITY_GROUP",
+    "DL1_TEL_QUALITY_GROUP",
     "DL1_SUBARRAY_GROUP",
     "DL1_SUBARRAY_TRIGGER_TABLE",
     "DL1_TEL_GROUP",
@@ -101,6 +109,14 @@ DL2_SUBARRAY_ENERGY_GROUP = "/dl2/event/subarray/energy"
 DL2_SUBARRAY_PARTICLETYPE_GROUP = "/dl2/event/subarray/particle_type"
 
 # Monitoring group
+DL0_TEL_MONITORING_GROUP = "/dl0/monitoring/telescope"
+DL0_SUBARRAY_MONITORING_GROUP = "/dl0/monitoring/subarray"
+DL0_TEL_QUALITY_GROUP = "/dl0/monitoring/telescope/quality"
+DL0_SUBARRAY_QUALITY_GROUP = "/dl0/monitoring/subarray/quality"
+DL1_TEL_MONITORING_GROUP = "/dl1/monitoring/telescope"
+DL1_SUBARRAY_MONITORING_GROUP = "/dl1/monitoring/subarray"
+DL1_TEL_QUALITY_GROUP = "/dl1/monitoring/telescope/quality"
+DL1_SUBARRAY_QUALITY_GROUP = "/dl1/monitoring/subarray/quality"
 DL0_TEL_POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 DL1_SUBARRAY_POINTING_GROUP = "/dl1/monitoring/subarray/pointing"
 DL1_TEL_POINTING_GROUP = "/dl1/monitoring/telescope/pointing"
