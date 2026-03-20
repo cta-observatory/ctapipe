@@ -1,1 +1,0 @@
-Fix PointingInterpolator override in the loop over the telescopes in HDF5MonitoringSource.
