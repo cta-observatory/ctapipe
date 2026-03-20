@@ -123,7 +123,7 @@ class NoiseEventTypeFilter(EventTypeFilter):
         return {EventType.SKY_PEDESTAL}
 
 
-@njit(cache=NOT CTAPIPE_DISABLE_NUMBA_CACHE)
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def build_wf_noise_pixelwise(
     waveforms, n_noise_realizations, nsb_level, rng, shuffle_full_cameras
 ):
@@ -363,7 +363,7 @@ class WaveformModifier(TelescopeComponent):
                 f"Not enough NSB events available for tel_"
                 f"id {tel_id}. "
                 f"For nsb_level = {self.nsb_level}, at least "
-                f"{2*self.nsb_level} events are needed ({nevents} "
+                f"{2 * self.nsb_level} events are needed ({nevents} "
                 f"were found)."
             )
             stats_ok = False
