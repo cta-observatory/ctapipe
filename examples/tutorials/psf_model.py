@@ -6,6 +6,7 @@ PSF model usage in ctapipe
 
 import astropy.units as u
 import numpy as np
+from itertools import product
 from ctapipe.instrument.optics import ComaPSFModel
 from ctapipe.instrument import SubarrayDescription
 import matplotlib.pyplot as plt
@@ -112,4 +113,39 @@ ax2.set(
     aspect=1,
     title=f"PSF at ({lon0.to_value(u.deg):.2f}°, {lat0.to_value(u.deg):.2f}°)",
 )
+plt.show()
+
+
+######################################################################
+# Stacked PSF over multiple source positions
+# -----------------------------------------------------
+#
+
+lons = np.linspace(-1.0, 1.0, 11) * lst_plate_scale_deg * u.deg
+lats = np.linspace(-1.0, 1.0, 11) * lst_plate_scale_deg * u.deg
+
+edges_x_stack = np.linspace(-2.5 * u.deg, 2.5 * u.deg, 500)
+edges_y_stack = np.linspace(-2.5 * u.deg, 2.5 * u.deg, 500)
+centers_x_stack = 0.5 * (edges_x_stack[:-1] + edges_x_stack[1:])
+centers_y_stack = 0.5 * (edges_y_stack[:-1] + edges_y_stack[1:])
+x_stack, y_stack = np.meshgrid(centers_x_stack, centers_y_stack)
+
+psf_stacked = np.zeros(x_stack.shape)
+for source_lon, source_lat in product(lons, lats):
+    psf_stacked += psf_model.pdf(
+        tel_id=1,
+        lon=x_stack,
+        lat=y_stack,
+        lon0=source_lon,
+        lat0=source_lat,
+    )
+
+fig_stack, ax_stack = plt.subplots(1, 1, layout="constrained", figsize=(6, 5))
+mesh = ax_stack.pcolormesh(
+    edges_x_stack.to_value(u.deg),
+    edges_y_stack.to_value(u.deg),
+    psf_stacked,
+    cmap="inferno",
+)
+ax_stack.set(aspect=1, title="Stacked PSF over source-position grid")
 plt.show()

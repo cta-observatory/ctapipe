@@ -492,7 +492,8 @@ class ComaPSFModel(PSFModel):
         s_phi = self._s_phi(tel_id, r0)
 
         radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
-        polar_pdf = laplace.pdf(phi, phi0, s_phi)
+        delta_phi = (phi - phi0 + np.pi) % (2 * np.pi) - np.pi
+        polar_pdf = laplace.pdf(delta_phi, 0, s_phi)
 
         at_center = np.isclose(r0, 0, atol=self.pixel_width[tel_id])
         polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
@@ -503,7 +504,6 @@ class ComaPSFModel(PSFModel):
 
         if r0 != 0:
             dphi = np.arcsin(chord_length / (2 * r0))
-            polar_pdf[phi < phi0 - dphi] = 0
-            polar_pdf[phi > phi0 + dphi] = 0
+            polar_pdf[np.abs(delta_phi) > dphi] = 0
 
         return radial_pdf * polar_pdf
