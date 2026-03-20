@@ -1,3 +1,126 @@
+ctapipe v0.30.0 (2026-03-20)
+============================
+
+API Changes
+-----------
+
+- Rename "konrad" weights to "aspect-weighted-intensity" weights.
+
+  Rename "Konrad" weights in ``HillasIntersection`` to "harmonic-mean-intensity". [`#2880 <https://github.com/cta-observatory/ctapipe/pull/2880>`__]
+
+- As a consequence of fixing the bug #2921, `ctapipe.core.ExpressionEngine`
+  converts all input tables to `astropy.table.QTable` internally, which has a
+  small side effect on what is allowed in expressions: all columns with units are
+  now of type `astropy.units.Quantity`, instead of `astropy.table.Column`. Before,
+  an expression like ``"some_column.quantity.to(u.m)"`` would work if a ``Table``
+  was passed (but would fail for a ``QTable``). Now, that expression should be
+  ``some_column.to(u.m)`` [`#2921 <https://github.com/cta-observatory/ctapipe/pull/2921>`__]
+
+- Extended ``MonitoringSource`` with ``get_table()`` and ``get_values()`` methods
+  for direct table access and time-based value interpolation. Implemented these
+  methods in ``HDF5MonitoringSource`` with proper coordinate frame handling for
+  telescope pointings. [`#2933 <https://github.com/cta-observatory/ctapipe/pull/2933>`__]
+
+
+Bug Fixes
+---------
+
+- Fixed bug where units were incorrect in the output table of an
+  `ctapipe.core.FeatureGenerator` if a table of class `astropy.table.Table` was
+  passed to the call method. This bug did not affect calls using an
+  `astropy.table.QTable`. [`#2921 <https://github.com/cta-observatory/ctapipe/pull/2921>`__]
+
+- Fixed bug where the ``is_valid`` field in the ``DL1CameraContainer`` returned by the ``VarianceExtractor`` was not being set correctly. [`#2930 <https://github.com/cta-observatory/ctapipe/pull/2930>`__]
+
+- Fix PointingInterpolator override in the loop over the telescopes in HDF5MonitoringSource. [`#2933 <https://github.com/cta-observatory/ctapipe/pull/2933>`__]
+
+- Fixed bug where telescope-wise fixed pointing tables were merged/appended/copied
+  by default even if ``telescope_events`` flag were set to false. [`#2936 <https://github.com/cta-observatory/ctapipe/pull/2936>`__]
+
+- Fixed incorrect trigger compatibility check in ``HDF5EventSource.is_compatible``.
+
+  ``has_trigger`` was mistakenly checking ``SIMULATION_TEL_TABLE`` due to a
+  copy-paste error. It now correctly checks for the presence of DL1 trigger tables. [`#2949 <https://github.com/cta-observatory/ctapipe/pull/2949>`__]
+
+
+Data Model Changes
+------------------
+
+- Add data quality monitoring groups to the HDF5 data format specification. [`#2965 <https://github.com/cta-observatory/ctapipe/pull/2965>`__]
+
+
+New Features
+------------
+
+- Introduces the `~ctapipe.io.EventPreprocessor` class that can generically
+  transform an event table by applying the following steps:
+
+  * Generate new or rename existing columns with a `~ctapipe.core.FeatureGenerator`
+  * Select "good" event rows with a `~ctapipe.core.QualityQuery`
+  * Select which columns to output (by setting the ``features`` configuration
+    attribute of the `~ctapipe.io.EventPreprocessor`)
+
+  This is useful for doing the final steps of DL2 processing, and will eventually
+  replace what is in `~ctapipe.io.DL2EventPreprocessor` and `~ctapipe.io.DL2EventLoader`, which will be deprecated in a future release.
+
+  The `~ctapipe.io.EventPreprocessor` also includes the ability to pre-configure
+  itself for specific use cases by setting the ``feature_set`` option. Currently
+  only two are implemented: ``feature_set=dl2_irf``, which defines the transforms,
+  event selection, and output features for processing simulated DL2 events, and
+  ``feature_set=custom``, which has no pre-configuration and requires all
+  parameters to be set by the user in a config file. More can be added by adding
+  to the registry.
+
+  The functionality of `~ctapipe.io.DL2EventLoader` can be mimicked with the following:
+
+  .. code-block:: python
+
+      from ctapipe.io import TableLoader, EventPreprocessor
+      from astropy.table import vstack
+
+      DL2FILE = "some_dl2_file.h5"
+      with TableLoader(DL2FILE, dl2=True, simulated=True, observation_info=True) as loader:
+          preprocess = EventPreprocessor(feature_set="dl2_irf")
+          events = vstack(
+              [
+                  preprocess(QTable(c.data))
+                  for c in loader.read_subarray_events_chunked(chunk_size=100_000)
+               ]
+          )
+
+
+  This also introduces a helper function `~ctapipe.coordinates.altaz_to_nominal`
+  to convert columns of alt/az coordinates to FOV coordinates in the
+  `~ctapipe.coordinates.NominalFrame`, which works with the
+  `~ctapipe.core.FeatureGenerator`. [`#2928 <https://github.com/cta-observatory/ctapipe/pull/2928>`__]
+
+- Add option to filter out telescope events using their trigger ``EventType``
+  in ``SoftwareTrigger``.
+  This is can be used e.g. to study mono telescope performance from Prod6
+  simulations by analyzing only telescope events with ``RANDOM_MONO`` event type
+  or muon tagging by only analyzing ``MUON`` events. [`#2941 <https://github.com/cta-observatory/ctapipe/pull/2941>`__]
+
+- Allow to select gain for calibration events in SimTelEventSource, when skipping R1 calibration. [`#2943 <https://github.com/cta-observatory/ctapipe/pull/2943>`__]
+
+- Added ``tel_earth_locations`` lazy property to ``SubarrayDescription`` that caches telescope positions as ``EarthLocation`` objects. [`#2947 <https://github.com/cta-observatory/ctapipe/pull/2947>`__]
+
+
+Maintenance
+-----------
+
+- Pinned sphinx to 8.x until we can solve the warnings produced with 9.x, and
+  removed some redundant (duplicated) API docs. [`#2923 <https://github.com/cta-observatory/ctapipe/pull/2923>`__]
+
+- Improve clarity and correctness of the Getting Started developer guide, fixing typos, outdated Git commands, and inconsistent terminology. [`#2948 <https://github.com/cta-observatory/ctapipe/pull/2948>`__]
+
+- Fix typos in ``README.rst`` and ``ctapipe.image.hillas.py``. [`#2956 <https://github.com/cta-observatory/ctapipe/pull/2956>`__]
+
+- Fix typos in ``ctapipe.reco.hillas_reconstructor``. [`#2957 <https://github.com/cta-observatory/ctapipe/pull/2957>`__]
+
+
+Refactoring and Optimization
+----------------------------
+
 ctapipe v0.29.0 (2026-01-14)
 ============================
 

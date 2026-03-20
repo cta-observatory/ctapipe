@@ -10,6 +10,11 @@
     "url": "https://ctapipe.readthedocs.io/en/stable/"
   },
   {
+    "name": "v0.30.0",
+    "version": "v0.30.0",
+    "url": "https://ctapipe.readthedocs.io/en/v0.30.0/"
+  },
+  {
     "name": "v0.29.0",
     "version": "v0.29.0",
     "url": "https://ctapipe.readthedocs.io/en/v0.29.0/"
