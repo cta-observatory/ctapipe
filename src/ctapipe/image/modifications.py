@@ -123,7 +123,7 @@ class NoiseEventTypeFilter(EventTypeFilter):
         return {EventType.SKY_PEDESTAL}
 
 
-@njit
+@njit(cache=NOT CTAPIPE_DISABLE_NUMBA_CACHE)
 def build_wf_noise_pixelwise(
     waveforms, n_noise_realizations, nsb_level, rng, shuffle_full_cameras
 ):
