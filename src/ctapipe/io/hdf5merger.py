@@ -58,6 +58,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.2.0",
     "v7.3.0",
     "v7.4.0",
+    "v7.5.0",
 ]
 
 

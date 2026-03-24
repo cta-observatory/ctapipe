@@ -9,7 +9,7 @@ from ctapipe.containers import (
     CameraTimingParametersContainer,
     ObservationBlockContainer,
 )
-from ctapipe.io import DataLevel, EventSource, HDF5EventSource
+from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 
 
 def test_is_not_compatible(prod5_gamma_simtel_path):
@@ -31,7 +31,7 @@ def test_is_compatible(compatible_file, request):
 def test_metadata(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
-        assert source.datamodel_version == (7, 4, 0)
+        assert source.datamodel_version == (7, 5, 0)
         assert set(source.datalevels) == {
             DataLevel.DL1_IMAGES,
             DataLevel.DL1_PARAMETERS,
@@ -358,7 +358,7 @@ def test_is_compatible_with_only_trigger(tmp_path):
     filename = tmp_path / "only_trigger.h5"
 
     with tables.open_file(filename, mode="w") as h5:
-        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = "v7.3.0"
+        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = DATA_MODEL_VERSION
 
         h5.root._v_attrs["CTA PRODUCT DATA LEVELS"] = "R0"
 
