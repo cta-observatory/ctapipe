@@ -97,6 +97,8 @@ class PluginEventSource(EventSource):
 class PluginReconstructor(Reconstructor):
     """A plugin Reconstructor"""
 
+    needs_atmosphere_profile = False
+
     foo = traits.Bool(
         True, help="example traitlet to see that it is included in --help"
     ).tag(config=True)

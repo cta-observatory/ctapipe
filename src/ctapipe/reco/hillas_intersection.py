@@ -100,6 +100,7 @@ class HillasIntersection(HillasGeometryReconstructor):
     ).tag(config=True)
 
     property = ReconstructionProperty.GEOMETRY
+    needs_atmosphere_profile = False
 
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """

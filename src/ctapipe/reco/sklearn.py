@@ -95,6 +95,8 @@ class SKLearnReconstructor(Reconstructor):
     #: Property predicted, overridden in subclass.
     property = None
 
+    needs_atmosphere_profile = False
+
     prefix = traits.Unicode(
         default_value=None,
         allow_none=True,
@@ -520,6 +522,8 @@ class DispReconstructor(Reconstructor):
     """
 
     target = "true_disp"
+
+    needs_atmosphere_profile = False
 
     prefix = traits.Unicode(
         default_value="disp",
