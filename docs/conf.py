@@ -414,7 +414,7 @@ intersphinx_mapping = {
     "numba": ("https://numba.readthedocs.io/en/stable", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
-    "psutil": ("https://psutil.readthedocs.io/en/stable", None),
+    "psutil": ("https://psutil.readthedocs.io/stable/", None),
     "pyirf": ("https://pyirf.readthedocs.io/en/stable/", None),
     "pytables": ("https://www.pytables.org", None),
     "pytest": ("https://docs.pytest.org/en/stable", None),
