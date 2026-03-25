@@ -125,7 +125,7 @@ class NoiseEventTypeFilter(EventTypeFilter):
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def build_wf_noise_pixelwise(
-    waveforms, n_noise_realizations, nsb_level, rng, shuffle_full_cameras
+    waveforms, n_noise_realizations, nsb_level, rng, sample_pixels_independently
 ):
     """
     Combine "elemental noise waveforms" into total noise waveforms by
@@ -145,10 +145,12 @@ def build_wf_noise_pixelwise(
 
     rng: random number generator
 
-    shuffle_full_cameras: bool
-    if True, the waveform for each pixel in any given noise realization comes
-    from the same combination of the input elemental noise events. If False,
-    each pixel uses a different combination of the events
+    sample_pixels_independently: bool
+    if True, each pixel will use a different random combination of the elemental
+    noise events to build the noise to be added to its waveform.
+    if False, the waveform for each pixel in any given noise realization comes
+    from the same random combination of the input elemental noise events.
+
 
     Returns
     -------
@@ -161,11 +163,7 @@ def build_wf_noise_pixelwise(
     )
 
     for i in range(n_noise_realizations):
-        if shuffle_full_cameras:
-            chosen = rng.permutation(n_events)[:nsb_level]
-            for event in chosen:
-                noise[i] += waveforms[event]
-        else:
+        if sample_pixels_independently:
             for pixel in range(n_pixels):
                 chosen = rng.permutation(n_events)[:nsb_level]
                 # The line above is slower (especially for n_events much
@@ -174,6 +172,11 @@ def build_wf_noise_pixelwise(
 
                 for event in chosen:
                     noise[i, :, pixel] += waveforms[event, :, pixel]
+        else:
+            chosen = rng.permutation(n_events)[:nsb_level]
+            for event in chosen:
+                noise[i] += waveforms[event]
+
     return noise
 
 
@@ -198,8 +201,8 @@ class WaveformModifier(TelescopeComponent):
         whereas the nsb file is a real data DL0 file from which only the
         interleaved pedestals are used (all gain channels must be present
         for all pixels). In that case, nsb_level must be =1 (to
-        match the MC to the data) and shuffle_full_cameras=True (we do not
-        want e.g. to duplicate stars in the FoV).
+        match the MC to the data) and sample_pixels_independently=False
+        (we do not want e.g. to duplicate stars in the FoV).
 
 
     In case (1), the number of available noise events per telescope in the NSB
@@ -234,14 +237,15 @@ class WaveformModifier(TelescopeComponent):
         ),
     ).tag(config=True)
 
-    shuffle_full_cameras = Bool(
-        default_value=False,
+    sample_pixels_independently = Bool(
+        default_value=True,
         help=(
-            "If True, full cameras are "
-            "combined to generate noise "
-            "waveforms for all pixels. Else, "
-            "each pixel uses a different random "
-            "combination of the input noise events"
+            "If True, each pixel uses a different "
+            "random combination of the input noise "
+            "events"
+            "If False, all pixels use the same random "
+            "combination of noise events. That is, noise "
+            "events will be combined as full cameras"
         ),
     ).tag(config=True)
 
@@ -305,7 +309,7 @@ class WaveformModifier(TelescopeComponent):
                 self.n_noise_realizations,
                 self.nsb_level,
                 self.rng,
-                self.shuffle_full_cameras,
+                self.sample_pixels_independently,
             )
 
     def read_nsb_database(self):
