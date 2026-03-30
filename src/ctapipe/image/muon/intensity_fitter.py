@@ -81,7 +81,7 @@ def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y):
     - Each polygon edge is defined as:
           (x, y) = (ri_x, ri_y) + t * (vi_x, vi_y), with 0 <= t < 1
     - The function computes intersections by solving a 2D linear system.
-    - A small epsilon (`1e-20`) is added to the denominator to avoid division by zero.
+    - A small epsilon_d (`1e-20`) is added to the denominator to avoid division by zero.
     - For multiple intersections, distances are sorted and combined with alternating
       signs to compute the total chord length (useful for non-convex polygons).
 
@@ -90,6 +90,7 @@ def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y):
     >>> length = polygon_chord(mu_x=0, mu_y=0, phi=np.pi/4,
     ...                        ri_x=..., ri_y=..., vi_x=..., vi_y=...)
     >>> print(length)
+
     """
 
     # Effective speed of the ray, with unit norm.
@@ -100,10 +101,10 @@ def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y):
 
     c1 = mu_x - ri_x
     c2 = mu_y - ri_y
-    D = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
+    determinant = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
 
-    t = ( c1 * vmu_y - c2 * vmu_x ) / D
-    s = ( vi_y * c1 - vi_x * c2 ) / D
+    t = ( c1 * vmu_y - c2 * vmu_x ) / determinant
+    s = ( vi_y * c1 - vi_x * c2 ) / determinant
 
     status = np.column_stack((vi_x, ri_x, vi_y, ri_y, t, s))
     mask = (status[:,4] >= 0) & (status[:,4] < 1) & (status[:,5] >= 0)
