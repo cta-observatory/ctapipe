@@ -946,13 +946,13 @@ class CrossValidator(Component):
                         f"Output path {self.output_path} exists, but overwrite=False"
                     )
 
-            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
             self.h5file = open_file(self.output_path, mode="w")
 
     def close(self):
         """Close the output hdf5 file, if ``self.output_path`` is given."""
         if self.output_path:
             self.h5file.close()
+            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
 
     def __enter__(self):
         return self
