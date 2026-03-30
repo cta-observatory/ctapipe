@@ -40,12 +40,67 @@ SQRT2 = np.sqrt(2)
 
 
 def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y):
+    """
+    Compute the chord length of a ray intersecting a polygon.
+
+    This function calculates the length of the segment formed by the intersection
+    of a ray (defined by an origin and direction) with a polygon defined by its
+    edges. The polygon is represented parametrically using starting points and
+    direction vectors for each edge.
+
+    Parameters
+    ----------
+    mu_x : float
+        X-coordinate of the ray origin, which is the muon's impact point (x).
+    mu_y : float
+        Y-coordinate of the ray origin, which is the muon's impact point (y).
+    phi : float
+        Angle defining the direction of the ray.
+    ri_x : ndarray of shape (N,)
+        X-coordinates of the starting points of the polygon edges.
+    ri_y : ndarray of shape (N,)
+        Y-coordinates of the starting points of the polygon edges.
+    vi_x : ndarray of shape (N,)
+        X-components of the edge direction vectors.
+    vi_y : ndarray of shape (N,)
+        Y-components of the edge direction vectors.
+
+    Returns
+    -------
+    float
+        Length of the chord formed by the intersection of the ray with the polygon:
+        - 0.0 if there is no intersection,
+        - distance from the ray origin to the intersection point if only one intersection,
+        - distance between two intersection points if exactly two intersections,
+        - accumulated segment length for multiple intersections (handles complex polygons).
+
+    Notes
+    -----
+    - The ray is defined parametrically as:
+          (x, y) = (mu_x, mu_y) + s * (cos(phi), sin(phi)), with s >= 0
+    - Each polygon edge is defined as:
+          (x, y) = (ri_x, ri_y) + t * (vi_x, vi_y), with 0 <= t < 1
+    - The function computes intersections by solving a 2D linear system.
+    - A small epsilon (`1e-20`) is added to the denominator to avoid division by zero.
+    - For multiple intersections, distances are sorted and combined with alternating
+      signs to compute the total chord length (useful for non-convex polygons).
+
+    Examples
+    --------
+    >>> length = polygon_chord(mu_x=0, mu_y=0, phi=np.pi/4,
+    ...                        ri_x=..., ri_y=..., vi_x=..., vi_y=...)
+    >>> print(length)
+    """
+
+    # Effective speed of the ray, with unit norm.
     vmu_x = np.cos(phi)
     vmu_y = np.sin(phi)
 
+    epsilon_d = 1.0e-20
+
     c1 = mu_x - ri_x
     c2 = mu_y - ri_y
-    D = vi_x * vmu_y - vi_y * vmu_x + 1.0e-20
+    D = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
 
     t = ( c1 * vmu_y - c2 * vmu_x ) / D
     s = ( vi_y * c1 - vi_x * c2 ) / D
