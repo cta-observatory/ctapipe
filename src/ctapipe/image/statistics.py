@@ -104,7 +104,7 @@ def descriptive_statistics(
     )
 
 
-@njit
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def n_largest(n, array):
     """return the n largest values of an array"""
     return nlargest(n, array)
