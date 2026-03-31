@@ -986,6 +986,7 @@ class SimTelEventSource(EventSource):
             data.meta["origin"] = "hessio"
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
+            data.meta["simtel_event"] = array_event
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
