@@ -1,0 +1,1 @@
+Underlying simtel event can now be accessed at event.meta["simtel_event"] when reading a SimTelEventSource
