@@ -8,6 +8,12 @@ import pytest
 
 from ctapipe.instrument.optics import PSFModel
 
+# Handle numpy version compatibility for trapezoid/trapz
+if tuple(int(x) for x in np.__version__.split(".")[:2]) >= (2, 0):
+    trapz_func = np.trapezoid
+else:
+    trapz_func = np.trapz
+
 
 @pytest.fixture(scope="session")
 def coma_psf(example_subarray):
@@ -62,8 +68,8 @@ def test_normalization(coma_psf):
         lat0=lat0,
     )
 
-    integral = np.trapezoid(
-        np.trapezoid(pdf, lon.to_value(u.deg), axis=1), lat.to_value(u.deg)
+    integral = trapz_func(
+        trapz_func(pdf, lon.to_value(u.deg), axis=1), lat.to_value(u.deg)
     )
 
     assert integral == pytest.approx(1.0, rel=0.05, abs=0.02)
@@ -85,8 +91,8 @@ def test_normalization_at_camera_center(coma_psf):
         lat0=lat0,
     )
 
-    integral = np.trapezoid(
-        np.trapezoid(pdf, lon.to_value(u.deg), axis=1), lat.to_value(u.deg)
+    integral = trapz_func(
+        trapz_func(pdf, lon.to_value(u.deg), axis=1), lat.to_value(u.deg)
     )
 
     assert integral == pytest.approx(1.0, rel=0.05, abs=0.02)
