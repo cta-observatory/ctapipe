@@ -1027,7 +1027,7 @@ def dummy_cuts_file(
 ):
     from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
-    output_path = irf_tmp_path / "dummy_cuts.fits"
+    output_path = irf_tmp_path / "test_dummy_cuts.fits"
     run_tool(
         EventSelectionOptimizer(),
         argv=[
