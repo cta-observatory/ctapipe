@@ -3,13 +3,17 @@ from datetime import UTC, datetime, timedelta
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.coordinates import ICRS, AltAz, SkyCoord
 from astropy.io import fits
-from astropy.table import Column, Table
-from astropy.time import Time
-from traitlets.config import Config
+from astropy.table import Column, QTable, Table, vstack
+from astropy.time import Time, TimeDelta
 
-from ...irf.cuts import DL2EventSelection
-from ...tools.create_dl3 import DL3Tool
+from ...containers import PointingMode
+from ...core import QualityQuery
+from ...io import TableLoader
+from ...io.astropy_helpers import join_allow_empty
+from ...io.dl2_tables_preprocessing import DL2EventPreprocessor
+from ...version import version as ctapipe_version
 from ..dl3 import DL3GADFEventsWriter
 
 
@@ -20,62 +24,132 @@ def hdu_irfs(dummy_irf_file):
 
 
 @pytest.fixture(scope="session")
-def dl2_events_for_dl3(single_obs_gamma_diffuse_full_reco_file, dummy_cuts_file):
-    tool = DL3Tool(
-        config=Config(
-            {
-                "EventPreprocessor": {
-                    "energy_reconstructor": "ExtraTreesRegressor",
-                    "geometry_reconstructor": "HillasReconstructor",
-                    "gammaness_reconstructor": "ExtraTreesClassifier",
-                }
-            }
+def dl2_meta_for_dl3(single_obs_gamma_diffuse_full_reco_file):
+    with TableLoader(
+        single_obs_gamma_diffuse_full_reco_file,
+        dl2=True,
+        observation_info=True,
+        simulated=False,
+    ) as loader:
+        meta = {
+            "location": loader.subarray.reference_location,
+            "telescope_information": {
+                "organisation": "CTAO",
+                "array": "CTAO-North",
+                "subarray": "4LST",
+                "telescope_list": np.array(
+                    loader.subarray.get_tel_ids(loader.subarray.tel)
+                ),
+            },
+            "target": {
+                "observer": "SuperObserver",
+                "object_name": "Crab",
+                "object_coordinate": SkyCoord(
+                    ra=83.6331 * u.deg, dec=22.0145 * u.deg, frame="icrs"
+                ),
+            },
+            "software_version": {
+                "analysis_version": "ctapipe " + ctapipe_version,
+                "calibration_version": "UNKNOWN",
+                "dst_version": "UNKNOWN",
+            },
+            "livetime_fraction": 0.97,
+        }
+
+        obs_info = loader.read_observation_information()
+        sched_info = loader.read_scheduling_blocks()
+        obs_all_info = join_allow_empty(obs_info, sched_info, "sb_id", "inner")
+        row = obs_all_info[0]
+        meta["obs_id"] = int(row["obs_id"])
+
+        start_time = Time(row["actual_start_time"]).tai
+        stop_time = start_time + TimeDelta(obs_all_info["actual_duration"].quantity[0])
+        meta["gti"] = [(start_time, stop_time)]
+
+        pointing = AltAz(
+            alt=obs_all_info["subarray_pointing_lat"].quantity[0],
+            az=obs_all_info["subarray_pointing_lon"].quantity[0],
+            location=meta["location"],
+            obstime=start_time,
         )
-    )
-    tool.dl2_file = single_obs_gamma_diffuse_full_reco_file
-    tool.event_selection = DL2EventSelection(parent=tool, cuts_file=dummy_cuts_file)
-    tool._configure_event_preprocessor_for_dl3()
-
-    events = tool._load_preselected_events(chunk_size=1000)
-    events = tool.event_selection.calculate_gamma_selection(
-        events,
-        apply_spatial_selection=False,
-    )
-    events = events[events["selected_gamma"]]
-
-    meta = tool._get_observation_information()
-    events["time"] = (
-        Time("2020-01-01T00:00:00", scale="tai") + np.arange(len(events)) * u.s
-    )
-    tool.output_table_schema = [
-        Column(name="reco_az", unit=u.deg),
-        Column(name="reco_alt", unit=u.deg),
-        Column(name="pointing_az", unit=u.deg),
-        Column(name="pointing_alt", unit=u.deg),
-        Column(name="time"),
-        Column(name="reco_ra", unit=u.deg),
-        Column(name="reco_dec", unit=u.deg),
-    ]
-    events = tool._make_derived_columns(events, location_subarray=meta["location"])
-    return events
+        meta["pointing"] = {
+            "pointing_mode": PointingMode(row["pointing_mode"]).name,
+            "pointing_list": [(start_time, pointing), (stop_time, pointing)],
+        }
+        return meta
 
 
 @pytest.fixture(scope="session")
-def dl2_meta_for_dl3(single_obs_gamma_diffuse_full_reco_file, dummy_cuts_file):
-    tool = DL3Tool(
-        config=Config(
-            {
-                "EventPreprocessor": {
-                    "energy_reconstructor": "ExtraTreesRegressor",
-                    "geometry_reconstructor": "HillasReconstructor",
-                    "gammaness_reconstructor": "ExtraTreesClassifier",
-                }
-            }
-        )
+def dl2_events_for_dl3(single_obs_gamma_diffuse_full_reco_file, dl2_meta_for_dl3):
+    preprocessor = DL2EventPreprocessor(
+        energy_reconstructor="ExtraTreesRegressor",
+        geometry_reconstructor="HillasReconstructor",
+        gammaness_classifier="ExtraTreesClassifier",
+        apply_derived_columns=False,
+        allow_unsupported_pointing_frames=True,
+        output_table_schema=[
+            Column(name="obs_id", dtype=np.uint64),
+            Column(name="event_id", dtype=np.uint64),
+            Column(name="reco_energy", unit=u.TeV),
+            Column(name="reco_az", unit=u.deg),
+            Column(name="reco_alt", unit=u.deg),
+            Column(name="pointing_az", unit=u.deg),
+            Column(name="pointing_alt", unit=u.deg),
+            Column(name="gh_score", dtype=np.float64),
+        ],
     )
-    tool.dl2_file = single_obs_gamma_diffuse_full_reco_file
-    tool.event_selection = DL2EventSelection(parent=tool, cuts_file=dummy_cuts_file)
-    return tool._get_observation_information()
+    preprocessor.quality_query = QualityQuery(
+        parent=preprocessor,
+        quality_criteria=[
+            (
+                "multiplicity 4",
+                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
+            ),
+            ("valid classifier", "ExtraTreesClassifier_is_valid"),
+            ("valid geom reco", "HillasReconstructor_is_valid"),
+            ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+        ],
+    )
+
+    chunks = []
+    with TableLoader(
+        single_obs_gamma_diffuse_full_reco_file,
+        dl2=True,
+        simulated=False,
+        observation_info=True,
+    ) as loader:
+        reader = loader.read_subarray_events_chunked(
+            1000,
+            dl2=True,
+            simulated=False,
+            observation_info=True,
+        )
+        for _, _, events in reader:
+            selected = events[preprocessor.quality_query.get_table_mask(events)]
+            if len(selected) == 0:
+                continue
+            chunks.append(preprocessor.normalise_column_names(selected))
+
+    if len(chunks) == 0:
+        raise ValueError("No events available for DL3 writer tests")
+
+    events = QTable(vstack(chunks, join_type="exact", metadata_conflicts="silent"))
+    events["time"] = (
+        Time("2020-01-01T00:00:00", scale="tai") + np.arange(len(events)) * u.s
+    )
+
+    reco = SkyCoord(
+        alt=events["reco_alt"],
+        az=events["reco_az"],
+        frame=AltAz(
+            location=dl2_meta_for_dl3["location"],
+            obstime=Time(events["time"]),
+        ),
+    )
+    reco_icrs = reco.transform_to(ICRS())
+    events["reco_ra"] = reco_icrs.ra.to(u.deg)
+    events["reco_dec"] = reco_icrs.dec.to(u.deg)
+    return events
 
 
 @pytest.fixture

@@ -424,137 +424,6 @@ class DL3GADFEventsWriter(DL3EventsWriter):
         self.file_creation_time = datetime.now(tz=UTC)
         self._reference_time = self.reference_time.tai
 
-    def _to_tai_time(self, value: Any, value_name: str) -> Time:
-        """
-        Normalize input to an absolute TAI ``Time`` object.
-
-        Parameters
-        ----------
-        value : Any
-            Input time-like value. Supported types are ``Time``, ``TimeDelta``,
-            time ``Quantity`` and scalar numeric values interpreted as seconds
-            relative to ``reference_time``.
-        value_name : str
-            Name of the value used in error messages.
-        """
-        if isinstance(value, Time):
-            return value.tai
-
-        if isinstance(value, TimeDelta):
-            return self._reference_time + value
-
-        if isinstance(value, u.Quantity):
-            if not value.unit.is_equivalent(u.s):
-                raise ValueError(
-                    f"{value_name} must be a time quantity equivalent to seconds."
-                )
-            return self._reference_time + TimeDelta(value.to(u.s))
-
-        if np.isscalar(value) and np.isreal(value):
-            return self._reference_time + TimeDelta(float(value) * u.s)
-
-        raise TypeError(
-            f"{value_name} must be Time, TimeDelta, a time Quantity, or a scalar number of seconds."
-        )
-
-    def _to_relative_time_seconds(self, value: Any, value_name: str) -> Any:
-        """
-        Normalize input to seconds relative to ``reference_time``.
-
-        Parameters
-        ----------
-        value : Any
-            Input time-like value. Supported types are ``Time``, ``TimeDelta``,
-            time ``Quantity`` and numeric values assumed to already be in seconds.
-        value_name : str
-            Name of the value used in error messages.
-        """
-        if isinstance(value, Time):
-            return (value.tai - self._reference_time).to_value(u.s)
-
-        if isinstance(value, TimeDelta):
-            return value.to_value(u.s)
-
-        if isinstance(value, u.Quantity):
-            if not value.unit.is_equivalent(u.s):
-                raise ValueError(
-                    f"{value_name} must be a time quantity equivalent to seconds."
-                )
-            return value.to_value(u.s)
-
-        values = np.asarray(value)
-        if np.issubdtype(values.dtype, np.number):
-            return values.astype(np.float64, copy=False)
-
-        raise TypeError(
-            f"{value_name} must be Time, TimeDelta, a time Quantity, or numeric seconds."
-        )
-
-    def _to_relative_time_quantity(self, value: Any, value_name: str) -> u.Quantity:
-        """Normalize input to a quantity in seconds relative to ``reference_time``."""
-        return u.Quantity(
-            self._to_relative_time_seconds(value, value_name),
-            u.s,
-            copy=COPY_IF_NEEDED,
-        )
-
-    @staticmethod
-    def _circular_interp(x, xp, fp_deg):
-        """
-        Interpolate angular values in degrees, handling the 0/360 wrap-around.
-
-        Uses ``np.unwrap`` to remove discontinuities before interpolation,
-        then wraps the result back to [0, 360).
-
-        Parameters
-        ----------
-        x : array-like
-            The x-coordinates at which to evaluate the interpolated values.
-        xp : array-like
-            The x-coordinates of the data points (must be increasing).
-        fp_deg : array-like
-            The y-coordinates of the data points, in degrees.
-
-        Returns
-        -------
-        np.ndarray
-            Interpolated angular values in degrees, in [0, 360).
-        """
-        fp_rad = np.deg2rad(np.asarray(fp_deg, dtype=float))
-        fp_unwrapped = np.unwrap(fp_rad)
-        result_rad = np.interp(x, xp, fp_unwrapped)
-        return np.rad2deg(result_rad) % 360
-
-    @staticmethod
-    def _circular_mean(angles_deg):
-        """
-        Compute the mean of angular values in degrees, handling the 0/360
-        wrap-around.
-
-        Uses the ``atan2(mean(sin), mean(cos))`` formula for circular
-        statistics.
-
-        Parameters
-        ----------
-        angles_deg : array-like
-            Angular values in degrees.
-
-        Returns
-        -------
-        float
-            Mean angle in degrees, in [0, 360).
-        """
-        angles_rad = np.deg2rad(np.asarray(angles_deg, dtype=float))
-        return float(
-            np.rad2deg(
-                np.arctan2(
-                    np.mean(np.sin(angles_rad)),
-                    np.mean(np.cos(angles_rad)),
-                )
-            )
-            % 360
-        )
-
     def write_file(self, path):
         """
         This function will write the new DL3 file
@@ -1003,3 +872,134 @@ class DL3GADFEventsWriter(DL3EventsWriter):
         table = QTable(table_structure)
         table.sort("TIME")
         return table
+
+    def _to_tai_time(self, value: Any, value_name: str) -> Time:
+        """
+        Normalize input to an absolute TAI ``Time`` object.
+
+        Parameters
+        ----------
+        value : Any
+            Input time-like value. Supported types are ``Time``, ``TimeDelta``,
+            time ``Quantity`` and scalar numeric values interpreted as seconds
+            relative to ``reference_time``.
+        value_name : str
+            Name of the value used in error messages.
+        """
+        if isinstance(value, Time):
+            return value.tai
+
+        if isinstance(value, TimeDelta):
+            return self._reference_time + value
+
+        if isinstance(value, u.Quantity):
+            if not value.unit.is_equivalent(u.s):
+                raise ValueError(
+                    f"{value_name} must be a time quantity equivalent to seconds."
+                )
+            return self._reference_time + TimeDelta(value.to(u.s))
+
+        if np.isscalar(value) and np.isreal(value):
+            return self._reference_time + TimeDelta(float(value) * u.s)
+
+        raise TypeError(
+            f"{value_name} must be Time, TimeDelta, a time Quantity, or a scalar number of seconds."
+        )
+
+    def _to_relative_time_seconds(self, value: Any, value_name: str) -> Any:
+        """
+        Normalize input to seconds relative to ``reference_time``.
+
+        Parameters
+        ----------
+        value : Any
+            Input time-like value. Supported types are ``Time``, ``TimeDelta``,
+            time ``Quantity`` and numeric values assumed to already be in seconds.
+        value_name : str
+            Name of the value used in error messages.
+        """
+        if isinstance(value, Time):
+            return (value.tai - self._reference_time).to_value(u.s)
+
+        if isinstance(value, TimeDelta):
+            return value.to_value(u.s)
+
+        if isinstance(value, u.Quantity):
+            if not value.unit.is_equivalent(u.s):
+                raise ValueError(
+                    f"{value_name} must be a time quantity equivalent to seconds."
+                )
+            return value.to_value(u.s)
+
+        values = np.asarray(value)
+        if np.issubdtype(values.dtype, np.number):
+            return values.astype(np.float64, copy=False)
+
+        raise TypeError(
+            f"{value_name} must be Time, TimeDelta, a time Quantity, or numeric seconds."
+        )
+
+    def _to_relative_time_quantity(self, value: Any, value_name: str) -> u.Quantity:
+        """Normalize input to a quantity in seconds relative to ``reference_time``."""
+        return u.Quantity(
+            self._to_relative_time_seconds(value, value_name),
+            u.s,
+            copy=COPY_IF_NEEDED,
+        )
+
+    @staticmethod
+    def _circular_interp(x, xp, fp_deg):
+        """
+        Interpolate angular values in degrees, handling the 0/360 wrap-around.
+
+        Uses ``np.unwrap`` to remove discontinuities before interpolation,
+        then wraps the result back to [0, 360).
+
+        Parameters
+        ----------
+        x : array-like
+            The x-coordinates at which to evaluate the interpolated values.
+        xp : array-like
+            The x-coordinates of the data points (must be increasing).
+        fp_deg : array-like
+            The y-coordinates of the data points, in degrees.
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated angular values in degrees, in [0, 360).
+        """
+        fp_rad = np.deg2rad(np.asarray(fp_deg, dtype=float))
+        fp_unwrapped = np.unwrap(fp_rad)
+        result_rad = np.interp(x, xp, fp_unwrapped)
+        return np.rad2deg(result_rad) % 360
+
+    @staticmethod
+    def _circular_mean(angles_deg):
+        """
+        Compute the mean of angular values in degrees, handling the 0/360
+        wrap-around.
+
+        Uses the ``atan2(mean(sin), mean(cos))`` formula for circular
+        statistics.
+
+        Parameters
+        ----------
+        angles_deg : array-like
+            Angular values in degrees.
+
+        Returns
+        -------
+        float
+            Mean angle in degrees, in [0, 360).
+        """
+        angles_rad = np.deg2rad(np.asarray(angles_deg, dtype=float))
+        return float(
+            np.rad2deg(
+                np.arctan2(
+                    np.mean(np.sin(angles_rad)),
+                    np.mean(np.cos(angles_rad)),
+                )
+            )
+            % 360
+        )
