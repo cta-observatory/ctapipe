@@ -46,6 +46,78 @@ def test_asymptotic_behavior(coma_psf):
     )
 
 
+def test_normalization(coma_psf):
+    lon0 = 2.13 * u.deg
+    lat0 = -0.37 * u.deg
+
+    lon = np.linspace(-5.0, 7.0, 601) * u.deg
+    lat = np.linspace(-4.0, 4.0, 401) * u.deg
+    lon_grid, lat_grid = np.meshgrid(lon, lat, indexing="xy")
+
+    pdf = coma_psf.pdf(
+        tel_id=1,
+        lon=lon_grid,
+        lat=lat_grid,
+        lon0=lon0,
+        lat0=lat0,
+    )
+
+    integral = np.trapezoid(
+        np.trapezoid(pdf, lon.to_value(u.deg), axis=1), lat.to_value(u.deg)
+    )
+
+    assert integral == pytest.approx(1.0, rel=0.05, abs=0.02)
+
+
+def test_normalization_at_camera_center(coma_psf):
+    lon0 = 0.0 * u.deg
+    lat0 = 0.0 * u.deg
+
+    lon = np.linspace(-1.0, 1.0, 201) * u.deg
+    lat = np.linspace(-1.0, 1.0, 201) * u.deg
+    lon_grid, lat_grid = np.meshgrid(lon, lat, indexing="xy")
+
+    pdf = coma_psf.pdf(
+        tel_id=1,
+        lon=lon_grid,
+        lat=lat_grid,
+        lon0=lon0,
+        lat0=lat0,
+    )
+
+    integral = np.trapezoid(
+        np.trapezoid(pdf, lon.to_value(u.deg), axis=1), lat.to_value(u.deg)
+    )
+
+    assert integral == pytest.approx(1.0, rel=0.05, abs=0.02)
+
+
+def test_finite_at_source_position(coma_psf):
+    value = coma_psf.pdf(
+        tel_id=1,
+        lon=2.0 * u.deg,
+        lat=0.0 * u.deg,
+        lon0=2.0 * u.deg,
+        lat0=0.0 * u.deg,
+    )
+
+    assert np.isfinite(value)
+    assert value > 0.0
+
+
+def test_finite_at_camera_center(coma_psf):
+    value = coma_psf.pdf(
+        tel_id=1,
+        lon=0.0 * u.deg,
+        lat=0.0 * u.deg,
+        lon0=0.0 * u.deg,
+        lat0=0.0 * u.deg,
+    )
+
+    assert np.isfinite(value)
+    assert value > 0.0
+
+
 def test_for_missing_config_parameters(example_subarray):
     with pytest.raises(
         ValueError, match="Missing ComaPSFModel configuration parameters:"

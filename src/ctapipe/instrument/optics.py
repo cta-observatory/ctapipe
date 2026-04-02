@@ -348,6 +348,24 @@ class ComaPSFModel(PSFModel):
     subarray : ctapipe.instrument.SubarrayDescription
         Description of the subarray.
 
+    Notes
+    -----
+    **Model Limitations:**
+
+    - For sources within the central pixel (r0 < pixel_width), the PSF is approximated
+      as a uniform distribution over the pixel area. This avoids singularities at the
+      origin and provides a numerically stable approximation for sub-pixel sources.
+
+    - The angular distribution is limited to a chord around the radial axis based on
+      the approximation that the polar axis is orthogonal to the radial axis. This
+      limits its validity to the inner camera region.
+
+    - This PSF model is designed for pointing determination via star tracking. As the
+      telescope tracks celestial coordinates, stars rotate around the camera center.
+      Their reconstructed positions provide information about the telescope pointing
+      direction. To achieve good pointing accuracy, stars should be located away from
+      the camera center to provide a sufficient lever arm for the pointing solution.
+
     References
     ----------
     For reference, see :cite:p:`startracker`
@@ -495,15 +513,26 @@ class ComaPSFModel(PSFModel):
         delta_phi = (phi - phi0 + np.pi) % (2 * np.pi) - np.pi
         polar_pdf = laplace.pdf(delta_phi, 0, s_phi)
 
-        at_center = np.isclose(r0, 0, atol=self.pixel_width[tel_id])
-        polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
-
         # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
         chord_length = min(6 * self.pixel_width[tel_id], 0.5 * r0)
 
-        if r0 != 0:
+        if not np.isclose(r0, 0, atol=self.pixel_width[tel_id]):
             dphi = np.arcsin(chord_length / (2 * r0))
-            polar_pdf[np.abs(delta_phi) > dphi] = 0
+            polar_pdf = np.where(np.abs(delta_phi) <= dphi, polar_pdf, 0.0)
 
-        return radial_pdf * polar_pdf
+        pixel = self.pixel_width[tel_id]
+
+        # If the source is within the central pixel, use uniform distribution inside pixel
+        source_in_pixel = r0 < pixel
+        if source_in_pixel:
+            # Uniform distribution inside the pixel, zero outside
+            in_pixel = r < pixel
+            uniform_density = 1.0 / (np.pi * pixel**2)
+            pdf = np.where(in_pixel, uniform_density, 0.0)
+        else:
+            # Normal model: asymmetric Laplacian radial and Laplacian angular with 1/r Jacobian
+            inv_r = np.divide(1.0, r, where=r != 0, out=np.zeros_like(r, dtype=float))
+            pdf = radial_pdf * polar_pdf * inv_r
+
+        return pdf
