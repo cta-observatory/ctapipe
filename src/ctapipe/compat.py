@@ -7,6 +7,7 @@ from packaging.version import Version
 
 __all__ = [
     "COPY_IF_NEEDED",
+    "trapz_func",
 ]
 
 
@@ -16,3 +17,6 @@ __all__ = [
 COPY_IF_NEEDED = None
 if Version(np.__version__) < Version("2.0.0.dev"):
     COPY_IF_NEEDED = False
+
+# in numpy 1.x, use trapz; in numpy 2.0+, trapz is deprecated in favor of trapezoid
+trapz_func = getattr(np, "trapezoid", np.trapz)
