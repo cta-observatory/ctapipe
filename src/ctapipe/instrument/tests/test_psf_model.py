@@ -6,13 +6,8 @@ import astropy.units as u
 import numpy as np
 import pytest
 
+from ctapipe.compat import trapz_func
 from ctapipe.instrument.optics import PSFModel
-
-# Handle numpy version compatibility for trapezoid/trapz
-if tuple(int(x) for x in np.__version__.split(".")[:2]) >= (2, 0):
-    trapz_func = np.trapezoid
-else:
-    trapz_func = np.trapz
 
 
 @pytest.fixture(scope="session")
