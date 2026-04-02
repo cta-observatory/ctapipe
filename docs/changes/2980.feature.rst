@@ -1,0 +1,2 @@
+This allows to use WaveformModifier in the ProcessorTool,
+to increase the NSB level in the MC (to match observations)

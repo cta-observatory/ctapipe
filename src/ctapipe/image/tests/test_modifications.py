@@ -29,14 +29,13 @@ def test_waveform_modifier():
                 else:
                     original_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
 
+            wf_mod(event)
+
+            for tel_id in event.trigger.tels_with_trigger:
                 if tel_id in modified_wfs:
-                    modified_wfs[tel_id].append(
-                        wf_mod(tel_id, event.r1.tel[tel_id].waveform)
-                    )
+                    modified_wfs[tel_id].append(event.r1.tel[tel_id].waveform)
                 else:
-                    modified_wfs[tel_id] = [
-                        wf_mod(tel_id, event.r1.tel[tel_id].waveform)
-                    ]
+                    modified_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
 
     for tel_id in original_wfs:
         original_wfs[tel_id] = np.array(original_wfs[tel_id])
