@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from functools import lru_cache
 from typing import Any, Dict, List, Tuple
 
 import astropy.units as u
@@ -507,7 +506,6 @@ class DL3GADFEventsWriter(DL3EventsWriter):
             "TIMESYS": "TAI",
         }
 
-    @lru_cache(maxsize=1)
     def get_hdu_header_base_time(self) -> Dict[str, Any]:
         """
         Return the information about time parameters used in several HDU
@@ -609,7 +607,6 @@ class DL3GADFEventsWriter(DL3EventsWriter):
             header["CAL_VER"] = self.software_information["calibration_version"]
         return header
 
-    @lru_cache(maxsize=1)
     def get_hdu_header_base_pointing(self) -> Dict[str, Any]:
         """
         Return information on the pointing during the observation
@@ -697,7 +694,7 @@ class DL3GADFEventsWriter(DL3EventsWriter):
         The output dictionary contain all the necessary information that should be added to the header of the events HDU
         """
         header = self.get_hdu_header_base_format()
-        header.update({"HDUCLAS1": "EVENTS"})
+        header.update({"HDUCLAS1": "EVENTS", "FOVALIGN": "ALTAZ"})
         header.update(self.get_hdu_header_base_time())
         header.update(self.get_hdu_header_base_pointing())
         header.update(self.get_hdu_header_base_observation_information())
