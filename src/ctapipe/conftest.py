@@ -872,6 +872,40 @@ def gamma_diffuse_full_reco_file(
 
 
 @pytest.fixture(scope="session")
+def single_obs_gamma_diffuse_full_reco_file(gamma_diffuse_full_reco_file, irf_tmp_path):
+    """
+    Copy of gamma_diffuse_full_reco_file restricted to its first observation block.
+
+    The full multi-observation file cannot be used for DL3 production, which
+    requires a single obs_id per output file.
+    """
+    output_path = irf_tmp_path / "gamma_diffuse_single_obs.dl2.h5"
+    shutil.copy(gamma_diffuse_full_reco_file, output_path)
+
+    obs_table = read_table(output_path, "/configuration/observation/observation_block")
+    first_obs_id = obs_table["obs_id"][0]
+    single_obs = obs_table[obs_table["obs_id"] == first_obs_id]
+    single_obs["actual_duration"] = 1800.0 * u.s
+
+    sched_table = read_table(output_path, "/configuration/observation/scheduling_block")
+    single_sched = sched_table[sched_table["sb_id"] == single_obs["sb_id"][0]]
+
+    write_table(
+        single_obs,
+        output_path,
+        "/configuration/observation/observation_block",
+        overwrite=True,
+    )
+    write_table(
+        single_sched,
+        output_path,
+        "/configuration/observation/scheduling_block",
+        overwrite=True,
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
 def proton_full_reco_file(
     proton_train_clf,
     particle_classifier_path,
@@ -982,6 +1016,54 @@ def irf_events_table():
 
     ev = vstack([e_tab, tab], join_type="exact", metadata_conflicts="silent")
     return ev
+
+
+@pytest.fixture(scope="session")
+def dummy_cuts_file(
+    gamma_diffuse_full_reco_file,
+    proton_full_reco_file,
+    event_loader_config_path,
+    irf_tmp_path,
+):
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
+
+    output_path = irf_tmp_path / "test_dummy_cuts.fits"
+    run_tool(
+        EventSelectionOptimizer(),
+        argv=[
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--proton-file={proton_full_reco_file}",
+            f"--electron-file={gamma_diffuse_full_reco_file}",
+            f"--output={output_path}",
+            f"--config={event_loader_config_path}",
+        ],
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
+def dummy_irf_file(
+    gamma_diffuse_full_reco_file,
+    proton_full_reco_file,
+    dummy_cuts_file,
+    event_loader_config_path,
+    irf_tmp_path,
+):
+    from ctapipe.tools.compute_irf import IrfTool
+
+    output_path = irf_tmp_path / "dummy_irf.fits"
+    run_tool(
+        IrfTool(),
+        argv=[
+            f"--cuts={dummy_cuts_file}",
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--proton-file={proton_full_reco_file}",
+            f"--electron-file={gamma_diffuse_full_reco_file}",
+            f"--output={output_path}",
+            f"--config={event_loader_config_path}",
+        ],
+    )
+    return output_path
 
 
 @pytest.fixture(scope="function")
