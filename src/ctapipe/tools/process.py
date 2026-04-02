@@ -237,7 +237,9 @@ class ProcessorTool(Tool):
             # Append the monitoring source to the list if it has compatible monitoring types
             self._monitoring_sources.append(mon_source)
 
-        self.waveform_modifier = WaveformModifier(parent=self, subarray=subarray)
+        if self.add_nsb_in_waveforms:
+            self.waveform_modifier = WaveformModifier(parent=self, subarray=subarray)
+
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
