@@ -80,9 +80,10 @@ class ProcessorTool(Tool):
         help="show progress bar during processing", default_value=False
     ).tag(config=True)
 
-    add_nsb_in_waveforms = Bool(help="add nsb in waveforms", default_value=False).tag(
-        config=True
-    )
+    add_nsb_in_waveforms = Bool(
+        default_value=False,
+        help="add nsb in waveforms",
+    ).tag(config=True)
 
     force_recompute_dl1 = Bool(
         help="Enforce dl1 recomputation even if already present in the input file",
