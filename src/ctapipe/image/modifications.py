@@ -406,8 +406,7 @@ class WaveformModifier(TelescopeComponent):
             A `~ctapipe.containers.ArrayEventContainer` event container
         """
 
-        for tel_id in event.trigger.tels_with_trigger:
-            r1 = event.r1.tel[tel_id]
+        for tel_id, r1 in event.r1.tel.items():
             waveform = r1.waveform
             # Note: MC waveforms passed to this function should contain data in all
             # pixels (not DVR'ed - obviously DVR depends on noise level, it does not
