@@ -14,12 +14,15 @@ from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
 from .hdf5dataformat import (
+    DL0_SUBARRAY_QUALITY_GROUP,
     DL0_TEL_POINTING_GROUP,
+    DL0_TEL_QUALITY_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_COLUMN_NAMES,
     DL1_IMAGE_STATISTICS_TABLE,
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
+    DL1_SUBARRAY_QUALITY_GROUP,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_CALIBRATION_GROUP,
     DL1_TEL_ILLUMINATOR_THROUGHPUT_GROUP,
@@ -29,6 +32,7 @@ from .hdf5dataformat import (
     DL1_TEL_OPTICAL_PSF_GROUP,
     DL1_TEL_PARAMETERS_GROUP,
     DL1_TEL_POINTING_GROUP,
+    DL1_TEL_QUALITY_GROUP,
     DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
     DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
@@ -53,6 +57,8 @@ from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split
 COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.2.0",
     "v7.3.0",
+    "v7.4.0",
+    "v7.5.0",
 ]
 
 
@@ -475,9 +481,11 @@ class HDF5Merger(Component):
         """Append monitoring data (pointing, calibration, throughput, pixel statistics)."""
         self._append_monitoring_subarray_groups(other)
         self._append_monitoring_dl2_groups(other)
+        self._append_quality_subarray_groups(other)
         if self.telescope_events:
             self._append_monitoring_telescope_groups(other)
             self._append_pixel_statistics(other)
+            self._append_quality_telescope_groups(other)
 
     def _append_monitoring_subarray_groups(self, other):
         """Append monitoring subarray groups."""
@@ -522,6 +530,32 @@ class HDF5Merger(Component):
                     self._append_table_group(
                         other, other.root[key], once=self.single_ob
                     )
+
+    def _append_quality_telescope_groups(self, other):
+        """Append quality telescope groups.
+
+        Traverses ``DL0_TEL_QUALITY_GROUP`` and ``DL1_TEL_QUALITY_GROUP`` and
+        appends all subgroups, which have the structure
+        ``{quality_group}/{metric}/{tel_XXX}``.
+        """
+        for root_group in (DL0_TEL_QUALITY_GROUP, DL1_TEL_QUALITY_GROUP):
+            if root_group not in other.root:
+                continue
+            for metric_group in other.root[root_group]._f_iter_nodes("Group"):
+                self._append_table_group(other, metric_group, once=self.single_ob)
+
+    def _append_quality_subarray_groups(self, other):
+        """Append quality subarray groups.
+
+        Traverses ``DL0_SUBARRAY_QUALITY_GROUP`` and ``DL1_SUBARRAY_QUALITY_GROUP``
+        and appends all subgroups, which have the structure
+        ``{quality_group}/{array_element}/{metric}``.
+        """
+        for root_group in (DL0_SUBARRAY_QUALITY_GROUP, DL1_SUBARRAY_QUALITY_GROUP):
+            if root_group not in other.root:
+                continue
+            for elem_group in other.root[root_group]._f_iter_nodes("Group"):
+                self._append_table_group(other, elem_group, once=self.single_ob)
 
     def _append_statistics_data(self, other):
         """Append processing statistics data."""

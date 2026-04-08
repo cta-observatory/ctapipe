@@ -21,7 +21,7 @@
 Low-level data processing pipeline software for the
 `CTAO (Cherenkov Telescope Array Observatory) <https://www.ctao.org>`__.
 
-This is code is a prototype data processing framework and is under rapid
+This code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an
 expert or developer!
 
@@ -39,7 +39,7 @@ You can find all ctapipe Zenodo records here: `List of ctapipe Records on Zenodo
 
 There is also a Zenodo DOI always pointing to the latest version: |doilatest|
 
-At this point, our latest publication is the `2023 ICRC proceeding <https://doi.org/10.22323/1.444.0703>`_, which you can
+At this point, the latest publication is our contribution in the `2023 ICRC proceedings <https://doi.org/10.22323/1.444.0703>`_, which you can
 cite using this bibtex entry:
 
 .. code::
@@ -74,11 +74,11 @@ or via::
 
   pip install ctapipe
 
-**Note**: to install a specific version of ctapipe take look at the documentation `here <https://ctapipe.readthedocs.io/en/latest/user-guide/index.html>`__.
+**Note**: to install a specific version of ctapipe take a look at the documentation `here <https://ctapipe.readthedocs.io/en/latest/user-guide/index.html>`__.
 
 **Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`__.
 
-Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
+Note that this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 Developers should follow the development install instructions found in the
 `documentation <https://ctapipe.readthedocs.io/en/latest/developer-guide/getting-started.html>`__.

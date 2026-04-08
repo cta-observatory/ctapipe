@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import ArrayEventContainer, EventType, TelescopeTriggerContainer
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
 
@@ -306,3 +306,33 @@ def test_different_telescope_type_same_string(subarray_prod5_paranal):
     ]
     assert not trigger(event)
     assert_equal(event.trigger.tels_with_trigger, [])
+
+
+def test_software_trigger_tel_event_type_filter(subarray_prod5_paranal):
+    from ctapipe.instrument.trigger import SoftwareTrigger
+
+    subarray = subarray_prod5_paranal
+    trigger = SoftwareTrigger(
+        subarray=subarray,
+        allowed_telescope_event_types={EventType.RANDOM_MONO},
+    )
+
+    event = ArrayEventContainer()
+    event.trigger.tels_with_trigger = np.array([1, 2, 3], dtype=np.uint16)
+    event.trigger.tel[1] = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+    event.trigger.tel[2] = TelescopeTriggerContainer(event_type=EventType.RANDOM_MONO)
+    event.trigger.tel[3] = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+
+    assert trigger(event)
+    assert_equal(event.trigger.tels_with_trigger, np.array([2], dtype=np.uint16))
+    assert event.trigger.tel.keys() == {2}
+
+    event = ArrayEventContainer()
+    event.trigger.tels_with_trigger = np.array([1, 2, 3], dtype=np.uint16)
+    event.trigger.tel[1] = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+    event.trigger.tel[2] = TelescopeTriggerContainer(event_type=EventType.RANDOM_MONO)
+    event.trigger.tel[3] = TelescopeTriggerContainer(event_type=EventType.RANDOM_MONO)
+
+    assert trigger(event)
+    assert_equal(event.trigger.tels_with_trigger, np.array([2, 3], dtype=np.uint16))
+    assert event.trigger.tel.keys() == {2, 3}

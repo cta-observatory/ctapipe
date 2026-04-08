@@ -313,3 +313,30 @@ def test_check_matchings_subarray(example_subarray, subarray_prod5_paranal):
     assert not SubarrayDescription.check_matching_subarrays(
         [example_subarray, subarray_prod5_paranal]
     )
+
+
+def test_tel_earth_locations(example_subarray):
+    """Test cached tel_earth_locations property"""
+    # Get the cached property
+    earth_locs = example_subarray.tel_earth_locations
+
+    assert isinstance(earth_locs, dict)
+    assert len(earth_locs) == example_subarray.n_tels
+
+    # Check all telescope IDs are present
+    for tel_id in example_subarray.tel_ids:
+        assert tel_id in earth_locs
+        assert isinstance(earth_locs[tel_id], EarthLocation)
+
+    # Verify conversion is correct by comparing with manual conversion
+    tel_id = example_subarray.tel_ids[0]
+    tel_index = example_subarray.tel_index_array[tel_id]
+    manual_location = example_subarray.tel_coords[tel_index].to_earth_location()
+
+    assert u.isclose(earth_locs[tel_id].x, manual_location.x)
+    assert u.isclose(earth_locs[tel_id].y, manual_location.y)
+    assert u.isclose(earth_locs[tel_id].z, manual_location.z)
+
+    # Verify it's cached (same object returned)
+    earth_locs_2 = example_subarray.tel_earth_locations
+    assert earth_locs is earth_locs_2

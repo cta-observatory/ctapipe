@@ -67,13 +67,6 @@ class ShowerProcessor(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.atmosphere_profile = atmosphere_profile
-        if (
-            atmosphere_profile is None
-            and "ImPACTReconstrcutor" in self.reconstructor_types
-        ):
-            raise TypeError(
-                "Argument 'atmosphere_profile' can not be 'None' if 'ImPACTReconstructor' is in 'reconstructor_types'"
-            )
         self.reconstructors = [
             Reconstructor.from_name(
                 reco_type,
@@ -83,6 +76,14 @@ class ShowerProcessor(Component):
             )
             for reco_type in self.reconstructor_types
         ]
+
+        if atmosphere_profile is None and any(
+            r.needs_atmosphere_profile for r in self.reconstructors
+        ):
+            raise TypeError(
+                "Argument 'atmosphere_profile' can not be 'None' if one of the selected "
+                "reconstructors requires an atmosphere profile."
+            )
 
     def __call__(self, event: ArrayEventContainer):
         """

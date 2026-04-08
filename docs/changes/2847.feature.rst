@@ -1,0 +1,1 @@
+Component to add noise in waveforms, intended to adapt the noise level in simulations to that in a given real observation.

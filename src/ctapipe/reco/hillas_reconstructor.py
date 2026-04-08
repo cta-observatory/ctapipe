@@ -107,6 +107,8 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     """
 
+    needs_atmosphere_profile = False
+
     def __init__(
         self, subarray: SubarrayDescription, atmosphere_profile=None, **kwargs
     ):
@@ -364,7 +366,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
     @staticmethod
     def estimate_core_position(array_pointing, psi, positions):
         """
-        Estimate the core position by intersection the major ellipse lines of each telescope.
+        Estimate the core position by intersecting the major ellipse lines of each telescope.
 
         Parameters
         ----------
@@ -394,7 +396,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
         # the shower core the ground.
 
         # Estimate the position of the shower's core
-        # from the TiltedFram to the GroundFrame
+        # from the TiltedFrame to the GroundFrame
 
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi), np.sin(psi), z])

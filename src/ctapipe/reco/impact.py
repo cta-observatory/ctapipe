@@ -116,6 +116,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     ).tag(config=True)
 
     property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
+    needs_atmosphere_profile = True
 
     def __init__(self, subarray, atmosphere_profile, **kwargs):
         if Minuit is None:
