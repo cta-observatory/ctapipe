@@ -879,6 +879,8 @@ def single_obs_gamma_diffuse_full_reco_file(gamma_diffuse_full_reco_file, irf_tm
     The full multi-observation file cannot be used for DL3 production, which
     requires a single obs_id per output file.
     """
+    pytest.importorskip("pyirf", reason="pyirf is an optional dependency")
+
     output_path = irf_tmp_path / "gamma_diffuse_single_obs.dl2.h5"
     shutil.copy(gamma_diffuse_full_reco_file, output_path)
 
@@ -1025,6 +1027,7 @@ def dummy_cuts_file(
     event_loader_config_path,
     irf_tmp_path,
 ):
+    pytest.importorskip("pyirf", reason="pyirf is an optional dependency")
     from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     output_path = irf_tmp_path / "test_dummy_cuts.fits"
@@ -1049,6 +1052,7 @@ def dummy_irf_file(
     event_loader_config_path,
     irf_tmp_path,
 ):
+    pytest.importorskip("pyirf", reason="pyirf is an optional dependency")
     from ctapipe.tools.compute_irf import IrfTool
 
     output_path = irf_tmp_path / "dummy_irf.fits"
