@@ -1,0 +1,4 @@
+The ``WaveformModifier`` class introduced in ctapipe 0.30 can now be used in ``ctapipe-process``
+to increase the simulated NSB level to match observations.
+
+The api of the class has changed: __call__ has now as argument an event, whose R1 waveforms are then modified.

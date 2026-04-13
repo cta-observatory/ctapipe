@@ -11,7 +11,7 @@ from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool, ToolConfigurationError
 from ..core.traits import Bool, ComponentName, List, classes_with_traits, flag
 from ..exceptions import InputMissing
-from ..image import ImageCleaner, ImageModifier, ImageProcessor
+from ..image import ImageCleaner, ImageModifier, ImageProcessor, WaveformModifier
 from ..image.extractor import ImageExtractor
 from ..image.muon import MuonProcessor
 from ..instrument import SoftwareTrigger
@@ -78,6 +78,11 @@ class ProcessorTool(Tool):
 
     progress_bar = Bool(
         help="show progress bar during processing", default_value=False
+    ).tag(config=True)
+
+    add_nsb_in_waveforms = Bool(
+        default_value=False,
+        help="add nsb in waveforms",
     ).tag(config=True)
 
     force_recompute_dl1 = Bool(
@@ -174,6 +179,7 @@ class ProcessorTool(Tool):
             metadata.Instrument,
             metadata.Contact,
             SoftwareTrigger,
+            WaveformModifier,
         ]
         + classes_with_traits(EventSource)
         + classes_with_traits(MonitoringSource)
@@ -231,6 +237,9 @@ class ProcessorTool(Tool):
                 raise ToolConfigurationError(msg)
             # Append the monitoring source to the list if it has compatible monitoring types
             self._monitoring_sources.append(mon_source)
+
+        if self.add_nsb_in_waveforms:
+            self.waveform_modifier = WaveformModifier(parent=self, subarray=subarray)
 
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
@@ -346,6 +355,9 @@ class ProcessorTool(Tool):
             self.log.debug("Processing event_id=%s", event.index.event_id)
             if not self.event_type_filter(event):
                 continue
+
+            if self.add_nsb_in_waveforms:
+                self.waveform_modifier(event)
 
             if not self.software_trigger(event):
                 self.log.debug(

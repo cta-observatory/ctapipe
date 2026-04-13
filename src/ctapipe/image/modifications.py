@@ -398,29 +398,25 @@ class WaveformModifier(TelescopeComponent):
                 mean = np.mean(nsb_database[tel_id][:, channel, :, :])
                 nsb_database[tel_id][:, channel, :, :] -= mean
 
-    def __call__(self, tel_id, waveforms, selected_gain_channel=None):
+    def __call__(self, event):
         """
         Parameters
         ----------
-        tel_id
-        waveforms: ndarray [ngains, npixels, nsamples] (ngains=1 if
-        gain-selected)
-        selected_gain_channel: ndarray[npixels] or None if no gain selection
-
-        Returns
-        -------
-        ndarray, same shape as waveforms: original waveforms plus added NSB
-
+        event: container
+            A `~ctapipe.containers.ArrayEventContainer` event container
         """
 
-        # Note: MC waveforms passed to this function should contain data in all
-        # pixels (not DVR'ed - obviously DVR depends on noise level, it does not
-        # make sense to add the noise after DVR was applied)
-        noise = self.total_noise[tel_id][self.rng.integers(self.n_noise_realizations)]
-        if selected_gain_channel is not None:
-            noise = noise[selected_gain_channel, np.arange(waveforms.shape[1])]
-
-        return waveforms + noise
+        for tel_id, r1 in event.r1.tel.items():
+            waveform = r1.waveform
+            # Note: MC waveforms passed to this function should contain data in all
+            # pixels (not DVR'ed - obviously DVR depends on noise level, it does not
+            # make sense to add the noise after DVR was applied)
+            noise = self.total_noise[tel_id][
+                self.rng.integers(self.n_noise_realizations)
+            ]
+            if r1.selected_gain_channel is not None:
+                noise = noise[r1.selected_gain_channel, np.arange(waveform.shape[1])]
+            r1.waveform = waveform + noise
 
 
 class ImageModifier(TelescopeComponent):
