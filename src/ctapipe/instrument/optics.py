@@ -520,7 +520,7 @@ class ComaPSFModel(PSFModel):
         pixel_radius = 0.5 * self.pixel_width[tel_id]
 
         if (
-            r0 > self.pixel_width[tel_id]
+            r0 > pixel_radius
         ):  # only apply the chord limit for sources outside the central pixel
             dphi = np.arcsin(chord_length / (2 * r0))
             polar_pdf = np.where(np.abs(delta_phi) <= dphi, polar_pdf, 0.0)
