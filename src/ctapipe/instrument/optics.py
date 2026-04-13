@@ -517,13 +517,13 @@ class ComaPSFModel(PSFModel):
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
         chord_length = min(6 * self.pixel_width[tel_id], 0.5 * r0)
 
+        pixel_radius = 0.5 * self.pixel_width[tel_id]
+
         if (
             r0 > self.pixel_width[tel_id]
         ):  # only apply the chord limit for sources outside the central pixel
             dphi = np.arcsin(chord_length / (2 * r0))
             polar_pdf = np.where(np.abs(delta_phi) <= dphi, polar_pdf, 0.0)
-
-        pixel_radius = 0.5 * self.pixel_width[tel_id]
 
         # If the source is within the central pixel, use uniform distribution inside pixel
         source_in_pixel = r0 < pixel_radius
