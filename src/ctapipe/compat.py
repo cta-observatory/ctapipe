@@ -19,4 +19,7 @@ if Version(np.__version__) < Version("2.0.0.dev"):
     COPY_IF_NEEDED = False
 
 # in numpy 1.x, use trapz; in numpy 2.0+, trapz is deprecated in favor of trapezoid
-trapz_func = getattr(np, "trapezoid", np.trapz)
+try:
+    trapz_func = np.trapezoid
+except AttributeError:
+    trapz_func = np.trapz
