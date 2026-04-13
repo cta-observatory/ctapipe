@@ -218,8 +218,8 @@ class SKLearnReconstructor(Reconstructor):
             raise OSError(f"Path {path} exists and overwrite=False")
 
         with path.open("wb") as f:
-            Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
+            Provenance().add_output_file(path, role=f"{self.__class__.__name__}-model")
 
     @lazyproperty
     def instrument_table(self):
@@ -667,8 +667,8 @@ class DispReconstructor(Reconstructor):
             raise OSError(f"Path {path} exists and overwrite=False")
 
         with path.open("wb") as f:
-            Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
+            Provenance().add_output_file(path, role="DispReconstructor-model")
 
     @classmethod
     def read(cls, path, **kwargs):
@@ -684,7 +684,9 @@ class DispReconstructor(Reconstructor):
             )
 
         # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(path, role="ml-models", add_meta=False)
+        Provenance().add_input_file(
+            path, role="DispReconstructor-model", add_meta=False
+        )
         return instance
 
     @lazyproperty
@@ -946,13 +948,13 @@ class CrossValidator(Component):
                         f"Output path {self.output_path} exists, but overwrite=False"
                     )
 
-            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
             self.h5file = open_file(self.output_path, mode="w")
 
     def close(self):
         """Close the output hdf5 file, if ``self.output_path`` is given."""
         if self.output_path:
             self.h5file.close()
+            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
 
     def __enter__(self):
         return self
