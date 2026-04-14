@@ -43,7 +43,7 @@ FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
         ("stage1_config.json",),
     ],
 )
-def test_read_yaml_toml_json_config(dl1_image_file, config_files):
+def test_read_yaml_toml_json_config(dl1_image_file, config_files, tmp_path):
     """check that we can read multiple formats of config file"""
     tool = ProcessorTool()
 
@@ -56,7 +56,7 @@ def test_read_yaml_toml_json_config(dl1_image_file, config_files):
 
     with tool:
         tool.setup()
-
+        tool.config.DataWriter.output_path = tmp_path / "events.h5"
     assert (
         tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_info"].name
         == "YOUR-NAME-HERE"
