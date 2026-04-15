@@ -5,7 +5,7 @@ from functools import partial
 from inspect import isclass
 from pprint import pformat
 from textwrap import dedent, wrap
-from typing import Any, Callable, Generic, Self, Type, TypeVar, overload
+from typing import Any, Callable, Self, Type, overload
 
 import numpy as np
 from astropy.units import Quantity, Unit, UnitBase, UnitConversionError
@@ -24,12 +24,7 @@ class FieldValidationError(ValueError):
     pass
 
 
-T = TypeVar("T")
-T1 = TypeVar("T1")
-T2 = TypeVar("T2")
-
-
-class Field(Generic[T]):
+class Field[T]:
     """
     Class for storing data in a `Container`.
 
@@ -98,7 +93,7 @@ class Field(Generic[T]):
 
     # default and type given
     @overload
-    def __init__(
+    def __init__[T1, T2](
         self: "Field[T1 | T2]",
         default: T1,
         description: str = "",
@@ -178,11 +173,11 @@ class Field(Generic[T]):
     # we only specify the Descriptor protocol __get__ here has it helps type checkers
     # and IDEs to provide insights on types of container fields. It is not actually used at runtime
     # since the ContainerMeta turns Fields into __slots__ based access to member variables.
-    # 2. When accessed via the class (e.g., MyContainer.foo), only owner present
+    # 1. When accessed via the class (e.g., MyContainer.foo), only owner present
     @overload
     def __get__(self, instance: None, owner: Any) -> Self: ...
 
-    # 1. access via instance, both arguments present
+    # 2. access via instance, both arguments present
     @overload
     def __get__(self, instance: "Container", owner: "Type[Container]") -> T: ...
 
@@ -567,11 +562,7 @@ class Container(metaclass=ContainerMeta):
                 )
 
 
-K = TypeVar("K")
-V = TypeVar("V")
-
-
-class Map(defaultdict[K, V]):
+class Map[K, V](defaultdict[K, V]):
     """A dictionary of sub-containers that can be added to a Container. This
     may be used e.g. to store a set of identical sub-Containers (e.g. indexed
     by ``tel_id`` or algorithm name).
