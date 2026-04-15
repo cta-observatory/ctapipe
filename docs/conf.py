@@ -144,6 +144,12 @@ nitpick_ignore = add_reference_type(
         "astropy.coordinates.baseframe.BaseCoordinateFrame",
         "astropy.table.table.Table",
         "eventio.simtel.simtelfile.SimTelFile",
+        "ctapipe.core.container.T",
+        "ctapipe.core.container.T1",
+        "ctapipe.core.container.T2",
+        "ctapipe.core.container.K",
+        "ctapipe.core.container.V",
+        "DTypeLike",
     ],
 )
 nitpick_ignore += add_reference_type(
@@ -161,6 +167,11 @@ nitpick_ignore += add_reference_type(
         "-v",  # fix for wrong syntax in a traitlets docstring
         "cls",
         "name",
+        "ctapipe.core.container.T",
+        "ctapipe.core.container.T1",
+        "ctapipe.core.container.T2",
+        "ctapipe.core.container.K",
+        "ctapipe.core.container.V",
     ],
 )
 nitpick_ignore += add_reference_type(

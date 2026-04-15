@@ -5,9 +5,11 @@ from functools import partial
 from inspect import isclass
 from pprint import pformat
 from textwrap import dedent, wrap
+from typing import Any, Callable, Generic, Self, Type, TypeVar, overload
 
 import numpy as np
-from astropy.units import Quantity, Unit, UnitConversionError
+from astropy.units import Quantity, Unit, UnitBase, UnitConversionError
+from numpy.typing import DTypeLike, NDArray
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +24,12 @@ class FieldValidationError(ValueError):
     pass
 
 
-class Field:
+T = TypeVar("T")
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+
+
+class Field(Generic[T]):
     """
     Class for storing data in a `Container`.
 
@@ -55,18 +62,104 @@ class Field:
         A callable providing a fresh instance as default value.
     """
 
+    # only default provided
+    @overload
+    def __init__(
+        self,
+        default: T,
+        description: str = "",
+        *,
+        unit: None = None,
+        ucd: Any = None,
+        dtype: None = None,
+        type: None = None,
+        ndim: None = None,
+        allow_none: bool = False,
+        max_length: None = None,
+        default_factory: None = None,
+    ): ...
+
+    # only default_factory provided
+    @overload
+    def __init__(
+        self,
+        default: None = None,
+        description: str = "",
+        *,
+        default_factory: Type[T] | Callable[[], T],
+        unit: None = None,
+        ucd: Any = None,
+        dtype: None = None,
+        type: None = None,
+        ndim: None = None,
+        allow_none: bool = False,
+        max_length: None = None,
+    ): ...
+
+    # default and type given
+    @overload
+    def __init__(
+        self: "Field[T1 | T2]",
+        default: T1,
+        description: str = "",
+        *,
+        type: Type[T2],
+        unit: None = None,
+        ucd: Any = None,
+        dtype: None = None,
+        ndim: None = None,
+        allow_none: bool = False,
+        max_length: None = None,
+        default_factory: None = None,
+    ): ...
+
+    # None default but unit provided -> Quantity | None
+    @overload
+    def __init__(
+        self: "Field[Quantity | None]",
+        default: None,
+        description: str = "",
+        *,
+        unit: UnitBase,
+        type: None = None,
+        ucd: Any = None,
+        dtype: None = None,
+        ndim: None = None,
+        allow_none: bool = False,
+        max_length: None = None,
+        default_factory: None = None,
+    ): ...
+
+    # array case
+    @overload
+    def __init__(
+        self: "Field[NDArray | None]",
+        default: None,
+        description: str = "",
+        *,
+        unit: None = None,
+        type: None = None,
+        ucd: Any = None,
+        dtype: None | DTypeLike = None,
+        ndim: None | int = None,
+        allow_none: bool = False,
+        max_length: None = None,
+        default_factory: None = None,
+    ): ...
+
     def __init__(
         self,
         default=None,
         description="",
+        *,
+        default_factory: Type[T] | Callable[[], T] | None = None,
         unit=None,
         ucd=None,
         dtype=None,
         type=None,
         ndim=None,
-        allow_none=True,
-        max_length=None,
-        default_factory=None,
+        allow_none: bool = True,
+        max_length: int | None = None,
     ):
         self.default = default
         self.default_factory = default_factory
@@ -81,6 +174,22 @@ class Field:
 
         if default_factory is not None and default is not None:
             raise ValueError("Must only provide one of default or default_factory")
+
+    # we only specify the Descriptor protocol __get__ here has it helps type checkers
+    # and IDEs to provide insights on types of container fields. It is not actually used at runtime
+    # since the ContainerMeta turns Fields into __slots__ based access to member variables.
+    # 2. When accessed via the class (e.g., MyContainer.foo), only owner present
+    @overload
+    def __get__(self, instance: None, owner: Any) -> Self: ...
+
+    # 1. access via instance, both arguments present
+    @overload
+    def __get__(self, instance: "Container", owner: "Type[Container]") -> T: ...
+
+    def __get__(
+        self, instance: "Container | None", owner: "Type[Container]"
+    ) -> T | Self:
+        raise NotImplementedError("Fields should only be used with Containers")
 
     def __repr__(self):
         if self.default_factory is not None:
@@ -458,7 +567,11 @@ class Container(metaclass=ContainerMeta):
                 )
 
 
-class Map(defaultdict):
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+class Map(defaultdict[K, V]):
     """A dictionary of sub-containers that can be added to a Container. This
     may be used e.g. to store a set of identical sub-Containers (e.g. indexed
     by ``tel_id`` or algorithm name).

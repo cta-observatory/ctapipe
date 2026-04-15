@@ -1,0 +1,3 @@
+Improve type hints for ``Container`` and ``Field``, IDEs and LSPs should
+now better detect the correct types of container fields in code and no longer
+complain about things like "Variable of type Field has not attribute length".
