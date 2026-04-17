@@ -29,9 +29,9 @@ class DumpInstrumentTool(Tool):
     ).tag(config=True)
 
     format = Enum(
-        ["fits", "ecsv", "hdf5"],
+        ["fits", "ecsv", "hdf5", "service"],
         default_value="fits",
-        help="Format of output file",
+        help="Format of output file. 'service' creates CTAO service data format directory structure.",
         config=True,
     )
 
@@ -62,6 +62,8 @@ class DumpInstrumentTool(Tool):
 
         if self.format == "hdf5":
             self.subarray.to_hdf(self.outdir / "subarray.h5")
+        elif self.format == "service":
+            self.write_service_data()
         else:
             self.write_camera_definitions()
             self.write_optics_descriptions()
@@ -85,31 +87,46 @@ class DumpInstrumentTool(Tool):
         """writes out camgeom and camreadout files for each camera"""
         self.subarray.info(printer=self.log.info)
         for camera in self.subarray.camera_types:
-            ext, args = self._get_file_format_info(self.format)
+            self.write_single_camera(camera)
 
-            self.log.debug("Writing camera %s", camera)
-            geom = camera.geometry
-            readout = camera.readout
+    def write_single_camera(self, camera, outdir=None, name_prefix=None):
+        """Write out camera geometry and readout for a single camera.
 
-            geom_table = geom.to_table()
-            geom_table.meta["SOURCE"] = str(self.infile)
-            geom_filename = self.outdir / f"{camera.name}.camgeom.{ext}"
+        Parameters
+        ----------
+        camera : CameraDescription
+            CameraDescription object to write out
+        outdir : Path, optional
+            Directory to write files to. If None, uses self.outdir
+        name_prefix : str, optional
+            Prefix for output filenames. If None, uses camera.name
+        """
+        outdir = self.outdir if outdir is None else outdir
+        name_prefix = camera.name if name_prefix is None else name_prefix
+        ext, args = self._get_file_format_info(self.format)
+        self.log.debug("Writing camera %s", camera)
+        geom = camera.geometry
+        readout = camera.readout
 
-            readout_table = readout.to_table()
-            readout_table.meta["SOURCE"] = str(self.infile)
-            readout_filename = self.outdir / f"{camera.name}.camreadout.{ext}"
+        geom_table = geom.to_table()
+        geom_table.meta["SOURCE"] = str(self.infile)
+        geom_filename = outdir / f"{name_prefix}.camgeom.{ext}"
 
-            try:
-                geom_table.write(geom_filename, **args)
-                Provenance().add_output_file(geom_filename, "CameraGeometry")
-            except OSError as err:
-                self.log.exception("couldn't write camera geometry because: %s", err)
+        readout_table = readout.to_table()
+        readout_table.meta["SOURCE"] = str(self.infile)
+        readout_filename = outdir / f"{name_prefix}.camreadout.{ext}"
 
-            try:
-                readout_table.write(readout_filename, **args)
-                Provenance().add_output_file(readout_filename, "CameraReadout")
-            except OSError as err:
-                self.log.exception("couldn't write camera definition because: %s", err)
+        try:
+            geom_table.write(geom_filename, **args)
+            Provenance().add_output_file(geom_filename, "CameraGeometry")
+        except OSError as err:
+            self.log.exception("couldn't write camera geometry because: %s", err)
+
+        try:
+            readout_table.write(readout_filename, **args)
+            Provenance().add_output_file(readout_filename, "CameraReadout")
+        except OSError as err:
+            self.log.exception("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
         """writes out optics files for each telescope type"""
@@ -140,6 +157,229 @@ class DumpInstrumentTool(Tool):
             self.log.exception(
                 "couldn't write subarray description '%s' because: %s", filename, err
             )
+
+    def write_service_data(self, subarray_id=1, site=None):
+        """
+        Write SubarrayDescription to service data directory structure.
+
+        This creates the directory structure and files, which can later be loaded with
+        `~ctapipe.instrument.SubarrayDescription.from_service_data`.
+
+        Parameters
+        ----------
+        subarray_id : int, optional
+            Subarray ID to assign (default: 1)
+        site : str, optional
+            Site name (e.g., "CTAO-North", "CTAO-South").
+            If not provided, it will be inferred from the reference location.
+        """
+        import json
+
+        from astropy.table import QTable
+
+        from ctapipe.io import metadata as meta
+
+        sub = self.subarray
+        self.outdir.mkdir(exist_ok=True, parents=True)
+
+        # Create instrument directory to match CTAO service data structure
+        instrument_dir = self.outdir / "instrument"
+        instrument_dir.mkdir(exist_ok=True, parents=True)
+
+        self.log.info(
+            "Writing instrument description in CTAO service data format to %s",
+            self.outdir,
+        )
+
+        # Infer site from coordinates if not provided
+        if site is None:
+            # Simple heuristic based on latitude
+            lat = sub.reference_location.geodetic.lat.value
+            if lat > 0:
+                site = "CTAO-North"
+            else:
+                site = "CTAO-South"
+
+        # Build reference metadata to embed in instrument.meta.json
+        activity = Provenance().current_activity
+        activity_meta = (
+            meta.Activity.from_provenance(activity.provenance)
+            if activity is not None
+            else meta.Activity()
+        )
+        instrument_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Instrument description for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                data_model_name="CTAO Service Data",
+                data_model_version=sub.CURRENT_SERVICE_DATA_VERSION,
+                data_model_url="",
+                format="json",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(
+                site=site,
+                class_="Subarray",
+            ),
+        )
+
+        # Create instrument.meta.json
+        meta_file = instrument_dir / "instrument.meta.json"
+        with open(meta_file, "w") as f:
+            json.dump(instrument_reference.to_dict(), f, indent=2)
+        Provenance().add_output_file(meta_file, "ServiceDataMeta")
+
+        # Create array-element-ids.json
+        ae_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Array element IDs for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                data_model_name="ctao.common.identifiers.array_elements",
+                data_model_version=sub.CURRENT_ARRAY_ELEMENTS_IDENTIFIERS_VERSION,
+                data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+                format="json",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(site=site),
+        )
+        array_element_ids = {
+            "metadata": ae_reference.to_dict(),
+            "array_elements": [
+                {"id": int(tel_id), "name": f"TEL{tel_id:03d}"}
+                for tel_id, tel in sub.tels.items()
+            ],
+        }
+        ae_ids_file = instrument_dir / "array-element-ids.json"
+        with open(ae_ids_file, "w") as f:
+            json.dump(array_element_ids, f, indent=2)
+        Provenance().add_output_file(ae_ids_file, "ServiceDataArrayElements")
+
+        # Create subarray-ids.json
+        subarray_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Subarray IDs for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                data_model_name="ctao.common.identifiers.subarrays",
+                data_model_version=sub.CURRENT_SUBARRAY_IDENTIFIERS_VERSION,
+                data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+                format="json",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(site=site),
+        )
+        subarray_ids = {
+            "metadata": subarray_reference.to_dict(),
+            "subarrays": [
+                {
+                    "id": subarray_id,
+                    "name": sub.name,
+                    "site": site,
+                    "array_element_ids": [int(tel_id) for tel_id in sub.tel_ids],
+                }
+            ],
+        }
+        subarray_ids_file = instrument_dir / "subarray-ids.json"
+        with open(subarray_ids_file, "w") as f:
+            json.dump(subarray_ids, f, indent=2)
+        Provenance().add_output_file(subarray_ids_file, "ServiceDataSubarrays")
+
+        # Create positions directory and file
+        positions_dir = instrument_dir / "positions"
+        positions_dir.mkdir(exist_ok=True)
+
+        # Get reference location in ITRS coordinates
+        itrs = sub.reference_location.itrs
+
+        # Create positions table
+        positions_table = QTable(
+            {
+                "ae_id": [int(tel_id) for tel_id in sub.tel_ids],
+                "name": [tel.name for tel in sub.tels.values()],
+                "x": [sub.positions[tel_id][0] for tel_id in sub.tel_ids],
+                "y": [sub.positions[tel_id][1] for tel_id in sub.tel_ids],
+                "z": [sub.positions[tel_id][2] for tel_id in sub.tel_ids],
+            }
+        )
+        positions_table.meta["reference_x"] = str(itrs.x)
+        positions_table.meta["reference_y"] = str(itrs.y)
+        positions_table.meta["reference_z"] = str(itrs.z)
+        positions_table.meta["site"] = site
+        positions_reference = meta.Reference(
+            contact=meta.Contact(),
+            product=meta.Product(
+                description=f"Array element positions for {sub.name}",
+                data_category="Other",
+                data_association="Subarray",
+                format="ecsv",
+            ),
+            process=meta.Process(),
+            activity=activity_meta,
+            instrument=meta.Instrument(site=site),
+        )
+        positions_table.meta.update(positions_reference.to_dict())
+
+        positions_file = (
+            positions_dir / f"{site.replace(' ', '_')}_ArrayElementPositions.ecsv"
+        )
+        positions_table.write(positions_file, format="ascii.ecsv", overwrite=True)
+        Provenance().add_output_file(positions_file, "ServiceDataPositions")
+
+        # Write files for each telescope (using ae_id as directory name)
+        array_elements_dir = instrument_dir / "array-elements"
+        array_elements_dir.mkdir(exist_ok=True, parents=True)
+        for tel_id, tel_desc in sub.tels.items():
+            ae_id_str = f"{tel_id:03d}"
+            ae_dir = array_elements_dir / ae_id_str
+            ae_dir.mkdir(exist_ok=True, parents=True)
+
+            type_name = tel_desc.name
+            self.log.debug(
+                "Writing array element %s (%s) to %s", ae_id_str, type_name, ae_dir
+            )
+
+            # Write optics file
+            optics_table = QTable()
+            optics = tel_desc.optics
+            optics_table.meta["TAB_VER"] = optics.CURRENT_TAB_VERSION
+            optics_table.meta["SOURCE"] = str(self.infile)
+            optics_table.meta["optics_name"] = optics.name
+            optics_table.meta["size_type"] = optics.size_type.value
+            optics_table.meta["reflector_shape"] = optics.reflector_shape.value
+            optics_table.meta["n_mirrors"] = optics.n_mirrors
+            optics_table.meta["equivalent_focal_length"] = str(
+                optics.equivalent_focal_length
+            )
+            optics_table.meta["effective_focal_length"] = str(
+                optics.effective_focal_length
+            )
+            optics_table.meta["mirror_area"] = str(optics.mirror_area)
+            optics_table.meta["n_mirror_tiles"] = optics.n_mirror_tiles
+
+            optics_file = ae_dir / f"{ae_id_str}.optics.ecsv"
+            optics_table.write(optics_file, format="ascii.ecsv", overwrite=True)
+            Provenance().add_output_file(optics_file, "ServiceDataOptics")
+
+            # Write camera geometry and readout files
+            # Temporarily set format to 'fits' for service data
+            orig_format = self.format
+            self.format = "fits"
+            try:
+                self.write_single_camera(
+                    tel_desc.camera, outdir=ae_dir, name_prefix=ae_id_str
+                )
+            finally:
+                self.format = orig_format
+
+        self.log.info("Service data written successfully to %s", self.outdir)
 
 
 def main():
