@@ -484,10 +484,20 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     tool.write_service_data(subarray_id=1, site="CTAO-South")
 
     # Set CTAPIPE_SVC_PATH to point to the service data directory
-    # With ae_id-based structure, we need to add each ae_id directory to the path
-    array_elements_dir = tmp_path / "array-elements"
-    positions_dir = tmp_path / "positions"
-    search_paths = [str(tmp_path), str(positions_dir)]
+    # Files are now organized under instrument/, so add those directories to search paths
+    # Include array-element-specific directories for telescope descriptions
+    instrument_dir = tmp_path / "instrument"
+    positions_dir = instrument_dir / "positions"
+    array_elements_dir = instrument_dir / "array-elements"
+
+    search_paths = [
+        str(tmp_path),
+        str(instrument_dir),
+        str(positions_dir),
+        str(array_elements_dir),
+    ]
+
+    # Add individual array element directories
     for tel_id in original_subarray.tel_ids:
         ae_id_str = f"{tel_id:03d}"
         search_paths.append(str(array_elements_dir / ae_id_str))

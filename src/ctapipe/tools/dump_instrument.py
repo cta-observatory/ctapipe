@@ -182,6 +182,10 @@ class DumpInstrumentTool(Tool):
         sub = self.subarray
         self.outdir.mkdir(exist_ok=True, parents=True)
 
+        # Create instrument directory to match CTAO service data structure
+        instrument_dir = self.outdir / "instrument"
+        instrument_dir.mkdir(exist_ok=True, parents=True)
+
         self.log.info(
             "Writing instrument description in CTAO service data format to %s",
             self.outdir,
@@ -223,7 +227,7 @@ class DumpInstrumentTool(Tool):
         )
 
         # Create instrument.meta.json
-        meta_file = self.outdir / "instrument.meta.json"
+        meta_file = instrument_dir / "instrument.meta.json"
         with open(meta_file, "w") as f:
             json.dump(instrument_reference.to_dict(), f, indent=2)
         Provenance().add_output_file(meta_file, "ServiceDataMeta")
@@ -251,7 +255,7 @@ class DumpInstrumentTool(Tool):
                 for tel_id, tel in sub.tels.items()
             ],
         }
-        ae_ids_file = self.outdir / "array-element-ids.json"
+        ae_ids_file = instrument_dir / "array-element-ids.json"
         with open(ae_ids_file, "w") as f:
             json.dump(array_element_ids, f, indent=2)
         Provenance().add_output_file(ae_ids_file, "ServiceDataArrayElements")
@@ -283,13 +287,13 @@ class DumpInstrumentTool(Tool):
                 }
             ],
         }
-        subarray_ids_file = self.outdir / "subarray-ids.json"
+        subarray_ids_file = instrument_dir / "subarray-ids.json"
         with open(subarray_ids_file, "w") as f:
             json.dump(subarray_ids, f, indent=2)
         Provenance().add_output_file(subarray_ids_file, "ServiceDataSubarrays")
 
         # Create positions directory and file
-        positions_dir = self.outdir / "positions"
+        positions_dir = instrument_dir / "positions"
         positions_dir.mkdir(exist_ok=True)
 
         # Get reference location in ITRS coordinates
@@ -329,15 +333,13 @@ class DumpInstrumentTool(Tool):
         positions_table.write(positions_file, format="ascii.ecsv", overwrite=True)
         Provenance().add_output_file(positions_file, "ServiceDataPositions")
 
-        # Create array-elements directory
-        array_elements_dir = self.outdir / "array-elements"
-        array_elements_dir.mkdir(exist_ok=True)
-
         # Write files for each telescope (using ae_id as directory name)
+        array_elements_dir = instrument_dir / "array-elements"
+        array_elements_dir.mkdir(exist_ok=True, parents=True)
         for tel_id, tel_desc in sub.tels.items():
             ae_id_str = f"{tel_id:03d}"
             ae_dir = array_elements_dir / ae_id_str
-            ae_dir.mkdir(exist_ok=True)
+            ae_dir.mkdir(exist_ok=True, parents=True)
 
             type_name = tel_desc.name
             self.log.debug(

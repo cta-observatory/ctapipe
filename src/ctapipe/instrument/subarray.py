@@ -860,11 +860,11 @@ class SubarrayDescription:
 
         ae_id_str = f"{ae_id:03d}"
         for search_dir in searchpath.split(os.pathsep):
-            candidate = Path(search_dir) / "array-elements" / ae_id_str
+            candidate = Path(search_dir) / "instrument/array-elements" / ae_id_str
             if candidate.exists():
                 return candidate.resolve().name
 
-        raise FileNotFoundError(f"array-elements/{ae_id_str} not found")
+        raise FileNotFoundError(f"instrument/array-elements/{ae_id_str} not found")
 
     @staticmethod
     def _load_telescope_description(ae_id, tel_name, tel_type):
