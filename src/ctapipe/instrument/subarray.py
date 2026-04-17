@@ -72,9 +72,17 @@ class SubarrayDescription:
     #: Version numbers supported by `SubarrayDescription.from_hdf`
     COMPATIBLE_VERSIONS = {"2.0"}
     #: Current version of the service data format expected by `SubarrayDescription.from_service_data`
-    CURRENT_SERVICE_DATA_VERSION = "2.0"
+    CURRENT_SERVICE_DATA_VERSION = "1.0"
     #: Service data versions supported by `SubarrayDescription.from_service_data`
-    COMPATIBLE_SERVICE_DATA_VERSIONS = {"2.0"}
+    COMPATIBLE_SERVICE_DATA_VERSIONS = {"1.0"}
+    #: Current version of the subarray identifiers ("ctao.common.identifiers.subarrays") expected by `SubarrayDescription.from_service_data`
+    CURRENT_SUBARRAY_IDENTIFIERS_VERSION = "2.0"
+    #: Subarray identifiers versions supported by `SubarrayDescription.from_service_data`
+    COMPATIBLE_SUBARRAY_IDENTIFIERS_VERSIONS = {"2.0"}
+    #: Current version of the array element identifiers ("ctao.common.identifiers.array_elements") expected by `SubarrayDescription.from_service_data`
+    CURRENT_ARRAY_ELEMENTS_IDENTIFIERS_VERSION = "2.0"
+    #: Array element identifiers versions supported by `SubarrayDescription.from_service_data`
+    COMPATIBLE_ARRAY_ELEMENTS_IDENTIFIERS_VERSIONS = {"2.0"}
 
     def __init__(
         self,
@@ -972,6 +980,17 @@ class SubarrayDescription:
             tel_positions[ae_id] = u.Quantity([row["x"], row["y"], row["z"]], u.m)
         return tel_positions
 
+    @staticmethod
+    def _version_check(reference_meta, compatible_versions):
+        """Check if the subarray description is compatible with the current version."""
+        version = reference_meta.product.data_model_version
+
+        if version not in compatible_versions:
+            raise IncompatibleDataModelVersion(
+                f"Incompatible {reference_meta.product.data_model_name} version : {version}. "
+                f"compatible versions: {compatible_versions}"
+            )
+
     @classmethod
     def from_service_data(cls, subarray_id):
         """
@@ -1025,22 +1044,24 @@ class SubarrayDescription:
         reference_meta = Reference.from_json(
             get_structured_dataset("instrument.meta", role="dl0.sub.svc.meta")
         )
-        version = reference_meta.product.data_model_version
-        if version not in cls.COMPATIBLE_SERVICE_DATA_VERSIONS:
-            raise IncompatibleDataModelVersion(
-                f"Incompatible service data version: {version}. "
-                f"Compatible versions: {cls.COMPATIBLE_SERVICE_DATA_VERSIONS}"
-            )
-
+        cls._version_check(reference_meta, cls.COMPATIBLE_SERVICE_DATA_VERSIONS)
         # Load array element IDs
         ae_data = get_structured_dataset(
             "array-element-ids", role="dl0.sub.svc.array_elements"
+        )
+        cls._version_check(
+            Reference.from_json(ae_data.get("metadata", ae_data)),
+            cls.COMPATIBLE_ARRAY_ELEMENTS_IDENTIFIERS_VERSIONS,
         )
         ae_id_to_name = {ae["id"]: ae["name"] for ae in ae_data["array_elements"]}
 
         # Load subarray definition
         subarray_data = get_structured_dataset(
             "subarray-ids", role="dl0.sub.svc.subarray"
+        )
+        cls._version_check(
+            Reference.from_json(subarray_data.get("metadata", subarray_data)),
+            cls.COMPATIBLE_SUBARRAY_IDENTIFIERS_VERSIONS,
         )
         subarray_info = None
         for sa in subarray_data["subarrays"]:

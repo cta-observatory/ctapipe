@@ -58,7 +58,7 @@ def _write_instrument_meta(tmp_path, site="CTAO-North"):
             data_category="Other",
             data_association="Subarray",
             data_model_name="CTAO Service Data",
-            data_model_version="2.0",
+            data_model_version="1.0",
             data_model_url="",
             format="json",
         ),
