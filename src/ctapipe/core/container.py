@@ -85,7 +85,7 @@ class Field[T]:
         unit: None = None,
         ucd: Any = None,
         dtype: None = None,
-        type: None = None,
+        type: Type[T] | None = None,
         ndim: None = None,
         allow_none: bool = False,
         max_length: None = None,
