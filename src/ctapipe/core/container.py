@@ -170,7 +170,7 @@ class Field[T]:
         if default_factory is not None and default is not None:
             raise ValueError("Must only provide one of default or default_factory")
 
-    # we only specify the Descriptor protocol __get__ here has it helps type checkers
+    # we only specify the Descriptor protocol __get__ & __set__ here has it helps type checkers
     # and IDEs to provide insights on types of container fields. It is not actually used at runtime
     # since the ContainerMeta turns Fields into __slots__ based access to member variables.
     # 1. When accessed via the class (e.g., MyContainer.foo), only owner present
@@ -184,7 +184,14 @@ class Field[T]:
     def __get__(
         self, instance: "Container | None", owner: "Type[Container]"
     ) -> T | Self:
-        raise NotImplementedError("Fields should only be used with Containers")
+        raise NotImplementedError(
+            f"Fields should only be used with Containers ({instance, owner})"
+        )
+
+    def __set__(self, instance: "Container | None", value: T) -> None:
+        raise NotImplementedError(
+            f"Fields should only be used with Containers ({instance, value})"
+        )
 
     def __repr__(self):
         if self.default_factory is not None:
