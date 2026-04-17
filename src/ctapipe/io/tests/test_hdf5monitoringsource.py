@@ -95,9 +95,11 @@ def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
             # Fill the monitoring container for the event
             monitoring_source.fill_monitoring_container(e)
             # Check that the values match after filling the container
+
+            tel_monitoring = e.tel[tel_id].monitoring
             for column in ["factor", "pedestal_offset", "time_shift", "outlier_mask"]:
                 np.testing.assert_array_equal(
-                    e.monitoring.tel[tel_id].camera.coefficients[column],
+                    tel_monitoring.camera.coefficients[column],
                     camcalib_coefficients[column],
                     err_msg=(
                         f"'{column}' do not match after reading the monitoring file "
@@ -316,17 +318,18 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
             with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
                 monitoring_source.fill_monitoring_container(e)
             # Set the trigger time to the pointing time
-            e.trigger.time = pointing_time
+            e.dl0.trigger.time = pointing_time
+            e.tel[tel_id].dl0.trigger.time = pointing_time
             # Set pointing to different values to ensure they get overwritten
-            e.monitoring.tel[tel_id].pointing.azimuth = 90.0 * u.deg
-            e.monitoring.tel[tel_id].pointing.altitude = 45.0 * u.deg
-            old_az = e.monitoring.tel[tel_id].pointing.azimuth
-            old_alt = e.monitoring.tel[tel_id].pointing.altitude
+            old_az = 90.0 * u.deg
+            old_alt = 45.0 * u.deg
+            e.tel[tel_id].monitoring.pointing.azimuth = old_az
+            e.tel[tel_id].monitoring.pointing.altitude = old_alt
             # Fill the monitoring container for the event and overwrite the pointing
             monitoring_source.fill_monitoring_container(e)
             # Check that the values changed
-            assert not u.isclose(e.monitoring.tel[tel_id].pointing.azimuth, old_az)
-            assert not u.isclose(e.monitoring.tel[tel_id].pointing.altitude, old_alt)
+            assert not u.isclose(e.tel[tel_id].monitoring.pointing.azimuth, old_az)
+            assert not u.isclose(e.tel[tel_id].monitoring.pointing.altitude, old_alt)
 
 
 def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks):
@@ -363,7 +366,8 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
         for e in source:
             # Test exception of interpolating outside the valid range
             with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
-                e.trigger.time = trigger_time_before
+                e.dl0.trigger.time = trigger_time_before
+                e.tel[tel_id].dl0.trigger.time = trigger_time_before
                 monitoring_source.fill_monitoring_container(e)
 
             for chunk_bin, trigger_time in {
@@ -371,7 +375,8 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
                 -1: trigger_time_after,
             }.items():
                 # Set the trigger time to the pointing time
-                e.trigger.time = trigger_time
+                e.dl0.trigger.time = trigger_time
+                e.tel[tel_id].dl0.trigger.time = trigger_time
                 # Fill the monitoring container for the event
                 monitoring_source.fill_monitoring_container(e)
                 # Check that the values match after filling the container
@@ -382,7 +387,7 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
                     "outlier_mask",
                 ]:
                     np.testing.assert_array_equal(
-                        e.monitoring.tel[tel_id].camera.coefficients[column],
+                        e.tel[tel_id].monitoring.camera.coefficients[column],
                         camcalib_coefficients[column][chunk_bin],
                         err_msg=(
                             f"'{column}' do not match after reading the monitoring file "

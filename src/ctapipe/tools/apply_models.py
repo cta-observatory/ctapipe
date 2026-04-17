@@ -12,6 +12,7 @@ from ctapipe.core.traits import Bool, Integer, List, Path, classes_with_traits, 
 from ctapipe.io import HDF5Merger, TableLoader, write_table
 from ctapipe.io.astropy_helpers import join_allow_empty, read_table
 from ctapipe.io.hdf5dataformat import (
+    DL0_SUBARRAY_TRIGGER_TABLE,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL2_SUBARRAY_GROUP,
     DL2_TEL_GROUP,
@@ -241,9 +242,13 @@ class ApplyModels(Tool):
         # potentially changes the order of the subarray events.
         # to ensure events are stored in the correct order,
         # we resort to trigger table order
-        trigger = read_table(
-            self.h5file, f"{DL1_SUBARRAY_TRIGGER_TABLE}", start=start, stop=stop
-        )[["obs_id", "event_id"]]
+        trigger_table = DL0_SUBARRAY_TRIGGER_TABLE
+        old = DL1_SUBARRAY_TRIGGER_TABLE
+        if old in self.h5file.root:
+            trigger_table = old
+        trigger = read_table(self.h5file, trigger_table, start=start, stop=stop)[
+            ["obs_id", "event_id"]
+        ]
         trigger["__sort_index__"] = np.arange(len(trigger))
 
         stereo_table = join_allow_empty(

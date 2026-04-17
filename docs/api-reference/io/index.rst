@@ -11,7 +11,7 @@ Introduction
 ============
 
 `ctapipe.io` contains functions and classes related to reading, writing, and
-in-memory storage of event data
+in-memory storage of event data.
 
 
 Reading Event Data
@@ -53,7 +53,9 @@ Reading Monitoring Data
 This module provides a set of *monitoring sources* (currently only the `~ctapipe.io.HDF5MonitoringSource`)
 that are `~ctapipe.core.TelescopeComponent` instances, which gather monitoring information for
 different monitoring types from an input file or stream and fill the monitoring information
-as a `~ctapipe.containers.MonitoringContainer` into the provided `~ctapipe.containers.ArrayEventContainer`.
+as a `~ctapipe.containers.SubarrayMonitoringContainer` and `~ctapipe.containers.TelescopeMonitoringContainer`
+into the provided `~ctapipe.containers.SubarrayEventContainer`.
+
 `~ctapipe.io.MonitoringSource` instances are designed such that
 ctapipe can be independent of the file format used for monitoring data, and new formats may be
 supported by implementing a new `~ctapipe.io.MonitoringSource` in a plug-in.
@@ -73,9 +75,9 @@ with the `EventSource` as follows:
         subarray=event_source.subarray,
       )
       for event in event_source:
-        do_something_with_event(event)
-        monitoring_source.fill_monitoring_container(event)
-        do_something_else_with_event(event)
+          do_something_with_event(event)
+          monitoring_source.fill_monitoring_container(event)
+          do_something_else_with_event(event)
 
 
 Creating a New EventSource/MonitoringSource Plugin
@@ -166,13 +168,13 @@ Writing Output Files
 ====================
 
 The `DataWriter` Component allows one to write a series of events (stored in
-`ctapipe.containers.ArrayEventContainer`) to an HDF5 format file
+`ctapipe.containers.SubarrayEventContainer`) to an HDF5 format file
 following the data format described in :ref:`dataformat`.
 This includes all related datasets such as the instrument and simulation
 configuration information, simulated shower and image information, observed
 images and parameters and reconstruction information.
 
-It can be used in an event loop like:
+It can be used in an event loop like this:
 
 .. code-block:: python
 

@@ -13,7 +13,7 @@ def test_get_subarray_index(dl1_parameters_file):
         tel_events = loader.read_telescope_events()
 
     subarray_obs_ids, subarray_event_ids, _, _ = get_subarray_index(tel_events)
-    trigger = read_table(dl1_parameters_file, "/dl1/event/subarray/trigger")
+    trigger = read_table(dl1_parameters_file, "/dl0/event/subarray/trigger")
 
     assert len(subarray_obs_ids) == len(subarray_event_ids)
     assert len(subarray_obs_ids) == len(trigger)

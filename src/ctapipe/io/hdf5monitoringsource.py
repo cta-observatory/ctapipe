@@ -15,11 +15,11 @@ from astropy.table import Row
 from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
-    ArrayEventContainer,
     CameraCalibrationContainer,
     CameraMonitoringContainer,
     PixelStatisticsContainer,
     StatisticsContainer,
+    SubarrayEventContainer,
     TelescopePointingContainer,
 )
 from ..core import Provenance
@@ -87,10 +87,12 @@ class HDF5MonitoringSource(MonitoringSource):
     Class for reading HDF5 monitoring data as a `~ctapipe.io.MonitoringSource`.
 
     This class provides a common interface for accessing HDF5 monitoring data
-    from different monitoring types. An event following the ArrayEventContainer
+    from different monitoring types. An event following the SubarrayEventContainer
     is passed to the `~ctapipe.io.HDF5MonitoringSource.fill_monitoring_container()`
-    method and the different monitoring types are filled into a MonitoringContainer
-    instance. See `~ctapipe.containers.MonitoringContainer` for details.
+    method and the different monitoring types are filled into SubarrayMonitoringContainer
+    and TelescopeMonitoringContainer instances.
+    instance. See `~ctapipe.containers.SubarrayMonitoringContainer` and
+    `~ctapipe.containers.TelescopeMonitoringContainer` for details.
 
     A basic example on how to use the `~ctapipe.io.HDF5MonitoringSource`:
 
@@ -112,12 +114,12 @@ class HDF5MonitoringSource(MonitoringSource):
     ...     # Fill the event data with the monitoring container
     ...     monitoring_source.fill_monitoring_container(event)
     ...     # Print the monitoring information for the camera calibration
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["time"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["factor"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["pedestal_offset"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["time_shift"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["outlier_mask"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["is_valid"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["time"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["factor"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["pedestal_offset"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["time_shift"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["outlier_mask"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["is_valid"])
     40587.000000011576
     [[0.01539444 0.01501589 0.0158232  ... 0.01514254 0.01504862 0.01497081]
      [0.25207437 0.24654945 0.25933876 ... 0.24859268 0.24722679 0.24587582]]
@@ -579,28 +581,27 @@ class HDF5MonitoringSource(MonitoringSource):
                 tel_id, time, subtype, timestamp_tolerance
             )
 
-    def fill_monitoring_container(self, event: ArrayEventContainer):
+    def fill_monitoring_container(self, event: SubarrayEventContainer):
         """
         Fill the monitoring container for a given event.
 
         Parameters
         ----------
-        event : ArrayEventContainer
+        event : SubarrayEventContainer
             The event to fill the monitoring container for.
         """
         # Fill the monitoring container for the event
-        for tel_id in self.subarray.tel_ids:
-            time = None if self.is_simulation else event.trigger.time
-            event.monitoring.tel[tel_id].camera = self.get_camera_monitoring_container(
+        for tel_id, tel_event in event.tel.items():
+            time = None if self.is_simulation else tel_event.dl0.trigger.time
+            tel_event.monitoring.camera = self.get_camera_monitoring_container(
                 tel_id, time
             )
 
             # Only overwrite the telescope pointings for observation data
             if self.has_pointings and not self.is_simulation:
-                event.monitoring.tel[
-                    tel_id
-                ].pointing = self.get_telescope_pointing_container(
-                    tel_id, event.trigger.time
+                tel_event.monitoring.pointing = self.get_telescope_pointing_container(
+                    tel_id,
+                    time,
                 )
 
     def get_telescope_pointing_container(

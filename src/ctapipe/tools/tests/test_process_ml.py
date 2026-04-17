@@ -5,7 +5,7 @@ import numpy as np
 from ctapipe.core import run_tool
 from ctapipe.io import read_table
 from ctapipe.io.hdf5dataformat import (
-    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL0_SUBARRAY_TRIGGER_TABLE,
     DL2_SUBARRAY_ENERGY_GROUP,
     DL2_SUBARRAY_GEOMETRY_GROUP,
     DL2_SUBARRAY_GROUP,
@@ -115,7 +115,7 @@ def test_process_apply_classification(
     events = read_table(
         output, f"{DL2_SUBARRAY_GROUP}/particle_type/ExtraTreesClassifier"
     )
-    trigger = read_table(output, DL1_SUBARRAY_TRIGGER_TABLE)
+    trigger = read_table(output, DL0_SUBARRAY_TRIGGER_TABLE)
     assert len(events) == len(trigger)
     assert "ExtraTreesClassifier_is_valid" in events.colnames
     assert "ExtraTreesClassifier_prediction" in events.colnames
@@ -180,7 +180,7 @@ def test_process_apply_disp(
     assert "disp_tel_is_valid" in tel_events.colnames
 
     events = read_table(output, f"{DL2_SUBARRAY_GEOMETRY_GROUP}/disp")
-    trigger = read_table(output, DL1_SUBARRAY_TRIGGER_TABLE)
+    trigger = read_table(output, DL0_SUBARRAY_TRIGGER_TABLE)
     assert len(events) == len(trigger)
     assert "disp_alt" in events.colnames
     assert "disp_az" in events.colnames

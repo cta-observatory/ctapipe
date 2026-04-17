@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 
 from ctapipe.image import WaveformModifier, modifications
@@ -17,25 +19,19 @@ def test_waveform_modifier():
         wf_mod = WaveformModifier(
             subarray=source.subarray, nsb_file=nsb_only_file, nsb_level=3
         )
-        original_wfs = dict()
-        modified_wfs = dict()
+        original_wfs = defaultdict(list)
+        modified_wfs = defaultdict(list)
 
         # We test adding the noise on the same file from which the noise waveforms
         # are taken:
         for event in source:
-            for tel_id in event.trigger.tels_with_trigger:
-                if tel_id in original_wfs:
-                    original_wfs[tel_id].append(event.r1.tel[tel_id].waveform)
-                else:
-                    original_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
+            for tel_id, tel_event in event.tel.items():
+                original_wfs[tel_id].append(tel_event.r1.waveform)
 
             wf_mod(event)
 
-            for tel_id in event.trigger.tels_with_trigger:
-                if tel_id in modified_wfs:
-                    modified_wfs[tel_id].append(event.r1.tel[tel_id].waveform)
-                else:
-                    modified_wfs[tel_id] = [event.r1.tel[tel_id].waveform]
+            for tel_id, tel_event in event.tel.items():
+                modified_wfs[tel_id].append(tel_event.r1.waveform)
 
     for tel_id in original_wfs:
         original_wfs[tel_id] = np.array(original_wfs[tel_id])

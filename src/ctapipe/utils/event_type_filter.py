@@ -31,4 +31,4 @@ class EventTypeFilter(Component):
         if self.allowed_types is None:
             return True
 
-        return event.trigger.event_type in self.allowed_types
+        return event.dl0.trigger.event_type in self.allowed_types

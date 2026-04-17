@@ -10,11 +10,11 @@ Camera or off-line)
 
 """
 
-
 ######################################################################
 # Setup:
 #
 
+import astropy.units as u
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import signal
@@ -24,7 +24,6 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
 # %matplotlib inline
-
 
 ######################################################################
 # To read SimTelArray format data, ctapipe uses the ``pyeventio`` library
@@ -42,7 +41,6 @@ from ctapipe.visualization import CameraDisplay
 
 source = EventSource(get_dataset_path("gamma_prod5.simtel.zst"), max_events=5)
 
-
 ######################################################################
 # Explore the contents of an event
 # --------------------------------
@@ -53,17 +51,14 @@ source = EventSource(get_dataset_path("gamma_prod5.simtel.zst"), max_events=5)
 
 # so we can advance through events one-by-one
 event_iterator = iter(source)
-
 event = next(event_iterator)
-
 
 ######################################################################
 # the event is just a class with a bunch of data items in it. You can see
 # a more compact representation via:
 #
 
-event.r0
-
+event
 
 ######################################################################
 # printing the event structure, will currently print the value all items
@@ -74,15 +69,14 @@ event.r0
 print(event.simulation.shower)
 
 ######################################################################
-print(event.r0.tel.keys())
-
+print(event.tel.keys())
 
 ######################################################################
 # note that the event has 3 telescopes in it: Let’s try the next one:
 #
 
 event = next(event_iterator)
-print(event.r0.tel.keys())
+print(event.tel.keys())
 
 
 ######################################################################
@@ -90,10 +84,11 @@ print(event.r0.tel.keys())
 # them:
 #
 
-teldata = event.r0.tel[26]
-print(teldata)
-teldata
+tel_event = event.tel[26]
+tel_event
 
+######################################################################
+print(tel_event.r0)
 
 ######################################################################
 # Note that some values are unit quantities (``astropy.units.Quantity``)
@@ -104,17 +99,16 @@ teldata
 event.simulation.shower.energy
 
 ######################################################################
-event.simulation.shower.energy.to("GeV")
+event.simulation.shower.energy.to(u.GeV)
 
 ######################################################################
-event.simulation.shower.energy.to("J")
+event.simulation.shower.energy.to(u.J)
 
 ######################################################################
 event.simulation.shower.alt
 
 ######################################################################
 print("Altitude in degrees:", event.simulation.shower.alt.deg)
-
 
 ######################################################################
 # Look for signal pixels in a camera
@@ -127,24 +121,25 @@ print("Altitude in degrees:", event.simulation.shower.alt.deg)
 # if we see which pixels contain Cherenkov light signals:
 #
 
-plt.pcolormesh(teldata.waveform[0])  # note the [0] is for channel 0
+plt.pcolormesh(tel_event.r0.waveform[0])  # note the [0] is for channel 0
 plt.colorbar()
 plt.xlabel("sample number")
 plt.ylabel("Pixel_id")
-
 
 ######################################################################
 # Let’s zoom in to see if we can identify the pixels that have the
 # Cherenkov signal in them
 #
 
-plt.pcolormesh(teldata.waveform[0])
+plt.pcolormesh(tel_event.r0.waveform[0])
 plt.colorbar()
 plt.ylim(700, 750)
 plt.xlabel("sample number")
 plt.ylabel("pixel_id")
-print("waveform[0] is an array of shape (N_pix,N_slice) =", teldata.waveform[0].shape)
-
+print(
+    "waveform is an array of shape (n_channels, n_pixels, n_samples) =",
+    tel_event.r0.waveform.shape,
+)
 
 ######################################################################
 # Now we can really see that some pixels have a signal in them!
@@ -152,9 +147,8 @@ print("waveform[0] is an array of shape (N_pix,N_slice) =", teldata.waveform[0].
 # Lets look at a 1D plot of pixel 270 in channel 0 and see the signal:
 #
 
-trace = teldata.waveform[0][719]
+trace = tel_event.r0.waveform[0][719]
 plt.plot(trace, drawstyle="steps")
-
 
 ######################################################################
 # Great! It looks like a *standard Cherenkov signal*!
@@ -164,7 +158,9 @@ plt.plot(trace, drawstyle="steps")
 
 for pix_id in range(718, 723):
     plt.plot(
-        teldata.waveform[0][pix_id], label="pix {}".format(pix_id), drawstyle="steps"
+        tel_event.r0.waveform[0][pix_id],
+        label="pix {}".format(pix_id),
+        drawstyle="steps",
     )
 plt.legend()
 
@@ -183,7 +179,7 @@ plt.legend()
 #
 
 for pix_id in range(718, 723):
-    plt.plot(teldata.waveform[0][pix_id], "+-")
+    plt.plot(tel_event.r0.waveform[0][pix_id], "+-")
 plt.fill_betweenx([0, 1600], 19, 24, color="red", alpha=0.3, label="Ped window")
 plt.fill_betweenx([0, 1600], 5, 9, color="green", alpha=0.3, label="Signal window")
 plt.legend()
@@ -199,34 +195,37 @@ plt.legend()
 # which is the high-gain channel):
 #
 
-data = teldata.waveform[0]
+data = tel_event.r0.waveform[0]
 peds = data[:, 19:24].mean(axis=1)  # mean of samples 20 to 29 for all pixels
-sums = data[:, 5:9].sum(axis=1) / (13 - 8)  # simple sum integration
+sums = data[:, 5:9].sum(axis=1) / (9 - 5)  # simple sum integration
 
 ######################################################################
-phist = plt.hist(peds, bins=50, range=[0, 150])
+phist = plt.hist(peds, bins=50)
 plt.title("Pedestal Distribution of all pixels for a single event")
-
 
 ######################################################################
 # let’s now take a look at the pedestal-subtracted sums and a
 # pedestal-subtracted signal:
 #
 
+peds
+
+######################################################################
 plt.plot(sums - peds)
 plt.xlabel("pixel id")
 plt.ylabel("Pedestal-subtracted Signal")
 
-
 ######################################################################
 # Now, we can clearly see that the signal is centered at 0 where there is
 # no Cherenkov light, and we can also clearly see the shower around pixel
-# 250.
+# 700.
 #
 
 # we can also subtract the pedestals from the traces themselves, which would be needed to compare peaks properly
-for ii in range(270, 280):
-    plt.plot(data[ii] - peds[ii], drawstyle="steps", label="pix{}".format(ii))
+for pixel in range(700, 710):
+    plt.plot(
+        data[pixel] - peds[pixel], drawstyle="steps", label="pixel {}".format(pixel)
+    )
 plt.legend()
 
 
@@ -246,13 +245,14 @@ plt.legend()
 camgeom = source.subarray.tel[24].camera.geometry
 
 ######################################################################
-title = "CT24, run {} event {} ped-sub".format(event.index.obs_id, event.index.event_id)
-disp = CameraDisplay(camgeom, title=title)
-disp.image = sums - peds
-disp.cmap = plt.cm.RdBu_r
-disp.add_colorbar()
-disp.set_limits_percent(95)  # autoscale
+title = "CT24, obs_id {} event_id {} ped-sub".format(
+    event.index.obs_id, event.index.event_id
+)
 
+disp = CameraDisplay(camgeom, title=title)
+
+disp.image = sums - peds
+disp.add_colorbar()
 
 ######################################################################
 # It looks like a nice signal! We have plotted our pedestal-subtracted
@@ -264,18 +264,18 @@ disp.set_limits_percent(95)  # autoscale
 #    pedestals for each)
 #
 
-for tel in event.r0.tel.keys():
+for tel_id, tel_event in event.tel.items():
     plt.figure()
-    camgeom = source.subarray.tel[tel].camera.geometry
-    title = "CT{}, run {} event {}".format(
-        tel, event.index.obs_id, event.index.event_id
+    camgeom = source.subarray.tel[tel_id].camera.geometry
+    title = "obs_id {}, event_id {}, tel_id {}".format(
+        event.index.obs_id,
+        event.index.event_id,
+        tel_id,
     )
     disp = CameraDisplay(camgeom, title=title)
-    disp.image = event.r0.tel[tel].waveform[0].sum(axis=1)
-    disp.cmap = plt.cm.RdBu_r
+    disp.image = tel_event.r0.waveform[0].sum(axis=1)
     disp.add_colorbar()
     disp.set_limits_percent(95)
-
 
 ######################################################################
 # some signal processing…
