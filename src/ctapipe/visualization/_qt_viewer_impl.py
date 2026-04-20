@@ -225,7 +225,7 @@ class ViewerMainWindow(QMainWindow):
 
         self.current_event = event
 
-        label = f"obs_id: {event.index.obs_id}" f", event_id: {event.index.event_id}"
+        label = f"obs_id: {event.index.obs_id}, event_id: {event.index.event_id}"
         if event.simulation is not None and event.simulation.shower is not None:
             label += f", E={event.simulation.shower.energy:.3f}"
 
