@@ -10,6 +10,7 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.monitoring.aggregator import (
+    HistogramsAggregator,
     PlainAggregator,
     SigmaClippingAggregator,
 )
@@ -104,6 +105,111 @@ def test_aggregators():
     np.testing.assert_allclose(ped_stats[0]["std"], 5.0, atol=1.5)
     np.testing.assert_allclose(charge_stats[0]["std"], 10.0, atol=1.5)
     np.testing.assert_allclose(time_stats[0]["std"], 5.0, atol=1.5)
+
+
+def test_histograms_aggregator_compute_histos_shape_and_counts():
+    """Test histogram computation shape and entry counts for N-D event data."""
+
+    rng = np.random.default_rng(10)
+    data = rng.normal(77.0, 10.0, size=(200, 2, 8))
+    aggregator = HistogramsAggregator()
+
+    histos = aggregator.compute_histos(data, bins=40, range=(0, 200))
+
+    assert histos.counts.shape == (40, 2, 8)
+    assert histos.bins.shape == (41,)
+    assert histos.n_events.shape == (2, 8)
+    np.testing.assert_array_equal(histos.n_events, np.full((2, 8), 200))
+
+    # With a wide range all events should be counted for each pixel.
+    np.testing.assert_array_equal(histos.counts.sum(axis=0), np.full((2, 8), 200))
+
+
+def test_histograms_aggregator_chunked_call():
+    """Test chunked table aggregation path and metadata for HistogramsAggregator."""
+
+    times = Time(
+        np.linspace(60117.911, 60117.912, num=120),
+        scale="tai",
+        format="mjd",
+    )
+    event_ids = np.arange(120)
+    rng = np.random.default_rng(11)
+    data = rng.normal(10.0, 2.0, size=(120, 2, 5))
+
+    table = Table([times, event_ids, data], names=("time", "event_id", "image"))
+
+    config = Config(
+        {
+            "HistogramsAggregator": {"chunking_type": "SizeChunking"},
+            "SizeChunking": {"chunk_size": 60},
+        }
+    )
+    aggregator = HistogramsAggregator(config=config)
+    result = aggregator(table=table, bins=50, range=(0, 20))
+
+    assert len(result) == 2
+
+    assert result[0]["time_start"] == times[0]
+    assert result[1]["time_end"] == times[-1]
+    assert result[0]["event_id_start"] == event_ids[0]
+    assert result[1]["event_id_end"] == event_ids[-1]
+
+    assert result[0]["counts"].shape == (50, 2, 5)
+    assert result[0]["bins"].shape == (51,)
+    assert result[0]["n_events"].shape == (2, 5)
+    np.testing.assert_array_equal(result[0]["n_events"], np.full((2, 5), 60))
+    assert np.all(np.diff(result[0]["bins"]) >= 0)
+
+
+def test_histograms_aggregator_masks_and_nan_handling():
+    """Test masking and NaN handling in histogram computation."""
+
+    rng = np.random.default_rng(12)
+    n_events = 100
+    data = rng.normal(5.0, 1.0, size=(n_events, 2, 4))
+    data[3, 0, 0] = np.nan
+
+    mask = np.zeros((2, 4), dtype=bool)
+    mask[0, 1] = True
+
+    aggregator = HistogramsAggregator()
+    histos = aggregator.compute_histos(
+        data,
+        bins=25,
+        range=(0, 10),
+        masked_elements_of_sample=mask,
+    )
+
+    # Fully masked pixel should receive no entries.
+    assert histos.counts[:, 0, 1].sum() == 0
+    assert histos.n_events[0, 1] == 0
+    # One NaN should be dropped for this pixel.
+    assert histos.counts[:, 0, 0].sum() == histos.n_events[0, 0]
+    # Unaffected pixels should retain the full number of events.
+    assert histos.n_events[1, 3] == n_events
+
+
+def test_histograms_aggregator_density_true_normalization():
+    """Test that density=True yields histograms normalized to unit area."""
+
+    rng = np.random.default_rng(13)
+    data = rng.normal(0.0, 1.0, size=(300, 2, 3))
+
+    aggregator = HistogramsAggregator()
+    histos = aggregator.compute_histos(
+        data,
+        bins=30,
+        range=(-5, 5),
+        density=True,
+    )
+
+    # For density=True: integral over each per-pixel histogram should be ~1.
+    bin_width = histos.bins[1] - histos.bins[0]
+    integral = np.sum(histos.counts * bin_width, axis=0)
+
+    np.testing.assert_allclose(integral, np.ones((2, 3)), rtol=1e-12, atol=1e-12)
+    np.testing.assert_array_equal(histos.n_events, np.full((2, 3), 300))
 
 
 def test_chunk_shift():
