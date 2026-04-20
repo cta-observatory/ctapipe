@@ -125,13 +125,13 @@ def test_dump_instrument(tmp_path):
         raises=True,
     )
     assert ret == 0
-    assert (tmp_path / "instrument.meta.json").exists()
-    assert (tmp_path / "array-element-ids.json").exists()
-    assert (tmp_path / "subarray-ids.json").exists()
-    assert (tmp_path / "positions").exists()
+    assert (tmp_path / "instrument/instrument.meta.json").exists()
+    assert (tmp_path / "instrument/array-element-ids.json").exists()
+    assert (tmp_path / "instrument/subarray-ids.json").exists()
+    assert (tmp_path / "instrument/positions").exists()
 
     # Check array-elements directory with ae_id subdirectories
-    array_elements_dir = tmp_path / "array-elements"
+    array_elements_dir = tmp_path / "instrument" / "array-elements"
     assert array_elements_dir.exists()
 
     # Check that at least one ae_id directory exists (e.g., 001)

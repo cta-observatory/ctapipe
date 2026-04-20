@@ -413,6 +413,8 @@ def test_from_service_data_complete(svc_path):
 
 def test_from_service_data_unknown_subarray(svc_path):
     """Test that loading an unknown subarray ID raises an error"""
+    from ctapipe.instrument import UnknownSubarray
+
     with pytest.raises(UnknownSubarray, match="Subarray ID 999 not found"):
         SubarrayDescription.from_service_data(subarray_id=999)
 

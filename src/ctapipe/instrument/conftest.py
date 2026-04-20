@@ -2,6 +2,7 @@
 Common test fixtures for the instrument module
 """
 
+import json
 import os
 import shutil
 
