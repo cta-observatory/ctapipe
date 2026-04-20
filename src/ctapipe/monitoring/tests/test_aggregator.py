@@ -1,5 +1,5 @@
 """
-Tests for StatisticsAggregator and related functions
+Tests for aggregators and related functions
 """
 
 import astropy.units as u
@@ -112,12 +112,20 @@ def test_histograms_aggregator_compute_histos_shape_and_counts():
 
     rng = np.random.default_rng(10)
     data = rng.normal(77.0, 10.0, size=(200, 2, 8))
-    aggregator = HistogramsAggregator()
+    config = Config(
+        {
+            "HistogramsAggregator": {
+                "n_bins": 40,
+                "range": [0.0, 200.0],
+            }
+        }
+    )
+    aggregator = HistogramsAggregator(config=config)
 
-    histos = aggregator.compute_histos(data, bins=40, range=(0, 200))
+    histos = aggregator.compute_histos(data)
 
     assert histos.counts.shape == (40, 2, 8)
-    assert histos.bins.shape == (41,)
+    assert histos.edges.shape == (41,)
     assert histos.n_events.shape == (2, 8)
     np.testing.assert_array_equal(histos.n_events, np.full((2, 8), 200))
 
@@ -141,12 +149,16 @@ def test_histograms_aggregator_chunked_call():
 
     config = Config(
         {
-            "HistogramsAggregator": {"chunking_type": "SizeChunking"},
+            "HistogramsAggregator": {
+                "chunking_type": "SizeChunking",
+                "n_bins": 50,
+                "range": [0.0, 20.0],
+            },
             "SizeChunking": {"chunk_size": 60},
         }
     )
     aggregator = HistogramsAggregator(config=config)
-    result = aggregator(table=table, bins=50, range=(0, 20))
+    result = aggregator(table=table)
 
     assert len(result) == 2
 
@@ -156,10 +168,13 @@ def test_histograms_aggregator_chunked_call():
     assert result[1]["event_id_end"] == event_ids[-1]
 
     assert result[0]["counts"].shape == (50, 2, 5)
-    assert result[0]["bins"].shape == (51,)
+    assert result[0]["edges"].shape == (51,)
     assert result[0]["n_events"].shape == (2, 5)
     np.testing.assert_array_equal(result[0]["n_events"], np.full((2, 5), 60))
-    assert np.all(np.diff(result[0]["bins"]) >= 0)
+    assert np.all(np.diff(result[0]["edges"]) >= 0)
+
+    # Histogram edges are config-defined and must be identical for all chunks.
+    np.testing.assert_array_equal(result[0]["edges"], result[1]["edges"])
 
 
 def test_histograms_aggregator_masks_and_nan_handling():
@@ -173,11 +188,17 @@ def test_histograms_aggregator_masks_and_nan_handling():
     mask = np.zeros((2, 4), dtype=bool)
     mask[0, 1] = True
 
-    aggregator = HistogramsAggregator()
+    config = Config(
+        {
+            "HistogramsAggregator": {
+                "n_bins": 25,
+                "range": [0.0, 10.0],
+            }
+        }
+    )
+    aggregator = HistogramsAggregator(config=config)
     histos = aggregator.compute_histos(
         data,
-        bins=25,
-        range=(0, 10),
         masked_elements_of_sample=mask,
     )
 
@@ -188,28 +209,6 @@ def test_histograms_aggregator_masks_and_nan_handling():
     assert histos.counts[:, 0, 0].sum() == histos.n_events[0, 0]
     # Unaffected pixels should retain the full number of events.
     assert histos.n_events[1, 3] == n_events
-
-
-def test_histograms_aggregator_density_true_normalization():
-    """Test that density=True yields histograms normalized to unit area."""
-
-    rng = np.random.default_rng(13)
-    data = rng.normal(0.0, 1.0, size=(300, 2, 3))
-
-    aggregator = HistogramsAggregator()
-    histos = aggregator.compute_histos(
-        data,
-        bins=30,
-        range=(-5, 5),
-        density=True,
-    )
-
-    # For density=True: integral over each per-pixel histogram should be ~1.
-    bin_width = histos.bins[1] - histos.bins[0]
-    integral = np.sum(histos.counts * bin_width, axis=0)
-
-    np.testing.assert_allclose(integral, np.ones((2, 3)), rtol=1e-12, atol=1e-12)
-    np.testing.assert_array_equal(histos.n_events, np.full((2, 3), 300))
 
 
 def test_chunk_shift():
