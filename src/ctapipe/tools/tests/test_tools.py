@@ -117,6 +117,42 @@ def test_dump_instrument(tmp_path):
     assert ret == 0
     assert (tmp_path / "subarray.h5").exists()
 
+    # Test service data format
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [f"--input={PROD5B_PATH}", "--format=service"],
+        cwd=tmp_path,
+        raises=True,
+    )
+    assert ret == 0
+    assert (tmp_path / "instrument/instrument.meta.json").exists()
+    assert (tmp_path / "instrument/array-element-ids.json").exists()
+    assert (tmp_path / "instrument/subarray-ids.json").exists()
+    assert (tmp_path / "instrument/positions").exists()
+
+    # Check array-elements directory with ae_id subdirectories
+    array_elements_dir = tmp_path / "instrument" / "array-elements"
+    assert array_elements_dir.exists()
+
+    # Check that at least one ae_id directory exists (e.g., 001)
+    ae_dirs = list(array_elements_dir.glob("[0-9][0-9][0-9]"))
+    assert len(ae_dirs) > 0, "No ae_id directories found in array-elements"
+
+    # Check first ae_id directory contains required files
+    from astropy.table import QTable
+
+    from ctapipe.instrument.optics import OpticsDescription
+
+    first_ae_dir = ae_dirs[0]
+    ae_id = first_ae_dir.name
+    optics_file = first_ae_dir / f"{ae_id}.optics.ecsv"
+    assert optics_file.exists()
+    assert (first_ae_dir / f"{ae_id}.camgeom.fits.gz").exists()
+    assert (first_ae_dir / f"{ae_id}.camreadout.fits.gz").exists()
+
+    optics_table = QTable.read(optics_file, format="ascii.ecsv")
+    assert optics_table.meta.get("TAB_VER") in OpticsDescription.COMPATIBLE_VERSIONS
+
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0
 
