@@ -32,9 +32,9 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
 
-from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
+from ..containers import CameraHistogramContainer, ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
+from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Float, Int, List
 
 
 class BaseChunking(Component, metaclass=ABCMeta):
@@ -304,7 +304,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         table,
         masked_elements_of_sample=None,
         col_name="image",
-        **kwargs,
     ) -> Table:
         r"""
         Divide table into chunks and compute aggregated statistic values or histograms.
@@ -319,9 +318,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
-        **kwargs
-            Additional keyword arguments propagated to the concrete aggregation
-            implementation (e.g. histogram options such as ``bins`` or ``range``).
 
         Returns
         -------
@@ -355,7 +351,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
                 chunk[col_name].data,
                 masked_elements_of_sample,
                 results,
-                **kwargs,
             )
 
         # Create and return table
@@ -373,7 +368,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         data,
         masked_elements_of_sample,
         results_dict,
-        **kwargs,
     ):
         r"""
         Compute statistics and add columns to results dictionary.
@@ -386,8 +380,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
             Dictionary to which statistic or histogram columns should be added.
-        **kwargs
-            Extra keyword arguments propagated from ``BaseAggregator.__call__``.
         """
         pass
 
@@ -405,21 +397,32 @@ class HistogramsAggregator(BaseAggregator):
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """
 
+    n_bins = Int(
+        default_value=10,
+        help="Number of bins for the histogram.",
+    ).tag(config=True)
+
+    range = List(
+        trait=Float(),
+        default_value=[1.0, 2.0],
+        help="Lower and upper range of the histogram bins. Should be a list of two floats: [min, max].",
+        minlen=2,
+        maxlen=2,
+    ).tag(config=True)
+
     def _add_result_columns(
         self,
         data,
         masked_elements_of_sample,
         results_dict,
-        **kwargs,
     ):
         histos = self.compute_histos(
             data,
             masked_elements_of_sample=masked_elements_of_sample,
-            **kwargs,
         )
         results_dict["n_events"].append(histos.n_events)
         results_dict["counts"].append(histos.counts)
-        results_dict["bins"].append(histos.bins)
+        results_dict["edges"].append(histos.edges)
 
     def _set_result_units(self, table, unit):
         """
@@ -428,40 +431,30 @@ class HistogramsAggregator(BaseAggregator):
         For HistogramsAggregator, the counts and bins columns
         should have the same units as the input data.
         """
-        for col in ("counts", "bins"):
+        for col in ("counts", "edges"):
             table[col].unit = unit
 
     def compute_histos(
         self,
         data,
-        bins: int = 1000,
-        range=None,
-        density=None,
-        weights=None,
         masked_elements_of_sample=None,
-    ) -> ChunkHistogramContainer:
+    ) -> CameraHistogramContainer:
         r"""
-        Compute histograms for a chunk of data.
+        Compute histograms for a chunk of pixel-wise data.
 
         Parameters
         ----------
         data : ndarray
             Event-wise data of shape (n_events, \*data_dimensions)
-        bins : int, optional
-            Number of bins for the histogram
-        range : tuple, optional
-            Range of the histogram as (min, max). If None, range is determined from the data.
         density : bool, optional
             If True, compute the probability density function at the bin centers. Default is False.
-        weights : ndarray, optional
-            Weights for each event. Should be of shape (n_events,). If None, all events are given equal weight.
         masked_elements_of_sample : ndarray, optional
             Boolean mask of shape (\*data_dimensions) for elements to exclude
 
         Returns
         -------
-        HistogramContainer
-            Container with computed histogram
+        CameraHistogramContainer
+            Container with computed histograms.
         """
         if masked_elements_of_sample is not None:
             mask = np.broadcast_to(masked_elements_of_sample, data.shape)
@@ -472,30 +465,16 @@ class HistogramsAggregator(BaseAggregator):
         masked_data = np.ma.array(data, mask=mask)
         masked_data = np.ma.masked_invalid(masked_data)
 
-        if range is None:
-            finite_data = masked_data.compressed()
-            if finite_data.size == 0:
-                raise ValueError(
-                    "Cannot compute histogram range from empty or fully masked data"
-                )
-            range = (np.min(finite_data), np.max(finite_data))
-
         def _histogram_1d(sample):
             if np.ma.isMaskedArray(sample):
                 sample_values = sample.compressed()
-                sample_weights = (
-                    None if weights is None else np.asarray(weights)[~sample.mask]
-                )
             else:
                 sample_values = sample
-                sample_weights = weights
 
             return np.histogram(
                 sample_values,
-                bins=bins,
-                range=range,
-                density=density,
-                weights=sample_weights,
+                bins=self.n_bins,
+                range=self.range,
             )[0]
 
         # Compute histogram over the event dimension (axis=0)
@@ -509,9 +488,9 @@ class HistogramsAggregator(BaseAggregator):
         n_events = np.sum(~np.ma.getmaskarray(masked_data), axis=0)
 
         # Determine bin edges
-        edges = np.linspace(range[0], range[1], bins + 1)
-        return ChunkHistogramContainer(
-            counts=hist_counts, bins=edges, n_events=n_events
+        edges = np.linspace(self.range[0], self.range[1], self.n_bins + 1)
+        return CameraHistogramContainer(
+            counts=hist_counts, edges=edges, n_events=n_events
         )
 
 
@@ -528,9 +507,8 @@ class StatisticsAggregator(BaseAggregator):
         data,
         masked_elements_of_sample,
         results_dict,
-        **kwargs,
     ):
-        stats = self.compute_stats(data, masked_elements_of_sample, **kwargs)
+        stats = self.compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
         results_dict["median"].append(stats.median)
@@ -548,7 +526,7 @@ class StatisticsAggregator(BaseAggregator):
 
     @abstractmethod
     def compute_stats(
-        self, data, masked_elements_of_sample, **kwargs
+        self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
         r"""
         Compute aggregated statistics for a chunk of data.
@@ -576,7 +554,7 @@ class PlainAggregator(StatisticsAggregator):
     """
 
     def compute_stats(
-        self, data, masked_elements_of_sample, **kwargs
+        self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
         # Mask excluded elements and NaN/inf values
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
@@ -622,7 +600,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
     ).tag(config=True)
 
     def compute_stats(
-        self, data, masked_elements_of_sample, **kwargs
+        self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
         # Mask excluded elements and NaN/inf values
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
