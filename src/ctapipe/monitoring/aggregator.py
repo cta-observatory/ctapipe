@@ -28,13 +28,15 @@ from collections import defaultdict
 from collections.abc import Generator
 
 import astropy.units as u
+import hist
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
+from hist import Hist
 
-from ..containers import CameraHistogramContainer, ChunkStatisticsContainer
+from ..containers import ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Float, Int, List
+from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
 
 
 class BaseChunking(Component, metaclass=ABCMeta):
@@ -397,18 +399,19 @@ class HistogramsAggregator(BaseAggregator):
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """
 
-    n_bins = Int(
-        default_value=10,
-        help="Number of bins for the histogram.",
-    ).tag(config=True)
-
-    range = List(
-        trait=Float(),
-        default_value=[1.0, 2.0],
-        help="Lower and upper range of the histogram bins. Should be a list of two floats: [min, max].",
-        minlen=2,
-        maxlen=2,
-    ).tag(config=True)
+    def __init__(self, hist_axis, config=None, parent=None, **kwargs):
+        """
+        Parameters
+        ----------
+        hist_axis : hist.axis
+            The hist.axis object defining the histogram binning to use for aggregation.
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments
+        parent : ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy
+        """
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.hist_axis = hist_axis
 
     def _add_result_columns(
         self,
@@ -416,13 +419,13 @@ class HistogramsAggregator(BaseAggregator):
         masked_elements_of_sample,
         results_dict,
     ):
-        histos = self.compute_histos(
+        _, hist_counts, edges, n_events_valid = self.compute_histos(
             data,
             masked_elements_of_sample=masked_elements_of_sample,
         )
-        results_dict["n_events"].append(histos.n_events)
-        results_dict["counts"].append(histos.counts)
-        results_dict["edges"].append(histos.edges)
+        results_dict["n_events"].append(n_events_valid)
+        results_dict["counts"].append(hist_counts)
+        results_dict["edges"].append(edges)
 
     def _set_result_units(self, table, unit):
         """
@@ -438,9 +441,9 @@ class HistogramsAggregator(BaseAggregator):
         self,
         data,
         masked_elements_of_sample=None,
-    ) -> CameraHistogramContainer:
+    ) -> tuple[Hist, np.ndarray, np.ndarray, np.ndarray]:
         r"""
-        Compute histograms for a chunk of pixel-wise data.
+        Compute histograms for a chunk of pixel-wise data using Hist.
 
         Parameters
         ----------
@@ -451,45 +454,60 @@ class HistogramsAggregator(BaseAggregator):
 
         Returns
         -------
-        CameraHistogramContainer
-            Container with computed histograms.
+        Hist
+            The histogram object.
+        np.ndarray
+            The histogram counts.
+        np.ndarray
+            The bin edges.
+        np.ndarray
+            The number of valid events per pixel.
+
         """
+
+        n_events = data.shape[0]
+        spatial_shape = data.shape[1:]
+        n_pixels = int(np.prod(spatial_shape))
+
+        # Broadcast mask to full shape
         if masked_elements_of_sample is not None:
             mask = np.broadcast_to(masked_elements_of_sample, data.shape)
         else:
-            mask = None
+            mask = np.zeros_like(data, dtype=bool)
 
-        # Mask excluded elements and NaN/inf values
-        masked_data = np.ma.array(data, mask=mask)
-        masked_data = np.ma.masked_invalid(masked_data)
+        # Mask invalid values (NaN, inf)
+        invalid = ~np.isfinite(data)
+        mask = mask | invalid
 
-        def _histogram_1d(sample):
-            if np.ma.isMaskedArray(sample):
-                sample_values = sample.compressed()
-            else:
-                sample_values = sample
+        # Flatten to (n_events, n_pixels)
+        flat_data = data.reshape(n_events, n_pixels)
+        flat_mask = mask.reshape(n_events, n_pixels)
 
-            return np.histogram(
-                sample_values,
-                bins=self.n_bins,
-                range=self.range,
-            )[0]
-
-        # Compute histogram over the event dimension (axis=0)
-        hist_counts = np.apply_along_axis(
-            _histogram_1d,
-            axis=0,
-            arr=masked_data,
+        # Build histogram object
+        hist_object = Hist(
+            self.hist_axis,
+            hist.axis.Integer(0, n_pixels, name="pixel"),
+            storage=hist.storage.Int64(),
         )
 
-        # Number of valid entries contributing to each per-sample histogram.
-        n_events = np.sum(~np.ma.getmaskarray(masked_data), axis=0)
+        # Fill histogram (loop over pixels, but fast backend)
+        for pix in range(n_pixels):
+            valid = ~flat_mask[:, pix]
+            if not np.any(valid):
+                continue
 
-        # Determine bin edges
-        edges = np.linspace(self.range[0], self.range[1], self.n_bins + 1)
-        return CameraHistogramContainer(
-            counts=hist_counts, edges=edges, n_events=n_events
-        )
+            values = flat_data[valid, pix]
+            hist_object.fill(value=values, pixel=pix)
+
+        # Extract histogram counts
+        n_bins = hist_object.axes[0].size
+        hist_counts = hist_object.values()  # shape: (bins, n_pixels)
+        hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
+        # Extract bin edges
+        edges = hist_object.axes[0].edges
+        # Count valid entries per pixel
+        n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
+        return hist_object, hist_counts, edges, n_events_valid
 
 
 class StatisticsAggregator(BaseAggregator):

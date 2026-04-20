@@ -3,6 +3,7 @@ Tests for aggregators and related functions
 """
 
 import astropy.units as u
+import hist
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -112,25 +113,21 @@ def test_histograms_aggregator_compute_histos_shape_and_counts():
 
     rng = np.random.default_rng(10)
     data = rng.normal(77.0, 10.0, size=(200, 2, 8))
-    config = Config(
-        {
-            "HistogramsAggregator": {
-                "n_bins": 40,
-                "range": [0.0, 200.0],
-            }
-        }
+
+    aggregator = HistogramsAggregator(
+        hist.axis.Regular(40, 0.0, 200.0, name="value"),
     )
-    aggregator = HistogramsAggregator(config=config)
 
-    histos = aggregator.compute_histos(data)
+    hist_object, counts, edges, n_events_valid = aggregator.compute_histos(data)
 
-    assert histos.counts.shape == (40, 2, 8)
-    assert histos.edges.shape == (41,)
-    assert histos.n_events.shape == (2, 8)
-    np.testing.assert_array_equal(histos.n_events, np.full((2, 8), 200))
+    assert counts.shape == (40, 2, 8)
+    assert edges.shape == (41,)
+    assert n_events_valid.shape == (2, 8)
+    np.testing.assert_array_equal(n_events_valid, np.full((2, 8), 200))
+    assert hist_object is not None
 
     # With a wide range all events should be counted for each pixel.
-    np.testing.assert_array_equal(histos.counts.sum(axis=0), np.full((2, 8), 200))
+    np.testing.assert_array_equal(counts.sum(axis=0), np.full((2, 8), 200))
 
 
 def test_histograms_aggregator_chunked_call():
@@ -151,13 +148,14 @@ def test_histograms_aggregator_chunked_call():
         {
             "HistogramsAggregator": {
                 "chunking_type": "SizeChunking",
-                "n_bins": 50,
-                "range": [0.0, 20.0],
             },
             "SizeChunking": {"chunk_size": 60},
         }
     )
-    aggregator = HistogramsAggregator(config=config)
+    aggregator = HistogramsAggregator(
+        hist.axis.Regular(50, 0.0, 20.0, name="value"),
+        config=config,
+    )
     result = aggregator(table=table)
 
     assert len(result) == 2
@@ -188,27 +186,20 @@ def test_histograms_aggregator_masks_and_nan_handling():
     mask = np.zeros((2, 4), dtype=bool)
     mask[0, 1] = True
 
-    config = Config(
-        {
-            "HistogramsAggregator": {
-                "n_bins": 25,
-                "range": [0.0, 10.0],
-            }
-        }
-    )
-    aggregator = HistogramsAggregator(config=config)
-    histos = aggregator.compute_histos(
+    value_axis = hist.axis.Regular(25, 0.0, 10.0, name="value")
+    aggregator = HistogramsAggregator(value_axis)
+    _, counts, _, n_events_valid = aggregator.compute_histos(
         data,
         masked_elements_of_sample=mask,
     )
 
     # Fully masked pixel should receive no entries.
-    assert histos.counts[:, 0, 1].sum() == 0
-    assert histos.n_events[0, 1] == 0
+    assert counts[:, 0, 1].sum() == 0
+    assert n_events_valid[0, 1] == 0
     # One NaN should be dropped for this pixel.
-    assert histos.counts[:, 0, 0].sum() == histos.n_events[0, 0]
+    assert counts[:, 0, 0].sum() == n_events_valid[0, 0]
     # Unaffected pixels should retain the full number of events.
-    assert histos.n_events[1, 3] == n_events
+    assert n_events_valid[1, 3] == n_events
 
 
 def test_chunk_shift():

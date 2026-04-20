@@ -60,7 +60,6 @@ __all__ = [
     "TriggerContainer",
     "TelescopePointingContainer",
     "ArrayPointingContainer",
-    "CameraHistogramContainer",
     "StatisticsContainer",
     "ChunkContainer",
     "ChunkStatisticsContainer",
@@ -1236,22 +1235,6 @@ class CameraCalibrationContainer(Container):
             "is detected during the time period."
         ),
     )
-
-
-class CameraHistogramContainer(Container):
-    """Store histogram data of a pixel-wise quantity for each channel"""
-
-    counts = Field(
-        None,
-        "counts of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
-    )
-    edges = Field(
-        None,
-        "edges of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_bins + 1, n_channels, n_pixel)",
-    )
-    n_events = Field(-1, "number of events used for the computation of the histogram")
 
 
 class StatisticsContainer(Container):

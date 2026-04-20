@@ -34,6 +34,7 @@ dependencies = [
     "joblib",
     "numba >=0.59.0",
     "numpy >=1.26,<3.0.0",
+    "hist",
     "packaging",
     "psutil",
     "pyyaml >=5.1",
