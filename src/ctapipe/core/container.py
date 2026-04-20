@@ -603,4 +603,4 @@ class Map[K, V](defaultdict[K, V]):
             default = _fqdn(self.default_factory)
         else:
             default = repr(self.default_factory)
-        return f"{self.__class__.__name__}({default}, {dict.__repr__(self)!s})"
+        return f"{self.__class__.__name__}({default}: {list(self.keys())})"
