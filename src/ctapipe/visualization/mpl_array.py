@@ -90,16 +90,22 @@ class ArrayDisplay:
         if title is None:
             title = subarray.name
 
-        tel_types = list({str(tel) for tel in subarray.telescope_types})
+        sorted_tel_types = sorted(
+            subarray.telescope_types,
+            key=lambda tel: tel.optics.mirror_area,
+            reverse=True,
+        )
+        tel_types = list({str(tel) for tel in sorted_tel_types})
         self.tel_type_idx = np.array(
-            [tel_types.index(str(tel)) for tel in self.subarray.tel.values()]
+            [tel_types.index(str(tel)) for tel in self.subarray.tel.values()],
         )
 
         # get default matplotlib color cycle (depends on the current style)
         color_cycle = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
-        cmap = ListedColormap([next(color_cycle) for _ in tel_types])
-        cmap.set_bad("gray")
-        norm = Normalize(vmin=-0.5, vmax=len(tel_types) - 0.5)
+        self.tel_cmap = ListedColormap([next(color_cycle) for _ in tel_types])
+        self.tel_cmap.set_bad("gray")
+        self.tel_norm = Normalize(vmin=-0.5, vmax=len(tel_types) - 0.5)
+        self.tel_colors = self._tel_type_color(self.tel_type_idx)
 
         patches = []
         for x, y, r in zip(
@@ -111,13 +117,13 @@ class ArrayDisplay:
 
         # build the legend:
         self.legend_elements = []
-        for i, tel_type in enumerate(tel_types):
+        for tel_type_index, tel_type in enumerate(tel_types):
             self.legend_elements.append(
                 Line2D(
                     [0],
                     [0],
                     marker="o",
-                    color=cmap(norm(i)),
+                    color=self._tel_type_color(tel_type_index),
                     label=tel_type,
                     markersize=10,
                     alpha=alpha,
@@ -131,10 +137,10 @@ class ArrayDisplay:
         # create the plot
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
-        self.telescopes.set_edgecolor(cmap(norm(self.tel_type_idx)))
+        self.telescopes.set_edgecolor(self.tel_colors)
         self.telescopes.set_linewidth(2.0)
-        self.telescopes.set_cmap(cmap)
-        self.telescopes.set_norm(norm)
+        self.telescopes.set_cmap(self.tel_cmap)
+        self.telescopes.set_norm(self.tel_norm)
         self.telescopes.set_array(self.tel_type_idx)
 
         self.axes.add_collection(self.telescopes)
@@ -331,7 +337,6 @@ class ArrayDisplay:
         # transform to GroundFrame
         positions_in_frame = SkyCoord(self.tel_coords, frame=self.frame)
         coords = positions_in_frame.transform_to(GroundFrame())
-        c = self.tel_colors
 
         r = np.array([-range, range])
 
@@ -339,11 +344,12 @@ class ArrayDisplay:
             idx = self.subarray.tel_indices[tel_id]
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
+            color = self._tel_color(idx)
 
             psi = core_dict[tel_id]
 
-            x = x_0 + np.cos(psi).value * r
-            y = y_0 + np.sin(psi).value * r
+            x = x_0 + np.cos(psi).to_value(u.one) * r
+            y = y_0 + np.sin(psi).to_value(u.one) * r
 
             # transform back to desired frame
             line = (
@@ -352,11 +358,11 @@ class ArrayDisplay:
                 .cartesian
             )
 
-            self.axes.plot(line.x, line.y, color=c[idx], **kwargs)
+            self.axes.plot(line.x, line.y, color=color, **kwargs)
             self.axes.scatter(
                 positions_in_frame[idx].cartesian.x.to_value(u.m),
                 positions_in_frame[idx].cartesian.y.to_value(u.m),
-                color=c[idx],
+                color=color,
             )
 
     def add_labels(self):
@@ -405,3 +411,9 @@ class ArrayDisplay:
 
         # use zorder to ensure the contours appear under the telescopes.
         self.axes.contour(x, y, background, zorder=0, **kwargs)
+
+    def _tel_type_color(self, tel_type_index):
+        return self.tel_cmap(self.tel_norm(tel_type_index))
+
+    def _tel_color(self, tel_index):
+        return self._tel_type_color(self.tel_type_idx[tel_index])
