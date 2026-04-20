@@ -446,8 +446,6 @@ class HistogramsAggregator(BaseAggregator):
         ----------
         data : ndarray
             Event-wise data of shape (n_events, \*data_dimensions)
-        density : bool, optional
-            If True, compute the probability density function at the bin centers. Default is False.
         masked_elements_of_sample : ndarray, optional
             Boolean mask of shape (\*data_dimensions) for elements to exclude
 
