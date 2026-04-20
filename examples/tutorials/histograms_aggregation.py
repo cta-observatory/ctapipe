@@ -1,6 +1,6 @@
 """
 Histogram aggregation with HistogramsAggregator
-==============================================
+===============================================
 
 This tutorial shows how to:
 
