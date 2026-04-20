@@ -1,12 +1,12 @@
 """
-Algorithms to compute aggregated time-series statistics from columns of an astropy table.
+Algorithms to compute aggregated time-series statistics and histograms from columns of an astropy table.
 
 These classes take as input an events table containing any event-wise quantities
 (e.g., images, scalars, vectors), divide it into time chunks, which may optionally
-overlap, and compute various aggregated statistics for each chunk. The statistics
-include the count, mean, median, and standard deviation. The result is a monitoring
-table with columns describing the start and stop time of the chunk and the
-aggregated statistic values.
+overlap, and compute various aggregated statistics and histograms for each chunk.
+The statistics include the mean, median, and standard deviation. The result
+is a monitoring table with columns describing the start and stop time of the chunk and the
+aggregated statistic values or histograms.
 
 The aggregation is always performed along axis=0 (the event dimension), making
 these classes suitable for any N-dimensional event-wise data.
@@ -17,6 +17,7 @@ __all__ = [
     "SizeChunking",
     "TimeChunking",
     "BaseAggregator",
+    "HistogramsAggregator",
     "StatisticsAggregator",
     "PlainAggregator",
     "SigmaClippingAggregator",
@@ -31,7 +32,7 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
 
-from ..containers import ChunkStatisticsContainer
+from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
 
@@ -303,9 +304,10 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         table,
         masked_elements_of_sample=None,
         col_name="image",
+        **kwargs,
     ) -> Table:
         r"""
-        Divide table into chunks and compute aggregated statistic values.
+        Divide table into chunks and compute aggregated statistic values or histograms.
 
         Parameters
         ----------
@@ -317,12 +319,15 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
+        **kwargs
+            Additional keyword arguments propagated to the concrete aggregation
+            implementation (e.g. histogram options such as ``bins`` or ``range``).
 
         Returns
         -------
         astropy.table.Table
             table containing the start and end values as timestamps and event IDs
-            as well as the aggregated statistic values for each chunk
+            as well as the aggregated statistic values or histograms for each chunk
         """
         # Get chunks using the chunking strategy
         chunks = self.chunking(table)
@@ -347,7 +352,10 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
             # Compute aggregator-specific statistics
             self._add_result_columns(
-                chunk[col_name].data, masked_elements_of_sample, results
+                chunk[col_name].data,
+                masked_elements_of_sample,
+                results,
+                **kwargs,
             )
 
         # Create and return table
@@ -360,7 +368,13 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         return result_table
 
     @abstractmethod
-    def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+        **kwargs,
+    ):
         r"""
         Compute statistics and add columns to results dictionary.
 
@@ -371,7 +385,9 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         masked_elements_of_sample : ndarray, optional
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
-            Dictionary to which statistic columns should be added.
+            Dictionary to which statistic or histogram columns should be added.
+        **kwargs
+            Extra keyword arguments propagated from ``BaseAggregator.__call__``.
         """
         pass
 
@@ -379,6 +395,124 @@ class BaseAggregator(Component, metaclass=ABCMeta):
     def _set_result_units(self, table, unit):
         """Set units for result columns that should inherit from input data."""
         pass
+
+
+class HistogramsAggregator(BaseAggregator):
+    """
+    Base component to handle the computation of aggregated histograms from a table
+    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
+
+    Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
+    """
+
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+        **kwargs,
+    ):
+        histos = self.compute_histos(
+            data,
+            masked_elements_of_sample=masked_elements_of_sample,
+            **kwargs,
+        )
+        results_dict["n_events"].append(histos.n_events)
+        results_dict["counts"].append(histos.counts)
+        results_dict["bins"].append(histos.bins)
+
+    def _set_result_units(self, table, unit):
+        """
+        Set units for histogram columns that inherit from the input data.
+
+        For HistogramsAggregator, the counts and bins columns
+        should have the same units as the input data.
+        """
+        for col in ("counts", "bins"):
+            table[col].unit = unit
+
+    def compute_histos(
+        self,
+        data,
+        bins: int = 1000,
+        range=None,
+        density=None,
+        weights=None,
+        masked_elements_of_sample=None,
+    ) -> ChunkHistogramContainer:
+        r"""
+        Compute histograms for a chunk of data.
+
+        Parameters
+        ----------
+        data : ndarray
+            Event-wise data of shape (n_events, \*data_dimensions)
+        bins : int, optional
+            Number of bins for the histogram
+        range : tuple, optional
+            Range of the histogram as (min, max). If None, range is determined from the data.
+        density : bool, optional
+            If True, compute the probability density function at the bin centers. Default is False.
+        weights : ndarray, optional
+            Weights for each event. Should be of shape (n_events,). If None, all events are given equal weight.
+        masked_elements_of_sample : ndarray, optional
+            Boolean mask of shape (\*data_dimensions) for elements to exclude
+
+        Returns
+        -------
+        HistogramContainer
+            Container with computed histogram
+        """
+        if masked_elements_of_sample is not None:
+            mask = np.broadcast_to(masked_elements_of_sample, data.shape)
+        else:
+            mask = None
+
+        # Mask excluded elements and NaN/inf values
+        masked_data = np.ma.array(data, mask=mask)
+        masked_data = np.ma.masked_invalid(masked_data)
+
+        if range is None:
+            finite_data = masked_data.compressed()
+            if finite_data.size == 0:
+                raise ValueError(
+                    "Cannot compute histogram range from empty or fully masked data"
+                )
+            range = (np.min(finite_data), np.max(finite_data))
+
+        def _histogram_1d(sample):
+            if np.ma.isMaskedArray(sample):
+                sample_values = sample.compressed()
+                sample_weights = (
+                    None if weights is None else np.asarray(weights)[~sample.mask]
+                )
+            else:
+                sample_values = sample
+                sample_weights = weights
+
+            return np.histogram(
+                sample_values,
+                bins=bins,
+                range=range,
+                density=density,
+                weights=sample_weights,
+            )[0]
+
+        # Compute histogram over the event dimension (axis=0)
+        hist_counts = np.apply_along_axis(
+            _histogram_1d,
+            axis=0,
+            arr=masked_data,
+        )
+
+        # Number of valid entries contributing to each per-sample histogram.
+        n_events = np.sum(~np.ma.getmaskarray(masked_data), axis=0)
+
+        # Determine bin edges
+        edges = np.linspace(range[0], range[1], bins + 1)
+        return ChunkHistogramContainer(
+            counts=hist_counts, bins=edges, n_events=n_events
+        )
 
 
 class StatisticsAggregator(BaseAggregator):
@@ -389,8 +523,14 @@ class StatisticsAggregator(BaseAggregator):
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """
 
-    def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
-        stats = self.compute_stats(data, masked_elements_of_sample)
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+        **kwargs,
+    ):
+        stats = self.compute_stats(data, masked_elements_of_sample, **kwargs)
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
         results_dict["median"].append(stats.median)
@@ -408,7 +548,7 @@ class StatisticsAggregator(BaseAggregator):
 
     @abstractmethod
     def compute_stats(
-        self, data, masked_elements_of_sample
+        self, data, masked_elements_of_sample, **kwargs
     ) -> ChunkStatisticsContainer:
         r"""
         Compute aggregated statistics for a chunk of data.
@@ -436,7 +576,7 @@ class PlainAggregator(StatisticsAggregator):
     """
 
     def compute_stats(
-        self, data, masked_elements_of_sample
+        self, data, masked_elements_of_sample, **kwargs
     ) -> ChunkStatisticsContainer:
         # Mask excluded elements and NaN/inf values
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
@@ -482,7 +622,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
     ).tag(config=True)
 
     def compute_stats(
-        self, data, masked_elements_of_sample
+        self, data, masked_elements_of_sample, **kwargs
     ) -> ChunkStatisticsContainer:
         # Mask excluded elements and NaN/inf values
         masked_data = np.ma.array(data, mask=masked_elements_of_sample)
