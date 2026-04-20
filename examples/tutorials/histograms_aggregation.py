@@ -12,6 +12,7 @@ This tutorial shows how to:
 
 import matplotlib.pyplot as plt
 import numpy as np
+import hist
 from astropy.table import Table
 from astropy.time import Time
 from traitlets.config import Config
@@ -61,14 +62,15 @@ config_image = Config(
     {
         "HistogramsAggregator": {
             "chunking_type": "SizeChunking",
-            "n_bins": 50,
-            "range": [40.0, 110.0],
         },
         "SizeChunking": {"chunk_size": 1000},
     }
 )
 
-aggregator_image = HistogramsAggregator(config=config_image)
+aggregator_image = HistogramsAggregator(
+    hist.axis.Regular(50, 40.0, 110.0, name="value"),
+    config=config_image,
+)
 result = aggregator_image(
     table=table,
     col_name="image",
@@ -79,14 +81,15 @@ config_peak_time = Config(
     {
         "HistogramsAggregator": {
             "chunking_type": "SizeChunking",
-            "n_bins": 50,
-            "range": [2.0, 38.0],
         },
         "SizeChunking": {"chunk_size": 1000},
     }
 )
 
-aggregator_peak_time = HistogramsAggregator(config=config_peak_time)
+aggregator_peak_time = HistogramsAggregator(
+    hist.axis.Regular(50, 2.0, 38.0, name="value"),
+    config=config_peak_time,
+)
 result_peak_time = aggregator_peak_time(
     table=table,
     col_name="peak_time",
