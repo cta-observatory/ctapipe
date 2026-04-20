@@ -124,7 +124,10 @@ def test_histograms_aggregator_compute_histos_shape_and_counts():
     assert edges.shape == (41,)
     assert n_events_valid.shape == (2, 8)
     np.testing.assert_array_equal(n_events_valid, np.full((2, 8), 200))
-    assert hist_object is not None
+    assert isinstance(hist_object, hist.Hist)
+    assert hist_object.axes[1].name == "pixel"
+    assert hist_object.axes[1].size == 16
+    np.testing.assert_array_equal(hist_object.axes[1].edges, np.arange(17))
 
     # With a wide range all events should be counted for each pixel.
     np.testing.assert_array_equal(counts.sum(axis=0), np.full((2, 8), 200))
