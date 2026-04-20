@@ -60,8 +60,7 @@ __all__ = [
     "TriggerContainer",
     "TelescopePointingContainer",
     "ArrayPointingContainer",
-    "HistogramContainer",
-    "ChunkHistogramContainer",
+    "CameraHistogramContainer",
     "StatisticsContainer",
     "ChunkContainer",
     "ChunkStatisticsContainer",
@@ -1239,7 +1238,7 @@ class CameraCalibrationContainer(Container):
     )
 
 
-class HistogramContainer(Container):
+class CameraHistogramContainer(Container):
     """Store histogram data of a pixel-wise quantity for each channel"""
 
     counts = Field(
@@ -1247,21 +1246,12 @@ class HistogramContainer(Container):
         "counts of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_bins, n_channels, n_pixel)",
     )
-    bins = Field(
+    edges = Field(
         None,
-        "bins of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
+        "edges of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_bins + 1, n_channels, n_pixel)",
     )
     n_events = Field(-1, "number of events used for the computation of the histogram")
-
-
-class ChunkHistogramContainer(HistogramContainer):
-    """Store descriptive statistics of a chunk of images"""
-
-    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
-    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
-    event_id_start = Field(None, "event id of the first event of the chunk")
-    event_id_end = Field(None, "event id of the last event of the chunk")
 
 
 class StatisticsContainer(Container):
