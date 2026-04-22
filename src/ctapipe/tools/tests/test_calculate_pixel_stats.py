@@ -85,6 +85,64 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         )
 
 
+def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_image_file):
+    """check tool execution with HistogramAggregator"""
+
+    tel_id = 3
+    output_file = tmp_path / "subarray_image_hist_monitoring.dl1.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {
+                "allowed_tels": [3],
+                "input_column_name": "image",
+            },
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [
+                    ("type", "*", "HistogramAggregator"),
+                ],
+            },
+            "HistogramAggregator": {
+                "chunking_type": "SizeChunking",
+                "hist_axis_dict": {
+                    "axis_class_name": "Regular",
+                    "kwargs": {
+                        "bins": 20,
+                        "start": 0.0,
+                        "stop": 200.0,
+                        "name": "value",
+                    },
+                },
+            },
+            "SizeChunking": {
+                "chunk_size": 1,
+            },
+        }
+    )
+
+    run_tool(
+        PixelStatisticsCalculatorTool(config=config),
+        argv=[
+            f"--input_url={dl1_image_file}",
+            f"--output_path={output_file}",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    stats = read_table(
+        output_file,
+        path=f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_{tel_id:03d}",
+    )
+
+    assert "histogram" in stats.colnames
+    assert "bin_edges" in stats.meta
+    assert stats["histogram"].ndim == 4
+    assert stats["mean"].ndim == 3
+    assert stats["median"].ndim == 3
+    assert stats["std"].ndim == 3
+
+
 def test_tool_config_error(tmp_path, dl1_image_file):
     """check tool configuration error"""
 
