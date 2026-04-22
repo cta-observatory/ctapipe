@@ -1,1 +1,1 @@
-Added a new class HistogramsAggregator to compute histograms along a specified axis, and updated the documentation to reflect this new functionality. The documentation includes examples of how to use the HistogramsAggregator in practice.
+Added a new class HistogramAggregator to compute histograms along a specified axis, and updated the documentation to reflect this new functionality. The documentation includes examples of how to use the HistogramsAggregator in practice.
