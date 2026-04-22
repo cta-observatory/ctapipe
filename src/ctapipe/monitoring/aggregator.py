@@ -17,7 +17,7 @@ __all__ = [
     "SizeChunking",
     "TimeChunking",
     "BaseAggregator",
-    "HistogramsAggregator",
+    "HistogramAggregator",
     "StatisticsAggregator",
     "PlainAggregator",
     "SigmaClippingAggregator",
@@ -33,10 +33,11 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from hist import Hist
+from traitlets import TraitError
 
 from ..containers import ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
+from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
 
 
 class BaseChunking(Component, metaclass=ABCMeta):
@@ -333,6 +334,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         # Initialize result storage
         results = defaultdict(list)
 
+        metadata = {}
         # Process each chunk
         for chunk in chunks:
             # Add time metadata
@@ -353,10 +355,13 @@ class BaseAggregator(Component, metaclass=ABCMeta):
                 chunk[col_name].data,
                 masked_elements_of_sample,
                 results,
+                metadata,
             )
 
         # Create and return table
         result_table = Table(results)
+        if "meta" in metadata:
+            result_table.meta = metadata["meta"]
 
         # Preserve units if present
         if hasattr(table[col_name], "unit") and table[col_name].unit is not None:
@@ -370,6 +375,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         data,
         masked_elements_of_sample,
         results_dict,
+        metadata,
     ):
         r"""
         Compute statistics and add columns to results dictionary.
@@ -382,6 +388,8 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
             Dictionary to which statistic or histogram columns should be added.
+        metadata : dict
+            Shared metadata container that can be mutated by subclasses.
         """
         pass
 
@@ -389,125 +397,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
     def _set_result_units(self, table, unit):
         """Set units for result columns that should inherit from input data."""
         pass
-
-
-class HistogramsAggregator(BaseAggregator):
-    """
-    Base component to handle the computation of aggregated histograms from a table
-    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
-
-    Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
-    """
-
-    def __init__(self, hist_axis, config=None, parent=None, **kwargs):
-        """
-        Parameters
-        ----------
-        hist_axis : hist.axis
-            The hist.axis object defining the histogram binning to use for aggregation.
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments
-        parent : ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy
-        """
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.hist_axis = hist_axis
-
-    def _add_result_columns(
-        self,
-        data,
-        masked_elements_of_sample,
-        results_dict,
-    ):
-        _, hist_counts, edges, n_events_valid = self.compute_histos(
-            data,
-            masked_elements_of_sample=masked_elements_of_sample,
-        )
-        results_dict["n_events"].append(n_events_valid)
-        results_dict["counts"].append(hist_counts)
-        results_dict["edges"].append(edges)
-
-    def _set_result_units(self, table, unit):
-        """
-        Set units for histogram columns that inherit from the input data.
-
-        For HistogramsAggregator, the counts and bins columns
-        should have the same units as the input data.
-        """
-        for col in ("counts", "edges"):
-            table[col].unit = unit
-
-    def compute_histos(
-        self,
-        data,
-        masked_elements_of_sample=None,
-    ) -> tuple[Hist, np.ndarray, np.ndarray, np.ndarray]:
-        r"""
-        Compute histograms for a chunk of pixel-wise data using Hist.
-
-        Parameters
-        ----------
-        data : ndarray
-            Event-wise data of shape (n_events, \*data_dimensions)
-        masked_elements_of_sample : ndarray, optional
-            Boolean mask of shape (\*data_dimensions) for elements to exclude
-
-        Returns
-        -------
-        Hist
-            The histogram object.
-        np.ndarray
-            The histogram counts.
-        np.ndarray
-            The bin edges.
-        np.ndarray
-            The number of valid events per pixel.
-
-        """
-
-        n_events = data.shape[0]
-        spatial_shape = data.shape[1:]
-        n_pixels = int(np.prod(spatial_shape))
-
-        # Broadcast mask to full shape
-        if masked_elements_of_sample is not None:
-            mask = np.broadcast_to(masked_elements_of_sample, data.shape)
-        else:
-            mask = np.zeros_like(data, dtype=bool)
-
-        # Mask invalid values (NaN, inf)
-        invalid = ~np.isfinite(data)
-        mask = mask | invalid
-
-        # Flatten to (n_events, n_pixels)
-        flat_data = data.reshape(n_events, n_pixels)
-        flat_mask = mask.reshape(n_events, n_pixels)
-
-        # Build histogram object
-        hist_object = Hist(
-            self.hist_axis,
-            hist.axis.Integer(0, n_pixels, name="pixel"),
-            storage=hist.storage.Int64(),
-        )
-
-        # Fill histogram (loop over pixels, but fast backend)
-        for pix in range(n_pixels):
-            valid = ~flat_mask[:, pix]
-            if not np.any(valid):
-                continue
-
-            values = flat_data[valid, pix]
-            hist_object.fill(value=values, pixel=pix)
-
-        # Extract histogram counts
-        n_bins = hist_object.axes[0].size
-        hist_counts = hist_object.values()  # shape: (bins, n_pixels)
-        hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
-        # Extract bin edges
-        edges = hist_object.axes[0].edges
-        # Count valid entries per pixel
-        n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
-        return hist_object, hist_counts, edges, n_events_valid
 
 
 class StatisticsAggregator(BaseAggregator):
@@ -523,21 +412,25 @@ class StatisticsAggregator(BaseAggregator):
         data,
         masked_elements_of_sample,
         results_dict,
+        metadata,
     ):
         stats = self.compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
         results_dict["median"].append(stats.median)
         results_dict["std"].append(stats.std)
+        results_dict["histogram"].append(stats.histogram)
+        if "meta" not in metadata and stats.meta:
+            metadata["meta"] = stats.meta
 
     def _set_result_units(self, table, unit):
         """
         Set units for statistics columns that inherit from the input data.
 
-        For StatisticsAggregator, the mean, median, and std columns
+        For StatisticsAggregator, the mean, median, std and histogram columns
         should have the same units as the input data.
         """
-        for col in ("mean", "median", "std"):
+        for col in ("mean", "median", "std", "histogram"):
             table[col].unit = unit
 
     @abstractmethod
@@ -556,8 +449,8 @@ class StatisticsAggregator(BaseAggregator):
 
         Returns
         -------
-        StatisticsContainer
-            Container with computed statistics
+        ChunkStatisticsContainer
+            Container with computed statistics for the chunk
         """
         pass
 
@@ -595,6 +488,7 @@ class PlainAggregator(StatisticsAggregator):
             mean=element_mean,
             median=element_median,
             std=element_std,
+            histogram=np.nan,
         )
 
 
@@ -652,4 +546,153 @@ class SigmaClippingAggregator(StatisticsAggregator):
             mean=element_mean,
             median=element_median,
             std=element_std,
+            histogram=np.nan,
+        )
+
+
+class HistogramAggregator(StatisticsAggregator):
+    """
+    Compute aggregated statistic values and histograms from a chunk of event-wise data using Hist.
+
+    Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
+    """
+
+    hist_axis_dict = Dict(
+        allow_none=False,
+        help=(
+            "Dictionary that contains ``axis_class_name`` and ``kwargs`` "
+            "to construct a ``hist.axis.<axis_class_name>(**kwargs)`` instance. "
+            "E.g. ``{'axis_class_name': 'Regular', 'kwargs': {'bins': 40, 'start': 20.0, 'stop': 80.0}}``."
+        ),
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments
+        parent : ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy
+        """
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.hist_axis = self._axis_from_dict(self.hist_axis_dict)
+
+    def _axis_from_dict(self, config):
+        """Create a hist axis from a dictionary."""
+        missing_keys = {"axis_class_name", "kwargs"} - config.keys()
+        if missing_keys:
+            raise TraitError(
+                "The ``hist_axis`` trait is missing required key(s): "
+                f"{', '.join(sorted(missing_keys))}"
+            )
+
+        axis_kwargs = config["kwargs"]
+        if not isinstance(axis_kwargs, dict):
+            raise TraitError("The ``hist_axis`` trait has a non-dict 'kwargs' value.")
+
+        axis_class_name = config["axis_class_name"]
+        axis_class = getattr(hist.axis, axis_class_name, None)
+        if axis_class is None or not callable(axis_class):
+            raise TraitError(
+                f"The ``hist_axis`` trait has unknown axis_class_name '{axis_class_name}'."
+            )
+
+        try:
+            return axis_class(**axis_kwargs)
+        except TypeError as err:
+            raise TraitError(
+                f"Failed to initialize hist.axis.{axis_class_name} with kwargs={axis_kwargs}: {err}"
+            ) from err
+
+    def compute_stats(
+        self, data, masked_elements_of_sample
+    ) -> ChunkStatisticsContainer:
+        n_events = data.shape[0]
+        spatial_shape = data.shape[1:]
+        n_pixels = int(np.prod(spatial_shape))
+
+        # Broadcast mask to full shape
+        if masked_elements_of_sample is not None:
+            mask = np.broadcast_to(masked_elements_of_sample, data.shape)
+        else:
+            mask = np.zeros_like(data, dtype=bool)
+
+        # Mask invalid values (NaN, inf)
+        invalid = ~np.isfinite(data)
+        mask = mask | invalid
+
+        # Flatten to (n_events, n_pixels)
+        flat_data = data.reshape(n_events, n_pixels)
+        flat_mask = mask.reshape(n_events, n_pixels)
+
+        # Build histogram object
+        hist_object = Hist(
+            self.hist_axis,
+            hist.axis.Integer(0, n_pixels, name="pixel"),
+            storage=hist.storage.Int64(),
+        )
+
+        # Fill histogram (loop over pixels, but fast backend)
+        for pix in range(n_pixels):
+            valid = ~flat_mask[:, pix]
+            if not np.any(valid):
+                continue
+
+            values = flat_data[valid, pix]
+            hist_object.fill(value=values, pixel=pix)
+
+        # Extract histogram counts
+        n_bins = hist_object.axes[0].size
+        hist_counts = hist_object.values()  # shape: (bins, n_pixels)
+        hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
+        # Count valid entries per pixel
+        n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
+        centers = hist_object.axes[0].centers
+
+        # Expand centers to broadcast against any spatial shape.
+        centers_expanded = centers.reshape(
+            (centers.shape[0],) + (1,) * len(spatial_shape)
+        )
+        counts_sum = np.sum(hist_counts, axis=0)
+
+        # Compute the mean and std from histogram counts.
+        weighted_sum = np.sum(centers_expanded * hist_counts, axis=0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            mean = weighted_sum / counts_sum
+
+        sq_diff = (centers_expanded - mean[np.newaxis, ...]) ** 2
+        variance_num = np.sum(sq_diff * hist_counts, axis=0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            variance = variance_num / counts_sum
+        std = np.sqrt(variance)
+
+        # Compute the median from histogram counts via the cumulative distribution.
+        cdf = np.cumsum(hist_counts, axis=0)
+        cdf_denominator = cdf[-1, ...]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            cdf = np.divide(
+                cdf,
+                cdf_denominator[np.newaxis, ...],
+                out=np.zeros_like(cdf, dtype=float),
+                where=cdf_denominator[np.newaxis, ...] != 0,
+            )
+        median_idx = np.argmax(cdf >= 0.5, axis=0)
+        median = centers[median_idx]
+
+        # Mark elements with no valid entries as NaN.
+        invalid = counts_sum == 0
+        mean = np.where(invalid, np.nan, mean)
+        std = np.where(invalid, np.nan, std)
+        median = np.where(invalid, np.nan, median)
+        return ChunkStatisticsContainer(
+            n_events=n_events_valid,
+            mean=mean,
+            median=median,
+            std=std,
+            histogram=hist_counts,
+            meta={
+                "bin_edges": hist_object.axes[0].edges,
+                "bin_centers": hist_object.axes[0].centers,
+            },
         )

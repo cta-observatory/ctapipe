@@ -88,6 +88,62 @@ def test_statistics_calculator(example_subarray):
     assert len(stats_stacked) == expected_len_firstpass + expected_len_secondpass
 
 
+def test_statistics_calculator_with_histogram_aggregator(example_subarray):
+    """test that PixelStatisticsCalculator works with HistogramAggregator"""
+
+    n_images = 120
+    times = Time(
+        np.linspace(60117.911, 60117.913, num=n_images), scale="tai", format="mjd"
+    )
+    event_ids = np.arange(n_images)
+    rng = np.random.default_rng(7)
+    charge_data = rng.normal(77.0, 10.0, size=(n_images, 2, 16))
+
+    charge_table = Table(
+        [times, event_ids, charge_data],
+        names=("time", "event_id", "image"),
+    )
+
+    config = Config(
+        {
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [
+                    ("id", 1, "HistogramAggregator"),
+                ],
+            },
+            "HistogramAggregator": {
+                "chunking_type": "SizeChunking",
+                "hist_axis_dict": {
+                    "axis_class_name": "Regular",
+                    "kwargs": {
+                        "bins": 30,
+                        "start": 0.0,
+                        "stop": 140.0,
+                        "name": "value",
+                    },
+                },
+            },
+            "SizeChunking": {
+                "chunk_size": 60,
+            },
+        }
+    )
+
+    calculator = PixelStatisticsCalculator(subarray=example_subarray, config=config)
+    stats = calculator.first_pass(table=charge_table, tel_id=1)
+
+    assert len(stats) == 2
+    assert stats[0]["histogram"].shape == (30, 2, 16)
+    assert stats[0]["mean"].shape == (2, 16)
+    assert stats[0]["median"].shape == (2, 16)
+    assert stats[0]["std"].shape == (2, 16)
+    assert stats[0]["n_events"].shape == (2, 16)
+    assert stats[0].meta["bin_edges"].shape == (31,)
+
+    np.testing.assert_allclose(stats[0]["mean"], 77.0, atol=4.0)
+    np.testing.assert_allclose(stats[0]["std"], 10.0, atol=4.0)
+
+
 def test_outlier_detector(example_subarray):
     """test the chunk shift option and the boundary case for the last chunk"""
 
