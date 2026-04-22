@@ -1,23 +1,25 @@
 """
-Histogram aggregation with HistogramsAggregator
+Histogram aggregation with HistogramAggregator
 ===============================================
 
 This tutorial shows how to:
 
 1. Build an event table with camera-like data (images and peak times) and some invalid values.
-2. Configure and run HistogramsAggregator in chunks.
-3. Access counts, bin edges, and valid-event counts (n_events).
+2. Configure and run HistogramAggregator in chunks.
+3. Access histogram counts, bin edges, summary statistics, and valid-event counts (n_events).
 4. Plot one pixel histogram from the selected chunks and both gain channels for both image and peak_time columns.
+5. Overlay mean, median, and std on top of the histogram curves.
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
-import hist
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from astropy.table import Table
 from astropy.time import Time
 from traitlets.config import Config
 
-from ctapipe.monitoring.aggregator import HistogramsAggregator
+from ctapipe.monitoring.aggregator import HistogramAggregator
 
 
 # -------------------------------------------------------------------
@@ -36,7 +38,7 @@ times = Time(
 )
 event_ids = np.arange(n_events)
 images = rng.normal(loc=77.0, scale=10.0, size=(n_events, n_channels, n_pixels))
-peak_time = rng.normal(loc=20.0, scale=5.0, size=(n_events, n_channels, n_pixels))
+peak_time = rng.normal(loc=20.0, scale=2.0, size=(n_events, n_channels, n_pixels))
 
 # Add a few invalid values to demonstrate n_events behavior.
 images[3, 0, 10] = np.nan
@@ -60,17 +62,23 @@ table = Table(
 # -------------------------------------------------------------------
 config_image = Config(
     {
-        "HistogramsAggregator": {
+        "HistogramAggregator": {
             "chunking_type": "SizeChunking",
+            "hist_axis_dict": {
+                "axis_class_name": "Regular",
+                "kwargs": {
+                    "bins": 50,
+                    "start": 40.0,
+                    "stop": 110.0,
+                    "name": "value",
+                },
+            },
         },
         "SizeChunking": {"chunk_size": 1000},
     }
 )
 
-aggregator_image = HistogramsAggregator(
-    hist.axis.Regular(50, 40.0, 110.0, name="value"),
-    config=config_image,
-)
+aggregator_image = HistogramAggregator(config=config_image)
 result = aggregator_image(
     table=table,
     col_name="image",
@@ -79,17 +87,23 @@ result = aggregator_image(
 
 config_peak_time = Config(
     {
-        "HistogramsAggregator": {
+        "HistogramAggregator": {
             "chunking_type": "SizeChunking",
+            "hist_axis_dict": {
+                "axis_class_name": "Regular",
+                "kwargs": {
+                    "bins": 50,
+                    "start": 2.0,
+                    "stop": 38.0,
+                    "name": "value",
+                },
+            },
         },
         "SizeChunking": {"chunk_size": 1000},
     }
 )
 
-aggregator_peak_time = HistogramsAggregator(
-    hist.axis.Regular(50, 2.0, 38.0, name="value"),
-    config=config_peak_time,
-)
+aggregator_peak_time = HistogramAggregator(config=config_peak_time)
 result_peak_time = aggregator_peak_time(
     table=table,
     col_name="peak_time",
@@ -97,8 +111,8 @@ result_peak_time = aggregator_peak_time(
 )
 
 print(f"Number of chunks: {len(result)}")
-print(f"counts shape per chunk: {result[0]['counts'].shape}")
-print(f"edges shape per chunk: {result[0]['edges'].shape}")
+print(f"histogram shape per chunk: {result[0]['histogram'].shape}")
+print(f"edges shape per chunk: {result[0]['meta']['bin_edges'].shape}")
 print(f"n_events shape per chunk: {result[0]['n_events'].shape}")
 
 
@@ -110,22 +124,43 @@ gain_label = {0: "High Gain", 1: "Low Gain"}
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
-    edges = result[chunk_index]["edges"]
+    edges = result[chunk_index]["meta"]["bin_edges"]
+    channel_handles = []
 
     for channel_index in range(n_channels):
-        counts = result[chunk_index]["counts"][:, channel_index, pixel_index]
+        counts = result[chunk_index]["histogram"][:, channel_index, pixel_index]
         valid_events = result[chunk_index]["n_events"][channel_index, pixel_index]
-        ax.step(
+        mean_val = result[chunk_index]["mean"][channel_index, pixel_index]
+        median_val = result[chunk_index]["median"][channel_index, pixel_index]
+        std_val = result[chunk_index]["std"][channel_index, pixel_index]
+
+        line = ax.step(
             edges[:-1],
             counts,
             where="post",
             label=f"{gain_label[channel_index]} (n_events={valid_events})",
+        )[0]
+        channel_handles.append(line)
+        color = line.get_color()
+
+        ax.axvline(mean_val, color=color, linestyle="--", linewidth=1.2)
+        ax.axvline(median_val, color=color, linestyle=":", linewidth=1.2)
+        ax.axvspan(
+            mean_val - std_val,
+            mean_val + std_val,
+            color=color,
+            alpha=0.12,
         )
 
     ax.set_title(f"Chunk {chunk_index}, pixel {pixel_index}")
     ax.set_xlabel("image value")
     ax.set_ylabel("Counts")
-    ax.legend(loc="upper right", fontsize=8)
+    stat_handles = [
+        Line2D([0], [0], color="black", linestyle="--", linewidth=1.2, label="Mean"),
+        Line2D([0], [0], color="black", linestyle=":", linewidth=1.2, label="Median"),
+        Patch(facecolor="gray", alpha=0.12, label="Mean ± Std"),
+    ]
+    ax.legend(handles=channel_handles + stat_handles, loc="upper left", fontsize=8)
 
 plt.show()
 
@@ -135,23 +170,46 @@ plt.show()
 # -------------------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
-    edges = result_peak_time[chunk_index]["edges"]
+    edges = result_peak_time[chunk_index]["meta"]["bin_edges"]
+    channel_handles = []
 
     for channel_index in range(n_channels):
-        counts = result_peak_time[chunk_index]["counts"][:, channel_index, pixel_index]
+        counts = result_peak_time[chunk_index]["histogram"][
+            :, channel_index, pixel_index
+        ]
         valid_events = result_peak_time[chunk_index]["n_events"][
             channel_index, pixel_index
         ]
-        ax.step(
+        mean_val = result_peak_time[chunk_index]["mean"][channel_index, pixel_index]
+        median_val = result_peak_time[chunk_index]["median"][channel_index, pixel_index]
+        std_val = result_peak_time[chunk_index]["std"][channel_index, pixel_index]
+
+        line = ax.step(
             edges[:-1],
             counts,
             where="post",
             label=f"{gain_label[channel_index]} (n_events={valid_events})",
+        )[0]
+        channel_handles.append(line)
+        color = line.get_color()
+
+        ax.axvline(mean_val, color=color, linestyle="--", linewidth=1.2)
+        ax.axvline(median_val, color=color, linestyle=":", linewidth=1.2)
+        ax.axvspan(
+            mean_val - std_val,
+            mean_val + std_val,
+            color=color,
+            alpha=0.12,
         )
 
     ax.set_title(f"Peak Time - Chunk {chunk_index}, pixel {pixel_index}")
     ax.set_xlabel("peak_time value")
     ax.set_ylabel("Counts")
-    ax.legend(loc="upper right", fontsize=8)
+    stat_handles = [
+        Line2D([0], [0], color="black", linestyle="--", linewidth=1.2, label="Mean"),
+        Line2D([0], [0], color="black", linestyle=":", linewidth=1.2, label="Median"),
+        Patch(facecolor="gray", alpha=0.12, label="Mean ± Std"),
+    ]
+    ax.legend(handles=channel_handles + stat_handles, loc="upper left", fontsize=8)
 
 plt.show()
