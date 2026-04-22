@@ -112,7 +112,7 @@ result_peak_time = aggregator_peak_time(
 
 print(f"Number of chunks: {len(result)}")
 print(f"histogram shape per chunk: {result[0]['histogram'].shape}")
-print(f"edges shape per chunk: {result[0]['meta']['bin_edges'].shape}")
+print(f"edges shape per chunk: {result[0].meta['bin_edges'].shape}")
 print(f"n_events shape per chunk: {result[0]['n_events'].shape}")
 
 
@@ -124,7 +124,7 @@ gain_label = {0: "High Gain", 1: "Low Gain"}
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
-    edges = result[chunk_index]["meta"]["bin_edges"]
+    edges = result[chunk_index].meta["bin_edges"]
     channel_handles = []
 
     for channel_index in range(n_channels):
@@ -170,7 +170,7 @@ plt.show()
 # -------------------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
-    edges = result_peak_time[chunk_index]["meta"]["bin_edges"]
+    edges = result_peak_time[chunk_index].meta["bin_edges"]
     channel_handles = []
 
     for channel_index in range(n_channels):
