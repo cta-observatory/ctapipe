@@ -103,14 +103,12 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
             },
             "HistogramAggregator": {
                 "chunking_type": "SizeChunking",
-                "hist_axis_dict": {
-                    "axis_class_name": "Regular",
-                    "kwargs": {
-                        "bins": 20,
-                        "start": 0.0,
-                        "stop": 200.0,
-                        "name": "value",
-                    },
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 20,
+                    "start": 0.0,
+                    "stop": 200.0,
+                    "name": "value",
                 },
             },
             "SizeChunking": {

@@ -116,14 +116,12 @@ def test_histograms_aggregator():
     config = Config(
         {
             "HistogramAggregator": {
-                "hist_axis_dict": {
-                    "axis_class_name": "Regular",
-                    "kwargs": {
-                        "bins": 40,
-                        "start": 0.0,
-                        "stop": 200.0,
-                        "name": "value",
-                    },
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 40,
+                    "start": 0.0,
+                    "stop": 200.0,
+                    "name": "value",
                 }
             }
         }
@@ -177,14 +175,12 @@ def test_histograms_aggregator_chunked_call():
         {
             "HistogramAggregator": {
                 "chunking_type": "SizeChunking",
-                "hist_axis_dict": {
-                    "axis_class_name": "Regular",
-                    "kwargs": {
-                        "bins": 50,
-                        "start": 0.0,
-                        "stop": 20.0,
-                        "name": "value",
-                    },
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 50,
+                    "start": 0.0,
+                    "stop": 20.0,
+                    "name": "value",
                 },
             },
             "SizeChunking": {"chunk_size": 60},
@@ -226,14 +222,12 @@ def test_histograms_aggregator_masks_and_nan_handling():
     config = Config(
         {
             "HistogramAggregator": {
-                "hist_axis_dict": {
-                    "axis_class_name": "Regular",
-                    "kwargs": {
-                        "bins": 25,
-                        "start": 0.0,
-                        "stop": 10.0,
-                        "name": "value",
-                    },
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 25,
+                    "start": 0.0,
+                    "stop": 10.0,
+                    "name": "value",
                 }
             }
         }
