@@ -14,6 +14,7 @@ This tutorial shows how to:
 
 import matplotlib.pyplot as plt
 import numpy as np
+import hist
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from astropy.table import Table
@@ -21,7 +22,7 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.monitoring.aggregator import HistogramAggregator
-from hist import Hist, hist_module
+from hist import Hist
 
 
 # -------------------------------------------------------------------
@@ -269,9 +270,7 @@ plt.show()
 # Create a Hist object with the same binning as the aggregator
 bin_edges = result[0].meta["bin_edges"]
 h = Hist(
-    hist_module.axis.Regular(
-        len(bin_edges) - 1, bin_edges[0], bin_edges[-1], name="value"
-    )
+    hist.axis.Regular(len(bin_edges) - 1, bin_edges[0], bin_edges[-1], name="value")
 )
 
 # Get the histogram counts and variances for the selected pixel and channel
