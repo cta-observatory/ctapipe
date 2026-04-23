@@ -557,12 +557,12 @@ class HistogramAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
 
-    hist_axis_dict = Dict(
+    axis_definition = Dict(
         allow_none=False,
         help=(
-            "Dictionary that contains ``axis_class_name`` and ``kwargs`` "
-            "to construct a ``hist.axis.<axis_class_name>(**kwargs)`` instance. "
-            "E.g. ``{'axis_class_name': 'Regular', 'kwargs': {'bins': 40, 'start': 20.0, 'stop': 80.0}}``."
+            "Dictionary that contains ``class_name`` and the corresponding kwargs "
+            "to construct a ``hist.axis.<class_name>(**kwargs)`` instance. "
+            "E.g. ``{'class_name': 'Regular', 'bins': 40, 'start': 20.0, 'stop': 80.0}``."
         ),
     ).tag(config=True)
 
@@ -576,34 +576,13 @@ class HistogramAggregator(StatisticsAggregator):
             Parent of this component in the configuration hierarchy
         """
         super().__init__(config=config, parent=parent, **kwargs)
-        self.hist_axis = self._axis_from_dict(self.hist_axis_dict)
-
-    def _axis_from_dict(self, config):
-        """Create a hist axis from a dictionary."""
-        missing_keys = {"axis_class_name", "kwargs"} - config.keys()
-        if missing_keys:
+        kwargs = self.axis_definition.copy()
+        if "class_name" not in kwargs.keys():
             raise TraitError(
-                "The ``hist_axis`` trait is missing required key(s): "
-                f"{', '.join(sorted(missing_keys))}"
+                "The ``axis_definition`` trait is missing required key 'class_name'."
             )
-
-        axis_kwargs = config["kwargs"]
-        if not isinstance(axis_kwargs, dict):
-            raise TraitError("The ``hist_axis`` trait has a non-dict 'kwargs' value.")
-
-        axis_class_name = config["axis_class_name"]
-        axis_class = getattr(hist.axis, axis_class_name, None)
-        if axis_class is None or not callable(axis_class):
-            raise TraitError(
-                f"The ``hist_axis`` trait has unknown axis_class_name '{axis_class_name}'."
-            )
-
-        try:
-            return axis_class(**axis_kwargs)
-        except TypeError as err:
-            raise TraitError(
-                f"Failed to initialize hist.axis.{axis_class_name} with kwargs={axis_kwargs}: {err}"
-            ) from err
+        cls = kwargs.pop("class_name")
+        self.hist_axis = getattr(hist.axis, cls)(**kwargs)
 
     def compute_stats(
         self, data, masked_elements_of_sample

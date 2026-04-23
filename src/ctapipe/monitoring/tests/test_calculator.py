@@ -113,14 +113,12 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
             },
             "HistogramAggregator": {
                 "chunking_type": "SizeChunking",
-                "hist_axis_dict": {
-                    "axis_class_name": "Regular",
-                    "kwargs": {
-                        "bins": 30,
-                        "start": 0.0,
-                        "stop": 140.0,
-                        "name": "value",
-                    },
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 30,
+                    "start": 0.0,
+                    "stop": 140.0,
+                    "name": "value",
                 },
             },
             "SizeChunking": {
