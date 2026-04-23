@@ -80,6 +80,7 @@ docs = [
     "ctapipe[all]",
     "ffmpeg-python",
     "graphviz",
+    "hist[plot]",
     "ipython",
     "jupyter",
     "nbsphinx",

@@ -20,6 +20,7 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.monitoring.aggregator import HistogramAggregator
+from hist import Hist, hist_module
 
 
 # -------------------------------------------------------------------
@@ -257,4 +258,37 @@ for chunk_index, ax in enumerate(axes):
         fontsize=8,
     )
 
+plt.show()
+
+
+# -------------------------------------------------------------------
+# Initialize hist, fill it and plot via Hist functionality
+# -------------------------------------------------------------------
+
+# Create a Hist object with the same binning as the aggregator
+bin_edges = result[0].meta["bin_edges"]
+h = Hist(
+    hist_module.axis.Regular(
+        len(bin_edges) - 1, bin_edges[0], bin_edges[-1], name="value"
+    )
+)
+
+# Get the histogram counts and variances for the selected pixel and channel
+chunk_index = 0
+counts = result[0]["histogram"][:, chunk_index, pixel_index]
+variances = result[0]["histogram_variance"][:, chunk_index, pixel_index]
+
+# Set the histogram values and variances using the view interface
+h.view(flow=False)[:] = counts
+if hasattr(h, "_storage") and hasattr(h._storage, "variance"):
+    h._storage.variance()[:] = variances
+
+# Plot the histogram with error bars using Hist's built-in plotting functionality
+# Requires 'hist[plot]' to be installed in the environment.
+h.plot(yerr=True)
+plt.title(
+    f"Chunk {chunk_index}, Pixel {pixel_index} (High Gain) histogram from Hist object"
+)
+plt.xlabel("image value")
+plt.ylabel("Counts")
 plt.show()
