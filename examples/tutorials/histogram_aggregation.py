@@ -9,6 +9,7 @@ This tutorial shows how to:
 3. Access histogram counts, bin edges, summary statistics, and valid-event counts (n_events).
 4. Plot one pixel histogram from the selected chunks and both gain channels for both image and peak_time columns.
 5. Overlay mean, median, and std on top of the histogram curves.
+6. Plot the same histogram using Hist's built-in plotting functionality after filling a Hist object with the aggregated histogram counts and variances.
 """
 
 import matplotlib.pyplot as plt
