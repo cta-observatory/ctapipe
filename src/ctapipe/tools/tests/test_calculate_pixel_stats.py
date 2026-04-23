@@ -136,8 +136,10 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
     )
 
     assert "histogram" in stats.colnames
+    assert "histogram_variance" in stats.colnames
     assert "bin_edges" in stats.meta
     assert stats["histogram"].ndim == 4
+    assert stats["histogram_variance"].ndim == 4
     assert stats["mean"].ndim == 3
     assert stats["median"].ndim == 3
     assert stats["std"].ndim == 3
