@@ -1259,11 +1259,6 @@ class StatisticsContainer(Container):
         "histogram of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_bins, n_channels, n_pixel)",
     )
-    histogram_variance = Field(
-        None,
-        "variance of the histogram of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
-    )
     n_events = Field(-1, "number of events used for the extraction of the statistics")
     outlier_mask = Field(
         None,

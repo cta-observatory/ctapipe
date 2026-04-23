@@ -115,7 +115,6 @@ result_peak_time = aggregator_peak_time(
 
 print(f"Number of chunks: {len(result)}")
 print(f"histogram shape per chunk: {result[0]['histogram'].shape}")
-print(f"histogram variance shape per chunk: {result[0]['histogram_variance'].shape}")
 print(f"bin edges shape per chunk: {result[0].meta['bin_edges'].shape}")
 print(f"bin centers shape per chunk: {result[0].meta['bin_centers'].shape}")
 print(f"n_events shape per chunk: {result[0]['n_events'].shape}")
@@ -135,9 +134,6 @@ for chunk_index, ax in enumerate(axes):
 
     for channel_index in range(n_channels):
         counts = result[chunk_index]["histogram"][:, channel_index, pixel_index]
-        histogram_variance = result[chunk_index]["histogram_variance"][
-            :, channel_index, pixel_index
-        ]
         valid_events = result[chunk_index]["n_events"][channel_index, pixel_index]
         mean_val = result[chunk_index]["mean"][channel_index, pixel_index]
         median_val = result[chunk_index]["median"][channel_index, pixel_index]
@@ -153,7 +149,7 @@ for chunk_index, ax in enumerate(axes):
         color = line.get_color()
 
         # Plot bin variances as error bars (use sqrt of variance for error) at bin centers
-        bin_errors = np.sqrt(histogram_variance)
+        bin_errors = np.sqrt(counts)
         ax.errorbar(
             bin_centers,
             counts,
@@ -205,9 +201,6 @@ for chunk_index, ax in enumerate(axes):
         counts = result_peak_time[chunk_index]["histogram"][
             :, channel_index, pixel_index
         ]
-        histogram_variance = result_peak_time[chunk_index]["histogram_variance"][
-            :, channel_index, pixel_index
-        ]
         valid_events = result_peak_time[chunk_index]["n_events"][
             channel_index, pixel_index
         ]
@@ -225,7 +218,7 @@ for chunk_index, ax in enumerate(axes):
         color = line.get_color()
 
         # Plot bin variances as error bars (use sqrt of variance for error) at bin centers
-        bin_errors = np.sqrt(histogram_variance)
+        bin_errors = np.sqrt(counts)
         ax.errorbar(
             bin_centers,
             counts,
@@ -276,12 +269,9 @@ h = Hist(
 # Get the histogram counts and variances for the selected pixel and channel
 chunk_index = 0
 counts = result[0]["histogram"][:, chunk_index, pixel_index]
-variances = result[0]["histogram_variance"][:, chunk_index, pixel_index]
 
-# Set the histogram values and variances using the view interface
+# Set the histogram values using the view interface
 h.view(flow=False)[:] = counts
-if hasattr(h, "_storage") and hasattr(h._storage, "variance"):
-    h._storage.variance()[:] = variances
 
 # Plot the histogram with error bars using Hist's built-in plotting functionality
 # Requires 'hist[plot]' to be installed in the environment.
