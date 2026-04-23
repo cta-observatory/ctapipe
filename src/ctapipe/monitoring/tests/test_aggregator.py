@@ -133,7 +133,6 @@ def test_histograms_aggregator():
     histo_chunk = aggregator.compute_stats(data, masked_elements_of_sample=None)
 
     assert histo_chunk.histogram.shape == (40, 2, 8)
-    assert histo_chunk.histogram_variance.shape == (40, 2, 8)
     assert histo_chunk.meta["bin_edges"].shape == (41,)
     assert histo_chunk.n_events.shape == (2, 8)
     assert histo_chunk.mean.shape == (2, 8)
@@ -202,7 +201,6 @@ def test_histograms_aggregator_chunked_call():
     assert result[1]["event_id_end"] == event_ids[-1]
 
     assert result[0]["histogram"].shape == (50, 2, 5)
-    assert result[0]["histogram_variance"].shape == (50, 2, 5)
     assert result[0].meta["bin_edges"].shape == (51,)
     assert result[0]["n_events"].shape == (2, 5)
     np.testing.assert_array_equal(result[0]["n_events"], np.full((2, 5), 60))
@@ -248,7 +246,6 @@ def test_histograms_aggregator_masks_and_nan_handling():
 
     # Fully masked pixel should receive no entries.
     assert histo_chunk["histogram"][:, 0, 1].sum() == 0
-    assert histo_chunk["histogram_variance"][:, 0, 1].sum() == 0
     assert histo_chunk["n_events"][0, 1] == 0
     # One NaN should be dropped for this pixel.
     assert histo_chunk["histogram"][:, 0, 0].sum() == histo_chunk["n_events"][0, 0]
