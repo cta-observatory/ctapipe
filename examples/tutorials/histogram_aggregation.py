@@ -67,14 +67,12 @@ config_image = Config(
     {
         "HistogramAggregator": {
             "chunking_type": "SizeChunking",
-            "hist_axis_dict": {
-                "axis_class_name": "Regular",
-                "kwargs": {
-                    "bins": 50,
-                    "start": 40.0,
-                    "stop": 110.0,
-                    "name": "value",
-                },
+            "axis_definition": {
+                "class_name": "Regular",
+                "bins": 50,
+                "start": 40.0,
+                "stop": 110.0,
+                "name": "value",
             },
         },
         "SizeChunking": {"chunk_size": 1000},
@@ -92,14 +90,12 @@ config_peak_time = Config(
     {
         "HistogramAggregator": {
             "chunking_type": "SizeChunking",
-            "hist_axis_dict": {
-                "axis_class_name": "Regular",
-                "kwargs": {
-                    "bins": 50,
-                    "start": 2.0,
-                    "stop": 38.0,
-                    "name": "value",
-                },
+            "axis_definition": {
+                "class_name": "Regular",
+                "bins": 50,
+                "start": 2.0,
+                "stop": 38.0,
+                "name": "value",
             },
         },
         "SizeChunking": {"chunk_size": 1000},
