@@ -112,7 +112,9 @@ result_peak_time = aggregator_peak_time(
 
 print(f"Number of chunks: {len(result)}")
 print(f"histogram shape per chunk: {result[0]['histogram'].shape}")
-print(f"edges shape per chunk: {result[0].meta['bin_edges'].shape}")
+print(f"histogram variance shape per chunk: {result[0]['histogram_variance'].shape}")
+print(f"bin edges shape per chunk: {result[0].meta['bin_edges'].shape}")
+print(f"bin centers shape per chunk: {result[0].meta['bin_centers'].shape}")
 print(f"n_events shape per chunk: {result[0]['n_events'].shape}")
 
 
@@ -124,24 +126,41 @@ gain_label = {0: "High Gain", 1: "Low Gain"}
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
-    edges = result[chunk_index].meta["bin_edges"]
+    bin_edges = result[chunk_index].meta["bin_edges"]
+    bin_centers = result[chunk_index].meta["bin_centers"]
     channel_handles = []
 
     for channel_index in range(n_channels):
         counts = result[chunk_index]["histogram"][:, channel_index, pixel_index]
+        histogram_variance = result[chunk_index]["histogram_variance"][
+            :, channel_index, pixel_index
+        ]
         valid_events = result[chunk_index]["n_events"][channel_index, pixel_index]
         mean_val = result[chunk_index]["mean"][channel_index, pixel_index]
         median_val = result[chunk_index]["median"][channel_index, pixel_index]
         std_val = result[chunk_index]["std"][channel_index, pixel_index]
 
         line = ax.step(
-            edges[:-1],
+            bin_edges[:-1],
             counts,
             where="post",
             label=f"{gain_label[channel_index]} (n_events={valid_events})",
         )[0]
         channel_handles.append(line)
         color = line.get_color()
+
+        # Plot bin variances as error bars (use sqrt of variance for error) at bin centers
+        bin_errors = np.sqrt(histogram_variance)
+        ax.errorbar(
+            bin_centers,
+            counts,
+            yerr=bin_errors,
+            fmt="none",
+            color=color,
+            elinewidth=1.0,
+            capsize=3,
+            alpha=0.6,
+        )
 
         ax.axvline(mean_val, color=color, linestyle="--", linewidth=1.2)
         ax.axvline(median_val, color=color, linestyle=":", linewidth=1.2)
@@ -160,7 +179,11 @@ for chunk_index, ax in enumerate(axes):
         Line2D([0], [0], color="black", linestyle=":", linewidth=1.2, label="Median"),
         Patch(facecolor="gray", alpha=0.12, label="Mean ± Std"),
     ]
-    ax.legend(handles=channel_handles + stat_handles, loc="upper left", fontsize=8)
+    ax.legend(
+        handles=channel_handles + stat_handles,
+        loc="upper left",
+        fontsize=8,
+    )
 
 plt.show()
 
@@ -170,11 +193,16 @@ plt.show()
 # -------------------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
-    edges = result_peak_time[chunk_index].meta["bin_edges"]
+    bin_edges = result_peak_time[chunk_index].meta["bin_edges"]
+    bin_centers = result_peak_time[chunk_index].meta["bin_centers"]
+
     channel_handles = []
 
     for channel_index in range(n_channels):
         counts = result_peak_time[chunk_index]["histogram"][
+            :, channel_index, pixel_index
+        ]
+        histogram_variance = result_peak_time[chunk_index]["histogram_variance"][
             :, channel_index, pixel_index
         ]
         valid_events = result_peak_time[chunk_index]["n_events"][
@@ -185,13 +213,26 @@ for chunk_index, ax in enumerate(axes):
         std_val = result_peak_time[chunk_index]["std"][channel_index, pixel_index]
 
         line = ax.step(
-            edges[:-1],
+            bin_edges[:-1],
             counts,
             where="post",
             label=f"{gain_label[channel_index]} (n_events={valid_events})",
         )[0]
         channel_handles.append(line)
         color = line.get_color()
+
+        # Plot bin variances as error bars (use sqrt of variance for error) at bin centers
+        bin_errors = np.sqrt(histogram_variance)
+        ax.errorbar(
+            bin_centers,
+            counts,
+            yerr=bin_errors,
+            fmt="none",
+            color=color,
+            elinewidth=1.0,
+            capsize=3,
+            alpha=0.6,
+        )
 
         ax.axvline(mean_val, color=color, linestyle="--", linewidth=1.2)
         ax.axvline(median_val, color=color, linestyle=":", linewidth=1.2)
@@ -210,6 +251,10 @@ for chunk_index, ax in enumerate(axes):
         Line2D([0], [0], color="black", linestyle=":", linewidth=1.2, label="Median"),
         Patch(facecolor="gray", alpha=0.12, label="Mean ± Std"),
     ]
-    ax.legend(handles=channel_handles + stat_handles, loc="upper left", fontsize=8)
+    ax.legend(
+        handles=channel_handles + stat_handles,
+        loc="upper left",
+        fontsize=8,
+    )
 
 plt.show()

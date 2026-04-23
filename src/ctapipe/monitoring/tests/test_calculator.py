@@ -134,6 +134,7 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
 
     assert len(stats) == 2
     assert stats[0]["histogram"].shape == (30, 2, 16)
+    assert stats[0]["histogram_variance"].shape == (30, 2, 16)
     assert stats[0]["mean"].shape == (2, 16)
     assert stats[0]["median"].shape == (2, 16)
     assert stats[0]["std"].shape == (2, 16)

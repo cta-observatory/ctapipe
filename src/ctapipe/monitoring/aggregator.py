@@ -420,6 +420,7 @@ class StatisticsAggregator(BaseAggregator):
         results_dict["median"].append(stats.median)
         results_dict["std"].append(stats.std)
         results_dict["histogram"].append(stats.histogram)
+        results_dict["histogram_variance"].append(stats.histogram_variance)
         if "meta" not in metadata and stats.meta:
             metadata["meta"] = stats.meta
 
@@ -427,10 +428,10 @@ class StatisticsAggregator(BaseAggregator):
         """
         Set units for statistics columns that inherit from the input data.
 
-        For StatisticsAggregator, the mean, median, std and histogram columns
+        For StatisticsAggregator, the mean, median, std, histogram and histogram_variance columns
         should have the same units as the input data.
         """
-        for col in ("mean", "median", "std", "histogram"):
+        for col in ("mean", "median", "std", "histogram", "histogram_variance"):
             table[col].unit = unit
 
     @abstractmethod
@@ -489,6 +490,7 @@ class PlainAggregator(StatisticsAggregator):
             median=element_median,
             std=element_std,
             histogram=np.nan,
+            histogram_variance=np.nan,
         )
 
 
@@ -547,6 +549,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
             median=element_median,
             std=element_std,
             histogram=np.nan,
+            histogram_variance=np.nan,
         )
 
 
@@ -646,6 +649,8 @@ class HistogramAggregator(StatisticsAggregator):
         n_bins = hist_object.axes[0].size
         hist_counts = hist_object.values()  # shape: (bins, n_pixels)
         hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
+        hist_variances = hist_object.variances()  # shape: (bins, n_pixels)
+        hist_variances = hist_variances.reshape((n_bins,) + spatial_shape)
         # Count valid entries per pixel
         n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
         centers = hist_object.axes[0].centers
@@ -691,6 +696,7 @@ class HistogramAggregator(StatisticsAggregator):
             median=median,
             std=std,
             histogram=hist_counts,
+            histogram_variance=hist_variances,
             meta={
                 "bin_edges": hist_object.axes[0].edges,
                 "bin_centers": hist_object.axes[0].centers,
