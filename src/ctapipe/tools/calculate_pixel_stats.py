@@ -19,13 +19,8 @@ from ctapipe.core.traits import (
 )
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
-from ctapipe.io.hdf5dataformat import (
-    DL1_COLUMN_NAMES,
-    DL1_PIXEL_HISTOGRAMS_GROUP,
-    DL1_PIXEL_STATISTICS_GROUP,
-)
+from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES
 from ctapipe.io.tableloader import TableLoader
-from ctapipe.monitoring.aggregator import HistogramAggregator
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 __all__ = ["PixelStatisticsCalculatorTool"]
@@ -210,22 +205,17 @@ class PixelStatisticsCalculatorTool(Tool):
                     )
             # Construct the output table name based on the event type and the selected column name
             output_table_name = f"{EventType(dl1_table['event_type'][0]).name.lower()}_{self.input_column_name}"
-            # Add a suffix to the output table name if the aggregated statistic values contain histograms
-            if isinstance(aggregator, HistogramAggregator):
-                table_grp = DL1_PIXEL_HISTOGRAMS_GROUP
-            else:
-                table_grp = DL1_PIXEL_STATISTICS_GROUP
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
                 aggregated_stats,
                 self.output_path,
-                f"{table_grp}/{output_table_name}/tel_{tel_id:03d}",
+                f"{aggregator.TABLE_GROUP}/{output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
-            f"{table_grp}/{output_table_name}",
+            f"{aggregator.TABLE_GROUP}/{output_table_name}",
         )
 
     def finish(self):
