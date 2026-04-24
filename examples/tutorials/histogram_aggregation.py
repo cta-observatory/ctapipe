@@ -117,8 +117,12 @@ print(f"n_events shape per chunk: {result[0]['n_events'].shape}")
 
 
 # -------------------------------------------------------------------
-# Inspect one pixel histogram in both chunks and both gain channels
+# Plot the histograms for one pixel with two gain channels
 # -------------------------------------------------------------------
+# We aggreagted the histograms in two chunks of 1000 events each, so we have two histograms per gain channel
+# for the selected pixel. We will plot both chunks for the selected pixel and gain channels
+# on the same axes for comparison, and then do the same for the peak_time column in a separate figure.
+
 pixel_index = 10
 gain_label = {0: "High Gain", 1: "Low Gain"}
 
