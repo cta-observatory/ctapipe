@@ -334,7 +334,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         # Initialize result storage
         results = defaultdict(list)
 
-        metadata = {}
         # Process each chunk
         for chunk in chunks:
             # Add time metadata
@@ -355,8 +354,12 @@ class BaseAggregator(Component, metaclass=ABCMeta):
                 chunk[col_name].data,
                 masked_elements_of_sample,
                 results,
-                metadata,
             )
+
+        # Deal with metadata if present in results
+        metadata = {}
+        if "meta" in results:
+            metadata["meta"] = results.pop("meta")
 
         # Create and return table
         result_table = Table(results)
@@ -375,7 +378,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         data,
         masked_elements_of_sample,
         results_dict,
-        metadata,
     ):
         r"""
         Compute statistics and add columns to results dictionary.
@@ -388,8 +390,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
             Dictionary to which statistic or histogram columns should be added.
-        metadata : dict
-            Shared metadata container that can be mutated by subclasses.
         """
         pass
 
@@ -412,7 +412,6 @@ class StatisticsAggregator(BaseAggregator):
         data,
         masked_elements_of_sample,
         results_dict,
-        metadata,
     ):
         stats = self.compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
@@ -420,8 +419,8 @@ class StatisticsAggregator(BaseAggregator):
         results_dict["median"].append(stats.median)
         results_dict["std"].append(stats.std)
         results_dict["histogram"].append(stats.histogram)
-        if "meta" not in metadata and stats.meta:
-            metadata["meta"] = stats.meta
+        if "meta" not in results_dict and stats.meta:
+            results_dict["meta"] = stats.meta
 
     def _set_result_units(self, table, unit):
         """

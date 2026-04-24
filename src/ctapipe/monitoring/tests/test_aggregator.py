@@ -195,9 +195,10 @@ def test_histograms_aggregator_chunked_call():
     assert result[1]["time_end"] == times[-1]
     assert result[0]["event_id_start"] == event_ids[0]
     assert result[1]["event_id_end"] == event_ids[-1]
-
     assert result[0]["histogram"].shape == (50, 2, 5)
+    assert "meta" not in result[0].keys()
     assert result[0].meta["bin_edges"].shape == (51,)
+    assert result[0].meta["bin_centers"].shape == (50,)
     assert result[0]["n_events"].shape == (2, 5)
     np.testing.assert_array_equal(result[0]["n_events"], np.full((2, 5), 60))
     assert np.all(np.diff(result[0].meta["bin_edges"]) >= 0)
