@@ -35,7 +35,7 @@ from astropy.table import Table
 from hist import Hist
 from traitlets import TraitError
 
-from ..containers import ChunkStatisticsContainer
+from ..containers import ChunkStatisticsContainer, HistogramChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
 
@@ -276,10 +276,10 @@ class TimeChunking(BaseChunking):
 
 class BaseAggregator(Component, metaclass=ABCMeta):
     """
-    Base class for aggregators that compute statistics over chunks of data.
+    Base class for aggregators that compute statistics and histograms over chunks of data.
 
     Aggregators use a chunking strategy to divide input tables and compute
-    aggregated statistics for each chunk.
+    aggregated statistics and histograms for each chunk.
     """
 
     chunking_type = ComponentName(
@@ -380,7 +380,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         results_dict,
     ):
         r"""
-        Compute statistics and add columns to results dictionary.
+        Compute statistics and histograms. Add columns to results dictionary.
 
         Parameters
         ----------
@@ -399,157 +399,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         pass
 
 
-class StatisticsAggregator(BaseAggregator):
-    """
-    Base component to handle the computation of aggregated statistic values from a table
-    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
-
-    Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
-    """
-
-    def _add_result_columns(
-        self,
-        data,
-        masked_elements_of_sample,
-        results_dict,
-    ):
-        stats = self.compute_stats(data, masked_elements_of_sample)
-        results_dict["n_events"].append(stats.n_events)
-        results_dict["mean"].append(stats.mean)
-        results_dict["median"].append(stats.median)
-        results_dict["std"].append(stats.std)
-        results_dict["histogram"].append(stats.histogram)
-        if "meta" not in results_dict and stats.meta:
-            results_dict["meta"] = stats.meta
-
-    def _set_result_units(self, table, unit):
-        """
-        Set units for statistics columns that inherit from the input data.
-
-        For StatisticsAggregator, the mean, median, std, and histogram columns
-        should have the same units as the input data.
-        """
-        for col in ("mean", "median", "std", "histogram"):
-            table[col].unit = unit
-
-    @abstractmethod
-    def compute_stats(
-        self, data, masked_elements_of_sample
-    ) -> ChunkStatisticsContainer:
-        r"""
-        Compute aggregated statistics for a chunk of data.
-
-        Parameters
-        ----------
-        data : ndarray
-            Event-wise data of shape (n_events, \*data_dimensions)
-        masked_elements_of_sample : ndarray, optional
-            Boolean mask of shape (\*data_dimensions) for elements to exclude
-
-        Returns
-        -------
-        ChunkStatisticsContainer
-            Container with computed statistics for the chunk
-        """
-        pass
-
-
-class PlainAggregator(StatisticsAggregator):
-    """
-    Compute aggregated statistic values from a chunk of event-wise data using numpy functions.
-
-    Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
-    """
-
-    def compute_stats(
-        self, data, masked_elements_of_sample
-    ) -> ChunkStatisticsContainer:
-        # Mask excluded elements and NaN/inf values
-        masked_data = np.ma.array(data, mask=masked_elements_of_sample)
-        masked_data = np.ma.masked_invalid(masked_data)
-
-        # Compute the mean, median, and std over the event dimension (axis=0)
-        element_mean = np.ma.mean(masked_data, axis=0)
-        element_median = np.ma.median(masked_data, axis=0)
-        element_std = np.ma.std(masked_data, axis=0)
-
-        # For 1D data, these operations return scalars (not MaskedArrays)
-        # Convert to array and fill masked values with NaN
-        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
-        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
-        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
-
-        # Count non-masked events per element (excludes both masked and NaN/inf values)
-        n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
-
-        return ChunkStatisticsContainer(
-            n_events=n_events_per_element,
-            mean=element_mean,
-            median=element_median,
-            std=element_std,
-            histogram=np.nan,
-        )
-
-
-class SigmaClippingAggregator(StatisticsAggregator):
-    """
-    Compute aggregated statistic values from a chunk of event-wise data using astropy's sigma clipping functions.
-
-    Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension)
-    while removing outliers using sigma clipping.
-    """
-
-    max_sigma = Int(
-        default_value=4,
-        help="Maximal value for the sigma clipping outlier removal",
-    ).tag(config=True)
-    iterations = Int(
-        default_value=5,
-        help="Number of iterations for the sigma clipping outlier removal",
-    ).tag(config=True)
-
-    def compute_stats(
-        self, data, masked_elements_of_sample
-    ) -> ChunkStatisticsContainer:
-        # Mask excluded elements and NaN/inf values
-        masked_data = np.ma.array(data, mask=masked_elements_of_sample)
-        masked_data = np.ma.masked_invalid(masked_data)
-
-        # Use sigma_clip to get the clipped data, then compute stats from it
-        # Clipping is performed along axis=0 (event dimension)
-        filtered_data = sigma_clip(
-            masked_data,
-            sigma=self.max_sigma,
-            maxiters=self.iterations,
-            cenfunc="mean",
-            axis=0,
-        )
-
-        # Count the number of events remaining after sigma clipping per element
-        # (excludes both masked, NaN/inf, and sigma-clipped values)
-        n_events_after_clipping = np.count_nonzero(~filtered_data.mask, axis=0)
-
-        # Compute statistics from the filtered data along the event dimension
-        element_mean = np.ma.mean(filtered_data, axis=0)
-        element_median = np.ma.median(filtered_data, axis=0)
-        element_std = np.ma.std(filtered_data, axis=0)
-
-        # For 1D data, these operations return scalars (not MaskedArrays)
-        # Convert to array and fill masked values with NaN
-        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
-        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
-        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
-
-        return ChunkStatisticsContainer(
-            n_events=n_events_after_clipping,
-            mean=element_mean,
-            median=element_median,
-            std=element_std,
-            histogram=np.nan,
-        )
-
-
-class HistogramAggregator(StatisticsAggregator):
+class HistogramAggregator(BaseAggregator):
     """
     Compute aggregated statistic values and histograms from a chunk of event-wise data using Hist.
 
@@ -583,9 +433,34 @@ class HistogramAggregator(StatisticsAggregator):
         cls = kwargs.pop("class_name")
         self.hist_axis = getattr(hist.axis, cls)(**kwargs)
 
-    def compute_stats(
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+    ):
+        histograms = self.compute_histograms(data, masked_elements_of_sample)
+        results_dict["n_events"].append(histograms.n_events)
+        results_dict["mean"].append(histograms.mean)
+        results_dict["median"].append(histograms.median)
+        results_dict["std"].append(histograms.std)
+        results_dict["histogram"].append(histograms.histogram)
+        if "meta" not in results_dict and histograms.meta:
+            results_dict["meta"] = histograms.meta
+
+    def _set_result_units(self, table, unit):
+        """
+        Set units for statistics columns that inherit from the input data.
+
+        For StatisticsAggregator, the mean, median, std, and histogram columns
+        should have the same units as the input data.
+        """
+        for col in ("mean", "median", "std", "histogram"):
+            table[col].unit = unit
+
+    def compute_histograms(
         self, data, masked_elements_of_sample
-    ) -> ChunkStatisticsContainer:
+    ) -> HistogramChunkStatisticsContainer:
         n_events = data.shape[0]
         spatial_shape = data.shape[1:]
         n_pixels = int(np.prod(spatial_shape))
@@ -663,7 +538,7 @@ class HistogramAggregator(StatisticsAggregator):
         mean = np.where(invalid, np.nan, mean)
         std = np.where(invalid, np.nan, std)
         median = np.where(invalid, np.nan, median)
-        return ChunkStatisticsContainer(
+        return HistogramChunkStatisticsContainer(
             n_events=n_events_valid,
             mean=mean,
             median=median,
@@ -673,4 +548,149 @@ class HistogramAggregator(StatisticsAggregator):
                 "bin_edges": hist_object.axes[0].edges,
                 "bin_centers": hist_object.axes[0].centers,
             },
+        )
+
+
+class StatisticsAggregator(BaseAggregator):
+    """
+    Base component to handle the computation of aggregated statistic values from a table
+    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
+
+    Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
+    """
+
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+    ):
+        stats = self.compute_stats(data, masked_elements_of_sample)
+        results_dict["n_events"].append(stats.n_events)
+        results_dict["mean"].append(stats.mean)
+        results_dict["median"].append(stats.median)
+        results_dict["std"].append(stats.std)
+
+    def _set_result_units(self, table, unit):
+        """
+        Set units for statistics columns that inherit from the input data.
+
+        For StatisticsAggregator, the mean, median, std, and histogram columns
+        should have the same units as the input data.
+        """
+        for col in ("mean", "median", "std"):
+            table[col].unit = unit
+
+    @abstractmethod
+    def compute_stats(
+        self, data, masked_elements_of_sample
+    ) -> ChunkStatisticsContainer:
+        r"""
+        Compute aggregated statistics for a chunk of data.
+
+        Parameters
+        ----------
+        data : ndarray
+            Event-wise data of shape (n_events, \*data_dimensions)
+        masked_elements_of_sample : ndarray, optional
+            Boolean mask of shape (\*data_dimensions) for elements to exclude
+
+        Returns
+        -------
+        ChunkStatisticsContainer
+            Container with computed statistics for the chunk
+        """
+        pass
+
+
+class PlainAggregator(StatisticsAggregator):
+    """
+    Compute aggregated statistic values from a chunk of event-wise data using numpy functions.
+
+    Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
+    """
+
+    def compute_stats(
+        self, data, masked_elements_of_sample
+    ) -> ChunkStatisticsContainer:
+        # Mask excluded elements and NaN/inf values
+        masked_data = np.ma.array(data, mask=masked_elements_of_sample)
+        masked_data = np.ma.masked_invalid(masked_data)
+
+        # Compute the mean, median, and std over the event dimension (axis=0)
+        element_mean = np.ma.mean(masked_data, axis=0)
+        element_median = np.ma.median(masked_data, axis=0)
+        element_std = np.ma.std(masked_data, axis=0)
+
+        # For 1D data, these operations return scalars (not MaskedArrays)
+        # Convert to array and fill masked values with NaN
+        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
+        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
+        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
+
+        # Count non-masked events per element (excludes both masked and NaN/inf values)
+        n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
+
+        return ChunkStatisticsContainer(
+            n_events=n_events_per_element,
+            mean=element_mean,
+            median=element_median,
+            std=element_std,
+        )
+
+
+class SigmaClippingAggregator(StatisticsAggregator):
+    """
+    Compute aggregated statistic values from a chunk of event-wise data using astropy's sigma clipping functions.
+
+    Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension)
+    while removing outliers using sigma clipping.
+    """
+
+    max_sigma = Int(
+        default_value=4,
+        help="Maximal value for the sigma clipping outlier removal",
+    ).tag(config=True)
+    iterations = Int(
+        default_value=5,
+        help="Number of iterations for the sigma clipping outlier removal",
+    ).tag(config=True)
+
+    def compute_stats(
+        self, data, masked_elements_of_sample
+    ) -> ChunkStatisticsContainer:
+        # Mask excluded elements and NaN/inf values
+        masked_data = np.ma.array(data, mask=masked_elements_of_sample)
+        masked_data = np.ma.masked_invalid(masked_data)
+
+        # Use sigma_clip to get the clipped data, then compute stats from it
+        # Clipping is performed along axis=0 (event dimension)
+        filtered_data = sigma_clip(
+            masked_data,
+            sigma=self.max_sigma,
+            maxiters=self.iterations,
+            cenfunc="mean",
+            axis=0,
+        )
+
+        # Count the number of events remaining after sigma clipping per element
+        # (excludes both masked, NaN/inf, and sigma-clipped values)
+        n_events_after_clipping = np.count_nonzero(~filtered_data.mask, axis=0)
+
+        # Compute statistics from the filtered data along the event dimension
+        element_mean = np.ma.mean(filtered_data, axis=0)
+        element_median = np.ma.median(filtered_data, axis=0)
+        element_std = np.ma.std(filtered_data, axis=0)
+
+        # For 1D data, these operations return scalars (not MaskedArrays)
+        # Convert to array and fill masked values with NaN
+        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
+        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
+        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
+
+        return ChunkStatisticsContainer(
+            n_events=n_events_after_clipping,
+            mean=element_mean,
+            median=element_median,
+            std=element_std,
         )
