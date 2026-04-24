@@ -46,7 +46,7 @@ def _get_tel_index(event, tel_id):
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v7.6.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v7.6.0: - Add new column 'histogram' to the chunk aggregated statistical values.
+- v7.6.0: - Add new monitoring group for pixel histograms: DL1_PIXEL_HISTOGRAMS_GROUP.
 - v7.5.0: - Add new field pixel_time_shift in R1CameraContainer and DL0CameraContainer
 - v7.4.0: - Add new data quality and top-level monitoring groups for DL0 and DL1 data.
 - v7.3.0: - Add possibility to attach monitoring data to the event HDF5 file.

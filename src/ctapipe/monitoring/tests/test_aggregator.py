@@ -128,7 +128,7 @@ def test_histograms_aggregator():
     )
     aggregator = HistogramAggregator(config=config)
 
-    histo_chunk = aggregator.compute_stats(data, masked_elements_of_sample=None)
+    histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
 
     assert histo_chunk.histogram.shape == (40, 2, 8)
     assert histo_chunk.meta["bin_edges"].shape == (41,)
@@ -234,7 +234,7 @@ def test_histograms_aggregator_masks_and_nan_handling():
         }
     )
     aggregator = HistogramAggregator(config=config)
-    histo_chunk = aggregator.compute_stats(
+    histo_chunk = aggregator.compute_histograms(
         data,
         masked_elements_of_sample=mask,
     )
