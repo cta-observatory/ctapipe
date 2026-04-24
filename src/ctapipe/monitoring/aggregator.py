@@ -35,6 +35,11 @@ from astropy.table import Table
 from hist import Hist
 from traitlets import TraitError
 
+from ctapipe.io.hdf5dataformat import (
+    DL1_PIXEL_HISTOGRAMS_GROUP,
+    DL1_PIXEL_STATISTICS_GROUP,
+)
+
 from ..containers import ChunkStatisticsContainer, HistogramChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
@@ -406,6 +411,8 @@ class HistogramAggregator(BaseAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
 
+    TABLE_GROUP = DL1_PIXEL_HISTOGRAMS_GROUP
+
     axis_definition = Dict(
         allow_none=False,
         help=(
@@ -610,6 +617,8 @@ class PlainAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
 
+    TABLE_GROUP = DL1_PIXEL_STATISTICS_GROUP
+
     def compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
@@ -646,6 +655,8 @@ class SigmaClippingAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension)
     while removing outliers using sigma clipping.
     """
+
+    TABLE_GROUP = DL1_PIXEL_STATISTICS_GROUP
 
     max_sigma = Int(
         default_value=4,
