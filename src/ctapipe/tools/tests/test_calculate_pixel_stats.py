@@ -9,7 +9,11 @@ from traitlets.config.loader import Config
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io import read_table
-from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES, DL1_PIXEL_STATISTICS_GROUP
+from ctapipe.io.hdf5dataformat import (
+    DL1_COLUMN_NAMES,
+    DL1_PIXEL_HISTOGRAMS_GROUP,
+    DL1_PIXEL_STATISTICS_GROUP,
+)
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 from ctapipe.tools.merge import MergeTool
 
@@ -130,7 +134,7 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
 
     stats = read_table(
         output_file,
-        path=f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_{tel_id:03d}",
+        path=f"{DL1_PIXEL_HISTOGRAMS_GROUP}/subarray_image/tel_{tel_id:03d}",
     )
 
     assert "histogram" in stats.colnames

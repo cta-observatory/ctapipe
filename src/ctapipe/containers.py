@@ -62,6 +62,7 @@ __all__ = [
     "ArrayPointingContainer",
     "StatisticsContainer",
     "ChunkStatisticsContainer",
+    "HistogramChunkStatisticsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -1254,11 +1255,6 @@ class StatisticsContainer(Container):
         "standard deviation of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
     )
-    histogram = Field(
-        None,
-        "histogram of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
-    )
     n_events = Field(-1, "number of events used for the extraction of the statistics")
     outlier_mask = Field(
         None,
@@ -1282,6 +1278,16 @@ class ChunkStatisticsContainer(StatisticsContainer):
     time_end = Field(NAN_TIME, "high resolution end time of the chunk")
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
+
+
+class HistogramChunkStatisticsContainer(ChunkStatisticsContainer):
+    """Store descriptive statistics of a chunk of images together with the histogram"""
+
+    histogram = Field(
+        None,
+        "histogram of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
+    )
 
 
 class PixelStatisticsContainer(Container):

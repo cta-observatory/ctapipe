@@ -20,6 +20,7 @@ from .hdf5dataformat import (
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_COLUMN_NAMES,
     DL1_IMAGE_STATISTICS_TABLE,
+    DL1_PIXEL_HISTOGRAMS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
     DL1_SUBARRAY_QUALITY_GROUP,
@@ -96,6 +97,7 @@ _NODES_TO_CHECK = {
     DL1_SUBARRAY_POINTING_GROUP: NodeType.TABLE,
     DL1_TEL_POINTING_GROUP: NodeType.TEL_GROUP,
     DL1_PIXEL_STATISTICS_GROUP: NodeType.ITER_TEL_GROUP,
+    DL1_PIXEL_HISTOGRAMS_GROUP: NodeType.ITER_TEL_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP: NodeType.TEL_GROUP,
     DL1_TEL_MUON_THROUGHPUT_GROUP: NodeType.TEL_GROUP,
     DL2_TEL_GROUP: NodeType.ITER_TEL_GROUP,
@@ -486,6 +488,7 @@ class HDF5Merger(Component):
         if self.telescope_events:
             self._append_monitoring_telescope_groups(other)
             self._append_pixel_statistics(other)
+            self._append_pixel_histograms(other)
             self._append_quality_telescope_groups(other)
 
     def _append_monitoring_subarray_groups(self, other):
@@ -527,6 +530,16 @@ class HDF5Merger(Component):
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
+                if key in other.root:
+                    self._append_table_group(
+                        other, other.root[key], once=self.single_ob
+                    )
+
+    def _append_pixel_histograms(self, other):
+        """Append pixel histogram monitoring data."""
+        for dl1_colname in DL1_COLUMN_NAMES:
+            for event_type in EventType:
+                key = f"{DL1_PIXEL_HISTOGRAMS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
                 if key in other.root:
                     self._append_table_group(
                         other, other.root[key], once=self.single_ob
