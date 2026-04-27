@@ -438,6 +438,7 @@ class HistogramAggregator(BaseAggregator):
                 "The ``axis_definition`` trait is missing required key 'class_name'."
             )
         cls = kwargs.pop("class_name")
+        kwargs["name"] = "value"
         self.hist_axis = getattr(hist.axis, cls)(**kwargs)
 
     def _add_result_columns(
