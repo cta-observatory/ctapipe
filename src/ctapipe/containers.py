@@ -1268,35 +1268,10 @@ class ChunkStatisticsContainer(ChunkContainer):
     std = Field(None, "standard deviation of the chunk distribution")
 
 
-class ChunkHistogramsContainer(Container):
-    """Store histograms of a chunk of images"""
+class ChunkHistogramsContainer(ChunkContainer):
+    """Container for histograms of the chunk distribution"""
 
-    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
-    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
-    event_id_start = Field(None, "event id of the first event of the chunk")
-    event_id_end = Field(None, "event id of the last event of the chunk")
-
-    n_events = Field(-1, "number of events used for the histogram calculation")
-
-    histogram = Field(
-        None,
-        "histogram of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
-    )
-    outlier_mask = Field(
-        None,
-        "Boolean mask indicating which pixels are considered outliers."
-        " Shape: (n_channels, n_pixels)",
-    )
-    is_valid = Field(
-        False,
-        (
-            "True if the pixel statistics are valid, False if they are not valid or "
-            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
-            "is detected across the chunk of images."
-        ),
-    )
-
+    histogram = Field(None, "histogram of the chunk distribution")
 
 
 class PixelStatisticsContainer(Container):
