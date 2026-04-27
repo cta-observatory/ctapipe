@@ -118,7 +118,6 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
                     "bins": 30,
                     "start": 0.0,
                     "stop": 140.0,
-                    "name": "value",
                 },
             },
             "SizeChunking": {
