@@ -61,6 +61,7 @@ __all__ = [
     "TelescopePointingContainer",
     "ArrayPointingContainer",
     "StatisticsContainer",
+    "ChunkContainer",
     "ChunkStatisticsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
@@ -1237,46 +1238,33 @@ class CameraCalibrationContainer(Container):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics of a pixel-wise quantity for each channel"""
+    """Container for descriptive statistics"""
 
-    mean = Field(
-        None,
-        "mean of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    median = Field(
-        None,
-        "median of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    std = Field(
-        None,
-        "standard deviation of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    n_events = Field(-1, "number of events used for the extraction of the statistics")
-    outlier_mask = Field(
-        None,
-        "Boolean mask indicating which pixels are considered outliers."
-        " Shape: (n_channels, n_pixels)",
-    )
-    is_valid = Field(
-        False,
-        (
-            "True if the pixel statistics are valid, False if they are not valid or "
-            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
-            "is detected across the chunk of images."
-        ),
-    )
+    mean = Field(None, "mean value")
+    median = Field(None, "median value")
+    std = Field(None, "standard deviation")
 
 
-class ChunkStatisticsContainer(StatisticsContainer):
-    """Store descriptive statistics of a chunk of images"""
+class ChunkContainer(Container):
+    """Store values of a chunk"""
 
     time_start = Field(NAN_TIME, "high resolution start time of the chunk")
     time_end = Field(NAN_TIME, "high resolution end time of the chunk")
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
+    n_events = Field(
+        -1, "number of events used for the calculation of the chunk values"
+    )
+    outlier_mask = Field(None, "boolean mask indicating outliers in the chunk")
+    is_valid = Field(False, "true if chunk values are valid")
+
+
+class ChunkStatisticsContainer(ChunkContainer):
+    """Container for descriptive statistics of the chunk distribution"""
+
+    mean = Field(None, "mean value of the chunk distribution")
+    median = Field(None, "median value of the chunk distribution")
+    std = Field(None, "standard deviation of the chunk distribution")
 
 
 class PixelStatisticsContainer(Container):
