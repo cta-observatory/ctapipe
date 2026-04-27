@@ -1,12 +1,12 @@
 """
-Algorithms to compute aggregated time-series statistics from columns of an astropy table.
+Algorithms to compute aggregated time-series statistics and histograms from columns of an astropy table.
 
 These classes take as input an events table containing any event-wise quantities
 (e.g., images, scalars, vectors), divide it into time chunks, which may optionally
-overlap, and compute various aggregated statistics for each chunk. The statistics
-include the count, mean, median, and standard deviation. The result is a monitoring
-table with columns describing the start and stop time of the chunk and the
-aggregated statistic values.
+overlap, and compute various aggregated statistics and histograms for each chunk.
+The statistics include the mean, median, and standard deviation. The result
+is a monitoring table with columns describing the start and stop time of the chunk and the
+aggregated statistic values or histograms.
 
 The aggregation is always performed along axis=0 (the event dimension), making
 these classes suitable for any N-dimensional event-wise data.
@@ -17,6 +17,7 @@ __all__ = [
     "SizeChunking",
     "TimeChunking",
     "BaseAggregator",
+    "HistogramAggregator",
     "StatisticsAggregator",
     "PlainAggregator",
     "SigmaClippingAggregator",
@@ -27,13 +28,21 @@ from collections import defaultdict
 from collections.abc import Generator
 
 import astropy.units as u
+import hist
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Table
+from hist import Hist
+from traitlets import TraitError
 
-from ..containers import ChunkStatisticsContainer
+from ctapipe.io.hdf5dataformat import (
+    DL1_PIXEL_HISTOGRAMS_GROUP,
+    DL1_PIXEL_STATISTICS_GROUP,
+)
+
+from ..containers import ChunkHistogramsContainer, ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import AstroQuantity, Bool, ComponentName, Enum, Int
+from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
 
 
 class BaseChunking(Component, metaclass=ABCMeta):
@@ -272,10 +281,10 @@ class TimeChunking(BaseChunking):
 
 class BaseAggregator(Component, metaclass=ABCMeta):
     """
-    Base class for aggregators that compute statistics over chunks of data.
+    Base class for aggregators that compute statistics and histograms over chunks of data.
 
     Aggregators use a chunking strategy to divide input tables and compute
-    aggregated statistics for each chunk.
+    aggregated statistics and histograms for each chunk.
     """
 
     chunking_type = ComponentName(
@@ -305,7 +314,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         col_name="image",
     ) -> Table:
         r"""
-        Divide table into chunks and compute aggregated statistic values.
+        Divide table into chunks and compute aggregated statistic values or histograms.
 
         Parameters
         ----------
@@ -322,7 +331,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         -------
         astropy.table.Table
             table containing the start and end values as timestamps and event IDs
-            as well as the aggregated statistic values for each chunk
+            as well as the aggregated statistic values or histograms for each chunk
         """
         # Get chunks using the chunking strategy
         chunks = self.chunking(table)
@@ -347,11 +356,20 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
             # Compute aggregator-specific statistics
             self._add_result_columns(
-                chunk[col_name].data, masked_elements_of_sample, results
+                chunk[col_name].data,
+                masked_elements_of_sample,
+                results,
             )
+
+        # Deal with metadata if present in results
+        metadata = {}
+        if "meta" in results:
+            metadata["meta"] = results.pop("meta")
 
         # Create and return table
         result_table = Table(results)
+        if "meta" in metadata:
+            result_table.meta = metadata["meta"]
 
         # Preserve units if present
         if hasattr(table[col_name], "unit") and table[col_name].unit is not None:
@@ -360,9 +378,14 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         return result_table
 
     @abstractmethod
-    def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+    ):
         r"""
-        Compute statistics and add columns to results dictionary.
+        Compute statistics and histograms. Add columns to results dictionary.
 
         Parameters
         ----------
@@ -371,7 +394,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         masked_elements_of_sample : ndarray, optional
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
-            Dictionary to which statistic columns should be added.
+            Dictionary to which statistic or histogram columns should be added.
         """
         pass
 
@@ -379,6 +402,116 @@ class BaseAggregator(Component, metaclass=ABCMeta):
     def _set_result_units(self, table, unit):
         """Set units for result columns that should inherit from input data."""
         pass
+
+
+class HistogramAggregator(BaseAggregator):
+    """
+    Compute aggregated statistic values and histograms from a chunk of event-wise data using Hist.
+
+    Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
+    """
+
+    TABLE_GROUP = DL1_PIXEL_HISTOGRAMS_GROUP
+
+    axis_definition = Dict(
+        allow_none=False,
+        help=(
+            "Dictionary that contains ``class_name`` and the corresponding kwargs "
+            "to construct a ``hist.axis.<class_name>(**kwargs)`` instance. "
+            "E.g. ``{'class_name': 'Regular', 'bins': 40, 'start': 20.0, 'stop': 80.0}``."
+        ),
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments
+        parent : ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy
+        """
+        super().__init__(config=config, parent=parent, **kwargs)
+        kwargs = self.axis_definition.copy()
+        if "class_name" not in kwargs.keys():
+            raise TraitError(
+                "The ``axis_definition`` trait is missing required key 'class_name'."
+            )
+        cls = kwargs.pop("class_name")
+        kwargs["name"] = "value"
+        self.hist_axis = getattr(hist.axis, cls)(**kwargs)
+
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+    ):
+        histograms = self.compute_histograms(data, masked_elements_of_sample)
+        results_dict["n_events"].append(histograms.n_events)
+        results_dict["histogram"].append(histograms.histogram)
+        if "meta" not in results_dict and histograms.meta:
+            results_dict["meta"] = histograms.meta
+
+    def _set_result_units(self, table, unit):
+        """
+        Set units for histogram columns that inherit from the input data.
+
+        For HistogramAggregator, the histogram columns should have the same units as the input data.
+        """
+        table["histogram"].unit = unit
+
+    def compute_histograms(
+        self, data, masked_elements_of_sample
+    ) -> ChunkHistogramsContainer:
+        n_events = data.shape[0]
+        spatial_shape = data.shape[1:]
+        n_pixels = int(np.prod(spatial_shape))
+
+        # Broadcast mask to full shape
+        if masked_elements_of_sample is not None:
+            mask = np.broadcast_to(masked_elements_of_sample, data.shape)
+        else:
+            mask = np.zeros_like(data, dtype=bool)
+
+        # Mask invalid values (NaN, inf)
+        invalid = ~np.isfinite(data)
+        mask = mask | invalid
+
+        # Flatten to (n_events, n_pixels)
+        flat_data = data.reshape(n_events, n_pixels)
+        flat_mask = mask.reshape(n_events, n_pixels)
+
+        # Build histogram object
+        hist_object = Hist(
+            self.hist_axis,
+            hist.axis.Integer(0, n_pixels, name="pixel"),
+            storage=hist.storage.Int64(),
+        )
+
+        # Fill histogram (loop over pixels, but fast backend)
+        for pix in range(n_pixels):
+            valid = ~flat_mask[:, pix]
+            if not np.any(valid):
+                continue
+
+            values = flat_data[valid, pix]
+            hist_object.fill(value=values, pixel=pix)
+
+        # Extract histogram counts
+        n_bins = hist_object.axes[0].size
+        hist_counts = hist_object.values()  # shape: (bins, n_pixels)
+        hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
+        # Count valid entries per pixel
+        n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
+        return ChunkHistogramsContainer(
+            n_events=n_events_valid,
+            histogram=hist_counts,
+            meta={
+                "bin_edges": hist_object.axes[0].edges,
+                "bin_centers": hist_object.axes[0].centers,
+            },
+        )
 
 
 class StatisticsAggregator(BaseAggregator):
@@ -389,7 +522,12 @@ class StatisticsAggregator(BaseAggregator):
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """
 
-    def _add_result_columns(self, data, masked_elements_of_sample, results_dict):
+    def _add_result_columns(
+        self,
+        data,
+        masked_elements_of_sample,
+        results_dict,
+    ):
         stats = self.compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
@@ -400,7 +538,7 @@ class StatisticsAggregator(BaseAggregator):
         """
         Set units for statistics columns that inherit from the input data.
 
-        For StatisticsAggregator, the mean, median, and std columns
+        For StatisticsAggregator, the mean, median, std, and histogram columns
         should have the same units as the input data.
         """
         for col in ("mean", "median", "std"):
@@ -422,8 +560,8 @@ class StatisticsAggregator(BaseAggregator):
 
         Returns
         -------
-        StatisticsContainer
-            Container with computed statistics
+        ChunkStatisticsContainer
+            Container with computed statistics for the chunk
         """
         pass
 
@@ -434,6 +572,8 @@ class PlainAggregator(StatisticsAggregator):
 
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
+
+    TABLE_GROUP = DL1_PIXEL_STATISTICS_GROUP
 
     def compute_stats(
         self, data, masked_elements_of_sample
@@ -471,6 +611,8 @@ class SigmaClippingAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension)
     while removing outliers using sigma clipping.
     """
+
+    TABLE_GROUP = DL1_PIXEL_STATISTICS_GROUP
 
     max_sigma = Int(
         default_value=4,

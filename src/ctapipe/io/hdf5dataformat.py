@@ -147,6 +147,9 @@ DL1_FLATFIELD_IMAGE_GROUP = (
 DL1_FLATFIELD_PEAK_TIME_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_peak_time"
 )
+DL1_PIXEL_HISTOGRAMS_GROUP = (
+    "/dl1/monitoring/telescope/calibration/camera/pixel_histograms"
+)
 DL2_SUBARRAY_MONITORING_GROUP = "/dl2/monitoring/subarray"
 DL2_SUBARRAY_INTER_CALIBRATION_GROUP = "/dl2/monitoring/subarray/inter_calibration"
 DL2_SUBARRAY_CROSS_CALIBRATION_GROUP = "/dl2/monitoring/subarray/cross_calibration"

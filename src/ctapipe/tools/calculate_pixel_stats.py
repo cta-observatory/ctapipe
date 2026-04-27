@@ -19,8 +19,9 @@ from ctapipe.core.traits import (
 )
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
-from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES, DL1_PIXEL_STATISTICS_GROUP
+from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES
 from ctapipe.io.tableloader import TableLoader
+from ctapipe.monitoring.aggregator import HistogramAggregator
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 __all__ = ["PixelStatisticsCalculatorTool"]
@@ -179,7 +180,8 @@ class PixelStatisticsCalculatorTool(Tool):
                 self.stats_calculator.stats_aggregator_type.tel[tel_id]
             ]
             if (
-                hasattr(aggregator.chunking, "chunk_shift")
+                not isinstance(aggregator, HistogramAggregator)
+                and hasattr(aggregator.chunking, "chunk_shift")
                 and aggregator.chunking.chunk_shift is not None
                 and aggregator.chunking.chunk_shift > 0
             ):
@@ -209,13 +211,13 @@ class PixelStatisticsCalculatorTool(Tool):
             write_table(
                 aggregated_stats,
                 self.output_path,
-                f"{DL1_PIXEL_STATISTICS_GROUP}/{output_table_name}/tel_{tel_id:03d}",
+                f"{aggregator.TABLE_GROUP}/{output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
-            f"{DL1_PIXEL_STATISTICS_GROUP}/{output_table_name}",
+            f"{aggregator.TABLE_GROUP}/{output_table_name}",
         )
 
     def finish(self):

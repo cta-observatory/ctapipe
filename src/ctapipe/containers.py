@@ -62,6 +62,7 @@ __all__ = [
     "ArrayPointingContainer",
     "StatisticsContainer",
     "ChunkStatisticsContainer",
+    "ChunkHistogramsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -1277,6 +1278,23 @@ class ChunkStatisticsContainer(StatisticsContainer):
     time_end = Field(NAN_TIME, "high resolution end time of the chunk")
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
+
+
+class ChunkHistogramsContainer(Container):
+    """Store histograms of a chunk of images"""
+
+    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
+    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk")
+    event_id_end = Field(None, "event id of the last event of the chunk")
+
+    n_events = Field(-1, "number of events used for the histogram calculation")
+
+    histogram = Field(
+        None,
+        "histogram of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_bins, n_channels, n_pixel)",
+    )
 
 
 class PixelStatisticsContainer(Container):

@@ -15,7 +15,7 @@ from ..core.traits import (
     TelescopeParameter,
     TraitError,
 )
-from .aggregator import StatisticsAggregator
+from .aggregator import BaseAggregator, HistogramAggregator
 from .outlier import OutlierDetector
 
 __all__ = [
@@ -38,11 +38,9 @@ class PixelStatisticsCalculator(TelescopeComponent):
     """
 
     stats_aggregator_type = TelescopeParameter(
-        trait=ComponentName(
-            StatisticsAggregator, default_value="SigmaClippingAggregator"
-        ),
+        trait=ComponentName(BaseAggregator, default_value="SigmaClippingAggregator"),
         default_value="SigmaClippingAggregator",
-        help="Name of the StatisticsAggregator subclass to be used.",
+        help="Name of the BaseAggregator subclass to be used.",
     ).tag(config=True)
 
     outlier_detector_list = List(
@@ -87,12 +85,10 @@ class PixelStatisticsCalculator(TelescopeComponent):
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-        # Initialize the instances of StatisticsAggregator
+        # Initialize the instances of BaseAggregator
         self.stats_aggregators = {}
         for _, _, name in self.stats_aggregator_type:
-            self.stats_aggregators[name] = StatisticsAggregator.from_name(
-                name, parent=self
-            )
+            self.stats_aggregators[name] = BaseAggregator.from_name(name, parent=self)
 
         # Initialize the instances of OutlierDetector from the configuration
         self.outlier_detectors, self.apply_to_list = [], []
@@ -170,13 +166,14 @@ class PixelStatisticsCalculator(TelescopeComponent):
             # Restore original chunk_shift
             aggregator.chunking.chunk_shift = original_chunk_shift
 
-        # Detect faulty pixels with multiple instances of ``OutlierDetector``
-        # and append the outlier masks to the aggregated statistics
-        self._find_and_append_outliers(aggregated_stats)
-        # Get valid chunks and add them to the aggregated statistics
-        aggregated_stats["is_valid"] = self._get_valid_chunks(
-            aggregated_stats["outlier_mask"]
-        )
+        if not isinstance(aggregator, HistogramAggregator):
+            # Detect faulty pixels with multiple instances of ``OutlierDetector``
+            # and append the outlier masks to the aggregated statistics
+            self._find_and_append_outliers(aggregated_stats)
+            # Get valid chunks and add them to the aggregated statistics
+            aggregated_stats["is_valid"] = self._get_valid_chunks(
+                aggregated_stats["outlier_mask"]
+            )
         return aggregated_stats
 
     def second_pass(
