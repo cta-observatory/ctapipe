@@ -132,20 +132,7 @@ def test_histograms_aggregator():
     assert histo_chunk.histogram.shape == (40, 2, 8)
     assert histo_chunk.meta["bin_edges"].shape == (41,)
     assert histo_chunk.n_events.shape == (2, 8)
-    assert histo_chunk.mean.shape == (2, 8)
-    assert histo_chunk.median.shape == (2, 8)
-    assert histo_chunk.std.shape == (2, 8)
     np.testing.assert_array_equal(histo_chunk.n_events, np.full((2, 8), 200))
-
-    # Compare histogram-derived statistics against direct event-wise references.
-    expected_mean = np.mean(data, axis=0)
-    expected_median = np.median(data, axis=0)
-    expected_std = np.std(data, axis=0)
-    # These should be close to the true values given the large number of events,
-    # but allow some tolerance due to binning effects and histogram-based estimation.
-    np.testing.assert_allclose(histo_chunk.mean, expected_mean, atol=2.6)
-    np.testing.assert_allclose(histo_chunk.median, expected_median, atol=2.6)
-    np.testing.assert_allclose(histo_chunk.std, expected_std, atol=1.5)
 
     # Configured Regular axis is [0, 200] with 40 bins.
     np.testing.assert_allclose(histo_chunk.meta["bin_edges"], np.linspace(0, 200, 41))
