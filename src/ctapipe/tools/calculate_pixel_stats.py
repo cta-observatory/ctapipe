@@ -21,7 +21,7 @@ from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
 from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES
 from ctapipe.io.tableloader import TableLoader
-from ctapipe.monitoring import HistogramAggregator
+from ctapipe.monitoring.aggregator import HistogramAggregator
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 __all__ = ["PixelStatisticsCalculatorTool"]
