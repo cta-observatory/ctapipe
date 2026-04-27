@@ -40,7 +40,7 @@ from ctapipe.io.hdf5dataformat import (
     DL1_PIXEL_STATISTICS_GROUP,
 )
 
-from ..containers import ChunkStatisticsContainer, HistogramChunkContainer
+from ..containers import ChunkHistogramsContainer, ChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
 
@@ -463,7 +463,7 @@ class HistogramAggregator(BaseAggregator):
 
     def compute_histograms(
         self, data, masked_elements_of_sample
-    ) -> HistogramChunkContainer:
+    ) -> ChunkHistogramsContainer:
         n_events = data.shape[0]
         spatial_shape = data.shape[1:]
         n_pixels = int(np.prod(spatial_shape))
@@ -504,7 +504,7 @@ class HistogramAggregator(BaseAggregator):
         hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
         # Count valid entries per pixel
         n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
-        return HistogramChunkContainer(
+        return ChunkHistogramsContainer(
             n_events=n_events_valid,
             histogram=hist_counts,
             meta={
