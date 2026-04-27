@@ -15,8 +15,6 @@ This tutorial shows how to:
 import matplotlib.pyplot as plt
 import numpy as np
 import hist
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 from astropy.table import Table
 from astropy.time import Time
 from traitlets.config import Config
@@ -133,9 +131,6 @@ for chunk_index, ax in enumerate(axes):
     for channel_index in range(n_channels):
         counts = result[chunk_index]["histogram"][:, channel_index, pixel_index]
         valid_events = result[chunk_index]["n_events"][channel_index, pixel_index]
-        mean_val = result[chunk_index]["mean"][channel_index, pixel_index]
-        median_val = result[chunk_index]["median"][channel_index, pixel_index]
-        std_val = result[chunk_index]["std"][channel_index, pixel_index]
 
         line = ax.step(
             bin_edges[:-1],
@@ -159,25 +154,12 @@ for chunk_index, ax in enumerate(axes):
             alpha=0.6,
         )
 
-        ax.axvline(mean_val, color=color, linestyle="--", linewidth=1.2)
-        ax.axvline(median_val, color=color, linestyle=":", linewidth=1.2)
-        ax.axvspan(
-            mean_val - std_val,
-            mean_val + std_val,
-            color=color,
-            alpha=0.12,
-        )
-
     ax.set_title(f"Chunk {chunk_index}, pixel {pixel_index}")
     ax.set_xlabel("image value")
     ax.set_ylabel("Counts")
-    stat_handles = [
-        Line2D([0], [0], color="black", linestyle="--", linewidth=1.2, label="Mean"),
-        Line2D([0], [0], color="black", linestyle=":", linewidth=1.2, label="Median"),
-        Patch(facecolor="gray", alpha=0.12, label="Mean ± Std"),
-    ]
+
     ax.legend(
-        handles=channel_handles + stat_handles,
+        handles=channel_handles,
         loc="upper left",
         fontsize=8,
     )
@@ -202,9 +184,6 @@ for chunk_index, ax in enumerate(axes):
         valid_events = result_peak_time[chunk_index]["n_events"][
             channel_index, pixel_index
         ]
-        mean_val = result_peak_time[chunk_index]["mean"][channel_index, pixel_index]
-        median_val = result_peak_time[chunk_index]["median"][channel_index, pixel_index]
-        std_val = result_peak_time[chunk_index]["std"][channel_index, pixel_index]
 
         line = ax.step(
             bin_edges[:-1],
@@ -228,25 +207,11 @@ for chunk_index, ax in enumerate(axes):
             alpha=0.6,
         )
 
-        ax.axvline(mean_val, color=color, linestyle="--", linewidth=1.2)
-        ax.axvline(median_val, color=color, linestyle=":", linewidth=1.2)
-        ax.axvspan(
-            mean_val - std_val,
-            mean_val + std_val,
-            color=color,
-            alpha=0.12,
-        )
-
     ax.set_title(f"Peak Time - Chunk {chunk_index}, pixel {pixel_index}")
     ax.set_xlabel("peak_time value")
     ax.set_ylabel("Counts")
-    stat_handles = [
-        Line2D([0], [0], color="black", linestyle="--", linewidth=1.2, label="Mean"),
-        Line2D([0], [0], color="black", linestyle=":", linewidth=1.2, label="Median"),
-        Patch(facecolor="gray", alpha=0.12, label="Mean ± Std"),
-    ]
     ax.legend(
-        handles=channel_handles + stat_handles,
+        handles=channel_handles,
         loc="upper left",
         fontsize=8,
     )

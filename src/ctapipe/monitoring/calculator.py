@@ -15,7 +15,7 @@ from ..core.traits import (
     TelescopeParameter,
     TraitError,
 )
-from .aggregator import BaseAggregator
+from .aggregator import BaseAggregator, HistogramAggregator
 from .outlier import OutlierDetector
 
 __all__ = [
@@ -166,13 +166,14 @@ class PixelStatisticsCalculator(TelescopeComponent):
             # Restore original chunk_shift
             aggregator.chunking.chunk_shift = original_chunk_shift
 
-        # Detect faulty pixels with multiple instances of ``OutlierDetector``
-        # and append the outlier masks to the aggregated statistics
-        self._find_and_append_outliers(aggregated_stats)
-        # Get valid chunks and add them to the aggregated statistics
-        aggregated_stats["is_valid"] = self._get_valid_chunks(
-            aggregated_stats["outlier_mask"]
-        )
+        if not isinstance(aggregator, HistogramAggregator):
+            # Detect faulty pixels with multiple instances of ``OutlierDetector``
+            # and append the outlier masks to the aggregated statistics
+            self._find_and_append_outliers(aggregated_stats)
+            # Get valid chunks and add them to the aggregated statistics
+            aggregated_stats["is_valid"] = self._get_valid_chunks(
+                aggregated_stats["outlier_mask"]
+            )
         return aggregated_stats
 
     def second_pass(
