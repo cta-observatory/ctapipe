@@ -35,11 +35,6 @@ from astropy.table import Table
 from hist import Hist
 from traitlets import TraitError
 
-from ctapipe.io.hdf5dataformat import (
-    DL1_PIXEL_HISTOGRAMS_GROUP,
-    DL1_PIXEL_STATISTICS_GROUP,
-)
-
 from ..containers import ChunkHistogramsContainer, ChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
@@ -406,12 +401,10 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
 class HistogramAggregator(BaseAggregator):
     """
-    Compute aggregated statistic values and histograms from a chunk of event-wise data using Hist.
+    Compute aggregated histograms from a chunk of event-wise data using Hist.
 
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
-
-    TABLE_GROUP = DL1_PIXEL_HISTOGRAMS_GROUP
 
     axis_definition = Dict(
         allow_none=False,
@@ -465,9 +458,9 @@ class HistogramAggregator(BaseAggregator):
     def compute_histograms(
         self, data, masked_elements_of_sample
     ) -> ChunkHistogramsContainer:
-        n_events = data.shape[0]
+        first_dim = data.shape[0]
         spatial_shape = data.shape[1:]
-        n_pixels = int(np.prod(spatial_shape))
+        last_dim = int(np.prod(spatial_shape))
 
         # Broadcast mask to full shape
         if masked_elements_of_sample is not None:
@@ -478,32 +471,30 @@ class HistogramAggregator(BaseAggregator):
         # Mask invalid values (NaN, inf)
         invalid = ~np.isfinite(data)
         mask = mask | invalid
-
-        # Flatten to (n_events, n_pixels)
-        flat_data = data.reshape(n_events, n_pixels)
-        flat_mask = mask.reshape(n_events, n_pixels)
+        flat_data = data.reshape(first_dim, last_dim)
+        flat_mask = mask.reshape(first_dim, last_dim)
 
         # Build histogram object
         hist_object = Hist(
             self.hist_axis,
-            hist.axis.Integer(0, n_pixels, name="pixel"),
+            hist.axis.Integer(0, last_dim, name="last_dimension"),
             storage=hist.storage.Int64(),
         )
 
-        # Fill histogram (loop over pixels, but fast backend)
-        for pix in range(n_pixels):
-            valid = ~flat_mask[:, pix]
+        # Fill histogram (loop over the last dimension, but fast backend)
+        for i in range(last_dim):
+            valid = ~flat_mask[:, i]
             if not np.any(valid):
                 continue
 
-            values = flat_data[valid, pix]
-            hist_object.fill(value=values, pixel=pix)
+            values = flat_data[valid, i]
+            hist_object.fill(value=values, last_dimension=i)
 
         # Extract histogram counts
         n_bins = hist_object.axes[0].size
         hist_counts = hist_object.values()  # shape: (bins, n_pixels)
         hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
-        # Count valid entries per pixel
+        # Count valid entries per element (excludes masked and invalid values)
         n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
         return ChunkHistogramsContainer(
             n_events=n_events_valid,
@@ -574,8 +565,6 @@ class PlainAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
 
-    TABLE_GROUP = DL1_PIXEL_STATISTICS_GROUP
-
     def compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
@@ -612,8 +601,6 @@ class SigmaClippingAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension)
     while removing outliers using sigma clipping.
     """
-
-    TABLE_GROUP = DL1_PIXEL_STATISTICS_GROUP
 
     max_sigma = Int(
         default_value=4,
