@@ -1283,6 +1283,19 @@ class ChunkHistogramsContainer(Container):
         "histogram of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_bins, n_channels, n_pixel)",
     )
+    outlier_mask = Field(
+        None,
+        "Boolean mask indicating which pixels are considered outliers."
+        " Shape: (n_channels, n_pixels)",
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if the pixel statistics are valid, False if they are not valid or "
+            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
+            "is detected across the chunk of images."
+        ),
+    )
 
 
 

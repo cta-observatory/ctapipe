@@ -21,7 +21,6 @@ from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
 from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES
 from ctapipe.io.tableloader import TableLoader
-from ctapipe.monitoring.aggregator import HistogramAggregator
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 __all__ = ["PixelStatisticsCalculatorTool"]
@@ -180,8 +179,7 @@ class PixelStatisticsCalculatorTool(Tool):
                 self.stats_calculator.stats_aggregator_type.tel[tel_id]
             ]
             if (
-                not isinstance(aggregator, HistogramAggregator)
-                and hasattr(aggregator.chunking, "chunk_shift")
+                hasattr(aggregator.chunking, "chunk_shift")
                 and aggregator.chunking.chunk_shift is not None
                 and aggregator.chunking.chunk_shift > 0
             ):
