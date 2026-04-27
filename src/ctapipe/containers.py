@@ -63,7 +63,7 @@ __all__ = [
     "StatisticsContainer",
     "ChunkContainer",
     "ChunkStatisticsContainer",
-    "HistogramChunkStatisticsContainer",
+    "HistogramChunkContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -1268,8 +1268,15 @@ class ChunkStatisticsContainer(ChunkContainer):
     std = Field(None, "standard deviation of the chunk distribution")
 
 
-class HistogramChunkStatisticsContainer(ChunkStatisticsContainer):
-    """Store descriptive statistics of a chunk of images together with the histogram"""
+class HistogramChunkContainer(ChunkStatisticsContainer):
+    """Store histograms of a chunk of images"""
+
+    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
+    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk")
+    event_id_end = Field(None, "event id of the last event of the chunk")
+
+    n_events = Field(-1, "number of events used for the histogram calculation")
 
     histogram = Field(
         None,

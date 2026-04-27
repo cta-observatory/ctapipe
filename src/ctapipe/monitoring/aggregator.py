@@ -40,7 +40,7 @@ from ctapipe.io.hdf5dataformat import (
     DL1_PIXEL_STATISTICS_GROUP,
 )
 
-from ..containers import ChunkStatisticsContainer, HistogramChunkStatisticsContainer
+from ..containers import ChunkStatisticsContainer, HistogramChunkContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
 
@@ -449,26 +449,21 @@ class HistogramAggregator(BaseAggregator):
     ):
         histograms = self.compute_histograms(data, masked_elements_of_sample)
         results_dict["n_events"].append(histograms.n_events)
-        results_dict["mean"].append(histograms.mean)
-        results_dict["median"].append(histograms.median)
-        results_dict["std"].append(histograms.std)
         results_dict["histogram"].append(histograms.histogram)
         if "meta" not in results_dict and histograms.meta:
             results_dict["meta"] = histograms.meta
 
     def _set_result_units(self, table, unit):
         """
-        Set units for statistics columns that inherit from the input data.
+        Set units for histogram columns that inherit from the input data.
 
-        For StatisticsAggregator, the mean, median, std, and histogram columns
-        should have the same units as the input data.
+        For HistogramAggregator, the histogram columns should have the same units as the input data.
         """
-        for col in ("mean", "median", "std", "histogram"):
-            table[col].unit = unit
+        table["histogram"].unit = unit
 
     def compute_histograms(
         self, data, masked_elements_of_sample
-    ) -> HistogramChunkStatisticsContainer:
+    ) -> HistogramChunkContainer:
         n_events = data.shape[0]
         spatial_shape = data.shape[1:]
         n_pixels = int(np.prod(spatial_shape))
@@ -509,48 +504,8 @@ class HistogramAggregator(BaseAggregator):
         hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
         # Count valid entries per pixel
         n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
-        centers = hist_object.axes[0].centers
-
-        # Expand centers to broadcast against any spatial shape.
-        centers_expanded = centers.reshape(
-            (centers.shape[0],) + (1,) * len(spatial_shape)
-        )
-        counts_sum = np.sum(hist_counts, axis=0)
-
-        # Compute the mean and std from histogram counts.
-        weighted_sum = np.sum(centers_expanded * hist_counts, axis=0)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            mean = weighted_sum / counts_sum
-
-        sq_diff = (centers_expanded - mean[np.newaxis, ...]) ** 2
-        variance_num = np.sum(sq_diff * hist_counts, axis=0)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            variance = variance_num / counts_sum
-        std = np.sqrt(variance)
-
-        # Compute the median from histogram counts via the cumulative distribution.
-        cdf = np.cumsum(hist_counts, axis=0)
-        cdf_denominator = cdf[-1, ...]
-        with np.errstate(divide="ignore", invalid="ignore"):
-            cdf = np.divide(
-                cdf,
-                cdf_denominator[np.newaxis, ...],
-                out=np.zeros_like(cdf, dtype=float),
-                where=cdf_denominator[np.newaxis, ...] != 0,
-            )
-        median_idx = np.argmax(cdf >= 0.5, axis=0)
-        median = centers[median_idx]
-
-        # Mark elements with no valid entries as NaN.
-        invalid = counts_sum == 0
-        mean = np.where(invalid, np.nan, mean)
-        std = np.where(invalid, np.nan, std)
-        median = np.where(invalid, np.nan, median)
-        return HistogramChunkStatisticsContainer(
+        return HistogramChunkContainer(
             n_events=n_events_valid,
-            mean=mean,
-            median=median,
-            std=std,
             histogram=hist_counts,
             meta={
                 "bin_edges": hist_object.axes[0].edges,

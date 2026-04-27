@@ -131,14 +131,8 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
 
     assert len(stats) == 2
     assert stats[0]["histogram"].shape == (30, 2, 16)
-    assert stats[0]["mean"].shape == (2, 16)
-    assert stats[0]["median"].shape == (2, 16)
-    assert stats[0]["std"].shape == (2, 16)
     assert stats[0]["n_events"].shape == (2, 16)
     assert stats[0].meta["bin_edges"].shape == (31,)
-
-    np.testing.assert_allclose(stats[0]["mean"], 77.0, atol=4.0)
-    np.testing.assert_allclose(stats[0]["std"], 10.0, atol=4.0)
 
 
 def test_outlier_detector(example_subarray):
