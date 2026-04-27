@@ -459,7 +459,8 @@ class HistogramAggregator(BaseAggregator):
 
         For HistogramAggregator, the histogram columns should have the same units as the input data.
         """
-        table["histogram"].unit = unit
+        for col in ("bin_edges", "bin_centers"):
+            table.meta[col].unit = unit
 
     def compute_histograms(
         self, data, masked_elements_of_sample
