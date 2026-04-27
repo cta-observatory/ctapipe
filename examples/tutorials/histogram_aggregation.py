@@ -38,7 +38,8 @@ times = Time(
     format="mjd",
 )
 event_ids = np.arange(n_events)
-images = rng.normal(loc=77.0, scale=10.0, size=(n_events, n_channels, n_pixels))
+images = rng.normal(loc=85.0, scale=10.0, size=(n_events, n_channels, n_pixels))
+images[:, 1, :] -= 15  # Simulate lower gain channel by shifting the mean down by 15
 peak_time = rng.normal(loc=20.0, scale=2.0, size=(n_events, n_channels, n_pixels))
 
 # Add a few invalid values to demonstrate n_events behavior.

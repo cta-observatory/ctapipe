@@ -112,6 +112,8 @@ def test_histograms_aggregator():
 
     rng = np.random.default_rng(10)
     data = rng.normal(77.0, 10.0, size=(200, 2, 8))
+    low_gain_shift = 12.0
+    data[:, 1, :] += low_gain_shift
 
     config = Config(
         {
@@ -140,6 +142,18 @@ def test_histograms_aggregator():
     # With a wide range all events should be counted for each pixel.
     np.testing.assert_array_equal(
         histo_chunk.histogram.sum(axis=0), np.full((2, 8), 200)
+    )
+
+    # Recover channel means from the histogram and check the introduced low-gain shift.
+    bin_centers = histo_chunk.meta["bin_centers"]
+    weighted_sum = np.sum(
+        histo_chunk.histogram * bin_centers[:, np.newaxis, np.newaxis], axis=0
+    )
+    counts = np.sum(histo_chunk.histogram, axis=0)
+    weighted_mean = weighted_sum / counts
+    channel_mean = weighted_mean.mean(axis=1)
+    np.testing.assert_allclose(
+        channel_mean[1] - channel_mean[0], low_gain_shift, atol=2.0
     )
 
 
@@ -230,6 +244,44 @@ def test_histograms_aggregator_masks_and_nan_handling():
     assert histo_chunk["histogram"][:, 0, 0].sum() == histo_chunk["n_events"][0, 0]
     # Unaffected pixels should retain the full number of events.
     assert histo_chunk["n_events"][1, 3] == n_events
+
+
+@pytest.mark.parametrize(
+    ("shape", "spatial_shape"),
+    [
+        ((200,), ()),
+        ((200, 10), (10,)),
+        ((200, 2, 8, 3), (2, 8, 3)),
+    ],
+)
+def test_histograms_aggregator_input_shapes(shape, spatial_shape):
+    """Test histogram computation for 1D, 2D and higher-dimensional inputs."""
+
+    rng = np.random.default_rng(13)
+    data = rng.normal(50.0, 5.0, size=shape)
+    n_events = shape[0]
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 20,
+                    "start": 0.0,
+                    "stop": 100.0,
+                }
+            }
+        }
+    )
+    aggregator = HistogramAggregator(config=config)
+    histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
+
+    assert histo_chunk.histogram.shape == (20,) + spatial_shape
+    assert np.shape(histo_chunk.n_events) == spatial_shape
+
+    expected_counts = np.full(spatial_shape, n_events)
+    np.testing.assert_array_equal(histo_chunk.n_events, expected_counts)
+    np.testing.assert_array_equal(histo_chunk.histogram.sum(axis=0), expected_counts)
 
 
 def test_chunk_shift():
