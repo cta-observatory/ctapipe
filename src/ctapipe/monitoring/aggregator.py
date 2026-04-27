@@ -482,7 +482,9 @@ class HistogramAggregator(BaseAggregator):
         # Vectorized filling - all valid values and their dimension indices at once
         valid_mask = ~flat_mask
         values = flat_data[valid_mask]
-        dimension_indices = np.where(valid_mask)[1]  # column indices (which dimension)
+        dimension_indices = np.nonzero(valid_mask)[
+            1
+        ]  # column indices (which dimension)
         if len(values) > 0:
             hist_object.fill(value=values, element=dimension_indices)
         # Extract histogram counts and reshape to original data dimensions (with bin dimension first)
