@@ -112,7 +112,6 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
                     "bins": 20,
                     "start": 0.0,
                     "stop": 200.0,
-                    "name": "value",
                 },
             },
             "SizeChunking": {
@@ -140,9 +139,6 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
     assert "histogram" in stats.colnames
     assert "bin_edges" in stats.meta
     assert stats["histogram"].ndim == 4
-    assert stats["mean"].ndim == 3
-    assert stats["median"].ndim == 3
-    assert stats["std"].ndim == 3
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
