@@ -15,7 +15,7 @@ from ..core.traits import (
     TelescopeParameter,
     TraitError,
 )
-from .aggregator import BaseAggregator, HistogramAggregator
+from .aggregator import BaseAggregator
 from .outlier import OutlierDetector
 
 __all__ = [
@@ -166,14 +166,13 @@ class PixelStatisticsCalculator(TelescopeComponent):
             # Restore original chunk_shift
             aggregator.chunking.chunk_shift = original_chunk_shift
 
-        if not isinstance(aggregator, HistogramAggregator):
-            # Detect faulty pixels with multiple instances of ``OutlierDetector``
-            # and append the outlier masks to the aggregated statistics
-            self._find_and_append_outliers(aggregated_stats)
-            # Get valid chunks and add them to the aggregated statistics
-            aggregated_stats["is_valid"] = self._get_valid_chunks(
-                aggregated_stats["outlier_mask"]
-            )
+        # Detect faulty pixels with multiple instances of ``OutlierDetector``
+        # and append the outlier masks to the aggregated statistics
+        self._find_and_append_outliers(aggregated_stats)
+        # Get valid chunks and add them to the aggregated statistics
+        aggregated_stats["is_valid"] = self._get_valid_chunks(
+            aggregated_stats["outlier_mask"]
+        )
         return aggregated_stats
 
     def second_pass(
@@ -185,7 +184,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         col_name="image",
     ) -> Table:
         """
-        Conduct a second pass over the data to refine the statistics in regions with a high percentage of faulty pixels.
+        Conduct a second pass over the data to refine the statistics or histograms in regions with a high percentage of faulty pixels.
 
         This method performs a second pass over the data with a refined shift of the chunk in regions where a high percentage
         of faulty pixels were detected during the first pass. Note: Multiple first passes of different calibration events are
@@ -209,7 +208,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         Returns
         -------
         astropy.table.Table
-            Table containing the aggregated statistics after the second pass, their outlier masks, and the validity of the chunks.
+            Table containing the aggregated statistics or histograms after the second pass, their outlier masks, and the validity of the chunks.
         """
         # Check if at least one chunk is faulty
         if np.all(valid_chunks):
@@ -275,20 +274,20 @@ class PixelStatisticsCalculator(TelescopeComponent):
 
     def _find_and_append_outliers(self, aggregated_stats):
         """
-        Find outliers and append the masks in the aggregated statistics.
+        Find outliers and append the masks in the aggregated statistics or histograms.
 
-        This method detects outliers in the aggregated statistics using the
+        This method detects outliers in the aggregated statistics or histograms using the
         outlier detectors defined in the configuration. Table containing the
-        aggregated statistics will be appended with the outlier masks for each
+        aggregated statistics or histograms will be appended with the outlier masks for each
         detector and a combined outlier mask.
 
         Parameters
         ----------
         aggregated_stats : astropy.table.Table
-            Table containing the aggregated statistics.
+            Table containing the aggregated statistics or histograms.
 
         """
-        outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
+        outlier_mask = np.zeros_like(aggregated_stats["n_events"], dtype=bool)
         for d, (column_name, outlier_detector) in enumerate(
             zip(self.apply_to_list, self.outlier_detectors)
         ):
@@ -313,7 +312,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         ----------
         outlier_mask : numpy.ndarray
             Boolean array indicating outlier pixels. The shape of the array should
-            match the shape of the aggregated statistics.
+            match the shape of the aggregated statistics or histograms.
 
         Returns
         -------
