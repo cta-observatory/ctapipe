@@ -62,7 +62,7 @@ __all__ = [
     "ArrayPointingContainer",
     "StatisticsContainer",
     "ChunkStatisticsContainer",
-    "HistogramChunkContainer",
+    "ChunkHistogramsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -1280,7 +1280,7 @@ class ChunkStatisticsContainer(StatisticsContainer):
     event_id_end = Field(None, "event id of the last event of the chunk")
 
 
-class HistogramChunkContainer(ChunkStatisticsContainer):
+class ChunkHistogramsContainer(Container):
     """Store histograms of a chunk of images"""
 
     time_start = Field(NAN_TIME, "high resolution start time of the chunk")
