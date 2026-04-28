@@ -1,5 +1,5 @@
 """
-Tests for StatisticsAggregator and related functions
+Tests for aggregators and related functions
 """
 
 import astropy.units as u
@@ -10,6 +10,7 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.monitoring.aggregator import (
+    HistogramAggregator,
     PlainAggregator,
     SigmaClippingAggregator,
 )
@@ -104,6 +105,183 @@ def test_aggregators():
     np.testing.assert_allclose(ped_stats[0]["std"], 5.0, atol=1.5)
     np.testing.assert_allclose(charge_stats[0]["std"], 10.0, atol=1.5)
     np.testing.assert_allclose(time_stats[0]["std"], 5.0, atol=1.5)
+
+
+def test_histograms_aggregator():
+    """Test histogram computation shape, values and entry counts for N-D event data."""
+
+    rng = np.random.default_rng(10)
+    data = rng.normal(77.0, 10.0, size=(200, 2, 8))
+    low_gain_shift = 12.0
+    data[:, 1, :] += low_gain_shift
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 40,
+                    "start": 0.0,
+                    "stop": 200.0,
+                }
+            }
+        }
+    )
+    aggregator = HistogramAggregator(config=config)
+
+    histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
+
+    assert histo_chunk.histogram.shape == (40, 2, 8)
+    assert histo_chunk.meta["bin_edges"].shape == (41,)
+    assert histo_chunk.n_events.shape == (2, 8)
+    np.testing.assert_array_equal(histo_chunk.n_events, np.full((2, 8), 200))
+
+    # Configured Regular axis is [0, 200] with 40 bins.
+    np.testing.assert_allclose(histo_chunk.meta["bin_edges"], np.linspace(0, 200, 41))
+
+    # With a wide range all events should be counted for each pixel.
+    np.testing.assert_array_equal(
+        histo_chunk.histogram.sum(axis=0), np.full((2, 8), 200)
+    )
+
+    # Recover channel means from the histogram and check the introduced low-gain shift.
+    bin_centers = histo_chunk.meta["bin_centers"]
+    weighted_sum = np.sum(
+        histo_chunk.histogram * bin_centers[:, np.newaxis, np.newaxis], axis=0
+    )
+    counts = np.sum(histo_chunk.histogram, axis=0)
+    weighted_mean = weighted_sum / counts
+    channel_mean = weighted_mean.mean(axis=1)
+    np.testing.assert_allclose(
+        channel_mean[1] - channel_mean[0], low_gain_shift, atol=2.0
+    )
+
+
+def test_histograms_aggregator_chunked_call():
+    """Test chunked table aggregation path and metadata for HistogramAggregator."""
+
+    times = Time(
+        np.linspace(60117.911, 60117.912, num=120),
+        scale="tai",
+        format="mjd",
+    )
+    event_ids = np.arange(120)
+    rng = np.random.default_rng(11)
+    data = rng.normal(10.0, 2.0, size=(120, 2, 5))
+
+    table = Table([times, event_ids, data], names=("time", "event_id", "image"))
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "chunking_type": "SizeChunking",
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 50,
+                    "start": 0.0,
+                    "stop": 20.0,
+                },
+            },
+            "SizeChunking": {"chunk_size": 60},
+        }
+    )
+    aggregator = HistogramAggregator(config=config)
+    result = aggregator(table=table)
+
+    assert len(result) == 2
+
+    assert result[0]["time_start"] == times[0]
+    assert result[1]["time_end"] == times[-1]
+    assert result[0]["event_id_start"] == event_ids[0]
+    assert result[1]["event_id_end"] == event_ids[-1]
+    assert result[0]["histogram"].shape == (50, 2, 5)
+    assert "meta" not in result[0].keys()
+    assert result[0].meta["bin_edges"].shape == (51,)
+    assert result[0].meta["bin_centers"].shape == (50,)
+    assert result[0]["n_events"].shape == (2, 5)
+    np.testing.assert_array_equal(result[0]["n_events"], np.full((2, 5), 60))
+    assert np.all(np.diff(result[0].meta["bin_edges"]) >= 0)
+
+    # Histogram edges are config-defined and must be identical for all chunks.
+    np.testing.assert_array_equal(
+        result[0].meta["bin_edges"], result[1].meta["bin_edges"]
+    )
+
+
+def test_histograms_aggregator_masks_and_nan_handling():
+    """Test masking and NaN handling in histogram computation."""
+
+    rng = np.random.default_rng(12)
+    n_events = 100
+    data = rng.normal(5.0, 1.0, size=(n_events, 2, 4))
+    data[3, 0, 0] = np.nan
+
+    mask = np.zeros((2, 4), dtype=bool)
+    mask[0, 1] = True
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 25,
+                    "start": 0.0,
+                    "stop": 10.0,
+                }
+            }
+        }
+    )
+    aggregator = HistogramAggregator(config=config)
+    histo_chunk = aggregator.compute_histograms(
+        data,
+        masked_elements_of_sample=mask,
+    )
+
+    # Fully masked pixel should receive no entries.
+    assert histo_chunk["histogram"][:, 0, 1].sum() == 0
+    assert histo_chunk["n_events"][0, 1] == 0
+    # One NaN should be dropped for this pixel.
+    assert histo_chunk["histogram"][:, 0, 0].sum() == histo_chunk["n_events"][0, 0]
+    # Unaffected pixels should retain the full number of events.
+    assert histo_chunk["n_events"][1, 3] == n_events
+
+
+@pytest.mark.parametrize(
+    ("shape", "spatial_shape"),
+    [
+        ((200,), ()),
+        ((200, 10), (10,)),
+        ((200, 2, 8, 3), (2, 8, 3)),
+    ],
+)
+def test_histograms_aggregator_input_shapes(shape, spatial_shape):
+    """Test histogram computation for 1D, 2D and higher-dimensional inputs."""
+
+    rng = np.random.default_rng(13)
+    data = rng.normal(50.0, 5.0, size=shape)
+    n_events = shape[0]
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 20,
+                    "start": 0.0,
+                    "stop": 100.0,
+                }
+            }
+        }
+    )
+    aggregator = HistogramAggregator(config=config)
+    histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
+
+    assert histo_chunk.histogram.shape == (20,) + spatial_shape
+    assert np.shape(histo_chunk.n_events) == spatial_shape
+
+    expected_counts = np.full(spatial_shape, n_events)
+    np.testing.assert_array_equal(histo_chunk.n_events, expected_counts)
+    np.testing.assert_array_equal(histo_chunk.histogram.sum(axis=0), expected_counts)
 
 
 def test_chunk_shift():

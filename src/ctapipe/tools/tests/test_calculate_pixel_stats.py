@@ -9,7 +9,11 @@ from traitlets.config.loader import Config
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io import read_table
-from ctapipe.io.hdf5dataformat import DL1_COLUMN_NAMES, DL1_PIXEL_STATISTICS_GROUP
+from ctapipe.io.hdf5dataformat import (
+    DL1_COLUMN_NAMES,
+    DL1_PIXEL_HISTOGRAMS_GROUP,
+    DL1_PIXEL_STATISTICS_GROUP,
+)
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 from ctapipe.tools.merge import MergeTool
 
@@ -83,6 +87,58 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
             )["mean"].ndim
             == 3
         )
+
+
+def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_image_file):
+    """check tool execution with HistogramAggregator"""
+
+    tel_id = 3
+    output_file = tmp_path / "subarray_image_hist_monitoring.dl1.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {
+                "allowed_tels": [3],
+                "input_column_name": "image",
+            },
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [
+                    ("type", "*", "HistogramAggregator"),
+                ],
+            },
+            "HistogramAggregator": {
+                "chunking_type": "SizeChunking",
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 20,
+                    "start": 0.0,
+                    "stop": 200.0,
+                },
+            },
+            "SizeChunking": {
+                "chunk_size": 1,
+            },
+        }
+    )
+
+    run_tool(
+        PixelStatisticsCalculatorTool(config=config),
+        argv=[
+            f"--input_url={dl1_image_file}",
+            f"--output_path={output_file}",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    stats = read_table(
+        output_file,
+        path=f"{DL1_PIXEL_HISTOGRAMS_GROUP}/subarray_image/tel_{tel_id:03d}",
+    )
+
+    assert "histogram" in stats.colnames
+    assert "bin_edges" in stats.meta
+    assert stats["histogram"].ndim == 4
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):

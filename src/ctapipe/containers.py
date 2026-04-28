@@ -63,6 +63,7 @@ __all__ = [
     "StatisticsContainer",
     "ChunkContainer",
     "ChunkStatisticsContainer",
+    "ChunkHistogramsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -1265,6 +1266,12 @@ class ChunkStatisticsContainer(ChunkContainer):
     mean = Field(None, "mean value of the chunk distribution")
     median = Field(None, "median value of the chunk distribution")
     std = Field(None, "standard deviation of the chunk distribution")
+
+
+class ChunkHistogramsContainer(ChunkContainer):
+    """Container for histograms of the chunk distribution"""
+
+    histogram = Field(None, "histogram of the chunk distribution")
 
 
 class PixelStatisticsContainer(Container):
