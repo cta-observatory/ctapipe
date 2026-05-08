@@ -1,0 +1,4 @@
+Fixed confusing ``__repr__`` for `ctapipe.core.Map`. Now it only prints the type
+and values in the map, rather than the full repr of all members. This has no
+effect on any code, just a quality of life improvement for users that look at
+container structures interactively in a notebook or REPL.
