@@ -22,7 +22,7 @@ class EmptyImages(Exception):
 def guess_shower_depth(energy):
     """
     Simple estimation of depth of shower max based on the expected gamma-ray elongation
-    rate.
+    rate
 
     Parameters
     ----------
@@ -69,7 +69,6 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     for i in range(shape[0]):
         cosine_angle = np.cos(phi[i])
         sin_angle = np.sin(phi[i])
-
         for j in range(shape[1]):
             pixel_pos_trans_x[i][j] = (x_trans - pixel_pos_x[i][j]) * cosine_angle - (
                 y_trans - pixel_pos_y[i][j]
@@ -116,15 +115,15 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
         seed = [source_x, source_y, tilt_x, tilt_y, en_seed, 1.2]
 
     # Take a reasonable first guess at step size
-    step = [0.04 / 57.3, 0.04 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.01]
+    step = [0.05 / 57.3, 0.05 / 57.3, 10, 10, en_seed * 0.1, 0.1, 0.01]
     # And some sensible limits of the fit range
     limits = [
         [source_x - 1.5 / 57.3, source_x + 1.5 / 57.3],
         [source_y - 1.5 / 57.3, source_y + 1.5 / 57.3],
         [tilt_x - 100, tilt_x + 100],
         [tilt_y - 100, tilt_y + 100],
-        [lower_en_limit, en_seed * 2],
-        [0.8, 1.2],
+        [lower_en_limit, en_seed * 10],
+        [0.5, 1.5],
         [0.0, 0.01],
     ]
 
@@ -164,6 +163,7 @@ def generate_fake_template(
 def create_dummy_templates(
     output_file,
     energy,
+    tel_type,
     pe=1000.0,
     energy_range=np.logspace(-1, 1, 7),
     dist_range=np.linspace(0, 200, 5),
@@ -192,5 +192,8 @@ def create_dummy_templates(
 
                 template_dict[key] = template.T * pe
 
+    output_dict = {}
+    output_dict["data"] = template_dict
+    output_dict["tel_type"] = tel_type
     with gzip.open(output_file, "wb") as filehandler:
-        pickle.dump(template_dict, filehandler)
+        pickle.dump(output_dict, filehandler)
