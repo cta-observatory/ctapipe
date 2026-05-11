@@ -15,7 +15,7 @@ from .optics import (
     ReflectorShape,
     SizeType,
 )
-from .subarray import SubarrayDescription, UnknownTelescopeID
+from .subarray import SubarrayDescription, UnknownSubarray, UnknownTelescopeID
 from .telescope import TelescopeDescription
 from .trigger import SoftwareTrigger
 from .warnings import FromNameWarning
@@ -32,6 +32,7 @@ __all__ = [
     "SubarrayDescription",
     "TelescopeDescription",
     "UnknownTelescopeID",
+    "UnknownSubarray",
     "FocalLengthKind",
     "ReflectorShape",
     "SizeType",
