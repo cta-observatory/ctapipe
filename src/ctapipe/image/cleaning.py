@@ -11,6 +11,17 @@ image size and just set unclean pixels to 0 or similar, use
 ``image[~mask] = 0``
 
 """
+from abc import abstractmethod
+
+import numpy as np
+from pydantic import Field
+from pydantic_configtree import Config, Configurable
+from pydantic_configtree.lookup import Lookup
+
+from ..containers import CameraMonitoringContainer
+from ..instrument import SubarrayDescription
+from .morphology import brightest_island, largest_island, number_of_islands
+from .statistics import n_largest
 
 __all__ = [
     "tailcuts_clean",
@@ -29,21 +40,6 @@ __all__ = [
     "FACTImageCleaner",
     "TimeConstrainedImageCleaner",
 ]
-
-from abc import abstractmethod
-
-import numpy as np
-
-from ctapipe.image.statistics import n_largest
-
-from ..containers import CameraMonitoringContainer
-from ..core import TelescopeComponent
-from ..core.traits import (
-    BoolTelescopeParameter,
-    FloatTelescopeParameter,
-    IntTelescopeParameter,
-)
-from .morphology import brightest_island, largest_island, number_of_islands
 
 
 def tailcuts_clean(
@@ -639,20 +635,24 @@ def nsb_image_cleaning(
     return mask
 
 
-class ImageCleaner(TelescopeComponent):
+class ImageCleaner(Configurable):
     """
     Abstract class for all configurable Image Cleaning algorithms. Use
     ``ImageCleaner.from_name()`` to construct an instance of a particular algorithm
     """
+
+    def __init__(self, subarray: SubarrayDescription, **kwargs):
+        super().__init__(**kwargs)
+        self.subarray = subarray
 
     @abstractmethod
     def __call__(
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: CameraMonitoringContainer = None,
+        monitoring: CameraMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Identify pixels with signal, and reject those with pure noise.
@@ -678,119 +678,133 @@ class ImageCleaner(TelescopeComponent):
         pass
 
 
+def _type_default[T](value: T) -> Lookup[T]:
+    return Lookup([("type", "*", value)])
+
+
 class TailcutsImageCleaner(ImageCleaner):
     """
     Clean images using the standard picture/boundary technique. See
     `ctapipe.image.tailcuts_clean`.
     """
 
-    picture_threshold_pe = FloatTelescopeParameter(
-        default_value=10.0, help="top-level threshold in photoelectrons"
-    ).tag(config=True)
+    class __config__(Config):
+        picture_threshold_pe: Lookup[float] = Field(
+            default=_type_default(10.0),
+            description="top-level threshold in photoelectrons",
+        )
 
-    boundary_threshold_pe = FloatTelescopeParameter(
-        default_value=5.0, help="second-level threshold in photoelectrons"
-    ).tag(config=True)
+        boundary_threshold_pe: Lookup[float] = Field(
+            default=_type_default(5.0),
+            description="second-level threshold in photoelectrons"
+        )
 
-    min_picture_neighbors = IntTelescopeParameter(
-        default_value=2, help="Minimum number of neighbors above threshold to consider"
-    ).tag(config=True)
+        min_picture_neighbors: Lookup[int] = Field(
+            default=_type_default(2),
+            description="Minimum number of neighbors above threshold to consider",
+        )
 
-    keep_isolated_pixels = BoolTelescopeParameter(
-        default_value=False,
-        help="If False, pixels with less neighbors than ``min_picture_neighbors`` are"
-        "removed.",
-    ).tag(config=True)
+        keep_isolated_pixels: Lookup[bool] = Field(
+            default=_type_default(False),
+            description=(
+                "If False, pixels with less neighbors than"
+                " ``min_picture_neighbors`` are removed."
+            ),
+        )
 
     def __call__(
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: CameraMonitoringContainer = None,
+        monitoring: CameraMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
         """
-
+        tel = self.subarray.tel[tel_id]
+        tel_type = str(tel)
         return tailcuts_clean(
-            self.subarray.tel[tel_id].camera.geometry,
+            tel.camera.geometry,
             image,
-            picture_thresh=self.picture_threshold_pe.tel[tel_id],
-            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
-            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
-            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+            picture_thresh=self.config.picture_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            boundary_thresh=self.config.boundary_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            min_number_picture_neighbors=self.config.min_picture_neighbors.get(type=tel_type, tel_id=tel_id),
+            keep_isolated_pixels=self.config.keep_isolated_pixels.get(type=tel_type, tel_id=tel_id),
         )
 
 
-class NSBImageCleaner(TailcutsImageCleaner):
+class NSBImageCleaner(ImageCleaner):
     """
     Clean images based on lstchains image cleaning technique described in
     :cite:p:`lst1-crab-paper`. See `ctapipe.image.nsb_image_cleaning`.
     """
 
-    time_limit = FloatTelescopeParameter(
-        default_value=2,
-        help="Time limit for the `apply_time_delta_cleaning`. Set to None if no"
-        " `apply_time_delta_cleaning` should be applied.",
-        allow_none=True,
-    ).tag(config=True)
+    # inherit options from TailcutsImageCleaner
+    class __config__(TailcutsImageCleaner.__config__):
+        time_limit: Lookup[float | None] = Field(
+            default=_type_default(2.0),
+            description=(
+                "Time limit for the `apply_time_delta_cleaning`. Set to None if no"
+                " `apply_time_delta_cleaning` should be applied."
+            ),
+        )
 
-    time_num_neighbors = IntTelescopeParameter(
-        default_value=1,
-        help="Used for `apply_time_delta_cleaning`."
-        " A selected pixel needs at least this number of (already selected) neighbors"
-        " that arrived within a given `time_limit` to itself to survive this cleaning.",
-    ).tag(config=True)
+        time_num_neighbors: Lookup[int] = Field(
+            default=_type_default(1),
+            description="Used for `apply_time_delta_cleaning`."
+            " A selected pixel needs at least this number of (already selected) neighbors"
+            " that arrived within a given `time_limit` to itself to survive this cleaning.",
+        )
 
-    bright_cleaning_n_pixels = IntTelescopeParameter(
-        default_value=3,
-        help="Consider this number of the brightest pixels for calculating the"
-        " mean charge. Pixels below fraction * (mean charge in the"
-        " ``bright_cleaning_n_pixels`` brightest pixels) will be removed from the"
-        " cleaned image. Set ``bright_cleaning_threshold`` to None if no"
-        " `bright_cleaning` should be applied.",
-    ).tag(config=True)
+        bright_cleaning_n_pixels: Lookup[int] = Field(
+            default=_type_default(3),
+            description="Consider this number of the brightest pixels for calculating the"
+            " mean charge. Pixels below fraction * (mean charge in the"
+            " ``bright_cleaning_n_pixels`` brightest pixels) will be removed from the"
+            " cleaned image. Set ``bright_cleaning_threshold`` to None if no"
+            " `bright_cleaning` should be applied.",
+        )
 
-    bright_cleaning_fraction = FloatTelescopeParameter(
-        default_value=0.03,
-        help="Fraction parameter for `bright_cleaning`. Pixels below"
-        " fraction * (mean charge in the ``bright_cleaning_n_pixels`` brightest pixels)"
-        " will be removed from the cleaned image. Set ``bright_cleaning_threshold`` to"
-        " None if no `bright_cleaning` should be applied.",
-    ).tag(config=True)
+        bright_cleaning_fraction: Lookup[float] = Field(
+            default=_type_default(0.03),
+            description="Fraction parameter for `bright_cleaning`. Pixels below"
+            " fraction * (mean charge in the ``bright_cleaning_n_pixels`` brightest pixels)"
+            " will be removed from the cleaned image. Set ``bright_cleaning_threshold`` to"
+            " None if no `bright_cleaning` should be applied.",
+        )
 
-    bright_cleaning_threshold = FloatTelescopeParameter(
-        default_value=267,
-        help="Threshold parameter for `bright_cleaning`. Minimum mean charge"
-        " in the ``bright_cleaning_n_pixels`` brightest pixels to apply the cleaning."
-        " Set to None if no `bright_cleaning` should be applied.",
-        allow_none=True,
-    ).tag(config=True)
+        bright_cleaning_threshold: Lookup[float | None] = Field(
+            default=_type_default(267),
+            description="Threshold parameter for `bright_cleaning`. Minimum mean charge"
+            " in the ``bright_cleaning_n_pixels`` brightest pixels to apply the cleaning."
+            " Set to None if no `bright_cleaning` should be applied.",
+        )
 
-    largest_island_only = BoolTelescopeParameter(
-        default_value=False, help="Set to true to get only largest island"
-    ).tag(config=True)
+        largest_island_only: Lookup[bool] = Field(
+            default=_type_default(False),
+            description="Set to true to get only largest island",
+        )
 
-    pedestal_factor = FloatTelescopeParameter(
-        default_value=2.5,
-        help="Factor for interleaved pedestal cleaning. It is multiplied by the"
-        " pedestal standard deviation for each pixel to calculate pixelwise upper limit"
-        " picture thresholds and clip them with ``picture_thresh_pe`` of"
-        " `TailcutsImageCleaner` for `tailcuts_clean` considering the current background."
-        " If no pedestal standard deviation is given, interleaved pedestal cleaning is"
-        " not applied and ``picture_thresh_pe`` of `TailcutsImageCleaner` is used alone"
-        " instead.",
-    ).tag(config=True)
+        pedestal_factor: Lookup[float] = Field(
+            default=_type_default(2.5),
+            description="Factor for interleaved pedestal cleaning. It is multiplied by the"
+            " pedestal standard deviation for each pixel to calculate pixelwise upper limit"
+            " picture thresholds and clip them with ``picture_thresh_pe`` of"
+            " `TailcutsImageCleaner` for `tailcuts_clean` considering the current background."
+            " If no pedestal standard deviation is given, interleaved pedestal cleaning is"
+            " not applied and ``picture_thresh_pe`` of `TailcutsImageCleaner` is used alone"
+            " instead.",
+        )
 
     def __call__(
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: CameraMonitoringContainer = None,
+        monitoring: CameraMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply NSB image cleaning used by lstchain. See `ImageCleaner.__call__()`
@@ -799,117 +813,144 @@ class NSBImageCleaner(TailcutsImageCleaner):
         if monitoring is not None:
             pedestal_std = monitoring.pixel_statistics.pedestal_image.std
 
+        tel = self.subarray.tel[tel_id]
+        tel_type = str(tel)
         return nsb_image_cleaning(
-            self.subarray.tel[tel_id].camera.geometry,
+            tel.camera.geometry,
             image,
             arrival_times,
-            picture_thresh_min=self.picture_threshold_pe.tel[tel_id],
-            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
-            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
-            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
-            time_limit=self.time_limit.tel[tel_id],
-            time_num_neighbors=self.time_num_neighbors.tel[tel_id],
-            bright_cleaning_n_pixels=self.bright_cleaning_n_pixels.tel[tel_id],
-            bright_cleaning_fraction=self.bright_cleaning_fraction.tel[tel_id],
-            bright_cleaning_threshold=self.bright_cleaning_threshold.tel[tel_id],
-            largest_island_only=self.largest_island_only.tel[tel_id],
-            pedestal_factor=self.pedestal_factor.tel[tel_id],
             pedestal_std=pedestal_std,
+            picture_thresh_min=self.config.picture_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            boundary_thresh=self.config.boundary_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            min_number_picture_neighbors=self.config.min_picture_neighbors.get(type=tel_type, tel_id=tel_id),
+            keep_isolated_pixels=self.config.keep_isolated_pixels.get(type=tel_type, tel_id=tel_id),
+            time_limit=self.config.time_limit.get(type=tel_type, tel_id=tel_id),
+            time_num_neighbors=self.config.time_num_neighbors.get(type=tel_type, tel_id=tel_id),
+            bright_cleaning_n_pixels=self.config.bright_cleaning_n_pixels.get(type=tel_type, tel_id=tel_id),
+            bright_cleaning_fraction=self.config.bright_cleaning_fraction.get(type=tel_type, tel_id=tel_id),
+            bright_cleaning_threshold=self.config.bright_cleaning_threshold.get(type=tel_type, tel_id=tel_id),
+            largest_island_only=self.config.largest_island_only.get(type=tel_type, tel_id=tel_id),
+            pedestal_factor=self.config.pedestal_factor.get(type=tel_type, tel_id=tel_id),
         )
 
 
-class MARSImageCleaner(TailcutsImageCleaner):
+class MARSImageCleaner(ImageCleaner):
     """
     1st-pass MARS-like Image cleaner (See `ctapipe.image.mars_cleaning_1st_pass`)
     """
+
+    class __config__(Config):
+        picture_threshold_pe: Lookup[float] = Field(
+            default=_type_default(10.0),
+            description="top-level threshold in photoelectrons",
+        )
+
+        boundary_threshold_pe: Lookup[float] = Field(
+            default=_type_default(5.0),
+            description="second-level threshold in photoelectrons"
+        )
+
+        min_picture_neighbors: Lookup[int] = Field(
+            default=_type_default(2),
+            description="Minimum number of neighbors above threshold to consider",
+        )
 
     def __call__(
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: CameraMonitoringContainer = None,
+        monitoring: CameraMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
         """
 
+        tel = self.subarray.tel[tel_id]
+        tel_type = str(tel)
         return mars_cleaning_1st_pass(
-            self.subarray.tel[tel_id].camera.geometry,
+            tel.camera.geometry,
             image,
-            picture_thresh=self.picture_threshold_pe.tel[tel_id],
-            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
-            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
+            picture_thresh=self.config.picture_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            boundary_thresh=self.config.boundary_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            min_number_picture_neighbors=self.config.min_picture_neighbors.get(type=tel_type, tel_id=tel_id),
             keep_isolated_pixels=False,
         )
 
 
-class FACTImageCleaner(TailcutsImageCleaner):
+class FACTImageCleaner(ImageCleaner):
     """
     Clean images using the FACT technique. See `ctapipe.image.fact_image_cleaning`
     for algorithm details.
     """
 
-    time_limit_ns = FloatTelescopeParameter(
-        default_value=5.0, help="arrival time limit for neighboring pixels, in ns"
-    ).tag(config=True)
+    class __config__(TailcutsImageCleaner.__config__):
+        time_limit_ns: Lookup[float] = Field(
+            default=_type_default(5.0),
+            description="arrival time limit for neighboring pixels, in ns",
+        )
 
     def __call__(
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: CameraMonitoringContainer = None,
+        monitoring: CameraMonitoringContainer | None = None,
     ) -> np.ndarray:
         """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
 
+        tel = self.subarray.tel[tel_id]
+        tel_type = str(tel)
         return fact_image_cleaning(
-            geom=self.subarray.tel[tel_id].camera.geometry,
+            geom=tel.camera.geometry,
             image=image,
             arrival_times=arrival_times,
-            picture_threshold=self.picture_threshold_pe.tel[tel_id],
-            boundary_threshold=self.boundary_threshold_pe.tel[tel_id],
-            min_number_neighbors=self.min_picture_neighbors.tel[tel_id],
-            time_limit=self.time_limit_ns.tel[tel_id],
+            picture_threshold=self.config.picture_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            boundary_threshold=self.config.boundary_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            min_number_neighbors=self.config.min_picture_neighbors.get(type=tel_type, tel_id=tel_id),
+            time_limit=self.config.time_limit_ns.get(type=tel_type, tel_id=tel_id),
         )
 
 
-class TimeConstrainedImageCleaner(TailcutsImageCleaner):
+class TimeConstrainedImageCleaner(ImageCleaner):
     """
     MAGIC-like Image cleaner with timing information (See
     `ctapipe.image.time_constrained_clean`).
     """
 
-    time_limit_core_ns = FloatTelescopeParameter(
-        default_value=4.5,
-        help="arrival time limit for neighboring core pixels, in ns",
-    ).tag(config=True)
-    time_limit_boundary_ns = FloatTelescopeParameter(
-        default_value=1.5,
-        help="arrival time limit for neighboring boundary pixels, in ns",
-    ).tag(config=True)
+    class __config__(TailcutsImageCleaner.__config__):
+        time_limit_core_ns: Lookup[float] = Field(
+            default=_type_default(4.5),
+            description="arrival time limit for neighboring core pixels, in ns",
+        )
+        time_limit_boundary_ns: Lookup[float] = Field(
+            default=_type_default(1.5),
+            description="arrival time limit for neighboring boundary pixels, in ns",
+        )
 
     def __call__(
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: CameraMonitoringContainer = None,
+        monitoring: CameraMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
         """
 
+        tel = self.subarray.tel[tel_id]
+        tel_type = str(tel)
         return time_constrained_clean(
-            self.subarray.tel[tel_id].camera.geometry,
+            tel.camera.geometry,
             image,
             arrival_times=arrival_times,
-            picture_thresh=self.picture_threshold_pe.tel[tel_id],
-            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
-            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
-            time_limit_core=self.time_limit_core_ns.tel[tel_id],
-            time_limit_boundary=self.time_limit_boundary_ns.tel[tel_id],
+            picture_thresh=self.config.picture_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            boundary_thresh=self.config.boundary_threshold_pe.get(type=tel_type, tel_id=tel_id),
+            min_number_picture_neighbors=self.config.min_picture_neighbors.get(type=tel_type, tel_id=tel_id),
+            time_limit_core=self.config.time_limit_core_ns.get(type=tel_type, tel_id=tel_id),
+            time_limit_boundary=self.config.time_limit_boundary_ns.get(type=tel_type, tel_id=tel_id),
         )

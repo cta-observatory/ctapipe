@@ -34,7 +34,7 @@ from .hillas import (
     camera_to_shower_coordinates,
     hillas_parameters,
 )
-from .image_processor import ImageProcessor
+# from .image_processor import ImageProcessor
 from .invalid_pixels import InvalidPixelHandler, NeighborAverage
 from .leakage import leakage_parameters
 from .modifications import (
@@ -76,7 +76,7 @@ __all__ = [
     "NoiseEventTypeFilter",
     "WaveformModifier",
     "ImageModifier",
-    "ImageProcessor",
+    # "ImageProcessor",
     "hillas_parameters",
     "HillasParameterizationError",
     "camera_to_shower_coordinates",
