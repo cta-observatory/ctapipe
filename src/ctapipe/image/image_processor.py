@@ -220,6 +220,9 @@ class ImageProcessor(TelescopeComponent):
         """
         Calculate the true disp parameters (norm and sign) for a simulated telescope event.
 
+        This method should only be called when ``use_telescope_frame=True``, as it
+        requires the hillas parameters in the telescope frame (fov_lon, fov_lat, psi).
+
         Parameters
         ----------
         event : ArrayEventContainer
@@ -231,7 +234,8 @@ class ImageProcessor(TelescopeComponent):
         -------
         TrueDispContainer
             Container with true_disp_norm and true_disp_sign values, or default
-            NaN-filled container if the calculation is not possible.
+            NaN-filled container if the calculation is not possible (missing shower
+            info or pointing data).
         """
         from astropy.coordinates import AltAz
 
@@ -264,8 +268,11 @@ class ImageProcessor(TelescopeComponent):
         delta_lon = fov_lon - cog_lon
         delta_lat = fov_lat - cog_lat
 
+        # Project displacement vector onto the shower major axis (defined by psi)
+        # to determine on which end of the shower axis the true source lies
         true_disp_projected = np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
         true_sign = np.float32(np.sign(true_disp_projected.value))
+        # Norm is the full Euclidean distance from COG to true source position
         true_norm = np.sqrt(delta_lon**2 + delta_lat**2)
 
         return TrueDispContainer(norm=true_norm, sign=true_sign)
