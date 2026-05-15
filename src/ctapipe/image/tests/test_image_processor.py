@@ -59,7 +59,9 @@ def synthetic_subarray():
         reflector_shape=ReflectorShape.PARABOLIC,
     )
     tel_desc = TelescopeDescription(name="TestTel", optics=optics, camera=cam_desc)
-    reference_location = EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
+    reference_location = EarthLocation(
+        lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m
+    )
     return SubarrayDescription(
         name="test",
         tel_positions={1: np.array([0.0, 0.0, 0.0]) * u.m},
@@ -80,7 +82,7 @@ def synthetic_event_with_simulation(synthetic_subarray):
     # Put signal in the central pixels (rows 3-7, cols 3-7 of the 10x10 grid)
     # Signal falls off in one direction to give a clear major axis
     for i in range(5):
-        image[30 + i * 10 + 3 : 30 + i * 10 + 7] = 100.0 * np.exp(-(i - 2) ** 2 / 2)
+        image[30 + i * 10 + 3 : 30 + i * 10 + 7] = 100.0 * np.exp(-((i - 2) ** 2) / 2)
 
     true_image = (image * 0.5).astype(np.int32)
 
@@ -179,9 +181,7 @@ def test_image_processor_camera_frame(cleaner, example_event, example_subarray):
         assert dl1.parameters.hillas.length.unit == u.m
 
 
-def test_true_disp_calculation(
-    synthetic_subarray, synthetic_event_with_simulation
-):
+def test_true_disp_calculation(synthetic_subarray, synthetic_event_with_simulation):
     """Test that true_disp_norm and true_disp_sign are calculated for simulation events."""
     process_images = ImageProcessor(subarray=synthetic_subarray)
     process_images(synthetic_event_with_simulation)
@@ -224,4 +224,3 @@ def test_true_disp_no_simulation(synthetic_subarray, synthetic_event_with_simula
     # Without shower, true_disp should remain at defaults (NaN)
     assert np.isnan(sim_camera.true_disp.norm.value)
     assert np.isnan(sim_camera.true_disp.sign)
-

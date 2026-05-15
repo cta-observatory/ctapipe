@@ -320,9 +320,7 @@ class ImageProcessor(TelescopeComponent):
                         container.prefix = f"true_{container.prefix}"
 
                 if self.use_telescope_frame:
-                    sim_camera.true_disp = self._calculate_true_disp(
-                        event, sim_camera
-                    )
+                    sim_camera.true_disp = self._calculate_true_disp(event, sim_camera)
 
                 self.log.debug(
                     "sim params: %s",
