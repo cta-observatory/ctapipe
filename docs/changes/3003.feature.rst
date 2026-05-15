@@ -1,0 +1,5 @@
+Added calculation and storage of ``true_disp_norm`` and ``true_disp_sign`` per-telescope
+when running ``ctapipe-process``. These values are computed in ``ImageProcessor``
+(telescope frame only) and written to ``simulation/event/telescope/parameters``.
+A new ``TrueDispContainer`` is added to ``SimulatedCameraContainer``, and
+``HDF5EventSource`` reads these columns back with NaN defaults for older files.
