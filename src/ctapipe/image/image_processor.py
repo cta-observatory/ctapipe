@@ -258,8 +258,8 @@ class ImageProcessor(TelescopeComponent):
         fov_lat = tel_coord.fov_lat.to(u.deg)
 
         psi = hillas.psi.to_value(u.rad)
-        cog_lon = hillas.fov_lon
-        cog_lat = hillas.fov_lat
+        cog_lon = hillas.fov_lon.to(u.deg)
+        cog_lat = hillas.fov_lat.to(u.deg)
 
         delta_lon = fov_lon - cog_lon
         delta_lat = fov_lat - cog_lat

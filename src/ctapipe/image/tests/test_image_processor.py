@@ -112,9 +112,7 @@ def test_true_disp_calculation(example_event, example_subarray):
             if isfinite(sim_camera.true_parameters.hillas.fov_lon.value):
                 assert isfinite(true_disp.norm.value) or np.isnan(true_disp.norm.value)
                 assert true_disp.norm.unit == u.deg
-                assert true_disp.sign in {-1.0, 0.0, 1.0, float("nan")} or np.isnan(
-                    true_disp.sign
-                )
+                assert true_disp.sign in {-1.0, 0.0, 1.0} or np.isnan(true_disp.sign)
 
 
 def test_true_disp_requires_telescope_frame(example_event, example_subarray):
