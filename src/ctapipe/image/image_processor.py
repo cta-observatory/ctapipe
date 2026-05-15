@@ -2,11 +2,13 @@
 High level image processing  (ImageProcessor Component)
 """
 
+import warnings
 from copy import deepcopy
 
+import astropy.units as u
 import numpy as np
 
-from ctapipe.coordinates import TelescopeFrame
+from ctapipe.coordinates import MissingFrameAttributeWarning, TelescopeFrame
 
 from ..containers import (
     ArrayEventContainer,
@@ -16,6 +18,7 @@ from ..containers import (
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
+    TrueDispContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
 from ..core.traits import Bool, BoolTelescopeParameter, ComponentName, List
@@ -213,6 +216,60 @@ class ImageProcessor(TelescopeComponent):
         # parameterization
         return default
 
+    def _calculate_true_disp(self, event, sim_camera):
+        """
+        Calculate the true disp parameters (norm and sign) for a simulated telescope event.
+
+        Parameters
+        ----------
+        event : ArrayEventContainer
+            The event container with simulation and monitoring data.
+        sim_camera : SimulatedCameraContainer
+            The simulated camera container with true_parameters already set.
+
+        Returns
+        -------
+        TrueDispContainer
+            Container with true_disp_norm and true_disp_sign values, or default
+            NaN-filled container if the calculation is not possible.
+        """
+        from astropy.coordinates import AltAz
+
+        shower = event.simulation.shower
+        if shower is None:
+            return TrueDispContainer()
+
+        pointing_alt = event.monitoring.pointing.array_altitude
+        pointing_az = event.monitoring.pointing.array_azimuth
+
+        if np.isnan(pointing_alt.value) or np.isnan(pointing_az.value):
+            return TrueDispContainer()
+
+        hillas = sim_camera.true_parameters.hillas
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", MissingFrameAttributeWarning)
+            horizontal_coord = AltAz(alt=shower.alt, az=shower.az)
+            pointing = AltAz(alt=pointing_alt, az=pointing_az)
+            tel_frame = TelescopeFrame(telescope_pointing=pointing)
+            tel_coord = horizontal_coord.transform_to(tel_frame)
+
+        fov_lon = tel_coord.fov_lon.to(u.deg)
+        fov_lat = tel_coord.fov_lat.to(u.deg)
+
+        psi = hillas.psi.to_value(u.rad)
+        cog_lon = hillas.fov_lon
+        cog_lat = hillas.fov_lat
+
+        delta_lon = fov_lon - cog_lon
+        delta_lat = fov_lat - cog_lat
+
+        true_disp_projected = np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
+        true_sign = np.float32(np.sign(true_disp_projected.value))
+        true_norm = np.sqrt(delta_lon**2 + delta_lat**2)
+
+        return TrueDispContainer(norm=true_norm, sign=true_sign)
+
     def _process_telescope_event(self, event):
         """
         Loop over telescopes and process the calibrated images into parameters
@@ -254,6 +311,11 @@ class ImageProcessor(TelescopeComponent):
                 for container in sim_camera.true_parameters.values():
                     if not container.prefix.startswith("true_"):
                         container.prefix = f"true_{container.prefix}"
+
+                if self.use_telescope_frame:
+                    sim_camera.true_disp = self._calculate_true_disp(
+                        event, sim_camera
+                    )
 
                 self.log.debug(
                     "sim params: %s",

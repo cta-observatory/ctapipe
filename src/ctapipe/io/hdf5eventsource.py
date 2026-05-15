@@ -44,6 +44,7 @@ from ..containers import (
     TelEventIndexContainer,
     TimingParametersContainer,
     TriggerContainer,
+    TrueDispContainer,
 )
 from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
@@ -663,6 +664,7 @@ class HDF5EventSource(EventSource):
                     ConcentrationContainer,
                     MorphologyContainer,
                     IntensityStatisticsContainer,
+                    TrueDispContainer,
                 ],
                 prefixes=[
                     f"true_{hillas_prefix}",
@@ -670,6 +672,7 @@ class HDF5EventSource(EventSource):
                     "true_concentration",
                     "true_morphology",
                     "true_intensity",
+                    "true_disp",
                 ],
             )
             for table in self.file_.root.dl1.event.telescope.parameters
@@ -1002,6 +1005,7 @@ class HDF5EventSource(EventSource):
             morphology=simulated_params[3],
             intensity_statistics=simulated_params[4],
         )
+        simulated.true_disp = simulated_params[5]
 
     def _fill_muons_for_tel(self, data, tel_id, key, muon_readers):
         if not self.has_muon_parameters:

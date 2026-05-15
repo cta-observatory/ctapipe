@@ -50,6 +50,7 @@ __all__ = [
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
     "DispContainer",
+    "TrueDispContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -764,6 +765,25 @@ class TelescopeImpactParameterContainer(Container):
 
 
 # Simulation containers
+class TrueDispContainer(Container):
+    """
+    Container for the true (simulated) disp values, used for debugging angular
+    reconstruction and for training the DispReconstructor.
+    """
+
+    default_prefix = "true_disp"
+
+    norm = Field(
+        nan * u.deg,
+        "True norm of the disp parameter (distance from shower COG to true source position)",
+        unit=u.deg,
+    )
+    sign = Field(
+        np.float32(nan),
+        "True sign of the disp parameter (+1 or -1, indicating which end of shower axis)",
+    )
+
+
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -809,6 +829,12 @@ class SimulatedCameraContainer(Container):
         None,
         description="Parameters derived from the true_image",
         type=ImageParametersContainer,
+    )
+
+    true_disp = Field(
+        default_factory=TrueDispContainer,
+        description="True disp parameters (norm and sign) derived from the true shower direction",
+        type=TrueDispContainer,
     )
 
     impact = Field(
