@@ -249,11 +249,16 @@ class ImageProcessor(TelescopeComponent):
         if np.isnan(pointing_alt.value) or np.isnan(pointing_az.value):
             return TrueDispContainer()
 
+        # Clamp altitude to [-90, 90] deg to avoid floating-point rounding errors
+        # that can push values slightly outside the valid range for astropy AltAz
+        pointing_alt = np.clip(pointing_alt.to_value(u.deg), -90.0, 90.0) * u.deg
+        shower_alt = np.clip(shower.alt.to_value(u.deg), -90.0, 90.0) * u.deg
+
         hillas = sim_camera.true_parameters.hillas
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", MissingFrameAttributeWarning)
-            horizontal_coord = AltAz(alt=shower.alt, az=shower.az)
+            horizontal_coord = AltAz(alt=shower_alt, az=shower.az)
             pointing = AltAz(alt=pointing_alt, az=pointing_az)
             tel_frame = TelescopeFrame(telescope_pointing=pointing)
             tel_coord = horizontal_coord.transform_to(tel_frame)
