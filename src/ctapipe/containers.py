@@ -780,7 +780,8 @@ class TrueDispContainer(Container):
     )
     sign = Field(
         np.float32(nan),
-        "True sign of the disp parameter (+1 or -1, indicating which end of shower axis)",
+        "True sign of the disp parameter (+1, -1, or 0 in degenerate case where "
+        "true source position coincides exactly with the shower CoG)",
     )
 
 
