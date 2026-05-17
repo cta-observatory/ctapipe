@@ -131,6 +131,8 @@ nitpick_ignore = add_reference_type(
         "traitlets.traitlets.ObserveHandler",
         "traitlets.traitlets.T",
         "traitlets.traitlets.G",
+        "traitlets.traitlets.K",
+        "traitlets.traitlets.V",
         "Sentinel",
         "ObserveHandler",
         "dict[K, V]",

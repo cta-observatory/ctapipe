@@ -128,8 +128,10 @@ Simulation Data Format
       - simulated camera images
       - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.SimulatedCameraContainer`
     * - ``/simulation/event/telescope/parameters/tel_{TEL_ID:03d}``
-      - Parameters derived form the simulated camera images
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`
+      - Parameters derived from the simulated camera images, including true Hillas parameters
+        and true disp values (:py:class:`~ctapipe.containers.TrueDispContainer`) for training
+        and evaluating angular reconstruction algorithms
+      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`, :py:class:`~ctapipe.containers.TrueDispContainer`
     * - ``/simulation/service/shower_distribution``
       - simulated shower distribution histograms
       - :py:class:`~ctapipe.containers.SimulatedShowerDistribution`
