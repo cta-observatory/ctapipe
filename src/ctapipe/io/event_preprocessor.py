@@ -2,7 +2,7 @@
 
 from astropy.coordinates import angular_separation
 
-from ..coordinates import altaz_to_nominal
+from ..coordinates import altaz_to_icrs, altaz_to_nominal
 from ..core import (
     Component,
     FeatureGenerator,
@@ -123,6 +123,45 @@ def _dl2_irf_config(preprocessor):
     }
 
 
+@FeatureSetRegistry.register("dl2_to_dl3")
+def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
+    return {
+        "features_to_generate": [
+            ("ENERGY", f"{preprocessor.energy_reconstructor}_energy"),
+            ("ALT", f"{preprocessor.geometry_reconstructor}_alt"),
+            ("AZ", f"{preprocessor.geometry_reconstructor}_az"),
+            ("TIME", "time"),
+            ("EVENT_ID", "event_id"),
+            ("GAMMANESS", f"{preprocessor.gammaness_reconstructor}_prediction"),
+            (
+                "reco_fov_coord",
+                "altaz_to_nominal(AZ, ALT, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            ("FOV_LON", "reco_fov_coord[:,0]"),
+            ("FOV_LAT", "reco_fov_coord[:,1]"),
+            (
+                "reco_icrs_coord",
+                "altaz_to_icrs(AZ, ALT, TIME, LOCATION)",
+            ),
+            ("RA", "reco_icrs_coord[:,0]"),
+            ("DEC", "reco_icrs_coord[:,1]"),
+        ],
+        "quality_criteria": [],
+        "output_features": [
+            "EVENT_ID",
+            "TIME",
+            "RA",
+            "DEC",
+            "ENERGY",
+            "ALT",
+            "AZ",
+            "FOV_LON",
+            "FOV_LAT",
+            "GAMMANESS",
+        ],
+    }
+
+
 class EventPreprocessor(Component):
     """
     Selects or generates features and filters tables of events.
@@ -198,14 +237,26 @@ class EventPreprocessor(Component):
                 "of features in the configuration (DL2EventPreprocessor.features)."
             )
 
-    def __call__(self, table):
-        """Return new table with only the columns in features."""
+    def __call__(self, table, **other_attributes):
+        """
+        Return new table with only the columns in features.
+
+        Parameters
+        ----------
+        table: Table
+           Table to process
+        **other_attributes: Any
+           Other functions or objects that the FeatureGenerator should have
+           access to, in addition to the default ones.
+        """
 
         # generate new features, which includes renaming columns:
         generated = self.feature_generator(
             table,
             angular_separation=angular_separation,
             altaz_to_nominal=altaz_to_nominal,
+            altaz_to_icrs=altaz_to_icrs,
+            **other_attributes,
         )
 
         # apply event selection on the resulting table
