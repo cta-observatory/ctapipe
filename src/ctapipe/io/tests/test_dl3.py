@@ -495,7 +495,6 @@ class TestDL3GADFEventsWriter:
         assert header["OBSGEO-Z"] == pytest.approx(loc.z.to_value(u.m))
 
     def test_hdu_header_pointing_track_mode_regression(self, dl3_writer):
-        """Regression: TRACK mode must not fail when interpolating RA around 0/360."""
         dl3_writer.pointing_mode = "TRACK"
         header = dl3_writer.get_hdu_header_base_pointing()
 
@@ -504,7 +503,6 @@ class TestDL3GADFEventsWriter:
             assert np.isfinite(header[key])
 
     def test_hdu_header_pointing_drift_mode_regression(self, dl3_writer):
-        """Regression: DRIFT mode interpolation must provide valid angular quantities."""
         dl3_writer.pointing_mode = "DRIFT"
         header = dl3_writer.get_hdu_header_base_pointing()
 

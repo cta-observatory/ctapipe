@@ -8,6 +8,7 @@ import numpy as np
 from astropy.coordinates import (
     ICRS,
     AltAz,
+    Angle,
     BaseCoordinateFrame,
     EarthLocation,
     SkyCoord,
@@ -15,6 +16,7 @@ from astropy.coordinates import (
 from astropy.io import fits
 from astropy.io.fits import Header
 from astropy.io.fits.hdu.base import ExtensionHDU
+from astropy.stats import circmean
 from astropy.table import QTable, Table
 from astropy.time import Time, TimeDelta
 
@@ -676,10 +678,14 @@ class DL3GADFEventsWriter(DL3EventsWriter):
             "RADECSYS": "ICRS",
             "EQUINOX": 2000.0,
             "OBS_MODE": obs_mode,
-            "RA_PNT": self._circular_mean(icrs_coordinate.ra.to_value(u.deg)),
+            "RA_PNT": Angle(circmean(icrs_coordinate.ra))
+            .wrap_at(360 * u.deg)
+            .to_value(u.deg),
             "DEC_PNT": np.mean(icrs_coordinate.dec.to_value(u.deg)),
             "ALT_PNT": np.mean(altaz_coordinate.alt.to_value(u.deg)),
-            "AZ_PNT": self._circular_mean(altaz_coordinate.az.to_value(u.deg)),
+            "AZ_PNT": Angle(circmean(altaz_coordinate.az))
+            .wrap_at(360 * u.deg)
+            .to_value(u.deg),
             "GEOLON": self.location.lon.to_value(u.deg),
             "GEOLAT": self.location.lat.to_value(u.deg),
             "ALTITUDE": self.location.height.to_value(u.m),
@@ -970,33 +976,3 @@ class DL3GADFEventsWriter(DL3EventsWriter):
         fp_unwrapped = np.unwrap(fp_rad)
         result_rad = np.interp(x, xp, fp_unwrapped)
         return np.rad2deg(result_rad) % 360
-
-    @staticmethod
-    def _circular_mean(angles_deg):
-        """
-        Compute the mean of angular values in degrees, handling the 0/360
-        wrap-around.
-
-        Uses the ``atan2(mean(sin), mean(cos))`` formula for circular
-        statistics.
-
-        Parameters
-        ----------
-        angles_deg : array-like
-            Angular values in degrees.
-
-        Returns
-        -------
-        float
-            Mean angle in degrees, in [0, 360).
-        """
-        angles_rad = np.deg2rad(np.asarray(angles_deg, dtype=float))
-        return float(
-            np.rad2deg(
-                np.arctan2(
-                    np.mean(np.sin(angles_rad)),
-                    np.mean(np.cos(angles_rad)),
-                )
-            )
-            % 360
-        )
