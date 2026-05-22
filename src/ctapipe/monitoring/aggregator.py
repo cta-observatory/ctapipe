@@ -459,9 +459,7 @@ class HistogramAggregator(BaseAggregator):
         self, data, masked_elements_of_sample
     ) -> ChunkHistogramsContainer:
         # Build the histograms over the event dimension (axis=0) for each element of the data dimensions
-        event_dim = data.shape[0]
         spatial_shape = data.shape[1:]
-        n_elements = int(np.prod(spatial_shape))
         # Broadcast mask to full shape
         if masked_elements_of_sample is not None:
             mask = np.broadcast_to(masked_elements_of_sample, data.shape)
@@ -470,38 +468,39 @@ class HistogramAggregator(BaseAggregator):
         # Mask invalid values (NaN, inf)
         invalid = ~np.isfinite(data)
         mask = mask | invalid
-        # The histogram is computed for each element of the data dimensions, so we need to flatten
-        flat_data = data.reshape(event_dim, n_elements)
-        flat_mask = mask.reshape(event_dim, n_elements)
-        # Build histogram object over the event dimension for each element of the data dimensions
-        hist_object = Hist(
-            self.hist_axis,
-            hist.axis.Integer(0, n_elements, name="element"),
-            storage=hist.storage.Int64(),
+
+        # Build one histogram per spatial element and combine them into a stack.
+        stacked_histograms = hist.stack.Stack.from_iter(
+            self._make_histogram(
+                data[(slice(None),) + index], mask[(slice(None),) + index]
+            )
+            for index in np.ndindex(spatial_shape)
         )
-        # Vectorized filling - all valid values and their dimension indices at once
-        valid_mask = ~flat_mask
-        values = flat_data[valid_mask]
-        dimension_indices = np.nonzero(valid_mask)[
-            1
-        ]  # column indices (which dimension)
-        if len(values) > 0:
-            hist_object.fill(value=values, element=dimension_indices)
+
         # Extract histogram counts and reshape to original data dimensions (with bin dimension first)
-        n_bins = hist_object.axes[0].size
-        hist_counts = hist_object.values()  # shape: (bins, n_elements)
+        n_bins = stacked_histograms[0].axes[0].size
+        hist_counts = np.stack(
+            [histogram.values() for histogram in stacked_histograms], axis=-1
+        )
         hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
         # Count valid entries per element (excludes masked and invalid values)
-        n_events_valid = np.sum(~flat_mask, axis=0).reshape(spatial_shape)
+        n_events_valid = np.sum(~mask, axis=0)
         # Build and return the ChunkHistogramsContainer
         return ChunkHistogramsContainer(
             n_events=n_events_valid,
             histogram=hist_counts,
             meta={
-                "bin_edges": hist_object.axes[0].edges,
-                "bin_centers": hist_object.axes[0].centers,
+                "bin_edges": stacked_histograms[0].axes[0].edges,
+                "bin_centers": stacked_histograms[0].axes[0].centers,
             },
         )
+
+    def _make_histogram(self, values, mask):
+        valid_values = values[~mask]
+        hist_object = Hist(self.hist_axis, storage=hist.storage.Int64())
+        if len(valid_values) > 0:
+            hist_object.fill(value=valid_values)
+        return hist_object
 
 
 class StatisticsAggregator(BaseAggregator):
