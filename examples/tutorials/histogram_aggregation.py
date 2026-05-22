@@ -10,6 +10,7 @@ This tutorial shows how to:
 4. Plot one pixel histogram from the selected chunks and both gain channels for both image and peak_time columns.
 5. Overlay mean, median, and std on top of the histogram curves.
 6. Plot the same histogram using Hist's built-in plotting functionality after filling a Hist object with the aggregated histogram counts and variances.
+7. Compare no-flow, underflow-only, overflow-only, and both-flow histograms to see how the outer bins behave.
 """
 
 import matplotlib.pyplot as plt
