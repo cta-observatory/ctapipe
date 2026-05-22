@@ -63,7 +63,7 @@ __all__ = [
     "StatisticsContainer",
     "ChunkContainer",
     "ChunkStatisticsContainer",
-    "ChunkHistogramsContainer",
+    "ChunkHistogramContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -1268,7 +1268,7 @@ class ChunkStatisticsContainer(ChunkContainer):
     std = Field(None, "standard deviation of the chunk distribution")
 
 
-class ChunkHistogramsContainer(ChunkContainer):
+class ChunkHistogramContainer(ChunkContainer):
     """Container for histograms of the chunk distribution"""
 
     histogram = Field(None, "histogram of the chunk distribution")

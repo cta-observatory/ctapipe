@@ -14,13 +14,12 @@ This tutorial shows how to:
 
 import matplotlib.pyplot as plt
 import numpy as np
-import hist
 from astropy.table import Table
 from astropy.time import Time
 from traitlets.config import Config
 
+from ctapipe.containers import ChunkHistogramContainer
 from ctapipe.monitoring.aggregator import HistogramAggregator
-from hist import Hist
 
 
 # -------------------------------------------------------------------
@@ -133,14 +132,13 @@ for chunk_index, ax in enumerate(axes):
         counts = result[chunk_index]["histogram"][:, channel_index, pixel_index]
         valid_events = result[chunk_index]["n_events"][channel_index, pixel_index]
 
-        line = ax.step(
-            bin_edges[:-1],
+        line = ax.stairs(
             counts,
-            where="post",
+            bin_edges,
             label=f"{gain_label[channel_index]} (n_events={valid_events})",
-        )[0]
+        )
         channel_handles.append(line)
-        color = line.get_color()
+        color = line.get_edgecolor()
 
         # Plot bin variances as error bars (use sqrt of variance for error) at bin centers
         bin_errors = np.sqrt(counts)
@@ -186,14 +184,13 @@ for chunk_index, ax in enumerate(axes):
             channel_index, pixel_index
         ]
 
-        line = ax.step(
-            bin_edges[:-1],
+        line = ax.stairs(
             counts,
-            where="post",
+            bin_edges,
             label=f"{gain_label[channel_index]} (n_events={valid_events})",
-        )[0]
+        )
         channel_handles.append(line)
-        color = line.get_color()
+        color = line.get_edgecolor()
 
         # Plot bin variances as error bars (use sqrt of variance for error) at bin centers
         bin_errors = np.sqrt(counts)
@@ -221,28 +218,174 @@ plt.show()
 
 
 # -------------------------------------------------------------------
-# Initialize hist, fill it and plot via Hist functionality
+# Build a Hist object from serialized axis metadata and plot it
 # -------------------------------------------------------------------
 
-# Create a Hist object with the same binning as the aggregator
-bin_edges = result[0].meta["bin_edges"]
-h = Hist(
-    hist.axis.Regular(len(bin_edges) - 1, bin_edges[0], bin_edges[-1], name="value")
-)
-
-# Get the histogram counts and variances for the selected pixel and channel
+# Reconstruct the histogram axis from metadata stored by HistogramAggregator.
+# In this tutorial, axis_definition uses hist.axis.Regular.
 chunk_index = 0
-counts = result[0]["histogram"][:, chunk_index, pixel_index]
-
-# Set the histogram values using the view interface
-h.view(flow=False)[:] = counts
-
-# Plot the histogram with error bars using Hist's built-in plotting functionality
-# Requires 'hist[plot]' to be installed in the environment.
-h.plot(yerr=True)
-plt.title(
-    f"Chunk {chunk_index}, Pixel {pixel_index} (High Gain) histogram from Hist object"
+chunk_histograms_container = ChunkHistogramContainer(
+    histogram=result[chunk_index]["histogram"]
 )
-plt.xlabel("image value")
-plt.ylabel("Counts")
+chunk_histograms_container.meta = result[chunk_index].meta
+
+# Plot three nearby pixels using Hist's built-in plotting functionality.
+# Requires 'hist[plot]' to be installed in the environment.
+full_hist = HistogramAggregator.hist_from_container(
+    chunk_histograms_container, axis_names=["value", "channel", "pixel"]
+)
+pixels_to_plot = [pixel_index, pixel_index + 1, pixel_index + 2]
+fig, axes = plt.subplots(1, len(pixels_to_plot), figsize=(15, 4), sharey=True)
+
+for ax, pixel_to_plot in zip(axes, pixels_to_plot):
+    for channel_index in range(n_channels):
+        h = full_hist[{"channel": channel_index, "pixel": pixel_to_plot}]
+        h.name = gain_label[channel_index]
+
+        plt.sca(ax)
+        h.plot(histtype="step", yerr=True, label=h.name)
+
+    ax.set_title(f"Chunk {chunk_index}, Pixel {pixel_to_plot}")
+    ax.set_xlabel("image value")
+    ax.legend(fontsize=8, loc="upper left")
+
+axes[0].set_ylabel("Counts")
+plt.show()
+
+# ----------------------------------------------------------------------
+# Demonstrate underflow/overflow via HistogramAggregator axis_definition
+# ----------------------------------------------------------------------
+
+FLOW_CONFIGS = {
+    "No flow bins": {"underflow": False, "overflow": False},
+    "Underflow only": {"underflow": True, "overflow": False},
+    "Overflow only": {"underflow": False, "overflow": True},
+    "With flow bins": {"underflow": True, "overflow": True},
+}
+
+BASE_AXIS = {
+    "class_name": "Regular",
+    "bins": 20,
+    "start": 75.0,
+    "stop": 95.0,
+}
+
+CHUNKING = {
+    "chunking_type": "SizeChunking",
+    "SizeChunking": {"chunk_size": 1000},
+}
+# Run all configurations and extract histograms/counts
+results = {}
+histograms = {}
+flow_counts = {}
+
+for label, flow_options in FLOW_CONFIGS.items():
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "chunking_type": "SizeChunking",
+                "axis_definition": {
+                    **BASE_AXIS,
+                    **flow_options,
+                },
+            },
+            "SizeChunking": {"chunk_size": 1000},
+        }
+    )
+
+    # Aggregate the histogram which will return an astropy table
+    result = HistogramAggregator(config=config)(
+        table=table,
+        col_name="image",
+        masked_elements_of_sample=masked_elements_of_sample,
+    )
+    # Create a ChunkHistogramContainer from the aggregated histogram and
+    # metadata for the selected chunk.
+    chunk_histograms_container = ChunkHistogramContainer(
+        histogram=result[chunk_index]["histogram"]
+    )
+    chunk_histograms_container.meta = result[chunk_index].meta
+    histogram = HistogramAggregator.hist_from_container(
+        chunk_histograms_container,
+        axis_names=["value", "channel", "pixel"],
+    )[{"channel": 0, "pixel": pixel_index}]
+
+    flow_view = histogram.view(flow=True)
+    axis_kwargs = result[chunk_index].meta["axis_kwargs"]
+
+    results[label] = result
+    histograms[label] = histogram
+    flow_counts[label] = {
+        "underflow": (int(flow_view[0]) if axis_kwargs.get("underflow") else 0),
+        "in_range": int(histogram.values().sum()),
+        "overflow": (int(flow_view[-1]) if axis_kwargs.get("overflow") else 0),
+    }
+
+valid_events = results["With flow bins"][chunk_index]["n_events"][0, pixel_index]
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+styles = {
+    "No flow bins": "-",
+    "Underflow only": "--",
+    "Overflow only": "-.",
+    "With flow bins": ":",
+}
+
+# Left: histogram comparison
+for label, histogram in histograms.items():
+    axes[0].stairs(
+        histogram.values(),
+        histogram.axes[0].edges,
+        linestyle=styles[label],
+        label=label,
+    )
+
+axes[0].set_title(
+    f"HistogramAggregator output: chunk {chunk_index}, pixel {pixel_index}"
+)
+axes[0].set_xlabel("image value")
+axes[0].set_ylabel("Counts")
+
+axis_margin = 0.05 * (BASE_AXIS["stop"] - BASE_AXIS["start"])
+axes[0].set_xlim(
+    BASE_AXIS["start"] - axis_margin,
+    BASE_AXIS["stop"] + axis_margin,
+)
+
+axes[0].legend(fontsize=8, loc="upper left")
+
+# Right: flow-bin behavior
+x = np.arange(3)
+labels = ["underflow", "in-range", "overflow"]
+
+bar_offsets = {
+    "No flow bins": -0.18,
+    "Underflow only": 0.00,
+    "Overflow only": 0.18,
+    "With flow bins": 0.36,
+}
+
+bar_width = 0.18
+
+for label, offset in bar_offsets.items():
+    counts = flow_counts[label]
+
+    axes[1].bar(
+        x + offset,
+        [
+            counts["underflow"],
+            counts["in_range"],
+            counts["overflow"],
+        ],
+        width=bar_width,
+        label=label,
+    )
+
+axes[1].set_xticks(x + 0.09, labels)
+axes[1].set_ylabel("Event count")
+axes[1].set_title("Under/overflow behavior")
+axes[1].legend(fontsize=8)
+
+plt.tight_layout()
 plt.show()
