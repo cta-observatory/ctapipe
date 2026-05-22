@@ -510,7 +510,7 @@ class HistogramAggregator(BaseAggregator):
     def hist_from_container(
         cont: ChunkHistogramContainer,
         axis_names=None,
-    ) -> Hist:
+    ):
         """Construct a Hist object from a ChunkHistogramContainer."""
 
         if axis_names is None:
