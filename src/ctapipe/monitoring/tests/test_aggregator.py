@@ -131,25 +131,28 @@ def test_histograms_aggregator():
 
     histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
 
+    histo = HistogramAggregator.hist_from_container(
+        histo_chunk, axis_names=["value", "channel", "pixel"]
+    )
+
     assert histo_chunk.histogram.shape == (40, 2, 8)
     assert histo_chunk.meta["bin_edges"].shape == (41,)
     assert histo_chunk.n_events.shape == (2, 8)
     np.testing.assert_array_equal(histo_chunk.n_events, np.full((2, 8), 200))
+    assert histo.values().shape == (40, 2, 8)
 
     # Configured Regular axis is [0, 200] with 40 bins.
     np.testing.assert_allclose(histo_chunk.meta["bin_edges"], np.linspace(0, 200, 41))
 
     # With a wide range all events should be counted for each pixel.
-    np.testing.assert_array_equal(
-        histo_chunk.histogram.sum(axis=0), np.full((2, 8), 200)
-    )
+    np.testing.assert_array_equal(histo.values().sum(axis=0), np.full((2, 8), 200))
 
     # Recover channel means from the histogram and check the introduced low-gain shift.
     bin_centers = histo_chunk.meta["bin_centers"]
     weighted_sum = np.sum(
-        histo_chunk.histogram * bin_centers[:, np.newaxis, np.newaxis], axis=0
+        histo.values() * bin_centers[:, np.newaxis, np.newaxis], axis=0
     )
-    counts = np.sum(histo_chunk.histogram, axis=0)
+    counts = np.sum(histo.values(), axis=0)
     weighted_mean = weighted_sum / counts
     channel_mean = weighted_mean.mean(axis=1)
     np.testing.assert_allclose(
@@ -237,13 +240,58 @@ def test_histograms_aggregator_masks_and_nan_handling():
         masked_elements_of_sample=mask,
     )
 
+    histo = HistogramAggregator.hist_from_container(
+        histo_chunk, axis_names=["value", "channel", "pixel"]
+    )
+
     # Fully masked pixel should receive no entries.
+    assert histo.values().shape == (25, 2, 4)
     assert histo_chunk["histogram"][:, 0, 1].sum() == 0
     assert histo_chunk["n_events"][0, 1] == 0
     # One NaN should be dropped for this pixel.
     assert histo_chunk["histogram"][:, 0, 0].sum() == histo_chunk["n_events"][0, 0]
     # Unaffected pixels should retain the full number of events.
     assert histo_chunk["n_events"][1, 3] == n_events
+
+
+def test_histograms_aggregator_underflow_overflow():
+    """Test that under/overflow axis settings are preserved and usable via metadata."""
+
+    data = np.array([[-1.0], [0.2], [0.8], [1.2], [2.2], [3.2], [4.5], [np.nan]])
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 4,
+                    "start": 0.0,
+                    "stop": 4.0,
+                    "underflow": True,
+                    "overflow": True,
+                }
+            }
+        }
+    )
+    aggregator = HistogramAggregator(config=config)
+    histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
+
+    # Aggregator exposes only in-range bins, while n_events includes all finite values.
+    assert histo_chunk.histogram.shape == (6, 1)
+    assert histo_chunk.n_events[0] == 7
+
+    axis_kwargs = histo_chunk.meta["axis_kwargs"]
+    assert axis_kwargs["underflow"] is True
+    assert axis_kwargs["overflow"] is True
+    assert axis_kwargs["name"] == "value"
+
+    # Reconstruct a Hist from the container and verify the stored counts.
+    hist_object = HistogramAggregator.hist_from_container(
+        histo_chunk, axis_names=["value", "pixel"]
+    )
+    assert int(hist_object[{"pixel": 0}].sum(flow=True)) == int(
+        histo_chunk.histogram[:, 0].sum()
+    )
 
 
 @pytest.mark.parametrize(

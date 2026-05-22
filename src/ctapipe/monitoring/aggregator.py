@@ -35,7 +35,7 @@ from astropy.table import Table
 from hist import Hist
 from traitlets import TraitError
 
-from ..containers import ChunkHistogramsContainer, ChunkStatisticsContainer
+from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
 from ..core import Component
 from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
 
@@ -425,14 +425,14 @@ class HistogramAggregator(BaseAggregator):
             Parent of this component in the configuration hierarchy
         """
         super().__init__(config=config, parent=parent, **kwargs)
-        kwargs = self.axis_definition.copy()
-        if "class_name" not in kwargs.keys():
+        self.axis_kwargs = self.axis_definition.copy()
+        if "class_name" not in self.axis_kwargs.keys():
             raise TraitError(
                 "The ``axis_definition`` trait is missing required key 'class_name'."
             )
-        cls = kwargs.pop("class_name")
-        kwargs["name"] = "value"
-        self.hist_axis = getattr(hist.axis, cls)(**kwargs)
+        cls = self.axis_kwargs.pop("class_name")
+        self.axis_kwargs["name"] = "value"
+        self.hist_axis = getattr(hist.axis, cls)(**self.axis_kwargs)
 
     def _add_result_columns(
         self,
@@ -442,6 +442,7 @@ class HistogramAggregator(BaseAggregator):
     ):
         histograms = self.compute_histograms(data, masked_elements_of_sample)
         results_dict["n_events"].append(histograms.n_events)
+        # store full histogram (including flow bins) in the `histogram` column
         results_dict["histogram"].append(histograms.histogram)
         if "meta" not in results_dict and histograms.meta:
             results_dict["meta"] = histograms.meta
@@ -457,7 +458,7 @@ class HistogramAggregator(BaseAggregator):
 
     def compute_histograms(
         self, data, masked_elements_of_sample
-    ) -> ChunkHistogramsContainer:
+    ) -> ChunkHistogramContainer:
         # Build the histograms over the event dimension (axis=0) for each element of the data dimensions
         spatial_shape = data.shape[1:]
         # Broadcast mask to full shape
@@ -470,6 +471,10 @@ class HistogramAggregator(BaseAggregator):
         mask = mask | invalid
 
         # Build one histogram per spatial element and combine them into a stack.
+        underflow = bool(self.axis_kwargs.get("underflow", False))
+        overflow = bool(self.axis_kwargs.get("overflow", False))
+        flow = underflow or overflow
+        n_flow_bins = int(underflow) + int(overflow)
         stacked_histograms = hist.stack.Stack.from_iter(
             self._make_histogram(
                 data[(slice(None),) + index], mask[(slice(None),) + index]
@@ -478,22 +483,86 @@ class HistogramAggregator(BaseAggregator):
         )
 
         # Extract histogram counts and reshape to original data dimensions (with bin dimension first)
-        n_bins = stacked_histograms[0].axes[0].size
+        n_bins = stacked_histograms[0].axes[0].size + n_flow_bins
+        # Build counts including only the configured flow bins.
+        # `n_flow_bins` is 0, 1, or 2 depending on whether underflow and/or
+        # overflow are enabled in the axis configuration.
         hist_counts = np.stack(
-            [histogram.values() for histogram in stacked_histograms], axis=-1
+            [np.asarray(h.view(flow=flow)) for h in stacked_histograms],
+            axis=-1,
         )
         hist_counts = hist_counts.reshape((n_bins,) + spatial_shape)
         # Count valid entries per element (excludes masked and invalid values)
         n_events_valid = np.sum(~mask, axis=0)
-        # Build and return the ChunkHistogramsContainer
-        return ChunkHistogramsContainer(
+
+        # Build and return the ChunkHistogramContainer
+        return ChunkHistogramContainer(
             n_events=n_events_valid,
             histogram=hist_counts,
             meta={
                 "bin_edges": stacked_histograms[0].axes[0].edges,
                 "bin_centers": stacked_histograms[0].axes[0].centers,
+                "axis_kwargs": dict(self.axis_kwargs),
             },
         )
+
+    @staticmethod
+    def hist_from_container(
+        cont: ChunkHistogramContainer,
+        axis_names=None,
+    ) -> Hist:
+        """Construct a Hist object from a ChunkHistogramContainer."""
+
+        if axis_names is None:
+            axis_names = ["value"] + [
+                f"axis_{i}" for i in range(1, cont.histogram.ndim)
+            ]
+
+        axis_names = list(axis_names)
+        if len(axis_names) < cont.histogram.ndim:
+            axis_names.extend(
+                f"axis_{i}" for i in range(len(axis_names), cont.histogram.ndim)
+            )
+
+        axis_kwargs_meta = dict(cont.meta.get("axis_kwargs", {}))
+        cls = axis_kwargs_meta.pop("class_name", "Regular")
+
+        # Build axes so shapes exactly match stored histogram array sizes.
+        underflow = bool(axis_kwargs_meta.get("underflow", False))
+        overflow = bool(axis_kwargs_meta.get("overflow", False))
+
+        if underflow or overflow:
+            axis_class = getattr(hist.axis, cls)
+            axes = [axis_class(**axis_kwargs_meta)]
+        else:
+            bin_edges = cont.meta.get("bin_edges")
+            axes = [hist.axis.Variable(edges=bin_edges, name=axis_names[0])]
+
+        # Non-value axes must match histogram.shape[1:]
+        for name, n_bins in zip(axis_names[1:], cont.histogram.shape[1:]):
+            axes.append(hist.axis.IntCategory(categories=np.arange(n_bins), name=name))
+
+        h = Hist(*axes)
+
+        # Properly deal with the flow bins
+        stored = cont.histogram
+        if stored is None:
+            return h
+
+        target = h.view(flow=True) if (underflow or overflow) else h
+        try:
+            target[...] = stored[...]
+        except Exception:
+            # element-wise fallback
+            for idx in range(stored.shape[0]):
+                layer = np.asarray(stored[idx])
+                for coords in np.ndindex(layer.shape):
+                    try:
+                        target[(idx,) + coords] = layer[coords]
+                    except Exception:
+                        pass
+
+        return h
 
     def _make_histogram(self, values, mask):
         valid_values = values[~mask]
