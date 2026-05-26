@@ -8,8 +8,8 @@ This tutorial shows how to:
 2. Configure and run HistogramAggregator in chunks.
 3. Access histogram counts, bin edges, summary statistics, and valid-event counts (n_events).
 4. Plot one pixel histogram from the selected chunks and both gain channels for both image and peak_time columns.
-5. Overlay mean, median, and std on top of the histogram curves.
-6. Plot the same histogram using Hist's built-in plotting functionality after filling a Hist object with the aggregated histogram counts and variances.
+5. Plot the same histogram using Hist's built-in plotting functionality after filling a Hist object with the aggregated histogram counts and variances.
+6. Plot the integral over all pixels for both channels using Hist's built-in plotting functionality.
 7. Compare no-flow, underflow-only, overflow-only, and both-flow histograms to see how the outer bins behave.
 """
 
@@ -251,6 +251,38 @@ for ax, pixel_to_plot in zip(axes, pixels_to_plot):
     ax.legend(fontsize=8, loc="upper left")
 
 axes[0].set_ylabel("Counts")
+plt.tight_layout()
+plt.show()
+
+# ------------------------------------------------------------------------------------------------
+# Plot the integral over all pixels for both channels using Hist's built-in plotting functionality
+# ------------------------------------------------------------------------------------------------
+h = full_hist
+
+fig, ax = plt.subplots(
+    1,
+    3,
+    figsize=(20, 4),
+    gridspec_kw={"width_ratios": [1.15, 1.15, 1.4]},
+)
+fig.suptitle(f"Chunk {chunk_index}")
+h[:, 0, :].plot2d(ax=ax[0], norm="log")
+h[:, 1, :].plot2d(ax=ax[1], norm="log")
+channel_stack = h.integrate("pixel").stack("channel")
+channel_stack[0].name = "High Gain"
+channel_stack[1].name = "Low Gain"
+channel_stack.plot(ax=ax[2], legend=True)
+
+ax[0].set_title(channel_stack[0].name)
+ax[1].set_title(channel_stack[1].name)
+ax[2].set_title("Integral over all pixels")
+for heatmap_ax in ax[:2]:
+    heatmap_ax.set_xlabel("image value")
+    heatmap_ax.set_ylabel("Pixel")
+    heatmap_ax.set_yticks([25, 50, 75, 100], labels=["25", "50", "75", "100"])
+
+ax[2].set_xlabel("image value")
+fig.subplots_adjust(wspace=0.5, top=0.88)
 plt.show()
 
 # ----------------------------------------------------------------------
@@ -306,10 +338,11 @@ for label, flow_options in FLOW_CONFIGS.items():
         histogram=result[chunk_index]["histogram"]
     )
     chunk_histograms_container.meta = result[chunk_index].meta
-    histogram = HistogramAggregator.hist_from_container(
+    histogram_cont = HistogramAggregator.hist_from_container(
         chunk_histograms_container,
         axis_names=["value", "channel", "pixel"],
-    )[{"channel": 0, "pixel": pixel_index}]
+    )
+    histogram = histogram_cont[{"channel": 0, "pixel": pixel_index}]
 
     flow_view = histogram.view(flow=True)
     axis_kwargs = result[chunk_index].meta["axis_kwargs"]
