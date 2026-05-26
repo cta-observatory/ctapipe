@@ -701,6 +701,35 @@ def test_override_obs_id(override_obs_id, expected_obs_id, prod5_gamma_simtel_pa
         assert s.obs_ids == [expected_obs_id]
 
         assert s.simulation_config.keys() == {expected_obs_id}
+        assert s.simulation_config[expected_obs_id].run_number == original_run_number
+
+        assert s.observation_blocks.keys() == {expected_obs_id}
+        assert s.scheduling_blocks.keys() == {expected_obs_id}
+
+        # this should always be the original run number
+        assert s.simulation_config[s.obs_id].run_number == original_run_number
+
+        for e in s:
+            assert e.index.obs_id == expected_obs_id
+
+
+@pytest.mark.parametrize(
+    "obs_id_offset,expected_obs_id", [(None, 1), (100, 101), (200, 201)]
+)
+def test_obs_id_offset(obs_id_offset, expected_obs_id, prod5_gamma_simtel_path):
+    """Test for the override_obs_id option"""
+    original_run_number = 1
+
+    with SimTelEventSource(
+        prod5_gamma_simtel_path,
+        obs_id_offset=obs_id_offset,
+    ) as s:
+        assert s.obs_id == expected_obs_id
+        assert s.obs_ids == [expected_obs_id]
+
+        assert s.simulation_config.keys() == {expected_obs_id}
+        assert s.simulation_config[expected_obs_id].run_number == original_run_number
+
         assert s.observation_blocks.keys() == {expected_obs_id}
         assert s.scheduling_blocks.keys() == {expected_obs_id}
 
