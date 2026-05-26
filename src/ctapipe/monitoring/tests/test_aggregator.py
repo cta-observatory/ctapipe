@@ -3,6 +3,7 @@ Tests for aggregators and related functions
 """
 
 import astropy.units as u
+import hist
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -254,10 +255,19 @@ def test_histograms_aggregator_masks_and_nan_handling():
     assert histo_chunk["n_events"][1, 3] == n_events
 
 
-def test_histograms_aggregator_underflow_overflow():
+@pytest.mark.parametrize(
+    ("underflow", "overflow"),
+    [(False, False), (False, True), (True, False), (True, True)],
+)
+def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     """Test that under/overflow axis settings are preserved and usable via metadata."""
 
-    data = np.array([[-1.0], [0.2], [0.8], [1.2], [2.2], [3.2], [4.5], [np.nan]])
+    data = np.broadcast_to(
+        np.array([-1.0, 0.2, 0.8, 1.2, 2.2, 3.2, 4.5, np.nan])[
+            :, np.newaxis, np.newaxis
+        ],
+        (8, 2, 5),
+    ).copy()
 
     config = Config(
         {
@@ -267,8 +277,8 @@ def test_histograms_aggregator_underflow_overflow():
                     "bins": 4,
                     "start": 0.0,
                     "stop": 4.0,
-                    "underflow": True,
-                    "overflow": True,
+                    "underflow": underflow,
+                    "overflow": overflow,
                 }
             }
         }
@@ -276,21 +286,37 @@ def test_histograms_aggregator_underflow_overflow():
     aggregator = HistogramAggregator(config=config)
     histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
 
-    # Aggregator exposes only in-range bins, while n_events includes all finite values.
-    assert histo_chunk.histogram.shape == (6, 1)
-    assert histo_chunk.n_events[0] == 7
+    # Aggregator exposes flow bins when underflow/overflow are enabled.
+    expected_flow_bins = int(underflow) + int(overflow)
+    assert histo_chunk.histogram.shape == (4 + expected_flow_bins, 2, 5)
+    assert histo_chunk.n_events.shape == (2, 5)
+    np.testing.assert_array_equal(histo_chunk.n_events, np.full((2, 5), 7))
 
     axis_kwargs = histo_chunk.meta["axis_kwargs"]
-    assert axis_kwargs["underflow"] is True
-    assert axis_kwargs["overflow"] is True
+    assert axis_kwargs["underflow"] is underflow
+    assert axis_kwargs["overflow"] is overflow
     assert axis_kwargs["name"] == "value"
 
     # Reconstruct a Hist from the container and verify the stored counts.
     hist_object = HistogramAggregator.hist_from_container(
-        histo_chunk, axis_names=["value", "pixel"]
+        histo_chunk, axis_names=["value", "channel", "pixel"]
     )
-    assert int(hist_object[{"pixel": 0}].sum(flow=True)) == int(
-        histo_chunk.histogram[:, 0].sum()
+    assert [axis.name for axis in hist_object.axes] == ["value", "channel", "pixel"]
+
+    stacked = hist_object.integrate("pixel").stack("channel")
+    assert isinstance(stacked, hist.stack.Stack)
+    assert len(stacked) == 2
+    assert all(isinstance(channel_hist, hist.Hist) for channel_hist in stacked)
+    assert all(channel_hist.values().shape == (4,) for channel_hist in stacked)
+    assert all(
+        channel_hist.axes[0].traits.underflow is underflow for channel_hist in stacked
+    )
+    assert all(
+        channel_hist.axes[0].traits.overflow is overflow for channel_hist in stacked
+    )
+    np.testing.assert_array_equal(
+        [int(channel_hist.sum(flow=True)) for channel_hist in stacked],
+        np.full(2, (5 + int(underflow) + int(overflow)) * data.shape[2]),
     )
 
 
@@ -330,6 +356,79 @@ def test_histograms_aggregator_input_shapes(shape, spatial_shape):
     expected_counts = np.full(spatial_shape, n_events)
     np.testing.assert_array_equal(histo_chunk.n_events, expected_counts)
     np.testing.assert_array_equal(histo_chunk.histogram.sum(axis=0), expected_counts)
+
+
+@pytest.mark.parametrize(
+    ("axis_definition", "expected_axis_type", "data", "expected_counts"),
+    [
+        (
+            {
+                "class_name": "Regular",
+                "bins": 5,
+                "start": 0.0,
+                "stop": 5.0,
+                "circular": True,
+            },
+            hist.axis.Regular,
+            np.broadcast_to(
+                np.array([-1.0, 0.0, 1.0, 2.0, 5.0])[:, np.newaxis, np.newaxis],
+                (5, 2, 3),
+            ).copy(),
+            np.broadcast_to(
+                np.array([2, 1, 1, 0, 1])[:, np.newaxis, np.newaxis],
+                (5, 2, 3),
+            ).copy(),
+        ),
+        (
+            {
+                "class_name": "Regular",
+                "bins": 3,
+                "start": 1.0,
+                "stop": 1000.0,
+                "transform": hist.axis.transform.log,
+            },
+            hist.axis.Regular,
+            np.broadcast_to(
+                np.array([1.0, 10.0, 100.0])[:, np.newaxis, np.newaxis],
+                (3, 2, 3),
+            ).copy(),
+            np.ones((3, 2, 3), dtype=int),
+        ),
+        (
+            {
+                "class_name": "Integer",
+                "start": 0,
+                "stop": 5,
+            },
+            hist.axis.Integer,
+            np.broadcast_to(
+                np.arange(5, dtype=int)[:, np.newaxis, np.newaxis],
+                (5, 2, 3),
+            ).copy(),
+            np.ones((5, 2, 3), dtype=int),
+        ),
+    ],
+)
+def test_histograms_aggregator_axis_classes(
+    axis_definition, expected_axis_type, data, expected_counts
+):
+    """Test that histogram axes round-trip for Regular and Integer classes."""
+
+    config = Config({"HistogramAggregator": {"axis_definition": axis_definition}})
+    aggregator = HistogramAggregator(config=config)
+
+    histo_chunk = aggregator.compute_histograms(data, masked_elements_of_sample=None)
+    histo = HistogramAggregator.hist_from_container(
+        histo_chunk, axis_names=["value", "channel", "pixel"]
+    )
+
+    assert histo_chunk.histogram.shape == expected_counts.shape
+    assert histo_chunk.n_events.shape == (2, 3)
+    np.testing.assert_array_equal(histo_chunk.n_events, np.full((2, 3), data.shape[0]))
+    np.testing.assert_array_equal(histo_chunk.histogram, expected_counts)
+    assert histo_chunk.meta["axis_class_name"] == axis_definition["class_name"]
+    assert isinstance(histo.axes[0], expected_axis_type)
+    np.testing.assert_array_equal(histo.values(), expected_counts)
 
 
 def test_chunk_shift():

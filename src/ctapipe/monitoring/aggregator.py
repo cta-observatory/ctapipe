@@ -430,9 +430,9 @@ class HistogramAggregator(BaseAggregator):
             raise TraitError(
                 "The ``axis_definition`` trait is missing required key 'class_name'."
             )
-        cls = self.axis_kwargs.pop("class_name")
+        self.axis_class_name = self.axis_kwargs.pop("class_name")
         self.axis_kwargs["name"] = "value"
-        self.hist_axis = getattr(hist.axis, cls)(**self.axis_kwargs)
+        self.hist_axis = getattr(hist.axis, self.axis_class_name)(**self.axis_kwargs)
 
     def _add_result_columns(
         self,
@@ -502,6 +502,7 @@ class HistogramAggregator(BaseAggregator):
             meta={
                 "bin_edges": stacked_histograms[0].axes[0].edges,
                 "bin_centers": stacked_histograms[0].axes[0].centers,
+                "axis_class_name": self.axis_class_name,
                 "axis_kwargs": dict(self.axis_kwargs),
             },
         )
@@ -509,9 +510,17 @@ class HistogramAggregator(BaseAggregator):
     @staticmethod
     def hist_from_container(
         cont: ChunkHistogramContainer,
-        axis_names=None,
+        axis_names: list[str] | None = None,
     ):
-        """Construct a Hist object from a ChunkHistogramContainer."""
+        """Construct a Hist object from a ChunkHistogramContainer.
+
+        Parameters
+        ----------
+        cont : ChunkHistogramContainer
+            Stored histogram container.
+        axis_names : list[str] | None
+            Axis names to use when rebuilding the histogram.
+        """
 
         if axis_names is None:
             axis_names = ["value"] + [
@@ -524,44 +533,21 @@ class HistogramAggregator(BaseAggregator):
                 f"axis_{i}" for i in range(len(axis_names), cont.histogram.ndim)
             )
 
-        axis_kwargs_meta = dict(cont.meta.get("axis_kwargs", {}))
-        cls = axis_kwargs_meta.pop("class_name", "Regular")
+        # Extract axis information from container metadata
+        axis_kwargs_meta = cont.meta.get("axis_kwargs", {})
+        axis_class = getattr(hist.axis, cont.meta["axis_class_name"])
 
-        # Build axes so shapes exactly match stored histogram array sizes.
-        underflow = bool(axis_kwargs_meta.get("underflow", False))
-        overflow = bool(axis_kwargs_meta.get("overflow", False))
-
-        if underflow or overflow:
-            axis_class = getattr(hist.axis, cls)
-            axes = [axis_class(**axis_kwargs_meta)]
-        else:
-            bin_edges = cont.meta.get("bin_edges")
-            axes = [hist.axis.Variable(edges=bin_edges, name=axis_names[0])]
+        # Reconstruct the original axis class so metadata round-trips exactly,
+        # including Integer and transformed/circular Regular axes.
+        axes = [axis_class(**axis_kwargs_meta)]
 
         # Non-value axes must match histogram.shape[1:]
         for name, n_bins in zip(axis_names[1:], cont.histogram.shape[1:]):
             axes.append(hist.axis.IntCategory(categories=np.arange(n_bins), name=name))
 
+        # Create a Hist object with the reconstructed axes and fill it with the stored histogram counts.
         h = Hist(*axes)
-
-        # Properly deal with the flow bins
-        stored = cont.histogram
-        if stored is None:
-            return h
-
-        target = h.view(flow=True) if (underflow or overflow) else h
-        try:
-            target[...] = stored[...]
-        except Exception:
-            # element-wise fallback
-            for idx in range(stored.shape[0]):
-                layer = np.asarray(stored[idx])
-                for coords in np.ndindex(layer.shape):
-                    try:
-                        target[(idx,) + coords] = layer[coords]
-                    except Exception:
-                        pass
-
+        h[...] = cont.histogram[...]
         return h
 
     def _make_histogram(self, values, mask):
