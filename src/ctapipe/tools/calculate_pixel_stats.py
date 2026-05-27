@@ -138,94 +138,111 @@ class PixelStatisticsCalculatorTool(Tool):
         )
 
     def start(self):
-        # Iterate over the telescope ids and calculate the statistics
+        """Iterate over all telescopes, process their statistics, and save the results."""
+        # Track the last used table group and name for the summary log statement
+        output_table_name = ""
+        table_group = ""
+
         for tel_id in self.subarray.tel_ids:
-            # Read the whole dl1 images for one particular telescope
-            dl1_table = self.input_data.read_telescope_events(
-                telescopes=[
-                    tel_id,
-                ],
-            )
-            # Check if the dl1 table is empty and skip the telescope if so
-            if len(dl1_table) == 0:
-                self.log.warning(
-                    "No dl1 images found for telescope 'tel_id=%d'. Skipping.",
-                    tel_id,
-                )
+            # 1. Load and validate
+            dl1_table = self.input_data.read_telescope_events(telescopes=[tel_id])
+            if not self._is_valid_table(dl1_table, tel_id):
                 continue
-            # Check if the chunk size does not exceed the table length of the input data
-            if self.stats_calculator.stats_aggregators[
-                self.stats_calculator.stats_aggregator_type.tel[tel_id]
-            ].chunking.chunk_size > len(dl1_table):
-                raise ToolConfigurationError(
-                    f"Change --SizeChunking.chunk_size to decrease the chunk size "
-                    f"of the aggregation to a maximum of '{len(dl1_table)}' (table length of the "
-                    f"input data for telescope 'tel_id={tel_id}')."
-                )
-            # Check if the input column name is in the table
-            if self.input_column_name not in dl1_table.colnames:
-                raise ToolConfigurationError(
-                    f"Column '{self.input_column_name}' not found "
-                    f"in the input data for telescope 'tel_id={tel_id}'."
-                )
-            # Check if the dl1 data is gain selected and add an extra dimension for n_channels
-            for col_name in DL1_COLUMN_NAMES:
-                if col_name in dl1_table.colnames and dl1_table[col_name].ndim == 2:
-                    dl1_table[col_name] = dl1_table[col_name][:, np.newaxis]
-            # Perform the first pass of the statistics calculation
-            aggregated_stats = self.stats_calculator.first_pass(
-                table=dl1_table,
-                tel_id=tel_id,
-                col_name=self.input_column_name,
-            )
-            # Check if 'chunk_shift' is configured for overlapping chunks
-            aggregator = self.stats_calculator.stats_aggregators[
-                self.stats_calculator.stats_aggregator_type.tel[tel_id]
-            ]
-            if (
-                hasattr(aggregator.chunking, "chunk_shift")
-                and aggregator.chunking.chunk_shift is not None
-                and aggregator.chunking.chunk_shift > 0
-            ):
-                # Check if there are any faulty chunks to perform a second pass over the data
-                if np.any(~aggregated_stats["is_valid"].data):
-                    # Perform the second pass of the statistics calculation
-                    aggregated_stats_secondpass = self.stats_calculator.second_pass(
-                        table=dl1_table,
-                        valid_chunks=aggregated_stats["is_valid"].data,
-                        tel_id=tel_id,
-                        col_name=self.input_column_name,
-                    )
-                    # Stack the statistic values from the first and second pass
-                    aggregated_stats = vstack(
-                        [aggregated_stats, aggregated_stats_secondpass]
-                    )
-                    # Sort the stacked aggregated statistic values by starting time
-                    aggregated_stats.sort(["time_start"])
-                else:
-                    self.log.info(
-                        "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
-                        tel_id,
-                    )
-            # Construct the output table name based on the event type and the selected column name
-            output_table_name = f"{EventType(dl1_table['event_type'][0]).name.lower()}_{self.input_column_name}"
+
+            # 2. Reshape and calculate stats
+            self._reshape_dl1_dimensions(dl1_table)
+            aggregated_stats = self._process_telescope_stats(dl1_table, tel_id)
+
+            # 3. Determine output paths and write out results
+            event_type_name = EventType(dl1_table["event_type"][0]).name.lower()
+            output_table_name = f"{event_type_name}_{self.input_column_name}"
             table_group = (
                 DL1_PIXEL_HISTOGRAMS_GROUP
                 if "histogram" in aggregated_stats.colnames
                 else DL1_PIXEL_STATISTICS_GROUP
             )
-            # Write the aggregated statistics and their outlier mask to the output file
+
             write_table(
                 aggregated_stats,
                 self.output_path,
                 f"{table_group}/{output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
-        self.log.info(
-            "DL1 monitoring data was stored in '%s' under '%s'",
-            self.output_path,
-            f"{table_group}/{output_table_name}",
+
+        if output_table_name and table_group:
+            self.log.info(
+                "DL1 monitoring data was stored in '%s' under '%s'",
+                self.output_path,
+                f"{table_group}/{output_table_name}",
+            )
+
+    def _is_valid_table(self, table, tel_id):
+        # Check if the dl1 table is empty and skip the telescope if so
+        if len(table) == 0:
+            self.log.warning(
+                "No dl1 images found for telescope 'tel_id=%d'. Skipping.",
+                tel_id,
+            )
+            return False
+        # Check if the chunk size does not exceed the table length of the input data
+        if self.stats_calculator.stats_aggregators[
+            self.stats_calculator.stats_aggregator_type.tel[tel_id]
+        ].chunking.chunk_size > len(table):
+            raise ToolConfigurationError(
+                f"Change --SizeChunking.chunk_size to decrease the chunk size "
+                f"of the aggregation to a maximum of '{len(table)}' (table length of the "
+                f"input data for telescope 'tel_id={tel_id}')."
+            )
+        # Check if the input column name is in the table
+        if self.input_column_name not in table.colnames:
+            raise ToolConfigurationError(
+                f"Column '{self.input_column_name}' not found "
+                f"in the input data for telescope 'tel_id={tel_id}'."
+            )
+        return True
+
+    def _reshape_dl1_dimensions(self, dl1_table):
+        """Check if the dl1 data is gain selected and add an extra dimension."""
+        for col in DL1_COLUMN_NAMES:
+            if col in dl1_table.colnames and dl1_table[col].ndim == 2:
+                dl1_table[col] = dl1_table[col][:, np.newaxis]
+
+    def _process_telescope_stats(self, dl1_table, tel_id):
+        """Perform first and (if necessary) second pass statistics calculation."""
+        # First pass
+        stats = self.stats_calculator.first_pass(
+            table=dl1_table,
+            tel_id=tel_id,
+            col_name=self.input_column_name,
         )
+
+        # Check if 'chunk_shift' is configured for overlapping chunks
+        agg_type = self.stats_calculator.stats_aggregator_type.tel[tel_id]
+        aggregator = self.stats_calculator.stats_aggregators[agg_type]
+        has_chunk_shift = (getattr(aggregator.chunking, "chunk_shift") or 0) > 0
+
+        if not has_chunk_shift:
+            return stats
+
+        # Guard clause: Skip second pass if no faulty chunks exist
+        if not np.any(~stats["is_valid"].data):
+            self.log.info(
+                "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
+                tel_id,
+            )
+            return stats
+
+        # Second pass execution and combining results
+        stats_secondpass = self.stats_calculator.second_pass(
+            table=dl1_table,
+            valid_chunks=stats["is_valid"].data,
+            tel_id=tel_id,
+            col_name=self.input_column_name,
+        )
+
+        combined_stats = vstack([stats, stats_secondpass])
+        combined_stats.sort(["time_start"])
+        return combined_stats
 
     def finish(self):
         self.log.info("Tool is shutting down")
