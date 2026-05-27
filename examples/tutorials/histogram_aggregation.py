@@ -226,9 +226,9 @@ plt.show()
 # In this tutorial, axis_definition uses hist.axis.Regular.
 chunk_index = 0
 chunk_histograms_container = ChunkHistogramContainer(
-    histogram=result[chunk_index]["histogram"]
+    **dict(zip(result[chunk_index].colnames, result[chunk_index]))
 )
-chunk_histograms_container.meta = result[chunk_index].meta
+chunk_histograms_container.meta = result.meta
 
 # Plot three nearby pixels using Hist's built-in plotting functionality.
 # Requires 'hist[plot]' to be installed in the environment.
@@ -335,9 +335,9 @@ for label, flow_options in FLOW_CONFIGS.items():
     # Create a ChunkHistogramContainer from the aggregated histogram and
     # metadata for the selected chunk.
     chunk_histograms_container = ChunkHistogramContainer(
-        histogram=result[chunk_index]["histogram"]
+        **dict(zip(result[chunk_index].colnames, result[chunk_index]))
     )
-    chunk_histograms_container.meta = result[chunk_index].meta
+    chunk_histograms_container.meta = result.meta
     histogram_cont = HistogramAggregator.hist_from_container(
         chunk_histograms_container,
         axis_names=["value", "channel", "pixel"],
@@ -345,7 +345,7 @@ for label, flow_options in FLOW_CONFIGS.items():
     histogram = histogram_cont[{"channel": 0, "pixel": pixel_index}]
 
     flow_view = histogram.view(flow=True)
-    axis_kwargs = result[chunk_index].meta["axis_kwargs"]
+    axis_kwargs = chunk_histograms_container.meta["axis_kwargs"]
 
     results[label] = result
     histograms[label] = histogram
