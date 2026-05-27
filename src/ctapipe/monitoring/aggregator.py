@@ -480,8 +480,8 @@ class HistogramAggregator(BaseAggregator):
             mask = np.broadcast_to(masked_elements_of_sample, data.shape)
         else:
             mask = np.zeros_like(data, dtype=bool)
-        # Mask invalid values (NaN, inf)
-        invalid = ~np.isfinite(data)
+        # Mask also NaN values
+        invalid = np.isnan(data)
         mask = mask | invalid
 
         # Build one histogram per spatial element and combine them into a stack.
