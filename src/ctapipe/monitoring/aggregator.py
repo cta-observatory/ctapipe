@@ -440,7 +440,7 @@ class HistogramAggregator(BaseAggregator):
         masked_elements_of_sample,
         results_dict,
     ):
-        histograms = self.compute_histograms(data, masked_elements_of_sample)
+        histograms = self._compute_histograms(data, masked_elements_of_sample)
         results_dict["n_events"].append(histograms.n_events)
         # store full histogram (including flow bins) in the `histogram` column
         results_dict["histogram"].append(histograms.histogram)
@@ -456,9 +456,23 @@ class HistogramAggregator(BaseAggregator):
         for col in ("bin_edges", "bin_centers"):
             table.meta[col].unit = unit
 
-    def compute_histograms(
+    def _compute_histograms(
         self, data, masked_elements_of_sample
     ) -> ChunkHistogramContainer:
+        r"""Compute histograms for a chunk of data.
+
+        Parameters
+        ----------
+        data : ndarray
+            Event-wise data of shape (n_events, \*data_dimensions)
+        masked_elements_of_sample : ndarray, optional
+            Boolean mask of shape (\*data_dimensions) for elements to exclude
+
+        Returns
+        -------
+        ChunkHistogramContainer
+            Container with computed histograms for the chunk
+        """
         # Build the histograms over the event dimension (axis=0) for each element of the data dimensions
         spatial_shape = data.shape[1:]
         # Broadcast mask to full shape
@@ -572,7 +586,7 @@ class StatisticsAggregator(BaseAggregator):
         masked_elements_of_sample,
         results_dict,
     ):
-        stats = self.compute_stats(data, masked_elements_of_sample)
+        stats = self._compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
         results_dict["median"].append(stats.median)
@@ -589,11 +603,10 @@ class StatisticsAggregator(BaseAggregator):
             table[col].unit = unit
 
     @abstractmethod
-    def compute_stats(
+    def _compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
-        r"""
-        Compute aggregated statistics for a chunk of data.
+        r"""Compute aggregated statistics for a chunk of data.
 
         Parameters
         ----------
@@ -617,7 +630,7 @@ class PlainAggregator(StatisticsAggregator):
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
     """
 
-    def compute_stats(
+    def _compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
         # Mask excluded elements and NaN/inf values
@@ -663,7 +676,7 @@ class SigmaClippingAggregator(StatisticsAggregator):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def compute_stats(
+    def _compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
         # Mask excluded elements and NaN/inf values
