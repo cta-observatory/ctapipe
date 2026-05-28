@@ -137,36 +137,31 @@ def test_histograms_aggregator():
         }
     )
     aggregator = HistogramAggregator(config=config)
-
-    histo_chunk = aggregator(hist_table, masked_elements_of_sample=None)
-    histo_cont = ChunkHistogramContainer(
-        **dict(zip(histo_chunk[0].colnames, histo_chunk[0]))
-    )
-    histo_cont.meta = histo_chunk[0].meta
-
-    # , meta=histo_chunk.meta
-    histo = HistogramAggregator.hist_from_container(
-        histo_cont, axis_names=["value", "channel", "pixel"]
+    chunks = aggregator(hist_table, masked_elements_of_sample=None)
+    hist_object = HistogramAggregator.hist_from_tablerow(
+        chunks[0], axis_names=["value", "channel", "pixel"]
     )
 
-    assert histo_cont.histogram.shape == (40, 2, 8)
-    assert histo_cont.meta["bin_edges"].shape == (41,)
-    assert histo_cont.n_events.shape == (2, 8)
-    np.testing.assert_array_equal(histo_cont.n_events, np.full((2, 8), 200))
-    assert histo.values().shape == (40, 2, 8)
+    assert chunks[0]["histogram"].shape == (40, 2, 8)
+    assert chunks[0].meta["bin_edges"].shape == (41,)
+    assert chunks[0]["n_events"].shape == (2, 8)
+    np.testing.assert_array_equal(chunks[0]["n_events"], np.full((2, 8), 200))
+    assert hist_object.values().shape == (40, 2, 8)
 
     # Configured Regular axis is [0, 200] with 40 bins.
-    np.testing.assert_allclose(histo_chunk.meta["bin_edges"], np.linspace(0, 200, 41))
+    np.testing.assert_allclose(chunks[0].meta["bin_edges"], np.linspace(0, 200, 41))
 
     # With a wide range all events should be counted for each pixel.
-    np.testing.assert_array_equal(histo.values().sum(axis=0), np.full((2, 8), 200))
+    np.testing.assert_array_equal(
+        hist_object.values().sum(axis=0), np.full((2, 8), 200)
+    )
 
     # Recover channel means from the histogram and check the introduced low-gain shift.
-    bin_centers = histo_chunk.meta["bin_centers"]
+    bin_centers = chunks[0].meta["bin_centers"]
     weighted_sum = np.sum(
-        histo.values() * bin_centers[:, np.newaxis, np.newaxis], axis=0
+        hist_object.values() * bin_centers[:, np.newaxis, np.newaxis], axis=0
     )
-    counts = np.sum(histo.values(), axis=0)
+    counts = np.sum(hist_object.values(), axis=0)
     weighted_mean = weighted_sum / counts
     channel_mean = weighted_mean.mean(axis=1)
     np.testing.assert_allclose(
@@ -207,13 +202,12 @@ def test_histograms_aggregator_masks_and_nan_handling():
             }
         }
     )
+    # Aggregate the histogram with the mask and NaN in the data
     aggregator = HistogramAggregator(config=config)
     chunks = aggregator(hist_table, masked_elements_of_sample=mask)
-    cont = ChunkHistogramContainer(**dict(zip(chunks[0].colnames, chunks[0])))
-    cont.meta = chunks.meta
-
-    hist_object = HistogramAggregator.hist_from_container(
-        cont, axis_names=["value", "channel", "pixel"]
+    # Reconstruct a Hist object from the first chunk using hist_from_tablerow()
+    hist_object = HistogramAggregator.hist_from_tablerow(
+        chunks[0], axis_names=["value", "channel", "pixel"]
     )
 
     # Fully masked pixel should receive no entries.
@@ -276,7 +270,7 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     assert axis_kwargs["overflow"] is overflow
     assert axis_kwargs["name"] == "value"
 
-    # Reconstruct a Hist from the container and verify the stored counts.
+    # Reconstruct a Hist from the container using hist_from_container()
     cont = ChunkHistogramContainer(**dict(zip(chunks[0].colnames, chunks[0])))
     cont.meta = chunks.meta
     hist_object = HistogramAggregator.hist_from_container(
@@ -417,10 +411,8 @@ def test_histograms_aggregator_axis_classes(
     config = Config({"HistogramAggregator": {"axis_definition": axis_definition}})
     aggregator = HistogramAggregator(config=config)
     chunks = aggregator(hist_table, masked_elements_of_sample=None)
-    cont = ChunkHistogramContainer(**dict(zip(chunks[0].colnames, chunks[0])))
-    cont.meta = chunks.meta
-    hist_object = HistogramAggregator.hist_from_container(
-        cont, axis_names=["value", "channel", "pixel"]
+    hist_object = HistogramAggregator.hist_from_tablerow(
+        chunks[0], axis_names=["value", "channel", "pixel"]
     )
 
     assert chunks[0]["histogram"].shape == expected_counts.shape

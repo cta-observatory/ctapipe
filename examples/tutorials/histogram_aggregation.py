@@ -231,7 +231,8 @@ chunk_histograms_container = ChunkHistogramContainer(
 chunk_histograms_container.meta = result.meta
 
 # Plot three nearby pixels using Hist's built-in plotting functionality.
-# Requires 'hist[plot]' to be installed in the environment.
+# Requires 'hist[plot]' to be installed in the environment. Reconstruct
+# the full histogram as a Hist object for the chunk using hist_from_container method.
 full_hist = HistogramAggregator.hist_from_container(
     chunk_histograms_container, axis_names=["value", "channel", "pixel"]
 )
@@ -332,20 +333,16 @@ for label, flow_options in FLOW_CONFIGS.items():
         col_name="image",
         masked_elements_of_sample=masked_elements_of_sample,
     )
-    # Create a ChunkHistogramContainer from the aggregated histogram and
-    # metadata for the selected chunk.
-    chunk_histograms_container = ChunkHistogramContainer(
-        **dict(zip(result[chunk_index].colnames, result[chunk_index]))
-    )
-    chunk_histograms_container.meta = result.meta
-    histogram_cont = HistogramAggregator.hist_from_container(
-        chunk_histograms_container,
+    # Create a Hist object from the aggregated histogram and
+    # metadata for the selected chunk using the hist_from_tablerow method.
+    histogram_cont = HistogramAggregator.hist_from_tablerow(
+        result[chunk_index],
         axis_names=["value", "channel", "pixel"],
     )
     histogram = histogram_cont[{"channel": 0, "pixel": pixel_index}]
 
     flow_view = histogram.view(flow=True)
-    axis_kwargs = chunk_histograms_container.meta["axis_kwargs"]
+    axis_kwargs = result.meta["axis_kwargs"]
 
     results[label] = result
     histograms[label] = histogram
