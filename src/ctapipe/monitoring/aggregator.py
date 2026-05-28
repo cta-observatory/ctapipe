@@ -31,7 +31,7 @@ import astropy.units as u
 import hist
 import numpy as np
 from astropy.stats import sigma_clip
-from astropy.table import Table
+from astropy.table import Row, Table
 from hist import Hist
 from traitlets import TraitError
 
@@ -522,11 +522,56 @@ class HistogramAggregator(BaseAggregator):
         )
 
     @staticmethod
+    def hist_from_tablerow(
+        row: Row,
+        axis_names: list[str] | None = None,
+    ):
+        """Build a ``hist.Hist`` from an Astropy table row produced by the
+        ``HistogramAggregator``.
+
+        This is a thin wrapper that constructs a ``ChunkHistogramContainer``
+        from the provided ``row`` (reading ``n_events``, ``histogram`` and
+        ``row.meta``) and delegates the actual reconstruction to
+        :meth:`hist_from_container`.
+
+        Note
+        ----
+        ``HistogramAggregator.__call__`` produces an ``astropy.table.Table``
+        with one row per chunk. To rebuild the histogram for chunk ``i`` you
+        can do::
+
+            result_table = aggregator(event_table)
+            hist = HistogramAggregator.hist_from_tablerow(result_table[i])
+
+        This helper handles extracting the stored ndarray and metadata from
+        the row and returns a complete ``hist.Hist`` object.
+
+        Parameters
+        ----------
+        row : astropy.table.Row
+            Table row created by ``HistogramAggregator.__call__``. Expected to
+            contain a ``histogram`` ndarray with shape ``(n_bins, *data_dims)``,
+            number of valid events in ``n_events``, and  metadata in ``row.meta``
+            describing the original axis.
+        axis_names : list[str] | None
+            Optional axis names for non-value axes in the rebuilt ``Hist``.
+
+        Returns
+        -------
+        hist.Hist
+            Reconstructed histogram object with axes and counts populated.
+        """
+
+        cont = ChunkHistogramContainer(**dict(zip(row.colnames, row)))
+        cont.meta = row.meta
+        return HistogramAggregator.hist_from_container(cont, axis_names)
+
+    @staticmethod
     def hist_from_container(
         cont: ChunkHistogramContainer,
         axis_names: list[str] | None = None,
     ):
-        """Construct a Hist object from a ChunkHistogramContainer.
+        """Construct a ``hist.Hist`` from a ``ChunkHistogramContainer``.
 
         Parameters
         ----------
