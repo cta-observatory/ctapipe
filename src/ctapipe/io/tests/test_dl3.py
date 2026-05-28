@@ -14,7 +14,7 @@ from ...io import TableLoader
 from ...io.astropy_helpers import join_allow_empty
 from ...io.dl2_tables_preprocessing import DL2EventPreprocessor
 from ...version import version as ctapipe_version
-from ..dl3 import DL3GADFEventsWriter
+from ..dl3 import DL3EventsData, DL3GADFEventsWriter
 
 
 @pytest.fixture
@@ -153,50 +153,57 @@ def dl2_events_for_dl3(single_obs_gamma_diffuse_full_reco_file, dl2_meta_for_dl3
 
 
 @pytest.fixture
-def dl3_writer(dl2_events_for_dl3, dl2_meta_for_dl3, hdu_irfs):
-    dl3_format_optional = DL3GADFEventsWriter()
+def dl3_data(dl2_events_for_dl3, dl2_meta_for_dl3, hdu_irfs):
+    aeff = None
+    psf = None
+    edisp = None
+    bkg = None
 
-    # Load events
-    dl3_format_optional.events = dl2_events_for_dl3
-
-    # Load metadata
-    dl3_format_optional.obs_id = dl2_meta_for_dl3["obs_id"]
-    dl3_format_optional.pointing = dl2_meta_for_dl3["pointing"]["pointing_list"]
-    dl3_format_optional.pointing_mode = dl2_meta_for_dl3["pointing"]["pointing_mode"]
-    dl3_format_optional.gti = dl2_meta_for_dl3["gti"]
-    dl3_format_optional.livetime_fraction = dl2_meta_for_dl3["livetime_fraction"]
-    dl3_format_optional.location = dl2_meta_for_dl3["location"]
-    dl3_format_optional.telescope_information = dl2_meta_for_dl3[
-        "telescope_information"
-    ]
-    dl3_format_optional.target_information = dl2_meta_for_dl3["target"]
-    dl3_format_optional.software_information = dl2_meta_for_dl3["software_version"]
-
-    # Load IRFs
     for i in range(1, len(hdu_irfs)):
         if "HDUCLAS2" in hdu_irfs[i].header.keys():
             if hdu_irfs[i].header["HDUCLAS2"] == "EFF_AREA":
-                if dl3_format_optional.aeff is None:
-                    dl3_format_optional.aeff = hdu_irfs[i]
+                if aeff is None:
+                    aeff = hdu_irfs[i]
                 elif "EXTNAME" in hdu_irfs[i].header and not (
                     "PROTONS" in hdu_irfs[i].header["EXTNAME"]
                     or "ELECTRONS" in hdu_irfs[i].header["EXTNAME"]
                 ):
-                    dl3_format_optional.aeff = hdu_irfs[i]
+                    aeff = hdu_irfs[i]
             elif hdu_irfs[i].header["HDUCLAS2"] == "EDISP":
-                dl3_format_optional.edisp = hdu_irfs[i]
+                edisp = hdu_irfs[i]
             elif hdu_irfs[i].header["HDUCLAS2"] == "PSF":
-                dl3_format_optional.psf = hdu_irfs[i]
+                psf = hdu_irfs[i]
             elif hdu_irfs[i].header["HDUCLAS2"] == "BKG":
-                dl3_format_optional.bkg = hdu_irfs[i]
-    return dl3_format_optional
+                bkg = hdu_irfs[i]
+
+    return DL3EventsData(
+        events=dl2_events_for_dl3,
+        obs_id=dl2_meta_for_dl3["obs_id"],
+        pointing=dl2_meta_for_dl3["pointing"]["pointing_list"],
+        pointing_mode=dl2_meta_for_dl3["pointing"]["pointing_mode"],
+        gti=dl2_meta_for_dl3["gti"],
+        livetime_fraction=dl2_meta_for_dl3["livetime_fraction"],
+        location=dl2_meta_for_dl3["location"],
+        telescope_information=dl2_meta_for_dl3["telescope_information"],
+        target_information=dl2_meta_for_dl3["target"],
+        software_information=dl2_meta_for_dl3["software_version"],
+        aeff=aeff,
+        psf=psf,
+        edisp=edisp,
+        bkg=bkg,
+    )
+
+
+@pytest.fixture
+def dl3_writer():
+    return DL3GADFEventsWriter()
 
 
 class TestDL3GADFEventsWriter:
-    def test_dl3_file(self, tmp_path, dl3_writer):
+    def test_dl3_file(self, tmp_path, dl3_writer, dl3_data):
         output_path = tmp_path / "dl3_gadf.fits"
 
-        dl3_writer.write_file(output_path)
+        dl3_writer.write_file(output_path, dl3_data)
 
         with fits.open(output_path, checksum=True) as hdul:
             assert isinstance(hdul[0], fits.PrimaryHDU)
@@ -215,37 +222,78 @@ class TestDL3GADFEventsWriter:
 
             for hdu in hdul:
                 if "OBS_ID" in hdu.header:
-                    assert hdu.header["OBS_ID"] == dl3_writer.obs_id
+                    assert hdu.header["OBS_ID"] == dl3_data.obs_id
 
-    def test_dl3_file_missing_aeff(self, tmp_path, dl3_writer):
+    def test_dl3_file_missing_aeff(self, tmp_path, dl3_writer, dl3_data):
         output_path = tmp_path / "dl3_gadf_aeff.fits"
 
-        dl3_writer._aeff = None
+        object.__setattr__(dl3_data, "aeff", None)
         with pytest.raises(ValueError):
-            dl3_writer.write_file(output_path)
+            dl3_writer.write_file(output_path, dl3_data)
 
-    def test_dl3_file_missing_edisp(self, tmp_path, dl3_writer):
+    def test_dl3_file_missing_edisp(self, tmp_path, dl3_writer, dl3_data):
         output_path = tmp_path / "dl3_gadf_edisp.fits"
 
-        dl3_writer._edisp = None
+        object.__setattr__(dl3_data, "edisp", None)
         with pytest.raises(ValueError):
-            dl3_writer.write_file(output_path)
+            dl3_writer.write_file(output_path, dl3_data)
 
-    def test_dl3_file_missing_psf(self, tmp_path, dl3_writer):
+    def test_dl3_file_missing_psf(self, tmp_path, dl3_writer, dl3_data):
         output_path = tmp_path / "dl3_gadf_psf.fits"
 
-        dl3_writer._psf = None
+        object.__setattr__(dl3_data, "psf", None)
         with pytest.raises(ValueError):
-            dl3_writer.write_file(output_path)
+            dl3_writer.write_file(output_path, dl3_data)
 
-    def test_dl3_file_overwrite(self, tmp_path, dl3_writer):
+    def test_dl3_file_overwrite(self, tmp_path, dl3_writer, dl3_data):
         output_path = tmp_path / "dl3_gadf_overwrite.fits"
 
-        dl3_writer.write_file(output_path)
+        dl3_writer.write_file(output_path, dl3_data)
         with pytest.raises(OSError):
-            dl3_writer.write_file(output_path)
+            dl3_writer.write_file(output_path, dl3_data)
 
-    def test_hdu_header_base(self, dl3_writer):
+    def test_writer_reuse_does_not_leak_state(self, tmp_path, dl3_writer, dl3_data):
+        first_path = tmp_path / "dl3_gadf_first.fits"
+        second_path = tmp_path / "dl3_gadf_second.fits"
+        original_irf_obs_ids = [
+            hdu.header.get("OBS_ID")
+            for hdu in (dl3_data.aeff, dl3_data.psf, dl3_data.edisp, dl3_data.bkg)
+            if hdu is not None
+        ]
+
+        second_data = DL3EventsData(
+            events=dl3_data.events,
+            obs_id=dl3_data.obs_id + 1,
+            pointing=dl3_data.pointing,
+            pointing_mode=dl3_data.pointing_mode,
+            gti=dl3_data.gti,
+            livetime_fraction=dl3_data.livetime_fraction,
+            location=dl3_data.location,
+            telescope_information=dl3_data.telescope_information,
+            target_information=dl3_data.target_information,
+            software_information=dl3_data.software_information,
+            aeff=dl3_data.aeff,
+            psf=dl3_data.psf,
+            edisp=dl3_data.edisp,
+            bkg=dl3_data.bkg,
+        )
+
+        dl3_writer.write_file(first_path, dl3_data)
+        dl3_writer.write_file(second_path, second_data)
+
+        with fits.open(first_path, checksum=True) as first_hdul:
+            assert first_hdul["EVENTS"].header["OBS_ID"] == dl3_data.obs_id
+        with fits.open(second_path, checksum=True) as second_hdul:
+            assert second_hdul["EVENTS"].header["OBS_ID"] == second_data.obs_id
+
+        current_irf_obs_ids = [
+            hdu.header.get("OBS_ID")
+            for hdu in (dl3_data.aeff, dl3_data.psf, dl3_data.edisp, dl3_data.bkg)
+            if hdu is not None
+        ]
+        assert current_irf_obs_ids == original_irf_obs_ids
+
+    def test_hdu_header_base(self, dl3_writer, dl3_data):
         header = dl3_writer.get_hdu_header_base_format()
 
         assert header["HDUCLASS"] == "GADF"
@@ -255,8 +303,8 @@ class TestDL3GADFEventsWriter:
         file_time = datetime.fromisoformat(header["CREATED"])
         assert (datetime.now(UTC) - file_time) < timedelta(hours=1)
 
-    def test_hdu_header_time(self, dl3_writer):
-        header = dl3_writer.get_hdu_header_base_time()
+    def test_hdu_header_time(self, dl3_writer, dl3_data):
+        header = dl3_writer.get_hdu_header_base_time(dl3_data)
 
         for key in [
             "MJDREFI",
@@ -303,159 +351,167 @@ class TestDL3GADFEventsWriter:
         assert (tstop - tref).to_value(u.s) == pytest.approx(header["TSTOP"], rel=1e-6)
         assert (tavg >= tstart) & (tavg <= tstop)
 
-    def test_hdu_header_time_missing_gti(self, dl3_writer):
-        dl3_writer._gti = None
+    def test_hdu_header_time_missing_gti(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "gti", None)
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_time()
+            dl3_writer.get_hdu_header_base_time(dl3_data)
 
-    def test_hdu_header_time_missing_deadtime(self, dl3_writer):
-        dl3_writer._livetime_fraction = None
+    def test_hdu_header_time_missing_deadtime(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "livetime_fraction", None)
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_time()
+            dl3_writer.get_hdu_header_base_time(dl3_data)
 
-    def test_livetime_fraction_setter_validation(self, dl3_writer):
-        dl3_writer.livetime_fraction = 0.0
-        assert dl3_writer.livetime_fraction == 0.0
+    def test_livetime_fraction_setter_validation(self, dl3_writer, dl3_data):
+        dl3_data.livetime_fraction = 0.0
+        assert dl3_data.livetime_fraction == 0.0
 
-        dl3_writer.livetime_fraction = 1.0
-        assert dl3_writer.livetime_fraction == 1.0
+        dl3_data.livetime_fraction = 1.0
+        assert dl3_data.livetime_fraction == 1.0
 
         for invalid in (-1e-3, 1.001, np.nan, np.inf, -np.inf):
             with pytest.raises(ValueError):
-                dl3_writer.livetime_fraction = invalid
+                dl3_data.livetime_fraction = invalid
 
         for invalid in ([0.5], "0.5", True):
             with pytest.raises(TypeError):
-                dl3_writer.livetime_fraction = invalid
-
-        dl3_writer.livetime_fraction = None
-        assert dl3_writer.livetime_fraction is None
-
-    def test_obs_id_setter_validation(self, dl3_writer):
-        dl3_writer.obs_id = np.int64(1234)
-        assert dl3_writer.obs_id == 1234
+                dl3_data.livetime_fraction = invalid
 
         with pytest.raises(ValueError):
-            dl3_writer.obs_id = -1
+            dl3_data.livetime_fraction = None
+
+    def test_obs_id_setter_validation(self, dl3_writer, dl3_data):
+        dl3_data.obs_id = np.int64(1234)
+        assert dl3_data.obs_id == 1234
+
+        with pytest.raises(ValueError):
+            dl3_data.obs_id = -1
 
         for invalid in (1.2, "1", True):
             with pytest.raises(TypeError):
-                dl3_writer.obs_id = invalid
-
-        dl3_writer.obs_id = None
-        assert dl3_writer.obs_id is None
-
-    def test_events_setter_validation(self, dl3_writer):
-        table = Table(dl3_writer.events, copy=False)
-        dl3_writer.events = table
-        assert dl3_writer.events is table
-
-        with pytest.raises(TypeError):
-            dl3_writer.events = {"not": "a table"}
-
-        dl3_writer.events = None
-        assert dl3_writer.events is None
-
-    def test_pointing_setter_validation(self, dl3_writer):
-        with pytest.raises(TypeError):
-            dl3_writer.pointing = "not-a-sequence"
+                dl3_data.obs_id = invalid
 
         with pytest.raises(ValueError):
-            dl3_writer.pointing = [(Time("2020-01-01T00:00:00", scale="tai"),)]
+            dl3_data.obs_id = None
+
+    def test_events_setter_validation(self, dl3_writer, dl3_data):
+        qtable = QTable(dl3_data.events, copy=True)
+        dl3_data.events = qtable
+        assert dl3_data.events is qtable
+
+        table = Table(dl3_data.events, copy=False)
+        with pytest.raises(TypeError):
+            dl3_data.events = table
 
         with pytest.raises(TypeError):
-            dl3_writer.pointing = [(Time("2020-01-01T00:00:00", scale="tai"), object())]
-
-        dl3_writer.pointing = None
-        assert dl3_writer.pointing is None
-
-    def test_pointing_mode_setter_validation(self, dl3_writer):
-        dl3_writer.pointing_mode = "track"
-        assert dl3_writer.pointing_mode == "TRACK"
-
-        dl3_writer.pointing_mode = " drift "
-        assert dl3_writer.pointing_mode == "DRIFT"
-
-        with pytest.raises(TypeError):
-            dl3_writer.pointing_mode = 1
+            dl3_data.events = {"not": "a table"}
 
         with pytest.raises(ValueError):
-            dl3_writer.pointing_mode = "WOBBLE"
+            dl3_data.events = None
 
-    def test_gti_setter_validation(self, dl3_writer):
+    def test_pointing_setter_validation(self, dl3_writer, dl3_data):
         with pytest.raises(TypeError):
-            dl3_writer.gti = "not-a-sequence"
+            dl3_data.pointing = "not-a-sequence"
 
         with pytest.raises(ValueError):
-            dl3_writer.gti = [(Time("2020-01-01T00:00:00", scale="tai"),)]
+            dl3_data.pointing = [(Time("2020-01-01T00:00:00", scale="tai"),)]
 
-        dl3_writer.gti = None
-        assert dl3_writer.gti is None
-
-    def test_location_setter_validation(self, dl3_writer):
         with pytest.raises(TypeError):
-            dl3_writer.location = "not-a-location"
+            dl3_data.pointing = [(Time("2020-01-01T00:00:00", scale="tai"), object())]
 
-        dl3_writer.location = None
-        assert dl3_writer.location is None
+        with pytest.raises(ValueError):
+            dl3_data.pointing = None
+
+    def test_pointing_mode_setter_validation(self, dl3_writer, dl3_data):
+        dl3_data.pointing_mode = "track"
+        assert dl3_data.pointing_mode == "TRACK"
+
+        dl3_data.pointing_mode = " drift "
+        assert dl3_data.pointing_mode == "DRIFT"
+
+        with pytest.raises(TypeError):
+            dl3_data.pointing_mode = 1
+
+        with pytest.raises(ValueError):
+            dl3_data.pointing_mode = "WOBBLE"
+
+    def test_gti_setter_validation(self, dl3_writer, dl3_data):
+        with pytest.raises(TypeError):
+            dl3_data.gti = "not-a-sequence"
+
+        with pytest.raises(ValueError):
+            dl3_data.gti = [(Time("2020-01-01T00:00:00", scale="tai"),)]
+
+        with pytest.raises(ValueError):
+            dl3_data.gti = None
+
+    def test_location_setter_validation(self, dl3_writer, dl3_data):
+        with pytest.raises(TypeError):
+            dl3_data.location = "not-a-location"
+
+        with pytest.raises(ValueError):
+            dl3_data.location = None
 
     @pytest.mark.parametrize("setter", ["aeff", "psf", "edisp", "bkg"])
-    def test_irf_setter_validation(self, dl3_writer, setter):
+    def test_irf_setter_validation(self, dl3_writer, dl3_data, setter):
         with pytest.raises(TypeError):
-            setattr(dl3_writer, setter, "not-an-hdu")
+            setattr(dl3_data, setter, "not-an-hdu")
 
-    def test_telescope_information_setter_validation(self, dl3_writer):
+    def test_telescope_information_setter_validation(self, dl3_writer, dl3_data):
         with pytest.raises(TypeError):
-            dl3_writer.telescope_information = "not-a-mapping"
+            dl3_data.telescope_information = "not-a-mapping"
 
         with pytest.raises(ValueError, match="missing keys"):
-            dl3_writer.telescope_information = {"organisation": "CTAO"}
+            dl3_data.telescope_information = {"organisation": "CTAO"}
 
-    def test_target_information_setter_validation(self, dl3_writer):
+    def test_target_information_setter_validation(self, dl3_writer, dl3_data):
         with pytest.raises(TypeError):
-            dl3_writer.target_information = "not-a-mapping"
+            dl3_data.target_information = "not-a-mapping"
 
         with pytest.raises(ValueError, match="missing keys"):
-            dl3_writer.target_information = {"observer": "UNKNOWN"}
+            dl3_data.target_information = {"observer": "UNKNOWN"}
 
         with pytest.raises(TypeError):
-            dl3_writer.target_information = {
+            dl3_data.target_information = {
                 "observer": "UNKNOWN",
                 "object_name": "UNKNOWN",
                 "object_coordinate": object(),
             }
 
-    def test_software_information_setter_validation(self, dl3_writer):
+    def test_software_information_setter_validation(self, dl3_writer, dl3_data):
         with pytest.raises(TypeError):
-            dl3_writer.software_information = "not-a-mapping"
+            dl3_data.software_information = "not-a-mapping"
 
         with pytest.raises(ValueError, match="missing keys"):
-            dl3_writer.software_information = {"analysis_version": "ctapipe X"}
+            dl3_data.software_information = {"analysis_version": "ctapipe X"}
 
-    def test_hdu_header_obs_info(self, dl3_writer, dl2_meta_for_dl3):
+    def test_hdu_header_obs_info(self, dl3_writer, dl3_data, dl2_meta_for_dl3):
         obs_only = dl3_writer.get_hdu_header_base_observation_information(
-            obs_id_only=True
+            dl3_data, obs_id_only=True
         )
-        assert obs_only["OBS_ID"] == dl3_writer.obs_id
+        assert obs_only["OBS_ID"] == dl3_data.obs_id
         assert len(obs_only) == 1
 
         full_header = dl3_writer.get_hdu_header_base_observation_information(
-            obs_id_only=False
+            dl3_data, obs_id_only=False
         )
-        assert full_header["OBS_ID"] == dl3_writer.obs_id
+        assert full_header["OBS_ID"] == dl3_data.obs_id
         target = dl2_meta_for_dl3["target"]
         assert full_header["OBSERVER"] == target["observer"]
         assert full_header["OBJECT"] == target["object_name"]
 
-    def test_hdu_header_obs_info_missing_obs_id(self, dl3_writer):
-        dl3_writer._obs_id = None
+    def test_hdu_header_obs_info_missing_obs_id(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "obs_id", None)
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_observation_information(obs_id_only=True)
+            dl3_writer.get_hdu_header_base_observation_information(
+                dl3_data, obs_id_only=True
+            )
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_observation_information(obs_id_only=False)
+            dl3_writer.get_hdu_header_base_observation_information(
+                dl3_data, obs_id_only=False
+            )
 
-    def test_hdu_header_subarray_info(self, dl3_writer, dl2_meta_for_dl3):
-        header = dl3_writer.get_hdu_header_base_subarray_information()
+    def test_hdu_header_subarray_info(self, dl3_writer, dl3_data, dl2_meta_for_dl3):
+        header = dl3_writer.get_hdu_header_base_subarray_information(dl3_data)
 
         tel_info = dl2_meta_for_dl3["telescope_information"]
         assert header["ORIGIN"] == tel_info["organisation"]
@@ -464,19 +520,19 @@ class TestDL3GADFEventsWriter:
         assert header["TELLIST"] == str(tel_info["telescope_list"])
         assert header["N_TELS"] == len(tel_info["telescope_list"])
 
-    def test_hdu_header_software_info(self, dl3_writer, dl2_meta_for_dl3):
-        header = dl3_writer.get_hdu_header_base_software_information()
+    def test_hdu_header_software_info(self, dl3_writer, dl3_data, dl2_meta_for_dl3):
+        header = dl3_writer.get_hdu_header_base_software_information(dl3_data)
         soft = dl2_meta_for_dl3["software_version"]
         assert header["DST_VER"] == soft["dst_version"]
         assert header["ANA_VER"] == soft["analysis_version"]
         assert header["CAL_VER"] == soft["calibration_version"]
 
-        dl3_writer._software_information = None
-        header = dl3_writer.get_hdu_header_base_software_information()
+        object.__setattr__(dl3_data, "software_information", None)
+        header = dl3_writer.get_hdu_header_base_software_information(dl3_data)
         assert len(header) == 0
 
-    def test_hdu_header_pointing(self, dl3_writer, dl2_meta_for_dl3):
-        header = dl3_writer.get_hdu_header_base_pointing()
+    def test_hdu_header_pointing(self, dl3_writer, dl3_data, dl2_meta_for_dl3):
+        header = dl3_writer.get_hdu_header_base_pointing(dl3_data)
 
         assert header["RADESYS"] == "ICRS"
         assert header["RADECSYS"] == "ICRS"
@@ -494,39 +550,39 @@ class TestDL3GADFEventsWriter:
         assert header["OBSGEO-Y"] == pytest.approx(loc.y.to_value(u.m))
         assert header["OBSGEO-Z"] == pytest.approx(loc.z.to_value(u.m))
 
-    def test_hdu_header_pointing_track_mode_regression(self, dl3_writer):
-        dl3_writer.pointing_mode = "TRACK"
-        header = dl3_writer.get_hdu_header_base_pointing()
+    def test_hdu_header_pointing_track_mode_regression(self, dl3_writer, dl3_data):
+        dl3_data.pointing_mode = "TRACK"
+        header = dl3_writer.get_hdu_header_base_pointing(dl3_data)
 
         assert header["OBS_MODE"] == "POINTING"
         for key in ["RA_PNT", "DEC_PNT", "ALT_PNT", "AZ_PNT"]:
             assert np.isfinite(header[key])
 
-    def test_hdu_header_pointing_drift_mode_regression(self, dl3_writer):
-        dl3_writer.pointing_mode = "DRIFT"
-        header = dl3_writer.get_hdu_header_base_pointing()
+    def test_hdu_header_pointing_drift_mode_regression(self, dl3_writer, dl3_data):
+        dl3_data.pointing_mode = "DRIFT"
+        header = dl3_writer.get_hdu_header_base_pointing(dl3_data)
 
         assert header["OBS_MODE"] == "DRIFT"
         for key in ["RA_PNT", "DEC_PNT", "ALT_PNT", "AZ_PNT"]:
             assert np.isfinite(header[key])
 
-    def test_hdu_header_pointing_missing_pointing(self, dl3_writer):
-        dl3_writer._pointing = None
+    def test_hdu_header_pointing_missing_pointing(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "pointing", None)
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_pointing()
+            dl3_writer.get_hdu_header_base_pointing(dl3_data)
 
-    def test_hdu_header_pointing_missing_pointing_mode(self, dl3_writer):
-        dl3_writer._pointing_mode = None
+    def test_hdu_header_pointing_missing_pointing_mode(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "pointing_mode", None)
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_pointing()
+            dl3_writer.get_hdu_header_base_pointing(dl3_data)
 
-    def test_hdu_header_pointing_missing_location(self, dl3_writer):
-        dl3_writer._location = None
+    def test_hdu_header_pointing_missing_location(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "location", None)
         with pytest.raises(ValueError):
-            dl3_writer.get_hdu_header_base_pointing()
+            dl3_writer.get_hdu_header_base_pointing(dl3_data)
 
-    def test_hdu_header_events_hdu(self, dl3_writer):
-        header = dl3_writer.get_hdu_header_events()
+    def test_hdu_header_events_hdu(self, dl3_writer, dl3_data):
+        header = dl3_writer.get_hdu_header_events(dl3_data)
 
         assert header["HDUCLASS"] == "GADF"
         assert header["HDUCLAS1"] == "EVENTS"
@@ -557,8 +613,8 @@ class TestDL3GADFEventsWriter:
         ]:
             assert key in header
 
-    def test_hdu_header_gti_hdu(self, dl3_writer):
-        header = dl3_writer.get_hdu_header_gti()
+    def test_hdu_header_gti_hdu(self, dl3_writer, dl3_data):
+        header = dl3_writer.get_hdu_header_gti(dl3_data)
 
         for key in [
             "MJDREFI",
@@ -581,8 +637,8 @@ class TestDL3GADFEventsWriter:
         assert header["HDUCLASS"] == "GADF"
         assert header["HDUCLAS1"] == "GTI"
 
-    def test_hdu_header_pointing_hdu(self, dl3_writer):
-        header = dl3_writer.get_hdu_header_pointing()
+    def test_hdu_header_pointing_hdu(self, dl3_writer, dl3_data):
+        header = dl3_writer.get_hdu_header_pointing(dl3_data)
 
         assert header["HDUCLASS"] == "GADF"
         assert header["HDUCLAS1"] == "POINTING"
@@ -598,8 +654,8 @@ class TestDL3GADFEventsWriter:
         for key in ["RA_PNT", "DEC_PNT", "ALT_PNT", "AZ_PNT", "OBS_ID"]:
             assert key in header
 
-    def test_column_renaming(self, dl3_writer):
-        events = dl3_writer.events
+    def test_column_renaming(self, dl3_writer, dl3_data):
+        events = dl3_data.events
         renamed = dl3_writer.transform_events_columns_for_gadf_format(events)
 
         assert renamed.colnames == ["EVENT_ID", "TIME", "RA", "DEC", "ENERGY"]
@@ -619,14 +675,14 @@ class TestDL3GADFEventsWriter:
         with pytest.raises(ValueError, match="Required column reco_energy is missing"):
             dl3_writer.transform_events_columns_for_gadf_format(bad_events)
 
-    def test_gti_table(self, dl3_writer, dl2_meta_for_dl3):
-        gti_table = dl3_writer.create_gti_table()
+    def test_gti_table(self, dl3_writer, dl3_data, dl2_meta_for_dl3):
+        gti_table = dl3_writer.create_gti_table(dl3_data)
 
         assert gti_table.colnames == ["START", "STOP"]
         assert len(gti_table) == len(dl2_meta_for_dl3["gti"])
 
-    def test_pointing_table(self, dl3_writer):
-        pointing_table = dl3_writer.create_pointing_table()
+    def test_pointing_table(self, dl3_writer, dl3_data):
+        pointing_table = dl3_writer.create_pointing_table(dl3_data)
 
         assert pointing_table.colnames == [
             "TIME",
@@ -650,19 +706,19 @@ class TestDL3GADFEventsWriter:
         )
         assert np.all(np.isfinite(pointing_table["RA_PNT"].to_value(u.deg)))
 
-    def test_pointing_table_missing_pointing(self, dl3_writer):
-        dl3_writer._pointing = None
+    def test_pointing_table_missing_pointing(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "pointing", None)
         with pytest.raises(ValueError):
-            dl3_writer.create_pointing_table()
+            dl3_writer.create_pointing_table(dl3_data)
 
-    def test_pointing_table_missing_location(self, dl3_writer):
-        dl3_writer._location = None
+    def test_pointing_table_missing_location(self, dl3_writer, dl3_data):
+        object.__setattr__(dl3_data, "location", None)
         with pytest.raises(ValueError):
-            dl3_writer.create_pointing_table()
+            dl3_writer.create_pointing_table(dl3_data)
 
-    def test_gti_table_is_sorted(self, dl3_writer, dl2_meta_for_dl3):
+    def test_gti_table_is_sorted(self, dl3_writer, dl3_data, dl2_meta_for_dl3):
         """Regression test: GTI table must be sorted by START (bug #1.3)."""
-        original_gti = dl3_writer.gti
+        original_gti = dl3_data.gti
 
         # Build GTI intervals in reverse chronological order
         ref = Time("2020-06-01T00:00:00", scale="tai")
@@ -671,13 +727,13 @@ class TestDL3GADFEventsWriter:
             (ref + 100 * u.s, ref + 200 * u.s),
             (ref + 0 * u.s, ref + 100 * u.s),
         ]
-        dl3_writer.gti = reversed_gti
+        dl3_data.gti = reversed_gti
 
-        gti_table = dl3_writer.create_gti_table()
+        gti_table = dl3_writer.create_gti_table(dl3_data)
         start_values = gti_table["START"].to_value(u.s)
         assert np.all(np.diff(start_values) >= 0), (
             "GTI START column must be sorted in ascending order"
         )
 
         # Restore original GTI
-        dl3_writer.gti = original_gti
+        dl3_data.gti = original_gti
