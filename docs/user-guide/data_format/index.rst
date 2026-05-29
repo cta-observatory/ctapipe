@@ -1,4 +1,4 @@
-.. _dataformat:
+.. _data_format:
 
 ***********
 Data Format
