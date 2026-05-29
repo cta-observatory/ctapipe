@@ -4,7 +4,9 @@
 Image Parameters
 ****************
 
-This page lists all the image parameters available in ``ctapipe``.
+This page lists the image parameters available in ``ctapipe``.
+These definitions are pulled directly from the source code, ensuring they are
+always up to date.
 
 .. currentmodule:: ctapipe.containers
 
