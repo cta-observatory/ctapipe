@@ -24,7 +24,7 @@ Processing Pipeline
 2. **Image Extraction**: Integrates waveforms to produce 2D camera images (DL1a).
 3. **Image Cleaning**: Removes noise pixels, leaving only the Cherenkov shower signal.
 4. **Parameterization**: Calculates Hillas and timing parameters from the cleaned image (DL1b).
-5. **Reconstruction**: 
+5. **Reconstruction**:
     - **Direction**: Uses multiple telescope views (stereo) to find the source position.
     - **Energy**: Estimates the primary particle's energy.
     - **Classification**: Distinguishes between gamma-rays and hadronic background.
