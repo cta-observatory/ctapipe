@@ -8,6 +8,7 @@ User Guide
    :maxdepth: 2
 
    getting-started
+   image_parameters
    tools/index
    data_format/index
    examples_tutorials
