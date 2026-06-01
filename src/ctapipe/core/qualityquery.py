@@ -137,3 +137,32 @@ class QualityQuery(Component):
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
         return np.all(result, axis=0)
+
+    def add_table_mask_columns(self, table):
+        """
+        Return original table with boolean columns for each criterion.
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table with columns matching the expressions used in the
+            `QualityQuery.quality_criteria`.
+
+        Returns
+        -------
+        Table :
+            Original table plus new columns per criterion.
+        """
+        table = table.copy()
+        n_criteria = len(self.quality_criteria) + 1
+        result = np.ones((n_criteria, len(table)), dtype=bool)
+
+        for i, res in enumerate(self.engine(table)):
+            name = self.criteria_names[i]
+            table[name] = res.data
+            result[i + 1] = res.data
+
+        self._counts += np.count_nonzero(result, axis=1)
+        self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
+
+        return table
