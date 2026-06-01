@@ -34,7 +34,7 @@ PointSourceSensitivityOptimizer:
   max_gh_cut_efficiency: 0.8
   gh_cut_efficiency_step: 0.1
   alpha: 0.2
-  theta_min_angle: None
+  theta_min_angle: null
   theta_max_angle: 0.5 deg
   max_theta_cut_efficiency: 0.8
   theta_cut_efficiency_step: 0.1
