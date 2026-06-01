@@ -1,0 +1,2 @@
+If an ``AstroQuantity`` is defined without a ``physical_type`` but including the ``default_value``,
+the ``physical_type`` is extracted from the ``default_value``.
