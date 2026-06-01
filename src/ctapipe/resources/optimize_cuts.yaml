@@ -44,7 +44,7 @@ PointSourceSensitivityGhOptimizer:
   initial_gh_cut_efficency: 0.4
 
 ThetaPercentileCutCalculator:
-  theta_min_angle: None
+  theta_min_angle: null
   theta_max_angle: 0.5 deg
   theta_fill_value: 0.5 deg
   smoothing:
