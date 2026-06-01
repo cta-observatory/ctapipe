@@ -291,11 +291,13 @@ class EventPreprocessor(Component):
 
         # apply event selection on the resulting table
 
-        if self.mode == "drop":
+        if self.mode == EventPreprocessorMode.DROP:
             # return only the columns specified in `self.features`, and rows in
             # `selected_mask`
             selected_mask = self.quality_query.get_table_mask(generated)
             return generated[self.features][selected_mask]
-        else:
+        elif self.mode == EventPreprocessorMode.MARK:
             generated = self.quality_query.add_table_mask_columns(generated)
             return generated[self.features + self.quality_query.criteria_names]
+        else:
+            raise ValueError("Unsupported mode: {self.mode}")
