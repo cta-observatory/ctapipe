@@ -97,7 +97,7 @@ class AstroQuantity(TraitType):
 
     def __init__(self, physical_type=None, **kwargs):
         super().__init__(**kwargs)
-        if physical_type is not None:
+        if physical_type is None:
             self.physical_type = None
         elif isinstance(physical_type, u.PhysicalType):
             self.physical_type = physical_type
