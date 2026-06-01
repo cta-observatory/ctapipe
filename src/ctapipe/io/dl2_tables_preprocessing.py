@@ -441,27 +441,21 @@ class DL2EventLoader(Component):
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
         events["weight"] = 1.0  # defer calculation of proper weights to later
         # define multiplicity as lowest multiplicity between the 3 reconstructions
+        reconstructors = (
+            self.epp.energy_reconstructor,
+            self.epp.geometry_reconstructor,
+            self.epp.gammaness_classifier,
+        )
         events["multiplicity"] = np.min(
             [
-                np.count_nonzero(
-                    events[f"{self.epp.energy_reconstructor}_telescopes"], axis=1
-                ),
-                np.count_nonzero(
-                    events[f"{self.epp.geometry_reconstructor}_telescopes"], axis=1
-                ),
-                np.count_nonzero(
-                    events[f"{self.epp.gammaness_classifier}_telescopes"], axis=1
-                ),
+                np.count_nonzero(events[f"{reconstructor}_telescopes"], axis=1)
+                for reconstructor in reconstructors
             ],
             axis=0,
         )
         # delete "_telescope" columns as they are not needed downstream
         events.remove_columns(
-            [
-                f"{self.epp.energy_reconstructor}_telescopes",
-                f"{self.epp.geometry_reconstructor}_telescopes",
-                f"{self.epp.gammaness_classifier}_telescopes",
-            ]
+            [f"{reconstructor}_telescopes" for reconstructor in reconstructors]
         )
         return events
 
