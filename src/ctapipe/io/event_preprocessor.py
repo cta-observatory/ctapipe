@@ -1,5 +1,7 @@
 """Module containing classes related to event loading and preprocessing"""
 
+from enum import Enum, auto
+
 from astropy.coordinates import angular_separation
 
 from ..coordinates import altaz_to_icrs, altaz_to_nominal
@@ -173,6 +175,13 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
     }
 
 
+class EventPreprocessorMode(Enum):
+    """Mode of output of EventPreprocessor."""
+
+    DROP = auto()  #: drop events that do not pass
+    MARK = auto()  #: only mark evens as not passing, adding boolean columns
+
+
 class EventPreprocessor(Component):
     """
     Selects or generates features and filters tables of events.
@@ -189,6 +198,16 @@ class EventPreprocessor(Component):
     - `~astropy.coordinates.angular_separation`
     - `~ctapipe.coordinates.altaz_to_nominal`
     """
+
+    mode = traits.UseEnum(
+        EventPreprocessorMode,
+        default_value=EventPreprocessorMode.DROP,
+        help=(
+            "If 'DROP', removes events that do not pass quality cuts. "
+            "If 'MARK', generates a new boolean column for each quality criteria, "
+            "but keeps all events."
+        ),
+    )
 
     energy_reconstructor = traits.Unicode(
         default_value="RandomForestRegressor",
@@ -272,8 +291,11 @@ class EventPreprocessor(Component):
 
         # apply event selection on the resulting table
 
-        selected_mask = self.quality_query.get_table_mask(generated)
-
-        # return only the columns specified in `self.features`, and rows in
-        # `selected_mask`
-        return generated[self.features][selected_mask]
+        if self.mode == "drop":
+            # return only the columns specified in `self.features`, and rows in
+            # `selected_mask`
+            selected_mask = self.quality_query.get_table_mask(generated)
+            return generated[self.features][selected_mask]
+        else:
+            generated = self.quality_query.add_table_mask_columns(generated)
+            return generated[self.features + self.quality_query.criteria_names]
