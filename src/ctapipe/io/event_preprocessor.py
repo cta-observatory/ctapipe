@@ -156,6 +156,7 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
             ("passed_gh", "apply_gammaness_cut(GAMMANESS, ENERGY)"),
         ],
         "quality_criteria": [
+            ("VALID_RECO", f"{preprocessor.geometry_reconstructor}_is_valid"),
             ("PASSED_GH", "passed_gh"),
         ],
         "output_features": [
