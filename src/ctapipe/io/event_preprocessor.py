@@ -125,14 +125,13 @@ def _dl2_irf_config(preprocessor):
 
 @FeatureSetRegistry.register("dl2_to_dl3")
 def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
+    """Creates a DL3/Event table that conforms to GADF/VODF column naming."""
     return {
         "features_to_generate": [
-            ("ENERGY", f"{preprocessor.energy_reconstructor}_energy"),
+            ("EVENT_ID", "event_id"),
+            ("TIME", "time"),
             ("ALT", f"{preprocessor.geometry_reconstructor}_alt"),
             ("AZ", f"{preprocessor.geometry_reconstructor}_az"),
-            ("TIME", "time"),
-            ("EVENT_ID", "event_id"),
-            ("GAMMANESS", f"{preprocessor.gammaness_reconstructor}_prediction"),
             (
                 "reco_fov_coord",
                 "altaz_to_nominal(AZ, ALT, subarray_pointing_lon, subarray_pointing_lat)",
@@ -141,12 +140,22 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
             ("FOV_LAT", "reco_fov_coord[:,1]"),
             (
                 "reco_icrs_coord",
-                "altaz_to_icrs(AZ, ALT, TIME, LOCATION)",
+                "altaz_to_icrs(AZ, ALT, TIME, subarray.reference_location)",
             ),
             ("RA", "reco_icrs_coord[:,0]"),
             ("DEC", "reco_icrs_coord[:,1]"),
+            ("ENERGY", f"{preprocessor.energy_reconstructor}_energy"),
+            ("GAMMANESS", f"{preprocessor.gammaness_reconstructor}_prediction"),
+            (
+                "MULTIP",
+                f"subarray.multiplicity({preprocessor.geometry_reconstructor}_telescopes)",
+            ),
+            ("HMAX", f"{preprocessor.geometry_reconstructor}_h_max"),
+            ("passed_gh", "apply_gammaness_cut(GAMMANESS, ENERGY)"),
         ],
-        "quality_criteria": [],
+        "quality_criteria": [
+            ("PASSED_GH", "passed_gh"),
+        ],
         "output_features": [
             "EVENT_ID",
             "TIME",
@@ -158,6 +167,8 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
             "FOV_LON",
             "FOV_LAT",
             "GAMMANESS",
+            "MULTIP",
+            "HMAX",
         ],
     }
 
