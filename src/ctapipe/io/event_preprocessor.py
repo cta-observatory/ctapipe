@@ -208,7 +208,7 @@ class EventPreprocessor(Component):
             "If 'MARK', generates a new boolean column for each quality criteria, "
             "but keeps all events."
         ),
-    )
+    ).tag(config=True)
 
     energy_reconstructor = traits.Unicode(
         default_value="RandomForestRegressor",
