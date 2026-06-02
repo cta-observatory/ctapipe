@@ -4,8 +4,9 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.table import QTable
+from astropy.time import Time
 
-from ctapipe.io.event_preprocessor import FeatureSetRegistry
+from ctapipe.io.event_preprocessor import EventPreprocessorMode, FeatureSetRegistry
 
 
 @pytest.fixture(scope="function")
@@ -16,11 +17,14 @@ def minimal_dl2_table():
             obs_id=[10, 10, 10, 10],
             event_id=[1, 2, 3, 4],
             true_energy=[100.0, 50.0, 2.0, 30.0] * u.TeV,
+            time=Time([0, 0, 0, 0], format="unix", scale="utc"),
             RandomForestRegressor_energy=[100.1, 49.2, 2.6, 40.0] * u.TeV,
             RandomForestRegressor_is_valid=[True, True, True, True],
             HillasReconstructor_az=[271.0, 271.6, 271.4, 268.1] * u.deg,
             HillasReconstructor_alt=[70.1, 68.2, 69.3, 70.8] * u.deg,
+            HillasReconstructor_h_max=[2000.0, 2500.0, 1980.0, 1000.0] * u.m,
             HillasReconstructor_is_valid=[True, True, True, False],
+            HillasReconstructor_telescopes=np.ones(shape=(4, 13), dtype=bool),
             RandomForestClassifier_prediction=[0.9, 0.5, 0.1, 0.3],
             RandomForestClassifier_is_valid=[True, True, True, False],
             true_alt=[70.0, 70.0, 70.0, 70.0] * u.deg,
@@ -39,8 +43,11 @@ def minimal_dl2_table():
     )
 
 
+@pytest.mark.parametrize("mode", list(EventPreprocessorMode))
 @pytest.mark.parametrize("feature_set", FeatureSetRegistry.list_available())
-def test_event_preprocessing(feature_set, minimal_dl2_table):
+def test_event_preprocessing(
+    feature_set, mode, minimal_dl2_table, subarray_prod5_paranal
+):
     from traitlets.config import Config
 
     from ctapipe.io import EventPreprocessor
@@ -52,14 +59,29 @@ def test_event_preprocessing(feature_set, minimal_dl2_table):
     table = minimal_dl2_table
 
     # process the table:
-    preprocess = EventPreprocessor(config=custom_config, feature_set=feature_set)
-    table_processed = preprocess(table)
+    preprocess = EventPreprocessor(
+        config=custom_config,
+        feature_set=feature_set,
+        subarray=subarray_prod5_paranal,
+        mode=mode,
+    )
+    table_processed = preprocess(table, apply_gammaness_cut=lambda g, e: True)
 
     for feature in preprocess.features:
         assert feature in table_processed.columns
 
-    # check that the qualityquery worked
-    assert len(table_processed) <= len(table)
+    if mode == EventPreprocessorMode.DROP:
+        # check that the qualityquery worked
+        assert len(table_processed) <= len(table)
+
+    if mode == EventPreprocessorMode.MARK:
+        # check that we have all the original events in KEEP mode
+        assert len(table_processed) == len(table)
+
+        # check that new columns were added:
+        set(table_processed.colnames) - set(table.colnames) == set(
+            preprocess.quality_query.criteria_names
+        )
 
 
 def test_no_output():
