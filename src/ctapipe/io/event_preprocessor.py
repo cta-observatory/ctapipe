@@ -246,8 +246,9 @@ class EventPreprocessor(Component):
         ),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
+        self.subarray = subarray
         if self.feature_set == "custom":
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = QualityQuery(parent=self)
@@ -287,6 +288,7 @@ class EventPreprocessor(Component):
             angular_separation=angular_separation,
             altaz_to_nominal=altaz_to_nominal,
             altaz_to_icrs=altaz_to_icrs,
+            subarray=self.subarray,
             **other_attributes,
         )
 
