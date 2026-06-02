@@ -1,4 +1,3 @@
-Since we do not use fov bins in the cut optimization yet, events outside the fov bins used for the irfs
-were used in the cut optimization, which results in cuts which do not actually maximize the sensitivity
-for the relevant fov.
-This fixes that issue until we implement fov bins for the cut optimization.
+Fix a bug in the event weighting that resulted in events outside of the selected FoV range for the sensitivity
+computation being used in the cut optimization leading to results where the selected cuts did not necessarily provide
+the best sensitivity in the selected FoV range.
