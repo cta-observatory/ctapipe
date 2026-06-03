@@ -74,3 +74,6 @@ Reference/API
 
 .. automodapi:: ctapipe.reco.impact
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.reco.disp
+    :no-inheritance-diagram:

@@ -1,0 +1,2 @@
+Add new function ``ctapipe.reco.disp.compute_true_disp`` to compute
+the true disp parameter from a table of DL1 events.

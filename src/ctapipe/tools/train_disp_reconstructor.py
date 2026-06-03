@@ -2,7 +2,6 @@
 Tool for training the DispReconstructor
 """
 
-import astropy.units as u
 import numpy as np
 
 from ctapipe.core import Tool
@@ -10,7 +9,7 @@ from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
-from ctapipe.reco.preprocessing import horizontal_to_telescope
+from ctapipe.reco.disp import compute_true_disp
 
 from .utils import read_training_events
 
@@ -150,7 +149,7 @@ class TrainDispReconstructor(Tool):
                 log=self.log,
                 n_events=self.n_events.tel[tel_type],
             )
-            table[self.models.target] = self._get_true_disp(table)
+            table[self.models.target] = compute_true_disp(table, self.project_disp)
             table = table[
                 self.models.features
                 + [self.models.target, "true_energy", "true_impact_distance"]
@@ -162,32 +161,6 @@ class TrainDispReconstructor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.models.fit(tel_type, table)
             self.log.info("done")
-
-    def _get_true_disp(self, table):
-        fov_lon, fov_lat = horizontal_to_telescope(
-            alt=table["true_alt"],
-            az=table["true_az"],
-            pointing_alt=table["subarray_pointing_lat"],
-            pointing_az=table["subarray_pointing_lon"],
-        )
-
-        # numpy's trigonometric functions need radians
-        psi = table["hillas_psi"].quantity.to_value(u.rad)
-        cog_lon = table["hillas_fov_lon"].quantity
-        cog_lat = table["hillas_fov_lat"].quantity
-
-        delta_lon = fov_lon - cog_lon
-        delta_lat = fov_lat - cog_lat
-
-        true_disp = np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
-        true_sign = np.sign(true_disp)
-
-        if self.project_disp:
-            true_norm = np.abs(true_disp)
-        else:
-            true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
-
-        return true_norm * true_sign
 
     def finish(self):
         """
