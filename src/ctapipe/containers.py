@@ -307,7 +307,8 @@ class BaseHillasParametersContainer(Container):
     intensity = Field(nan, "Total integrated charge (often called 'size')")
     skewness = Field(nan, "Longitudinal asymmetry of the image")
     kurtosis = Field(
-        nan, "Pearson's definition of kurtosis (Normal=3.0), measure of the tailedness"
+        nan,
+        "measure of the longitudinal tailedness of the charges distribution (following Pearson's definition: equals 3.0 for a normal distribution)",
     )
 
 
@@ -331,7 +332,7 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
         nan * u.m,
-        "uncertainty on the center of gravity along the transverse axis of the image",
+        "uncertainty on the centroid along the transverse axis of the image",
         unit=u.m,
     )
 
@@ -354,12 +355,8 @@ class HillasParametersContainer(BaseHillasParametersContainer):
         "Centroid latitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
-    r = Field(
-        nan * u.deg, "Radial coordinate of the centroid center of gravity", unit=u.deg
-    )
-    phi = Field(
-        nan * u.deg, "Polar coordinate of the centroid center of gravity", unit=u.deg
-    )
+    r = Field(nan * u.deg, "Radial coordinate of the centroid", unit=u.deg)
+    phi = Field(nan * u.deg, "Polar coordinate of the centroid", unit=u.deg)
 
     length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
     length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
@@ -371,7 +368,7 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
         nan * u.deg,
-        "uncertainty on the center of gravity along the transverse axis of the image",
+        "uncertainty on the centroid along the transverse axis of the image",
         unit=u.deg,
     )
 
