@@ -332,6 +332,17 @@ def test_quantity():
     ):
         c.energy = 5 * u.m
 
+    class SomeComponentWithEnergyDefaultValueAndNonePhysicalType(Component):
+        energy = AstroQuantity(default_value=5 * u.TeV, physical_type=None)
+
+    c = SomeComponentWithEnergyDefaultValueAndNonePhysicalType()
+    with pytest.raises(
+        TraitError,
+        match=f"Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
+        + f" Expected {u.physical.energy}.",
+    ):
+        c.energy = 5 * u.m
+
     # Give a u.quantity as physical type
     with pytest.raises(
         TraitError,
