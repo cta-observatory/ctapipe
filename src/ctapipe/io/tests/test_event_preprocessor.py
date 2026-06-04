@@ -65,7 +65,11 @@ def test_event_preprocessing(
         subarray=subarray_prod5_paranal,
         mode=mode,
     )
-    table_processed = preprocess(table, apply_gammaness_cut=lambda g, e: True)
+    table_processed = preprocess(
+        table,
+        gammaness_cut_function=lambda g, e: True,
+        multiplicity_cut_function=lambda m, e: m >= 4,
+    )
 
     for feature in preprocess.features:
         assert feature in table_processed.columns
