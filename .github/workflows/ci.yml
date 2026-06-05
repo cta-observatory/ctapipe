@@ -115,7 +115,9 @@ jobs:
           path: |
             .cache/ctapipe
             .cache/astropy
-          key: ctapipe-test-data-desy-4
+          key: ctapipe-test-data-desy
+          restore-keys: |
+            ctapipe-test-data-desy
 
       - name: debug caches
         run: |
@@ -223,7 +225,7 @@ jobs:
           path: |
             .cache/ctapipe
             .cache/astropy
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          key: ctapipe-test-data-desy-${{ github.run_id }}-${{ github.run_attempt }}
 
   docs:
     runs-on: ubuntu-24.04
