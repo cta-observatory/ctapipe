@@ -469,6 +469,11 @@ class DL2EventLoader(Component):
         ValueError
             If ``fov_offset_bins`` is required but not provided.
         """
+        # Re-initialize weights = 0 to exclude events outside fov bins
+        # in the cut optimization.
+        # This will become unnecessary once fov bins are used during cut optimization.
+        events["weight"] = 0.0
+
         if (
             kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
