@@ -15,6 +15,8 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
+  XDG_CACHE_HOME: "${{ github.workspace }}/.cache"
+  CTAPIPE_CACHE: "${{ github.workspace }}/.cache/ctapipe"
 
 jobs:
   lint:
@@ -101,17 +103,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: cache test data
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ctapipe
-          key: ctapipe-test-data-desy-1
+      - name: Ensure astropy cache dir
+        run: |
+          mkdir -p $XDG_CACHE_HOME/astropy
+          mkdir -p $CTAPIPE_CACHE
 
-      - name: cache astropy data
-        uses: actions/cache@v5
+      - name: restore cache data
+        id: cache-restore
+        uses: actions/cache/restore@v5
         with:
-          path: ~/.astropy/cache
-          key: astropy-cache
+          path: |
+            .cache/ctapipe
+            .cache/astropy
+          key: ctapipe-test-data-desy-4
+
+      - name: debug caches
+        run: |
+          find .cache
 
       - name: Prepare mamba installation
         if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
@@ -206,6 +214,16 @@ jobs:
           path: |
             coverage.xml
             sonar_env
+
+      - name: cache data
+        # make sure the largest test job uploads the cached data
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .cache/ctapipe
+            .cache/astropy
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
   docs:
     runs-on: ubuntu-24.04
