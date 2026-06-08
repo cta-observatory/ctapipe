@@ -244,6 +244,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: restore cache data
+        id: cache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            .cache/ctapipe
+            .cache/astropy
+          key: ctapipe-test-data-desy
+          restore-keys: |
+            ctapipe-test-data-desy
+
       - name: Install doc dependencies
         run: |
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz ffmpeg
