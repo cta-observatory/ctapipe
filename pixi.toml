@@ -117,6 +117,7 @@ python = "3.15.*"
 [feature.oldest-deps.dependencies]
 numpy = "1.26.*"
 numba = "==0.59.0"
+llvmlite = "==0.42.0"
 scipy = "1.15.*"
 astropy-base = "6.1.*"
 matplotlib = "3.8.*"

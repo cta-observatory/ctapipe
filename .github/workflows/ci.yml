@@ -63,7 +63,7 @@ jobs:
 
           - name: Linux (3.12, pip, coverage)
             os: ubuntu-24.04
-            python-version: "3.12"
+            python-version: "3.14"
             install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
@@ -159,12 +159,6 @@ jobs:
           pip install ./test_plugin setuptools_scm
           pip freeze
 
-      - name: Check Python version
-        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: python --version | grep "Python ${PYTHON_VERSION}"
-
       - name: ctapipe-info
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
@@ -176,6 +170,7 @@ jobs:
           echo "COVERAGE_CORE=sysmon" >> $GITHUB_ENV
           echo "NUMBA_JIT_COVERAGE=1" >> $GITHUB_ENV
           echo "PYTEST_ADDOPTS=--cov --cov-report=xml $PYTEST_ADDOPTS" >> $GITHUB_ENV
+          pip install 'numba>=0.67.0rc1'
 
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
