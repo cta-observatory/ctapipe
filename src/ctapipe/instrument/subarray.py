@@ -975,14 +975,23 @@ class SubarrayDescription:
             ├── instrument.meta.json
             ├── array-element-ids.json
             ├── array-elements/
-            │   ├── 001 -> LSTN
-            │   ├── 002 -> LSTN
-            │   ├── 003 -> LSTN
-            │   ├── 004 -> LSTN
-            │   └── LSTN/
-            │       ├── LSTN.camgeom.fits.gz
-            │       ├── LSTN.camreadout.fits.gz
-            │       └── LSTN.optics.ecsv
+            │   ├── LSTN/
+            │   │   ├── LSTN.camgeom.fits.gz
+            │   │   ├── LSTN.camreadout.fits.gz
+            │   │   └── LSTN.optics.ecsv
+            │   ├── MSTN/
+            │   │   ├── MSTN.camgeom.fits.gz
+            │   │   ├── MSTN.camreadout.fits.gz
+            │   │   └── MSTN.optics.ecsv
+            │   ├── 001/
+            │   │   ├── 001.optics.ecsv -> ../LSTN/LSTN.optics.ecsv
+            │   │   ├── 001.camgeom.fits.gz -> ../LSTN/LSTN.camgeom.fits.gz
+            │   │   └── 001.camreadout.fits.gz -> ../LSTN/LSTN.camreadout.fits.gz
+            │   ├── 002/
+            │   │   ├── 002.optics.ecsv -> ../LSTN/LSTN.optics.ecsv
+            │   │   ├── 002.camgeom.fits.gz -> ../LSTN/LSTN.camgeom.fits.gz
+            │   │   └── 002.camreadout.fits.gz -> ../LSTN/LSTN.camreadout.fits.gz
+            │   └── ...
             ├── positions/
             │   ├── CTAO-North_ArrayElementPositions.ecsv
             │   └── CTAO-South_ArrayElementPositions.ecsv
@@ -994,10 +1003,10 @@ class SubarrayDescription:
         - array-element-ids.json: mapping of telescope IDs to names
         - subarray-ids.json: subarray definitions
         - positions/{site}_ArrayElementPositions.ecsv: ECSV files with telescope positions for each site
-        - array-elements/``{ae_id:03d}``/: Instrument description files for each array element. Symlinks may be used to de-duplicate descriptions.
-          Each directory should contain optics.ecsv, camgeom.fits.gz, and camreadout.fits.gz files.
-          Files can be named either ``{ae_id:03d}.*`` (e.g., 001.optics.ecsv) for telescope-specific configurations
-          or ``{type}.*`` (e.g., LSTN.optics.ecsv) for shared configurations across multiple telescopes
+        - array-elements/{type}/: Shared telescope-type directories (e.g., LSTN, MSTN) containing instrument descriptions.
+          Each directory contains optics.ecsv, camgeom.fits.gz, and camreadout.fits.gz files named with the type prefix.
+        - array-elements/``{ae_id:03d}``/: Real directories for each array element, each containing per-file symlinks
+          to the shared type files. Files are named with the ae_id prefix (e.g., 001.optics.ecsv) but point to the type directory.
 
         Parameters
         ----------
