@@ -339,22 +339,15 @@ class DumpInstrumentTool(Tool):
         array_elements_dir = instrument_dir / "array-elements"
         array_elements_dir.mkdir(exist_ok=True, parents=True)
 
-        type_to_first_desc: dict = {}
-        tel_to_type: dict = {}
-        for tel_id, tel_desc in sub.tels.items():
-            type_key = str(tel_desc).replace(" ", "_")
-            if type_key not in type_to_first_desc:
-                type_to_first_desc[type_key] = tel_desc
-            tel_to_type[tel_id] = type_key
-
         # Write shared files once per unique telescope type
-        for type_key, first_desc in type_to_first_desc.items():
+        for index, tel_desc in enumerate(sub.telescope_types):
+            type_key = f"TEL-TYPE-{index:02d}"
             type_dir = array_elements_dir / type_key
             type_dir.mkdir(exist_ok=True, parents=True)
             self.log.debug("Writing shared type directory %s", type_key)
 
             optics_table = QTable()
-            optics = first_desc.optics
+            optics = tel_desc.optics
             optics_table.meta["TAB_VER"] = optics.CURRENT_TAB_VERSION
             optics_table.meta["SOURCE"] = str(self.infile)
             optics_table.meta["optics_name"] = optics.name
@@ -378,18 +371,19 @@ class DumpInstrumentTool(Tool):
             self.format = "fits"
             try:
                 self.write_single_camera(
-                    first_desc.camera, outdir=type_dir, name_prefix=type_key
+                    tel_desc.camera, outdir=type_dir, name_prefix=type_key
                 )
             finally:
                 self.format = orig_format
 
         # Create a real directory for each array element with per-file symlinks
         # pointing to the shared type directory (deduplication).
-        for tel_id in sub.tel_ids:
+        for tel_id, tel_desc in sub.tel.items():
             ae_id_str = f"{tel_id:03d}"
             ae_dir = array_elements_dir / ae_id_str
             ae_dir.mkdir(exist_ok=True, parents=True)
-            type_key = tel_to_type[tel_id]
+            index = sub.telescope_types.index(tel_desc)
+            type_key = f"TEL-TYPE-{index:02d}"
             self.log.debug(
                 "Writing array element %s -> %s (symlinks)", ae_id_str, type_key
             )
