@@ -40,6 +40,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
+      # here until the issues downloading from the DESY server are resolved
+      # we'd actually want to fail fast usually, but with the recurring failures with the
+      # test data server it becomes essentially impossible to get a green CI run if a
+      # failing job cancels all others.
+      fail-fast: false
       matrix:
         include:
           - name: Linux (3.12, mamba, oldest-deps)
@@ -238,6 +243,17 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+
+      - name: restore cache data
+        id: cache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            .cache/ctapipe
+            .cache/astropy
+          key: ctapipe-test-data-desy
+          restore-keys: |
+            ctapipe-test-data-desy
 
       - name: Install doc dependencies
         run: |

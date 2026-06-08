@@ -6,11 +6,14 @@ from urllib.parse import urlparse
 import requests
 from tqdm.auto import tqdm
 
+from ..version import __version__
 from .filelock import FileLock
 
 __all__ = ["download_file", "download_cached", "download_file_cached"]
 
 log = logging.getLogger(__name__)
+
+USER_AGENT = f"ctapipe/{__version__}"
 
 
 def download_file(url, path, auth=None, chunk_size=10240, progress=False):
@@ -33,7 +36,8 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     path = Path(path)
     part_file = None
 
-    with requests.get(url, stream=True, auth=auth, timeout=5) as r:
+    headers = {"User-Agent": USER_AGENT}
+    with requests.get(url, stream=True, auth=auth, timeout=5, headers=headers) as r:
         # make sure the request is successful
         r.raise_for_status()
 
