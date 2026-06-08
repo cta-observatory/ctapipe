@@ -84,14 +84,14 @@ jobs:
             pytest-markers: "-m 'not vizier'"
 
           - name: macos (3.12, x86-64, pip)
-            os: macos-15-intel
+            os: macos-26-intel
             python-version: "3.12"
             install-method: pip
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
           - name: macos (3.14, arm64, mamba)
-            os: macos-15
+            os: macos-26
             python-version: "3.14"
             install-method: mamba
             extras: tests,all
