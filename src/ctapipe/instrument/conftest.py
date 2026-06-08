@@ -157,8 +157,8 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     - array-element-ids.json: telescope ID to name mapping (fixed schema)
     - subarray-ids.json: subarray definitions
     - positions/: ECSV files with telescope positions for each site
-    - array-elements/{ae_id:03d}/: symlinks to telescope-type directories
-    - array-elements/{type}/: telescope type directories with optics, camera geometry, and readout files
+    - array-elements/{type}/: shared telescope-type directories with optics, camera geometry, and readout files
+    - array-elements/{ae_id:03d}/: real directories, each containing per-file symlinks to the shared type files
 
     The schemas follow:
     https://gitlab.cta-observatory.org/cta-computing/common/identifiers
@@ -273,26 +273,26 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
         overwrite=True,
     )
 
-    # Create symlinks from ae_id to telescope type directories
-    # LSTN-01, 02, 03, 04 -> LSTN
+    # Create real ae_id directories with per-file symlinks to shared type files
     for ae_id in [1, 2, 3, 4]:
-        symlink_path = array_elements_dir / f"{ae_id:03d}"
-        symlink_path.symlink_to("LSTN")
+        ae_id_str = f"{ae_id:03d}"
+        ae_dir = array_elements_dir / ae_id_str
+        ae_dir.mkdir()
+        for suffix in ["optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+            (ae_dir / f"{ae_id_str}.{suffix}").symlink_to(f"../LSTN/LSTN.{suffix}")
 
-    # MSTN-01, 02 -> MSTN
     for ae_id in [5, 6]:
-        symlink_path = array_elements_dir / f"{ae_id:03d}"
-        symlink_path.symlink_to("MSTN")
+        ae_id_str = f"{ae_id:03d}"
+        ae_dir = array_elements_dir / ae_id_str
+        ae_dir.mkdir()
+        for suffix in ["optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+            (ae_dir / f"{ae_id_str}.{suffix}").symlink_to(f"../MSTN/MSTN.{suffix}")
 
-    # Set CTAPIPE_SVC_PATH to include tmp_path, positions directory,
-    # telescope type directories, and instrument_dir (for legacy from_name methods)
-    # This allows get_table_dataset to find files named LSTN.optics.ecsv, etc.
-    # and also the legacy optics.fits.gz and camera files
+    # CTAPIPE_SVC_PATH: include each ae_id directory so {ae_id}.* files are found
     search_paths = [
         str(tmp_path),
         str(positions_dir),
-        str(lst_dir),
-        str(mst_nectarcam_dir),
+        *[str(array_elements_dir / f"{ae_id:03d}") for ae_id in range(1, 7)],
         str(instrument_dir),
     ]
     monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
@@ -356,41 +356,13 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     array_elements_dir = tmp_path / "instrument" / "array-elements"
     array_elements_dir.mkdir(parents=True)
 
-    # Create LSTN telescope type directory (for symlink resolution)
+    lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
+    lst_readout_path = get_dataset_path("LSTcam.camreadout.fits.gz")
+
+    # Create shared LSTN telescope type directory with shared files
     lst_dir = array_elements_dir / "LSTN"
     lst_dir.mkdir()
 
-    # For telescope 001: create ae_id-specific files with custom optics
-    ae_001_dir = array_elements_dir / "001"
-    ae_001_dir.symlink_to("LSTN")
-
-    # Create 001.optics with slightly different parameters (empty table with metadata)
-    optics_001 = QTable()
-    optics_001.meta["TAB_VER"] = "4.0"
-    optics_001.meta["optics_name"] = "LSTN-01-Custom"
-    optics_001.meta["size_type"] = SizeType.LST.value
-    optics_001.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
-    optics_001.meta["n_mirrors"] = 1
-    optics_001.meta["equivalent_focal_length"] = str(28.0 * u.m)
-    optics_001.meta["effective_focal_length"] = str(
-        28.5 * u.m
-    )  # Different from default
-    optics_001.meta["mirror_area"] = str(390.0 * u.m**2)  # Different from default
-    optics_001.meta["n_mirror_tiles"] = 198
-    ascii.write(optics_001, lst_dir / "001.optics.ecsv", format="ecsv", overwrite=True)
-
-    # Copy camera files with 001 prefix
-    lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
-    shutil.copy(lst_geom_path, lst_dir / "001.camgeom.fits.gz")
-
-    lst_readout_path = get_dataset_path("LSTcam.camreadout.fits.gz")
-    shutil.copy(lst_readout_path, lst_dir / "001.camreadout.fits.gz")
-
-    # For telescope 002: create symlink but use shared telescope-type files as fallback
-    ae_002_dir = array_elements_dir / "002"
-    ae_002_dir.symlink_to("LSTN")
-
-    # Create shared LSTN files (002 will fall back to these, empty table with metadata)
     lst_optics = QTable()
     lst_optics.meta["TAB_VER"] = "4.0"
     lst_optics.meta["optics_name"] = "LSTN"
@@ -406,11 +378,47 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     shutil.copy(lst_geom_path, lst_dir / "LSTN.camgeom.fits.gz")
     shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
 
-    # Set CTAPIPE_SVC_PATH
+    # Telescope 001: real directory, custom optics file, camera files symlink to LSTN
+    ae_001_dir = array_elements_dir / "001"
+    ae_001_dir.mkdir()
+
+    optics_001 = QTable()
+    optics_001.meta["TAB_VER"] = "4.0"
+    optics_001.meta["optics_name"] = "LSTN-01-Custom"
+    optics_001.meta["size_type"] = SizeType.LST.value
+    optics_001.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
+    optics_001.meta["n_mirrors"] = 1
+    optics_001.meta["equivalent_focal_length"] = str(28.0 * u.m)
+    optics_001.meta["effective_focal_length"] = str(
+        28.5 * u.m
+    )  # Different from default
+    optics_001.meta["mirror_area"] = str(390.0 * u.m**2)  # Different from default
+    optics_001.meta["n_mirror_tiles"] = 198
+    ascii.write(
+        optics_001, ae_001_dir / "001.optics.ecsv", format="ecsv", overwrite=True
+    )
+
+    (ae_001_dir / "001.camgeom.fits.gz").symlink_to("../LSTN/LSTN.camgeom.fits.gz")
+    (ae_001_dir / "001.camreadout.fits.gz").symlink_to(
+        "../LSTN/LSTN.camreadout.fits.gz"
+    )
+
+    # Telescope 002: real directory, all files are symlinks to shared LSTN files
+    ae_002_dir = array_elements_dir / "002"
+    ae_002_dir.mkdir()
+
+    (ae_002_dir / "002.optics.ecsv").symlink_to("../LSTN/LSTN.optics.ecsv")
+    (ae_002_dir / "002.camgeom.fits.gz").symlink_to("../LSTN/LSTN.camgeom.fits.gz")
+    (ae_002_dir / "002.camreadout.fits.gz").symlink_to(
+        "../LSTN/LSTN.camreadout.fits.gz"
+    )
+
+    # Set CTAPIPE_SVC_PATH: include each ae_id directory so files are found by flat search
     search_paths = [
         str(tmp_path),
         str(positions_dir),
-        str(lst_dir),
+        str(ae_001_dir),
+        str(ae_002_dir),
         str(instrument_dir),
     ]
     monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))

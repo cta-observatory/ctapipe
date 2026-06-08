@@ -846,35 +846,6 @@ class SubarrayDescription:
         )
 
     @staticmethod
-    def _resolve_telescope_type(ae_id):
-        """Resolve telescope type by following symlink from ae_id directory.
-
-        Parameters
-        ----------
-        ae_id : int
-            Array element ID
-
-        Returns
-        -------
-        str
-            Telescope type name (e.g., 'LSTN', 'MSTN')
-        """
-        import os
-        from pathlib import Path
-
-        searchpath = os.getenv("CTAPIPE_SVC_PATH")
-        if not searchpath:
-            raise FileNotFoundError("CTAPIPE_SVC_PATH not set")
-
-        ae_id_str = f"{ae_id:03d}"
-        for search_dir in searchpath.split(os.pathsep):
-            candidate = Path(search_dir) / "instrument/array-elements" / ae_id_str
-            if candidate.exists():
-                return candidate.resolve().name
-
-        raise FileNotFoundError(f"instrument/array-elements/{ae_id_str} not found")
-
-    @staticmethod
     def _load_telescope_description(ae_id, tel_name, tel_type):
         """Load telescope description from service data files.
 
@@ -1093,7 +1064,8 @@ class SubarrayDescription:
         for ae_id in tel_positions.keys():
             tel_name = ae_id_to_name.get(ae_id, f"Unknown-{ae_id}")
             try:
-                tel_type = cls._resolve_telescope_type(ae_id)
+                # Derive telescope type from the array element name, e.g. "LSTN-01" -> "LSTN"
+                tel_type = tel_name.split("-")[0]
                 tel_descriptions[ae_id] = cls._load_telescope_description(
                     ae_id, tel_name, tel_type
                 )
