@@ -171,6 +171,7 @@ jobs:
           # the latest release and build it from source. Force only wheels being considered for these to packages.
           pip install --only-binary llvmlite --only-binary numba -e ".[${EXTRAS}]"
           pip install ./test_plugin
+          pip install 'numba>=0.66.0rc1'
           pip freeze
 
       - if: contains(matrix.extra-args, 'oldest-deps') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
