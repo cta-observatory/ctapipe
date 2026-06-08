@@ -64,7 +64,7 @@ jobs:
 
           - name: Linux (3.12, pip, coverage)
             os: ubuntu-24.04
-            python-version: "3.12"
+            python-version: "3.14"
             install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
