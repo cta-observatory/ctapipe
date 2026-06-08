@@ -40,6 +40,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
+      # here until the issues downloading from the DESY server are resolved
+      # we'd actually want to fail fast usually, but with the recurring failures with the
+      # test data server it becomes essentially impossible to get a green CI run if a
+      # failing job cancels all others.
+      fail-fast: false
       matrix:
         include:
           - name: Linux (3.12, mamba, oldest-deps)
