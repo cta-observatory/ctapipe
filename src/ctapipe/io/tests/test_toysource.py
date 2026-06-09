@@ -29,7 +29,8 @@ def test_toyeventsource(subarray):
 
     for i, e in enumerate(s):
         assert e.index.event_id == i
-        for tel_id, dl1 in e.dl1.tel.items():
+        for tel_id, tel_event in e.tel.items():
+            dl1 = tel_event.dl1
             assert dl1.image.size == subarray.tel[tel_id].camera.geometry.n_pixels
     assert (i + 1) == s.max_events
 

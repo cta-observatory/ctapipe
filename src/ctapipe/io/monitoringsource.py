@@ -7,7 +7,7 @@ from abc import abstractmethod
 import astropy.table
 import astropy.time
 
-from ..containers import ArrayEventContainer
+from ..containers import SubarrayEventContainer
 from ..core import TelescopeComponent
 from .monitoringtypes import MonitoringType
 
@@ -18,7 +18,7 @@ class MonitoringSource(TelescopeComponent):
     """
     Parent class for ``MonitoringSource``.
 
-    ``MonitoringSource`` read input files and fill `~ctapipe.containers.ArrayEventContainer`
+    ``MonitoringSource`` read input files and fill `~ctapipe.containers.SubarrayEventContainer`
     instances with corresponding monitoring data based on the event trigger time.
 
     A new ``MonitoringSource`` should be created for each type of monitoring file read
@@ -139,7 +139,7 @@ class MonitoringSource(TelescopeComponent):
         """
 
     @abstractmethod
-    def fill_monitoring_container(self, event: ArrayEventContainer):
+    def fill_monitoring_container(self, event: SubarrayEventContainer):
         """
         Fill the monitoring container for a given event.
 
@@ -148,7 +148,7 @@ class MonitoringSource(TelescopeComponent):
 
         Parameters
         ----------
-        event : ArrayEventContainer
+        event : SubarrayEventContainer
             The event to fill. Uses event.trigger.time for data selection.
         """
 

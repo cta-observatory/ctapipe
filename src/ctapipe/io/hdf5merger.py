@@ -15,8 +15,10 @@ from ..utils.arrays import recarray_drop_columns
 from . import metadata
 from .hdf5dataformat import (
     DL0_SUBARRAY_QUALITY_GROUP,
+    DL0_SUBARRAY_TRIGGER_TABLE,
     DL0_TEL_POINTING_GROUP,
     DL0_TEL_QUALITY_GROUP,
+    DL0_TEL_TRIGGER_TABLE,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_COLUMN_NAMES,
     DL1_IMAGE_STATISTICS_TABLE,
@@ -59,6 +61,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.3.0",
     "v7.4.0",
     "v7.5.0",
+    "v8.0.0",
 ]
 
 
@@ -87,6 +90,8 @@ _NODES_TO_CHECK = {
     SIMULATION_PARAMETERS_GROUP: NodeType.TEL_GROUP,
     R0_TEL_GROUP: NodeType.TEL_GROUP,
     R1_TEL_GROUP: NodeType.TEL_GROUP,
+    DL0_SUBARRAY_TRIGGER_TABLE: NodeType.TABLE,
+    DL0_TEL_TRIGGER_TABLE: NodeType.TABLE,
     DL1_SUBARRAY_TRIGGER_TABLE: NodeType.TABLE,
     DL1_TEL_TRIGGER_TABLE: NodeType.TABLE,
     DL1_TEL_IMAGES_GROUP: NodeType.TEL_GROUP,
@@ -342,7 +347,11 @@ class HDF5Merger(Component):
                 )
 
     def _check_obs_ids(self, other):
-        keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
+        keys = [
+            OBSERVATION_BLOCK_TABLE,
+            DL1_SUBARRAY_TRIGGER_TABLE,
+            DL0_SUBARRAY_TRIGGER_TABLE,
+        ]
         for key in keys:
             if key in other.root:
                 obs_ids = other.root[key].col("obs_id")
@@ -444,15 +453,17 @@ class HDF5Merger(Component):
 
     def _append_dl1_data(self, other):
         """Append DL1 data (triggers, images, parameters, muon)."""
-        # DL1 subarray trigger table (always check)
-        if DL1_SUBARRAY_TRIGGER_TABLE in other.root:
-            self._append_table(other, other.root[DL1_SUBARRAY_TRIGGER_TABLE])
+        # subarray trigger table (always check)
+        for trigger_table in (DL0_SUBARRAY_TRIGGER_TABLE, DL1_SUBARRAY_TRIGGER_TABLE):
+            if trigger_table in other.root:
+                self._append_table(other, other.root[trigger_table])
 
         if not self.telescope_events:
             return
 
-        if DL1_TEL_TRIGGER_TABLE in other.root:
-            self._append_table(other, other.root[DL1_TEL_TRIGGER_TABLE])
+        for tel_trigger_table in (DL0_TEL_TRIGGER_TABLE, DL1_TEL_TRIGGER_TABLE):
+            if tel_trigger_table in other.root:
+                self._append_table(other, other.root[tel_trigger_table])
 
         if self.dl1_images and DL1_TEL_IMAGES_GROUP in other.root:
             self._append_table_group(other, other.root[DL1_TEL_IMAGES_GROUP])

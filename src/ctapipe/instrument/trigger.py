@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..containers import ArrayEventContainer, EventType
+from ..containers import EventType, SubarrayEventContainer
 from ..core import TelescopeComponent
 from ..core.traits import Integer, IntTelescopeParameter, Set, UseEnum
 
@@ -95,27 +95,20 @@ class SoftwareTrigger(TelescopeComponent):
                 self._ids_by_type[tel_str] = set()
             self._ids_by_type[tel_str].update(self.subarray.get_tel_ids_for_type(tel))
 
-    def _remove_tel_event(self, tel_id: int, event: ArrayEventContainer):
-        # remove any related data
-        for container in event.values():
-            if hasattr(container, "tel"):
-                tel_map = container.tel
-                if tel_id in tel_map:
-                    del tel_map[tel_id]
-
-    def _filter_telescope_event_types(self, event: ArrayEventContainer) -> set[int]:
+    def _filter_telescope_event_types(self, event: SubarrayEventContainer) -> set[int]:
+        # cannot modify dict being looped over, so get tel_ids
         to_remove = set()
-
-        for tel_id, trigger in event.trigger.tel.items():
-            if trigger.event_type not in self.allowed_telescope_event_types:
+        for tel_id, tel_event in event.tel.items():
+            event_type = tel_event.dl0.trigger.event_type
+            if event_type not in self.allowed_telescope_event_types:
                 to_remove.add(tel_id)
 
         for tel_id in to_remove:
-            self._remove_tel_event(tel_id, event)
+            del event.tel[tel_id]
 
         return to_remove
 
-    def __call__(self, event: ArrayEventContainer) -> bool:
+    def __call__(self, event: SubarrayEventContainer) -> bool:
         """
         Remove telescope events that have not the required number of telescopes of
         a given type from the subarray event and decide if the event would
@@ -129,7 +122,7 @@ class SoftwareTrigger(TelescopeComponent):
             Whether or not this event would have triggered the stereo trigger
         """
         tels_removed = set()
-        tels_with_trigger = set(event.trigger.tels_with_trigger)
+        tels_with_trigger = set(event.dl0.trigger.tels_with_trigger)
 
         if self.allowed_telescope_event_types is not None:
             tels_removed = self._filter_telescope_event_types(event)
@@ -152,22 +145,20 @@ class SoftwareTrigger(TelescopeComponent):
                         tel_type,
                     )
 
-                    # remove from tels_with_trigger
+                    # remove telescope event
                     tels_removed.add(tel_id)
-                    self._remove_tel_event(tel_id, event)
+                    del event.tel[tel_id]
 
         if len(tels_removed) > 0:
             # convert to array with correct dtype to have setdiff1d work correctly
             tels_removed = np.fromiter(tels_removed, np.uint16, len(tels_removed))
-            event.trigger.tels_with_trigger = np.setdiff1d(
-                event.trigger.tels_with_trigger, tels_removed, assume_unique=True
+            event.dl0.trigger.tels_with_trigger = np.setdiff1d(
+                event.dl0.trigger.tels_with_trigger, tels_removed, assume_unique=True
             )
 
-        if len(event.trigger.tels_with_trigger) < self.min_telescopes:
-            event.trigger.tels_with_trigger = []
-            # remove any related data
-            for container in event.values():
-                if hasattr(container, "tel"):
-                    container.tel.clear()
+        # completely remove array event if it wouldn't have triggered the stereo trigger
+        if len(event.dl0.trigger.tels_with_trigger) < self.min_telescopes:
+            event.dl0.trigger.tels_with_trigger = []
+            event.tel.clear()
             return False
         return True

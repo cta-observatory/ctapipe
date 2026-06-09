@@ -1,0 +1,47 @@
+CEP-002 has been implemented. This is a major API breaking change,
+as the whole event container structure of ctapipe has been updated.
+
+The main change is the inversion of the hierarchy of telescopes
+and data levels.
+
+Before, the data level came first and then below that
+were mappings for each telescope:
+
+.. code:: python
+
+   event.dl1.tel[tel_id].parameters.hillas
+
+Whereas now, the subarray event has a collection of telescope events,
+which then contain the different data levels:
+
+.. code:: python
+
+   event.tel[tel_id].dl1.parameters.hillas
+
+Fore more details, see :ref:`cep-002`.
+
+With this, also the container structure itself has been largely refactored.
+
+To be more compliant with the CTAO data model, the trigger information has also
+been moved from the top-level of the event to the dl0 data level.
+
+To access subarray trigger information, replace e.g.
+
+.. code:: python
+
+   event.trigger.time
+
+with:
+
+.. code:: python
+
+   event.dl0.trigger.time
+
+And, keeping in mind also the change for the telescope event hierarchy, for telescope trigger, now access:
+
+.. code:: python
+
+   event.tel[tel_id].dl0.trigger
+
+This change is also reflected in the HDF5 data format, but the readers
+backwards compatibility with older data formats.
