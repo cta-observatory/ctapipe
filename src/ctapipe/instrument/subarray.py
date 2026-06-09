@@ -870,9 +870,13 @@ class SubarrayDescription:
         # Helper function to try ae_id file first, then fall back to tel_type
         def load_with_fallback(file_type, role):
             try:
-                return get_table_dataset(f"{ae_id_str}.{file_type}", role=role)
+                return get_table_dataset(
+                    f"array-elements/{ae_id_str}/{ae_id_str}.{file_type}", role=role
+                )
             except FileNotFoundError:
-                return get_table_dataset(f"{tel_type}.{file_type}", role=role)
+                return get_table_dataset(
+                    f"array-elements/{tel_type}/{tel_type}.{file_type}", role=role
+                )
 
         # Load optics
         optics_table = QTable(load_with_fallback("optics", "dl0.sub.svc.optics"))
@@ -1053,7 +1057,7 @@ class SubarrayDescription:
 
         # Load positions
         site = subarray_info["site"]
-        filename = f"{site}_ArrayElementPositions"
+        filename = f"positions/{site}_ArrayElementPositions"
         positions_table = QTable(
             get_table_dataset(filename, role="dl0.sub.svc.arraylayout")
         )
