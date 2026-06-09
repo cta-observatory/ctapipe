@@ -153,6 +153,21 @@ def test_dump_instrument(tmp_path):
     optics_table = QTable.read(optics_file, format="ascii.ecsv")
     assert optics_table.meta.get("TAB_VER") in OpticsDescription.COMPATIBLE_VERSIONS
 
+    ret = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from ctapipe.instrument import SubarrayDescription; print(SubarrayDescription.from_service_data(1))",
+        ],
+        env={
+            "CTAPIPE_SVC_PATH": str(tmp_path / "instrument")
+        },  # point to the dumped instrument data
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert "MonteCarloArray" in ret.stdout.strip()
+
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0
 
