@@ -83,8 +83,8 @@ jobs:
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
-          - name: macos (3.12, x86-64, pip)
-            os: macos-26-intel
+          - name: macos (3.12, arm64, pip)
+            os: macos-26
             python-version: "3.12"
             install-method: pip
             extras: tests,all
