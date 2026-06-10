@@ -333,20 +333,19 @@ class DumpInstrumentTool(Tool):
         positions_table.write(positions_file, format="ascii.ecsv", overwrite=True)
         Provenance().add_output_file(positions_file, "ServiceDataPositions")
 
-        # Write files for each telescope (using ae_id as directory name)
+        # Group telescopes by unique TelescopeDescription.
+        # str(tel_desc) = "{size_type}_{optics_name}_{camera_name}" and is used
+        # as the shared type-directory name.
         array_elements_dir = instrument_dir / "array-elements"
         array_elements_dir.mkdir(exist_ok=True, parents=True)
-        for tel_id, tel_desc in sub.tels.items():
-            ae_id_str = f"{tel_id:03d}"
-            ae_dir = array_elements_dir / ae_id_str
-            ae_dir.mkdir(exist_ok=True, parents=True)
 
-            type_name = tel_desc.name
-            self.log.debug(
-                "Writing array element %s (%s) to %s", ae_id_str, type_name, ae_dir
-            )
+        # Write shared files once per unique telescope type
+        for index, tel_desc in enumerate(sub.telescope_types):
+            type_key = f"TEL-TYPE-{index:02d}"
+            type_dir = array_elements_dir / type_key
+            type_dir.mkdir(exist_ok=True, parents=True)
+            self.log.debug("Writing shared type directory %s", type_key)
 
-            # Write optics file
             optics_table = QTable()
             optics = tel_desc.optics
             optics_table.meta["TAB_VER"] = optics.CURRENT_TAB_VERSION
@@ -364,20 +363,33 @@ class DumpInstrumentTool(Tool):
             optics_table.meta["mirror_area"] = str(optics.mirror_area)
             optics_table.meta["n_mirror_tiles"] = optics.n_mirror_tiles
 
-            optics_file = ae_dir / f"{ae_id_str}.optics.ecsv"
+            optics_file = type_dir / f"{type_key}.optics.ecsv"
             optics_table.write(optics_file, format="ascii.ecsv", overwrite=True)
             Provenance().add_output_file(optics_file, "ServiceDataOptics")
 
-            # Write camera geometry and readout files
-            # Temporarily set format to 'fits' for service data
             orig_format = self.format
             self.format = "fits"
             try:
                 self.write_single_camera(
-                    tel_desc.camera, outdir=ae_dir, name_prefix=ae_id_str
+                    tel_desc.camera, outdir=type_dir, name_prefix=type_key
                 )
             finally:
                 self.format = orig_format
+
+        # Create a real directory for each array element with per-file symlinks
+        # pointing to the shared type directory (deduplication).
+        for tel_id, tel_desc in sub.tel.items():
+            ae_id_str = f"{tel_id:03d}"
+            ae_dir = array_elements_dir / ae_id_str
+            ae_dir.mkdir(exist_ok=True, parents=True)
+            index = sub.telescope_types.index(tel_desc)
+            type_key = f"TEL-TYPE-{index:02d}"
+            self.log.debug(
+                "Writing array element %s -> %s (symlinks)", ae_id_str, type_key
+            )
+            for suffix in ["optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+                link = ae_dir / f"{ae_id_str}.{suffix}"
+                link.symlink_to(f"../{type_key}/{type_key}.{suffix}")
 
         self.log.info("Service data written successfully to %s", self.outdir)
 

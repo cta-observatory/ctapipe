@@ -846,35 +846,6 @@ class SubarrayDescription:
         )
 
     @staticmethod
-    def _resolve_telescope_type(ae_id):
-        """Resolve telescope type by following symlink from ae_id directory.
-
-        Parameters
-        ----------
-        ae_id : int
-            Array element ID
-
-        Returns
-        -------
-        str
-            Telescope type name (e.g., 'LSTN', 'MSTN')
-        """
-        import os
-        from pathlib import Path
-
-        searchpath = os.getenv("CTAPIPE_SVC_PATH")
-        if not searchpath:
-            raise FileNotFoundError("CTAPIPE_SVC_PATH not set")
-
-        ae_id_str = f"{ae_id:03d}"
-        for search_dir in searchpath.split(os.pathsep):
-            candidate = Path(search_dir) / "instrument/array-elements" / ae_id_str
-            if candidate.exists():
-                return candidate.resolve().name
-
-        raise FileNotFoundError(f"instrument/array-elements/{ae_id_str} not found")
-
-    @staticmethod
     def _load_telescope_description(ae_id, tel_name, tel_type):
         """Load telescope description from service data files.
 
@@ -899,9 +870,13 @@ class SubarrayDescription:
         # Helper function to try ae_id file first, then fall back to tel_type
         def load_with_fallback(file_type, role):
             try:
-                return get_table_dataset(f"{ae_id_str}.{file_type}", role=role)
+                return get_table_dataset(
+                    f"array-elements/{ae_id_str}/{ae_id_str}.{file_type}", role=role
+                )
             except FileNotFoundError:
-                return get_table_dataset(f"{tel_type}.{file_type}", role=role)
+                return get_table_dataset(
+                    f"array-elements/{tel_type}/{tel_type}.{file_type}", role=role
+                )
 
         # Load optics
         optics_table = QTable(load_with_fallback("optics", "dl0.sub.svc.optics"))
@@ -1004,14 +979,23 @@ class SubarrayDescription:
             ├── instrument.meta.json
             ├── array-element-ids.json
             ├── array-elements/
-            │   ├── 001 -> LSTN
-            │   ├── 002 -> LSTN
-            │   ├── 003 -> LSTN
-            │   ├── 004 -> LSTN
-            │   └── LSTN/
-            │       ├── LSTN.camgeom.fits.gz
-            │       ├── LSTN.camreadout.fits.gz
-            │       └── LSTN.optics.ecsv
+            │   ├── LSTN/
+            │   │   ├── LSTN.camgeom.fits.gz
+            │   │   ├── LSTN.camreadout.fits.gz
+            │   │   └── LSTN.optics.ecsv
+            │   ├── MSTN/
+            │   │   ├── MSTN.camgeom.fits.gz
+            │   │   ├── MSTN.camreadout.fits.gz
+            │   │   └── MSTN.optics.ecsv
+            │   ├── 001/
+            │   │   ├── 001.optics.ecsv -> ../LSTN/LSTN.optics.ecsv
+            │   │   ├── 001.camgeom.fits.gz -> ../LSTN/LSTN.camgeom.fits.gz
+            │   │   └── 001.camreadout.fits.gz -> ../LSTN/LSTN.camreadout.fits.gz
+            │   ├── 002/
+            │   │   ├── 002.optics.ecsv -> ../LSTN/LSTN.optics.ecsv
+            │   │   ├── 002.camgeom.fits.gz -> ../LSTN/LSTN.camgeom.fits.gz
+            │   │   └── 002.camreadout.fits.gz -> ../LSTN/LSTN.camreadout.fits.gz
+            │   └── ...
             ├── positions/
             │   ├── CTAO-North_ArrayElementPositions.ecsv
             │   └── CTAO-South_ArrayElementPositions.ecsv
@@ -1023,10 +1007,10 @@ class SubarrayDescription:
         - array-element-ids.json: mapping of telescope IDs to names
         - subarray-ids.json: subarray definitions
         - positions/{site}_ArrayElementPositions.ecsv: ECSV files with telescope positions for each site
-        - array-elements/``{ae_id:03d}``/: Instrument description files for each array element. Symlinks may be used to de-duplicate descriptions.
-          Each directory should contain optics.ecsv, camgeom.fits.gz, and camreadout.fits.gz files.
-          Files can be named either ``{ae_id:03d}.*`` (e.g., 001.optics.ecsv) for telescope-specific configurations
-          or ``{type}.*`` (e.g., LSTN.optics.ecsv) for shared configurations across multiple telescopes
+        - array-elements/{type}/: Shared telescope-type directories (e.g., LSTN, MSTN) containing instrument descriptions.
+          Each directory contains optics.ecsv, camgeom.fits.gz, and camreadout.fits.gz files named with the type prefix.
+        - array-elements/``{ae_id:03d}``/: Real directories for each array element, each containing per-file symlinks
+          to the shared type files. Files are named with the ae_id prefix (e.g., 001.optics.ecsv) but point to the type directory.
 
         Parameters
         ----------
@@ -1073,7 +1057,7 @@ class SubarrayDescription:
 
         # Load positions
         site = subarray_info["site"]
-        filename = f"{site}_ArrayElementPositions"
+        filename = f"positions/{site}_ArrayElementPositions"
         positions_table = QTable(
             get_table_dataset(filename, role="dl0.sub.svc.arraylayout")
         )
@@ -1093,7 +1077,8 @@ class SubarrayDescription:
         for ae_id in tel_positions.keys():
             tel_name = ae_id_to_name.get(ae_id, f"Unknown-{ae_id}")
             try:
-                tel_type = cls._resolve_telescope_type(ae_id)
+                # Derive telescope type from the array element name, e.g. "LSTN-01" -> "LSTN"
+                tel_type = tel_name.split("-")[0]
                 tel_descriptions[ae_id] = cls._load_telescope_description(
                     ae_id, tel_name, tel_type
                 )
