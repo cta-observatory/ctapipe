@@ -85,7 +85,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
     assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
 
-def test_dump_instrument(tmp_path):
+def test_dump_instrument(tmp_path, monkeypatch):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
 
     sys.argv = ["dump_instrument"]
@@ -153,20 +153,13 @@ def test_dump_instrument(tmp_path):
     optics_table = QTable.read(optics_file, format="ascii.ecsv")
     assert optics_table.meta.get("TAB_VER") in OpticsDescription.COMPATIBLE_VERSIONS
 
-    ret = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "from ctapipe.instrument import SubarrayDescription; print(SubarrayDescription.from_service_data(1))",
-        ],
-        env={
-            "CTAPIPE_SVC_PATH": str(tmp_path / "instrument")
-        },  # point to the dumped instrument data
-        capture_output=True,
-        check=True,
-        text=True,
-    )
-    assert "MonteCarloArray" in ret.stdout.strip()
+    with monkeypatch.context() as m:
+        from ctapipe.instrument.subarray import SubarrayDescription
+
+        m.setenv("CTAPIPE_SVC_PATH", str(tmp_path / "instrument"))
+        roundtrip_sub = SubarrayDescription.from_service_data(1)
+
+        assert roundtrip_sub == SubarrayDescription.from_hdf(tmp_path / "subarray.h5")
 
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0
