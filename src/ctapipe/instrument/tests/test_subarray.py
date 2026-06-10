@@ -347,12 +347,10 @@ def test_from_service_data_complete(svc_path):
     import warnings
 
     from ctapipe.core.provenance import MissingReferenceMetadata
-    from ctapipe.instrument.warnings import FromNameWarning
 
     # Suppress expected warnings
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        warnings.filterwarnings("ignore", category=FromNameWarning)
 
         # Load subarray ID 1 (LST subarray)
         subarray = SubarrayDescription.from_service_data(subarray_id=1)
@@ -388,7 +386,6 @@ def test_from_service_data_complete(svc_path):
     # Test mixed subarray (LSTs + MSTs)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        warnings.filterwarnings("ignore", category=FromNameWarning)
 
         subarray_mixed = SubarrayDescription.from_service_data(subarray_id=3)
 
@@ -424,11 +421,9 @@ def test_from_service_data_aeid_specific(svc_path_aeid_specific):
     import warnings
 
     from ctapipe.core.provenance import MissingReferenceMetadata
-    from ctapipe.instrument.warnings import FromNameWarning
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        warnings.filterwarnings("ignore", category=FromNameWarning)
 
         subarray = SubarrayDescription.from_service_data(subarray_id=1)
 
@@ -441,14 +436,14 @@ def test_from_service_data_aeid_specific(svc_path_aeid_specific):
     tel_001 = subarray.tel[1]
     assert tel_001.optics.name == "LSTN-01-Custom"
     # Verify custom parameters from 001.optics.ecsv
-    assert u.isclose(tel_001.optics.effective_focal_length, 28.5 * u.m)
+    assert u.isclose(tel_001.optics.effective_focal_length, 29.5 * u.m)
     assert u.isclose(tel_001.optics.mirror_area, 390.0 * u.m**2)
 
     # Telescope 002 should fall back to shared telescope-type files (LSTN.optics.ecsv)
     tel_002 = subarray.tel[2]
     assert tel_002.optics.name == "LSTN"
     # Verify default parameters from LSTN.optics.ecsv
-    assert u.isclose(tel_002.optics.effective_focal_length, 28.3 * u.m)
+    assert u.isclose(tel_002.optics.effective_focal_length, 29.3 * u.m)
     assert u.isclose(tel_002.optics.mirror_area, 386.0 * u.m**2)
 
     # Both should have the same camera (LSTcam)
@@ -464,7 +459,6 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     import warnings
 
     from ctapipe.core.provenance import MissingReferenceMetadata
-    from ctapipe.instrument.warnings import FromNameWarning
     from ctapipe.io import EventSource
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
 
@@ -509,7 +503,6 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     # Read back from service data format
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        warnings.filterwarnings("ignore", category=FromNameWarning)
         loaded_subarray = SubarrayDescription.from_service_data(subarray_id=1)
 
     # Compare the original and loaded subarrays

@@ -8,10 +8,11 @@ automatically generated.
 import os
 import pathlib
 
-from ctapipe.core import Provenance, Tool
-from ctapipe.core.traits import Enum, Path, Unicode
-from ctapipe.exceptions import InputMissing
-from ctapipe.io import EventSource
+from ..compat import ECSV_FMT
+from ..core import Provenance, Tool
+from ..core.traits import Enum, Path, Unicode
+from ..exceptions import InputMissing
+from ..io import EventSource
 
 __all__ = ["DumpInstrumentTool"]
 
@@ -330,7 +331,7 @@ class DumpInstrumentTool(Tool):
         positions_file = (
             positions_dir / f"{site.replace(' ', '_')}_ArrayElementPositions.ecsv"
         )
-        positions_table.write(positions_file, format="ascii.ecsv", overwrite=True)
+        positions_table.write(positions_file, format=ECSV_FMT, overwrite=True)
         Provenance().add_output_file(positions_file, "ServiceDataPositions")
 
         # Group telescopes by unique TelescopeDescription.
@@ -346,25 +347,9 @@ class DumpInstrumentTool(Tool):
             type_dir.mkdir(exist_ok=True, parents=True)
             self.log.debug("Writing shared type directory %s", type_key)
 
-            optics_table = QTable()
-            optics = tel_desc.optics
-            optics_table.meta["TAB_VER"] = optics.CURRENT_TAB_VERSION
-            optics_table.meta["SOURCE"] = str(self.infile)
-            optics_table.meta["optics_name"] = optics.name
-            optics_table.meta["size_type"] = optics.size_type.value
-            optics_table.meta["reflector_shape"] = optics.reflector_shape.value
-            optics_table.meta["n_mirrors"] = optics.n_mirrors
-            optics_table.meta["equivalent_focal_length"] = str(
-                optics.equivalent_focal_length
-            )
-            optics_table.meta["effective_focal_length"] = str(
-                optics.effective_focal_length
-            )
-            optics_table.meta["mirror_area"] = str(optics.mirror_area)
-            optics_table.meta["n_mirror_tiles"] = optics.n_mirror_tiles
-
-            optics_file = type_dir / f"{type_key}.optics.ecsv"
-            optics_table.write(optics_file, format="ascii.ecsv", overwrite=True)
+            optics_file = type_dir / f"{type_key}.tel_optics.ecsv"
+            optics_table = tel_desc.optics.to_table()
+            optics_table.write(optics_file, format=ECSV_FMT, overwrite=True)
             Provenance().add_output_file(optics_file, "ServiceDataOptics")
 
             orig_format = self.format
@@ -387,7 +372,7 @@ class DumpInstrumentTool(Tool):
             self.log.debug(
                 "Writing array element %s -> %s (symlinks)", ae_id_str, type_key
             )
-            for suffix in ["optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+            for suffix in ["tel_optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
                 link = ae_dir / f"{ae_id_str}.{suffix}"
                 link.symlink_to(f"../{type_key}/{type_key}.{suffix}")
 

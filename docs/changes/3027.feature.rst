@@ -1,0 +1,3 @@
+Introduce new, per-telescope optics table format.
+This is in preparation for supporting individual mirror facets in ctapipe.
+For now, the information contained is identical to the per-subarray optics table.

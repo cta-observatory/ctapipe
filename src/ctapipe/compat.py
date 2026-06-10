@@ -7,6 +7,7 @@ from packaging.version import Version
 
 __all__ = [
     "COPY_IF_NEEDED",
+    "ECSV_FMT",
     "trapz_func",
 ]
 
@@ -23,3 +24,13 @@ try:
     trapz_func = np.trapezoid
 except AttributeError:
     trapz_func = np.trapz
+
+
+# TODO: astropy introduced a new "ecsv" parser in 7.2, but we
+# currently cannot use it due to it not parsing empty tables:
+# https://github.com/astropy/astropy/issues/19895
+# if Version(astropy.__version__) < Version("7.2.0.dev0"):
+#     ECSV_FMT = "ascii.ecsv"
+# else:
+#     ECSV_FMT = "ecsv"
+ECSV_FMT = "ascii.ecsv"
