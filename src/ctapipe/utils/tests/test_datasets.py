@@ -21,7 +21,7 @@ def test_find_datasets():
     assert not str(r[0]).endswith("gz")
 
 
-def test_datasets_in_custom_path(tmpdir_factory, monkeypatch):
+def test_datasets_in_custom_path(tmpdir_factory, monkeypatch, server):
     """
     check that a dataset in a user-defined CTAPIPE_SVC_PATH is located
     """
@@ -43,7 +43,7 @@ def test_datasets_in_custom_path(tmpdir_factory, monkeypatch):
     assert path == Path(dataset_path)
 
     with pytest.raises(FileNotFoundError):
-        datasets.get_dataset_path("does_not_exist")
+        datasets.get_dataset_path("does_not_exist", url=server.url)
 
     # try using find_all_matching_datasets:
 
