@@ -214,7 +214,7 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     )
 
     # Create array-elements directory with telescope-type subdirectories
-    array_elements_dir = tmp_path / "instrument" / "array-elements"
+    array_elements_dir = tmp_path / "array-elements"
     array_elements_dir.mkdir(parents=True)
 
     # Create LSTN telescope type directory and files
@@ -353,7 +353,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     )
 
     # Create array-elements directory
-    array_elements_dir = tmp_path / "instrument" / "array-elements"
+    array_elements_dir = tmp_path / "array-elements"
     array_elements_dir.mkdir(parents=True)
 
     lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
