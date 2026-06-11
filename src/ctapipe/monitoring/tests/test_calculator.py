@@ -7,6 +7,7 @@ from astropy.table import Table, vstack
 from astropy.time import Time
 from traitlets.config.loader import Config
 
+from ctapipe.monitoring.aggregator import HistogramAggregator
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 
@@ -118,6 +119,7 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
                     "bins": 30,
                     "start": 0.0,
                     "stop": 140.0,
+                    "name": "image",
                 },
             },
             "SizeChunking": {
@@ -133,6 +135,12 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
     assert stats[0]["histogram"].shape == (30, 2, 16)
     assert stats[0]["n_events"].shape == (2, 16)
     assert stats[0].meta["bin_edges"].shape == (31,)
+    hist_object = HistogramAggregator.hist_from_tablerow(stats[0])
+    assert [axis.name for axis in hist_object.axes] == [
+        "image",
+        "channel",
+        "pixel",
+    ]
 
 
 def test_outlier_detector(example_subarray):
