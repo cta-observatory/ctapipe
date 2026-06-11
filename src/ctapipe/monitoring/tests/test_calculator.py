@@ -121,6 +121,7 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
                     "stop": 140.0,
                     "name": "image",
                 },
+                "axis_names": ["channel_id", "pixel_id"],
             },
             "SizeChunking": {
                 "chunk_size": 60,
@@ -138,8 +139,8 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
     hist_object = HistogramAggregator.hist_from_tablerow(stats[0])
     assert [axis.name for axis in hist_object.axes] == [
         "image",
-        "channel",
-        "pixel",
+        "channel_id",
+        "pixel_id",
     ]
 
 

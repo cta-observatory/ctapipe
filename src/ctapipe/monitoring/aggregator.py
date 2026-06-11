@@ -37,7 +37,16 @@ from traitlets import TraitError
 
 from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
 from ..core import Component
-from ..core.traits import AstroQuantity, Bool, ComponentName, Dict, Enum, Int
+from ..core.traits import (
+    AstroQuantity,
+    Bool,
+    ComponentName,
+    Dict,
+    Enum,
+    Int,
+    List,
+    Unicode,
+)
 
 
 class BaseChunking(Component, metaclass=ABCMeta):
@@ -307,7 +316,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         table,
         masked_elements_of_sample=None,
         col_name="image",
-        axis_names=None,
     ) -> Table:
         r"""
         Divide table into chunks and compute aggregated statistic values or histograms.
@@ -322,9 +330,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
-        axis_names : list[str], optional
-            Optional axis names for histogram aggregators to be stored in metadata.
-            If None, default axis names will be generated as "axis_1", "axis_2", etc.
 
         Returns
         -------
@@ -358,7 +363,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
                 chunk[col_name].data,
                 masked_elements_of_sample,
                 results,
-                axis_names,
             )
 
         # Deal with metadata if present in results
@@ -383,7 +387,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         data,
         masked_elements_of_sample,
         results_dict,
-        axis_names,
     ):
         r"""
         Compute statistics and histograms. Add columns to results dictionary.
@@ -396,8 +399,6 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
             Dictionary to which statistic or histogram columns should be added.
-        axis_names : list[str], optional
-            Optional axis names for histogram aggregators to be stored in metadata.
         """
         pass
 
@@ -423,6 +424,13 @@ class HistogramAggregator(BaseAggregator):
         ),
     ).tag(config=True)
 
+    axis_names = List(
+        default_value=None,
+        trait=Unicode(),
+        allow_none=True,
+        help="List of axis names for the histogram. E.g. ['channel', 'pixel']. If None, default names will be used.",
+    ).tag(config=True)
+
     def __init__(self, config=None, parent=None, **kwargs):
         """
         Parameters
@@ -446,7 +454,6 @@ class HistogramAggregator(BaseAggregator):
         data,
         masked_elements_of_sample,
         results_dict,
-        axis_names,
     ):
         histograms = self._compute_histograms(data, masked_elements_of_sample)
         results_dict["n_events"].append(histograms.n_events)
@@ -455,16 +462,6 @@ class HistogramAggregator(BaseAggregator):
 
         if "meta" not in results_dict and histograms.meta:
             results_dict["meta"] = histograms.meta
-        if axis_names is None:
-            axis_names = [self.hist_axis.name] + [
-                f"axis_{i}" for i in range(1, histograms.histogram.ndim)
-            ]
-        axis_names = list(axis_names)
-        if len(axis_names) < histograms.histogram.ndim:
-            axis_names.extend(
-                f"axis_{i}" for i in range(len(axis_names), histograms.histogram.ndim)
-            )
-        results_dict["meta"]["axis_kwargs"]["axis_names"] = axis_names
 
     def _set_result_units(self, table, unit):
         """
@@ -494,6 +491,17 @@ class HistogramAggregator(BaseAggregator):
         """
         # Build the histograms over the event dimension (axis=0) for each element of the data dimensions
         spatial_shape = data.shape[1:]
+        # Determine axis names for the histogram axes.
+        axis_names = (
+            [f"axis_{i + 1}" for i in range(len(spatial_shape))]
+            if self.axis_names is None
+            else self.axis_names
+        )
+        if len(axis_names) != len(spatial_shape):
+            raise ValueError(
+                f"Number of axis names '{len(axis_names)}' does not match spatial dimensions '{len(spatial_shape)}'."
+            )
+
         # Broadcast mask to full shape
         if masked_elements_of_sample is not None:
             mask = np.broadcast_to(masked_elements_of_sample, data.shape)
@@ -537,6 +545,7 @@ class HistogramAggregator(BaseAggregator):
                 "bin_centers": stacked_histograms[0].axes[0].centers,
                 "axis_class_name": self.axis_class_name,
                 "axis_kwargs": dict(self.axis_kwargs),
+                "axis_names": axis_names,
             },
         )
 
@@ -597,7 +606,7 @@ class HistogramAggregator(BaseAggregator):
         # Extract axis information from container metadata
         axis_kwargs_meta = hist_container.meta.get("axis_kwargs", {})
         axis_class = getattr(hist.axis, hist_container.meta["axis_class_name"])
-        axis_names = axis_kwargs_meta.pop("axis_names")
+        axis_names = hist_container.meta["axis_names"]
 
         # Reconstruct the original axis class so metadata round-trips exactly,
         # including Integer and transformed/circular Regular axes.

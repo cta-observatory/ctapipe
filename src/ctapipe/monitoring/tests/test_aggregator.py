@@ -132,7 +132,9 @@ def test_histograms_aggregator():
                     "bins": 40,
                     "start": 0.0,
                     "stop": 200.0,
-                }
+                    "name": "image",
+                },
+                "axis_names": ["channel", "pixel"],
             }
         }
     )
@@ -140,7 +142,6 @@ def test_histograms_aggregator():
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=None,
-        axis_names=["channel", "pixel"],
     )
     hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 
@@ -209,7 +210,6 @@ def test_histograms_aggregator_masks_and_nan_handling():
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=mask,
-        axis_names=["channel", "pixel"],
     )
     # Reconstruct a Hist object from the first chunk using hist_from_tablerow()
     hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
@@ -222,6 +222,47 @@ def test_histograms_aggregator_masks_and_nan_handling():
     assert chunks[0]["histogram"][:, 0, 0].sum() == chunks[0]["n_events"][0, 0]
     # Unaffected pixels should retain the full number of events.
     assert chunks[0]["n_events"][1, 3] == n_events
+
+
+def test_histograms_aggregator_axis_names_not_matching_data():
+    """Test that axis names match the histogram data shape."""
+
+    # Create dummy data for testing
+    n_events = 100
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=n_events), scale="tai", format="mjd"
+    )
+    event_ids = np.linspace(35, 725000, num=n_events, dtype=int)
+    rng = np.random.default_rng(12)
+    data = rng.normal(5.0, 1.0, size=(n_events, 2, 4))
+    data[3, 0, 0] = np.nan
+
+    mask = np.zeros((2, 4), dtype=bool)
+    mask[0, 1] = True
+
+    hist_table = Table(
+        [times, event_ids, data],
+        names=("time", "event_id", "image"),
+    )
+
+    config = Config(
+        {
+            "HistogramAggregator": {
+                "axis_definition": {
+                    "class_name": "Regular",
+                    "bins": 25,
+                    "start": 0.0,
+                    "stop": 10.0,
+                    "name": "image",
+                },
+                "axis_names": ["channel", "pixel", "one_extra_axis"],
+            }
+        }
+    )
+    # Aggregate the histogram with the mask and NaN in the data
+    aggregator = HistogramAggregator(config=config)
+    with pytest.raises(ValueError, match="Number of axis name"):
+        aggregator(hist_table, masked_elements_of_sample=mask)
 
 
 @pytest.mark.parametrize(
@@ -257,7 +298,8 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
                     "underflow": underflow,
                     "overflow": overflow,
                     "name": "custom_value",
-                }
+                },
+                "axis_names": ["channel", "pixel"],
             }
         }
     )
@@ -265,7 +307,6 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=None,
-        axis_names=["channel", "pixel"],
     )
 
     # Aggregator exposes flow bins when underflow/overflow are enabled.
@@ -424,7 +465,6 @@ def test_histograms_aggregator_axis_classes(
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=None,
-        axis_names=["channel", "pixel"],
     )
     hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 

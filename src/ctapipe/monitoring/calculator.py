@@ -15,7 +15,7 @@ from ..core.traits import (
     TelescopeParameter,
     TraitError,
 )
-from .aggregator import BaseAggregator, HistogramAggregator
+from .aggregator import BaseAggregator
 from .outlier import OutlierDetector
 
 __all__ = [
@@ -154,11 +154,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Temporarily disable chunk_shift for first pass to ensure non-overlapping chunks
         original_chunk_shift = aggregator.chunking.chunk_shift
         aggregator.chunking.chunk_shift = None
-        axis_names = (
-            ["channel", "pixel"]
-            if isinstance(aggregator, HistogramAggregator)
-            else None
-        )
 
         try:
             # Pass through the whole provided dl1 table
@@ -166,7 +161,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 table=table,
                 masked_elements_of_sample=masked_pixels_of_sample,
                 col_name=col_name,
-                axis_names=axis_names,
             )
         finally:
             # Restore original chunk_shift
@@ -230,11 +224,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 "Aggregator's chunking component must have chunk_shift > 0 configured for second pass. "
                 f"Current chunk_shift: {chunk_shift}"
             )
-        axis_names = (
-            ["channel", "pixel"]
-            if isinstance(aggregator, HistogramAggregator)
-            else None
-        )
 
         # Conduct a second pass over the data
         aggregated_stats_secondpass = []
@@ -271,7 +260,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
                         table=table_sliced,
                         masked_elements_of_sample=masked_elements_of_sample,
                         col_name=col_name,
-                        axis_names=axis_names,
                     )
                 )
         # Stack the aggregated statistics of each faulty chunk
