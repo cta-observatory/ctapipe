@@ -324,7 +324,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             column name in the table containing the event-wise data to aggregate
         axis_names : list[str], optional
             Optional axis names for histogram aggregators to be stored in metadata.
-            If None, default axis names will be generated as "value", "axis_1", "axis_2", etc.
+            If None, default axis names will be generated as "axis_1", "axis_2", etc.
 
         Returns
         -------
@@ -419,7 +419,7 @@ class HistogramAggregator(BaseAggregator):
         help=(
             "Dictionary that contains ``class_name`` and the corresponding kwargs "
             "to construct a ``hist.axis.<class_name>(**kwargs)`` instance. "
-            "E.g. ``{'class_name': 'Regular', 'bins': 40, 'start': 20.0, 'stop': 80.0}``."
+            "E.g. ``{'class_name': 'Regular', 'bins': 40, 'start': 20.0, 'stop': 80.0, 'name': 'value'}``."
         ),
     ).tag(config=True)
 
@@ -439,7 +439,6 @@ class HistogramAggregator(BaseAggregator):
                 "The ``axis_definition`` trait is missing required key 'class_name'."
             )
         self.axis_class_name = self.axis_kwargs.pop("class_name")
-        self.axis_kwargs["name"] = "value"
         self.hist_axis = getattr(hist.axis, self.axis_class_name)(**self.axis_kwargs)
 
     def _add_result_columns(
@@ -457,7 +456,7 @@ class HistogramAggregator(BaseAggregator):
         if "meta" not in results_dict and histograms.meta:
             results_dict["meta"] = histograms.meta
         if axis_names is None:
-            axis_names = ["value"] + [
+            axis_names = [self.hist_axis.name] + [
                 f"axis_{i}" for i in range(1, histograms.histogram.ndim)
             ]
         axis_names = list(axis_names)
@@ -605,7 +604,7 @@ class HistogramAggregator(BaseAggregator):
         axes = [axis_class(**axis_kwargs_meta)]
 
         # Non-value axes must match histogram.shape[1:]
-        for name, n_bins in zip(axis_names[1:], hist_container.histogram.shape[1:]):
+        for name, n_bins in zip(axis_names, hist_container.histogram.shape[1:]):
             axes.append(hist.axis.IntCategory(categories=np.arange(n_bins), name=name))
 
         # Create a Hist object with the reconstructed axes and fill it with the stored histogram counts.
@@ -617,7 +616,7 @@ class HistogramAggregator(BaseAggregator):
         valid_values = values[~mask]
         hist_object = Hist(self.hist_axis, storage=hist.storage.Int64())
         if len(valid_values) > 0:
-            hist_object.fill(value=valid_values)
+            hist_object.fill(**{self.hist_axis.name: valid_values})
         return hist_object
 
 

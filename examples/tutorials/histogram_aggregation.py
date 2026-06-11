@@ -71,6 +71,7 @@ config_image = Config(
                 "bins": 50,
                 "start": 40.0,
                 "stop": 110.0,
+                "name": "image",
             },
         },
         "SizeChunking": {"chunk_size": 1000},
@@ -82,7 +83,7 @@ result = aggregator_image(
     table=table,
     col_name="image",
     masked_elements_of_sample=masked_elements_of_sample,
-    axis_names=["value", "channel", "pixel"],
+    axis_names=["channel", "pixel"],
 )
 
 config_peak_time = Config(
@@ -94,6 +95,7 @@ config_peak_time = Config(
                 "bins": 50,
                 "start": 2.0,
                 "stop": 38.0,
+                "name": "peak_time",
             },
         },
         "SizeChunking": {"chunk_size": 1000},
@@ -105,7 +107,7 @@ result_peak_time = aggregator_peak_time(
     table=table,
     col_name="peak_time",
     masked_elements_of_sample=masked_elements_of_sample,
-    axis_names=["value", "channel", "pixel"],
+    axis_names=["channel", "pixel"],
 )
 
 print(f"Number of chunks: {len(result)}")
@@ -332,7 +334,7 @@ for label, flow_options in FLOW_CONFIGS.items():
         table=table,
         col_name="image",
         masked_elements_of_sample=masked_elements_of_sample,
-        axis_names=["value", "channel", "pixel"],
+        axis_names=["channel", "pixel"],
     )
     # Create a Hist object from the aggregated histogram and
     # metadata for the selected chunk using the hist_from_tablerow method.

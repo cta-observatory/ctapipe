@@ -140,7 +140,7 @@ def test_histograms_aggregator():
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=None,
-        axis_names=["value", "channel", "pixel"],
+        axis_names=["channel", "pixel"],
     )
     hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 
@@ -209,7 +209,7 @@ def test_histograms_aggregator_masks_and_nan_handling():
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=mask,
-        axis_names=["value", "channel", "pixel"],
+        axis_names=["channel", "pixel"],
     )
     # Reconstruct a Hist object from the first chunk using hist_from_tablerow()
     hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
@@ -256,6 +256,7 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
                     "stop": 4.0,
                     "underflow": underflow,
                     "overflow": overflow,
+                    "name": "custom_value",
                 }
             }
         }
@@ -264,7 +265,7 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=None,
-        axis_names=["value", "channel", "pixel"],
+        axis_names=["channel", "pixel"],
     )
 
     # Aggregator exposes flow bins when underflow/overflow are enabled.
@@ -276,13 +277,17 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     axis_kwargs = chunks.meta["axis_kwargs"]
     assert axis_kwargs["underflow"] is underflow
     assert axis_kwargs["overflow"] is overflow
-    assert axis_kwargs["name"] == "value"
+    assert axis_kwargs["name"] == "custom_value"
 
     # Reconstruct a Hist from the container using hist_from_container()
     hist_container = ChunkHistogramContainer(**dict(zip(chunks[0].colnames, chunks[0])))
     hist_container.meta = chunks.meta
     hist_object = HistogramAggregator.hist_from_container(hist_container)
-    assert [axis.name for axis in hist_object.axes] == ["value", "channel", "pixel"]
+    assert [axis.name for axis in hist_object.axes] == [
+        "custom_value",
+        "channel",
+        "pixel",
+    ]
 
     stacked = hist_object.integrate("pixel").stack("channel")
     assert isinstance(stacked, hist.stack.Stack)
@@ -419,7 +424,7 @@ def test_histograms_aggregator_axis_classes(
     chunks = aggregator(
         hist_table,
         masked_elements_of_sample=None,
-        axis_names=["value", "channel", "pixel"],
+        axis_names=["channel", "pixel"],
     )
     hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 
