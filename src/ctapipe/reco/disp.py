@@ -18,7 +18,7 @@ __all__ = [
 
 
 def _get_tel_pointing(table):
-    prefix = "telescope_pointing_"
+    prefix = "telescope_pointing"
     tel_alt = f"{prefix}_altitude"
     tel_az = f"{prefix}_azimuth"
 
