@@ -17,7 +17,6 @@ have a stable enough API and are more widely used.
 
 It currently provides:
 
-* ND Histogramming (see `Histogram`)
 * ND table interpolation (see `TableInterpolator`)
 * access to service datasets
 * linear algebra helpers
