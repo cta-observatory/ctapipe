@@ -82,6 +82,7 @@ result = aggregator_image(
     table=table,
     col_name="image",
     masked_elements_of_sample=masked_elements_of_sample,
+    axis_names=["value", "channel", "pixel"],
 )
 
 config_peak_time = Config(
@@ -104,6 +105,7 @@ result_peak_time = aggregator_peak_time(
     table=table,
     col_name="peak_time",
     masked_elements_of_sample=masked_elements_of_sample,
+    axis_names=["value", "channel", "pixel"],
 )
 
 print(f"Number of chunks: {len(result)}")
@@ -233,9 +235,7 @@ chunk_histograms_container.meta = result.meta
 # Plot three nearby pixels using Hist's built-in plotting functionality.
 # Requires 'hist[plot]' to be installed in the environment. Reconstruct
 # the full histogram as a Hist object for the chunk using hist_from_container method.
-full_hist = HistogramAggregator.hist_from_container(
-    chunk_histograms_container, axis_names=["value", "channel", "pixel"]
-)
+full_hist = HistogramAggregator.hist_from_container(chunk_histograms_container)
 pixels_to_plot = [pixel_index, pixel_index + 1, pixel_index + 2]
 fig, axes = plt.subplots(1, len(pixels_to_plot), figsize=(15, 4), sharey=True)
 
@@ -332,13 +332,11 @@ for label, flow_options in FLOW_CONFIGS.items():
         table=table,
         col_name="image",
         masked_elements_of_sample=masked_elements_of_sample,
+        axis_names=["value", "channel", "pixel"],
     )
     # Create a Hist object from the aggregated histogram and
     # metadata for the selected chunk using the hist_from_tablerow method.
-    histogram_cont = HistogramAggregator.hist_from_tablerow(
-        result[chunk_index],
-        axis_names=["value", "channel", "pixel"],
-    )
+    histogram_cont = HistogramAggregator.hist_from_tablerow(result[chunk_index])
     histogram = histogram_cont[{"channel": 0, "pixel": pixel_index}]
 
     flow_view = histogram.view(flow=True)

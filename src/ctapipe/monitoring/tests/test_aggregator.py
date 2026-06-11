@@ -137,10 +137,12 @@ def test_histograms_aggregator():
         }
     )
     aggregator = HistogramAggregator(config=config)
-    chunks = aggregator(hist_table, masked_elements_of_sample=None)
-    hist_object = HistogramAggregator.hist_from_tablerow(
-        chunks[0], axis_names=["value", "channel", "pixel"]
+    chunks = aggregator(
+        hist_table,
+        masked_elements_of_sample=None,
+        axis_names=["value", "channel", "pixel"],
     )
+    hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 
     assert chunks[0]["histogram"].shape == (40, 2, 8)
     assert chunks[0].meta["bin_edges"].shape == (41,)
@@ -204,11 +206,13 @@ def test_histograms_aggregator_masks_and_nan_handling():
     )
     # Aggregate the histogram with the mask and NaN in the data
     aggregator = HistogramAggregator(config=config)
-    chunks = aggregator(hist_table, masked_elements_of_sample=mask)
-    # Reconstruct a Hist object from the first chunk using hist_from_tablerow()
-    hist_object = HistogramAggregator.hist_from_tablerow(
-        chunks[0], axis_names=["value", "channel", "pixel"]
+    chunks = aggregator(
+        hist_table,
+        masked_elements_of_sample=mask,
+        axis_names=["value", "channel", "pixel"],
     )
+    # Reconstruct a Hist object from the first chunk using hist_from_tablerow()
+    hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 
     # Fully masked pixel should receive no entries.
     assert hist_object.values().shape == (25, 2, 4)
@@ -257,7 +261,11 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
         }
     )
     aggregator = HistogramAggregator(config=config)
-    chunks = aggregator(hist_table, masked_elements_of_sample=None)
+    chunks = aggregator(
+        hist_table,
+        masked_elements_of_sample=None,
+        axis_names=["value", "channel", "pixel"],
+    )
 
     # Aggregator exposes flow bins when underflow/overflow are enabled.
     expected_flow_bins = int(underflow) + int(overflow)
@@ -271,11 +279,9 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     assert axis_kwargs["name"] == "value"
 
     # Reconstruct a Hist from the container using hist_from_container()
-    cont = ChunkHistogramContainer(**dict(zip(chunks[0].colnames, chunks[0])))
-    cont.meta = chunks.meta
-    hist_object = HistogramAggregator.hist_from_container(
-        cont, axis_names=["value", "channel", "pixel"]
-    )
+    hist_container = ChunkHistogramContainer(**dict(zip(chunks[0].colnames, chunks[0])))
+    hist_container.meta = chunks.meta
+    hist_object = HistogramAggregator.hist_from_container(hist_container)
     assert [axis.name for axis in hist_object.axes] == ["value", "channel", "pixel"]
 
     stacked = hist_object.integrate("pixel").stack("channel")
@@ -410,10 +416,12 @@ def test_histograms_aggregator_axis_classes(
     )
     config = Config({"HistogramAggregator": {"axis_definition": axis_definition}})
     aggregator = HistogramAggregator(config=config)
-    chunks = aggregator(hist_table, masked_elements_of_sample=None)
-    hist_object = HistogramAggregator.hist_from_tablerow(
-        chunks[0], axis_names=["value", "channel", "pixel"]
+    chunks = aggregator(
+        hist_table,
+        masked_elements_of_sample=None,
+        axis_names=["value", "channel", "pixel"],
     )
+    hist_object = HistogramAggregator.hist_from_tablerow(chunks[0])
 
     assert chunks[0]["histogram"].shape == expected_counts.shape
     assert chunks[0]["n_events"].shape == (2, 3)

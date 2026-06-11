@@ -307,6 +307,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         table,
         masked_elements_of_sample=None,
         col_name="image",
+        axis_names=None,
     ) -> Table:
         r"""
         Divide table into chunks and compute aggregated statistic values or histograms.
@@ -321,6 +322,9 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
+        axis_names : list[str], optional
+            Optional axis names for histogram aggregators to be stored in metadata.
+            If None, default axis names will be generated as "value", "axis_1", "axis_2", etc.
 
         Returns
         -------
@@ -354,6 +358,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
                 chunk[col_name].data,
                 masked_elements_of_sample,
                 results,
+                axis_names,
             )
 
         # Deal with metadata if present in results
@@ -378,6 +383,7 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         data,
         masked_elements_of_sample,
         results_dict,
+        axis_names,
     ):
         r"""
         Compute statistics and histograms. Add columns to results dictionary.
@@ -390,6 +396,8 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             Boolean mask of shape (\*data_dimensions) for elements to exclude
         results_dict : dict
             Dictionary to which statistic or histogram columns should be added.
+        axis_names : list[str], optional
+            Optional axis names for histogram aggregators to be stored in metadata.
         """
         pass
 
@@ -439,13 +447,25 @@ class HistogramAggregator(BaseAggregator):
         data,
         masked_elements_of_sample,
         results_dict,
+        axis_names,
     ):
         histograms = self._compute_histograms(data, masked_elements_of_sample)
         results_dict["n_events"].append(histograms.n_events)
         # store full histogram (including flow bins) in the `histogram` column
         results_dict["histogram"].append(histograms.histogram)
+
         if "meta" not in results_dict and histograms.meta:
             results_dict["meta"] = histograms.meta
+        if axis_names is None:
+            axis_names = ["value"] + [
+                f"axis_{i}" for i in range(1, histograms.histogram.ndim)
+            ]
+        axis_names = list(axis_names)
+        if len(axis_names) < histograms.histogram.ndim:
+            axis_names.extend(
+                f"axis_{i}" for i in range(len(axis_names), histograms.histogram.ndim)
+            )
+        results_dict["meta"]["axis_kwargs"]["axis_names"] = axis_names
 
     def _set_result_units(self, table, unit):
         """
@@ -524,7 +544,6 @@ class HistogramAggregator(BaseAggregator):
     @staticmethod
     def hist_from_tablerow(
         row: Row,
-        axis_names: list[str] | None = None,
     ):
         """Build a ``hist.Hist`` from an Astropy table row produced by the
         ``HistogramAggregator``.
@@ -553,8 +572,6 @@ class HistogramAggregator(BaseAggregator):
             contain a ``histogram`` ndarray with shape ``(n_bins, *data_dims)``,
             number of valid events in ``n_events``, and  metadata in ``row.meta``
             describing the original axis.
-        axis_names : list[str] | None
-            Optional axis names for non-value axes in the rebuilt ``Hist``.
 
         Returns
         -------
@@ -562,51 +579,38 @@ class HistogramAggregator(BaseAggregator):
             Reconstructed histogram object with axes and counts populated.
         """
 
-        cont = ChunkHistogramContainer(**dict(zip(row.colnames, row)))
-        cont.meta = row.meta
-        return HistogramAggregator.hist_from_container(cont, axis_names)
+        hist_container = ChunkHistogramContainer(**dict(zip(row.colnames, row)))
+        hist_container.meta = row.meta
+        return HistogramAggregator.hist_from_container(hist_container)
 
     @staticmethod
     def hist_from_container(
-        cont: ChunkHistogramContainer,
-        axis_names: list[str] | None = None,
+        hist_container: ChunkHistogramContainer,
     ):
         """Construct a ``hist.Hist`` from a ``ChunkHistogramContainer``.
 
         Parameters
         ----------
-        cont : ChunkHistogramContainer
+        hist_container : ChunkHistogramContainer
             Stored histogram container.
-        axis_names : list[str] | None
-            Axis names to use when rebuilding the histogram.
         """
 
-        if axis_names is None:
-            axis_names = ["value"] + [
-                f"axis_{i}" for i in range(1, cont.histogram.ndim)
-            ]
-
-        axis_names = list(axis_names)
-        if len(axis_names) < cont.histogram.ndim:
-            axis_names.extend(
-                f"axis_{i}" for i in range(len(axis_names), cont.histogram.ndim)
-            )
-
         # Extract axis information from container metadata
-        axis_kwargs_meta = cont.meta.get("axis_kwargs", {})
-        axis_class = getattr(hist.axis, cont.meta["axis_class_name"])
+        axis_kwargs_meta = hist_container.meta.get("axis_kwargs", {})
+        axis_class = getattr(hist.axis, hist_container.meta["axis_class_name"])
+        axis_names = axis_kwargs_meta.pop("axis_names")
 
         # Reconstruct the original axis class so metadata round-trips exactly,
         # including Integer and transformed/circular Regular axes.
         axes = [axis_class(**axis_kwargs_meta)]
 
         # Non-value axes must match histogram.shape[1:]
-        for name, n_bins in zip(axis_names[1:], cont.histogram.shape[1:]):
+        for name, n_bins in zip(axis_names[1:], hist_container.histogram.shape[1:]):
             axes.append(hist.axis.IntCategory(categories=np.arange(n_bins), name=name))
 
         # Create a Hist object with the reconstructed axes and fill it with the stored histogram counts.
         h = Hist(*axes)
-        h[...] = cont.histogram[...]
+        h[...] = hist_container.histogram[...]
         return h
 
     def _make_histogram(self, values, mask):
@@ -630,6 +634,7 @@ class StatisticsAggregator(BaseAggregator):
         data,
         masked_elements_of_sample,
         results_dict,
+        axis_names=None,
     ):
         stats = self._compute_stats(data, masked_elements_of_sample)
         results_dict["n_events"].append(stats.n_events)
