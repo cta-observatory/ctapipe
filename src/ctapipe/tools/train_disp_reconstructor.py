@@ -2,7 +2,6 @@
 Tool for training the DispReconstructor
 """
 
-import astropy.units as u
 import numpy as np
 
 from ctapipe.core import Tool
@@ -10,7 +9,7 @@ from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
-from ctapipe.reco.preprocessing import horizontal_to_telescope
+from ctapipe.reco.disp import compute_true_disp
 
 from .utils import read_training_events
 
@@ -127,30 +126,37 @@ class TrainDispReconstructor(Tool):
         self.log.info("Inputfile: %s", self.loader.input_url)
 
         self.log.info("Training models for %d types", len(types))
+        feature_names = self.models.features + [
+            "true_energy",
+            "true_impact_distance",
+            "true_alt",
+            "true_az",
+            "hillas_fov_lat",
+            "hillas_fov_lon",
+            "hillas_psi",
+        ]
+        optional_columns = [
+            "telescope_pointing_altitude",
+            "telescope_pointing_azimuth",
+            "subarray_pointing_frame",
+            "subarray_pointing_lat",
+            "subarray_pointing_lon",
+        ]
+
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            feature_names = self.models.features + [
-                "true_energy",
-                "true_impact_distance",
-                "subarray_pointing_lat",
-                "subarray_pointing_lon",
-                "true_alt",
-                "true_az",
-                "hillas_fov_lat",
-                "hillas_fov_lon",
-                "hillas_psi",
-            ]
             table = read_training_events(
                 loader=self.loader,
                 chunk_size=self.chunk_size,
                 telescope_type=tel_type,
                 reconstructor=self.models,
                 feature_names=feature_names,
+                optional_columns=optional_columns,
                 rng=self.rng,
                 log=self.log,
                 n_events=self.n_events.tel[tel_type],
             )
-            table[self.models.target] = self._get_true_disp(table)
+            table[self.models.target] = compute_true_disp(table, self.project_disp)
             table = table[
                 self.models.features
                 + [self.models.target, "true_energy", "true_impact_distance"]
@@ -162,32 +168,6 @@ class TrainDispReconstructor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.models.fit(tel_type, table)
             self.log.info("done")
-
-    def _get_true_disp(self, table):
-        fov_lon, fov_lat = horizontal_to_telescope(
-            alt=table["true_alt"],
-            az=table["true_az"],
-            pointing_alt=table["subarray_pointing_lat"],
-            pointing_az=table["subarray_pointing_lon"],
-        )
-
-        # numpy's trigonometric functions need radians
-        psi = table["hillas_psi"].quantity.to_value(u.rad)
-        cog_lon = table["hillas_fov_lon"].quantity
-        cog_lat = table["hillas_fov_lat"].quantity
-
-        delta_lon = fov_lon - cog_lon
-        delta_lat = fov_lat - cog_lat
-
-        true_disp = np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
-        true_sign = np.sign(true_disp)
-
-        if self.project_disp:
-            true_norm = np.abs(true_disp)
-        else:
-            true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
-
-        return true_norm * true_sign
 
     def finish(self):
         """
