@@ -126,25 +126,32 @@ class TrainDispReconstructor(Tool):
         self.log.info("Inputfile: %s", self.loader.input_url)
 
         self.log.info("Training models for %d types", len(types))
+        feature_names = self.models.features + [
+            "true_energy",
+            "true_impact_distance",
+            "true_alt",
+            "true_az",
+            "hillas_fov_lat",
+            "hillas_fov_lon",
+            "hillas_psi",
+        ]
+        optional_columns = [
+            "telescope_pointing_altitude",
+            "telescope_pointing_azimuth",
+            "subarray_pointing_frame",
+            "subarray_pointing_lat",
+            "subarray_pointing_lon",
+        ]
+
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            feature_names = self.models.features + [
-                "true_energy",
-                "true_impact_distance",
-                "subarray_pointing_lat",
-                "subarray_pointing_lon",
-                "true_alt",
-                "true_az",
-                "hillas_fov_lat",
-                "hillas_fov_lon",
-                "hillas_psi",
-            ]
             table = read_training_events(
                 loader=self.loader,
                 chunk_size=self.chunk_size,
                 telescope_type=tel_type,
                 reconstructor=self.models,
                 feature_names=feature_names,
+                optional_columns=optional_columns,
                 rng=self.rng,
                 log=self.log,
                 n_events=self.n_events.tel[tel_type],

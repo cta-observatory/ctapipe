@@ -2,17 +2,40 @@
 Common functions related to the disp reconstruction.
 """
 
+import warnings
 from typing import Annotated
 
 import astropy.units as u
 import numpy as np
 from astropy.table import Table
 
+from ..containers import CoordinateFrameType
 from .preprocessing import horizontal_to_telescope
 
 __all__ = [
     "compute_true_disp",
 ]
+
+
+def _get_tel_pointing(table):
+    prefix = "telescope_pointing_"
+    tel_alt = f"{prefix}_altitude"
+    tel_az = f"{prefix}_azimuth"
+
+    if {tel_alt, tel_az}.issubset(table.colnames):
+        return table[tel_alt].quantity, table[tel_az].quantity
+
+    prefix = "subarray_pointing"
+    if not np.all(table[f"{prefix}_frame"] == CoordinateFrameType.ALTAZ.value):
+        raise ValueError(
+            "Subarray pointing information for disp computation"
+            " has to be provided in horizontal coordinates"
+        )
+
+    warnings.warn(
+        "Input table does not contain telescope pointings, falling back to array pointing"
+    )
+    return table[f"{prefix}_lat"].quantity, table[f"{prefix}_lon"].quantity
 
 
 def compute_true_disp(
@@ -36,11 +59,13 @@ def compute_true_disp(
     disp:
         Disp as a signed quantity
     """
+    pointing_alt, pointing_az = _get_tel_pointing(table)
+
     fov_lon, fov_lat = horizontal_to_telescope(
         alt=table["true_alt"],
         az=table["true_az"],
-        pointing_alt=table["subarray_pointing_lat"],
-        pointing_az=table["subarray_pointing_lon"],
+        pointing_alt=pointing_alt,
+        pointing_az=pointing_az,
     )
 
     # numpy's trigonometric functions need radians

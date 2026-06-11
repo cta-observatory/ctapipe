@@ -12,13 +12,12 @@ from pathlib import Path
 import numpy as np
 from astropy.table import vstack
 
-from ..containers import CoordinateFrameType
 from ..core.traits import Int
 from ..exceptions import TooFewEvents
 from ..instrument import TelescopeDescription
 from ..io import TableLoader
 from ..reco.preprocessing import check_valid_rows
-from ..reco.sklearn import DispReconstructor, SKLearnReconstructor
+from ..reco.sklearn import SKLearnReconstructor
 
 LOG = logging.getLogger(__name__)
 
@@ -87,10 +86,11 @@ def read_training_events(
     chunk_size: Int,
     telescope_type: TelescopeDescription,
     reconstructor: type[SKLearnReconstructor],
-    feature_names: list,
+    feature_names: list[str],
     rng: np.random.Generator,
     log=LOG,
     n_events=None,
+    optional_columns: list[str] | None = None,
 ):
     """Chunked loading of events for training ML models"""
     chunk_iterator = loader.read_telescope_events_chunked(
@@ -99,25 +99,23 @@ def read_training_events(
         true_parameters=False,
         instrument=True,
         observation_info=True,
+        pointing=True,
     )
     table = []
     n_events_in_file = 0
     n_valid_events_in_file = 0
     n_non_predictable = 0
+    columns = feature_names.copy()
 
     for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
         log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
         n_events_in_file += len(table_chunk)
 
-        if isinstance(reconstructor, DispReconstructor):
-            if not np.all(
-                table_chunk["subarray_pointing_frame"]
-                == CoordinateFrameType.ALTAZ.value
-            ):
-                raise ValueError(
-                    "Pointing information for training data"
-                    " has to be provided in horizontal coordinates"
-                )
+        if len(table) == 0 and optional_columns is not None:
+            # add present optional columns
+            for column in optional_columns:
+                if column in table_chunk.colnames:
+                    columns.append(column)
 
         mask = reconstructor.quality_query.get_table_mask(table_chunk)
         table_chunk = table_chunk[mask]
@@ -131,7 +129,7 @@ def read_training_events(
         table_chunk = reconstructor.feature_generator(
             table_chunk, subarray=loader.subarray
         )
-        table_chunk = table_chunk[feature_names]
+        table_chunk = table_chunk[columns]
 
         valid = check_valid_rows(table_chunk)
         if not np.all(valid):
