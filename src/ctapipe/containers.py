@@ -304,9 +304,12 @@ class BaseHillasParametersContainer(Container):
     be assigned to an ImageParametersContainer as well.
     """
 
-    intensity = Field(nan, "total intensity (size)")
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
+    intensity = Field(nan, "Total integrated charge (often called 'size')")
+    skewness = Field(nan, "Longitudinal asymmetry of the image")
+    kurtosis = Field(
+        nan,
+        "measure of the longitudinal tailedness of the charges distribution (following Pearson's definition: equals 3.0 for a normal distribution)",
+    )
 
 
 class CameraHillasParametersContainer(BaseHillasParametersContainer):
@@ -329,7 +332,7 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
         nan * u.m,
-        "uncertainty on the center of gravity along the transverse axis of the image",
+        "uncertainty on the centroid along the transverse axis of the image",
         unit=u.m,
     )
 
@@ -344,26 +347,28 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     default_prefix = "hillas"
     fov_lon = Field(
         nan * u.deg,
-        "longitude angle in a spherical system centered on the pointing position",
+        "Centroid longitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
     fov_lat = Field(
         nan * u.deg,
-        "latitude angle in a spherical system centered on the pointing position",
+        "Centroid latitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
-    r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
-    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
+    r = Field(nan * u.deg, "Radial coordinate of the centroid", unit=u.deg)
+    phi = Field(nan * u.deg, "Polar coordinate of the centroid", unit=u.deg)
 
     length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
     length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
     width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
     width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
-    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi = Field(
+        nan * u.deg, "Orientation (angle) of major axis relative to X-axis", unit=u.deg
+    )
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
         nan * u.deg,
-        "uncertainty on the center of gravity along the transverse axis of the image",
+        "uncertainty on the centroid along the transverse axis of the image",
         unit=u.deg,
     )
 
@@ -401,11 +406,9 @@ class ConcentrationContainer(Container):
     """
 
     default_prefix = "concentration"
-    cog = Field(
-        nan, "Percentage of photo-electrons inside one pixel diameter of the cog"
-    )
-    core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
-    pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
+    cog = Field(nan, "Fraction of light within 1 pixel diameter of the COG")
+    core = Field(nan, "Fraction of light within the 1-sigma Hillas ellipse boundary")
+    pixel = Field(nan, "Fraction of light in the brightest pixel")
 
 
 class BaseTimingParametersContainer(Container):
@@ -415,11 +418,10 @@ class BaseTimingParametersContainer(Container):
     be assigned to an ImageParametersContainer as well.
     """
 
-    intercept = Field(nan, "intercept of arrival times along main shower axis")
+    intercept = Field(nan, "Arrival time at the COG (longitudinal = 0)")
     deviation = Field(
         nan,
-        "Root-mean-square deviation of the pulse times "
-        "with respect to the predicted time",
+        "Temporal dispersion around the linear model (RMSE)",
     )
 
 
@@ -431,7 +433,7 @@ class CameraTimingParametersContainer(BaseTimingParametersContainer):
 
     default_prefix = "camera_frame_timing"
     slope = Field(
-        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+        nan / u.m, "Time gradient along the main shower axis (1/m)", unit=1 / u.m
     )
 
 
@@ -444,29 +446,36 @@ class TimingParametersContainer(BaseTimingParametersContainer):
 
     default_prefix = "timing"
     slope = Field(
-        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
+        nan / u.deg, "Time gradient along the main shower axis (1/deg)", unit=1 / u.deg
     )
 
 
 class MorphologyContainer(Container):
     """Parameters related to pixels surviving image cleaning"""
 
-    n_pixels = Field(-1, "Number of usable pixels")
-    n_islands = Field(-1, "Number of distinct islands in the image")
-    n_small_islands = Field(-1, "Number of <= 2 pixel islands")
-    n_medium_islands = Field(-1, "Number of 2-50 pixel islands")
-    n_large_islands = Field(-1, "Number of > 50 pixel islands")
+    n_pixels = Field(-1, "Number of pixels surviving cleaning")
+    n_islands = Field(-1, "Number of distinct pixel clusters (connected components)")
+    n_small_islands = Field(-1, "Number of islands with size <= 2 pixels")
+    n_medium_islands = Field(-1, "Number of islands with 3 <= size <= 50 pixels")
+    n_large_islands = Field(-1, "Number of islands with size > 50 pixels")
 
 
 class ImageStatisticsContainer(Container):
     """Store descriptive image statistics"""
 
-    max = Field(np.float32(nan), "value of pixel with maximum intensity")
-    min = Field(np.float32(nan), "value of pixel with minimum intensity")
-    mean = Field(np.float32(nan), "mean intensity")
-    std = Field(np.float32(nan), "standard deviation of intensity")
-    skewness = Field(nan, "skewness of intensity")
-    kurtosis = Field(nan, "kurtosis of intensity")
+    max = Field(np.float32(nan), "Value of pixel with maximum intensity")
+    min = Field(np.float32(nan), "Value of pixel with minimum intensity")
+    mean = Field(np.float32(nan), "Mean intensity of pixels in the image")
+    std = Field(
+        np.float32(nan), "standard deviation of intensity of pixels in the image"
+    )
+    skewness = Field(
+        nan, "Fisher skewness measuring the asymmetry of the intensity distribution)"
+    )
+    kurtosis = Field(
+        nan,
+        "Fisher kurtosis measuring the tailedness of the intensity distribution (equals 0.0 for a normal distribution)",
+    )
 
 
 class IntensityStatisticsContainer(ImageStatisticsContainer):
@@ -481,7 +490,9 @@ class CoreParametersContainer(Container):
     """Telescope-wise shower's direction in the Tilted/Ground Frame"""
 
     default_prefix = "core"
-    psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
+    psi = Field(
+        nan * u.deg, "Orientation of major axis in the Tilted/Ground Frame", unit="deg"
+    )
 
 
 class ImageParametersContainer(Container):

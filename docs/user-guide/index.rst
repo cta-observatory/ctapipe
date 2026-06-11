@@ -8,6 +8,7 @@ User Guide
    :maxdepth: 2
 
    getting-started
+   analysis_steps/index
    tools/index
    data_format/index
    examples_tutorials
