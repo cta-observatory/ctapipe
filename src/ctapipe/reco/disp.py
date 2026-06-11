@@ -17,7 +17,26 @@ __all__ = [
 ]
 
 
-def _get_tel_pointing(table):
+def get_tel_pointing(table):
+    """
+    Get telescope pointing from telescope events table.
+
+    Prefers columns telescope_pointing_{altitude,azimuth} but will fallback
+    to subarray_pointing_{lat,lon,frame} for backwards compatibility with older
+    datasets.
+
+    Parameters
+    ----------
+    table : Table
+        table of telescope events.
+
+    Returns
+    -------
+    alt : u.Quantity[angle]
+        pointing altitude
+    az : u.Quantity[angle]
+        pointing azimuth
+    """
     prefix = "telescope_pointing"
     tel_alt = f"{prefix}_altitude"
     tel_az = f"{prefix}_azimuth"
@@ -59,7 +78,7 @@ def compute_true_disp(
     disp:
         Disp as a signed quantity
     """
-    pointing_alt, pointing_az = _get_tel_pointing(table)
+    pointing_alt, pointing_az = get_tel_pointing(table)
 
     fov_lon, fov_lat = horizontal_to_telescope(
         alt=table["true_alt"],
