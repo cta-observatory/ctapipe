@@ -81,6 +81,12 @@ def get_all_descriptions():
     return descriptions
 
 
+def _add_optional_columns(table, columns, optional_columns):
+    for column in optional_columns:
+        if column in table.colnames and column not in columns:
+            columns.append(column)
+
+
 def read_training_events(
     loader: TableLoader,
     chunk_size: Int,
@@ -112,10 +118,7 @@ def read_training_events(
         n_events_in_file += len(table_chunk)
 
         if len(table) == 0 and optional_columns is not None:
-            # add present optional columns
-            for column in optional_columns:
-                if column in table_chunk.colnames:
-                    columns.append(column)
+            _add_optional_columns(table_chunk, columns, optional_columns)
 
         mask = reconstructor.quality_query.get_table_mask(table_chunk)
         table_chunk = table_chunk[mask]
