@@ -201,7 +201,8 @@ def test_histograms_aggregator_masks_and_nan_handling():
                     "bins": 25,
                     "start": 0.0,
                     "stop": 10.0,
-                }
+                },
+                "axis_names": None,
             }
         }
     )
@@ -380,7 +381,8 @@ def test_histograms_aggregator_input_shapes(shape, spatial_shape):
                     "bins": 20,
                     "start": 0.0,
                     "stop": 100.0,
-                }
+                },
+                "axis_names": None,
             }
         }
     )

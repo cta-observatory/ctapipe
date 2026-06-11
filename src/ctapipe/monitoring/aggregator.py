@@ -425,7 +425,7 @@ class HistogramAggregator(BaseAggregator):
     ).tag(config=True)
 
     axis_names = List(
-        default_value=None,
+        default_value=["channel", "pixel"],
         trait=Unicode(),
         allow_none=True,
         help="List of axis names for the histogram. E.g. ['channel', 'pixel']. If None, default names will be used.",
@@ -604,7 +604,7 @@ class HistogramAggregator(BaseAggregator):
         """
 
         # Extract axis information from container metadata
-        axis_kwargs_meta = hist_container.meta.get("axis_kwargs", {})
+        axis_kwargs_meta = hist_container.meta.get("axis_kwargs", {}).copy()
         axis_class = getattr(hist.axis, hist_container.meta["axis_class_name"])
         axis_names = hist_container.meta["axis_names"]
 

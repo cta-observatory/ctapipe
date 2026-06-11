@@ -4,16 +4,19 @@ Test ctapipe-calculate-pixel-statistics tool
 """
 
 import pytest
+from hist import Hist
 from traitlets.config.loader import Config
 
+from ctapipe.containers import ChunkHistogramContainer
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
-from ctapipe.io import read_table
+from ctapipe.io import HDF5TableReader, read_table
 from ctapipe.io.hdf5dataformat import (
     DL1_COLUMN_NAMES,
     DL1_PIXEL_HISTOGRAMS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
 )
+from ctapipe.monitoring import HistogramAggregator
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 from ctapipe.tools.merge import MergeTool
 
@@ -139,6 +142,17 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
     assert "histogram" in stats.colnames
     assert "bin_edges" in stats.meta
     assert stats["histogram"].ndim == 4
+
+    with HDF5TableReader(output_file) as reader:
+        for i, container in enumerate(
+            reader.read(
+                table_name=f"{DL1_PIXEL_HISTOGRAMS_GROUP}/subarray_image/tel_{tel_id:03d}",
+                containers=ChunkHistogramContainer,
+                prefixes=[""],
+            )
+        ):
+            h = HistogramAggregator.hist_from_container(container)
+            assert isinstance(h, Hist)
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
