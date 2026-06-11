@@ -831,22 +831,7 @@ class SimTelEventSource(EventSource):
                 n_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
-                if np.isnan(effective_focal_length):
-                    raise RuntimeError(
-                        "`SimTelEventSource.focal_length_choice` was set to 'EFFECTIVE'"
-                        ", but the effective focal length was not present in the file."
-                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
-                        " input files contain the effective focal length"
-                    )
-                focal_length = effective_focal_length
-            elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
-                focal_length = equivalent_focal_length
-            else:
-                raise ValueError(
-                    f"Invalid focal length choice: {self.focal_length_choice}"
-                )
-
+            focal_length = optics.get_focal_length(self.focal_length_choice)
             camera = build_camera(
                 telescope_description,
                 telescope,

@@ -9,6 +9,7 @@ import pytest
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
@@ -88,6 +89,8 @@ def test_fileinfo(tmp_path, dl1_image_file):
 def test_dump_instrument(tmp_path, monkeypatch):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
 
+    subarray = SubarrayDescription.read(PROD5B_PATH)
+
     sys.argv = ["dump_instrument"]
 
     ret = run_tool(
@@ -135,27 +138,23 @@ def test_dump_instrument(tmp_path, monkeypatch):
     assert array_elements_dir.exists()
 
     # Check that at least one ae_id directory exists (e.g., 001)
-    ae_dirs = list(array_elements_dir.glob("[0-9][0-9][0-9]"))
+    ae_dirs = sorted(array_elements_dir.glob("[0-9][0-9][0-9]"))
     assert len(ae_dirs) > 0, "No ae_id directories found in array-elements"
 
     # Check first ae_id directory contains required files
-    from astropy.table import QTable
-
     from ctapipe.instrument.optics import OpticsDescription
 
     first_ae_dir = ae_dirs[0]
-    ae_id = first_ae_dir.name
-    optics_file = first_ae_dir / f"{ae_id}.optics.ecsv"
+    ae_id = int(first_ae_dir.name)
+    optics_file = first_ae_dir / f"{ae_id:03d}.tel_optics.ecsv"
     assert optics_file.exists()
-    assert (first_ae_dir / f"{ae_id}.camgeom.fits.gz").exists()
-    assert (first_ae_dir / f"{ae_id}.camreadout.fits.gz").exists()
+    assert (first_ae_dir / f"{ae_id:03d}.camgeom.fits.gz").exists()
+    assert (first_ae_dir / f"{ae_id:03d}.camreadout.fits.gz").exists()
 
-    optics_table = QTable.read(optics_file, format="ascii.ecsv")
-    assert optics_table.meta.get("TAB_VER") in OpticsDescription.COMPATIBLE_VERSIONS
+    optics = OpticsDescription.from_table(optics_file)
+    assert optics == subarray.tel[1].optics
 
     with monkeypatch.context() as m:
-        from ctapipe.instrument.subarray import SubarrayDescription
-
         m.setenv("CTAPIPE_SVC_PATH", str(tmp_path / "instrument"))
         roundtrip_sub = SubarrayDescription.from_service_data(1)
 

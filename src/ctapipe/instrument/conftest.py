@@ -10,10 +10,11 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.coordinates.earth import EarthLocation
-from astropy.io import ascii
 from astropy.table import QTable
 
+from ctapipe.compat import ECSV_FMT
 from ctapipe.core import run_tool
+from ctapipe.instrument import OpticsDescription
 from ctapipe.instrument.optics import ReflectorShape, SizeType
 from ctapipe.io import metadata as meta
 from ctapipe.tools.dump_instrument import DumpInstrumentTool
@@ -117,10 +118,9 @@ def _write_positions_file(
     positions.meta["reference_z"] = str(itrs.z)
     positions.meta["site"] = site
 
-    ascii.write(
-        positions,
+    positions.write(
         positions_dir / f"{site}_ArrayElementPositions.ecsv",
-        format="ecsv",
+        format=ECSV_FMT,
         overwrite=True,
     )
 
@@ -229,17 +229,19 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
 
     # LSTN optics (empty table with metadata)
-    lst_optics = QTable()
-    lst_optics.meta["TAB_VER"] = "4.0"
-    lst_optics.meta["optics_name"] = "LSTN"
-    lst_optics.meta["size_type"] = SizeType.LST.value
-    lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
-    lst_optics.meta["n_mirrors"] = 1
-    lst_optics.meta["equivalent_focal_length"] = str(28.0 * u.m)
-    lst_optics.meta["effective_focal_length"] = str(28.3 * u.m)
-    lst_optics.meta["mirror_area"] = str(386.0 * u.m**2)
-    lst_optics.meta["n_mirror_tiles"] = 198
-    ascii.write(lst_optics, lst_dir / "LSTN.optics.ecsv", format="ecsv", overwrite=True)
+    lst_optics = OpticsDescription(
+        name="LSTN",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC.value,
+        n_mirrors=1,
+        equivalent_focal_length=28.0 * u.m,
+        effective_focal_length=29.3 * u.m,
+        mirror_area=386.0 * u.m**2,
+        n_mirror_tiles=198,
+    )
+    lst_optics.to_table().write(
+        lst_dir / "LSTN.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
+    )
 
     # Create MSTN telescope type directory and files
     mst_nectarcam_dir = array_elements_dir / "MSTN"
@@ -256,21 +258,18 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
     )
 
     # MSTN optics (empty table with metadata)
-    mst_optics = QTable()
-    mst_optics.meta["TAB_VER"] = "4.0"
-    mst_optics.meta["optics_name"] = "MSTN"
-    mst_optics.meta["size_type"] = SizeType.MST.value
-    mst_optics.meta["reflector_shape"] = ReflectorShape.DAVIES_COTTON.value
-    mst_optics.meta["n_mirrors"] = 1
-    mst_optics.meta["equivalent_focal_length"] = str(16.0 * u.m)
-    mst_optics.meta["effective_focal_length"] = str(16.445 * u.m)
-    mst_optics.meta["mirror_area"] = str(88.7 * u.m**2)
-    mst_optics.meta["n_mirror_tiles"] = 86
-    ascii.write(
-        mst_optics,
-        mst_nectarcam_dir / "MSTN.optics.ecsv",
-        format="ecsv",
-        overwrite=True,
+    mst_optics = OpticsDescription(
+        name="MSTN",
+        size_type=SizeType.MST,
+        reflector_shape=ReflectorShape.DAVIES_COTTON,
+        n_mirrors=1,
+        equivalent_focal_length=16.0 * u.m,
+        effective_focal_length=16.445 * u.m,
+        mirror_area=88.7 * u.m**2,
+        n_mirror_tiles=86,
+    )
+    mst_optics.to_table().write(
+        mst_nectarcam_dir / "MSTN.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
     )
 
     # Create real ae_id directories with per-file symlinks to shared type files
@@ -278,14 +277,14 @@ def svc_path(tmp_path, instrument_dir, monkeypatch):
         ae_id_str = f"{ae_id:03d}"
         ae_dir = array_elements_dir / ae_id_str
         ae_dir.mkdir()
-        for suffix in ["optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+        for suffix in ["tel_optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
             (ae_dir / f"{ae_id_str}.{suffix}").symlink_to(f"../LSTN/LSTN.{suffix}")
 
     for ae_id in [5, 6]:
         ae_id_str = f"{ae_id:03d}"
         ae_dir = array_elements_dir / ae_id_str
         ae_dir.mkdir()
-        for suffix in ["optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+        for suffix in ["tel_optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
             (ae_dir / f"{ae_id_str}.{suffix}").symlink_to(f"../MSTN/MSTN.{suffix}")
 
     # CTAPIPE_SVC_PATH: include each ae_id directory so {ae_id}.* files are found
@@ -306,8 +305,8 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     Set up CTAPIPE_SVC_PATH with ae_id-specific files (no deduplication).
 
     This fixture creates a service data structure where each telescope has
-    its own configuration files named with ae_id (e.g., 001.optics.ecsv)
-    instead of shared telescope-type files (e.g., LSTN.optics.ecsv).
+    its own configuration files named with ae_id (e.g., 001.tel_optics.ecsv)
+    instead of shared telescope-type files (e.g., LSTN.tel_optics.ecsv).
 
     This tests the fallback mechanism: files are first searched as {ae_id}.{type},
     then as {tel_type}.{type} if not found.
@@ -363,17 +362,19 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     lst_dir = array_elements_dir / "LSTN"
     lst_dir.mkdir()
 
-    lst_optics = QTable()
-    lst_optics.meta["TAB_VER"] = "4.0"
-    lst_optics.meta["optics_name"] = "LSTN"
-    lst_optics.meta["size_type"] = SizeType.LST.value
-    lst_optics.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
-    lst_optics.meta["n_mirrors"] = 1
-    lst_optics.meta["equivalent_focal_length"] = str(28.0 * u.m)
-    lst_optics.meta["effective_focal_length"] = str(28.3 * u.m)
-    lst_optics.meta["mirror_area"] = str(386.0 * u.m**2)
-    lst_optics.meta["n_mirror_tiles"] = 198
-    ascii.write(lst_optics, lst_dir / "LSTN.optics.ecsv", format="ecsv", overwrite=True)
+    lst_optics = OpticsDescription(
+        name="LSTN",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC,
+        n_mirrors=1,
+        equivalent_focal_length=28.0 * u.m,
+        effective_focal_length=29.3 * u.m,
+        mirror_area=386.0 * u.m**2,
+        n_mirror_tiles=198,
+    )
+    lst_optics.to_table().write(
+        lst_dir / "LSTN.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
+    )
 
     shutil.copy(lst_geom_path, lst_dir / "LSTN.camgeom.fits.gz")
     shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
@@ -382,20 +383,18 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     ae_001_dir = array_elements_dir / "001"
     ae_001_dir.mkdir()
 
-    optics_001 = QTable()
-    optics_001.meta["TAB_VER"] = "4.0"
-    optics_001.meta["optics_name"] = "LSTN-01-Custom"
-    optics_001.meta["size_type"] = SizeType.LST.value
-    optics_001.meta["reflector_shape"] = ReflectorShape.PARABOLIC.value
-    optics_001.meta["n_mirrors"] = 1
-    optics_001.meta["equivalent_focal_length"] = str(28.0 * u.m)
-    optics_001.meta["effective_focal_length"] = str(
-        28.5 * u.m
-    )  # Different from default
-    optics_001.meta["mirror_area"] = str(390.0 * u.m**2)  # Different from default
-    optics_001.meta["n_mirror_tiles"] = 198
-    ascii.write(
-        optics_001, ae_001_dir / "001.optics.ecsv", format="ecsv", overwrite=True
+    optics_001 = OpticsDescription(
+        name="LSTN-01-Custom",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC,
+        n_mirrors=1,
+        equivalent_focal_length=28.0 * u.m,
+        effective_focal_length=29.5 * u.m,
+        mirror_area=390.0 * u.m**2,
+        n_mirror_tiles=198,
+    )
+    optics_001.to_table().write(
+        ae_001_dir / "001.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
     )
 
     (ae_001_dir / "001.camgeom.fits.gz").symlink_to("../LSTN/LSTN.camgeom.fits.gz")
@@ -407,7 +406,7 @@ def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
     ae_002_dir = array_elements_dir / "002"
     ae_002_dir.mkdir()
 
-    (ae_002_dir / "002.optics.ecsv").symlink_to("../LSTN/LSTN.optics.ecsv")
+    (ae_002_dir / "002.tel_optics.ecsv").symlink_to("../LSTN/LSTN.tel_optics.ecsv")
     (ae_002_dir / "002.camgeom.fits.gz").symlink_to("../LSTN/LSTN.camgeom.fits.gz")
     (ae_002_dir / "002.camreadout.fits.gz").symlink_to(
         "../LSTN/LSTN.camreadout.fits.gz"

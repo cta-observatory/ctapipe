@@ -5,10 +5,11 @@ Classes and functions related to telescope Optics
 import logging
 from abc import abstractmethod
 from enum import Enum, StrEnum, auto, unique
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
-from astropy.table import QTable
+from astropy.table import QTable, Table
 from scipy.stats import laplace, laplace_asymmetric
 
 from ..coordinates import TelescopeFrame
@@ -118,8 +119,14 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
+    #: Version of the legacy, per-subarray optics table
     CURRENT_TAB_VERSION = "4.0"
     COMPATIBLE_VERSIONS = {"4.0"}
+
+    #: Version for the new, per-telescope table that will allow describing
+    #: mirror facets in the future
+    CURRENT_TEL_TAB_VERSION = "1.0"
+    COMPATIBLE_TEL_TAB_VERSIONS = {"1.0"}
 
     __slots__ = (
         "name",
@@ -270,6 +277,88 @@ class OpticsDescription:
 
     def __str__(self):
         return self.name
+
+    def to_table(self):
+        """
+        Convert this OpticsDescription to an astropy Table for writing to files.
+
+        See `OpticsDescription.from_table` for the opposite operation.
+        """
+        table = Table()
+        table.meta["TAB_VER"] = self.CURRENT_TEL_TAB_VERSION
+        table.meta["optics_name"] = self.name
+        table.meta["size_type"] = self.size_type.value
+        table.meta["equivalent_focal_length"] = self.equivalent_focal_length.to_value(
+            u.m
+        )
+        table.meta["effective_focal_length"] = self.effective_focal_length.to_value(u.m)
+        table.meta["reflector_shape"] = self.reflector_shape.value
+        table.meta["n_mirrors"] = self.n_mirrors
+        table.meta["n_mirror_tiles"] = self.n_mirror_tiles
+        table.meta["mirror_area"] = self.mirror_area.to_value(u.m**2)
+        return table
+
+    @classmethod
+    def from_table(cls, table: Table | str | Path, **kwargs):
+        """
+        Create an OpticsDescription instance from an astropy Table.
+
+        See `OpticsDescription.to_table` for the opposite operation.
+        """
+        if not isinstance(table, Table):
+            table = Table.read(table, **kwargs)
+
+        version = table.meta.get("TAB_VER")
+        if version not in cls.COMPATIBLE_TEL_TAB_VERSIONS:
+            raise OSError(f"Unsupported telescope optics table version: {version}")
+
+        return cls(
+            name=table.meta["optics_name"],
+            size_type=SizeType(table.meta["size_type"]),
+            equivalent_focal_length=u.Quantity(
+                table.meta["equivalent_focal_length"], u.m
+            ),
+            effective_focal_length=u.Quantity(
+                table.meta["effective_focal_length"], u.m
+            ),
+            n_mirrors=table.meta["n_mirrors"],
+            n_mirror_tiles=table.meta["n_mirror_tiles"],
+            reflector_shape=ReflectorShape(table.meta["reflector_shape"]),
+            mirror_area=u.Quantity(table.meta["mirror_area"], u.m**2),
+        )
+
+    def get_focal_length(self, focal_length_choice=FocalLengthKind.EFFECTIVE):
+        """
+        Get focal length for coordinate transformations.
+
+        This is a helper function to get the focal length, mainly
+        to attach it to the ``CameraFrame`` coordinate frame for
+        pixel coordinate transformations.
+
+        In most cases, the effective focal length should be strongly preferred,
+        as it takes the effect of optical aberrations on the plate scale into account.
+
+        By default, this function will try to use the effective focal length and raise
+        an error if it is not available.
+        """
+        if isinstance(focal_length_choice, str):
+            focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
+
+        if focal_length_choice is FocalLengthKind.EFFECTIVE:
+            focal_length = self.effective_focal_length
+            if np.isnan(focal_length.value):
+                raise RuntimeError(
+                    "`focal_length_choice` was set to 'EFFECTIVE', but the"
+                    " effective focal length was not present in the input. "
+                    " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                    " input files contain the effective focal length"
+                )
+            return focal_length
+
+        if focal_length_choice is FocalLengthKind.EQUIVALENT:
+            return self.equivalent_focal_length
+
+        raise ValueError(f"Invalid focal length choice: {focal_length_choice}")
 
 
 class PSFModel(TelescopeComponent):

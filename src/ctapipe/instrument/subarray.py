@@ -688,9 +688,6 @@ class SubarrayDescription:
         # here to prevent circular import
         from ..io import read_table
 
-        if isinstance(focal_length_choice, str):
-            focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
-
         layout = read_table(
             path, "/configuration/instrument/subarray/layout", table_cls=QTable
         )
@@ -771,20 +768,7 @@ class SubarrayDescription:
             camera = copy(cameras[row["camera_index"]])
             optics = optic_descriptions[row["optics_index"]]
 
-            if focal_length_choice is FocalLengthKind.EFFECTIVE:
-                focal_length = optics.effective_focal_length
-                if np.isnan(focal_length.value):
-                    raise RuntimeError(
-                        "`focal_length_choice` was set to 'EFFECTIVE', but the"
-                        " effective focal length was not present in the file. "
-                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
-                        " input files contain the effective focal length"
-                    )
-            elif focal_length_choice is FocalLengthKind.EQUIVALENT:
-                focal_length = optics.equivalent_focal_length
-            else:
-                raise ValueError(f"Invalid focal length choice: {focal_length_choice}")
-
+            focal_length = optics.get_focal_length(focal_length_choice)
             camera.geometry.frame = CameraFrame(focal_length=focal_length)
             telescope_descriptions[row["tel_id"]] = TelescopeDescription(
                 name=str(row["name"]), optics=optics, camera=camera
@@ -846,7 +830,7 @@ class SubarrayDescription:
         )
 
     @staticmethod
-    def _load_telescope_description(ae_id, tel_name, tel_type):
+    def _load_telescope_description(ae_id, tel_name, tel_type, focal_length_choice):
         """Load telescope description from service data files.
 
         Tries to load files with ae_id prefix first (e.g., 001.optics),
@@ -860,6 +844,8 @@ class SubarrayDescription:
             Telescope name
         tel_type : str
             Telescope type (e.g., 'LSTN', 'MSTN')
+        focal_length_choice : str | FocalLengthKind
+            Which focal length to use for the CameraFrame definition
 
         Returns
         -------
@@ -879,31 +865,9 @@ class SubarrayDescription:
                 )
 
         # Load optics
-        optics_table = QTable(load_with_fallback("optics", "dl0.sub.svc.optics"))
-        optics_meta = optics_table.meta
-
-        optics_version = optics_meta.get("TAB_VER")
-        if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
-            raise IncompatibleDataModelVersion(
-                f"Incompatible optics table version: {optics_version}. "
-                f"Compatible versions: {OpticsDescription.COMPATIBLE_VERSIONS}"
-            )
-
-        optics = OpticsDescription(
-            name=str(optics_meta["optics_name"]),
-            size_type=optics_meta["size_type"],
-            reflector_shape=optics_meta["reflector_shape"],
-            n_mirrors=optics_meta["n_mirrors"],
-            equivalent_focal_length=u.Quantity(optics_meta["equivalent_focal_length"]),
-            effective_focal_length=u.Quantity(optics_meta["effective_focal_length"]),
-            mirror_area=u.Quantity(optics_meta["mirror_area"]),
-            n_mirror_tiles=optics_meta["n_mirror_tiles"],
-        )
-
-        # Use effective focal length for camera frame, fall back to equivalent
-        focal_length = optics.effective_focal_length
-        if np.isnan(focal_length.value):
-            focal_length = optics.equivalent_focal_length
+        optics_table = load_with_fallback("tel_optics", "dl0.tel.svc.optics")
+        optics = OpticsDescription.from_table(optics_table)
+        focal_length = optics.get_focal_length(focal_length_choice)
 
         # Load camera geometry and readout
         geom_table = load_with_fallback("camgeom", "dl0.sub.svc.camera")
@@ -967,7 +931,9 @@ class SubarrayDescription:
             )
 
     @classmethod
-    def from_service_data(cls, subarray_id):
+    def from_service_data(
+        cls, subarray_id, focal_length_choice=FocalLengthKind.EFFECTIVE
+    ):
         """
         Create a SubarrayDescription from CTAO service data files.
 
@@ -1016,6 +982,9 @@ class SubarrayDescription:
         ----------
         subarray_id : int
             The subarray ID to load
+        focal_length_choice : FocalLengthKind
+            Whether to use the effective or equivalent focal length for the definition
+            of the camera coordinate frame.
 
         Returns
         -------
@@ -1080,7 +1049,7 @@ class SubarrayDescription:
                 # Derive telescope type from the array element name, e.g. "LSTN-01" -> "LSTN"
                 tel_type = tel_name.split("-")[0]
                 tel_descriptions[ae_id] = cls._load_telescope_description(
-                    ae_id, tel_name, tel_type
+                    ae_id, tel_name, tel_type, focal_length_choice
                 )
             except (FileNotFoundError, ValueError, KeyError) as e:
                 raise type(e)(
