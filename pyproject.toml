@@ -178,6 +178,7 @@ filterwarnings = [
     "ignore:'unquoteResults':DeprecationWarning:matplotlib",
     "ignore:'enablePackrat':DeprecationWarning:matplotlib",
     "ignore:'parseAll':DeprecationWarning:pyparsing",
+    "once:llvmlite.binding.initialize:DeprecationWarning",
 ]
 norecursedirs = [
     ".git",
