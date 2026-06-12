@@ -2,7 +2,12 @@
 Module for handling monitoring data.
 """
 
-from .aggregator import PlainAggregator, SigmaClippingAggregator, StatisticsAggregator
+from .aggregator import (
+    HistogramAggregator,
+    PlainAggregator,
+    SigmaClippingAggregator,
+    StatisticsAggregator,
+)
 from .interpolation import (
     ChunkInterpolator,
     FlatfieldImageInterpolator,
@@ -24,6 +29,7 @@ __all__ = [
     "PlainAggregator",
     "SigmaClippingAggregator",
     "StatisticsAggregator",
+    "HistogramAggregator",
     "OutlierDetector",
     "RangeOutlierDetector",
     "MedianOutlierDetector",
