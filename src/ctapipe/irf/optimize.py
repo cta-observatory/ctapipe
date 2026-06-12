@@ -398,9 +398,11 @@ class PointSourceSensitivityOptimizerBase(CutOptimizerBase):
 
 class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
     """
-    EventDisplay-like procedure of optimizing a G/H cut for maximum point source
-    sensitivity, calculating only a percentile cut on theta, and no cut on
-    multiplicity.
+    Optimize gamma-hadron-separation cuts for best point-source sensitivity.
+
+    This approach computes a simple, percentile based cut for theta and
+    then performs a grid search for best sensitivity only for the G/H cut
+    using `pyirf.cut_optimization.optimize_gh_cut`.
     """
 
     initial_gh_cut_efficency = Float(
@@ -490,8 +492,11 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
 
 class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
     """
-    Finds the combination of G/H cut, theta cut, and cut on the event-multiplicity
-    for each energy bin with the best point source sensitivity in a grid search.
+    Optimize cuts for best point-source sensitivity.
+
+    This optimizer employes a brute-force grid search over gammaness,
+    theta and event-multiplicity cuts in each bin of reconstructed energy
+    using `pyirf.cut_optimization.optimize_gh_cut`.
     """
 
     theta_min_angle = AstroQuantity(
