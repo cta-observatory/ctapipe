@@ -1,3 +1,105 @@
+ctapipe v0.31.0 (2026-06-12)
+============================
+
+
+API Changes
+-----------
+
+- Remove ``ctapipe.utils.fitshistogram``. [`#3032 <https://github.com/cta-observatory/ctapipe/pull/3032>`__]
+
+
+Bug Fixes
+---------
+
+- Fixed incorrect ``MissingReferenceMetadata`` warning in `~ctapipe.reco.CrossValidator`. [`#2974 <https://github.com/cta-observatory/ctapipe/pull/2974>`__]
+
+- Fixed confusing ``__repr__`` for `ctapipe.core.Map`. Now it only prints the type
+  and values in the map, rather than the full repr of all members. This has no
+  effect on any code, just a quality of life improvement for users that look at
+  container structures interactively in a notebook or REPL. [`#2997 <https://github.com/cta-observatory/ctapipe/pull/2997>`__]
+
+- Fix a bug in the event weighting that resulted in events outside of the selected FoV range for the sensitivity
+  computation being used in the cut optimization leading to results where the selected cuts did not necessarily provide
+  the best sensitivity in the selected FoV range. [`#3013 <https://github.com/cta-observatory/ctapipe/pull/3013>`__]
+
+
+Data Model Changes
+------------------
+
+- Added new field pixel_time_shift in R1CameraContainer and DL0CameraContainer [`#2964 <https://github.com/cta-observatory/ctapipe/pull/2964>`__]
+
+
+New Features
+------------
+
+- Add support for the full cut optimization introduced in pyirf 0.13.
+  This can now be used via the ``PointSourceSensitvityOptimizer``,
+  while the previous EventDisplay-like optimization can be used via the ``PointSourceSensitvityGhOptimizer``. [`#2789 <https://github.com/cta-observatory/ctapipe/pull/2789>`__]
+
+- Component to add noise in waveforms, intended to adapt the noise level in simulations to that in a given real observation. [`#2847 <https://github.com/cta-observatory/ctapipe/pull/2847>`__]
+
+- the Jupyter notebook HTML representation of `~ctapipe.core.Container` instances now recursively shows the config of sub-components used in the component instance.  This makes it easier to see the full configuration in a user-friendly way. [`#2926 <https://github.com/cta-observatory/ctapipe/pull/2926>`__]
+
+- Add a new attribute ``grid_type`` to the ``CameraGeometry`` to
+  add the possibility of handling cameras with square pixels using hexagonal grids. [`#2932 <https://github.com/cta-observatory/ctapipe/pull/2932>`__]
+
+- Add service data loading to SubarrayDescription.
+
+  * Add ``SubarrayDescription.from_service_data()`` classmethod to construct
+    subarrays from service data files (array element IDs, positions, and subarray
+    definitions). This also adds mapping between the array elements IDs and CTAO official telescope names (e.g. LSTN-001). [`#2942 <https://github.com/cta-observatory/ctapipe/pull/2942>`__]
+
+- Update PSFModel components to calculate the PSF with inputs in FoV coordinates in degrees.
+  In addition, the model parameters of the ComaPSFModel component are now distinct TelescopeParameter configurations.
+  The pixel width of each telescope type is not a configuration parameter of the ComaPSFModel component anymore, but instead it is obtained from the camera geometries of the subarray information. [`#2945 <https://github.com/cta-observatory/ctapipe/pull/2945>`__]
+
+- Underlying simtel event can now be accessed at event.meta["simtel_event"] when reading a SimTelEventSource [`#2976 <https://github.com/cta-observatory/ctapipe/pull/2976>`__]
+
+- The ``WaveformModifier`` class introduced in ctapipe 0.30 can now be used in ``ctapipe-process``
+  to increase the simulated NSB level to match observations.
+
+  The api of the class has changed: __call__ has now as argument an event, whose R1 waveforms are then modified. [`#2980 <https://github.com/cta-observatory/ctapipe/pull/2980>`__]
+
+- Improve type hints for ``Container`` and ``Field``, IDEs and LSPs should
+  now better detect the correct types of container fields in code and no longer
+  complain about things like "Variable of type Field has not attribute length". [`#2994 <https://github.com/cta-observatory/ctapipe/pull/2994>`__]
+
+- Added a new class HistogramAggregator to compute histograms along a specified axis, and updated the documentation to reflect this new functionality. The documentation includes examples of how to use the HistogramsAggregator in practice. A helper function is implemented to create Hist objects from the container, so that users can use the Hist's built-in functionality. [`#2996 <https://github.com/cta-observatory/ctapipe/pull/2996>`__]
+
+- Allow overriding the obs_id in SimTelEventSource by adding an offset to the run_number.
+  This simplifies processing a large number of runs, where groups of runs have overlapping
+  run numbers. Instead of providing individual ``override_obs_id`` per run,
+  now an offset can be assigned to each group. [`#3008 <https://github.com/cta-observatory/ctapipe/pull/3008>`__]
+
+- Added a new section to the User Guide for "Analysis Steps", including a detailed page on "Image Parameters". Improved field descriptions for several image parameter containers in ``ctapipe.containers``. [`#3011 <https://github.com/cta-observatory/ctapipe/pull/3011>`__]
+
+- If an ``AstroQuantity`` is defined without a ``physical_type`` but including the ``default_value``,
+  the ``physical_type`` is extracted from the ``default_value``. [`#3012 <https://github.com/cta-observatory/ctapipe/pull/3012>`__]
+
+- Add new function ``ctapipe.reco.disp.compute_true_disp`` to compute
+  the true disp parameter from a table of DL1 events.
+
+  As part of this change, the disp training now prefers the newer columns
+  for individual telescope pointing instead of using only the subarray
+  pointing information. [`#3014 <https://github.com/cta-observatory/ctapipe/pull/3014>`__]
+
+- Introduce new, per-telescope optics table format.
+  This is in preparation for supporting individual mirror facets in ctapipe.
+  For now, the information contained is identical to the per-subarray optics table. [`#3027 <https://github.com/cta-observatory/ctapipe/pull/3027>`__]
+
+
+Maintenance
+-----------
+
+- Introduce ``needs_atmosphere_profile`` property to ``Reconstructors``. [`#2958 <https://github.com/cta-observatory/ctapipe/pull/2958>`__]
+
+- Minor reorganization of the chunk and statistics containers, and polishing of Field descriptions. [`#2999 <https://github.com/cta-observatory/ctapipe/pull/2999>`__]
+
+- Add compatibility with astropy 8.0. [`#3006 <https://github.com/cta-observatory/ctapipe/pull/3006>`__]
+
+- Update pyirf to 0.14.0. [`#3016 <https://github.com/cta-observatory/ctapipe/pull/3016>`__]
+
+
 ctapipe v0.30.0 (2026-03-20)
 ============================
 

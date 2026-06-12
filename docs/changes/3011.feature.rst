@@ -1,1 +1,0 @@
-Added a new section to the User Guide for "Analysis Steps", including a detailed page on "Image Parameters". Improved field descriptions for several image parameter containers in ``ctapipe.containers``.

@@ -1,6 +1,0 @@
-Add new function ``ctapipe.reco.disp.compute_true_disp`` to compute
-the true disp parameter from a table of DL1 events.
-
-As part of this change, the disp training now prefers the newer columns
-for individual telescope pointing instead of using only the subarray
-pointing information.
