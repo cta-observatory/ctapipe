@@ -111,6 +111,15 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
                 "stats_aggregator_type": [
                     ("id", 1, "HistogramAggregator"),
                 ],
+                "outlier_detector_list": [
+                    {
+                        "apply_to": "histogram",
+                        "name": "RangeOutlierDetector",
+                        "config": {
+                            "validity_range": [60.0, 90.0],
+                        },
+                    },
+                ],
             },
             "HistogramAggregator": {
                 "chunking_type": "SizeChunking",

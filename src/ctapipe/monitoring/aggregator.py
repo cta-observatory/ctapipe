@@ -586,8 +586,13 @@ class HistogramAggregator(BaseAggregator):
         hist.Hist
             Reconstructed histogram object with axes and counts populated.
         """
-
-        hist_container = ChunkHistogramContainer(**dict(zip(row.colnames, row)))
+        # Remove 'outlier_mask_detector_X' column names from the row
+        # to avoid issues when creating the ChunkHistogramContainer
+        row_dict = dict(zip(row.colnames, row)).copy()
+        for col_name in list(row_dict.keys()):
+            if col_name.startswith("outlier_mask_detector_"):
+                del row_dict[col_name]
+        hist_container = ChunkHistogramContainer(**row_dict)
         hist_container.meta = row.meta
         return HistogramAggregator.hist_from_container(hist_container)
 
