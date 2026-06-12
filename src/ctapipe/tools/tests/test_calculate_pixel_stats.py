@@ -107,6 +107,15 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
                 "stats_aggregator_type": [
                     ("type", "*", "HistogramAggregator"),
                 ],
+                "outlier_detector_list": [
+                    {
+                        "apply_to": "histogram",
+                        "name": "RangeOutlierDetector",
+                        "config": {
+                            "validity_range": [0.0, 100.0],
+                        },
+                    },
+                ],
             },
             "HistogramAggregator": {
                 "chunking_type": "SizeChunking",

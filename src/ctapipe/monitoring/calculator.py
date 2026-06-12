@@ -287,7 +287,12 @@ class PixelStatisticsCalculator(TelescopeComponent):
             Table containing the aggregated statistics or histograms.
 
         """
-        outlier_mask = np.zeros_like(aggregated_stats["n_events"], dtype=bool)
+
+        outlier_mask = (
+            np.zeros_like(aggregated_stats["histogram"], dtype=bool)
+            if "histogram" in aggregated_stats.colnames
+            else np.zeros_like(aggregated_stats["n_events"], dtype=bool)
+        )
         for d, (column_name, outlier_detector) in enumerate(
             zip(self.apply_to_list, self.outlier_detectors)
         ):
