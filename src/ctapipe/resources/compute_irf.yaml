@@ -25,7 +25,6 @@ DL2EventPreprocessor:
 
   DL2EventQualityQuery:
     quality_criteria:
-      - ["multiplicity 4", "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4"]
       - ["valid classifier", "RandomForestClassifier_is_valid"]
       - ["valid geom reco", "HillasReconstructor_is_valid"]
       - ["valid energy reco", "RandomForestRegressor_is_valid"]
