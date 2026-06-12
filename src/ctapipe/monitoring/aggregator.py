@@ -588,11 +588,11 @@ class HistogramAggregator(BaseAggregator):
         """
         # Remove 'outlier_mask_detector_X' column names from the row
         # to avoid issues when creating the ChunkHistogramContainer
-    row_dict = {
-        col: row[col]
-        for col in row.colnames
-         if not col_name.startswith("outlier_mask_detector_")
-    }
+        row_dict = {
+            col: row[col]
+            for col in row.colnames
+            if not col.startswith("outlier_mask_detector_")
+        }
         hist_container = ChunkHistogramContainer(**row_dict)
         hist_container.meta = row.meta
         return HistogramAggregator.hist_from_container(hist_container)
