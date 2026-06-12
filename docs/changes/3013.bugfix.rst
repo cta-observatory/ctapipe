@@ -1,3 +1,0 @@
-Fix a bug in the event weighting that resulted in events outside of the selected FoV range for the sensitivity
-computation being used in the cut optimization leading to results where the selected cuts did not necessarily provide
-the best sensitivity in the selected FoV range.

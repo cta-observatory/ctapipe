@@ -1,4 +1,0 @@
-Allow overriding the obs_id in SimTelEventSource by adding an offset to the run_number.
-This simplifies processing a large number of runs, where groups of runs have overlapping
-run numbers. Instead of providing individual ``override_obs_id`` per run,
-now an offset can be assigned to each group.
