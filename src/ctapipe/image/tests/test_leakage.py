@@ -79,7 +79,7 @@ containers = (
 )
 
 
-@pytest.mark.parametrize("image,expected", zip(images, containers))
+@pytest.mark.parametrize(("image", "expected"), list(zip(images, containers)))
 def test_leakage_toy(image, expected):
     from ctapipe.image.leakage import leakage_parameters
 
