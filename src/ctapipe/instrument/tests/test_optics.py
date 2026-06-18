@@ -46,8 +46,12 @@ def test_construct_optics():
 
 
 @pytest.mark.parametrize(
-    "optics_name,focal_length",
-    zip(["LST", "MST", "ASTRI"], [28, 16, 2.15] * u.m),
+    ("optics_name", "focal_length"),
+    [
+        ("LST", 28 * u.m),
+        ("MST", 16 * u.m),
+        ("ASTRI", 2.15 * u.m),
+    ],
 )
 def test_optics_from_name(optics_name, focal_length, svc_path):
     # test with file written by dump-instrument
