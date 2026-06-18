@@ -32,7 +32,7 @@ mc_positions = [
 ] * u.m
 
 
-@pytest.mark.parametrize("location,expected", zip(locations, mc_positions))
+@pytest.mark.parametrize("location,expected", list(zip(locations, mc_positions)))
 def test_ground_frame_to_earth_location(location, expected):
     from ctapipe.coordinates import GroundFrame
 

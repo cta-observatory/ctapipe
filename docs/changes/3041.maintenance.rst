@@ -1,0 +1,1 @@
+Fix zip issue in test parameterization for newer version of pytest.
