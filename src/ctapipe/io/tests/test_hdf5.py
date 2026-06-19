@@ -746,6 +746,7 @@ def test_column_transforms_regexps(tmp_path):
     [
         (TimeResolution.LOW, 0.1 * u.us),
         (TimeResolution.HIGH, 0.01 * u.ns),
+        (None, 0.1 * u.us),  # None defaults to LOW
     ],
 )
 def test_time(tmp_path, time_resolution, tolerance):
