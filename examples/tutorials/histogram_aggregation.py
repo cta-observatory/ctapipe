@@ -22,10 +22,9 @@ from traitlets.config import Config
 from ctapipe.containers import ChunkHistogramContainer
 from ctapipe.monitoring.aggregator import HistogramAggregator
 
-
-# -------------------------------------------------------------------
+##################################################################################################
 # Create synthetic event-wise camera data
-# -------------------------------------------------------------------
+# ---------------------------------------
 rng = np.random.default_rng(42)
 
 n_events = 2000
@@ -59,9 +58,9 @@ table = Table(
 )
 
 
-# -------------------------------------------------------------------
+##################################################################################################
 # Configure and run histogram aggregation
-# -------------------------------------------------------------------
+# ---------------------------------------
 config_image = Config(
     {
         "HistogramAggregator": {
@@ -117,9 +116,9 @@ print(f"bin centers shape per chunk: {result[0].meta['bin_centers'].shape}")
 print(f"n_events shape per chunk: {result[0]['n_events'].shape}")
 
 
-# -------------------------------------------------------------------
+##################################################################################################
 # Plot the histograms for one pixel with two gain channels
-# -------------------------------------------------------------------
+# --------------------------------------------------------
 # We aggreagted the histograms in two chunks of 1000 events each, so we have two histograms per gain channel
 # for the selected pixel. We will plot both chunks for the selected pixel and gain channels
 # on the same axes for comparison, and then do the same for the peak_time column in a separate figure.
@@ -171,9 +170,9 @@ for chunk_index, ax in enumerate(axes):
 plt.show()
 
 
-# -------------------------------------------------------------------
+##################################################################################################
 # Plot peak_time histograms in a separate figure
-# -------------------------------------------------------------------
+# ----------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 for chunk_index, ax in enumerate(axes):
     bin_edges = result_peak_time[chunk_index].meta["bin_edges"]
@@ -222,9 +221,9 @@ for chunk_index, ax in enumerate(axes):
 plt.show()
 
 
-# -------------------------------------------------------------------
+##################################################################################################
 # Build a Hist object from serialized axis metadata and plot it
-# -------------------------------------------------------------------
+# -------------------------------------------------------------
 
 # Reconstruct the histogram axis from metadata stored by HistogramAggregator.
 # In this tutorial, axis_definition uses hist.axis.Regular.
@@ -257,7 +256,7 @@ axes[0].set_ylabel("Counts")
 plt.tight_layout()
 plt.show()
 
-# ------------------------------------------------------------------------------------------------
+##################################################################################################
 # Plot the integral over all pixels for both channels using Hist's built-in plotting functionality
 # ------------------------------------------------------------------------------------------------
 h = full_hist
@@ -288,7 +287,7 @@ ax[2].set_xlabel("image value")
 fig.subplots_adjust(wspace=0.5, top=0.88)
 plt.show()
 
-# ----------------------------------------------------------------------
+##################################################################################################
 # Demonstrate underflow/overflow via HistogramAggregator axis_definition
 # ----------------------------------------------------------------------
 
