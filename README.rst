@@ -13,7 +13,7 @@
     :alt: sonarqube code coverage
 .. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
-.. |doilatest| image:: https://zenodo.org/badge/37927055.svg
+.. |doilatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3372210.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
 .. |pypi| image:: https://badge.fury.io/py/ctapipe.svg
     :target: https://pypi.org/project/ctapipe
