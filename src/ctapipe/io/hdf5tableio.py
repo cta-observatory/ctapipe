@@ -264,20 +264,7 @@ class HDF5TableWriter(TableWriter):
 
         pos = len(schema.columns)
 
-        if isinstance(value, Container):
-            self.log.debug("Ignoring sub-container: %s/%s", table_name, name)
-            return
-
-        if isinstance(value, Map):
-            self.log.debug("Ignoring map-field: %s/%s", table_name, name)
-            return
-
-        if self._is_column_excluded(table_name, name):
-            self.log.debug("excluded column: %s/%s", table_name, name)
-            return
-
-        if name in schema.columns:
-            self.log.warning("Found duplicated column %s, skipping", name)
+        if self._should_skip(schema, table_name, name, value):
             return
 
         # apply any user-defined transforms first
@@ -327,6 +314,37 @@ class HDF5TableWriter(TableWriter):
         else:
             raise ValueError(f"Column {name} of type {type(value)} not writable")
 
+        self._setup_column_meta(table_name, name, pos, field, meta)
+
+        self.log.debug(
+            f"Table {table_name}: "
+            f"added col: {name}"
+            f"type: {typename} shape: {shape} "
+            f"with transform: {self._transforms[table_name].get(name)} "
+        )
+
+        return True
+
+    def _should_skip(self, schema, table_name, name, value):
+        if isinstance(value, Container):
+            self.log.debug("Ignoring sub-container: %s/%s", table_name, name)
+            return True
+
+        if isinstance(value, Map):
+            self.log.debug("Ignoring map-field: %s/%s", table_name, name)
+            return True
+
+        if self._is_column_excluded(table_name, name):
+            self.log.debug("excluded column: %s/%s", table_name, name)
+            return True
+
+        if name in schema.columns:
+            self.log.warning("Found duplicated column %s, skipping", name)
+            return True
+
+        return False
+
+    def _setup_column_meta(self, table_name, name, pos, field, meta):
         # add meta fields of transform
         transform = self._transforms[table_name].get(name)
         if transform is not None:
@@ -338,15 +356,6 @@ class HDF5TableWriter(TableWriter):
 
         # add description to metadata
         meta[f"CTAFIELD_{pos}_DESC"] = field.description
-
-        self.log.debug(
-            f"Table {table_name}: "
-            f"added col: {name} type: "
-            f"{typename} shape: {shape} "
-            f"with transform: {transform} "
-        )
-
-        return True
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
