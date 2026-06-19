@@ -532,14 +532,10 @@ class DataWriter(Component):
         )
 
         for sb in self.event_source.scheduling_blocks.values():
-            self._writer.write(
-                "configuration/observation/scheduling_block", sb, time_format="mjd"
-            )
+            self._writer.write("configuration/observation/scheduling_block", sb)
 
         for ob in self.event_source.observation_blocks.values():
-            self._writer.write(
-                "configuration/observation/observation_block", ob, time_format="mjd"
-            )
+            self._writer.write("configuration/observation/observation_block", ob)
 
     def _write_simulation_configuration(self):
         """
