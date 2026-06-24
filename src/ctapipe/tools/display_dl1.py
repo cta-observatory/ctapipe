@@ -92,11 +92,16 @@ class ImagePlotter(Component):
 
             # Redraw camera
             geom = self.subarray.tel[tel_id].camera.geometry
-            self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
+            image_cmap = copy(plt.get_cmap("inferno"))
+            image_cmap.set_bad("gray")
+            self.c_intensity = CameraDisplay(
+                geom, ax=self.ax_intensity, cmap=image_cmap
+            )
 
             time_cmap = copy(plt.get_cmap("RdBu_r"))
             time_cmap.set_under("gray")
             time_cmap.set_over("gray")
+            time_cmap.set_bad("gray")
             self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time, cmap=time_cmap)
 
             if not self.cb_intensity:
