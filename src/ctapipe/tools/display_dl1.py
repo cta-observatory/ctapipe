@@ -104,6 +104,9 @@ class ImagePlotter(Component):
             time_cmap.set_bad("gray")
             self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time, cmap=time_cmap)
 
+            for d in (self.c_intensity, self.c_peak_time):
+                d.pixels.set_rasterized(True)
+
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
                     ax=self.ax_intensity, label="Intensity (p.e.)"
