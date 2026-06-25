@@ -1553,3 +1553,20 @@ class ObservationBlockContainer(Container):
     scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
     actual_start_time = Field(NAN_TIME, "true start time")
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)
+
+
+def _load_monitoring_extensions():
+    import warnings
+    from importlib.metadata import entry_points
+
+    for ep in entry_points(group="ctapipe_monitoring_extensions"):
+        try:
+            ep.load()(MonitoringContainer, TelescopeMonitoringContainer)
+        except Exception as e:
+            warnings.warn(
+                f"Failed to load monitoring extension '{ep.name}': {e}",
+                stacklevel=2,
+            )
+
+
+_load_monitoring_extensions()
