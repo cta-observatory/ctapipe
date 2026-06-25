@@ -84,6 +84,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CTAO }}
           SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
+        with:
+          args: >
+            -Dsonar.projectVersion=${{ env.PROJECT_VERSION }}
 
       - name: Sonarqube Scan PR
         if: github.event.workflow_run.event == 'pull_request'
@@ -94,6 +97,7 @@ jobs:
           SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
         with:
           args: >
+            -Dsonar.projectVersion=${{ env.PROJECT_VERSION }}
             -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
             -Dsonar.pullrequest.key=${{ env.PR_NUMBER }}
             -Dsonar.pullrequest.branch=${{ env.SOURCE_BRANCH }}
