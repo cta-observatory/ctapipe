@@ -1,8 +1,5 @@
 """
 Provenance-related functionality
-
-TODO: have this register whenever ctapipe is loaded
-
 """
 
 import json
