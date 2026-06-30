@@ -115,7 +115,7 @@ jobs:
 
       - name: restore cache data
         id: cache-restore
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             .cache/ctapipe
@@ -225,7 +225,7 @@ jobs:
       - name: cache data
         # make sure the largest test job uploads the cached data
         if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             .cache/ctapipe
@@ -246,7 +246,7 @@ jobs:
 
       - name: restore cache data
         id: cache-restore
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             .cache/ctapipe
