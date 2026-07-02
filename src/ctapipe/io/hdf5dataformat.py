@@ -46,6 +46,7 @@ __all__ = [
     "DL2_TEL_GEOMETRY_GROUP",
     "DL2_TEL_ENERGY_GROUP",
     "DL2_TEL_PARTICLETYPE_GROUP",
+    "DL2_TEL_IMPACT_GROUP",
     "DL0_TEL_POINTING_GROUP",
     "DL1_SUBARRAY_POINTING_GROUP",
     "DL1_TEL_POINTING_GROUP",
@@ -61,6 +62,8 @@ __all__ = [
     "DL1_SKY_PEDESTAL_IMAGE_GROUP",
     "DL1_FLATFIELD_IMAGE_GROUP",
     "DL1_FLATFIELD_PEAK_TIME_GROUP",
+    "DL1_MONITORING_ATMOSPHERE",
+    "DL1_MONITORING_CLEAR_NIGHT",
     "DL2_SUBARRAY_MONITORING_GROUP",
     "DL2_SUBARRAY_INTER_CALIBRATION_GROUP",
     "DL2_SUBARRAY_CROSS_CALIBRATION_GROUP",
@@ -102,6 +105,7 @@ DL2_TEL_GROUP = "/dl2/event/telescope"
 DL2_TEL_GEOMETRY_GROUP = "/dl2/event/telescope/geometry"
 DL2_TEL_ENERGY_GROUP = "/dl2/event/telescope/energy"
 DL2_TEL_PARTICLETYPE_GROUP = "/dl2/event/telescope/particle_type"
+DL2_TEL_IMPACT_GROUP = "/dl2/event/telescope/impact"
 
 DL2_GROUP = "/dl2"
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
@@ -152,6 +156,8 @@ DL1_FLATFIELD_PEAK_TIME_GROUP = (
 DL1_PIXEL_HISTOGRAMS_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_histograms"
 )
+DL1_MONITORING_ATMOSPHERE = "/dl1/monitoring/atmosphere"
+DL1_MONITORING_CLEAR_NIGHT = "/dl1/monitoring/atmosphere/clear_night"
 DL2_SUBARRAY_MONITORING_GROUP = "/dl2/monitoring/subarray"
 DL2_SUBARRAY_INTER_CALIBRATION_GROUP = "/dl2/monitoring/subarray/inter_calibration"
 DL2_SUBARRAY_CROSS_CALIBRATION_GROUP = "/dl2/monitoring/subarray/cross_calibration"
