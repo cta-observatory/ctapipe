@@ -63,7 +63,6 @@ __all__ = [
     "DL1_FLATFIELD_IMAGE_GROUP",
     "DL1_FLATFIELD_PEAK_TIME_GROUP",
     "DL1_MONITORING_ATMOSPHERE",
-    "DL1_MONITORING_CLEAR_NIGHT",
     "DL2_SUBARRAY_MONITORING_GROUP",
     "DL2_SUBARRAY_INTER_CALIBRATION_GROUP",
     "DL2_SUBARRAY_CROSS_CALIBRATION_GROUP",
@@ -157,7 +156,6 @@ DL1_PIXEL_HISTOGRAMS_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_histograms"
 )
 DL1_MONITORING_ATMOSPHERE = "/dl1/monitoring/atmosphere"
-DL1_MONITORING_CLEAR_NIGHT = "/dl1/monitoring/atmosphere/clear_night"
 DL2_SUBARRAY_MONITORING_GROUP = "/dl2/monitoring/subarray"
 DL2_SUBARRAY_INTER_CALIBRATION_GROUP = "/dl2/monitoring/subarray/inter_calibration"
 DL2_SUBARRAY_CROSS_CALIBRATION_GROUP = "/dl2/monitoring/subarray/cross_calibration"
