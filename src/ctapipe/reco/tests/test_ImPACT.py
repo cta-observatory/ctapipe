@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from astropy.coordinates import AltAz, Angle, SkyCoord
 from numpy.testing import assert_allclose
+from traitlets.config import Config
 
 from ctapipe.containers import (
     HillasParametersContainer,
@@ -58,12 +59,45 @@ class TestImPACT:
             kurtosis=0,
         )
 
-    def test_brightest_mean_average(self, example_subarray, table_profile):
+    def test_brightest_mean_average(self, tmp_path, example_subarray, table_profile):
         """
         Test that averaging of the brightest pixel position give a sensible outcome
         """
 
-        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
+        for tel_type in example_subarray.telescope_types:
+            create_dummy_templates(
+                str(tmp_path) + "/{}.template.gz".format(str(tel_type)),
+                1,
+                str(tel_type),
+            )
+
+        impact_config = Config(
+            {
+                "ImPACTReconstructor": {
+                    "image_template_path": [
+                        [
+                            "type",
+                            "MST_MST_FlashCam",
+                            str(tmp_path) + "/MST_MST_FlashCam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "SST_ASTRI_ASTRICam",
+                            str(tmp_path) + "/SST_ASTRI_ASTRICam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "LST_LST_LSTCam",
+                            str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                        ],
+                    ]
+                }
+            }
+        )
+
+        impact_reco = ImPACTReconstructor(
+            example_subarray, table_profile, config=impact_config
+        )
         pixel_x = np.array([0.0, 1.0, 0.0, -1.0]) * u.deg
         pixel_y = np.array([-1.0, 0.0, 1.0, 0.0]) * u.deg
 
@@ -98,10 +132,43 @@ class TestImPACT:
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
-    def test_xmax_calculation(self, example_subarray, table_profile):
+    def test_xmax_calculation(self, tmp_path, example_subarray, table_profile):
         """Test calculation of hmax and interpolation of Xmax tables"""
 
-        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
+        for tel_type in example_subarray.telescope_types:
+            create_dummy_templates(
+                str(tmp_path) + "/{}.template.gz".format(str(tel_type)),
+                1,
+                str(tel_type),
+            )
+
+        impact_config = Config(
+            {
+                "ImPACTReconstructor": {
+                    "image_template_path": [
+                        [
+                            "type",
+                            "MST_MST_FlashCam",
+                            str(tmp_path) + "/MST_MST_FlashCam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "SST_ASTRI_ASTRICam",
+                            str(tmp_path) + "/SST_ASTRI_ASTRICam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "LST_LST_LSTCam",
+                            str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                        ],
+                    ]
+                }
+            }
+        )
+
+        impact_reco = ImPACTReconstructor(
+            example_subarray, table_profile, config=impact_config
+        )
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
 
@@ -119,17 +186,45 @@ class TestImPACT:
     def test_interpolation(self, tmp_path, example_subarray, table_profile):
         """Test interpolation works on dummy template library"""
 
-        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
+        for tel_type in example_subarray.telescope_types:
+            create_dummy_templates(
+                str(tmp_path) + "/{}.template.gz".format(str(tel_type)),
+                1,
+                str(tel_type),
+            )
 
-        create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
+        impact_config = Config(
+            {
+                "ImPACTReconstructor": {
+                    "image_template_path": [
+                        [
+                            "type",
+                            "MST_MST_FlashCam",
+                            str(tmp_path) + "/MST_MST_FlashCam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "SST_ASTRI_ASTRICam",
+                            str(tmp_path) + "/SST_ASTRI_ASTRICam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "LST_LST_LSTCam",
+                            str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                        ],
+                    ]
+                }
+            }
+        )
+
+        impact_reco = ImPACTReconstructor(
+            example_subarray, table_profile, config=impact_config
+        )
+
         template, x, y = generate_fake_template(-1.5, 0.5)
         template *= 1000
 
-        impact_reco.root_dir = str(tmp_path)
-        impact_reco.initialise_templates({1: "dummy"})
-
-        pred = impact_reco.image_prediction(
-            "dummy",
+        pred = impact_reco.prediction[(1, 2, 3, 4)](
             0,
             0,
             np.array([1]),
@@ -142,10 +237,40 @@ class TestImPACT:
         assert_allclose(template.ravel() - pred, np.zeros_like(pred), atol=0.1)
 
     def test_fitting(self, tmp_path, example_subarray, table_profile):
-        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
+        for tel_type in example_subarray.telescope_types:
+            create_dummy_templates(
+                str(tmp_path) + "/{}.template.gz".format(str(tel_type)),
+                1,
+                str(tel_type),
+            )
 
-        create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
-        impact_reco.root_dir = str(tmp_path)
+        impact_config = Config(
+            {
+                "ImPACTReconstructor": {
+                    "image_template_path": [
+                        [
+                            "type",
+                            "MST_MST_FlashCam",
+                            str(tmp_path) + "/MST_MST_FlashCam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "SST_ASTRI_ASTRICam",
+                            str(tmp_path) + "/SST_ASTRI_ASTRICam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "LST_LST_LSTCam",
+                            str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                        ],
+                    ]
+                }
+            }
+        )
+
+        impact_reco = ImPACTReconstructor(
+            example_subarray, table_profile, config=impact_config
+        )
 
         tel1, x, y = generate_fake_template(-1.5, 0.5, 0.3, 50, 50, ((-4, 4), (-4, 4)))
         tel2 = np.rot90(tel1)
@@ -158,13 +283,16 @@ class TestImPACT:
 
         array_pointing = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=AltAz)
 
-        impact_reco.tel_types = np.array(["dummy", "dummy", "dummy", "dummy"])
-        impact_reco.initialise_templates(
-            {1: "dummy", 2: "dummy", 3: "dummy", 4: "dummy"}
-        )
+        impact_reco.tel_id = [1, 2, 3, 4]
+        impact_reco.template_masks = {
+            tuple(np.arange(1, 5)): np.array([True, True, True, True]),
+            tuple(np.arange(5, 30)): np.array([False, False, False, False]),
+            tuple(np.arange(30, 99)): np.array([False, False, False, False]),
+        }
         impact_reco.zenith = 0  # *u.deg
         impact_reco.azimuth = 0  # *u.deg
-        impact_reco.ped = np.ones_like(image)  # *u.deg
+        impact_reco.ped = np.ones_like(image)
+        impact_reco.spe = np.ones_like(image)
 
         impact_reco.image = image * 1000
         impact_reco.hillas_parameters = [self.h1, self.h1, self.h1, self.h1]
@@ -191,9 +319,26 @@ def test_selected_subarray(
 ):
     """test that reconstructor also works with "missing" ids"""
 
-    create_dummy_templates(str(tmp_path) + "/LSTCam.template.gz", 1)
-
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    create_dummy_templates(
+        str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+        1,
+        str(subarray.telescope_types[0]),
+    )
+    impact_config = Config(
+        {
+            "ImPACTReconstructor": {
+                "image_template_path": [
+                    [
+                        "type",
+                        "LST_LST_LSTCam",
+                        str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                    ]
+                ]
+            }
+        }
+    )
 
     shower_test = ReconstructedGeometryContainer()
     energy_test = ReconstructedEnergyContainer()
@@ -214,8 +359,8 @@ def test_selected_subarray(
 
     event.dl2.stereo.geometry["test"] = shower_test
     event.dl2.stereo.energy["test_energy"] = energy_test
-    reconstructor = ImPACTReconstructor(subarray, table_profile)
-    reconstructor.root_dir = str(tmp_path)
+    reconstructor = ImPACTReconstructor(subarray, table_profile, config=impact_config)
+
     reconstructor(event)
     assert event.dl2.stereo.geometry["ImPACTReconstructor"].is_valid
     assert event.dl2.stereo.energy["ImPACTReconstructor"].is_valid
