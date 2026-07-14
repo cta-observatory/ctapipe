@@ -113,11 +113,11 @@ def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y):
     y_int = status[mask][:,2]*status[mask][:,4] + status[mask][:,3]
 
     if x_int.shape[0] == 0 :
-        return 0.0
+        return 0.0, np.nan, np.nan
     elif x_int.shape[0] == 1:
-        return np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
+        return np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)), np.squeeze(x_int), np.squeeze(y_int)
     elif x_int.shape[0] == 2:
-        return np.squeeze(np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2))
+        return np.squeeze(np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)), np.squeeze(x_int), np.squeeze(y_int)
     else:
         dist = np.sort(
             np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
@@ -125,10 +125,10 @@ def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y):
         sign_arr = np.ones(x_int.shape[0])
         if x_int.shape[0] % 2 == 0:
             sign_arr[0::2] = -1
-            return np.sum(dist * sign_arr)
+            return np.sum(dist * sign_arr), np.squeeze(x_int), np.squeeze(y_int)
 
         sign_arr[1::2] = -1
-        return np.sum(dist * sign_arr)
+        return np.sum(dist * sign_arr), np.squeeze(x_int), np.squeeze(y_int)
 
 
 def chord_length(radius, rho, phi, phi0=0):
