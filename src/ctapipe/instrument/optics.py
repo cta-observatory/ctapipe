@@ -650,7 +650,8 @@ class ZernikePSFModel(PSFModel):
     evaluated for arbitrary field positions by allowing selected Zernike
     coefficients to vary with the source position in the focal plane.
 
-    The implementation uses:
+    The model includes:
+
     - Zernike polynomials in Noll indexing to describe the optical path
       difference (OPD) across the telescope pupil.
     - Scalar Fourier optics to propagate the complex pupil field into the
@@ -669,7 +670,7 @@ class ZernikePSFModel(PSFModel):
 
     # Universal model performance parameters
     pupil_size = Int(
-        default_value=256,
+        default_value=512,
         help=(
             "Number of samples across the FFT grid used to discretize the pupil. "
             "Larger values improve numerical accuracy and PSF sampling at the "
@@ -732,7 +733,7 @@ class ZernikePSFModel(PSFModel):
     # Per-telescope optical parameters
     psf_reference = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.angle),
-        default_value=0.24 * u.deg,
+        default_value=0.5 * u.deg,
         help=(
             "Angular width of the square grid used to represent a single "
             "point source's PSF, centered on the source position. Must be "
