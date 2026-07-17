@@ -5,6 +5,7 @@ Classes and functions related to telescope Optics
 import logging
 from abc import abstractmethod
 from enum import Enum, StrEnum, auto, unique
+from functools import cached_property
 from pathlib import Path
 
 import astropy.units as u
@@ -687,9 +688,9 @@ class ZernikePSFModel(PSFModel):
     ).tag(config=True)
 
     noll_max = Int(
-        default_value=15,
+        default_value=11,
         help="Highest Noll index included",
-    ).tag(config=True)
+    )
 
     wavelength_samples = Int(
         default_value=20,
@@ -819,13 +820,14 @@ class ZernikePSFModel(PSFModel):
         help="Quadratic astigmatism growth",
     ).tag(config=True)
 
-    @property
+    @cached_property
     def _radial_order(self):
         n = 0
         while (n + 1) * (n + 2) // 2 < self.noll_max:
             n += 1
         return max(1, n)
 
+    @cached_property
     def _zernike_grid(self):
         n = self.pupil_size
         frac = self.pupil_diameter_fraction
@@ -855,7 +857,7 @@ class ZernikePSFModel(PSFModel):
         Quantity-valued traits, since the downstream Zernike/FFT machinery
         is unit-agnostic.
         """
-        rz, _, _ = self._zernike_grid()
+        rz, _, _ = self._zernike_grid
         coeff = np.zeros(rz.nk)
 
         theta2 = lon0_deg**2 + lat0_deg**2
@@ -895,7 +897,7 @@ class ZernikePSFModel(PSFModel):
         return coeff
 
     def _build_psf(self, tel_id, lon0_deg, lat0_deg):
-        rz, mask, aperture = self._zernike_grid()
+        rz, mask, aperture = self._zernike_grid
         coeff = self._coeff_vector(tel_id, lon0_deg, lat0_deg)
         wavefront = rz.eval_grid(coeff, matrix=True)
 
@@ -923,9 +925,20 @@ class ZernikePSFModel(PSFModel):
         if sigma_pix > 0:
             intensity = gaussian_filter(intensity, sigma=sigma_pix, mode="nearest")
 
+        # Convert from discrete probability per FFT pixel to
+        # probability density per angular area.
         total = intensity.sum()
-        if total > 0:
-            intensity /= total
+        if not np.isfinite(total) or total <= 0:
+            raise RuntimeError(
+                f"Invalid PSF normalization: total intensity is {total!r}"
+            )
+        intensity /= total
+
+        psf_reference = self.psf_reference.tel[tel_id].to_value(u.deg)
+        pixel_scale = psf_reference / (self.pupil_size - 1)
+        pixel_area = pixel_scale**2
+
+        intensity /= pixel_area
 
         return intensity
 
@@ -969,13 +982,5 @@ class ZernikePSFModel(PSFModel):
 
         psf = np.asarray(psf, dtype=float).reshape(input_shape)
         psf = np.clip(psf, 0.0, None)
-
-        if psf.ndim >= 2 and psf.shape == dx.shape == dy.shape:
-            step_x = np.median(np.diff(dx, axis=1))
-            step_y = np.median(np.diff(dy, axis=0))
-            pixel_area = abs(step_x * step_y)
-            norm = psf.sum() * pixel_area
-            if norm > 0:
-                psf = psf / norm
 
         return psf.item() if psf.shape == () else psf
