@@ -688,10 +688,7 @@ class ZernikePSFModel(PSFModel):
         ),
     ).tag(config=True)
 
-    noll_max = Int(
-        default_value=11,
-        help="Highest Noll index included",
-    )
+    noll_max = 11  # highest Noll index
 
     wavelength_samples = Int(
         default_value=20,
