@@ -12,15 +12,19 @@ from astropy.time import Time
 from numpy import nan
 
 from .core import Container, Field, Map
+from .core.plugins import lazy_entry_point
 
 __all__ = [
     "ArrayEventContainer",
+    "BendingModelContainer",
+    "CDMContainer",
     "ConcentrationContainer",
     "DL0CameraContainer",
     "DL0Container",
     "DL1CameraContainer",
     "DL1Container",
     "DL2Container",
+    "DriveContainer",
     "EventIndexContainer",
     "EventType",
     "HillasParametersContainer",
@@ -54,6 +58,7 @@ __all__ = [
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
+    "StarGuiderContainer",
     "TelEventIndexContainer",
     "BaseTimingParametersContainer",
     "TimingParametersContainer",
@@ -73,6 +78,29 @@ __all__ = [
     "ObservationBlockState",
 ]
 
+
+_MONITORING_ENTRY_POINT_GROUP = "ctapipe_monitoring_containers"
+
+DriveContainer = lazy_entry_point(
+    _MONITORING_ENTRY_POINT_GROUP,
+    "drive",
+    qualname="ctapipe_mon_acada.fitsdataformat.DriveContainer",
+)
+BendingModelContainer = lazy_entry_point(
+    _MONITORING_ENTRY_POINT_GROUP,
+    "bending_model",
+    qualname="ctapipe_mon_acada.fitsdataformat.BendingModelContainer",
+)
+StarGuiderContainer = lazy_entry_point(
+    _MONITORING_ENTRY_POINT_GROUP,
+    "starguider",
+    qualname="ctapipe_mon_acada.fitsdataformat.StarGuiderContainer",
+)
+CDMContainer = lazy_entry_point(
+    _MONITORING_ENTRY_POINT_GROUP,
+    "cdm",
+    qualname="ctapipe_mon_acada.fitsdataformat.CDMContainer",
+)
 
 # see https://github.com/astropy/astropy/issues/6509
 NAN_TIME = Time(0, format="mjd", scale="tai")
@@ -1333,6 +1361,26 @@ class TelescopeMonitoringContainer(Container):
     pointing = Field(
         default_factory=TelescopePointingContainer,
         description="Telescope pointing positions",
+    )
+    drive = Field(
+        default_factory=DriveContainer,
+        description="Container for monitoring data for drive",
+        allow_none=True,
+    )
+    bending_model = Field(
+        default_factory=BendingModelContainer,
+        description="Container for monitoring data for bending model",
+        allow_none=True,
+    )
+    starguider = Field(
+        default_factory=StarGuiderContainer,
+        description="Container for StarGuider monitoring data",
+        allow_none=True,
+    )
+    cdm = Field(
+        default_factory=CDMContainer,
+        description="Container for CDM monitoring data",
+        allow_none=True,
     )
 
 
