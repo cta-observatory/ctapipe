@@ -1,0 +1,10 @@
+Adds a new ``FeatureSet`` to `~ctapipe.io.EventPreprocessor` for DL2 to DL3
+processing to generate GADF-like event lists. This adds the ability to transform
+coordinates from Alt/AZ to ICRS, and supports applying pre-optimized
+gamma-hadron cuts.
+
+Also added a ``mode=MARK`` option that keeps all events, but adds boolean
+columns per ``QualityCriterion`` showing which ones pass. This is useful for
+debugging. The default mode is still ``DROP``, which filters events. A
+corresponding API function `~ctapipe.core.QualityQuery.add_table_mask_columns`
+was also added to support this.
