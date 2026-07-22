@@ -1,0 +1,1 @@
+Implement lazy loading of optional containers defined in external plugins via entrypoints.
