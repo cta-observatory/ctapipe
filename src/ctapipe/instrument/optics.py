@@ -652,8 +652,11 @@ class ZernikePSFModel(PSFModel):
 
     The model includes:
 
-    - Zernike polynomials in Noll indexing to describe the optical path
-      difference (OPD) across the telescope pupil.
+    - `Zernike polynomials in Noll <https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials>`__
+      indexing to describe the optical path
+      difference (OPD) across the telescope pupil. This indexing convention
+      maps the standard radial and azimuthal modes to a 1D sequence, matching
+      industry standards such as Ansys Zemax.
     - Scalar Fourier optics to propagate the complex pupil field into the
       focal plane.
     - Polychromatic averaging over the Cherenkov emission spectrum using a
