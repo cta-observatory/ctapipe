@@ -1,0 +1,8 @@
+Fix two bugs in the ``DispReconstructor``:
+
+- Look up the sign probability in ``DispReconstructor._predict`` by class value
+  instead of a fixed column index, so it no longer crashes or returns the wrong
+  probability when the sign classifier saw only a single class (or an unexpected
+  class) during training.
+- Compute the disp cross-validation metrics only over valid events, so invalid
+  (``NaN``) predictions no longer corrupt the reported ``R^2`` and accuracy.
