@@ -797,16 +797,10 @@ class ZernikePSFModel(PSFModel):
     # Composite units (length/angle) don't map onto one of astropy's named
     # physical types, so `physical_type` is derived from the unit itself
     # rather than a named constant like u.physical.length/angle.
-    z7_theta = TelescopeParameter(
-        trait=AstroQuantity(physical_type=(u.m / u.deg).physical_type),
-        default_value=2.332e-08 * u.m / u.deg,
-        help="Linear coma growth",
-    ).tag(config=True)
-
-    z8_theta = TelescopeParameter(
+    coma_radial_growth = TelescopeParameter(
         trait=AstroQuantity(physical_type=(u.m / u.deg).physical_type),
         default_value=1.919e-07 * u.m / u.deg,
-        help="Linear coma growth",
+        help="Radial coma growth",
     ).tag(config=True)
 
     z5_theta2 = TelescopeParameter(
@@ -870,15 +864,15 @@ class ZernikePSFModel(PSFModel):
             ux = 0.0
             uy = 0.0
 
-        z7_theta_m_per_deg = self.z7_theta.tel[tel_id].to_value(u.m / u.deg)
-        z8_theta_m_per_deg = self.z8_theta.tel[tel_id].to_value(u.m / u.deg)
+        coma_radial_growth_deg = self.coma_radial_growth.tel[tel_id].to_value(
+            u.m / u.deg
+        )
         z5_theta2_m_per_deg2 = self.z5_theta2.tel[tel_id].to_value(u.m / u.deg**2)
         z6_theta2_m_per_deg2 = self.z6_theta2.tel[tel_id].to_value(u.m / u.deg**2)
 
-        coma_radial = -z7_theta_m_per_deg * theta
-        coma_tangential = z8_theta_m_per_deg * theta
-        coma_x = coma_radial * ux - coma_tangential * uy
-        coma_y = coma_radial * uy + coma_tangential * ux
+        coma_radial = coma_radial_growth_deg * theta
+        coma_x = coma_radial * ux
+        coma_y = coma_radial * uy
         noll_coeffs = [
             0.0,
             self.z2.tel[tel_id].to_value(u.m),
@@ -886,8 +880,8 @@ class ZernikePSFModel(PSFModel):
             self.z4.tel[tel_id].to_value(u.m),
             self.z5.tel[tel_id].to_value(u.m) + z5_theta2_m_per_deg2 * theta2,
             self.z6.tel[tel_id].to_value(u.m) + z6_theta2_m_per_deg2 * theta2,
-            self.z7.tel[tel_id].to_value(u.m) + coma_x,
-            self.z8.tel[tel_id].to_value(u.m) + coma_y,
+            self.z7.tel[tel_id].to_value(u.m) + coma_y,
+            self.z8.tel[tel_id].to_value(u.m) + coma_x,
             self.z9.tel[tel_id].to_value(u.m),
             self.z10.tel[tel_id].to_value(u.m),
             self.z11.tel[tel_id].to_value(u.m),
@@ -965,7 +959,7 @@ class ZernikePSFModel(PSFModel):
 
         n = self.pupil_size
         xpix = (dx + half_field) / (2 * half_field) * (n - 1)
-        ypix = (-dy + half_field) / (2 * half_field) * (n - 1)
+        ypix = (dy + half_field) / (2 * half_field) * (n - 1)
 
         # map_coordinates requires the "points" dimension to have rank >= 1;
         # scalar lon/lat collapse to 0-d, so flatten for the call and restore

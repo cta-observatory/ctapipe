@@ -70,8 +70,7 @@ zernike_psf_model = ZernikePSFModel(
     z5=[("type", "*", 0.0 * u.m)],
     z6=[("type", "*", 0.0 * u.m)],
     z11=[("type", "*", 3.648e-08 * u.m)],
-    z7_theta=[("type", "*", 2.332e-08 * u.m / u.deg)],
-    z8_theta=[("type", "*", 1.919e-07 * u.m / u.deg)],
+    coma_radial_growth=[("type", "*", 1.919e-07 * u.m / u.deg)],
     z5_theta2=[("type", "*", 7.913e-08 * u.m / u.deg**2)],
     z6_theta2=[("type", "*", 2.397e-08 * u.m / u.deg**2)],
 )
