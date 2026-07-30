@@ -710,7 +710,19 @@ class DispReconstructor(Reconstructor):
             else:
                 prediction[valid] = valid_norms
 
-            sign_proba = self._models[key][1].predict_proba(X)[:, 1]
+            classifier = self._models[key][1]
+            proba = classifier.predict_proba(X)
+            # Look up the probability of the positive class by class *value*
+            # instead of assuming a fixed column order / exactly two classes.
+            # This is robust to classifiers that only saw a single sign during
+            # training or an unexpected class (e.g. a zero from ``np.sign``).
+            positive_class_index = np.flatnonzero(classifier.classes_ == 1)
+            if len(positive_class_index) == 1:
+                sign_proba = proba[:, positive_class_index[0]]
+            else:
+                # the positive sign was never seen during training,
+                # so the probability of a positive sign is zero
+                sign_proba = np.zeros(len(X))
             # proba is [0 and 1] where 0 => very certain -1, 1 => very certain 1
             # and 0.5 means random guessing either. So we transform to a score
             # where 0 means "guessing" and 1 means "very certain"
@@ -1051,10 +1063,12 @@ class CrossValidator(Component):
     def _cross_validate_disp(self, telescope_type, train, test):
         models = self.model_component
         models.fit(telescope_type, train)
-        disp, sign_score, _ = models._predict(telescope_type, test)
+        disp, sign_score, valid = models._predict(telescope_type, test)
         truth = test[models.target]
-        r2 = r2_score(np.abs(truth), np.abs(disp))
-        accuracy = accuracy_score(np.sign(truth), np.sign(disp))
+        # only score events for which a prediction could be made, otherwise
+        # NaN predictions would corrupt the cross-validation metrics
+        r2 = r2_score(np.abs(truth[valid]), np.abs(disp[valid]))
+        accuracy = accuracy_score(np.sign(truth[valid]), np.sign(disp[valid]))
         result = Table(
             data={
                 f"{models.prefix}_parameter": disp,
