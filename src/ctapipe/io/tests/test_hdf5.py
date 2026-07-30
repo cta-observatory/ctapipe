@@ -16,7 +16,7 @@ from ctapipe.containers import (
     SimulatedShowerContainer,
     TelEventIndexContainer,
 )
-from ctapipe.core.container import Container, Field
+from ctapipe.core.container import Container, Field, TimeResolution
 from ctapipe.io import read_table
 from ctapipe.io.datalevels import DataLevel
 from ctapipe.io.hdf5tableio import HDF5TableReader, HDF5TableWriter
@@ -659,7 +659,7 @@ def test_column_transforms(tmp_path):
             "mytable", "image", FixedPointColumnTransform(100, 0, np.float64, np.int32)
         )
         # add user generated transform for the "value" column
-        writer.write("mytable", cont, time_format="mjd")
+        writer.write("mytable", cont)
 
     with HDF5TableReader(tmp_file, mode="r") as reader:
         data = next(reader.read("/data/mytable", SomeContainer))
@@ -742,30 +742,31 @@ def test_column_transforms_regexps(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("time_format", "tolerance"),
+    ("time_resolution", "tolerance"),
     [
-        ("mjd", 0.1 * u.us),
-        ("ctao_high_res", 0.01 * u.ns),
+        (TimeResolution.LOW, 0.1 * u.us),
+        (TimeResolution.HIGH, 0.01 * u.ns),
+        (None, 0.1 * u.us),  # None defaults to LOW
     ],
 )
-def test_time(tmp_path, time_format, tolerance):
+def test_time(tmp_path, time_resolution, tolerance):
     tmp_file = tmp_path / "test_time.hdf5"
 
     class TimeContainer(Container):
-        time = Field(None, "an astropy time")
+        time = Field(None, "an astropy time", time_resolution=time_resolution)
 
     time = Time("2012-01-01T20:00:00", format="isot", scale="utc")
     container = TimeContainer(time=time)
 
     with HDF5TableWriter(tmp_file, group_name="data") as writer:
-        writer.write("table", container, time_format=time_format)
+        writer.write("table", container)
 
     with HDF5TableReader(tmp_file, mode="r") as reader:
         for data in reader.read("/data/table", TimeContainer):
             assert isinstance(data.time, Time)
             assert data.time.scale == "tai"
             assert data.time.format == (
-                "unix_tai" if time_format == "ctao_high_res" else time_format
+                "unix_tai" if time_resolution is TimeResolution.HIGH else "mjd"
             )
             assert np.abs((data.time - time).to(u.s)) < tolerance
 

@@ -1,6 +1,7 @@
 import logging
 import warnings
 from collections import defaultdict
+from enum import Enum, auto
 from functools import partial
 from inspect import isclass
 from pprint import pformat
@@ -13,7 +14,7 @@ from numpy.typing import DTypeLike, NDArray
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Container", "Field", "FieldValidationError", "Map"]
+__all__ = ["Container", "Field", "FieldValidationError", "Map", "TimeResolution"]
 
 
 def _fqdn(obj):
@@ -22,6 +23,21 @@ def _fqdn(obj):
 
 class FieldValidationError(ValueError):
     pass
+
+
+class TimeResolution(Enum):
+    """Determines which format is used for storing astropy Time objects."""
+
+    #: Low resolution timestamp
+    #:
+    #: Stored as float64 time elapsed since epoch,
+    #: achieving ~ms time resolution depending on epoch
+    LOW = auto()
+    #: High resolution timestamp
+    #:
+    #: Stored as two 32-bit unsigned integers
+    #: unix TAI seconds and quarter nanoseconds
+    HIGH = auto()
 
 
 class Field[T]:
@@ -55,6 +71,9 @@ class Field[T]:
         encoded string to be used.
     default_factory : Callable
         A callable providing a fresh instance as default value.
+    time_resolution : TimeResolution | None
+        For time fields, whether to serialize as high or low resolution
+        timestamp.
     """
 
     # only default provided
@@ -72,6 +91,7 @@ class Field[T]:
         allow_none: bool = False,
         max_length: None = None,
         default_factory: None = None,
+        time_resolution: None | TimeResolution = None,
     ): ...
 
     # only default_factory provided
@@ -89,6 +109,7 @@ class Field[T]:
         ndim: None = None,
         allow_none: bool = False,
         max_length: None = None,
+        time_resolution: None = None,
     ): ...
 
     # default and type given
@@ -106,6 +127,7 @@ class Field[T]:
         allow_none: bool = False,
         max_length: None = None,
         default_factory: None = None,
+        time_resolution: None | TimeResolution = None,
     ): ...
 
     # None default but unit provided -> Quantity | None
@@ -123,6 +145,7 @@ class Field[T]:
         allow_none: bool = False,
         max_length: None = None,
         default_factory: None = None,
+        time_resolution: None = None,
     ): ...
 
     # array case
@@ -140,6 +163,7 @@ class Field[T]:
         allow_none: bool = False,
         max_length: None = None,
         default_factory: None = None,
+        time_resolution: None = None,
     ): ...
 
     def __init__(
@@ -155,6 +179,7 @@ class Field[T]:
         ndim=None,
         allow_none: bool = True,
         max_length: int | None = None,
+        time_resolution: None | TimeResolution = None,
     ):
         self.default = default
         self.default_factory = default_factory
@@ -166,6 +191,7 @@ class Field[T]:
         self.ndim = ndim
         self.allow_none = allow_none
         self.max_length = max_length
+        self.time_resolution = time_resolution
 
         if default_factory is not None and default is not None:
             raise ValueError("Must only provide one of default or default_factory")

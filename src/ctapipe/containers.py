@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 
-from .core import Container, Field, Map
+from .core.container import Container, Field, Map, TimeResolution
 
 __all__ = [
     "ArrayEventContainer",
@@ -610,7 +610,7 @@ class R1CameraContainer(Container):
     """
 
     event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
-    event_time = Field(NAN_TIME, "event timestamp")
+    event_time = Field(NAN_TIME, "event timestamp", time_resolution=TimeResolution.HIGH)
 
     waveform = Field(
         None,
@@ -697,7 +697,7 @@ class DL0CameraContainer(Container):
     """
 
     event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
-    event_time = Field(NAN_TIME, "event timestamp")
+    event_time = Field(NAN_TIME, "event timestamp", time_resolution=TimeResolution.HIGH)
 
     waveform = Field(
         None,
@@ -951,7 +951,11 @@ class SimulatedShowerDistribution(Container):
 # Trigger containers
 class TelescopeTriggerContainer(Container):
     default_prefix = ""
-    time = Field(NAN_TIME, description="Telescope trigger time")
+    time = Field(
+        NAN_TIME,
+        description="Telescope trigger time",
+        time_resolution=TimeResolution.HIGH,
+    )
     event_type = Field(EventType.UNKNOWN, description="Event type")
 
     n_trigger_pixels = Field(
@@ -962,7 +966,11 @@ class TelescopeTriggerContainer(Container):
 
 class TriggerContainer(Container):
     default_prefix = ""
-    time = Field(NAN_TIME, description="central average time stamp")
+    time = Field(
+        NAN_TIME,
+        description="central average time stamp",
+        time_resolution=TimeResolution.HIGH,
+    )
     tels_with_trigger = Field(
         None, description="List of telescope ids that triggered the array event"
     )
@@ -1215,6 +1223,7 @@ class CameraCalibrationContainer(Container):
     time = Field(
         NAN_TIME,
         "validity time of the camera calibration coefficients.",
+        time_resolution=TimeResolution.LOW,
     )
     pedestal_offset = Field(
         None,
@@ -1260,8 +1269,16 @@ class StatisticsContainer(Container):
 class ChunkContainer(Container):
     """Store values of a chunk"""
 
-    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
-    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    time_start = Field(
+        NAN_TIME,
+        "high resolution start time of the chunk",
+        time_resolution=TimeResolution.LOW,
+    )
+    time_end = Field(
+        NAN_TIME,
+        "high resolution end time of the chunk",
+        time_resolution=TimeResolution.LOW,
+    )
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
     n_events = Field(
@@ -1550,6 +1567,12 @@ class ObservationBlockContainer(Container):
     scheduled_duration = Field(
         nan * u.min, "expected duration from scheduler", unit=u.min
     )
-    scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
-    actual_start_time = Field(NAN_TIME, "true start time")
+    scheduled_start_time = Field(
+        NAN_TIME,
+        "expected start time from scheduler",
+        time_resolution=TimeResolution.LOW,
+    )
+    actual_start_time = Field(
+        NAN_TIME, "true start time", time_resolution=TimeResolution.LOW
+    )
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)
