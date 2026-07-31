@@ -719,13 +719,13 @@ class ZernikePSFModel(PSFModel):
 
     # Universal physical constants
     wavelength_min = AstroQuantity(
-        default_value=350e-9 * u.m,
+        default_value=300e-9 * u.m,
         physical_type=u.physical.length,
         help="Minimum wavelength for polychromatic averaging",
     ).tag(config=True)
 
     wavelength_max = AstroQuantity(
-        default_value=550e-9 * u.m,
+        default_value=600e-9 * u.m,
         physical_type=u.physical.length,
         help="Maximum wavelength for polychromatic averaging",
     ).tag(config=True)
@@ -755,7 +755,7 @@ class ZernikePSFModel(PSFModel):
     ).tag(config=True)
     z4 = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.length),
-        default_value=1.013e-07 * u.m,
+        default_value=1.825e-07 * u.m,
         help="Defocus",
     ).tag(config=True)
     z5 = TelescopeParameter(
@@ -771,26 +771,26 @@ class ZernikePSFModel(PSFModel):
     z7 = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.length),
         default_value=0.0 * u.m,
-        help="Coma X base",
+        help="Vertical Coma",
     ).tag(config=True)
     z8 = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.length),
         default_value=0.0 * u.m,
-        help="Coma Y base",
+        help="Horizontal Coma",
     ).tag(config=True)
     z9 = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.length),
         default_value=0.0 * u.m,
-        help="Trefoil X",
+        help="Vertical trefoil",
     ).tag(config=True)
     z10 = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.length),
         default_value=0.0 * u.m,
-        help="Trefoil Y",
+        help="Horizontal trefoil",
     ).tag(config=True)
     z11 = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.length),
-        default_value=3.648e-08 * u.m,
+        default_value=3.467e-08 * u.m,
         help="Spherical",
     ).tag(config=True)
 
@@ -805,13 +805,13 @@ class ZernikePSFModel(PSFModel):
 
     z5_theta2 = TelescopeParameter(
         trait=AstroQuantity(physical_type=(u.m / u.deg**2).physical_type),
-        default_value=7.913e-08 * u.m / u.deg**2,
+        default_value=3.501e-08 * u.m / u.deg**2,
         help="Quadratic astigmatism growth",
     ).tag(config=True)
 
     z6_theta2 = TelescopeParameter(
         trait=AstroQuantity(physical_type=(u.m / u.deg**2).physical_type),
-        default_value=2.397e-08 * u.m / u.deg**2,
+        default_value=3.501e-08 * u.m / u.deg**2,
         help="Quadratic astigmatism growth",
     ).tag(config=True)
 
@@ -870,6 +870,10 @@ class ZernikePSFModel(PSFModel):
         z5_theta2_m_per_deg2 = self.z5_theta2.tel[tel_id].to_value(u.m / u.deg**2)
         z6_theta2_m_per_deg2 = self.z6_theta2.tel[tel_id].to_value(u.m / u.deg**2)
 
+        # Project astigmatism rotation (2*phi)
+        cos_2phi = ux**2 - uy**2
+        sin_2phi = 2.0 * ux * uy
+
         coma_radial = coma_radial_growth_deg * theta
         coma_x = coma_radial * ux
         coma_y = coma_radial * uy
@@ -878,8 +882,10 @@ class ZernikePSFModel(PSFModel):
             self.z2.tel[tel_id].to_value(u.m),
             self.z3.tel[tel_id].to_value(u.m),
             self.z4.tel[tel_id].to_value(u.m),
-            self.z5.tel[tel_id].to_value(u.m) + z5_theta2_m_per_deg2 * theta2,
-            self.z6.tel[tel_id].to_value(u.m) + z6_theta2_m_per_deg2 * theta2,
+            self.z5.tel[tel_id].to_value(u.m)
+            + z5_theta2_m_per_deg2 * theta2 * sin_2phi,
+            self.z6.tel[tel_id].to_value(u.m)
+            + z6_theta2_m_per_deg2 * theta2 * cos_2phi,
             self.z7.tel[tel_id].to_value(u.m) + coma_y,
             self.z8.tel[tel_id].to_value(u.m) + coma_x,
             self.z9.tel[tel_id].to_value(u.m),
@@ -906,7 +912,14 @@ class ZernikePSFModel(PSFModel):
         wavelengths = np.linspace(lam_min, lam_max, self.wavelength_samples)
         weights = wavelengths ** (-self.cherenkov_spectrum_index)
         weights /= np.sum(weights)
+
+        # Reference wavelength (mean of the range)
+        lambda_ref = np.mean(wavelengths)
+
         intensity = np.zeros_like(wavefront, dtype=float)
+        h, w = intensity.shape
+        cy, cx = h // 2, w // 2
+        y_ref, x_ref = np.indices((h, w), dtype=float)
 
         for wavelength, weight in zip(wavelengths, weights):
             phase = 2 * np.pi * wavefront / wavelength
@@ -914,7 +927,26 @@ class ZernikePSFModel(PSFModel):
             phase_safe[mask] = phase[mask]
             pupil = aperture * np.exp(1j * phase_safe)
             field = fft2(pupil)
-            intensity += weight * fftshift(np.abs(field) ** 2)
+            intensity_lambda = fftshift(np.abs(field) ** 2)
+
+            # scale = wavelength / lambda_ref
+            scale = lambda_ref / wavelength
+            y_lambda = (y_ref - cy) * scale + cy
+            x_lambda = (x_ref - cx) * scale + cx
+
+            # Interpolate intensity_lambda at the scaled coordinates
+            intensity_rescaled = map_coordinates(
+                intensity_lambda,
+                np.array(
+                    [y_lambda, x_lambda]
+                ),  # map_coordinates expects a single array or tuple
+                order=3,
+                mode="constant",
+                cval=0.0,
+            )
+
+            # Accumulate and protect against minor cubic interpolation under-shoots
+            intensity += weight * np.clip(intensity_rescaled, 0.0, None) / (scale**2)
 
         sigma_pix = max(self.focal_plane_smoothing_sigma_pix, 0.0)
         if sigma_pix > 0:
