@@ -656,8 +656,12 @@ class DispReconstructor(Reconstructor):
         X, valid = table_to_X(table, self.features, self.log)
         self.unit = table[self.target].unit
         norm, sign = self._table_to_y(table, mask=valid)
-        self._models[key][0].fit(X, norm)
-        self._models[key][1].fit(X, sign)
+        # Exclude events with an undefined disp sign (norm == 0): these add a
+        # spurious ``0`` class to the sign classifier and yield log(0) = -inf
+        # regressor targets when ``log_target`` is enabled.
+        finite = np.isfinite(norm) & (sign != 0)
+        self._models[key][0].fit(X[finite], norm[finite])
+        self._models[key][1].fit(X[finite], sign[finite])
 
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)

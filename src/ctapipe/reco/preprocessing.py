@@ -40,19 +40,21 @@ def table_to_float(table: Table, dtype=np.float32) -> np.ndarray:
 
 
 def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
-    """Check for nans, returning a mask of the rows not containing any nans"""
+    """Check for non-finite values, returning a mask of the rows not containing any nan or inf"""
 
-    nans = np.array([np.isnan(col) for col in table.columns.values()]).T
-    valid = ~nans.any(axis=1)
+    nonfinite = np.array([~np.isfinite(col) for col in table.columns.values()]).T
+    valid = ~nonfinite.any(axis=1)
 
     if warn:
-        nan_counts = np.count_nonzero(nans, axis=0)
-        if (nan_counts > 0).any():
-            nan_counts_str = ", ".join(
-                f"{k}: {v}" for k, v in zip(table.colnames, nan_counts) if v > 0
+        nonfinite_counts = np.count_nonzero(nonfinite, axis=0)
+        if (nonfinite_counts > 0).any():
+            nonfinite_counts_str = ", ".join(
+                f"{k}: {v}" for k, v in zip(table.colnames, nonfinite_counts) if v > 0
             )
             log.warning("Data contains not-predictable events.")
-            log.warning("Number of nan-values in columns: %s", nan_counts_str)
+            log.warning(
+                "Number of non-finite values in columns: %s", nonfinite_counts_str
+            )
 
     return valid
 

@@ -60,8 +60,9 @@ def test_check_valid_rows():
 
     t = Table({"a": [1.0, 2, np.inf, np.nan, np.nan], "b": [1, np.inf, 3, 4, 5]})
 
+    # rows containing nan or inf are considered not-predictable
     valid = check_valid_rows(t, warn=False)
-    assert_array_equal(valid, [True, True, True, False, False])
+    assert_array_equal(valid, [True, False, False, False, False])
 
 
 def test_collect_features(example_event, example_subarray):

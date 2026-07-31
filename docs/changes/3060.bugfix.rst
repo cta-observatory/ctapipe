@@ -1,4 +1,4 @@
-Fix two bugs in the ``DispReconstructor``:
+Fix several bugs affecting the ``DispReconstructor``:
 
 - Look up the sign probability in ``DispReconstructor._predict`` by class value
   instead of a fixed column index, so it no longer crashes or returns the wrong
@@ -6,3 +6,9 @@ Fix two bugs in the ``DispReconstructor``:
   class) during training.
 - Compute the disp cross-validation metrics only over valid events, so invalid
   (``NaN``) predictions no longer corrupt the reported ``R^2`` and accuracy.
+- Treat non-finite (``inf``) feature values as invalid in ``check_valid_rows``,
+  so events with infinite features are dropped instead of being silently clipped
+  to a huge finite value and fed into the models.
+- Exclude events with an undefined disp sign (``norm == 0``) from training,
+  avoiding a spurious ``0`` class for the sign classifier and ``log(0) = -inf``
+  targets for the norm regressor when ``log_target`` is enabled.
