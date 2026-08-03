@@ -170,16 +170,31 @@ def test_predict_mean_disp(mono_table):
     assert_array_equal(tel_ids[2], [1])
 
 
+def _containment_particle_expected():
+    # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
+    # containment weight is a general image-quality weight affecting all prediction
+    # types.  The other three schemes coincidentally give 0.6 because the test
+    # intensities (100, 200, 400) and equal aspect ratios happen to cancel out.
+    w = np.array(
+        [
+            (100 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.0) ** 4,  # tel 25
+            (200 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.1) ** 4,  # tel 125
+            (400 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.2) ** 4,  # tel 130
+        ]
+    )
+    return float(np.average([1.0, 0.0, 0.8], weights=w))
+
+
 @pytest.mark.parametrize(
-    "weights",
+    ("weights", "expected_particle_prediction"),
     [
-        "aspect-weighted-intensity",
-        "containment-weighted-intensity",
-        "intensity",
-        "none",
+        ("aspect-weighted-intensity", 0.6),
+        ("containment-weighted-intensity", _containment_particle_expected()),
+        ("intensity", 0.6),
+        ("none", 0.6),
     ],
 )
-def test_mean_prediction_single_event(weights):
+def test_mean_prediction_single_event(weights, expected_particle_prediction):
     event = ArrayEventContainer()
 
     for tel_id, intensity, leakage in zip(
@@ -264,22 +279,11 @@ def test_mean_prediction_single_event(weights):
     # equals 0.6 because the test intensities (100, 200, 400) and equal aspect ratios
     # cancel out.  containment-weighted-intensity breaks that coincidence because
     # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
-    # containment weight is a general image-quality weight that affects all prediction
+    # containment weight is a general image-quality weight affecting all prediction
     # types, not just geometry.
-    if weights == "containment-weighted-intensity":
-        w = np.array(
-            [
-                (100 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.0) ** 4,  # tel 25
-                (200 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.1) ** 4,  # tel 125
-                (400 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.2) ** 4,  # tel 130
-            ]
-        )
-        expected = np.average([1.0, 0.0, 0.8], weights=w)
-        assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(
-            expected
-        )
-    else:
-        assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(0.6)
+    assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(
+        expected_particle_prediction
+    )
 
 
 def test_reconstructed_container_warning():
