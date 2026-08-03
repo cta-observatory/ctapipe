@@ -23,6 +23,7 @@ from ..core.traits import (
     Float,
     FloatTelescopeParameter,
     Int,
+    IntTelescopeParameter,
     TelescopeParameter,
 )
 from ..utils import get_table_dataset
@@ -672,15 +673,6 @@ class ZernikePSFModel(PSFModel):
     """
 
     # Universal model performance parameters
-    pupil_size = Int(
-        default_value=512,
-        help=(
-            "Number of samples across the FFT grid used to discretize the pupil. "
-            "Larger values improve numerical accuracy and PSF sampling at the "
-            "expense of increased memory usage and computation time."
-        ),
-    ).tag(config=True)
-
     pupil_diameter_fraction = Float(
         default_value=0.12,
         help=(
@@ -698,26 +690,12 @@ class ZernikePSFModel(PSFModel):
         help="Number of wavelength samples for polychromatic averaging",
     ).tag(config=True)
 
-    pupil_edge_softness = Float(
-        default_value=0.08,
-        help=(
-            "Width of the sigmoid taper applied to the pupil edge in normalized "
-            "pupil-radius units. Larger values suppress diffraction ringing but "
-            "slightly blur the effective aperture."
-        ),
-    ).tag(config=True)
-
-    focal_plane_smoothing_sigma_pix = Float(
-        default_value=3.0,
-        help="Gaussian smoothing sigma applied to PSF intensity.",
-    ).tag(config=True)
-
+    # Universal physical constants
     cherenkov_spectrum_index = Float(
         default_value=2.0,
         help="Power-law index for Cherenkov spectrum weighting (dN/dλ ∝ λ^-index)",
     ).tag(config=True)
 
-    # Universal physical constants
     wavelength_min = AstroQuantity(
         default_value=300e-9 * u.m,
         physical_type=u.physical.length,
@@ -731,7 +709,30 @@ class ZernikePSFModel(PSFModel):
     ).tag(config=True)
 
     # Per-telescope optical parameters
-    psf_reference = TelescopeParameter(
+    pupil_size = IntTelescopeParameter(
+        default_value=512,
+        help=(
+            "Number of samples across the FFT grid used to discretize the pupil. "
+            "Larger values improve numerical accuracy and PSF sampling at the "
+            "expense of increased memory usage and computation time."
+        ),
+    ).tag(config=True)
+
+    pupil_edge_softness = FloatTelescopeParameter(
+        default_value=0.08,
+        help=(
+            "Width of the sigmoid taper applied to the pupil edge in normalized "
+            "pupil-radius units. Larger values suppress diffraction ringing but "
+            "slightly blur the effective aperture."
+        ),
+    ).tag(config=True)
+
+    focal_plane_smoothing_sigma_pix = FloatTelescopeParameter(
+        default_value=3.0,
+        help="Gaussian smoothing sigma applied to PSF intensity.",
+    ).tag(config=True)
+
+    psf_extent = TelescopeParameter(
         trait=AstroQuantity(physical_type=u.physical.angle),
         default_value=0.5 * u.deg,
         help=(
@@ -794,9 +795,6 @@ class ZernikePSFModel(PSFModel):
         help="Spherical",
     ).tag(config=True)
 
-    # Composite units (length/angle) don't map onto one of astropy's named
-    # physical types, so `physical_type` is derived from the unit itself
-    # rather than a named constant like u.physical.length/angle.
     coma_radial_growth = TelescopeParameter(
         trait=AstroQuantity(physical_type=(u.m / u.deg).physical_type),
         default_value=1.919e-07 * u.m / u.deg,
@@ -822,9 +820,12 @@ class ZernikePSFModel(PSFModel):
             n += 1
         return max(1, n)
 
-    @cached_property
-    def _zernike_grid(self):
-        n = self.pupil_size
+    def _zernike_grid(self, tel_id):
+        if not hasattr(self, "_zernike_grid_cache"):
+            self._zernike_grid_cache = {}
+        if tel_id in self._zernike_grid_cache:
+            return self._zernike_grid_cache[tel_id]
+        n = self.pupil_size.tel[tel_id]
         frac = self.pupil_diameter_fraction
         if not (0 < frac <= 1):
             raise ValueError("pupil_diameter_fraction must be in (0, 1]")
@@ -837,10 +838,11 @@ class ZernikePSFModel(PSFModel):
         rr = np.sqrt(xx**2 + yy**2)
         mask = rr <= 1
 
-        edge = max(self.pupil_edge_softness, 1e-6)
+        edge = max(self.pupil_edge_softness.tel[tel_id], 1e-6)
         aperture = 1.0 / (1.0 + np.exp(np.clip((rr - 1.0) / edge, -60.0, 60.0)))
         rz = RZern(self._radial_order)
         rz.make_cart_grid(xx, yy)
+        self._zernike_grid_cache[tel_id] = (rz, mask, aperture)
 
         return rz, mask, aperture
 
@@ -852,7 +854,7 @@ class ZernikePSFModel(PSFModel):
         Quantity-valued traits, since the downstream Zernike/FFT machinery
         is unit-agnostic.
         """
-        rz, _, _ = self._zernike_grid
+        rz, _, _ = self._zernike_grid(tel_id)
         coeff = np.zeros(rz.nk)
 
         theta2 = lon0_deg**2 + lat0_deg**2
@@ -898,7 +900,7 @@ class ZernikePSFModel(PSFModel):
         return coeff
 
     def _build_psf(self, tel_id, lon0_deg, lat0_deg):
-        rz, mask, aperture = self._zernike_grid
+        rz, mask, aperture = self._zernike_grid(tel_id)
         coeff = self._coeff_vector(tel_id, lon0_deg, lat0_deg)
         wavefront = rz.eval_grid(coeff, matrix=True)
 
@@ -946,9 +948,9 @@ class ZernikePSFModel(PSFModel):
             )
 
             # Accumulate and protect against minor cubic interpolation under-shoots
-            intensity += weight * np.clip(intensity_rescaled, 0.0, None) / (scale**2)
+            intensity += weight * np.clip(intensity_rescaled, 0.0, None)  # / (scale**2)
 
-        sigma_pix = max(self.focal_plane_smoothing_sigma_pix, 0.0)
+        sigma_pix = max(self.focal_plane_smoothing_sigma_pix.tel[tel_id], 0.0)
         if sigma_pix > 0:
             intensity = gaussian_filter(intensity, sigma=sigma_pix, mode="nearest")
 
@@ -961,11 +963,17 @@ class ZernikePSFModel(PSFModel):
             )
         intensity /= total
 
-        psf_reference = self.psf_reference.tel[tel_id].to_value(u.deg)
-        pixel_scale = psf_reference / (self.pupil_size - 1)
+        psf_extent = self.psf_extent.tel[tel_id].to_value(u.deg)
+        pixel_scale = psf_extent / (self.pupil_size.tel[tel_id] - 1)
         pixel_area = pixel_scale**2
 
-        intensity /= pixel_area
+        total_volume = intensity.sum() * pixel_area
+        if not np.isfinite(total_volume) or total_volume <= 0:
+            raise RuntimeError(
+                f"Invalid PSF normalization: total integrated volume is {total_volume!r}"
+            )
+
+        intensity /= total_volume
 
         return intensity
 
@@ -984,12 +992,12 @@ class ZernikePSFModel(PSFModel):
         lat0_deg = lat0.to_value(u.deg)
         intensity = self._build_psf(tel_id, lon0_deg, lat0_deg)
 
-        full_field = self.psf_reference.tel[tel_id].to_value(u.deg)
+        full_field = self.psf_extent.tel[tel_id].to_value(u.deg)
         half_field = 0.5 * full_field
         if half_field <= 0:
-            raise ValueError("psf_reference must be > 0")
+            raise ValueError("psf_extent must be > 0")
 
-        n = self.pupil_size
+        n = self.pupil_size.tel[tel_id]
         xpix = (dx + half_field) / (2 * half_field) * (n - 1)
         ypix = (dy + half_field) / (2 * half_field) * (n - 1)
 
