@@ -158,6 +158,9 @@ nitpick_ignore = add_reference_type(
         "r.BaseRepresentation",
         "r.BaseRepresentationOrDifferential",
         "RepresentationMapping",
+        "BaseDifferential",
+        "BaseRepresentation",
+        "BaseRepresentationOrDifferential",
     ],
 )
 nitpick_ignore += add_reference_type(
