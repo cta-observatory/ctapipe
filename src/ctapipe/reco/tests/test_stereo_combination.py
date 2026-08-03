@@ -260,10 +260,23 @@ def test_mean_prediction_single_event(weights):
         assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
+    # For none/intensity/aspect the weighted mean of [1.0, 0.0, 0.8] coincidentally
+    # equals 0.6 because the test intensities (100, 200, 400) and equal aspect ratios
+    # cancel out.  containment-weighted-intensity breaks that coincidence because
+    # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
+    # containment weight is a general image-quality weight that affects all prediction
+    # types, not just geometry.
     if weights == "containment-weighted-intensity":
-        # weight = (intensity * (1 - width / length))**2 * (1 - leakage)**4
+        w = np.array(
+            [
+                (100 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.0) ** 4,  # tel 25
+                (200 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.1) ** 4,  # tel 125
+                (400 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.2) ** 4,  # tel 130
+            ]
+        )
+        expected = np.average([1.0, 0.0, 0.8], weights=w)
         assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(
-            0.6133700137551582
+            expected
         )
     else:
         assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(0.6)
