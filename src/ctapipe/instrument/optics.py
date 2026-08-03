@@ -14,7 +14,11 @@ from astropy.table import QTable, Table
 from numpy.fft import fft2, fftshift
 from scipy.ndimage import gaussian_filter, map_coordinates
 from scipy.stats import laplace, laplace_asymmetric
-from zernike import RZern
+
+try:
+    from zernike import RZern
+except ModuleNotFoundError:
+    RZern = None
 
 from ..coordinates import TelescopeFrame
 from ..core import TelescopeComponent
@@ -26,6 +30,7 @@ from ..core.traits import (
     IntTelescopeParameter,
     TelescopeParameter,
 )
+from ..exceptions import OptionalDependencyMissing
 from ..utils import get_table_dataset
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
@@ -812,6 +817,17 @@ class ZernikePSFModel(PSFModel):
         default_value=3.501e-08 * u.m / u.deg**2,
         help="Quadratic astigmatism growth",
     ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """Initialize the ZernikePSFModel component and check for missing optional dependency."""
+        if RZern is None:
+            raise OptionalDependencyMissing("zernike")
+        super().__init__(
+            subarray=subarray,
+            config=config,
+            parent=parent,
+            **kwargs,
+        )
 
     @cached_property
     def _radial_order(self):
