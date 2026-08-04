@@ -39,7 +39,31 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-def polygon_chord(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections = False):
+def polygon_chord(mu_x, mu_y, phi, vertices_list):
+
+    ri_x = []
+    ri_y = []
+    vi_x = []
+    vi_y = []
+    
+    for ver_i in vertices_list:
+        ver_f = np.roll(ver_i, 1,axis=0)
+        ri_x.append(ver_i[:,0])
+        ri_y.append(ver_i[:,1])
+        vi_x.append(ver_f[:,0] - ver_i[:,0])
+        vi_y.append(ver_f[:,1] - ver_i[:,1])
+
+    #the_chord = []
+    for az in phi:
+        chord_l = 0.0
+        for i in len(vertices_list):
+            chord_l += polygon_chord_base(mu_x, mu_y, az, ri_x[i], ri_y[i], vi_x[i], vi_y[i])
+            print("chord_l = ", chord_l)
+    #    the_chord.append(chord_l)
+    
+    return 0.0
+    
+def polygon_chord_base(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections = False):
     """
     Compute the chord length of a ray intersecting a polygon.
 
