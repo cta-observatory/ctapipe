@@ -947,7 +947,6 @@ class ZernikePSFModel(PSFModel):
             field = fft2(pupil)
             intensity_lambda = fftshift(np.abs(field) ** 2)
 
-            # scale = wavelength / lambda_ref
             scale = lambda_ref / wavelength
             y_lambda = (y_ref - cy) * scale + cy
             x_lambda = (x_ref - cx) * scale + cx
