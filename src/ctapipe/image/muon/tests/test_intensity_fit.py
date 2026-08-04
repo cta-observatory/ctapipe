@@ -5,6 +5,39 @@ import numpy as np
 import pytest
 from scipy.constants import alpha
 
+
+@pytest.mark.parametrize("vertices, muon_x, muon_y, photon_phi, expected_chord_length", [
+    (
+        np.array(
+            [[ 86.6025, 0.0],
+             [ 43.3013, 75.0],
+             [-43.3013, 75.0],
+             [-86.6025, 0.0],
+             [-43.3013, -75.0],
+             [ 43.3013, -75.0]]
+        )
+        , 0.0, 0.0, 45.0 * u.deg, 75.0
+    ),
+    (
+        np.array(
+            [[ 86.6025, 0.0],
+             [ 43.3013, 75.0],
+             [-43.3013, 75.0],
+             [-86.6025, 0.0],
+             [-43.3013, -75.0],
+             [ 43.3013, -75.0]]
+        )
+        , 0.0, -200.0, 90.0 * u.deg, 150.0
+    ),
+])
+def test_polygon_chord(vertices, muon_x, muon_y, photon_phi, expected_chord_length):
+    from ctapipe.image.muon.intensity_fitter import polygon_chord
+
+    #print(" --> ",polygon_chord(muon_x, muon_y, np.array([photon_phi.to_value()]), vertices_list = [vertices]))
+
+    assert polygon_chord(muon_x, muon_y, np.array([photon_phi.to_value()]), vertices_list = [vertices]) == expected_chord_length
+
+
 parameter_names = [
     "radius",
     "rho",
