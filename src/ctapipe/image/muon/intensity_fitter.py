@@ -40,12 +40,43 @@ SQRT2 = np.sqrt(2)
 
 
 def polygon_chord(mu_x, mu_y, phi, vertices_list):
+    """
+    Compute the total chord length through one or more polygons for a set of
+    projection angles.
+
+    For each angle in ``phi``, the function evaluates the chord length
+    contributed by every polygon in ``vertices_list`` using
+    ``polygon_chord_base`` and returns the summed chord length.
+
+    Parameters
+    ----------
+    mu_x : float
+        X-coordinate of the ray origin, which is the muon's impact point (x).
+    mu_y : float
+        Y-coordinate of the ray origin, which is the muon's impact point (y).
+    phi : array-like
+        Angle defining the direction of the ray (cher. photon from muon).
+    vertices_list : list of ndarray
+        List of polygons. Each polygon is represented as an ``(N, 2)`` array
+        containing the polygon vertices in order.
+
+    Returns
+    -------
+    numpy.ndarray
+        One-dimensional array containing the total chord length for each
+        projection angle in ``phi``.
+
+    Notes
+    -----
+    Each polygon is processed independently, and the resulting chord lengths
+    are summed for every projection angle.
+    """
 
     ri_x = []
     ri_y = []
     vi_x = []
     vi_y = []
-    
+
     for ver_i in vertices_list:
         ver_f = np.roll(ver_i, 1,axis=0)
         ri_x.append(ver_i[:,0])
@@ -53,16 +84,17 @@ def polygon_chord(mu_x, mu_y, phi, vertices_list):
         vi_x.append(ver_f[:,0] - ver_i[:,0])
         vi_y.append(ver_f[:,1] - ver_i[:,1])
 
-    #the_chord = []
+    the_chord = []
     for az in phi:
         chord_l = 0.0
-        for i in len(vertices_list):
+        for i in np.arange(len(vertices_list)):
             chord_l += polygon_chord_base(mu_x, mu_y, az, ri_x[i], ri_y[i], vi_x[i], vi_y[i])
-            print("chord_l = ", chord_l)
-    #    the_chord.append(chord_l)
-    
-    return 0.0
-    
+
+        the_chord.append(chord_l)
+
+    return np.array(the_chord)
+
+
 def polygon_chord_base(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections = False):
     """
     Compute the chord length of a ray intersecting a polygon.
