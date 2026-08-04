@@ -9,6 +9,8 @@ import pytest
 from ctapipe.compat import trapz_func
 from ctapipe.instrument.optics import PSFModel
 
+pytest.importorskip("zernike")
+
 
 @pytest.fixture(scope="session")
 def coma_psf(example_subarray):
