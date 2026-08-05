@@ -78,7 +78,7 @@ def polygon_chord(mu_x, mu_y, phi, vertices_list):
     vi_y = []
 
     for ver_i in vertices_list:
-        ver_f = np.roll(ver_i, 1,axis=0)
+        ver_f = np.roll(ver_i, 1, axis=0)
         ri_x.append(ver_i[:, 0])
         ri_y.append(ver_i[:, 1])
         vi_x.append(ver_f[:, 0] - ver_i[:, 0])
@@ -98,7 +98,7 @@ def polygon_chord(mu_x, mu_y, phi, vertices_list):
 
 
 def polygon_chord_base(
-        mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections = False
+    mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections=False
 ):
     """
     Compute the chord length of a ray intersecting a polygon.
@@ -167,10 +167,10 @@ def polygon_chord_base(
     s = (vi_y * c1 - vi_x * c2) / determinant
 
     status = np.column_stack((vi_x, ri_x, vi_y, ri_y, t, s))
-    mask = (status[:,4] >= 0) & (status[:,4] < 1) & (status[:,5] >= 0)
+    mask = (status[:, 4] >= 0) & (status[:, 4] < 1) & (status[:, 5] >= 0)
 
-    x_int = status[mask][:, 0]*status[mask][:, 4] + status[mask][:, 1]
-    y_int = status[mask][:, 2]*status[mask][:, 4] + status[mask][:, 3]
+    x_int = status[mask][:, 0] * status[mask][:, 4] + status[mask][:, 1]
+    y_int = status[mask][:, 2] * status[mask][:, 4] + status[mask][:, 3]
 
     if x_int.shape[0] == 0:
         if return_intersections:
@@ -186,12 +186,18 @@ def polygon_chord_base(
         return np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
     elif x_int.shape[0] == 2:
         if return_intersections:
-            return np.squeeze(np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)), np.squeeze(x_int), np.squeeze(y_int)
-        return np.squeeze(np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2))
-    else:
-        dist = np.sort(
-            np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
+            return (
+                np.squeeze(
+                    np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
+                ),
+                np.squeeze(x_int),
+                np.squeeze(y_int),
+            )
+        return np.squeeze(
+            np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
         )
+    else:
+        dist = np.sort(np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)))
         sign_arr = np.ones(x_int.shape[0])
         if x_int.shape[0] % 2 == 0:
             sign_arr[0::2] = -1
