@@ -6,6 +6,31 @@ import pytest
 from scipy.constants import alpha
 
 
+@pytest.mark.parametrize("muon_x, muon_y, photon_phi, expected_chord_length", [
+    (0.0, 200.0, 90.0 * u.deg, 75.0),
+])
+def test_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
+    from ctapipe.image.muon.intensity_fitter import polygon_chord
+
+    ver_a = np.array(
+        [[ 86.6025,   0.0],
+         [ 43.3013,  75.0],
+         [-43.3013,  75.0],
+         [-86.6025,   0.0],
+         [-43.3013, -75.0],
+         [ 43.3013, -75.0]]
+    )
+    ver_b = ver_hex_i_a + [[  0.0,  200.0]]
+    ver_c = ver_hex_i_a + [[  0.0, -200.0]]
+    ver_d = ver_hex_i_a + [[200.0, -200.0]]
+    
+    assert np.isclose(polygon_chord(muon_x,
+                                    muon_y,
+                                    photon_phi.to_value(u.rad),
+                                    [ver_a, ver_b, ver_c, ver_d]),
+                      expected_chord_length, atol=0.001)
+
+
 @pytest.mark.parametrize("ver_initial, muon_x, muon_y, photon_phi, expected_chord_length", [
     (
         np.array(
@@ -47,7 +72,7 @@ def test_polygon_chord_base(ver_initial, muon_x, muon_y, photon_phi, expected_ch
     ver_final = np.roll(ver_initial, 1, axis=0)
     assert np.isclose(polygon_chord_base(muon_x,
                                          muon_y,
-                                         photon_phi.to(u.rad),
+                                         photon_phi.to_value(u.rad),
                                          ri_x = ver_initial[:,0],
                                          ri_y = ver_initial[:,1],
                                          vi_x = ver_final[:,0] - ver_initial[:,0],
