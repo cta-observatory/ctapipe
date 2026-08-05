@@ -178,7 +178,11 @@ def polygon_chord_base(
         return 0.0
     elif x_int.shape[0] == 1:
         if return_intersections:
-            return np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)), np.squeeze(x_int), np.squeeze(y_int)
+            return (
+                np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)),
+                np.squeeze(x_int),
+                np.squeeze(y_int),
+            )
         return np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
     elif x_int.shape[0] == 2:
         if return_intersections:
