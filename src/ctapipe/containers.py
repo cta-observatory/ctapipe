@@ -1324,7 +1324,8 @@ class WeatherMonitoringContainer(Container):
         nan * u.hPa, "Atmospheric pressure at observatory site", unit=u.hPa
     )
     relative_humidity = Field(
-        nan, "Relative humidity fraction (0.0 to 1.0)", unit=u.dimensionless_unscaled
+        nan,
+        "Relative humidity fraction (0.0 to 1.0)",
     )
 
 
