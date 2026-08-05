@@ -6,7 +6,7 @@ import pytest
 from scipy.constants import alpha
 
 
-@pytest.mark.parametrize("vertices, muon_x, muon_y, photon_phi, expected_chord_length", [
+@pytest.mark.parametrize("ver_initial, muon_x, muon_y, photon_phi, expected_chord_length", [
     (
         np.array(
             [[ 86.6025, 0.0],
@@ -15,8 +15,8 @@ from scipy.constants import alpha
              [-86.6025, 0.0],
              [-43.3013, -75.0],
              [ 43.3013, -75.0]]
-        )
-        , 0.0, 0.0, 45.0 * u.deg, 75.0
+        ),
+        0.0, 0.0, 90.0 * u.deg, 75.0
     ),
     (
         np.array(
@@ -26,16 +26,33 @@ from scipy.constants import alpha
              [-86.6025, 0.0],
              [-43.3013, -75.0],
              [ 43.3013, -75.0]]
-        )
-        , 0.0, -200.0, 90.0 * u.deg, 150.0
+        ),
+        0.0, -200.0, 90.0 * u.deg, 150.0
+    ),
+    (
+        np.array(
+            [[ 86.6025, 0.0],
+             [ 43.3013, 75.0],
+             [-43.3013, 75.0],
+             [-86.6025, 0.0],
+             [-43.3013, -75.0],
+             [ 43.3013, -75.0]]
+        ),
+        0.0, 0.0, 30.0 * u.deg, 75.0
     ),
 ])
-def test_polygon_chord(vertices, muon_x, muon_y, photon_phi, expected_chord_length):
-    from ctapipe.image.muon.intensity_fitter import polygon_chord
+def test_polygon_chord_base(ver_initial, muon_x, muon_y, photon_phi, expected_chord_length):
+    from ctapipe.image.muon.intensity_fitter import polygon_chord_base
 
-    #print(" --> ",polygon_chord(muon_x, muon_y, np.array([photon_phi.to_value()]), vertices_list = [vertices]))
-
-    assert polygon_chord(muon_x, muon_y, np.array([photon_phi.to_value()]), vertices_list = [vertices]) == expected_chord_length
+    ver_final = np.roll(ver_initial, 1, axis=0)
+    assert np.isclose(polygon_chord_base(muon_x,
+                                         muon_y,
+                                         photon_phi.to(u.rad),
+                                         ri_x = ver_initial[:,0],
+                                         ri_y = ver_initial[:,1],
+                                         vi_x = ver_final[:,0] - ver_initial[:,0],
+                                         vi_y = ver_final[:,1] - ver_initial[:,1]),
+                      expected_chord_length, atol=0.001)
 
 
 parameter_names = [
