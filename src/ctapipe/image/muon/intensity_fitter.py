@@ -163,8 +163,8 @@ def polygon_chord_base(
     c2 = mu_y - ri_y
     determinant = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
 
-    t = ( c1 * vmu_y - c2 * vmu_x ) / determinant
-    s = ( vi_y * c1 - vi_x * c2 ) / determinant
+    t = (c1 * vmu_y - c2 * vmu_x) / determinant
+    s = (vi_y * c1 - vi_x * c2) / determinant
 
     status = np.column_stack((vi_x, ri_x, vi_y, ri_y, t, s))
     mask = (status[:,4] >= 0) & (status[:,4] < 1) & (status[:,5] >= 0)
