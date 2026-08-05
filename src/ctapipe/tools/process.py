@@ -7,8 +7,8 @@ import sys
 
 from tqdm.auto import tqdm
 
-from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool, ToolConfigurationError
+from ..calib import CameraCalibrator, GainSelector, PointingCalibrator
+from ..core import QualityQuery, Tool
 from ..core.traits import Bool, ComponentName, List, classes_with_traits, flag
 from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor, WaveformModifier
@@ -233,16 +233,16 @@ class ProcessorTool(Tool):
                     f"Please make sure the '{mon_source_name}' and its input "
                     f"are suitable for calibrating the data you are processing."
                 )
-                self.log.critical(msg)
-                raise ToolConfigurationError(msg)
-            # Append the monitoring source to the list if it has compatible monitoring types
+                self.log.warning(msg)
+            # Append the monitoring source to the list
             self._monitoring_sources.append(mon_source)
 
         if self.add_nsb_in_waveforms:
             self.waveform_modifier = WaveformModifier(parent=self, subarray=subarray)
 
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
-        self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
+        self.calibrate_camera = CameraCalibrator(parent=self, subarray=subarray)
+        self.calibrate_pointing = PointingCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(
             subarray=subarray,
@@ -369,7 +369,10 @@ class ProcessorTool(Tool):
                 mon_source.fill_monitoring_container(event)
 
             if self.should_calibrate:
-                self.calibrate(event)
+                self.calibrate_camera(event)
+                # Pointing calibration is only applied to real data, not simulations
+                if not self.event_source.metadata["is_simulation"]:
+                    self.calibrate_pointing(event)
 
             if self.should_compute_dl1:
                 self.process_images(event)
