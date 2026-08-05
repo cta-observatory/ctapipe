@@ -88,7 +88,9 @@ def polygon_chord(mu_x, mu_y, phi, vertices_list):
     for az in phi:
         chord_l = 0.0
         for i in np.arange(len(vertices_list)):
-            chord_l += polygon_chord_base(mu_x, mu_y, az, ri_x[i], ri_y[i], vi_x[i], vi_y[i])
+            chord_l += polygon_chord_base(
+                mu_x, mu_y, az, ri_x[i], ri_y[i], vi_x[i], vi_y[i]
+            )
 
         the_chord.append(chord_l)
 
