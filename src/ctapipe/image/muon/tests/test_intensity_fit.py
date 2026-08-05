@@ -6,95 +6,135 @@ import pytest
 from scipy.constants import alpha
 
 
-@pytest.mark.parametrize("muon_x, muon_y, photon_phi, expected_chord_length", [
-    (0.0,  200.0,  90.0 * u.deg,  75.0),
-    (0.0, -200.0, 150.0 * u.deg,  75.0),
-    (0.0,    0.0,  90.0 * u.deg, 225.0),
-    (0.0, -400.0,  90.0 * u.deg, 450.0),
-    (0.0,    0.0,  30.0 * u.deg,  75.0),
-    (0.0, -200.0,   0.0 * u.deg,  86.6025*3),
-    (200.0,  200.0,   0.0 * u.deg,  0.0),
-])
+@pytest.mark.parametrize(
+    "muon_x, muon_y, photon_phi, expected_chord_length",
+    [
+        (0.0, 200.0, 90.0 * u.deg, 75.0),
+        (0.0, -200.0, 150.0 * u.deg, 75.0),
+        (0.0, 0.0, 90.0 * u.deg, 225.0),
+        (0.0, -400.0, 90.0 * u.deg, 450.0),
+        (0.0, 0.0, 30.0 * u.deg, 75.0),
+        (0.0, -200.0, 0.0 * u.deg, 86.6025 * 3),
+        (200.0, 200.0, 0.0 * u.deg, 0.0),
+    ],
+)
 def test_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
     from ctapipe.image.muon.intensity_fitter import polygon_chord
 
     ver_a = np.array(
-        [[ 86.6025,   0.0],
-         [ 43.3013,  75.0],
-         [-43.3013,  75.0],
-         [-86.6025,   0.0],
-         [-43.3013, -75.0],
-         [ 43.3013, -75.0]]
+        [
+            [86.6025, 0.0],
+            [43.3013, 75.0],
+            [-43.3013, 75.0],
+            [-86.6025, 0.0],
+            [-43.3013, -75.0],
+            [43.3013, -75.0],
+        ]
     )
-    ver_b = ver_a + [[  0.0,  200.0]]
-    ver_c = ver_a + [[  0.0, -200.0]]
+    ver_b = ver_a + [[0.0, 200.0]]
+    ver_c = ver_a + [[0.0, -200.0]]
     ver_d = ver_a + [[200.0, -200.0]]
-    
-    assert np.isclose(polygon_chord(muon_x,
-                                    muon_y,
-                                    np.array([photon_phi.to_value(u.rad)]),
-                                    [ver_a, ver_b, ver_c, ver_d]),
-                      expected_chord_length, atol=0.001)
+
+    assert np.isclose(
+        polygon_chord(
+            muon_x,
+            muon_y,
+            np.array([photon_phi.to_value(u.rad)]),
+            [ver_a, ver_b, ver_c, ver_d],
+        ),
+        expected_chord_length,
+        atol=0.001,
+    )
 
 
-@pytest.mark.parametrize("ver_initial, muon_x, muon_y, photon_phi, expected_chord_length", [
-    (
-        np.array(
-            [[ 86.6025, 0.0],
-             [ 43.3013, 75.0],
-             [-43.3013, 75.0],
-             [-86.6025, 0.0],
-             [-43.3013, -75.0],
-             [ 43.3013, -75.0]]
+@pytest.mark.parametrize(
+    "ver_initial, muon_x, muon_y, photon_phi, expected_chord_length",
+    [
+        (
+            np.array(
+                [
+                    [86.6025, 0.0],
+                    [43.3013, 75.0],
+                    [-43.3013, 75.0],
+                    [-86.6025, 0.0],
+                    [-43.3013, -75.0],
+                    [43.3013, -75.0],
+                ]
+            ),
+            0.0,
+            0.0,
+            90.0 * u.deg,
+            75.0,
         ),
-        0.0, 0.0, 90.0 * u.deg, 75.0
-    ),
-    (
-        np.array(
-            [[ 86.6025, 0.0],
-             [ 43.3013, 75.0],
-             [-43.3013, 75.0],
-             [-86.6025, 0.0],
-             [-43.3013, -75.0],
-             [ 43.3013, -75.0]]
+        (
+            np.array(
+                [
+                    [86.6025, 0.0],
+                    [43.3013, 75.0],
+                    [-43.3013, 75.0],
+                    [-86.6025, 0.0],
+                    [-43.3013, -75.0],
+                    [43.3013, -75.0],
+                ]
+            ),
+            0.0,
+            -200.0,
+            90.0 * u.deg,
+            150.0,
         ),
-        0.0, -200.0, 90.0 * u.deg, 150.0
-    ),
-    (
-        np.array(
-            [[ 86.6025, 0.0],
-             [ 43.3013, 75.0],
-             [-43.3013, 75.0],
-             [-86.6025, 0.0],
-             [-43.3013, -75.0],
-             [ 43.3013, -75.0]]
+        (
+            np.array(
+                [
+                    [86.6025, 0.0],
+                    [43.3013, 75.0],
+                    [-43.3013, 75.0],
+                    [-86.6025, 0.0],
+                    [-43.3013, -75.0],
+                    [43.3013, -75.0],
+                ]
+            ),
+            0.0,
+            0.0,
+            30.0 * u.deg,
+            75.0,
         ),
-        0.0, 0.0, 30.0 * u.deg, 75.0
-    ),
-    (
-        np.array(
-            [[ 86.6025, 0.0],
-             [ 43.3013, 75.0],
-             [-43.3013, 75.0],
-             [-86.6025, 0.0],
-             [-43.3013, -75.0],
-             [ 43.3013, -75.0]]
+        (
+            np.array(
+                [
+                    [86.6025, 0.0],
+                    [43.3013, 75.0],
+                    [-43.3013, 75.0],
+                    [-86.6025, 0.0],
+                    [-43.3013, -75.0],
+                    [43.3013, -75.0],
+                ]
+            ),
+            200.0,
+            200.0,
+            30.0 * u.deg,
+            0.0,
         ),
-        200.0, 200.0, 30.0 * u.deg, 0.0
-    ),
-])
-def test_polygon_chord_base(ver_initial, muon_x, muon_y, photon_phi, expected_chord_length):
+    ],
+)
+def test_polygon_chord_base(
+    ver_initial, muon_x, muon_y, photon_phi, expected_chord_length
+):
     from ctapipe.image.muon.intensity_fitter import polygon_chord_base
 
     ver_final = np.roll(ver_initial, 1, axis=0)
-    assert np.isclose(polygon_chord_base(muon_x,
-                                         muon_y,
-                                         photon_phi.to_value(u.rad),
-                                         ri_x = ver_initial[:,0],
-                                         ri_y = ver_initial[:,1],
-                                         vi_x = ver_final[:,0] - ver_initial[:,0],
-                                         vi_y = ver_final[:,1] - ver_initial[:,1]),
-                      expected_chord_length, atol=0.001)
+    assert np.isclose(
+        polygon_chord_base(
+            muon_x,
+            muon_y,
+            photon_phi.to_value(u.rad),
+            ri_x=ver_initial[:, 0],
+            ri_y=ver_initial[:, 1],
+            vi_x=ver_final[:, 0] - ver_initial[:, 0],
+            vi_y=ver_final[:, 1] - ver_initial[:, 1],
+        ),
+        expected_chord_length,
+        atol=0.001,
+    )
 
 
 parameter_names = [
