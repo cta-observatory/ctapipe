@@ -62,7 +62,6 @@ __all__ = [
     "TelescopeStructurePointingContainer",
     "TelescopeStructureDisplacementContainer",
     "CameraDisplacementContainer",
-    "TelescopeSkyPointingContainer",
     "TelescopePointingCorrectionContainer",
     "ArrayPointingContainer",
     "StatisticsContainer",
@@ -1256,17 +1255,6 @@ class AuxiliaryPointingCorrectionContainer(Container):
     delta_dec = Field(None, "Residual Declination offset correction", unit=u.rad)
 
 
-class TelescopeSkyPointingContainer(Container):
-    """
-    Fully corrected pointing mapping the camera center to
-    celestial coordinates (ICRS).
-    """
-
-    default_prefix = "sky_pointing"
-    ra = Field(None, "Right Ascension of camera center (ICRS)", unit=u.rad)
-    dec = Field(None, "Declination of camera center (ICRS)", unit=u.rad)
-
-
 class TelescopePointingCorrectionContainer(Container):
     """
     Residual sky-pointing corrections in celestial coordinates (RA/Dec/Rotation).
@@ -1277,12 +1265,12 @@ class TelescopePointingCorrectionContainer(Container):
     """
 
     default_prefix = "pointing_correction"
-    delta_ra = Field(None, "Residual Right Ascension offset correction", unit=u.rad)
-    delta_dec = Field(None, "Residual Declination offset correction", unit=u.rad)
+    delta_alt = Field(None, "Residual Altitude offset correction", unit=u.rad)
+    delta_az = Field(None, "Residual Azimuth offset correction", unit=u.rad)
 
     # Optional uncertainty tracking
-    sigma_ra = Field(None, "Uncertainty on RA offset correction", unit=u.rad)
-    sigma_dec = Field(None, "Uncertainty on Dec offset correction", unit=u.rad)
+    sigma_alt = Field(None, "Uncertainty on Alt offset correction", unit=u.rad)
+    sigma_az = Field(None, "Uncertainty on Az offset correction", unit=u.rad)
 
 
 class TelescopePointingContainer(Container):
