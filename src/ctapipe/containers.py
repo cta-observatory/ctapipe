@@ -1203,8 +1203,12 @@ class TelescopeStructurePointingContainer(Container):
     """
 
     default_prefix = "structure_pointing"
-    azimuth = Field(None, "Raw azimuth measured by structure encoders", unit=u.rad)
-    altitude = Field(None, "Raw altitude measured by structure encoders", unit=u.rad)
+    azimuth = Field(
+        nan * u.rad, "Raw azimuth measured by structure encoders", unit=u.rad
+    )
+    altitude = Field(
+        nan * u.rad, "Raw altitude measured by structure encoders", unit=u.rad
+    )
 
 
 class TelescopeStructureDisplacementContainer(Container):
@@ -1215,12 +1219,12 @@ class TelescopeStructureDisplacementContainer(Container):
 
     default_prefix = "structure_displacement"
     delta_azimuth = Field(
-        None,
+        nan * u.rad,
         "Azimuth offset due to structure bending/deformation",
         unit=u.rad,
     )
     delta_altitude = Field(
-        None,
+        nan * u.rad,
         "Altitude offset due to structure bending/deformation",
         unit=u.rad,
     )
@@ -1233,15 +1237,17 @@ class CameraDisplacementContainer(Container):
     """
 
     default_prefix = "camera_displacement"
-    delta_x = Field(None, "Camera displacement along X axis (horizontal)", unit=u.m)
-    delta_y = Field(None, "Camera displacement along Y axis (vertical)", unit=u.m)
-    delta_z = Field(
-        None, "Camera displacement along optical Z axis (focal offset)", unit=u.m
+    delta_x = Field(
+        nan * u.m, "Camera displacement along X axis (horizontal)", unit=u.m
     )
-    tilt_x = Field(None, "Camera tilt angle around X axis (pitch)", unit=u.rad)
-    tilt_y = Field(None, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
+    delta_y = Field(nan * u.m, "Camera displacement along Y axis (vertical)", unit=u.m)
+    delta_z = Field(
+        nan * u.m, "Camera displacement along optical Z axis (focal offset)", unit=u.m
+    )
+    tilt_x = Field(nan * u.rad, "Camera tilt angle around X axis (pitch)", unit=u.rad)
+    tilt_y = Field(nan * u.rad, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
     tilt_z = Field(
-        None, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
+        nan * u.rad, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
     )
 
 
@@ -1251,8 +1257,10 @@ class AuxiliaryPointingCorrectionContainer(Container):
     """
 
     default_prefix = "aux_pointing_correction"
-    delta_ra = Field(None, "Residual Right Ascension offset correction", unit=u.rad)
-    delta_dec = Field(None, "Residual Declination offset correction", unit=u.rad)
+    delta_ra = Field(
+        nan * u.rad, "Residual Right Ascension offset correction", unit=u.rad
+    )
+    delta_dec = Field(nan * u.rad, "Residual Declination offset correction", unit=u.rad)
 
 
 class TelescopePointingCorrectionContainer(Container):
@@ -1265,12 +1273,12 @@ class TelescopePointingCorrectionContainer(Container):
     """
 
     default_prefix = "pointing_correction"
-    delta_alt = Field(None, "Residual Altitude offset correction", unit=u.rad)
-    delta_az = Field(None, "Residual Azimuth offset correction", unit=u.rad)
+    delta_alt = Field(nan * u.rad, "Residual Altitude offset correction", unit=u.rad)
+    delta_az = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
 
     # Optional uncertainty tracking
-    sigma_alt = Field(None, "Uncertainty on Alt offset correction", unit=u.rad)
-    sigma_az = Field(None, "Uncertainty on Az offset correction", unit=u.rad)
+    sigma_alt = Field(nan * u.rad, "Uncertainty on Alt offset correction", unit=u.rad)
+    sigma_az = Field(nan * u.rad, "Uncertainty on Az offset correction", unit=u.rad)
 
 
 class TelescopePointingContainer(Container):
@@ -1282,8 +1290,8 @@ class TelescopePointingContainer(Container):
     """
 
     default_prefix = "telescope_pointing"
-    azimuth = Field(None, "Azimuth, measured N->E", unit=u.rad)
-    altitude = Field(None, "Altitude", unit=u.rad)
+    azimuth = Field(nan * u.rad, "Azimuth, measured N->E", unit=u.rad)
+    altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
 class ArrayPointingContainer(Container):
@@ -1292,10 +1300,10 @@ class ArrayPointingContainer(Container):
     after all necessary correction and calibration steps.
     """
 
-    array_azimuth = Field(None, "Array pointing azimuth", unit=u.rad)
-    array_altitude = Field(None, "Array pointing altitude", unit=u.rad)
-    array_ra = Field(None, "Array pointing right ascension", unit=u.rad)
-    array_dec = Field(None, "Array pointing declination", unit=u.rad)
+    array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
+    array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
+    array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
+    array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
 
 
 # Environmental Monitoring containers
@@ -1309,11 +1317,14 @@ class WeatherMonitoringContainer(Container):
     """
 
     default_prefix = "weather"
-    temperature = Field(None, "Ambient air temperature at observatory site", unit=u.K)
-    pressure = Field(None, "Atmospheric pressure at observatory site", unit=u.hPa)
+    temperature = Field(
+        nan * u.K, "Ambient air temperature at observatory site", unit=u.K
+    )
+    pressure = Field(
+        nan * u.hPa, "Atmospheric pressure at observatory site", unit=u.hPa
+    )
     relative_humidity = Field(
-        None,
-        "Relative humidity fraction (0.0 to 1.0)",
+        nan, "Relative humidity fraction (0.0 to 1.0)", unit=u.dimensionless_unscaled
     )
 
 
