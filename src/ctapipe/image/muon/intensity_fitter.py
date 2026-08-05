@@ -169,8 +169,8 @@ def polygon_chord_base(
     status = np.column_stack((vi_x, ri_x, vi_y, ri_y, t, s))
     mask = (status[:,4] >= 0) & (status[:,4] < 1) & (status[:,5] >= 0)
 
-    x_int = status[mask][:,0]*status[mask][:,4] + status[mask][:,1]
-    y_int = status[mask][:,2]*status[mask][:,4] + status[mask][:,3]
+    x_int = status[mask][:, 0]*status[mask][:, 4] + status[mask][:, 1]
+    y_int = status[mask][:, 2]*status[mask][:, 4] + status[mask][:, 3]
 
     if x_int.shape[0] == 0 :
         if return_intersections:
