@@ -180,8 +180,8 @@ def test_pointing():
         for e in reader:
             assert np.isclose(e.monitoring.pointing.array_altitude.to_value(u.deg), 70)
             assert np.isclose(e.monitoring.pointing.array_azimuth.to_value(u.deg), 0)
-            assert np.isnan(e.monitoring.pointing.array_ra)
-            assert np.isnan(e.monitoring.pointing.array_dec)
+            assert e.monitoring.pointing.array_ra is None
+            assert e.monitoring.pointing.array_dec is None
 
             # normal run, all telescopes point to the array direction
             for tel_id in e.monitoring.tel.keys():
