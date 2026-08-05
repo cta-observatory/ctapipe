@@ -1,1 +1,1 @@
-Add chord length calculation for one or more polygons in the primary mirror description for muon analisys.
+Add chord length calculation for one or more polygons in the primary mirror description for muon analysis.
