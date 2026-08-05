@@ -79,10 +79,10 @@ def polygon_chord(mu_x, mu_y, phi, vertices_list):
 
     for ver_i in vertices_list:
         ver_f = np.roll(ver_i, 1,axis=0)
-        ri_x.append(ver_i[:,0])
-        ri_y.append(ver_i[:,1])
-        vi_x.append(ver_f[:,0] - ver_i[:,0])
-        vi_y.append(ver_f[:,1] - ver_i[:,1])
+        ri_x.append(ver_i[:, 0])
+        ri_y.append(ver_i[:, 1])
+        vi_x.append(ver_f[:, 0] - ver_i[:, 0])
+        vi_y.append(ver_f[:, 1] - ver_i[:, 1])
 
     the_chord = []
     for az in phi:
