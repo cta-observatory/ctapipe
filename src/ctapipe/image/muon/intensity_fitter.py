@@ -147,8 +147,8 @@ def polygon_chord_base(
 
     Examples
     --------
-    >>> length = polygon_chord(mu_x=0, mu_y=0, phi=np.pi/4,
-    ...                        ri_x=..., ri_y=..., vi_x=..., vi_y=...)
+    >>> length = polygon_chord_base(mu_x=0, mu_y=0, phi=np.pi/4,
+    ...                             ri_x=..., ri_y=..., vi_x=..., vi_y=...)
     >>> print(length)
 
     """
