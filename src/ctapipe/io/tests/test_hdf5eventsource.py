@@ -321,8 +321,8 @@ def test_no_pointing_in_ob(tmp_path):
     with HDF5EventSource(path) as source:
         n_read = 0
         for e in source:
-            assert np.isnan(e.monitoring.pointing.array_azimuth)
-            assert np.isnan(e.monitoring.pointing.array_altitude)
+            assert e.monitoring.pointing.array_azimuth is None
+            assert e.monitoring.pointing.array_altitude is None
             n_read += 1
         assert n_read == n_written
 
