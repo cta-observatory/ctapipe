@@ -49,8 +49,9 @@ class Field[T]:
     default :
         Default value of the item. This will be set when the `Container`
         is constructed, as well as when  ``Container.reset`` is called.
-        This should only be used for immutable values. For mutable values,
-        use ``default_factory`` instead.
+        The value passed to ``default`` should be immutable, as it is
+        assigned as is to each new container instance.
+        For mutable default values, use ``default_factory`` instead.
     description : str
         Help text associated with the item
     unit : str or astropy.units.core.UnitBase
