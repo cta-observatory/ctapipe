@@ -172,7 +172,7 @@ def polygon_chord_base(
     x_int = status[mask][:, 0]*status[mask][:, 4] + status[mask][:, 1]
     y_int = status[mask][:, 2]*status[mask][:, 4] + status[mask][:, 3]
 
-    if x_int.shape[0] == 0 :
+    if x_int.shape[0] == 0:
         if return_intersections:
             return 0.0, np.nan, np.nan
         return 0.0
