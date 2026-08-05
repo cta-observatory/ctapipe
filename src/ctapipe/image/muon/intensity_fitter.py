@@ -97,7 +97,9 @@ def polygon_chord(mu_x, mu_y, phi, vertices_list):
     return np.array(the_chord)
 
 
-def polygon_chord_base(mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections = False):
+def polygon_chord_base(
+        mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections = False
+):
     """
     Compute the chord length of a ray intersecting a polygon.
 
