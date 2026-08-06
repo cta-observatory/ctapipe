@@ -1,7 +1,6 @@
 import astropy.units as u
 import numpy as np
 
-from ...containers import TelescopePointingContainer
 from ...core import TelescopeComponent
 
 
@@ -25,39 +24,44 @@ class PointingCalibrator(TelescopeComponent):
                 continue
 
             mon = event.monitoring.tel[tel_id]
-            pointing_container = self._apply_structure_displacement(mon)
+            pointing_container = mon.structure_pointing
             if pointing_container is None:
                 self.log.warning(
-                    "Pointing calibration failed for telescope %s. "
+                    "Structure pointing data not available for telescope %s. "
                     "Skipping pointing calibration for this telescope.",
                     tel_id,
                 )
                 continue
+
+            if not self._apply_structure_displacement(pointing_container, mon):
+                self.log.warning(
+                    "Structure displacement data not available for telescope %s. "
+                    "Using raw structure pointing.",
+                    tel_id,
+                )
             event.monitoring.tel[tel_id].pointing = pointing_container
 
-    def _apply_structure_displacement(self, mon_tel) -> TelescopePointingContainer:
+    def _apply_structure_displacement(self, pointing_container, mon_tel) -> bool:
         """
         Apply structural displacement to raw structure pointing.
         """
-        raw_pointing = mon_tel.structure_pointing
         displacement = mon_tel.structure_displacement
-        if raw_pointing is None:
-            self.log.warning("No structure pointing data available.")
-            return None
         if displacement is None:
-            self.log.warning("No structure displacement data available.")
-            return None
-
+            self.log.warning(
+                "No structure displacement data available, using raw structure pointing."
+            )
+            return False
         # Combine raw encoder positions with structural displacement offsets
-        alt_corr = raw_pointing.altitude + displacement.delta_altitude
-        az_corr = (raw_pointing.azimuth + displacement.delta_azimuth) % (
+        alt_corr = pointing_container.altitude + displacement.delta_altitude
+        az_corr = (pointing_container.azimuth + displacement.delta_azimuth) % (
             2 * np.pi * u.rad
         )
-
-        return TelescopePointingContainer(
+        pointing_container.update(
             azimuth=az_corr,
             altitude=alt_corr,
         )
+
+        return True
 
     def _apply_camera_displacement(self, event, tel_id):
         """

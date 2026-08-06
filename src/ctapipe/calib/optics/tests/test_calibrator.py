@@ -79,7 +79,9 @@ def test_missing_structure_pointing_logs_warning(pointing_calibrator, caplog):
     pointing_calibrator(event)
 
     assert event.monitoring.tel[tel_id].pointing is None
-    assert "No structure pointing data available." in caplog.text
+    assert (
+        f"Structure pointing data not available for telescope {tel_id}." in caplog.text
+    )
 
 
 def test_missing_structure_displacement_logs_warning(pointing_calibrator, caplog):
@@ -96,8 +98,14 @@ def test_missing_structure_displacement_logs_warning(pointing_calibrator, caplog
 
     pointing_calibrator(event)
 
-    assert event.monitoring.tel[tel_id].pointing is None
-    assert "No structure displacement data available." in caplog.text
+    calibrated = event.monitoring.tel[tel_id].pointing
+    assert calibrated is not None
+    assert u.isclose(calibrated.azimuth, 0.1 * u.rad)
+    assert u.isclose(calibrated.altitude, 0.2 * u.rad)
+    assert (
+        f"Structure displacement data not available for telescope {tel_id}."
+        in caplog.text
+    )
 
 
 def test_missing_tel_in_monitoring_is_skipped(pointing_calibrator):
