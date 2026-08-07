@@ -145,12 +145,6 @@ def polygon_chord_base(
     - For multiple intersections, distances are sorted and combined with alternating
       signs to compute the total chord length (useful for non-convex polygons).
 
-    Examples
-    --------
-    >>> length = polygon_chord_base(mu_x=0, mu_y=0, phi=np.pi/4,
-    ...                             ri_x=..., ri_y=..., vi_x=..., vi_y=...)
-    >>> print(length)
-
     """
 
     # Effective speed of the ray, with unit norm.
