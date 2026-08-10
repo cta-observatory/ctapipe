@@ -154,13 +154,10 @@ nitpick_ignore = add_reference_type(
         "DTypeLike",
         # astropy, new errors in 8.0, see https://github.com/astropy/astropy/issues/19933
         "Attribute",
-        "r.BaseDifferential",
-        "r.BaseRepresentation",
-        "r.BaseRepresentationOrDifferential",
-        "RepresentationMapping",
         "BaseDifferential",
         "BaseRepresentation",
         "BaseRepresentationOrDifferential",
+        "RepresentationMapping",
     ],
 )
 nitpick_ignore += add_reference_type(

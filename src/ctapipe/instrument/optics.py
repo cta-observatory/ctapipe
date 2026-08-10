@@ -5,16 +5,32 @@ Classes and functions related to telescope Optics
 import logging
 from abc import abstractmethod
 from enum import Enum, StrEnum, auto, unique
+from functools import cached_property
 from pathlib import Path
 
 import astropy.units as u
 import numpy as np
 from astropy.table import QTable, Table
+from numpy.fft import fft2, fftshift
+from scipy.ndimage import gaussian_filter, map_coordinates
 from scipy.stats import laplace, laplace_asymmetric
+
+try:
+    from zernike import RZern
+except ModuleNotFoundError:
+    RZern = None
 
 from ..coordinates import TelescopeFrame
 from ..core import TelescopeComponent
-from ..core.traits import FloatTelescopeParameter
+from ..core.traits import (
+    AstroQuantity,
+    Float,
+    FloatTelescopeParameter,
+    Int,
+    IntTelescopeParameter,
+    TelescopeParameter,
+)
+from ..exceptions import OptionalDependencyMissing
 from ..utils import get_table_dataset
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
@@ -26,6 +42,7 @@ __all__ = [
     "FocalLengthKind",
     "PSFModel",
     "ComaPSFModel",
+    "ZernikePSFModel",
 ]
 
 
@@ -627,3 +644,393 @@ class ComaPSFModel(PSFModel):
             pdf = radial_pdf * polar_pdf * inv_r
 
         return pdf
+
+
+class ZernikePSFModel(PSFModel):
+    r"""PSF model based on wavefront reconstruction using Zernike wavefront coefficients.
+
+    This model reconstructs the optical wavefront from a set of Zernike
+    polynomial coefficients and computes the point spread function (PSF)
+    by Fourier propagation through the telescope pupil. The resulting PSF
+    naturally includes diffraction and wavefront aberrations and is
+    evaluated for arbitrary field positions by allowing selected Zernike
+    coefficients to vary with the source position in the focal plane.
+
+    The model includes:
+
+    - `Zernike polynomials in Noll <https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials>`__
+      indexing to describe the optical path
+      difference (OPD) across the telescope pupil. This indexing convention
+      maps the standard radial and azimuthal modes to a 1D sequence, matching
+      industry standards such as Ansys Zemax.
+    - Scalar Fourier optics to propagate the complex pupil field into the
+      focal plane.
+    - Polychromatic averaging over the Cherenkov emission spectrum using a
+      configurable wavelength range and spectral weighting.
+    - Optional Gaussian smoothing to approximate detector and residual
+      instrumental broadening not explicitly included in the wavefront
+      model.
+
+    In the current parameterization, field-dependent aberrations are
+    represented by linear coma terms and quadratic astigmatism terms,
+    providing a compact phenomenological description of off-axis optical
+    degradation while retaining a physically motivated wavefront model.
+    """
+
+    # Universal model performance parameters
+    pupil_diameter_fraction = Float(
+        default_value=0.12,
+        help=(
+            "Diameter of the telescope pupil as a fraction of the FFT grid size. "
+            "Smaller values increase focal-plane sampling at the expense of "
+            "undersampling the pupil, while larger values improve pupil sampling "
+            "but reduce the field of view and sampling resolution of the computed PSF."
+        ),
+    ).tag(config=True)
+
+    noll_max = 11  # highest Noll index
+
+    wavelength_samples = Int(
+        default_value=20,
+        help="Number of wavelength samples for polychromatic averaging",
+    ).tag(config=True)
+
+    # Universal physical constants
+    cherenkov_spectrum_index = Float(
+        default_value=2.0,
+        help="Power-law index for Cherenkov spectrum weighting (dN/dλ ∝ λ^-index)",
+    ).tag(config=True)
+
+    wavelength_min = AstroQuantity(
+        default_value=300e-9 * u.m,
+        physical_type=u.physical.length,
+        help="Minimum wavelength for polychromatic averaging",
+    ).tag(config=True)
+
+    wavelength_max = AstroQuantity(
+        default_value=600e-9 * u.m,
+        physical_type=u.physical.length,
+        help="Maximum wavelength for polychromatic averaging",
+    ).tag(config=True)
+
+    # Per-telescope optical parameters
+    pupil_size = IntTelescopeParameter(
+        default_value=512,
+        help=(
+            "Number of samples across the FFT grid used to discretize the pupil. "
+            "Larger values improve numerical accuracy and PSF sampling at the "
+            "expense of increased memory usage and computation time."
+        ),
+    ).tag(config=True)
+
+    pupil_edge_softness = FloatTelescopeParameter(
+        default_value=0.08,
+        help=(
+            "Width of the sigmoid taper applied to the pupil edge in normalized "
+            "pupil-radius units. Larger values suppress diffraction ringing but "
+            "slightly blur the effective aperture."
+        ),
+    ).tag(config=True)
+
+    focal_plane_smoothing_sigma_pix = FloatTelescopeParameter(
+        default_value=3.0,
+        help="Gaussian smoothing sigma applied to PSF intensity.",
+    ).tag(config=True)
+
+    psf_extent = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.angle),
+        default_value=0.5 * u.deg,
+        help=(
+            "Angular width of the square grid used to represent a single "
+            "point source's PSF, centered on the source position. Must be "
+            "large enough to contain the full extent of the PSF (including "
+            "aberration tails) or normalization will be biased low; "
+            "not the telescope's camera field of view."
+        ),
+    ).tag(config=True)
+
+    z2 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Tilt X",
+    ).tag(config=True)
+    z3 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Tilt Y",
+    ).tag(config=True)
+    z4 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=1.825e-07 * u.m,
+        help="Defocus",
+    ).tag(config=True)
+    z5 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Astigmatism 45°",
+    ).tag(config=True)
+    z6 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Astigmatism 0°",
+    ).tag(config=True)
+    z7 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Vertical Coma",
+    ).tag(config=True)
+    z8 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Horizontal Coma",
+    ).tag(config=True)
+    z9 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Vertical trefoil",
+    ).tag(config=True)
+    z10 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Horizontal trefoil",
+    ).tag(config=True)
+    z11 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=3.467e-08 * u.m,
+        help="Spherical",
+    ).tag(config=True)
+
+    coma_radial_growth = TelescopeParameter(
+        trait=AstroQuantity(physical_type=(u.m / u.deg).physical_type),
+        default_value=1.919e-07 * u.m / u.deg,
+        help="Radial coma growth",
+    ).tag(config=True)
+
+    z5_theta2 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=(u.m / u.deg**2).physical_type),
+        default_value=3.501e-08 * u.m / u.deg**2,
+        help="Quadratic astigmatism growth",
+    ).tag(config=True)
+
+    z6_theta2 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=(u.m / u.deg**2).physical_type),
+        default_value=3.501e-08 * u.m / u.deg**2,
+        help="Quadratic astigmatism growth",
+    ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """Initialize the ZernikePSFModel component and check for missing optional dependency."""
+        if RZern is None:
+            raise OptionalDependencyMissing("zernike")
+        super().__init__(
+            subarray=subarray,
+            config=config,
+            parent=parent,
+            **kwargs,
+        )
+
+    @cached_property
+    def _radial_order(self):
+        n = 0
+        while (n + 1) * (n + 2) // 2 < self.noll_max:
+            n += 1
+        return max(1, n)
+
+    def _zernike_grid(self, tel_id):
+        if not hasattr(self, "_zernike_grid_cache"):
+            self._zernike_grid_cache = {}
+        if tel_id in self._zernike_grid_cache:
+            return self._zernike_grid_cache[tel_id]
+        n = self.pupil_size.tel[tel_id]
+        frac = self.pupil_diameter_fraction
+        if not (0 < frac <= 1):
+            raise ValueError("pupil_diameter_fraction must be in (0, 1]")
+
+        coord_limit = 1.0 / frac
+        x = np.linspace(-coord_limit, coord_limit, n)
+        y = np.linspace(-coord_limit, coord_limit, n)
+        xx, yy = np.meshgrid(x, y)
+
+        rr = np.sqrt(xx**2 + yy**2)
+        mask = rr <= 1
+
+        edge = max(self.pupil_edge_softness.tel[tel_id], 1e-6)
+        aperture = 1.0 / (1.0 + np.exp(np.clip((rr - 1.0) / edge, -60.0, 60.0)))
+        rz = RZern(self._radial_order)
+        rz.make_cart_grid(xx, yy)
+        self._zernike_grid_cache[tel_id] = (rz, mask, aperture)
+
+        return rz, mask, aperture
+
+    def _coeff_vector(self, tel_id, lon0_deg, lat0_deg):
+        """
+        Build the Noll coefficient vector [m] for a given telescope and
+        field-of-view offset. Internally works with plain floats in fixed
+        units (m for OPD amplitudes, deg for angles) after unwrapping the
+        Quantity-valued traits, since the downstream Zernike/FFT machinery
+        is unit-agnostic.
+        """
+        rz, _, _ = self._zernike_grid(tel_id)
+        coeff = np.zeros(rz.nk)
+
+        theta2 = lon0_deg**2 + lat0_deg**2
+        theta = np.sqrt(theta2)
+        if theta > 0:
+            ux = lon0_deg / theta
+            uy = lat0_deg / theta
+        else:
+            ux = 0.0
+            uy = 0.0
+
+        coma_radial_growth_deg = self.coma_radial_growth.tel[tel_id].to_value(
+            u.m / u.deg
+        )
+        z5_theta2_m_per_deg2 = self.z5_theta2.tel[tel_id].to_value(u.m / u.deg**2)
+        z6_theta2_m_per_deg2 = self.z6_theta2.tel[tel_id].to_value(u.m / u.deg**2)
+
+        # Project astigmatism rotation (2*phi)
+        cos_2phi = ux**2 - uy**2
+        sin_2phi = 2.0 * ux * uy
+
+        coma_radial = coma_radial_growth_deg * theta
+        coma_x = coma_radial * ux
+        coma_y = coma_radial * uy
+        noll_coeffs = [
+            0.0,
+            self.z2.tel[tel_id].to_value(u.m),
+            self.z3.tel[tel_id].to_value(u.m),
+            self.z4.tel[tel_id].to_value(u.m),
+            self.z5.tel[tel_id].to_value(u.m)
+            + z5_theta2_m_per_deg2 * theta2 * sin_2phi,
+            self.z6.tel[tel_id].to_value(u.m)
+            + z6_theta2_m_per_deg2 * theta2 * cos_2phi,
+            self.z7.tel[tel_id].to_value(u.m) + coma_y,
+            self.z8.tel[tel_id].to_value(u.m) + coma_x,
+            self.z9.tel[tel_id].to_value(u.m),
+            self.z10.tel[tel_id].to_value(u.m),
+            self.z11.tel[tel_id].to_value(u.m),
+        ]
+
+        upper = min(len(noll_coeffs), self.noll_max, rz.nk)
+        coeff[1:upper] = noll_coeffs[1:upper]
+        return coeff
+
+    def _build_psf(self, tel_id, lon0_deg, lat0_deg):
+        rz, mask, aperture = self._zernike_grid(tel_id)
+        coeff = self._coeff_vector(tel_id, lon0_deg, lat0_deg)
+        wavefront = rz.eval_grid(coeff, matrix=True)
+
+        lam_min = self.wavelength_min.to_value(u.m)
+        lam_max = self.wavelength_max.to_value(u.m)
+        if self.wavelength_samples < 1:
+            raise ValueError("wavelength_samples must be >= 1")
+        if lam_min <= 0 or lam_max <= 0 or lam_max < lam_min:
+            raise ValueError("Invalid wavelength_min/wavelength_max")
+
+        wavelengths = np.linspace(lam_min, lam_max, self.wavelength_samples)
+        weights = wavelengths ** (-self.cherenkov_spectrum_index)
+        weights /= np.sum(weights)
+
+        # Reference wavelength (mean of the range)
+        lambda_ref = np.mean(wavelengths)
+
+        intensity = np.zeros_like(wavefront, dtype=float)
+        h, w = intensity.shape
+        cy, cx = h // 2, w // 2
+        y_ref, x_ref = np.indices((h, w), dtype=float)
+
+        for wavelength, weight in zip(wavelengths, weights):
+            phase = 2 * np.pi * wavefront / wavelength
+            phase_safe = np.zeros_like(phase)
+            phase_safe[mask] = phase[mask]
+            pupil = aperture * np.exp(1j * phase_safe)
+            field = fft2(pupil)
+            intensity_lambda = fftshift(np.abs(field) ** 2)
+
+            scale = lambda_ref / wavelength
+            y_lambda = (y_ref - cy) * scale + cy
+            x_lambda = (x_ref - cx) * scale + cx
+
+            # Interpolate intensity_lambda at the scaled coordinates
+            intensity_rescaled = map_coordinates(
+                intensity_lambda,
+                np.array(
+                    [y_lambda, x_lambda]
+                ),  # map_coordinates expects a single array or tuple
+                order=3,
+                mode="constant",
+                cval=0.0,
+            )
+
+            # Accumulate and protect against minor cubic interpolation under-shoots
+            intensity += weight * np.clip(intensity_rescaled, 0.0, None)  # / (scale**2)
+
+        sigma_pix = max(self.focal_plane_smoothing_sigma_pix.tel[tel_id], 0.0)
+        if sigma_pix > 0:
+            intensity = gaussian_filter(intensity, sigma=sigma_pix, mode="nearest")
+
+        # Convert from discrete probability per FFT pixel to
+        # probability density per angular area.
+        total = intensity.sum()
+        if not np.isfinite(total) or total <= 0:
+            raise RuntimeError(
+                f"Invalid PSF normalization: total intensity is {total!r}"
+            )
+        intensity /= total
+
+        psf_extent = self.psf_extent.tel[tel_id].to_value(u.deg)
+        pixel_scale = psf_extent / (self.pupil_size.tel[tel_id] - 1)
+        pixel_area = pixel_scale**2
+
+        total_volume = intensity.sum() * pixel_area
+        if not np.isfinite(total_volume) or total_volume <= 0:
+            raise RuntimeError(
+                f"Invalid PSF normalization: total integrated volume is {total_volume!r}"
+            )
+
+        intensity /= total_volume
+
+        return intensity
+
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
+    def pdf(self, tel_id, lon, lat, lon0, lat0):
+        dx = np.asarray((lon - lon0).to_value(u.deg))
+        dy = np.asarray((lat - lat0).to_value(u.deg))
+        input_shape = dx.shape
+
+        lon0_deg = lon0.to_value(u.deg)
+        lat0_deg = lat0.to_value(u.deg)
+        intensity = self._build_psf(tel_id, lon0_deg, lat0_deg)
+
+        full_field = self.psf_extent.tel[tel_id].to_value(u.deg)
+        half_field = 0.5 * full_field
+        if half_field <= 0:
+            raise ValueError("psf_extent must be > 0")
+
+        n = self.pupil_size.tel[tel_id]
+        xpix = (dx + half_field) / (2 * half_field) * (n - 1)
+        ypix = (dy + half_field) / (2 * half_field) * (n - 1)
+
+        # map_coordinates requires the "points" dimension to have rank >= 1;
+        # scalar lon/lat collapse to 0-d, so flatten for the call and restore
+        # the original shape (including scalar) afterward.
+        coords = np.array([np.atleast_1d(ypix).ravel(), np.atleast_1d(xpix).ravel()])
+
+        psf = map_coordinates(
+            intensity,
+            coords,
+            order=1,
+            mode="constant",
+            cval=0.0,
+            prefilter=False,
+        )
+
+        psf = np.asarray(psf, dtype=float).reshape(input_shape)
+        psf = np.clip(psf, 0.0, None)
+
+        return psf.item() if psf.shape == () else psf

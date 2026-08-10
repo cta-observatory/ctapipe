@@ -60,6 +60,7 @@ all = [
     "iminuit >=2",
     "matplotlib ~=3.0",
     "pyirf ~=0.14.0",
+    "zernike",
 ]
 
 tests = [
