@@ -1265,20 +1265,26 @@ class AuxiliaryPointingCorrectionContainer(Container):
 
 class TelescopePointingCorrectionContainer(Container):
     """
-    Residual sky-pointing corrections in celestial coordinates (RA/Dec/Rotation).
+    Residual sky-pointing corrections in local coordinates (Alt/Az).
 
-    This container holds abstract celestial offsets regardless of how they were
+    This container holds pointing offsets in local coordinates regardless of how they were
     derived (e.g. analytical StarTracker, auxiliary hardware devices,
     or a combination/fusion model).
     """
 
     default_prefix = "pointing_correction"
-    delta_alt = Field(nan * u.rad, "Residual Altitude offset correction", unit=u.rad)
-    delta_az = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
+    delta_altitude = Field(
+        nan * u.rad, "Residual Altitude offset correction", unit=u.rad
+    )
+    delta_azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
 
     # Optional uncertainty tracking
-    sigma_alt = Field(nan * u.rad, "Uncertainty on Alt offset correction", unit=u.rad)
-    sigma_az = Field(nan * u.rad, "Uncertainty on Az offset correction", unit=u.rad)
+    sigma_altitude = Field(
+        nan * u.rad, "Uncertainty on Altitude offset correction", unit=u.rad
+    )
+    sigma_azimuth = Field(
+        nan * u.rad, "Uncertainty on Azimuth offset correction", unit=u.rad
+    )
 
 
 class TelescopePointingContainer(Container):
