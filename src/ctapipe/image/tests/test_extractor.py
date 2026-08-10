@@ -942,3 +942,10 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
                 assert_allclose(
                     dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
                 )
+
+
+def test_global_peak_window_sum_muons(ctapipe_ref_pules):
+    from ctapipe.image.extractor import GlobalPeakWindowSum
+    print("test_global_peak_window_sum_muons")
+    print(ctapipe_ref_pules)
+    assert 1
