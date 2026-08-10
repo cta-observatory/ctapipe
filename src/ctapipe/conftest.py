@@ -213,8 +213,11 @@ def calibpipe_camcalib_obslike_different_chunks():
 
 
 @pytest.fixture(scope="session")
-def ctapipe_ref_pules()
-    return get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5")
+def ctapipe_ref_pules():
+    return read_table(
+        get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5"),
+        "/configuration/instrument/telescope/camera/readout_0/",
+    )
 
 
 @pytest.fixture(scope="session")
