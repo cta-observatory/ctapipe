@@ -1296,26 +1296,13 @@ class TelescopeMonitoringContainer(Container):
         default_factory=CameraMonitoringContainer,
         description="Container for monitoring data for camera",
     )
-    structure_pointing = Field(
-        default=None,
-        type=TelescopeStructurePointingContainer,
-        description="Pointing of the telescope structure in local coordinates (RAW).",
-    )
-    structure_displacement = Field(
-        default=None,
-        type=TelescopeStructureDisplacementContainer,
-        description="Difference between ideal and real direction of the telescope axis in local coordinates.",
-    )
+
     camera_displacement = Field(
         default=None,
         type=CameraDisplacementContainer,
         description="Displacement and tilt of the camera w.r.t. its nominal position in the telescope structure.",
     )
-    aux_pointing_correction = Field(
-        default=None,
-        type=AuxiliaryPointingCorrectionContainer,
-        description="Pointing correction in celestial coordinates derived using auxiliary hardware.",
-    )
+
     pointing = Field(
         default=None,
         type=TelescopePointingContainer,
