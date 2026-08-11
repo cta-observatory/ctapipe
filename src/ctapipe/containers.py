@@ -58,6 +58,7 @@ __all__ = [
     "TelescopeStructurePointingContainer",
     "TelescopeStructureDisplacementContainer",
     "CameraDisplacementContainer",
+    "AuxiliaryPointingCorrectionContainer",
     "TelescopePointingCorrectionContainer",
     "ArrayPointingContainer",
     "StatisticsContainer",
