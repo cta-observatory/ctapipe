@@ -1279,10 +1279,10 @@ class TelescopePointingCorrectionContainer(Container):
     delta_azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
 
     # Optional uncertainty tracking
-    uncertainty_altitude = Field(
+    altitude_uncertainty = Field(
         nan * u.rad, "Uncertainty on Altitude offset correction", unit=u.rad
     )
-    uncertainty_azimuth = Field(
+    azimuth_uncertainty = Field(
         nan * u.rad, "Uncertainty on Azimuth offset correction", unit=u.rad
     )
 
