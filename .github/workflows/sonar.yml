@@ -8,6 +8,11 @@
 
 name: Sonar
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
 on:
   workflow_run:
     workflows: [CI]
@@ -16,6 +21,7 @@ on:
 jobs:
   sonar:
     name: Sonar
+    environment: sonar
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
@@ -45,8 +51,11 @@ jobs:
 
       - name: Set environment
         run: |
-          cat $HOME/coverage/sonar_env >> "$GITHUB_ENV"
           cat $HOME/coverage/sonar_env
+          grep "^PR_NUMBER=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
+          grep "^SOURCE_BRANCH=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
+          grep "^TARGET_BRANCH=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
+          grep "^PROJECT_VERSION=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
 
       - name: Checkout branch or tag
         uses: actions/checkout@v7
@@ -64,12 +73,13 @@ jobs:
           ref: refs/pull/${{ env.PR_NUMBER }}/merge
           fetch-depth: 0
           clean: false
+          allow-unsafe-pr-checkout: true
+          persist-credentials: false
 
       - name: Check artifact
         run: |
           cp -r $HOME/coverage .
           ls -l coverage
-          cat coverage/coverage.xml
 
       - name: Git info
         run: |
@@ -82,7 +92,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CTAO }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
         with:
           args: >
@@ -93,7 +103,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CTAO }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
         with:
           args: >
