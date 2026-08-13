@@ -67,10 +67,20 @@ class StereoMeanCombiner(StereoCombiner):
     """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "aspect-weighted-intensity"],
+        [
+            "none",
+            "intensity",
+            "aspect-weighted-intensity",
+            "containment-weighted-intensity",
+        ],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
+            "What kind of weights to use. Options: ``none``, ``intensity``,"
+            " ``aspect-weighted-intensity``, ``containment-weighted-intensity``."
+            " ``containment-weighted-intensity`` down-weights truncated (leaky)"
+            " images via ``(intensity * (1 - width / length))**2 *"
+            " (1 - leakage_intensity_width_2)**4`` and is the most robust option"
+            " at high energies where image truncation dominates."
         ),
     ).tag(config=True)
 
@@ -100,6 +110,11 @@ class StereoMeanCombiner(StereoCombiner):
             if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
+            if self.weights == "containment-weighted-intensity":
+                elongation = 1 - data.hillas.width / data.hillas.length
+                containment = 1 - data.leakage.intensity_width_2
+                return (data.hillas.intensity * elongation) ** 2 * containment**4
+
             return 1
 
         if isinstance(data, Table):
@@ -112,6 +127,11 @@ class StereoMeanCombiner(StereoCombiner):
                     * data["hillas_length"]
                     / data["hillas_width"]
                 )
+
+            if self.weights == "containment-weighted-intensity":
+                elongation = 1 - data["hillas_width"] / data["hillas_length"]
+                containment = 1 - data["leakage_intensity_width_2"]
+                return (data["hillas_intensity"] * elongation) ** 2 * containment**4
 
             return np.ones(len(data))
 
