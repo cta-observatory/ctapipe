@@ -119,3 +119,6 @@ Reference/API
 
 .. automodapi:: ctapipe.tools.store_astropy_cache
    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.display_dl1
+   :no-inheritance-diagram:
