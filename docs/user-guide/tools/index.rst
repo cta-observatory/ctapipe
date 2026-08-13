@@ -42,6 +42,7 @@ Other Tools
 
 * ``ctapipe-info``:  print information about your ctapipe installation and its command-line tools.
 * `ctapipe-dump-instrument <ctapipe.tools.dump_instrument.DumpInstrumentTool>`: writes instrumental info from any supported event input file, and writes them out as FITS or ECSV files for external use.
+* `ctapipe-display-dl1 <ctapipe.tools.display_dl1.DisplayDL1Calib>`: Displays camera images.
 
 Examples
 ========
