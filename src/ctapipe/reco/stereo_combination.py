@@ -7,7 +7,7 @@ from astropy.table import Table
 from traitlets import UseEnum
 
 from ctapipe.containers import ImageParametersContainer
-from ctapipe.core import Component
+from ctapipe.core import Component, Container
 from ctapipe.core.traits import (
     Bool,
     CaselessStrEnum,
