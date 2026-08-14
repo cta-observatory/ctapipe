@@ -878,16 +878,17 @@ class StereoDispCombiner(StereoCombiner):
         valid = mono_predictions[f"{prefix_tel}_is_valid"].copy()
         self._require_disp_column(mono_predictions, prefix_tel)
 
-        fov_lon_values, fov_lat_values = calc_fov_lon_lat(
-            mono_predictions, prefix_tel
-        )
+        fov_lon_values, fov_lat_values = calc_fov_lon_lat(mono_predictions, prefix_tel)
         fov_lon_values, fov_lat_values = self._transform_to_nominal(
             mono_predictions, fov_lon_values, fov_lat_values
         )
-        hillas_psis = np.arctan2(
-            np.diff(fov_lat_values, axis=1),
-            np.diff(fov_lon_values, axis=1),
-        )[:, 0] * u.rad
+        hillas_psis = (
+            np.arctan2(
+                np.diff(fov_lat_values, axis=1),
+                np.diff(fov_lon_values, axis=1),
+            )[:, 0]
+            * u.rad
+        )
 
         obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(
             mono_predictions
