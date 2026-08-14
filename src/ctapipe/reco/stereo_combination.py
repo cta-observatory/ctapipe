@@ -786,7 +786,7 @@ class StereoDispCombiner(StereoCombiner):
 
             hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
             hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
-            hillas_psi = dl1.hillas.psi
+            hillas_psi = dl1.hillas.psi.to_value(u.rad)
             disp = disp_reco.parameter.to_value(u.deg)
 
             fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
@@ -894,10 +894,10 @@ class StereoDispCombiner(StereoCombiner):
         tel_pointing_az = mono_predictions["telescope_pointing_azimuth"].quantity[
             :, None
         ]
-        subarray_pointing_alt = mono_predictions["subarray_pointing_altitude"].quantity[
+        subarray_pointing_alt = mono_predictions["subarray_pointing_lat"].quantity[
             :, None
         ]
-        subarray_pointing_az = mono_predictions["subarray_pointing_azimuth"].quantity[
+        subarray_pointing_az = mono_predictions["subarray_pointing_lon"].quantity[
             :, None
         ]
 
