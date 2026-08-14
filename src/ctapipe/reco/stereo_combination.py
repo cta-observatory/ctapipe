@@ -2,11 +2,17 @@ from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
+from astropy.coordinates import (
+    AltAz,
+    CartesianRepresentation,
+    SkyCoord,
+    SphericalRepresentation,
+)
 from astropy.table import Table
 from traitlets import UseEnum
 
 from ctapipe.containers import ImageParametersContainer
+from ctapipe.coordinates import NominalFrame, TelescopeFrame
 from ctapipe.core import Component, Container
 from ctapipe.core.traits import (
     Bool,
@@ -756,6 +762,13 @@ class StereoDispCombiner(StereoCombiner):
         weights = []
 
         signs = np.array([-1, 1])
+        # Use the array pointing as the common frame for all telescopes.
+        array_pointing = SkyCoord(
+            alt=event.monitoring.pointing.array_altitude,
+            az=event.monitoring.pointing.array_azimuth,
+            frame=AltAz(),
+        )
+        nominal_frame = NominalFrame(origin=array_pointing)
 
         for tel_id, dl2 in event.dl2.tel.items():
             if not dl2.geometry[self.prefix].is_valid:
@@ -781,6 +794,21 @@ class StereoDispCombiner(StereoCombiner):
 
             fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
             fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+
+            # Transform both DISP candidates and their axis to the common frame.
+            telescope_pointing = SkyCoord(
+                alt=event.monitoring.tel[tel_id].pointing.altitude,
+                az=event.monitoring.tel[tel_id].pointing.azimuth,
+                frame=AltAz(),
+            )
+            candidates = SkyCoord(
+                fov_lon=fov_lons * u.deg,
+                fov_lat=fov_lats * u.deg,
+                frame=TelescopeFrame(telescope_pointing=telescope_pointing),
+            ).transform_to(nominal_frame)
+            fov_lons = candidates.fov_lon.to_value(u.deg)
+            fov_lats = candidates.fov_lat.to_value(u.deg)
+            hillas_psi = np.arctan2(np.diff(fov_lats), np.diff(fov_lons))[0] * u.rad
 
             fov_lon_values.append(fov_lons)
             fov_lat_values.append(fov_lats)
@@ -850,15 +878,26 @@ class StereoDispCombiner(StereoCombiner):
         valid = mono_predictions[f"{prefix_tel}_is_valid"].copy()
         self._require_disp_column(mono_predictions, prefix_tel)
 
+        fov_lon_values, fov_lat_values = calc_fov_lon_lat(
+            mono_predictions, prefix_tel
+        )
+        fov_lon_values, fov_lat_values = self._transform_to_nominal(
+            mono_predictions, fov_lon_values, fov_lat_values
+        )
+        hillas_psis = np.arctan2(
+            np.diff(fov_lat_values, axis=1),
+            np.diff(fov_lon_values, axis=1),
+        )[:, 0] * u.rad
+
         obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(
             mono_predictions
         )
         n_array_events = len(obs_ids)
 
         valid = self._apply_min_ang_diff_cut(
-            mono_predictions=mono_predictions,
             valid=valid,
             tel_to_array_indices=tel_to_array_indices,
+            hillas_psis=hillas_psis,
         )
         valid = self._apply_n_best_tels_cut(
             mono_predictions=mono_predictions,
@@ -873,6 +912,8 @@ class StereoDispCombiner(StereoCombiner):
             tel_to_array_indices=tel_to_array_indices,
             n_array_events=n_array_events,
             prefix_tel=prefix_tel,
+            fov_lon_values=fov_lon_values[valid],
+            fov_lat_values=fov_lat_values[valid],
         )
 
         stereo_table[f"{self.prefix}_alt"] = alt
@@ -907,9 +948,9 @@ class StereoDispCombiner(StereoCombiner):
 
     def _apply_min_ang_diff_cut(
         self,
-        mono_predictions: Table,
         valid: np.ndarray,
         tel_to_array_indices: np.ndarray,
+        hillas_psis: u.Quantity,
     ) -> np.ndarray:
         if self.min_ang_diff is None:
             return valid
@@ -921,7 +962,7 @@ class StereoDispCombiner(StereoCombiner):
 
         valid_idx = np.flatnonzero(valid)
         pairs_in_valid = np.flatnonzero(mask_multi2_tels).reshape(-1, 2)
-        valid_psis = mono_predictions["hillas_psi"][valid]
+        valid_psis = hillas_psis[valid]
 
         keep_pairs = check_ang_diff(
             self.min_ang_diff,
@@ -984,6 +1025,8 @@ class StereoDispCombiner(StereoCombiner):
         tel_to_array_indices: np.ndarray,
         n_array_events: int,
         prefix_tel: str,
+        fov_lon_values: np.ndarray,
+        fov_lat_values: np.ndarray,
     ):
         if np.count_nonzero(valid) == 0:
             nan = u.Quantity(
@@ -993,10 +1036,6 @@ class StereoDispCombiner(StereoCombiner):
 
         weights = self._calculate_weights(mono_predictions[valid])
         _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
-
-        fov_lon_values, fov_lat_values = calc_fov_lon_lat(
-            mono_predictions[valid], prefix_tel
-        )
 
         combs_array, combs_to_multi_indices = create_combs_array(
             valid_multiplicity.max(), self.n_tel_combinations
@@ -1082,6 +1121,29 @@ class StereoDispCombiner(StereoCombiner):
             ]
 
         return alt, az
+
+    @staticmethod
+    def _transform_to_nominal(mono_predictions, fov_lons, fov_lats):
+        """Transform telescope-frame DISP candidates to the shared nominal frame."""
+        telescope_pointing = SkyCoord(
+            alt=mono_predictions["telescope_pointing_altitude"].quantity[:, None],
+            az=mono_predictions["telescope_pointing_azimuth"].quantity[:, None],
+            frame=AltAz(),
+        )
+        array_pointing = SkyCoord(
+            alt=mono_predictions["subarray_pointing_lat"].quantity[:, None],
+            az=mono_predictions["subarray_pointing_lon"].quantity[:, None],
+            frame=AltAz(),
+        )
+        candidates = SkyCoord(
+            fov_lon=fov_lons * u.deg,
+            fov_lat=fov_lats * u.deg,
+            frame=TelescopeFrame(telescope_pointing=telescope_pointing),
+        ).transform_to(NominalFrame(origin=array_pointing))
+        return (
+            candidates.fov_lon.to_value(u.deg),
+            candidates.fov_lat.to_value(u.deg),
+        )
 
     def _collect_telescopes_per_event(
         self,

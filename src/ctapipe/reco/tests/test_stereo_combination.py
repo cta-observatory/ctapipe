@@ -110,6 +110,8 @@ def mono_table():
             ],
             "subarray_pointing_lat": 10 * [70] * u.deg,
             "subarray_pointing_lon": 10 * [0] * u.deg,
+            "telescope_pointing_altitude": 10 * [70] * u.deg,
+            "telescope_pointing_azimuth": 10 * [0] * u.deg,
         }
     )
 
@@ -392,6 +394,9 @@ def _make_disp_event(event_dict, prefix="dummy"):
                 )
             },
         )
+        pointing = event.monitoring.tel[event_dict["tel_id"][i]].pointing
+        pointing.azimuth = 0 * u.deg
+        pointing.altitude = 70 * u.deg
 
     event.monitoring.pointing = ArrayPointingContainer(
         array_azimuth=0 * u.deg, array_altitude=70 * u.deg
