@@ -160,7 +160,7 @@ def polygon_chord_base(
     t = (c1 * vmu_y - c2 * vmu_x) / determinant
     s = (vi_y * c1 - vi_x * c2) / determinant
 
-    mask = (t >= 0) & (t <= 1) & (s >= 0)
+    mask = (t >= 0) & (t < 1) & (s >= 0)
 
     x_int = vi_x[mask] * t[mask] + ri_x[mask]
     y_int = vi_y[mask] * t[mask] + ri_y[mask]
