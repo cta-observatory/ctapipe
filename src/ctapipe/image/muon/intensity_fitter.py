@@ -160,11 +160,10 @@ def polygon_chord_base(
     t = (c1 * vmu_y - c2 * vmu_x) / determinant
     s = (vi_y * c1 - vi_x * c2) / determinant
 
-    status = np.column_stack((vi_x, ri_x, vi_y, ri_y, t, s))
-    mask = (status[:, 4] >= 0) & (status[:, 4] < 1) & (status[:, 5] >= 0)
+    mask = (t >= 0) & (t <= 1) & (s >= 0)
 
-    x_int = status[mask][:, 0] * status[mask][:, 4] + status[mask][:, 1]
-    y_int = status[mask][:, 2] * status[mask][:, 4] + status[mask][:, 3]
+    x_int = vi_x[mask] * t[mask] + ri_x[mask]
+    y_int = vi_y[mask] * t[mask] + ri_y[mask]
 
     if x_int.shape[0] == 0:
         if return_intersections:
