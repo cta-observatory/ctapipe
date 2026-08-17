@@ -5,6 +5,63 @@ import numpy as np
 import pytest
 from scipy.constants import alpha
 
+import time
+
+
+@pytest.mark.parametrize(
+    "ver_initial, n_photon_phi, allowed_time_factor",
+    [
+        (
+            np.array(
+                [
+                    [86.6025, 0.0],
+                    [43.3013, 75.0],
+                    [-43.3013, 75.0],
+                    [-86.6025, 0.0],
+                    [-43.3013, -75.0],
+                    [43.3013, -75.0],
+                ]
+            ),
+            1000,
+            10,
+        ),
+    ],
+)
+def test_polygon_chord_base_performance(
+    ver_initial, n_photon_phi, allowed_time_factor
+):
+    from ctapipe.image.muon.intensity_fitter import polygon_chord_base
+    from ctapipe.image.muon.intensity_fitter import chord_length
+
+    ver_final = np.roll(ver_initial, 1, axis=0)
+    photon_phi = np.linspace(0, np.pi, n_photon_phi) * u.rad
+
+    times = []
+    ref_times = []
+    for phi in photon_phi:
+        start = time.perf_counter()
+        res = polygon_chord_base(
+            0.0,
+            0.0,
+            phi.to_value(u.rad),
+            ri_x=ver_initial[:, 0],
+            ri_y=ver_initial[:, 1],
+            vi_x=ver_final[:, 0] - ver_initial[:, 0],
+            vi_y=ver_final[:, 1] - ver_initial[:, 1],
+        )
+        times.append(time.perf_counter() - start)
+        #
+        start = time.perf_counter()
+        ref_res = chord_length(radius = 12, rho = 0.5, phi=photon_phi.to_value(u.rad), phi0=0)
+        ref_times.append(time.perf_counter() - start)
+
+    print("times")
+    print(np.mean(np.array(times)))
+    print(np.mean(np.array(ref_times)))
+
+
+    assert np.mean(np.array(times)) / allowed_time_factor < np.mean(np.array(ref_times))
+
 
 @pytest.mark.parametrize(
     "muon_x, muon_y, photon_phi, expected_chord_length",
