@@ -165,43 +165,29 @@ def polygon_chord_base(
     x_int = vi_x[mask] * t[mask] + ri_x[mask]
     y_int = vi_y[mask] * t[mask] + ri_y[mask]
 
+    the_length = 0.0
+
     if x_int.shape[0] == 0:
-        if return_intersections:
-            return 0.0, np.nan, np.nan
-        return 0.0
+        x_int = np.nan
+        y_int = np.nan
     elif x_int.shape[0] == 1:
-        if return_intersections:
-            return (
-                np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)),
-                np.squeeze(x_int),
-                np.squeeze(y_int),
-            )
-        return np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
+        the_length = np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)
     elif x_int.shape[0] == 2:
-        if return_intersections:
-            return (
-                np.squeeze(
-                    np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
-                ),
-                np.squeeze(x_int),
-                np.squeeze(y_int),
-            )
-        return np.squeeze(
-            np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
-        )
+        the_length = np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
     else:
-        dist = np.sort(np.squeeze(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)))
+        dist = np.sort(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
         sign_arr = np.ones(x_int.shape[0])
         if x_int.shape[0] % 2 == 0:
             sign_arr[0::2] = -1
-            if return_intersections:
-                return np.sum(dist * sign_arr), np.squeeze(x_int), np.squeeze(y_int)
-            return np.sum(dist * sign_arr)
+            the_length = np.sum(dist * sign_arr)
+        else :
+            sign_arr[1::2] = -1
+            the_length = np.sum(dist * sign_arr)
 
-        sign_arr[1::2] = -1
-        if return_intersections:
-            return np.sum(dist * sign_arr), np.squeeze(x_int), np.squeeze(y_int)
-        return np.sum(dist * sign_arr)
+    if return_intersections:
+        return the_length, x_int, y_int
+
+    return the_length
 
 
 def chord_length(radius, rho, phi, phi0=0):
