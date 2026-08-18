@@ -8,6 +8,31 @@ from scipy.constants import alpha
 import time
 
 
+def test_polygon_chord_test():
+
+    from ctapipe.image.muon.intensity_fitter import polygon_chord_test
+
+    ver_hex_i_a = np.array([[ 86.6025,   0.0],
+                            [ 43.3013,  75.0],
+                            [-43.3013,  75.0],
+                            [-86.6025,   0.0],
+                            [-43.3013, -75.0],
+                            [ 43.3013, -75.0]])
+
+    ver_hex_i_b = ver_hex_i_a + [[0.0,  200.0]]
+    ver_hex_i_c = ver_hex_i_a + [[0.0, -200.0]]
+    ver_hex_i_d = ver_hex_i_a + [[200, -200.0]]
+
+    mu_x = 50.0
+    mu_y = 0.0
+
+    phi = np.linspace(0, 2.0 * np.pi, 360)
+
+    vertices_i=np.stack([ver_hex_i_a,ver_hex_i_b,ver_hex_i_c,ver_hex_i_d])
+
+    polygon_chord_test(mu_x, mu_y, phi, vertices_i)
+
+
 @pytest.mark.parametrize(
     "ver_initial, n_photon_phi, allowed_time_factor",
     [
