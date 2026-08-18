@@ -8,6 +8,26 @@ from scipy.constants import alpha
 import time
 
 
+def test_PolygonChord():
+    from ctapipe.image.muon.intensity_fitter import PolygonChord
+
+    ver_hex_i_a = np.array([[ 86.6025,   0.0],
+                            [ 43.3013,  75.0],
+                            [-43.3013,  75.0],
+                            [-86.6025,   0.0],
+                            [-43.3013, -75.0],
+                            [ 43.3013, -75.0]])
+
+    ver_hex_i_b = ver_hex_i_a + [[0.0,  200.0]]
+    ver_hex_i_c = ver_hex_i_a + [[0.0, -200.0]]
+    ver_hex_i_d = ver_hex_i_a + [[200, -200.0]]
+
+    vertices_i = np.stack([ver_hex_i_a,ver_hex_i_b,ver_hex_i_c,ver_hex_i_d])
+
+    pol_chord = PolygonChord(phi = np.linspace(0, 2.0 * np.pi, 360), vertices_i=vertices_i)
+    print(pol_chord.convex_multipolygon_chord(0,0))
+
+
 def test_convex_multipolygon_chord():
 
     from ctapipe.image.muon.intensity_fitter import convex_multipolygon_chord
@@ -24,17 +44,14 @@ def test_convex_multipolygon_chord():
     ver_hex_i_d = ver_hex_i_a + [[200, -200.0]]
 
     vertices_i = np.stack([ver_hex_i_a,ver_hex_i_b,ver_hex_i_c,ver_hex_i_d])
-
-    = np.roll(vertices_i, 1, axis=1)
+    vertices_f = np.roll(vertices_i, 1, axis=1)
 
     mu_x = 0.0
     mu_y = 0.0
 
     phi = np.linspace(0, 2.0 * np.pi, 360)
 
-
-
-    polygon_chord_test(mu_x, mu_y, phi, vertices_i)
+    convex_multipolygon_chord(mu_x, mu_y, phi, vertices_i, vertices_f)
 
 
 @pytest.mark.parametrize(
