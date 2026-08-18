@@ -39,12 +39,10 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-def polygon_chord(mu_x, mu_y, phi, vertices_i):
+def convex_multipolygon_chord(mu_x, mu_y, phi, vertices_i, vertices_f):
     """
     test
     """
-
-    vertices_f = np.roll(vertices_i, 1, axis=1)
 
     ri_x = vertices_i[:,:,0]
     ri_y = vertices_i[:,:,1]
