@@ -39,7 +39,7 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-def polygon_chord_test(mu_x, mu_y, phi, vertices_i):
+def polygon_chord(mu_x, mu_y, phi, vertices_i):
     """
     test
     """
@@ -82,11 +82,9 @@ def polygon_chord_test(mu_x, mu_y, phi, vertices_i):
 
     l_sq = d_x_int_sq + d_y_int_sq
 
-    the_chord = np.sqrt(l_sq * mask_alternate_signs).sum(axis=2).sum(axis=1)
-
-    print(the_chord.shape)
-
-    return the_chord
+    return np.sqrt(
+        np.abs(l_sq * mask_alternate_signs)
+    ).sum(axis=2).sum(axis=1)
 
 
 def polygon_chord(mu_x, mu_y, phi, vertices_list):
