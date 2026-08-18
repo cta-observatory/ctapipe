@@ -39,6 +39,56 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
+def polygon_chord_test(mu_x, mu_y, phi, vertices_i):
+    """
+    test
+    """
+
+    vertices_f = np.roll(vertices_i, 1, axis=1)
+
+    ri_x = vertices_i[:,:,0]
+    ri_y = vertices_i[:,:,1]
+    vi_x = vertices_f[:,:,0] - vertices_i[:,:,0]
+    vi_y = vertices_f[:,:,1] - vertices_i[:,:,1]
+
+    ri_x = np.repeat(ri_x[None, :, :], len(phi), axis=0)
+    ri_y = np.repeat(ri_y[None, :, :], len(phi), axis=0)
+    vi_x = np.repeat(vi_x[None, :, :], len(phi), axis=0)
+    vi_y = np.repeat(vi_y[None, :, :], len(phi), axis=0)
+
+    vmu_x = np.repeat(np.cos(phi)[:, None], ri_x.shape[1], axis=1)
+    vmu_x = np.repeat(vmu_x[:,:, None], ri_x.shape[2], axis=2)
+
+    vmu_y = np.repeat(np.sin(phi)[:, None], ri_x.shape[1], axis=1)
+    vmu_y = np.repeat(vmu_y[:,:, None], ri_x.shape[2], axis=2)
+
+    epsilon_d = 1.0e-20
+
+    c1 = mu_x - ri_x
+    c2 = mu_y - ri_y
+    determinant = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
+
+    t = (c1 * vmu_y - c2 * vmu_x) / determinant
+    s = (vi_y * c1 - vi_x * c2) / determinant
+
+    mask = ((t >= 0) & (t < 1) & (s >= 0)).astype(int)
+    mask_alternate_signs = mask.copy()
+
+    count = np.cumsum(mask == 1, axis=2)
+    mask_alternate_signs[(mask_alternate_signs == 1) & (count % 2 == 0)] = -1
+
+    d_x_int_sq = ( ( vi_x * t + ri_x ) * mask - mu_x ) ** 2
+    d_y_int_sq = ( ( vi_y * t + ri_y ) * mask - mu_y ) ** 2
+
+    l_sq = d_x_int_sq + d_y_int_sq
+
+    the_chord = np.sqrt(l_sq * mask_alternate_signs).sum(axis=2).sum(axis=1)
+
+    print(the_chord.shape)
+
+    return the_chord
+
+
 def polygon_chord(mu_x, mu_y, phi, vertices_list):
     """
     Compute the total chord length through one or more polygons for a set of
