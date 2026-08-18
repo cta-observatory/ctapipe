@@ -39,6 +39,152 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
+class PolygonChord:
+    """Calculate ray chord lengths through multiple polygons.
+
+    Parameters
+    ----------
+    phi : ndarray
+        Ray direction angles in radians.
+    vertices_i : ndarray
+        Starting vertices of the polygon edges with shape
+        ``(n_polygons, n_edges, 2)``.
+    vertices_f : ndarray
+        Ending vertices of the polygon edges with the same shape as
+        ``vertices_i``.
+    """
+
+    def __init__(self, phi, vertices_i):
+        self.phi = np.asarray(phi)
+        self.vertices_i = np.asarray(vertices_i)
+        self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
+
+    def convex_multipolygon_chord(self, mu_x, mu_y):
+        """Calculate chord lengths for multiple polygons and directions.
+
+        The function computes the intersection chord length between a ray and a
+        set of polygons for multiple ray directions in a fully vectorized way.
+
+        Parameters
+        ----------
+        mu_x : float or array-like
+            X-coordinate(s) of the ray origin.
+        mu_y : float or array-like
+            Y-coordinate(s) of the ray origin.
+        phi : array-like
+            Ray direction angle(s) in radians. The direction vector is defined as
+            ``(cos(phi), sin(phi))``.
+
+        vertices_i : ndarray
+            Coordinates of the starting points of the polygon edges. The expected
+            shape is ``(n_polygon, n_edge, 2)``, where the last dimension contains
+            the x and y coordinates.
+
+        vertices_f : ndarray
+            Coordinates of the ending points of the polygon edges. Must have the
+            same shape as ``vertices_i``.
+
+        Returns
+        -------
+        ndarray
+        Chord length for each ray direction. The returned array has the same
+        length as ``phi``.
+        Notes
+        -----
+        The calculation assumes that the polygons are convex and that all
+        polygons have the same number of vertices. Intersections with polygon
+        edges are identified using the parametric representation of the ray and
+        polygon edges.
+
+        For each polygon, intersections are paired by alternating the sign of
+        successive intersections along the ray. This allows the chord lengths to
+        be calculated for all polygons and directions without explicit Python
+        loops.
+
+        A small value is added to the determinant to avoid division by zero for
+        parallel or nearly parallel ray and edge directions.
+
+        Examples
+        --------
+        >>> phi = np.array([0.0, np.pi / 2])
+        >>> vertices_i = ...
+        >>> vertices_f = ...
+        >>> chord = convex_multipolygon_chord(
+        ...     mu_x=0.0,
+        ...     mu_y=0.0,
+        ...     phi=phi,
+        ...     vertices_i=vertices_i,
+        ...     vertices_f=vertices_f,
+        ... )
+        """
+
+        ri_x = self.vertices_i[:, :, 0]
+        ri_y = self.vertices_i[:, :, 1]
+
+        vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
+        vi_y = self.vertices_f[:, :, 1] - self.vertices_i[:, :, 1]
+
+        ri_x = np.repeat(ri_x[None, :, :], len(self.phi), axis=0)
+        ri_y = np.repeat(ri_y[None, :, :], len(self.phi), axis=0)
+        vi_x = np.repeat(vi_x[None, :, :], len(self.phi), axis=0)
+        vi_y = np.repeat(vi_y[None, :, :], len(self.phi), axis=0)
+
+        vmu_x = np.repeat(
+            np.cos(self.phi)[:, None, None],
+            ri_x.shape[1],
+            axis=1,
+        )
+        vmu_x = np.repeat(vmu_x, ri_x.shape[2], axis=2)
+
+        vmu_y = np.repeat(
+            np.sin(self.phi)[:, None, None],
+            ri_x.shape[1],
+            axis=1,
+        )
+        vmu_y = np.repeat(vmu_y, ri_x.shape[2], axis=2)
+
+        epsilon_d = 1.0e-20
+
+        c1 = mu_x - ri_x
+        c2 = mu_y - ri_y
+
+        determinant = (
+            vi_x * vmu_y
+            - vi_y * vmu_x
+            + epsilon_d
+        )
+
+        t = (c1 * vmu_y - c2 * vmu_x) / determinant
+        s = (vi_y * c1 - vi_x * c2) / determinant
+
+        mask = (
+            (t >= 0)
+            & (t < 1)
+            & (s >= 0)
+        ).astype(int)
+
+        mask_alternate_signs = mask.copy()
+
+        count = np.cumsum(mask == 1, axis=2)
+        mask_alternate_signs[
+            (mask_alternate_signs == 1) & (count % 2 == 0)
+        ] = -1
+
+        d_x_int_sq = (
+            (vi_x * t + ri_x) * mask - mu_x
+        ) ** 2
+
+        d_y_int_sq = (
+            (vi_y * t + ri_y) * mask - mu_y
+        ) ** 2
+
+        l_sq = d_x_int_sq + d_y_int_sq
+
+        return np.sqrt(
+            np.abs(l_sq * mask_alternate_signs)
+        ).sum(axis=2).sum(axis=1)
+
+
 def convex_multipolygon_chord(mu_x, mu_y, phi, vertices_i, vertices_f):
     """
     test
