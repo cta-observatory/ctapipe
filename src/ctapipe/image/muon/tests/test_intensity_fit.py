@@ -24,9 +24,15 @@ def test_PolygonChord():
 
     vertices_i = np.stack([ver_hex_i_a,ver_hex_i_b,ver_hex_i_c,ver_hex_i_d])
 
-    pol_chord = PolygonChord(phi = np.linspace(0, 2.0 * np.pi, 360), vertices_i=vertices_i)
+    #pol_chord = PolygonChord(phi = np.linspace(0, 2.0 * np.pi, 360), vertices_i=vertices_i)
+    pol_chord = PolygonChord.from_vertices(vertices_i=vertices_i)
+
     print(pol_chord.convex_multipolygon_chord(0,0))
 
+    print(pol_chord.phi.shape)
+
+    pol_chord.update(np.linspace(0, 2.0 * np.pi, 1000))
+    print(pol_chord.phi.shape)
 
 def test_convex_multipolygon_chord():
 
