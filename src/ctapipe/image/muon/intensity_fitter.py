@@ -72,10 +72,11 @@ class PolygonChord:
     def update(self, phi):
 
         self.phi = np.asarray(phi)
-        self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
 
         # convex multipolygon usage
         if self.vertices_i.ndim == 3 :
+            self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
+
             self.ri_x = self.vertices_i[:, :, 0]
             self.ri_y = self.vertices_i[:, :, 1]
             self.vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
@@ -103,6 +104,8 @@ class PolygonChord:
 
         # arbitrary polygon usage
         if self.vertices_i.ndim == 2 :
+            self.vertices_f = np.roll(self.vertices_i, 1, axis=0)
+
             self.ri_x = self.vertices_i[:, 0]
             self.ri_y = self.vertices_i[:, 1]
             self.vi_x = self.vertices_f[:, 0] - self.vertices_i[:, 0]
@@ -210,9 +213,9 @@ class PolygonChord:
         ).sum(axis=2).sum(axis=1)
 
 
-    def polygon_chord(mu_x, mu_y):
+    def polygon_chord(self, mu_x, mu_y):
         """
-        Compute the total chord length through one or more polygons for a set of
+        Compute the chord length through one polygons for a set of
         projection angles.
 
         For each angle in ``phi``, the function evaluates the chord length
@@ -243,14 +246,14 @@ class PolygonChord:
         are summed for every projection angle.
         """
 
-        the_chord = []
-        for az in self.phi:
-            the_chord.append(_polygon_chord(mu_x, mu_y, az))
+        the_chord = [
+            self._polygon_chord(mu_x, mu_y, az) for az in self.phi
+        ]
 
         return np.array(the_chord)
 
 
-    def _polygon_chord( mu_x, mu_y, phi, return_intersections=False):
+    def _polygon_chord(self, mu_x, mu_y, phi, return_intersections=False):
         """
         Compute the chord length of a ray intersecting a polygon.
 
@@ -311,8 +314,8 @@ class PolygonChord:
 
         mask = (t >= 0) & (t < 1) & (s >= 0)
 
-        x_int = vi_x[mask] * t[mask] + ri_x[mask]
-        y_int = vi_y[mask] * t[mask] + ri_y[mask]
+        x_int = self.vi_x[mask] * t[mask] + self.ri_x[mask]
+        y_int = self.vi_y[mask] * t[mask] + self.ri_y[mask]
 
         the_length = 0.0
 
@@ -333,10 +336,11 @@ class PolygonChord:
                 sign_arr[1::2] = -1
                 the_length = np.sum(dist * sign_arr)
 
+
         if return_intersections:
             return the_length, x_int, y_int
 
-        return the_length
+        return np.squeeze(the_length)
 
 
 def chord_length(radius, rho, phi, phi0=0):
