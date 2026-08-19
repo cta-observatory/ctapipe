@@ -96,6 +96,8 @@ class PolygonChord:
         )
         self.vmu_y = np.repeat(self.vmu_y, self.ri_x.shape[2], axis=2)
 
+        return self
+
 
     def convex_multipolygon_chord(self, mu_x, mu_y):
         """Calculate chord lengths for multiple polygons and directions.
