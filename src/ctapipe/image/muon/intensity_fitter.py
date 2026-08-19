@@ -70,34 +70,46 @@ class PolygonChord:
 
 
     def update(self, phi):
+
         self.phi = np.asarray(phi)
         self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
-        self.ri_x = self.vertices_i[:, :, 0]
-        self.ri_y = self.vertices_i[:, :, 1]
-        self.vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
-        self.vi_y = self.vertices_f[:, :, 1] - self.vertices_i[:, :, 1]
 
-        self.ri_x = np.repeat(self.ri_x[None, :, :], len(self.phi), axis=0)
-        self.ri_y = np.repeat(self.ri_y[None, :, :], len(self.phi), axis=0)
-        self.vi_x = np.repeat(self.vi_x[None, :, :], len(self.phi), axis=0)
-        self.vi_y = np.repeat(self.vi_y[None, :, :], len(self.phi), axis=0)
+        # convex multipolygon usage
+        if self.vertices_i.ndim == 3 :
+            self.ri_x = self.vertices_i[:, :, 0]
+            self.ri_y = self.vertices_i[:, :, 1]
+            self.vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
+            self.vi_y = self.vertices_f[:, :, 1] - self.vertices_i[:, :, 1]
 
-        self.vmu_x = np.repeat(
-            np.cos(self.phi)[:, None, None],
-            self.ri_x.shape[1],
-            axis=1,
-        )
-        self.vmu_x = np.repeat(self.vmu_x, self.ri_x.shape[2], axis=2)
+            self.ri_x = np.repeat(self.ri_x[None, :, :], len(self.phi), axis=0)
+            self.ri_y = np.repeat(self.ri_y[None, :, :], len(self.phi), axis=0)
+            self.vi_x = np.repeat(self.vi_x[None, :, :], len(self.phi), axis=0)
+            self.vi_y = np.repeat(self.vi_y[None, :, :], len(self.phi), axis=0)
 
-        self.vmu_y = np.repeat(
-            np.sin(self.phi)[:, None, None],
-            self.ri_x.shape[1],
-            axis=1,
-        )
-        self.vmu_y = np.repeat(self.vmu_y, self.ri_x.shape[2], axis=2)
+            self.vmu_x = np.repeat(
+                np.cos(self.phi)[:, None, None],
+                self.ri_x.shape[1],
+                axis=1,
+            )
+            self.vmu_x = np.repeat(self.vmu_x, self.ri_x.shape[2], axis=2)
+
+            self.vmu_y = np.repeat(
+                np.sin(self.phi)[:, None, None],
+                self.ri_x.shape[1],
+                axis=1,
+            )
+            self.vmu_y = np.repeat(self.vmu_y, self.ri_x.shape[2], axis=2)
+
+
+        # arbitrary polygon usage
+        if self.vertices_i.ndim == 2 :
+            self.ri_x = self.vertices_i[:, 0]
+            self.ri_y = self.vertices_i[:, 1]
+            self.vi_x = self.vertices_f[:, 0] - self.vertices_i[:, 0]
+            self.vi_y = self.vertices_f[:, 1] - self.vertices_i[:, 1]
+
 
         return self
-
 
     def convex_multipolygon_chord(self, mu_x, mu_y):
         """Calculate chord lengths for multiple polygons and directions.
@@ -198,201 +210,133 @@ class PolygonChord:
         ).sum(axis=2).sum(axis=1)
 
 
-def convex_multipolygon_chord(mu_x, mu_y, phi, vertices_i, vertices_f):
-    """
-    test
-    """
+    def polygon_chord(mu_x, mu_y):
+        """
+        Compute the total chord length through one or more polygons for a set of
+        projection angles.
 
-    ri_x = vertices_i[:,:,0]
-    ri_y = vertices_i[:,:,1]
-    vi_x = vertices_f[:,:,0] - vertices_i[:,:,0]
-    vi_y = vertices_f[:,:,1] - vertices_i[:,:,1]
+        For each angle in ``phi``, the function evaluates the chord length
+        contributed by every polygon in ``vertices_list`` using
+        ``polygon_chord_base`` and returns the summed chord length.
 
-    ri_x = np.repeat(ri_x[None, :, :], len(phi), axis=0)
-    ri_y = np.repeat(ri_y[None, :, :], len(phi), axis=0)
-    vi_x = np.repeat(vi_x[None, :, :], len(phi), axis=0)
-    vi_y = np.repeat(vi_y[None, :, :], len(phi), axis=0)
-
-    vmu_x = np.repeat(np.cos(phi)[:, None], ri_x.shape[1], axis=1)
-    vmu_x = np.repeat(vmu_x[:,:, None], ri_x.shape[2], axis=2)
-
-    vmu_y = np.repeat(np.sin(phi)[:, None], ri_x.shape[1], axis=1)
-    vmu_y = np.repeat(vmu_y[:,:, None], ri_x.shape[2], axis=2)
-
-    epsilon_d = 1.0e-20
-
-    c1 = mu_x - ri_x
-    c2 = mu_y - ri_y
-    determinant = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
-
-    t = (c1 * vmu_y - c2 * vmu_x) / determinant
-    s = (vi_y * c1 - vi_x * c2) / determinant
-
-    mask = ((t >= 0) & (t < 1) & (s >= 0)).astype(int)
-    mask_alternate_signs = mask.copy()
-
-    count = np.cumsum(mask == 1, axis=2)
-    mask_alternate_signs[(mask_alternate_signs == 1) & (count % 2 == 0)] = -1
-
-    d_x_int_sq = ( ( vi_x * t + ri_x ) * mask - mu_x ) ** 2
-    d_y_int_sq = ( ( vi_y * t + ri_y ) * mask - mu_y ) ** 2
-
-    l_sq = d_x_int_sq + d_y_int_sq
-
-    return np.sqrt(
-        np.abs(l_sq * mask_alternate_signs)
-    ).sum(axis=2).sum(axis=1)
-
-
-def polygon_chord(mu_x, mu_y, phi, vertices_list):
-    """
-    Compute the total chord length through one or more polygons for a set of
-    projection angles.
-
-    For each angle in ``phi``, the function evaluates the chord length
-    contributed by every polygon in ``vertices_list`` using
-    ``polygon_chord_base`` and returns the summed chord length.
-
-    Parameters
-    ----------
-    mu_x : float
-        X-coordinate of the ray origin, which is the muon's impact point (x).
-    mu_y : float
-        Y-coordinate of the ray origin, which is the muon's impact point (y).
-    phi : array-like
-        Angle defining the direction of the ray (cher. photon from muon).
-    vertices_list : list of ndarray
+        Parameters
+        ----------
+        mu_x : float
+            X-coordinate of the ray origin, which is the muon's impact point (x).
+        mu_y : float
+            Y-coordinate of the ray origin, which is the muon's impact point (y).
+        phi : array-like
+            Angle defining the direction of the ray (cher. photon from muon).
+        vertices_list : list of ndarray
         List of polygons. Each polygon is represented as an ``(N, 2)`` array
         containing the polygon vertices in order.
 
-    Returns
-    -------
-    numpy.ndarray
-        One-dimensional array containing the total chord length for each
-        projection angle in ``phi``.
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array containing the total chord length for each
+            projection angle in ``phi``.
 
-    Notes
-    -----
-    Each polygon is processed independently, and the resulting chord lengths
-    are summed for every projection angle.
-    """
+        Notes
+        -----
+        Each polygon is processed independently, and the resulting chord lengths
+        are summed for every projection angle.
+        """
 
-    ri_x = []
-    ri_y = []
-    vi_x = []
-    vi_y = []
+        the_chord = []
+        for az in self.phi:
+            the_chord.append(_polygon_chord(mu_x, mu_y, az))
 
-    for ver_i in vertices_list:
-        ver_f = np.roll(ver_i, 1, axis=0)
-        ri_x.append(ver_i[:, 0])
-        ri_y.append(ver_i[:, 1])
-        vi_x.append(ver_f[:, 0] - ver_i[:, 0])
-        vi_y.append(ver_f[:, 1] - ver_i[:, 1])
-
-    the_chord = []
-    for az in phi:
-        chord_l = 0.0
-        for i in np.arange(len(vertices_list)):
-            chord_l += polygon_chord_base(
-                mu_x, mu_y, az, ri_x[i], ri_y[i], vi_x[i], vi_y[i]
-            )
-
-        the_chord.append(chord_l)
-
-    return np.array(the_chord)
+        return np.array(the_chord)
 
 
-def polygon_chord_base(
-    mu_x, mu_y, phi, ri_x, ri_y, vi_x, vi_y, return_intersections=False
-):
-    """
-    Compute the chord length of a ray intersecting a polygon.
+    def _polygon_chord( mu_x, mu_y, phi, return_intersections=False):
+        """
+        Compute the chord length of a ray intersecting a polygon.
 
-    This function calculates the length of the segment formed by the intersection
-    of a ray (defined by an origin and direction) with a polygon defined by its
-    edges. The polygon is represented parametrically using starting points and
-    direction vectors for each edge.
+        This function calculates the length of the segment formed by the intersection
+        of a ray (defined by an origin and direction) with a polygon defined by its
+        edges. The polygon is represented parametrically using starting points and
+        direction vectors for each edge.
 
-    Parameters
-    ----------
-    mu_x : float
-        X-coordinate of the ray origin, which is the muon's impact point (x).
-    mu_y : float
-        Y-coordinate of the ray origin, which is the muon's impact point (y).
-    phi : float
-        Angle defining the direction of the ray.
-    ri_x : ndarray of shape (N,)
-        X-coordinates of the starting points of the polygon edges.
-    ri_y : ndarray of shape (N,)
-        Y-coordinates of the starting points of the polygon edges.
-    vi_x : ndarray of shape (N,)
-        X-components of the edge direction vectors.
-    vi_y : ndarray of shape (N,)
-        Y-components of the edge direction vectors.
+        Parameters
+        ----------
+        mu_x : float
+            X-coordinate of the ray origin, which is the muon's impact point (x).
+        mu_y : float
+            Y-coordinate of the ray origin, which is the muon's impact point (y).
+        phi : float
+            Angle defining the direction of the ray.
+        ri_x : ndarray of shape (N,)
+            X-coordinates of the starting points of the polygon edges.
+        ri_y : ndarray of shape (N,)
+            Y-coordinates of the starting points of the polygon edges.
+        vi_x : ndarray of shape (N,)
+            X-components of the edge direction vectors.
+        vi_y : ndarray of shape (N,)
+            Y-components of the edge direction vectors.
 
-    Returns
-    -------
-    float
-        Length of the chord formed by the intersection of the ray with the polygon:
-        - 0.0 if there is no intersection,
-        - distance from the ray origin to the intersection point if only one intersection,
-        - distance between two intersection points if exactly two intersections,
-        - accumulated segment length for multiple intersections (handles complex polygons).
+        Returns
+        -------
+        float
+            Length of the chord formed by the intersection of the ray with the polygon:
+            - 0.0 if there is no intersection,
+            - distance from the ray origin to the intersection point if only one intersection,
+            - distance between two intersection points if exactly two intersections,
+            - accumulated segment length for multiple intersections (handles complex polygons).
 
-    Notes
-    -----
-    - The ray is defined parametrically as:
-          (x, y) = (mu_x, mu_y) + s * (cos(phi), sin(phi)), with s >= 0
-    - Each polygon edge is defined as:
-          (x, y) = (ri_x, ri_y) + t * (vi_x, vi_y), with 0 <= t < 1
-    - The function computes intersections by solving a 2D linear system.
-    - A small epsilon_d (`1e-20`) is added to the denominator to avoid division by zero.
-    - For multiple intersections, distances are sorted and combined with alternating
-      signs to compute the total chord length (useful for non-convex polygons).
+        Notes
+        -----
+        - The ray is defined parametrically as:
+            (x, y) = (mu_x, mu_y) + s * (cos(phi), sin(phi)), with s >= 0
+        - Each polygon edge is defined as:
+            (x, y) = (ri_x, ri_y) + t * (vi_x, vi_y), with 0 <= t < 1
+        - The function computes intersections by solving a 2D linear system.
+        - A small epsilon_d (`1e-20`) is added to the denominator to avoid division by zero.
+        - For multiple intersections, distances are sorted and combined with alternating
+        signs to compute the total chord length (useful for non-convex polygons).
 
-    """
+        """
 
-    # Effective speed of the ray, with unit norm.
-    vmu_x = np.cos(phi)
-    vmu_y = np.sin(phi)
+        # Effective speed of the ray, with unit norm.
+        vmu_x = np.cos(phi)
+        vmu_y = np.sin(phi)
 
-    epsilon_d = 1.0e-20
+        c1 = mu_x - self.ri_x
+        c2 = mu_y - self.ri_y
+        determinant = self.vi_x * vmu_y - self.vi_y * vmu_x + self.epsilon_d
 
-    c1 = mu_x - ri_x
-    c2 = mu_y - ri_y
-    determinant = vi_x * vmu_y - vi_y * vmu_x + epsilon_d
+        t = (c1 * vmu_y - c2 * vmu_x) / determinant
+        s = (self.vi_y * c1 - self.vi_x * c2) / determinant
 
-    t = (c1 * vmu_y - c2 * vmu_x) / determinant
-    s = (vi_y * c1 - vi_x * c2) / determinant
+        mask = (t >= 0) & (t < 1) & (s >= 0)
 
-    mask = (t >= 0) & (t < 1) & (s >= 0)
+        x_int = vi_x[mask] * t[mask] + ri_x[mask]
+        y_int = vi_y[mask] * t[mask] + ri_y[mask]
 
-    x_int = vi_x[mask] * t[mask] + ri_x[mask]
-    y_int = vi_y[mask] * t[mask] + ri_y[mask]
+        the_length = 0.0
 
-    the_length = 0.0
+        if x_int.shape[0] == 0:
+            x_int = np.nan
+            y_int = np.nan
+        elif x_int.shape[0] == 1:
+            the_length = np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)
+        elif x_int.shape[0] == 2:
+            the_length = np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
+        else:
+            dist = np.sort(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
+            sign_arr = np.ones(x_int.shape[0])
+            if x_int.shape[0] % 2 == 0:
+                sign_arr[0::2] = -1
+                the_length = np.sum(dist * sign_arr)
+            else :
+                sign_arr[1::2] = -1
+                the_length = np.sum(dist * sign_arr)
 
-    if x_int.shape[0] == 0:
-        x_int = np.nan
-        y_int = np.nan
-    elif x_int.shape[0] == 1:
-        the_length = np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)
-    elif x_int.shape[0] == 2:
-        the_length = np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
-    else:
-        dist = np.sort(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
-        sign_arr = np.ones(x_int.shape[0])
-        if x_int.shape[0] % 2 == 0:
-            sign_arr[0::2] = -1
-            the_length = np.sum(dist * sign_arr)
-        else :
-            sign_arr[1::2] = -1
-            the_length = np.sum(dist * sign_arr)
+        if return_intersections:
+            return the_length, x_int, y_int
 
-    if return_intersections:
-        return the_length, x_int, y_int
-
-    return the_length
+        return the_length
 
 
 def chord_length(radius, rho, phi, phi0=0):
