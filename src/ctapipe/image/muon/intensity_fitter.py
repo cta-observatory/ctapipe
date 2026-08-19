@@ -54,10 +54,48 @@ class PolygonChord:
         ``vertices_i``.
     """
 
+
+    epsilon_d = 1.0e-20
+
+
     def __init__(self, phi, vertices_i):
         self.phi = np.asarray(phi)
         self.vertices_i = np.asarray(vertices_i)
+        self.update(self.phi)
+
+
+    @classmethod
+    def from_vertices(cls, vertices_i):
+        return cls(np.linspace(0,2 * np.pi, 100), vertices_i)
+
+
+    def update(self, phi):
+        self.phi = np.asarray(phi)
         self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
+        self.ri_x = self.vertices_i[:, :, 0]
+        self.ri_y = self.vertices_i[:, :, 1]
+        self.vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
+        self.vi_y = self.vertices_f[:, :, 1] - self.vertices_i[:, :, 1]
+
+        self.ri_x = np.repeat(self.ri_x[None, :, :], len(self.phi), axis=0)
+        self.ri_y = np.repeat(self.ri_y[None, :, :], len(self.phi), axis=0)
+        self.vi_x = np.repeat(self.vi_x[None, :, :], len(self.phi), axis=0)
+        self.vi_y = np.repeat(self.vi_y[None, :, :], len(self.phi), axis=0)
+
+        self.vmu_x = np.repeat(
+            np.cos(self.phi)[:, None, None],
+            self.ri_x.shape[1],
+            axis=1,
+        )
+        self.vmu_x = np.repeat(self.vmu_x, self.ri_x.shape[2], axis=2)
+
+        self.vmu_y = np.repeat(
+            np.sin(self.phi)[:, None, None],
+            self.ri_x.shape[1],
+            axis=1,
+        )
+        self.vmu_y = np.repeat(self.vmu_y, self.ri_x.shape[2], axis=2)
+
 
     def convex_multipolygon_chord(self, mu_x, mu_y):
         """Calculate chord lengths for multiple polygons and directions.
@@ -118,44 +156,17 @@ class PolygonChord:
         ... )
         """
 
-        ri_x = self.vertices_i[:, :, 0]
-        ri_y = self.vertices_i[:, :, 1]
-
-        vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
-        vi_y = self.vertices_f[:, :, 1] - self.vertices_i[:, :, 1]
-
-        ri_x = np.repeat(ri_x[None, :, :], len(self.phi), axis=0)
-        ri_y = np.repeat(ri_y[None, :, :], len(self.phi), axis=0)
-        vi_x = np.repeat(vi_x[None, :, :], len(self.phi), axis=0)
-        vi_y = np.repeat(vi_y[None, :, :], len(self.phi), axis=0)
-
-        vmu_x = np.repeat(
-            np.cos(self.phi)[:, None, None],
-            ri_x.shape[1],
-            axis=1,
-        )
-        vmu_x = np.repeat(vmu_x, ri_x.shape[2], axis=2)
-
-        vmu_y = np.repeat(
-            np.sin(self.phi)[:, None, None],
-            ri_x.shape[1],
-            axis=1,
-        )
-        vmu_y = np.repeat(vmu_y, ri_x.shape[2], axis=2)
-
-        epsilon_d = 1.0e-20
-
-        c1 = mu_x - ri_x
-        c2 = mu_y - ri_y
+        c1 = mu_x - self.ri_x
+        c2 = mu_y - self.ri_y
 
         determinant = (
-            vi_x * vmu_y
-            - vi_y * vmu_x
-            + epsilon_d
+            self.vi_x * self.vmu_y
+            - self.vi_y * self.vmu_x
+            + self.epsilon_d
         )
 
-        t = (c1 * vmu_y - c2 * vmu_x) / determinant
-        s = (vi_y * c1 - vi_x * c2) / determinant
+        t = (c1 * self.vmu_y - c2 * self.vmu_x) / determinant
+        s = (self.vi_y * c1 - self.vi_x * c2) / determinant
 
         mask = (
             (t >= 0)
@@ -171,11 +182,11 @@ class PolygonChord:
         ] = -1
 
         d_x_int_sq = (
-            (vi_x * t + ri_x) * mask - mu_x
+            (self.vi_x * t + self.ri_x) * mask - mu_x
         ) ** 2
 
         d_y_int_sq = (
-            (vi_y * t + ri_y) * mask - mu_y
+            (self.vi_y * t + self.ri_y) * mask - mu_y
         ) ** 2
 
         l_sq = d_x_int_sq + d_y_int_sq
