@@ -183,6 +183,8 @@ filterwarnings = [
     "ignore:'parseAll':DeprecationWarning:pyparsing",
     # only ignore from joblib, should raise if its in our code directly
     "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning:joblib",
+    "ignore:The chararray class is deprecated:DeprecationWarning",
+    "ignore:Setting the dtype on a NumPy array",
 ]
 norecursedirs = [
     ".git",
