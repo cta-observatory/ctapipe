@@ -27,12 +27,16 @@ def test_PolygonChord():
     #pol_chord = PolygonChord(phi = np.linspace(0, 2.0 * np.pi, 360), vertices_i=vertices_i)
     pol_chord = PolygonChord.from_vertices(vertices_i=vertices_i)
 
-    print(pol_chord.convex_multipolygon_chord(0,0))
+    #print(pol_chord.convex_multipolygon_chord(0,0))
 
-    print(pol_chord.phi.shape)
+    #print(pol_chord.phi.shape)
 
     pol_chord.update(np.linspace(0, 2.0 * np.pi, 1000))
-    print(pol_chord.phi.shape)
+    #print(pol_chord.phi.shape)
+
+    print(PolygonChord(np.linspace( 0.0, 2.0 * np.pi, 3),ver_hex_i_a).update(np.linspace( 0.0, 2.0 * np.pi, 3)).polygon_chord(0,0))
+
+    
 
 def test_convex_multipolygon_chord():
 
@@ -79,10 +83,10 @@ def test_convex_multipolygon_chord():
         ),
     ],
 )
-def test_polygon_chord_base_performance(
+def test_polygon_chord_performances(
     ver_initial, n_photon_phi, allowed_time_factor
 ):
-    from ctapipe.image.muon.intensity_fitter import polygon_chord_base
+    from ctapipe.image.muon.intensity_fitter import PolygonChord
     from ctapipe.image.muon.intensity_fitter import chord_length
 
     ver_final = np.roll(ver_initial, 1, axis=0)
@@ -127,7 +131,7 @@ def test_polygon_chord_base_performance(
         (200.0, 200.0, 0.0 * u.deg, 0.0),
     ],
 )
-def test_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
+def test_polygon_chord_a(muon_x, muon_y, photon_phi, expected_chord_length):
     from ctapipe.image.muon.intensity_fitter import polygon_chord
 
     ver_a = np.array(
@@ -225,22 +229,26 @@ def test_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
         ),
     ],
 )
-def test_polygon_chord_base(
+def test_polygon_chord(
     ver_initial, muon_x, muon_y, photon_phi, expected_chord_length
 ):
-    from ctapipe.image.muon.intensity_fitter import polygon_chord_base
+    from ctapipe.image.muon.intensity_fitter import PolygonChord
 
-    ver_final = np.roll(ver_initial, 1, axis=0)
     assert np.isclose(
-        polygon_chord_base(
+        PolygonChord.from_vertices(ver_initial)._polygon_chord(
             muon_x,
             muon_y,
-            photon_phi.to_value(u.rad),
-            ri_x=ver_initial[:, 0],
-            ri_y=ver_initial[:, 1],
-            vi_x=ver_final[:, 0] - ver_initial[:, 0],
-            vi_y=ver_final[:, 1] - ver_initial[:, 1],
+            photon_phi.to_value(u.rad)
         ),
+        expected_chord_length,
+        atol=0.001,
+    )
+
+    assert np.isclose(
+        PolygonChord([photon_phi.to_value(u.rad)],ver_initial).polygon_chord(
+            muon_x,
+            muon_y,
+        )[0],
         expected_chord_length,
         atol=0.001,
     )
