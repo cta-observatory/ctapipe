@@ -72,7 +72,7 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
 
 def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
     if os.getenv(env_override):
-        base = Path(os.environ["CTAPIPE_CACHE"])
+        base = Path(os.environ[env_override])
     else:
         base = Path.home() / ".cache" / cache_name
 
