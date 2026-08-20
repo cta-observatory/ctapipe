@@ -1146,13 +1146,13 @@ class StereoDispCombiner(StereoCombiner):
 
     @staticmethod
     def _transform_to_nominal(
-        tel_pointing_alt,
-        tel_pointing_az,
-        subarray_pointing_alt,
-        subarray_pointing_az,
-        fov_lons,
-        fov_lats,
-    ):
+        tel_pointing_alt: u.Quantity,
+        tel_pointing_az: u.Quantity,
+        subarray_pointing_alt: u.Quantity,
+        subarray_pointing_az: u.Quantity,
+        fov_lons: np.ndarray | u.Quantity,
+        fov_lats: np.ndarray | u.Quantity,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Transform DISP candidates from telescope frames to a shared nominal frame.
 
