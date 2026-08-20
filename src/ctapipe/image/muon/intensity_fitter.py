@@ -40,20 +40,53 @@ SQRT2 = np.sqrt(2)
 
 
 class PolygonChord:
-    """Calculate ray chord lengths through multiple polygons.
+    """
+    Calculate ray chord lengths through one or more polygons.
 
     Parameters
     ----------
     phi : ndarray
-        Ray direction angles in radians.
-    vertices_i : ndarray
-        Starting vertices of the polygon edges with shape
-        ``(n_polygons, n_edges, 2)``.
-    vertices_f : ndarray
-        Ending vertices of the polygon edges with the same shape as
-        ``vertices_i``.
-    """
+        Ray direction angle(s) in radians. The ray direction is defined as
+        ``(cos(phi), sin(phi))``.
 
+    vertices_i : ndarray
+        Starting vertices of the polygon edges
+        (run the counter-clockwise direction).
+
+        For multiple polygons, the expected shape is
+        ``(n_polygons, n_edges, 2)``, where the last dimension contains
+        the x and y coordinates.
+
+        For a single polygon, the expected shape is ``(n_edges, 2)``.
+
+    Notes
+    -----
+    The class provides methods for calculating chord lengths formed by
+    intersections between rays and polygon edges.
+
+    Convex multipolygon calculations are performed using a vectorized
+    implementation. The multipolygon representation assumes that all
+    polygons have the same number of vertices.
+
+    A small numerical value is used in the intersection calculation to
+    avoid division by zero for parallel or nearly parallel ray and edge
+    directions.
+
+    Attributes
+    ----------
+    phi : ndarray
+        Ray direction angles in radians.
+
+    vertices_i : ndarray
+        Starting vertices of the polygon edges.
+
+    vertices_f : ndarray
+        Ending vertices of the polygon edges.
+
+    epsilon_d : float
+        Small numerical value used to stabilize the intersection
+        calculation.
+    """
 
     epsilon_d = 1.0e-20
 
@@ -115,62 +148,36 @@ class PolygonChord:
         return self
 
     def convex_multipolygon_chord(self, mu_x, mu_y):
-        """Calculate chord lengths for multiple polygons and directions.
-
-        The function computes the intersection chord length between a ray and a
-        set of polygons for multiple ray directions in a fully vectorized way.
+        """
+        Calculate chord lengths through multiple convex polygons.
 
         Parameters
         ----------
-        mu_x : float or array-like
-            X-coordinate(s) of the ray origin.
-        mu_y : float or array-like
-            Y-coordinate(s) of the ray origin.
-        phi : array-like
-            Ray direction angle(s) in radians. The direction vector is defined as
-            ``(cos(phi), sin(phi))``.
+        mu_x : float
+            X-coordinate of the ray origin.
 
-        vertices_i : ndarray
-            Coordinates of the starting points of the polygon edges. The expected
-            shape is ``(n_polygon, n_edge, 2)``, where the last dimension contains
-            the x and y coordinates.
-
-        vertices_f : ndarray
-            Coordinates of the ending points of the polygon edges. Must have the
-            same shape as ``vertices_i``.
+        mu_y : float
+            Y-coordinate of the ray origin.
 
         Returns
         -------
         ndarray
-        Chord length for each ray direction. The returned array has the same
-        length as ``phi``.
+            Chord length for each ray direction defined by ``phi``.
+
         Notes
         -----
-        The calculation assumes that the polygons are convex and that all
-        polygons have the same number of vertices. Intersections with polygon
-        edges are identified using the parametric representation of the ray and
-        polygon edges.
+        The calculation assumes that all polygons are convex and have the
+        same number of vertices.
 
-        For each polygon, intersections are paired by alternating the sign of
-        successive intersections along the ray. This allows the chord lengths to
-        be calculated for all polygons and directions without explicit Python
-        loops.
+        Ray-polygon intersections are calculated using a vectorized
+        parametric representation of the ray and polygon edges.
 
-        A small value is added to the determinant to avoid division by zero for
-        parallel or nearly parallel ray and edge directions.
+        Multiple intersections are paired using alternating signs to
+        calculate the total chord length without explicit Python loops.
 
-        Examples
-        --------
-        >>> phi = np.array([0.0, np.pi / 2])
-        >>> vertices_i = ...
-        >>> vertices_f = ...
-        >>> chord = convex_multipolygon_chord(
-        ...     mu_x=0.0,
-        ...     mu_y=0.0,
-        ...     phi=phi,
-        ...     vertices_i=vertices_i,
-        ...     vertices_f=vertices_f,
-        ... )
+        A small value ``epsilon_d`` is added to the intersection determinant
+        to avoid division by zero for parallel or nearly parallel ray and
+        edge directions.
         """
 
         c1 = mu_x - self.ri_x
@@ -216,35 +223,24 @@ class PolygonChord:
 
     def polygon_chord(self, mu_x, mu_y):
         """
-        Compute the chord length through one polygons for a set of
-        projection angles.
+        Compute the chord length of a polygon for all ray directions in ``phi``.
 
-        For each angle in ``phi``, the function evaluates the chord length
-        contributed by every polygon in ``vertices_list`` using
-        ``polygon_chord_base`` and returns the summed chord length.
+
+        The chord length is computed independently for each ray direction
+        using ``_polygon_chord``.
 
         Parameters
         ----------
         mu_x : float
-            X-coordinate of the ray origin, which is the muon's impact point (x).
+        X-coordinate of the ray origin.
+
         mu_y : float
-            Y-coordinate of the ray origin, which is the muon's impact point (y).
-        phi : array-like
-            Angle defining the direction of the ray (cher. photon from muon).
-        vertices_list : list of ndarray
-        List of polygons. Each polygon is represented as an ``(N, 2)`` array
-        containing the polygon vertices in order.
+        Y-coordinate of the ray origin.
 
         Returns
         -------
-        numpy.ndarray
-            One-dimensional array containing the total chord length for each
-            projection angle in ``phi``.
-
-        Notes
-        -----
-        Each polygon is processed independently, and the resulting chord lengths
-        are summed for every projection angle.
+        ndarray
+        Chord length for each ray direction defined by ``phi``.
         """
 
         the_chord = [
@@ -256,52 +252,57 @@ class PolygonChord:
 
     def _polygon_chord(self, mu_x, mu_y, phi, return_intersections=False):
         """
-        Compute the chord length of a ray intersecting a polygon.
+        Compute the chord length of a ray intersecting a arbitrary polygon.
 
-        This function calculates the length of the segment formed by the intersection
-        of a ray (defined by an origin and direction) with a polygon defined by its
-        edges. The polygon is represented parametrically using starting points and
-        direction vectors for each edge.
+        The ray originates at ``(mu_x, mu_y)`` and propagates in the
+        direction specified by ``phi``. Intersections between the ray and
+        all polygon edges are computed using a parametric line intersection
+        formulation. The chord length is then derived from the distances
+        between successive intersection points.
 
         Parameters
         ----------
         mu_x : float
-            X-coordinate of the ray origin, which is the muon's impact point (x).
+            X-coordinate of the ray origin.
         mu_y : float
-            Y-coordinate of the ray origin, which is the muon's impact point (y).
+            Y-coordinate of the ray origin.
         phi : float
-            Angle defining the direction of the ray.
-        ri_x : ndarray of shape (N,)
-            X-coordinates of the starting points of the polygon edges.
-        ri_y : ndarray of shape (N,)
-            Y-coordinates of the starting points of the polygon edges.
-        vi_x : ndarray of shape (N,)
-            X-components of the edge direction vectors.
-        vi_y : ndarray of shape (N,)
-            Y-components of the edge direction vectors.
+            Ray direction angle in radians. The ray direction vector is
+            defined as ``(cos(phi), sin(phi))``.
+        return_intersections : bool, optional
+            If ``True``, also return the coordinates of all intersection
+            points found along the ray. Default is ``False``.
 
         Returns
         -------
-        float
-            Length of the chord formed by the intersection of the ray with the polygon:
-            - 0.0 if there is no intersection,
-            - distance from the ray origin to the intersection point if only one intersection,
-            - distance between two intersection points if exactly two intersections,
-            - accumulated segment length for multiple intersections (handles complex polygons).
+
+        float or tuple
+
+        If ``return_intersections`` is ``False``, returns the total
+        chord length intersected by the ray.
+
+        If ``return_intersections`` is ``True``, returns a tuple
+        ``(chord_length, x_int, y_int)``
+
+        where ``x_int`` and ``y_int`` contain the coordinates of the
+        intersection points.
 
         Notes
         -----
-        - The ray is defined parametrically as:
-            (x, y) = (mu_x, mu_y) + s * (cos(phi), sin(phi)), with s >= 0
-        - Each polygon edge is defined as:
-            (x, y) = (ri_x, ri_y) + t * (vi_x, vi_y), with 0 <= t < 1
-        - The function computes intersections by solving a 2D linear system.
-        - A small epsilon_d (`1e-20`) is added to the denominator to avoid division by zero.
-        - For multiple intersections, distances are sorted and combined with alternating
-        signs to compute the total chord length (useful for non-convex polygons).
-
+        Polygon edges are represented parametrically as
+        Intersections are obtained by solving the corresponding 2D linear
+        system for each polygon edge. Only intersections satisfying the
+        edge and ray constraints are retained.
+        For multiple intersections, the distances from the ray origin to
+        the intersection points are sorted and combined with alternating
+        signs, yielding the total length of all segments lying inside the
+        polygon. This approach naturally handles both convex and non-convex
+        polygons.
+        A small value ``epsilon_d`` is added to the intersection determinant
+        to avoid division by zero for parallel or nearly parallel ray and
+        edge directions.
         """
-
+ 
         # Effective speed of the ray, with unit norm.
         vmu_x = np.cos(phi)
         vmu_y = np.sin(phi)
