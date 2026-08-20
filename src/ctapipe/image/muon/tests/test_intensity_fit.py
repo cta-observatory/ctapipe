@@ -1,11 +1,10 @@
+import time
 from collections import namedtuple
 
 import astropy.units as u
 import numpy as np
 import pytest
 from scipy.constants import alpha
-
-import time
 
 
 @pytest.mark.parametrize(
