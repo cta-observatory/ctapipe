@@ -792,10 +792,6 @@ class StereoDispCombiner(StereoCombiner):
             fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
             fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
 
-            # Convert to quantity to ensure the helper functions can handle the inputs correctly
-            fov_lons = u.Quantity(fov_lons, u.deg, copy=COPY_IF_NEEDED)
-            fov_lats = u.Quantity(fov_lats, u.deg, copy=COPY_IF_NEEDED)
-
             # Gather the telescope pointing information for the transformation to the nominal frame
             tel_pointing_alt = event.monitoring.tel[tel_id].pointing.altitude
             tel_pointing_az = event.monitoring.tel[tel_id].pointing.azimuth
@@ -882,12 +878,9 @@ class StereoDispCombiner(StereoCombiner):
         valid = mono_predictions[f"{prefix_tel}_is_valid"].copy()
         self._require_disp_column(mono_predictions, prefix_tel)
 
-        # Returns values as to_value(u.deg)
+        # Returns the FoV coordinates in deg as a ndarray
         fov_lon_values, fov_lat_values = calc_fov_lon_lat(mono_predictions, prefix_tel)
 
-        # Convert to radians for the angular difference calculation
-        fov_lon_values = u.Quantity(fov_lon_values, u.deg, copy=COPY_IF_NEEDED)
-        fov_lat_values = u.Quantity(fov_lat_values, u.deg, copy=COPY_IF_NEEDED)
         tel_pointing_alt = mono_predictions["telescope_pointing_altitude"].quantity[
             :, None
         ]
@@ -1169,9 +1162,9 @@ class StereoDispCombiner(StereoCombiner):
             Scalar or array-valued telescope pointings defining the input frames.
         subarray_pointing_alt, subarray_pointing_az : astropy.units.Quantity
             Scalar or array-valued subarray pointings defining the nominal frames.
-        fov_lons, fov_lats : astropy.units.Quantity
-            Array-valued DISP candidate coordinates with angular units. The shape
-            is ``(2,)`` for one telescope event or ``(n_events, 2)`` for a table.
+        fov_lons, fov_lats : numpy.ndarray | astropy.units.Quantity
+            DISP candidate coordinates in degrees. The shape is ``(2,)`` for one
+            telescope event or ``(n_events, 2)`` for a table.
 
         Returns
         -------
@@ -1179,6 +1172,9 @@ class StereoDispCombiner(StereoCombiner):
             Candidate coordinates in the nominal frames, in degrees and with the
             same shape as ``fov_lons`` and ``fov_lats``.
         """
+        fov_lons = u.Quantity(fov_lons, u.deg, copy=COPY_IF_NEEDED)
+        fov_lats = u.Quantity(fov_lats, u.deg, copy=COPY_IF_NEEDED)
+
         telescope_pointing = SkyCoord(
             alt=tel_pointing_alt,
             az=tel_pointing_az,

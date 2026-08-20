@@ -1,6 +1,7 @@
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import Table
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -18,6 +19,7 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     TelescopeReconstructedContainer,
 )
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core.traits import TraitError
 from ctapipe.reco.reconstructor import ReconstructionProperty
 from ctapipe.reco.stereo_combination import StereoDispCombiner, StereoMeanCombiner
@@ -445,6 +447,89 @@ def test_disp_combiner_single_event(weights):
     elif weights == "none":
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 70.75451665 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.05821327 * u.deg)
+
+
+def _make_divergent_disp_data():
+    source_position = SkyCoord(alt=70.2 * u.deg, az=0.1 * u.deg, frame=AltAz())
+    telescope_pointings = [
+        SkyCoord(alt=69.5 * u.deg, az=-1 * u.deg, frame=AltAz()),
+        SkyCoord(alt=70.5 * u.deg, az=1 * u.deg, frame=AltAz()),
+    ]
+    source_in_telescope_frames = [
+        source_position.transform_to(TelescopeFrame(telescope_pointing=pointing))
+        for pointing in telescope_pointings
+    ]
+
+    hillas_psis = [20, 100] * u.deg
+    disp_parameters = [0.7, 0.8] * u.deg
+    source_fov_lons = u.Quantity(
+        [coordinate.fov_lon for coordinate in source_in_telescope_frames]
+    )
+    source_fov_lats = u.Quantity(
+        [coordinate.fov_lat for coordinate in source_in_telescope_frames]
+    )
+
+    # Shift each source backwards along its Hillas axis by the DISP distance.
+    # Assumes that disp predictions are 100% correct
+    hillas_centroid_fov_lons = source_fov_lons - disp_parameters * np.cos(hillas_psis)
+    hillas_centroid_fov_lats = source_fov_lats - disp_parameters * np.sin(hillas_psis)
+
+    event_data = {
+        "tel_id": [1, 2],
+        "hillas_intensity": [100, 200],
+        "hillas_width": [0.1, 0.1] * u.deg,
+        "hillas_length": [0.3, 0.3] * u.deg,
+        "hillas_fov_lon": hillas_centroid_fov_lons,
+        "hillas_fov_lat": hillas_centroid_fov_lats,
+        "hillas_psi": hillas_psis,
+        # Mono directions are not combined directly. Just use the known source here.
+        "disp_tel_alt": u.Quantity([source_position.alt, source_position.alt]),
+        "disp_tel_az": u.Quantity([source_position.az, source_position.az]),
+        "disp_tel_parameter": disp_parameters,
+        "disp_tel_sign_score": [1, 1],
+        "disp_tel_is_valid": [True, True],
+    }
+    return source_position, telescope_pointings, event_data
+
+
+def test_disp_combiner_single_event_divergent_pointing():
+    source_position, telescope_pointings, event_data = _make_divergent_disp_data()
+    event = _make_disp_event(event_data)
+    for tel_id, pointing in zip(event_data["tel_id"], telescope_pointings):
+        event.monitoring.tel[tel_id].pointing.altitude = pointing.alt
+        event.monitoring.tel[tel_id].pointing.azimuth = pointing.az
+
+    StereoDispCombiner(prefix="dummy")(event)
+
+    reconstructed_geometry = event.dl2.stereo.geometry["dummy"]
+    assert reconstructed_geometry.is_valid
+    assert u.isclose(reconstructed_geometry.alt, source_position.alt)
+    assert u.isclose(reconstructed_geometry.az, source_position.az)
+
+
+def test_predict_disp_combiner_divergent_pointing():
+    source_position, telescope_pointings, event_data = _make_divergent_disp_data()
+    mono_predictions = Table(
+        {
+            "obs_id": [1, 1],
+            "event_id": [1, 1],
+            **event_data,
+            "subarray_pointing_lat": [70, 70] * u.deg,
+            "subarray_pointing_lon": [0, 0] * u.deg,
+            "telescope_pointing_altitude": u.Quantity(
+                [pointing.alt for pointing in telescope_pointings]
+            ),
+            "telescope_pointing_azimuth": u.Quantity(
+                [pointing.az for pointing in telescope_pointings]
+            ),
+        }
+    )
+
+    stereo = StereoDispCombiner(prefix="disp").predict_table(mono_predictions)
+
+    assert stereo["disp_is_valid"][0]
+    assert u.isclose(stereo["disp_alt"].quantity[0], source_position.alt)
+    assert u.isclose(stereo["disp_az"].quantity[0], source_position.az)
 
 
 def test_disp_combiner_single_event_disp_parameter():
