@@ -159,10 +159,19 @@ def test_convex_multipolygon_chord(muon_x, muon_y, photon_phi, expected_chord_le
     )
     the_chord = np.sum(res,axis=0)[0]
 
+    #assert np.isclose(
+    #    the_chord,
+    #    expected_chord_length,
+    #    atol=0.001,
+    #)
+
     assert np.isclose(
-        the_chord,
+        PolygonChord(
+            [photon_phi.to_value(u.rad)],
+            vertices_i
+        ).convex_multipolygon_chord(muon_x, muon_y)[0],
         expected_chord_length,
-        atol=1.001,
+        atol=0.001,
     )
 
 
