@@ -57,10 +57,7 @@ def test_polygon_chord_performances(
         times_pol.append(time.perf_counter() - start)
         #
         start = time.perf_counter()
-        __ = chord_length(
-            radius = 12, rho = 0.5,
-            phi=photon_phi.to_value(u.rad), phi0=0
-        )
+        __ = chord_length(radius=12, rho=0.5, phi=photon_phi.to_value(u.rad), phi0=0)
         ref_times.append(time.perf_counter() - start)
 
     times_convex_mean = np.mean(np.array(times_convex))
@@ -74,13 +71,13 @@ def test_polygon_chord_performances(
 @pytest.mark.parametrize(
     "muon_x, muon_y, photon_phi, expected_chord_length",
     [
-        (  0.0,  200.0,  90.0 * u.deg, 75.0),
-        (  0.0, -200.0, 150.0 * u.deg, 75.0),
-        (  0.0,    0.0,  90.0 * u.deg, 225.0),
-        (  0.0, -400.0,  90.0 * u.deg, 450.0),
-        (  0.0,    0.0,  30.0 * u.deg, 75.0),
-        (  0.0, -200.0,   0.0 * u.deg, 86.6025 * 3),
-        (200.0,  200.0,   0.0 * u.deg, 0.0),
+        (0.0, 200.0, 90.0 * u.deg, 75.0),
+        (0.0, -200.0, 150.0 * u.deg, 75.0),
+        (0.0, 0.0, 90.0 * u.deg, 225.0),
+        (0.0, -400.0, 90.0 * u.deg, 450.0),
+        (0.0, 0.0, 30.0 * u.deg, 75.0),
+        (0.0, -200.0, 0.0 * u.deg, 86.6025 * 3),
+        (200.0, 200.0, 0.0 * u.deg, 0.0),
     ],
 )
 def test_multi_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
@@ -100,27 +97,34 @@ def test_multi_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
     ver_c = ver_a + [[0.0, -200.0]]
     ver_d = ver_a + [[200.0, -200.0]]
 
-    vertices_i=np.stack(
-        [ver_a, ver_b,
-         ver_c, ver_d,]
+    vertices_i = np.stack(
+        [
+            ver_a,
+            ver_b,
+            ver_c,
+            ver_d,
+        ]
     )
 
     assert np.isclose(
         PolygonChord(
-            [photon_phi.to_value(u.rad)],
-            vertices_i
+            [photon_phi.to_value(u.rad)], vertices_i
         ).convex_multipolygon_chord(muon_x, muon_y)[0],
         expected_chord_length,
         atol=0.001,
     )
 
     res = np.stack(
-        [PolygonChord([photon_phi.to_value(u.rad)], ver
-        ).polygon_chord(muon_x, muon_y) for ver in vertices_i]
+        [
+            PolygonChord([photon_phi.to_value(u.rad)], ver).polygon_chord(
+                muon_x, muon_y
+            )
+            for ver in vertices_i
+        ]
     )
 
     assert np.isclose(
-        np.sum(res,axis=0)[0],
+        np.sum(res, axis=0)[0],
         expected_chord_length,
         atol=0.001,
     )
@@ -195,23 +199,19 @@ def test_multi_polygon_chord(muon_x, muon_y, photon_phi, expected_chord_length):
         ),
     ],
 )
-def test_polygon_chord(
-    ver_initial, muon_x, muon_y, photon_phi, expected_chord_length
-):
+def test_polygon_chord(ver_initial, muon_x, muon_y, photon_phi, expected_chord_length):
     from ctapipe.image.muon.intensity_fitter import PolygonChord
 
     assert np.isclose(
         PolygonChord.from_vertices(ver_initial)._polygon_chord(
-            muon_x,
-            muon_y,
-            photon_phi.to_value(u.rad)
+            muon_x, muon_y, photon_phi.to_value(u.rad)
         ),
         expected_chord_length,
         atol=0.001,
     )
 
     assert np.isclose(
-        PolygonChord([photon_phi.to_value(u.rad)],ver_initial).polygon_chord(
+        PolygonChord([photon_phi.to_value(u.rad)], ver_initial).polygon_chord(
             muon_x,
             muon_y,
         )[0],
