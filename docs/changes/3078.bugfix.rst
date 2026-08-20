@@ -1,0 +1,4 @@
+Fixed bug in ``utilities.get_cache_path`` where the ``env_override`` parameter
+was ignored, using the hard-coded "CTAPIPE_CACHE" even if the user specified a
+different one. This did not affect anything inside ctapipe, only external
+packages that use this method with a non-default cache location.
