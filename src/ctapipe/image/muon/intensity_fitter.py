@@ -206,11 +206,12 @@ class PolygonChord:
             (self.vi_y * t + self.ri_y) * mask - mu_y
         ) ** 2
 
-        l_sq = d_x_int_sq + d_y_int_sq
+        l_sq = np.sqrt(d_x_int_sq + d_y_int_sq)
+        one_chord = np.abs(
+            (l_sq * mask_alternate_signs).sum(axis=2)
+        )
 
-        return np.sqrt(
-            np.abs(l_sq * mask_alternate_signs)
-        ).sum(axis=2).sum(axis=1)
+        return one_chord.sum(axis=1)
 
 
     def polygon_chord(self, mu_x, mu_y):
