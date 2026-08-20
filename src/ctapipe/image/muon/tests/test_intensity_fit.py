@@ -8,64 +8,8 @@ from scipy.constants import alpha
 import time
 
 
-def test_PolygonChord():
-    from ctapipe.image.muon.intensity_fitter import PolygonChord
-
-    ver_hex_i_a = np.array([[ 86.6025,   0.0],
-                            [ 43.3013,  75.0],
-                            [-43.3013,  75.0],
-                            [-86.6025,   0.0],
-                            [-43.3013, -75.0],
-                            [ 43.3013, -75.0]])
-
-    ver_hex_i_b = ver_hex_i_a + [[0.0,  200.0]]
-    ver_hex_i_c = ver_hex_i_a + [[0.0, -200.0]]
-    ver_hex_i_d = ver_hex_i_a + [[200, -200.0]]
-
-    vertices_i = np.stack([ver_hex_i_a,ver_hex_i_b,ver_hex_i_c,ver_hex_i_d])
-
-    #pol_chord = PolygonChord(phi = np.linspace(0, 2.0 * np.pi, 360), vertices_i=vertices_i)
-    pol_chord = PolygonChord.from_vertices(vertices_i=vertices_i)
-
-    #print(pol_chord.convex_multipolygon_chord(0,0))
-
-    #print(pol_chord.phi.shape)
-
-    pol_chord.update(np.linspace(0, 2.0 * np.pi, 1000))
-    #print(pol_chord.phi.shape)
-
-    print(PolygonChord(np.linspace( 0.0, 2.0 * np.pi, 3),ver_hex_i_a).update(np.linspace( 0.0, 2.0 * np.pi, 3)).polygon_chord(0,0))
-
-    
-
-def test_convex_multipolygon_chord():
-
-    from ctapipe.image.muon.intensity_fitter import convex_multipolygon_chord
-
-    ver_hex_i_a = np.array([[ 86.6025,   0.0],
-                            [ 43.3013,  75.0],
-                            [-43.3013,  75.0],
-                            [-86.6025,   0.0],
-                            [-43.3013, -75.0],
-                            [ 43.3013, -75.0]])
-
-    ver_hex_i_b = ver_hex_i_a + [[0.0,  200.0]]
-    ver_hex_i_c = ver_hex_i_a + [[0.0, -200.0]]
-    ver_hex_i_d = ver_hex_i_a + [[200, -200.0]]
-
-    vertices_i = np.stack([ver_hex_i_a,ver_hex_i_b,ver_hex_i_c,ver_hex_i_d])
-    vertices_f = np.roll(vertices_i, 1, axis=1)
-
-    mu_x = 0.0
-    mu_y = 0.0
-
-    phi = np.linspace(0, 2.0 * np.pi, 360)
-
-    convex_multipolygon_chord(mu_x, mu_y, phi, vertices_i, vertices_f)
-
-
 @pytest.mark.parametrize(
-    "ver_initial, n_photon_phi, allowed_time_factor",
+    "ver_initial, mu_x, mu_y, n_photon_phi, n_trials, allowed_time_factor",
     [
         (
             np.array(
@@ -78,45 +22,53 @@ def test_convex_multipolygon_chord():
                     [43.3013, -75.0],
                 ]
             ),
-            1000,
-            10,
+            0.0,
+            0.0,
+            100,
+            100,
+            30,
         ),
     ],
 )
 def test_polygon_chord_performances(
-    ver_initial, n_photon_phi, allowed_time_factor
+    ver_initial, mu_x, mu_y, n_photon_phi, n_trials, allowed_time_factor
 ):
     from ctapipe.image.muon.intensity_fitter import PolygonChord
     from ctapipe.image.muon.intensity_fitter import chord_length
 
-    ver_final = np.roll(ver_initial, 1, axis=0)
     photon_phi = np.linspace(0, np.pi, n_photon_phi) * u.rad
 
-    times = []
+    times_convex = []
+    times_pol = []
     ref_times = []
-    for phi in photon_phi:
+    for _ in np.arange(n_trials):
         start = time.perf_counter()
-        res = polygon_chord_base(
-            0.0,
-            0.0,
-            phi.to_value(u.rad),
-            ri_x=ver_initial[:, 0],
-            ri_y=ver_initial[:, 1],
-            vi_x=ver_final[:, 0] - ver_initial[:, 0],
-            vi_y=ver_final[:, 1] - ver_initial[:, 1],
-        )
-        times.append(time.perf_counter() - start)
+        __ = PolygonChord(
+            photon_phi,
+            np.stack([ver_initial]),
+        ).convex_multipolygon_chord(mu_x, mu_y)
+        times_convex.append(time.perf_counter() - start)
         #
         start = time.perf_counter()
-        ref_res = chord_length(radius = 12, rho = 0.5, phi=photon_phi.to_value(u.rad), phi0=0)
+        __ = PolygonChord(
+            photon_phi,
+            ver_initial,
+        ).polygon_chord(mu_x, mu_y)
+        times_pol.append(time.perf_counter() - start)
+        #
+        start = time.perf_counter()
+        __ = chord_length(
+            radius = 12, rho = 0.5,
+            phi=photon_phi.to_value(u.rad), phi0=0
+        )
         ref_times.append(time.perf_counter() - start)
 
-    print("times")
-    print(np.mean(np.array(times)))
-    print(np.mean(np.array(ref_times)))
+    times_convex_mean = np.mean(np.array(times_convex))
+    ref_times_mean = np.mean(np.array(ref_times))
+    times_pol_mean = np.mean(np.array(times_pol))
 
-
-    assert np.mean(np.array(times)) / allowed_time_factor < np.mean(np.array(ref_times))
+    assert times_convex_mean / allowed_time_factor < ref_times_mean
+    assert times_pol_mean / allowed_time_factor < times_convex_mean
 
 
 @pytest.mark.parametrize(
