@@ -90,24 +90,21 @@ class PolygonChord:
 
     epsilon_d = 1.0e-20
 
-
     def __init__(self, phi, vertices_i):
         self.phi = np.asarray(phi)
         self.vertices_i = np.asarray(vertices_i)
         self.update(self.phi)
 
-
     @classmethod
     def from_vertices(cls, vertices_i):
-        return cls(np.linspace(0,2 * np.pi, 100), vertices_i)
-
+        return cls(np.linspace(0, 2 * np.pi, 100), vertices_i)
 
     def update(self, phi):
 
         self.phi = np.asarray(phi)
 
         # convex multipolygon usage
-        if self.vertices_i.ndim == 3 :
+        if self.vertices_i.ndim == 3:
             self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
 
             self.ri_x = self.vertices_i[:, :, 0]
@@ -134,16 +131,14 @@ class PolygonChord:
             )
             self.vmu_y = np.repeat(self.vmu_y, self.ri_x.shape[2], axis=2)
 
-
         # arbitrary polygon usage
-        if self.vertices_i.ndim == 2 :
+        if self.vertices_i.ndim == 2:
             self.vertices_f = np.roll(self.vertices_i, 1, axis=0)
 
             self.ri_x = self.vertices_i[:, 0]
             self.ri_y = self.vertices_i[:, 1]
             self.vi_x = self.vertices_f[:, 0] - self.vertices_i[:, 0]
             self.vi_y = self.vertices_f[:, 1] - self.vertices_i[:, 1]
-
 
         return self
 
@@ -183,43 +178,26 @@ class PolygonChord:
         c1 = mu_x - self.ri_x
         c2 = mu_y - self.ri_y
 
-        determinant = (
-            self.vi_x * self.vmu_y
-            - self.vi_y * self.vmu_x
-            + self.epsilon_d
-        )
+        determinant = self.vi_x * self.vmu_y - self.vi_y * self.vmu_x + self.epsilon_d
 
         t = (c1 * self.vmu_y - c2 * self.vmu_x) / determinant
         s = (self.vi_y * c1 - self.vi_x * c2) / determinant
 
-        mask = (
-            (t >= 0)
-            & (t < 1)
-            & (s >= 0)
-        ).astype(int)
+        mask = ((t >= 0) & (t < 1) & (s >= 0)).astype(int)
 
         mask_alternate_signs = mask.copy()
 
         count = np.cumsum(mask == 1, axis=2)
-        mask_alternate_signs[
-            (mask_alternate_signs == 1) & (count % 2 == 0)
-        ] = -1
+        mask_alternate_signs[(mask_alternate_signs == 1) & (count % 2 == 0)] = -1
 
-        d_x_int_sq = (
-            (self.vi_x * t + self.ri_x) * mask - mu_x
-        ) ** 2
+        d_x_int_sq = ((self.vi_x * t + self.ri_x) * mask - mu_x) ** 2
 
-        d_y_int_sq = (
-            (self.vi_y * t + self.ri_y) * mask - mu_y
-        ) ** 2
+        d_y_int_sq = ((self.vi_y * t + self.ri_y) * mask - mu_y) ** 2
 
         l_sq = np.sqrt(d_x_int_sq + d_y_int_sq)
-        one_chord = np.abs(
-            (l_sq * mask_alternate_signs).sum(axis=2)
-        )
+        one_chord = np.abs((l_sq * mask_alternate_signs).sum(axis=2))
 
         return one_chord.sum(axis=1)
-
 
     def polygon_chord(self, mu_x, mu_y):
         """
@@ -243,12 +221,9 @@ class PolygonChord:
         Chord length for each ray direction defined by ``phi``.
         """
 
-        the_chord = [
-            self._polygon_chord(mu_x, mu_y, az) for az in self.phi
-        ]
+        the_chord = [self._polygon_chord(mu_x, mu_y, az) for az in self.phi]
 
         return np.array(the_chord)
-
 
     def _polygon_chord(self, mu_x, mu_y, phi, return_intersections=False):
         """
@@ -302,7 +277,7 @@ class PolygonChord:
         to avoid division by zero for parallel or nearly parallel ray and
         edge directions.
         """
- 
+
         # Effective speed of the ray, with unit norm.
         vmu_x = np.cos(phi)
         vmu_y = np.sin(phi)
@@ -327,17 +302,18 @@ class PolygonChord:
         elif x_int.shape[0] == 1:
             the_length = np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)
         elif x_int.shape[0] == 2:
-            the_length = np.sqrt((x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2)
+            the_length = np.sqrt(
+                (x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2
+            )
         else:
             dist = np.sort(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
             sign_arr = np.ones(x_int.shape[0])
             if x_int.shape[0] % 2 == 0:
                 sign_arr[0::2] = -1
                 the_length = np.sum(dist * sign_arr)
-            else :
+            else:
                 sign_arr[1::2] = -1
                 the_length = np.sum(dist * sign_arr)
-
 
         if return_intersections:
             return the_length, x_int, y_int
