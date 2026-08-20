@@ -153,26 +153,17 @@ def test_convex_multipolygon_chord(muon_x, muon_y, photon_phi, expected_chord_le
          ver_c, ver_d,]
     )
 
+    res = np.stack(
+        [PolygonChord([photon_phi.to_value(u.rad)], ver
+        ).polygon_chord(muon_x, muon_y) for ver in vertices_i]
+    )
+    the_chord = np.sum(res,axis=0)[0]
 
-    print("--")
-
-    print(PolygonChord(
-        [photon_phi.to_value(u.rad)],
-        vertices_i).convex_multipolygon_chord(muon_x, muon_y)[0],
-          " ",expected_chord_length)
-
-    #print(vertices_i.shape)
-
-    assert 1
-
-    #assert np.isclose(
-    #    PolygonChord(
-    #        [photon_phi.to_value(u.rad)],
-    #        vertices_i
-    #    ).convex_multipolygon_chord(muon_x, muon_y)[0],
-    #    expected_chord_length,
-    #    atol=1.001,
-    #)
+    assert np.isclose(
+        the_chord,
+        expected_chord_length,
+        atol=1.001,
+    )
 
 
 @pytest.mark.parametrize(
