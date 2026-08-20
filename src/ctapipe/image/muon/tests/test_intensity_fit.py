@@ -33,8 +33,7 @@ import time
 def test_polygon_chord_performances(
     ver_initial, mu_x, mu_y, n_photon_phi, n_trials, allowed_time_factor
 ):
-    from ctapipe.image.muon.intensity_fitter import PolygonChord
-    from ctapipe.image.muon.intensity_fitter import chord_length
+    from ctapipe.image.muon.intensity_fitter import PolygonChord, chord_length
 
     photon_phi = np.linspace(0, np.pi, n_photon_phi) * u.rad
 
