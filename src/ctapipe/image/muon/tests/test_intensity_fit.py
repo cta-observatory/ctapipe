@@ -30,7 +30,13 @@ from scipy.constants import alpha
     ],
 )
 def test_polygon_chord_performances(
-    ver_initial, mu_x, mu_y, n_photon_phi, n_trials, allowed_time_factor
+    lst_mirror_vertices,
+    ver_initial,
+    mu_x,
+    mu_y,
+    n_photon_phi,
+    n_trials,
+    allowed_time_factor
 ):
     from ctapipe.image.muon.intensity_fitter import PolygonChord, chord_length
 
@@ -38,6 +44,7 @@ def test_polygon_chord_performances(
 
     times_convex = []
     times_pol = []
+    times_lst = []
     ref_times = []
     for _ in np.arange(n_trials):
         start = time.perf_counter()
@@ -55,15 +62,24 @@ def test_polygon_chord_performances(
         times_pol.append(time.perf_counter() - start)
         #
         start = time.perf_counter()
+        __ = PolygonChord(
+            photon_phi,
+            lst_mirror_vertices,
+        ).polygon_chord(mu_x, mu_y)
+        times_lst.append(time.perf_counter() - start)
+        #
+        start = time.perf_counter()
         __ = chord_length(radius=12, rho=0.5, phi=photon_phi.to_value(u.rad), phi0=0)
         ref_times.append(time.perf_counter() - start)
 
     times_convex_mean = np.mean(np.array(times_convex))
     ref_times_mean = np.mean(np.array(ref_times))
     times_pol_mean = np.mean(np.array(times_pol))
+    times_lst_mean = np.mean(np.array(times_lst))
 
     assert times_convex_mean / allowed_time_factor < ref_times_mean
     assert times_pol_mean / allowed_time_factor < times_convex_mean
+    assert times_lst_mean / allowed_time_factor < times_convex_mean
 
 
 @pytest.mark.parametrize(
