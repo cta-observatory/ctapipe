@@ -4,7 +4,7 @@ import pytest
 from astropy.table import QTable
 
 from ctapipe.core import QualityQuery, non_abstract_children
-from ctapipe.irf.optimize import CutOptimizerBase
+from ctapipe.irf.optimize import CutOptimizerBase, PointSourceSensitivityOptimizer
 
 
 @pytest.mark.parametrize("file_format", [".fits", ".fits.gz"])
@@ -121,3 +121,7 @@ def test_cut_optimizer(
     assert result.valid_energy.min >= result.gh_cuts["low"][0]
     assert result.valid_energy.max <= result.gh_cuts["high"][-1]
     assert result.spatial_selection_table["cut"].unit == u.deg
+
+    if isinstance(optimizer, PointSourceSensitivityOptimizer):
+        assert result.multiplicity_cuts is not None
+        assert len(result.multiplicity_cuts["low"]) == len(result.gh_cuts["low"])

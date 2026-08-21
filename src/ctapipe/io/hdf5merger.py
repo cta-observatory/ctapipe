@@ -20,6 +20,7 @@ from .hdf5dataformat import (
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_COLUMN_NAMES,
     DL1_IMAGE_STATISTICS_TABLE,
+    DL1_PIXEL_HISTOGRAMS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
     DL1_SUBARRAY_POINTING_GROUP,
     DL1_SUBARRAY_QUALITY_GROUP,
@@ -33,6 +34,7 @@ from .hdf5dataformat import (
     DL1_TEL_PARAMETERS_GROUP,
     DL1_TEL_POINTING_GROUP,
     DL1_TEL_QUALITY_GROUP,
+    DL1_TEL_STAR_TRACKING_GROUP,
     DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
     DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
@@ -59,6 +61,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.3.0",
     "v7.4.0",
     "v7.5.0",
+    "v7.6.0",
 ]
 
 
@@ -94,7 +97,9 @@ _NODES_TO_CHECK = {
     DL1_TEL_MUON_GROUP: NodeType.TEL_GROUP,
     DL1_SUBARRAY_POINTING_GROUP: NodeType.TABLE,
     DL1_TEL_POINTING_GROUP: NodeType.TEL_GROUP,
+    DL1_TEL_STAR_TRACKING_GROUP: NodeType.TEL_GROUP,
     DL1_PIXEL_STATISTICS_GROUP: NodeType.ITER_TEL_GROUP,
+    DL1_PIXEL_HISTOGRAMS_GROUP: NodeType.ITER_TEL_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP: NodeType.TEL_GROUP,
     DL1_TEL_MUON_THROUGHPUT_GROUP: NodeType.TEL_GROUP,
     DL2_TEL_GROUP: NodeType.ITER_TEL_GROUP,
@@ -485,6 +490,7 @@ class HDF5Merger(Component):
         if self.telescope_events:
             self._append_monitoring_telescope_groups(other)
             self._append_pixel_statistics(other)
+            self._append_pixel_histograms(other)
             self._append_quality_telescope_groups(other)
 
     def _append_monitoring_subarray_groups(self, other):
@@ -501,6 +507,7 @@ class HDF5Merger(Component):
         monitoring_telescope_groups = [
             DL0_TEL_POINTING_GROUP,
             DL1_TEL_POINTING_GROUP,
+            DL1_TEL_STAR_TRACKING_GROUP,
             DL1_TEL_OPTICAL_PSF_GROUP,
             DL1_TEL_CALIBRATION_GROUP,
             DL1_CAMERA_COEFFICIENTS_GROUP,
@@ -526,6 +533,16 @@ class HDF5Merger(Component):
         for dl1_colname in DL1_COLUMN_NAMES:
             for event_type in EventType:
                 key = f"{DL1_PIXEL_STATISTICS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
+                if key in other.root:
+                    self._append_table_group(
+                        other, other.root[key], once=self.single_ob
+                    )
+
+    def _append_pixel_histograms(self, other):
+        """Append pixel histogram monitoring data."""
+        for dl1_colname in DL1_COLUMN_NAMES:
+            for event_type in EventType:
+                key = f"{DL1_PIXEL_HISTOGRAMS_GROUP}/{event_type.name.lower()}_{dl1_colname}"
                 if key in other.root:
                     self._append_table_group(
                         other, other.root[key], once=self.single_ob

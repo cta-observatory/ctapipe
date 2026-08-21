@@ -320,6 +320,30 @@ def test_quantity():
 
     c = AnotherComponentWithEnergyTrait()
 
+    # Definition of physical type via default value
+    class SomeComponentWithEnergyDefaultValue(Component):
+        energy = AstroQuantity(default_value=5 * u.TeV)
+
+    c = SomeComponentWithEnergyDefaultValue()
+    with pytest.raises(
+        TraitError,
+        match=f"Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
+        + f" Expected {u.physical.energy}.",
+    ):
+        c.energy = 5 * u.m
+
+    class SomeComponentWithEnergyDefaultValueAndNonePhysicalType(Component):
+        energy = AstroQuantity(default_value=5 * u.TeV, physical_type=None)
+
+    c = SomeComponentWithEnergyDefaultValueAndNonePhysicalType()
+    with pytest.raises(
+        TraitError,
+        match=f"Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
+        + f" Expected {u.physical.energy}.",
+    ):
+        c.energy = 5 * u.m
+
+    # Give a u.quantity as physical type
     with pytest.raises(
         TraitError,
         match="Given physical type must be either of type"
@@ -330,10 +354,11 @@ def test_quantity():
         class SomeBadComponentWithEnergyTrait(Component):
             energy = AstroQuantity(physical_type=5 * u.TeV)
 
+    # Default value and physical type do not match
     with pytest.raises(
         TraitError,
         match=f"Given physical type {u.physical.energy} does not match"
-        + f" physical type of the default value, {u.get_physical_type(5 * u.m)}.",
+        + f" the default value's physical type {u.get_physical_type(5 * u.m)}.",
     ):
 
         class AnotherBadComponentWithEnergyTrait(Component):
@@ -347,7 +372,9 @@ def test_quantity_from_config(tmp_path):
     from ctapipe.core.traits import AstroQuantity
 
     class QuantityComponent(Component):
-        distance = AstroQuantity(u.cm, default_value=1 * u.m).tag(config=True)
+        distance = AstroQuantity(physical_type=u.cm, default_value=1 * u.m).tag(
+            config=True
+        )
 
     config = Config()
     config.QuantityComponent.distance = "5 cm"
@@ -362,7 +389,9 @@ def test_quantity_from_config(tmp_path):
     assert q.distance.unit == u.m
 
     class QTool(Tool):
-        distance = AstroQuantity(u.cm, default_value=1 * u.m).tag(config=True)
+        distance = AstroQuantity(physical_type=u.cm, default_value=1 * u.m).tag(
+            config=True
+        )
 
     config_file = tmp_path / "config.json"
     config_file.write_text(
@@ -398,7 +427,9 @@ def test_quantity_tool(capsys):
 
 def test_quantity_none():
     class AllowNone(Component):
-        quantity = AstroQuantity(default_value=None, allow_none=True)
+        quantity = AstroQuantity(
+            default_value=None, allow_none=True, physical_type=u.TeV
+        )
 
     c = AllowNone()
     assert c.quantity is None

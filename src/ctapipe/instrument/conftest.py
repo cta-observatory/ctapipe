@@ -2,20 +2,135 @@
 Common test fixtures for the instrument module
 """
 
+import json
 import os
 import shutil
 
+import astropy.units as u
+import numpy as np
 import pytest
+from astropy.coordinates.earth import EarthLocation
+from astropy.table import QTable
 
+from ctapipe.compat import ECSV_FMT
+from ctapipe.core import run_tool
+from ctapipe.instrument import OpticsDescription
+from ctapipe.instrument.optics import ReflectorShape, SizeType
+from ctapipe.io import metadata as meta
+from ctapipe.tools.dump_instrument import DumpInstrumentTool
+from ctapipe.utils.datasets import get_dataset_path
 from ctapipe.utils.filelock import FileLock
+
+# ---------------------------------------------------------------------------
+# Private helpers shared between svc_path fixtures
+# ---------------------------------------------------------------------------
+
+_CTAO_IDENTIFIERS_URL = (
+    "https://gitlab.cta-observatory.org/cta-computing/common/identifiers"
+)
+
+
+def _make_ids_reference(description, data_model_name, site="CTAO-North"):
+    """Create a Reference metadata object for CTAO identifier JSON files."""
+
+    return meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description=description,
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name=data_model_name,
+            data_model_version="2.0",
+            data_model_url=_CTAO_IDENTIFIERS_URL,
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site),
+    )
+
+
+def _write_instrument_meta(tmp_path, site="CTAO-North"):
+    """Write instrument.meta.json into *tmp_path*."""
+
+    ref = meta.Reference(
+        contact=meta.Contact(),
+        product=meta.Product(
+            description="Instrument description service data for CTAO",
+            data_category="Other",
+            data_association="Subarray",
+            data_model_name="CTAO Service Data",
+            data_model_version="1.0",
+            data_model_url="",
+            format="json",
+        ),
+        process=meta.Process(),
+        activity=meta.Activity(),
+        instrument=meta.Instrument(site=site, class_="Subarray"),
+    )
+    with open(tmp_path / "instrument.meta.json", "w") as f:
+        json.dump(ref.to_dict(), f, indent=2)
+
+
+def _write_array_element_ids(tmp_path, array_elements, site="CTAO-North"):
+    """Write array-element-ids.json into *tmp_path*."""
+    ref = _make_ids_reference(
+        description="Array element IDs for CTAO",
+        data_model_name="ctao.common.identifiers.array_elements",
+        site=site,
+    )
+    data = {"metadata": ref.to_dict(), "array_elements": array_elements}
+    with open(tmp_path / "array-element-ids.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _write_subarray_ids(tmp_path, subarrays, site="CTAO-North"):
+    """Write subarray-ids.json into *tmp_path*."""
+    ref = _make_ids_reference(
+        description="Subarray IDs for CTAO",
+        data_model_name="ctao.common.identifiers.subarrays",
+        site=site,
+    )
+    data = {"metadata": ref.to_dict(), "subarrays": subarrays}
+    with open(tmp_path / "subarray-ids.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _write_positions_file(
+    positions_dir, ae_ids, names, x_m, y_m, z_m, site="CTAO-North"
+):
+    """Write an ECSV positions file for the given array elements into *positions_dir*."""
+    itrs = EarthLocation(
+        lon=-17.8920 * u.deg, lat=28.7569 * u.deg, height=2200 * u.m
+    ).itrs
+
+    positions = QTable(
+        {
+            "ae_id": ae_ids,
+            "name": names,
+            "x": x_m * u.m,
+            "y": y_m * u.m,
+            "z": z_m * u.m,
+        }
+    )
+    positions.meta["reference_x"] = str(itrs.x)
+    positions.meta["reference_y"] = str(itrs.y)
+    positions.meta["reference_z"] = str(itrs.z)
+    positions.meta["site"] = site
+
+    positions.write(
+        positions_dir / f"{site}_ArrayElementPositions.ecsv",
+        format=ECSV_FMT,
+        overwrite=True,
+    )
+
+
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
 def instrument_dir(tmp_path_factory):
     """Dump instrument of prod5 subarray into a directory as fits"""
-    from ctapipe.core import run_tool
-    from ctapipe.tools.dump_instrument import DumpInstrumentTool
-
     path = tmp_path_factory.mktemp("instrument")
 
     with FileLock(path / ".lock"):
@@ -34,11 +149,311 @@ def instrument_dir(tmp_path_factory):
 
 
 @pytest.fixture(scope="function")
-def svc_path(instrument_dir):
-    before = os.getenv("CTAPIPE_SVC_PATH")
-    os.environ["CTAPIPE_SVC_PATH"] = str(instrument_dir.absolute())
-    yield
-    if before is None:
-        del os.environ["CTAPIPE_SVC_PATH"]
-    else:
-        os.environ["CTAPIPE_SVC_PATH"] = before
+def svc_path(tmp_path, instrument_dir, monkeypatch):
+    """
+    Set up CTAPIPE_SVC_PATH for testing with complete CTAO service data structure.
+
+    Creates all required service data files following the CTAO data model format:
+    - array-element-ids.json: telescope ID to name mapping (fixed schema)
+    - subarray-ids.json: subarray definitions
+    - positions/: ECSV files with telescope positions for each site
+    - array-elements/{type}/: shared telescope-type directories with optics, camera geometry, and readout files
+    - array-elements/{ae_id:03d}/: real directories, each containing per-file symlinks to the shared type files
+
+    The schemas follow:
+    https://gitlab.cta-observatory.org/cta-computing/common/identifiers
+    """
+    site = "CTAO-North"
+
+    _write_instrument_meta(tmp_path, site)
+
+    _write_array_element_ids(
+        tmp_path,
+        array_elements=[
+            {"id": 1, "name": "LSTN-01"},
+            {"id": 2, "name": "LSTN-02"},
+            {"id": 3, "name": "LSTN-03"},
+            {"id": 4, "name": "LSTN-04"},
+            {"id": 5, "name": "MSTN-01"},
+            {"id": 6, "name": "MSTN-02"},
+        ],
+        site=site,
+    )
+
+    _write_subarray_ids(
+        tmp_path,
+        subarrays=[
+            {
+                "id": 1,
+                "name": "CTAO-N LST Subarray",
+                "site": "CTAO-North",
+                "array_element_ids": [1, 2, 3, 4],
+            },
+            {
+                "id": 3,
+                "name": "CTAO-N Test Array",
+                "site": "CTAO-North",
+                "array_element_ids": [1, 2, 5, 6],
+            },
+        ],
+        site=site,
+    )
+
+    # Create positions directory and files
+    positions_dir = tmp_path / "positions"
+    positions_dir.mkdir()
+
+    _write_positions_file(
+        positions_dir,
+        ae_ids=[1, 2, 3, 4, 5, 6],
+        names=["LSTN-01", "LSTN-02", "LSTN-03", "LSTN-04", "MSTN-01", "MSTN-02"],
+        x_m=np.array([0.0, 50.0, -50.0, 0.0, 100.0, -100.0]),
+        y_m=np.array([0.0, 50.0, 50.0, -50.0, 0.0, 0.0]),
+        z_m=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        site=site,
+    )
+
+    # Create array-elements directory with telescope-type subdirectories
+    array_elements_dir = tmp_path / "array-elements"
+    array_elements_dir.mkdir(parents=True)
+
+    # Create LSTN telescope type directory and files
+    lst_dir = array_elements_dir / "LSTN"
+    lst_dir.mkdir()
+
+    # Copy existing LSTcam FITS files (source uses lowercase 'cam')
+    lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
+    shutil.copy(lst_geom_path, lst_dir / "LSTN.camgeom.fits.gz")
+
+    lst_readout_path = get_dataset_path("LSTcam.camreadout.fits.gz")
+    shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
+
+    # LSTN optics (empty table with metadata)
+    lst_optics = OpticsDescription(
+        name="LSTN",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC.value,
+        n_mirrors=1,
+        equivalent_focal_length=28.0 * u.m,
+        effective_focal_length=29.3 * u.m,
+        mirror_area=386.0 * u.m**2,
+        n_mirror_tiles=198,
+    )
+    lst_optics.to_table().write(
+        lst_dir / "LSTN.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
+    )
+
+    # Create MSTN telescope type directory and files
+    mst_nectarcam_dir = array_elements_dir / "MSTN"
+    mst_nectarcam_dir.mkdir()
+
+    # Copy existing NectarCam FITS files
+    nectarcam_geom_path = get_dataset_path("NectarCam.camgeom.fits.gz")
+    shutil.copy(nectarcam_geom_path, mst_nectarcam_dir / "MSTN.camgeom.fits.gz")
+
+    nectarcam_readout_path = get_dataset_path("NectarCam.camreadout.fits.gz")
+    shutil.copy(
+        nectarcam_readout_path,
+        mst_nectarcam_dir / "MSTN.camreadout.fits.gz",
+    )
+
+    # MSTN optics (empty table with metadata)
+    mst_optics = OpticsDescription(
+        name="MSTN",
+        size_type=SizeType.MST,
+        reflector_shape=ReflectorShape.DAVIES_COTTON,
+        n_mirrors=1,
+        equivalent_focal_length=16.0 * u.m,
+        effective_focal_length=16.445 * u.m,
+        mirror_area=88.7 * u.m**2,
+        n_mirror_tiles=86,
+    )
+    mst_optics.to_table().write(
+        mst_nectarcam_dir / "MSTN.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
+    )
+
+    # Create real ae_id directories with per-file symlinks to shared type files
+    for ae_id in [1, 2, 3, 4]:
+        ae_id_str = f"{ae_id:03d}"
+        ae_dir = array_elements_dir / ae_id_str
+        ae_dir.mkdir()
+        for suffix in ["tel_optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+            (ae_dir / f"{ae_id_str}.{suffix}").symlink_to(f"../LSTN/LSTN.{suffix}")
+
+    for ae_id in [5, 6]:
+        ae_id_str = f"{ae_id:03d}"
+        ae_dir = array_elements_dir / ae_id_str
+        ae_dir.mkdir()
+        for suffix in ["tel_optics.ecsv", "camgeom.fits.gz", "camreadout.fits.gz"]:
+            (ae_dir / f"{ae_id_str}.{suffix}").symlink_to(f"../MSTN/MSTN.{suffix}")
+
+    # CTAPIPE_SVC_PATH: include each ae_id directory so {ae_id}.* files are found
+    search_paths = [
+        str(tmp_path),
+        str(positions_dir),
+        *[str(array_elements_dir / f"{ae_id:03d}") for ae_id in range(1, 7)],
+        str(instrument_dir),
+    ]
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
+
+    yield tmp_path
+
+
+@pytest.fixture(scope="function")
+def svc_path_aeid_specific(tmp_path, instrument_dir, monkeypatch):
+    """
+    Set up CTAPIPE_SVC_PATH with ae_id-specific files (no deduplication).
+
+    This fixture creates a service data structure where each telescope has
+    its own configuration files named with ae_id (e.g., 001.tel_optics.ecsv)
+    instead of shared telescope-type files (e.g., LSTN.tel_optics.ecsv).
+
+    This tests the fallback mechanism: files are first searched as {ae_id}.{type},
+    then as {tel_type}.{type} if not found.
+    """
+    site = "CTAO-North"
+
+    _write_instrument_meta(tmp_path, site)
+
+    _write_array_element_ids(
+        tmp_path,
+        array_elements=[
+            {"id": 1, "name": "LSTN-01"},
+            {"id": 2, "name": "LSTN-02"},
+        ],
+        site=site,
+    )
+
+    _write_subarray_ids(
+        tmp_path,
+        subarrays=[
+            {
+                "id": 1,
+                "name": "CTAO-N Test Subarray",
+                "site": "CTAO-North",
+                "array_element_ids": [1, 2],
+            },
+        ],
+        site=site,
+    )
+
+    # Create positions directory
+    positions_dir = tmp_path / "positions"
+    positions_dir.mkdir()
+
+    _write_positions_file(
+        positions_dir,
+        ae_ids=[1, 2],
+        names=["LSTN-01", "LSTN-02"],
+        x_m=np.array([0.0, 50.0]),
+        y_m=np.array([0.0, 50.0]),
+        z_m=np.array([0.0, 0.0]),
+        site=site,
+    )
+
+    # Create array-elements directory
+    array_elements_dir = tmp_path / "array-elements"
+    array_elements_dir.mkdir(parents=True)
+
+    lst_geom_path = get_dataset_path("LSTcam.camgeom.fits.gz")
+    lst_readout_path = get_dataset_path("LSTcam.camreadout.fits.gz")
+
+    # Create shared LSTN telescope type directory with shared files
+    lst_dir = array_elements_dir / "LSTN"
+    lst_dir.mkdir()
+
+    lst_optics = OpticsDescription(
+        name="LSTN",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC,
+        n_mirrors=1,
+        equivalent_focal_length=28.0 * u.m,
+        effective_focal_length=29.3 * u.m,
+        mirror_area=386.0 * u.m**2,
+        n_mirror_tiles=198,
+    )
+    lst_optics.to_table().write(
+        lst_dir / "LSTN.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
+    )
+
+    shutil.copy(lst_geom_path, lst_dir / "LSTN.camgeom.fits.gz")
+    shutil.copy(lst_readout_path, lst_dir / "LSTN.camreadout.fits.gz")
+
+    # Telescope 001: real directory, custom optics file, camera files symlink to LSTN
+    ae_001_dir = array_elements_dir / "001"
+    ae_001_dir.mkdir()
+
+    optics_001 = OpticsDescription(
+        name="LSTN-01-Custom",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC,
+        n_mirrors=1,
+        equivalent_focal_length=28.0 * u.m,
+        effective_focal_length=29.5 * u.m,
+        mirror_area=390.0 * u.m**2,
+        n_mirror_tiles=198,
+    )
+    optics_001.to_table().write(
+        ae_001_dir / "001.tel_optics.ecsv", format=ECSV_FMT, overwrite=True
+    )
+
+    (ae_001_dir / "001.camgeom.fits.gz").symlink_to("../LSTN/LSTN.camgeom.fits.gz")
+    (ae_001_dir / "001.camreadout.fits.gz").symlink_to(
+        "../LSTN/LSTN.camreadout.fits.gz"
+    )
+
+    # Telescope 002: real directory, all files are symlinks to shared LSTN files
+    ae_002_dir = array_elements_dir / "002"
+    ae_002_dir.mkdir()
+
+    (ae_002_dir / "002.tel_optics.ecsv").symlink_to("../LSTN/LSTN.tel_optics.ecsv")
+    (ae_002_dir / "002.camgeom.fits.gz").symlink_to("../LSTN/LSTN.camgeom.fits.gz")
+    (ae_002_dir / "002.camreadout.fits.gz").symlink_to(
+        "../LSTN/LSTN.camreadout.fits.gz"
+    )
+
+    # Set CTAPIPE_SVC_PATH: include each ae_id directory so files are found by flat search
+    search_paths = [
+        str(tmp_path),
+        str(positions_dir),
+        str(ae_001_dir),
+        str(ae_002_dir),
+        str(instrument_dir),
+    ]
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", os.pathsep.join(search_paths))
+
+    yield tmp_path
+
+
+@pytest.fixture()
+def geometry_hexgrid_square_pixels():
+    """A camera with square pixels on a hexagonal grid"""
+    from ctapipe.coordinates import CameraFrame
+    from ctapipe.instrument import CameraGeometry, PixelGridType, PixelShape
+
+    size = 22
+    pix_id = np.arange(256)
+
+    coords = np.arange(-7.5 * size, 7.6 * size, size)
+    pix_x, pix_y = np.meshgrid(coords, coords)
+
+    # offset every second row by half the pixel size
+    pix_x[::2] += 0.5 * size
+    pix_x = pix_x.ravel() * u.mm
+    pix_y = pix_y.ravel() * u.mm
+
+    # introduce some gaps
+    pix_area = (size / 1.05) ** 2
+    pix_area = np.full(len(pix_id), pix_area) * u.mm**2
+
+    geom = CameraGeometry(
+        pix_id=pix_id,
+        pix_x=pix_x,
+        pix_y=pix_y,
+        pix_area=pix_area,
+        pix_type=PixelShape.SQUARE,
+        grid_type=PixelGridType.REGULAR_HEX,
+        name="HEXSQUARECAM",
+        frame=CameraFrame(focal_length=10 * u.m),
+    )
+    return geom

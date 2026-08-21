@@ -632,7 +632,21 @@ class SimTelEventSource(EventSource):
     override_obs_id = Integer(
         default_value=None,
         allow_none=True,
-        help="Use the given obs_id instead of the run number from sim_telarray",
+        help=(
+            "Use the given obs_id instead of the run number from sim_telarray."
+            " The original run number will be stored in the simulation configuration."
+        ),
+    ).tag(config=True)
+
+    obs_id_offset = Integer(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Override the obs_id by adding an offset to the run number."
+            " This option is useful if a larger number of runs have overlapping run numbers."
+            " The original run number will be stored in the simulation configuration."
+            " override_obs_id will take precedence if both options are provided."
+        ),
     ).tag(config=True)
 
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
@@ -817,22 +831,7 @@ class SimTelEventSource(EventSource):
                 n_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
-                if np.isnan(effective_focal_length):
-                    raise RuntimeError(
-                        "`SimTelEventSource.focal_length_choice` was set to 'EFFECTIVE'"
-                        ", but the effective focal length was not present in the file."
-                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
-                        " input files contain the effective focal length"
-                    )
-                focal_length = effective_focal_length
-            elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
-                focal_length = equivalent_focal_length
-            else:
-                raise ValueError(
-                    f"Invalid focal length choice: {self.focal_length_choice}"
-                )
-
+            focal_length = optics.get_focal_length(self.focal_length_choice)
             camera = build_camera(
                 telescope_description,
                 telescope,
@@ -986,6 +985,7 @@ class SimTelEventSource(EventSource):
             data.meta["origin"] = "hessio"
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
+            data.meta["simtel_event"] = array_event
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
@@ -1323,14 +1323,20 @@ class SimTelEventSource(EventSource):
         simulation config is filled
         """
 
-        az, alt = self.file_.header["direction"]
+        header = self.file_.header
+        az, alt = header["direction"]
 
         # this event source always contains only a single OB, so we can
         # also assign a single obs_id
         if self.override_obs_id is not None:
             self.obs_id = self.override_obs_id
+        elif self.obs_id_offset is not None:
+            self.obs_id = self.obs_id_offset + header["run"]
         else:
-            self.obs_id = self.file_.header["run"]
+            self.obs_id = header["run"]
+
+        if self.obs_id != header["run"]:
+            self.log.info("Setting obs_id=%d for run=%d", self.obs_id, header["run"])
 
         # simulations at the moment do not have SBs, use OB id
         self.sb_id = self.obs_id
@@ -1354,8 +1360,8 @@ class SimTelEventSource(EventSource):
                 subarray_pointing_lat=alt * u.rad,
                 subarray_pointing_lon=az * u.rad,
                 subarray_pointing_frame=CoordinateFrameType.ALTAZ,
-                actual_start_time=Time(self.file_.header["time"], format="unix"),
-                scheduled_start_time=Time(self.file_.header["time"], format="unix"),
+                actual_start_time=Time(header["time"], format="unix"),
+                scheduled_start_time=Time(header["time"], format="unix"),
             )
         }
 

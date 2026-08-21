@@ -29,11 +29,12 @@ dynamic = ["version"]
 requires-python = ">=3.12"
 
 dependencies = [
-    "astropy >=6.1,<8.0.0",
+    "astropy >=6.1,<9.0.0",
     "docutils",
     "joblib",
     "numba >=0.59.0",
     "numpy >=1.26,<3.0.0",
+    "hist",
     "packaging",
     "psutil",
     "pyyaml >=5.1",
@@ -58,7 +59,8 @@ all = [
     "ctapipe[eventio]",
     "iminuit >=2",
     "matplotlib ~=3.0",
-    "pyirf ~=0.13.0"
+    "pyirf ~=0.14.0",
+    "zernike",
 ]
 
 tests = [
@@ -79,6 +81,7 @@ docs = [
     "ctapipe[all]",
     "ffmpeg-python",
     "graphviz",
+    "hist[plot]",
     "ipython",
     "jupyter",
     "nbsphinx",
@@ -176,7 +179,12 @@ filterwarnings = [
     "ignore:'setParseAction':DeprecationWarning:matplotlib",
     "ignore:'endQuoteChar':DeprecationWarning:matplotlib",
     "ignore:'unquoteResults':DeprecationWarning:matplotlib",
+    "ignore:'enablePackrat':DeprecationWarning:matplotlib",
     "ignore:'parseAll':DeprecationWarning:pyparsing",
+    # only ignore from joblib, should raise if its in our code directly
+    "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning:joblib",
+    "ignore:The chararray class is deprecated:DeprecationWarning",
+    "ignore:Setting the dtype on a NumPy array",
 ]
 norecursedirs = [
     ".git",

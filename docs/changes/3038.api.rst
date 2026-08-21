@@ -1,0 +1,3 @@
+The serialization format for timestamps is now defined at the ``Container``
+level using ``Field(..., time_resolution=TimeResolution.{LOW,HIGH})`` instead
+of in the writing methods.

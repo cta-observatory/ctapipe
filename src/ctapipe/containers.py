@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 
-from .core import Container, Field, Map
+from .core.container import Container, Field, Map, TimeResolution
 
 __all__ = [
     "ArrayEventContainer",
@@ -61,7 +61,9 @@ __all__ = [
     "TelescopePointingContainer",
     "ArrayPointingContainer",
     "StatisticsContainer",
+    "ChunkContainer",
     "ChunkStatisticsContainer",
+    "ChunkHistogramContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -303,9 +305,12 @@ class BaseHillasParametersContainer(Container):
     be assigned to an ImageParametersContainer as well.
     """
 
-    intensity = Field(nan, "total intensity (size)")
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
+    intensity = Field(nan, "Total integrated charge (often called 'size')")
+    skewness = Field(nan, "Longitudinal asymmetry of the image")
+    kurtosis = Field(
+        nan,
+        "measure of the longitudinal tailedness of the charges distribution (following Pearson's definition: equals 3.0 for a normal distribution)",
+    )
 
 
 class CameraHillasParametersContainer(BaseHillasParametersContainer):
@@ -328,7 +333,7 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
         nan * u.m,
-        "uncertainty on the center of gravity along the transverse axis of the image",
+        "uncertainty on the centroid along the transverse axis of the image",
         unit=u.m,
     )
 
@@ -343,26 +348,28 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     default_prefix = "hillas"
     fov_lon = Field(
         nan * u.deg,
-        "longitude angle in a spherical system centered on the pointing position",
+        "Centroid longitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
     fov_lat = Field(
         nan * u.deg,
-        "latitude angle in a spherical system centered on the pointing position",
+        "Centroid latitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
-    r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
-    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
+    r = Field(nan * u.deg, "Radial coordinate of the centroid", unit=u.deg)
+    phi = Field(nan * u.deg, "Polar coordinate of the centroid", unit=u.deg)
 
     length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
     length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
     width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
     width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
-    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi = Field(
+        nan * u.deg, "Orientation (angle) of major axis relative to X-axis", unit=u.deg
+    )
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     transverse_cog_uncertainty = Field(
         nan * u.deg,
-        "uncertainty on the center of gravity along the transverse axis of the image",
+        "uncertainty on the centroid along the transverse axis of the image",
         unit=u.deg,
     )
 
@@ -400,11 +407,9 @@ class ConcentrationContainer(Container):
     """
 
     default_prefix = "concentration"
-    cog = Field(
-        nan, "Percentage of photo-electrons inside one pixel diameter of the cog"
-    )
-    core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
-    pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
+    cog = Field(nan, "Fraction of light within 1 pixel diameter of the COG")
+    core = Field(nan, "Fraction of light within the 1-sigma Hillas ellipse boundary")
+    pixel = Field(nan, "Fraction of light in the brightest pixel")
 
 
 class BaseTimingParametersContainer(Container):
@@ -414,11 +419,10 @@ class BaseTimingParametersContainer(Container):
     be assigned to an ImageParametersContainer as well.
     """
 
-    intercept = Field(nan, "intercept of arrival times along main shower axis")
+    intercept = Field(nan, "Arrival time at the COG (longitudinal = 0)")
     deviation = Field(
         nan,
-        "Root-mean-square deviation of the pulse times "
-        "with respect to the predicted time",
+        "Temporal dispersion around the linear model (RMSE)",
     )
 
 
@@ -430,7 +434,7 @@ class CameraTimingParametersContainer(BaseTimingParametersContainer):
 
     default_prefix = "camera_frame_timing"
     slope = Field(
-        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+        nan / u.m, "Time gradient along the main shower axis (1/m)", unit=1 / u.m
     )
 
 
@@ -443,29 +447,36 @@ class TimingParametersContainer(BaseTimingParametersContainer):
 
     default_prefix = "timing"
     slope = Field(
-        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
+        nan / u.deg, "Time gradient along the main shower axis (1/deg)", unit=1 / u.deg
     )
 
 
 class MorphologyContainer(Container):
     """Parameters related to pixels surviving image cleaning"""
 
-    n_pixels = Field(-1, "Number of usable pixels")
-    n_islands = Field(-1, "Number of distinct islands in the image")
-    n_small_islands = Field(-1, "Number of <= 2 pixel islands")
-    n_medium_islands = Field(-1, "Number of 2-50 pixel islands")
-    n_large_islands = Field(-1, "Number of > 50 pixel islands")
+    n_pixels = Field(-1, "Number of pixels surviving cleaning")
+    n_islands = Field(-1, "Number of distinct pixel clusters (connected components)")
+    n_small_islands = Field(-1, "Number of islands with size <= 2 pixels")
+    n_medium_islands = Field(-1, "Number of islands with 3 <= size <= 50 pixels")
+    n_large_islands = Field(-1, "Number of islands with size > 50 pixels")
 
 
 class ImageStatisticsContainer(Container):
     """Store descriptive image statistics"""
 
-    max = Field(np.float32(nan), "value of pixel with maximum intensity")
-    min = Field(np.float32(nan), "value of pixel with minimum intensity")
-    mean = Field(np.float32(nan), "mean intensity")
-    std = Field(np.float32(nan), "standard deviation of intensity")
-    skewness = Field(nan, "skewness of intensity")
-    kurtosis = Field(nan, "kurtosis of intensity")
+    max = Field(np.float32(nan), "Value of pixel with maximum intensity")
+    min = Field(np.float32(nan), "Value of pixel with minimum intensity")
+    mean = Field(np.float32(nan), "Mean intensity of pixels in the image")
+    std = Field(
+        np.float32(nan), "standard deviation of intensity of pixels in the image"
+    )
+    skewness = Field(
+        nan, "Fisher skewness measuring the asymmetry of the intensity distribution)"
+    )
+    kurtosis = Field(
+        nan,
+        "Fisher kurtosis measuring the tailedness of the intensity distribution (equals 0.0 for a normal distribution)",
+    )
 
 
 class IntensityStatisticsContainer(ImageStatisticsContainer):
@@ -480,7 +491,9 @@ class CoreParametersContainer(Container):
     """Telescope-wise shower's direction in the Tilted/Ground Frame"""
 
     default_prefix = "core"
-    psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
+    psi = Field(
+        nan * u.deg, "Orientation of major axis in the Tilted/Ground Frame", unit="deg"
+    )
 
 
 class ImageParametersContainer(Container):
@@ -597,7 +610,7 @@ class R1CameraContainer(Container):
     """
 
     event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
-    event_time = Field(NAN_TIME, "event timestamp")
+    event_time = Field(NAN_TIME, "event timestamp", time_resolution=TimeResolution.HIGH)
 
     waveform = Field(
         None,
@@ -684,7 +697,7 @@ class DL0CameraContainer(Container):
     """
 
     event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
-    event_time = Field(NAN_TIME, "event timestamp")
+    event_time = Field(NAN_TIME, "event timestamp", time_resolution=TimeResolution.HIGH)
 
     waveform = Field(
         None,
@@ -938,7 +951,11 @@ class SimulatedShowerDistribution(Container):
 # Trigger containers
 class TelescopeTriggerContainer(Container):
     default_prefix = ""
-    time = Field(NAN_TIME, description="Telescope trigger time")
+    time = Field(
+        NAN_TIME,
+        description="Telescope trigger time",
+        time_resolution=TimeResolution.HIGH,
+    )
     event_type = Field(EventType.UNKNOWN, description="Event type")
 
     n_trigger_pixels = Field(
@@ -949,7 +966,11 @@ class TelescopeTriggerContainer(Container):
 
 class TriggerContainer(Container):
     default_prefix = ""
-    time = Field(NAN_TIME, description="central average time stamp")
+    time = Field(
+        NAN_TIME,
+        description="central average time stamp",
+        time_resolution=TimeResolution.HIGH,
+    )
     tels_with_trigger = Field(
         None, description="List of telescope ids that triggered the array event"
     )
@@ -1202,6 +1223,7 @@ class CameraCalibrationContainer(Container):
     time = Field(
         NAN_TIME,
         "validity time of the camera calibration coefficients.",
+        time_resolution=TimeResolution.LOW,
     )
     pedestal_offset = Field(
         None,
@@ -1237,46 +1259,47 @@ class CameraCalibrationContainer(Container):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics of a pixel-wise quantity for each channel"""
+    """Container for descriptive statistics"""
 
-    mean = Field(
-        None,
-        "mean of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    median = Field(
-        None,
-        "median of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    std = Field(
-        None,
-        "standard deviation of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    n_events = Field(-1, "number of events used for the extraction of the statistics")
-    outlier_mask = Field(
-        None,
-        "Boolean mask indicating which pixels are considered outliers."
-        " Shape: (n_channels, n_pixels)",
-    )
-    is_valid = Field(
-        False,
-        (
-            "True if the pixel statistics are valid, False if they are not valid or "
-            "if a high fraction of faulty pixels exceeding the pre-defined threshold "
-            "is detected across the chunk of images."
-        ),
-    )
+    mean = Field(None, "mean value")
+    median = Field(None, "median value")
+    std = Field(None, "standard deviation")
 
 
-class ChunkStatisticsContainer(StatisticsContainer):
-    """Store descriptive statistics of a chunk of images"""
+class ChunkContainer(Container):
+    """Store values of a chunk"""
 
-    time_start = Field(NAN_TIME, "high resolution start time of the chunk")
-    time_end = Field(NAN_TIME, "high resolution end time of the chunk")
+    time_start = Field(
+        NAN_TIME,
+        "high resolution start time of the chunk",
+        time_resolution=TimeResolution.LOW,
+    )
+    time_end = Field(
+        NAN_TIME,
+        "high resolution end time of the chunk",
+        time_resolution=TimeResolution.LOW,
+    )
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
+    n_events = Field(
+        -1, "number of events used for the calculation of the chunk values"
+    )
+    outlier_mask = Field(None, "boolean mask indicating outliers in the chunk")
+    is_valid = Field(False, "true if chunk values are valid")
+
+
+class ChunkStatisticsContainer(ChunkContainer):
+    """Container for descriptive statistics of the chunk distribution"""
+
+    mean = Field(None, "mean value of the chunk distribution")
+    median = Field(None, "median value of the chunk distribution")
+    std = Field(None, "standard deviation of the chunk distribution")
+
+
+class ChunkHistogramContainer(ChunkContainer):
+    """Container for histograms of the chunk distribution"""
+
+    histogram = Field(None, "histogram of the chunk distribution")
 
 
 class PixelStatisticsContainer(Container):
@@ -1544,6 +1567,12 @@ class ObservationBlockContainer(Container):
     scheduled_duration = Field(
         nan * u.min, "expected duration from scheduler", unit=u.min
     )
-    scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
-    actual_start_time = Field(NAN_TIME, "true start time")
+    scheduled_start_time = Field(
+        NAN_TIME,
+        "expected start time from scheduler",
+        time_resolution=TimeResolution.LOW,
+    )
+    actual_start_time = Field(
+        NAN_TIME, "true start time", time_resolution=TimeResolution.LOW
+    )
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)

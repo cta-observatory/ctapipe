@@ -1,0 +1,5 @@
+Add a new ``containment-weighted-intensity`` weighting option to
+``StereoMeanCombiner``, which down-weights truncated (leaky) images via
+``(intensity * (1 - width / length))**2 * (1 - leakage_intensity_width_2)**4``.
+This is the most robust option at high energies, where image truncation
+dominates the angular-resolution degradation of the disp reconstruction.

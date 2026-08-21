@@ -9,6 +9,7 @@ import pytest
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
@@ -85,8 +86,10 @@ def test_fileinfo(tmp_path, dl1_image_file):
     assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
 
-def test_dump_instrument(tmp_path):
+def test_dump_instrument(tmp_path, monkeypatch):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
+
+    subarray = SubarrayDescription.read(PROD5B_PATH)
 
     sys.argv = ["dump_instrument"]
 
@@ -116,6 +119,46 @@ def test_dump_instrument(tmp_path):
     )
     assert ret == 0
     assert (tmp_path / "subarray.h5").exists()
+
+    # Test service data format
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [f"--input={PROD5B_PATH}", "--format=service"],
+        cwd=tmp_path,
+        raises=True,
+    )
+    assert ret == 0
+    assert (tmp_path / "instrument/instrument.meta.json").exists()
+    assert (tmp_path / "instrument/array-element-ids.json").exists()
+    assert (tmp_path / "instrument/subarray-ids.json").exists()
+    assert (tmp_path / "instrument/positions").exists()
+
+    # Check array-elements directory with ae_id subdirectories
+    array_elements_dir = tmp_path / "instrument" / "array-elements"
+    assert array_elements_dir.exists()
+
+    # Check that at least one ae_id directory exists (e.g., 001)
+    ae_dirs = sorted(array_elements_dir.glob("[0-9][0-9][0-9]"))
+    assert len(ae_dirs) > 0, "No ae_id directories found in array-elements"
+
+    # Check first ae_id directory contains required files
+    from ctapipe.instrument.optics import OpticsDescription
+
+    first_ae_dir = ae_dirs[0]
+    ae_id = int(first_ae_dir.name)
+    optics_file = first_ae_dir / f"{ae_id:03d}.tel_optics.ecsv"
+    assert optics_file.exists()
+    assert (first_ae_dir / f"{ae_id:03d}.camgeom.fits.gz").exists()
+    assert (first_ae_dir / f"{ae_id:03d}.camreadout.fits.gz").exists()
+
+    optics = OpticsDescription.from_table(optics_file)
+    assert optics == subarray.tel[1].optics
+
+    with monkeypatch.context() as m:
+        m.setenv("CTAPIPE_SVC_PATH", str(tmp_path / "instrument"))
+        roundtrip_sub = SubarrayDescription.from_service_data(1)
+
+        assert roundtrip_sub == SubarrayDescription.from_hdf(tmp_path / "subarray.h5")
 
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0

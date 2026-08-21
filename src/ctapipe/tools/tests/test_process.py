@@ -267,6 +267,47 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
         assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
+def test_wf_modification_from_simtel(tmp_path):
+    """check we can produce dl1 after adding noise to the waveforms"""
+
+    config = json.load(open(resource_file("stage1_config.json")))
+    output = tmp_path / "test_wf_modification_dl1.h5"
+    input = get_dataset_path(
+        "gamma_20deg_180deg_run000001___cta-prod6-2156m-LaPalma-dark.simtel.zst"
+    )
+    nsb_file = get_dataset_path("only_nsb_LaPalma_Alpha__nsb_x0.25.simtel.zst")
+    nsb_level = 4
+
+    config["WaveformModifier"] = {
+        "nsb_file": nsb_file.as_posix(),
+        "nsb_level": nsb_level,
+    }
+    config["ProcessorTool"] = {"add_nsb_in_waveforms": True}
+
+    config_path = tmp_path / "test_wf_modification.json"
+    with open(config_path, "w") as f:
+        json.dump(config, f)
+
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config_path}",
+            f"--input={input}",
+            f"--output={output}",
+            "--overwrite",
+            FOCAL_LENGTH_CHOICE,
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    # check dl1 images were written and have the expected noise:
+    with tables.open_file(output, mode="r") as testfile:
+        assert testfile.root.dl1.event.telescope.images.tel_002
+        q_std = testfile.root.dl1.event.telescope.images.tel_002.col("image")[0].std()
+        assert np.isclose(q_std, 30.8642, atol=1e-4)
+
+
 def test_ml_preprocessing_from_simtel(tmp_path):
     """check we can write both dl1 and dl2 info (e.g. for ml_preprocessing input)"""
 

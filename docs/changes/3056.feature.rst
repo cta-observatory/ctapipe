@@ -1,0 +1,5 @@
+Added ``ZernikePSFModel``, a new PSF model, which reconstructs the
+optical wavefront from per-telescope Zernike coefficients (Noll
+indexing) and computes the point spread function via Fraunhofer
+diffraction, polychromatically averaged over a configurable wavelength
+range and weighted by a Cherenkov-like spectral index.

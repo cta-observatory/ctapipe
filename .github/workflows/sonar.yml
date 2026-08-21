@@ -8,6 +8,11 @@
 
 name: Sonar
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
 on:
   workflow_run:
     workflows: [CI]
@@ -16,11 +21,12 @@ on:
 jobs:
   sonar:
     name: Sonar
+    environment: sonar
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: 'Download code coverage'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
@@ -45,11 +51,14 @@ jobs:
 
       - name: Set environment
         run: |
-          cat $HOME/coverage/sonar_env >> "$GITHUB_ENV"
           cat $HOME/coverage/sonar_env
+          grep "^PR_NUMBER=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
+          grep "^SOURCE_BRANCH=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
+          grep "^TARGET_BRANCH=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
+          grep "^PROJECT_VERSION=" $HOME/coverage/sonar_env >>  "$GITHUB_ENV"
 
       - name: Checkout branch or tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: github.event.workflow_run.event != 'pull_request'
         with:
           repository: ${{ github.event.workflow_run.head_repository.full_name }}
@@ -58,18 +67,19 @@ jobs:
           clean: false
 
       - name: Checkout Pull Request merge result
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: github.event.workflow_run.event == 'pull_request'
         with:
           ref: refs/pull/${{ env.PR_NUMBER }}/merge
           fetch-depth: 0
           clean: false
+          allow-unsafe-pr-checkout: true
+          persist-credentials: false
 
       - name: Check artifact
         run: |
           cp -r $HOME/coverage .
           ls -l coverage
-          cat coverage/coverage.xml
 
       - name: Git info
         run: |
@@ -82,18 +92,22 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CTAO }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
+        with:
+          args: >
+            -Dsonar.projectVersion=${{ env.PROJECT_VERSION }}
 
       - name: Sonarqube Scan PR
         if: github.event.workflow_run.event == 'pull_request'
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CTAO }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonar-ctao.zeuthen.desy.de
         with:
           args: >
+            -Dsonar.projectVersion=${{ env.PROJECT_VERSION }}
             -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
             -Dsonar.pullrequest.key=${{ env.PR_NUMBER }}
             -Dsonar.pullrequest.branch=${{ env.SOURCE_BRANCH }}

@@ -49,6 +49,7 @@ __all__ = [
     "DL0_TEL_POINTING_GROUP",
     "DL1_SUBARRAY_POINTING_GROUP",
     "DL1_TEL_POINTING_GROUP",
+    "DL1_TEL_STAR_TRACKING_GROUP",
     "DL1_TEL_OPTICAL_PSF_GROUP",
     "DL1_TEL_CALIBRATION_GROUP",
     "DL1_TEL_MUON_THROUGHPUT_GROUP",
@@ -120,6 +121,7 @@ DL1_SUBARRAY_QUALITY_GROUP = "/dl1/monitoring/subarray/quality"
 DL0_TEL_POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 DL1_SUBARRAY_POINTING_GROUP = "/dl1/monitoring/subarray/pointing"
 DL1_TEL_POINTING_GROUP = "/dl1/monitoring/telescope/pointing"
+DL1_TEL_STAR_TRACKING_GROUP = "/dl1/monitoring/telescope/pointing/star_tracking"
 DL1_TEL_OPTICAL_PSF_GROUP = "/dl1/monitoring/telescope/optical_psf"
 DL1_TEL_CALIBRATION_GROUP = "/dl1/monitoring/telescope/calibration"
 DL1_TEL_MUON_THROUGHPUT_GROUP = (
@@ -146,6 +148,9 @@ DL1_FLATFIELD_IMAGE_GROUP = (
 )
 DL1_FLATFIELD_PEAK_TIME_GROUP = (
     "/dl1/monitoring/telescope/calibration/camera/pixel_statistics/flatfield_peak_time"
+)
+DL1_PIXEL_HISTOGRAMS_GROUP = (
+    "/dl1/monitoring/telescope/calibration/camera/pixel_histograms"
 )
 DL2_SUBARRAY_MONITORING_GROUP = "/dl2/monitoring/subarray"
 DL2_SUBARRAY_INTER_CALIBRATION_GROUP = "/dl2/monitoring/subarray/inter_calibration"

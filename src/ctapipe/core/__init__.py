@@ -4,7 +4,14 @@ Core functionality of ctapipe
 """
 
 from .component import Component, non_abstract_children
-from .container import Container, DeprecatedField, Field, FieldValidationError, Map
+from .container import (
+    Container,
+    DeprecatedField,
+    Field,
+    FieldValidationError,
+    Map,
+    TimeResolution,
+)
 from .expression_engine import ExpressionEngine
 from .feature_generator import FeatureGenerator
 from .provenance import Provenance, get_module_version
@@ -30,4 +37,5 @@ __all__ = [
     "QualityCriteriaError",
     "FieldValidationError",
     "ExpressionEngine",
+    "TimeResolution",
 ]

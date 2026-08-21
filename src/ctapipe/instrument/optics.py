@@ -5,15 +5,32 @@ Classes and functions related to telescope Optics
 import logging
 from abc import abstractmethod
 from enum import Enum, StrEnum, auto, unique
+from functools import cached_property
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
-from astropy.table import QTable
+from astropy.table import QTable, Table
+from numpy.fft import fft2, fftshift
+from scipy.ndimage import gaussian_filter, map_coordinates
 from scipy.stats import laplace, laplace_asymmetric
-from traitlets import validate
 
+try:
+    from zernike import RZern
+except ModuleNotFoundError:
+    RZern = None
+
+from ..coordinates import TelescopeFrame
 from ..core import TelescopeComponent
-from ..core.traits import Float, List, TraitError
+from ..core.traits import (
+    AstroQuantity,
+    Float,
+    FloatTelescopeParameter,
+    Int,
+    IntTelescopeParameter,
+    TelescopeParameter,
+)
+from ..exceptions import OptionalDependencyMissing
 from ..utils import get_table_dataset
 from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
@@ -25,6 +42,7 @@ __all__ = [
     "FocalLengthKind",
     "PSFModel",
     "ComaPSFModel",
+    "ZernikePSFModel",
 ]
 
 
@@ -118,8 +136,14 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
+    #: Version of the legacy, per-subarray optics table
     CURRENT_TAB_VERSION = "4.0"
     COMPATIBLE_VERSIONS = {"4.0"}
+
+    #: Version for the new, per-telescope table that will allow describing
+    #: mirror facets in the future
+    CURRENT_TEL_TAB_VERSION = "1.0"
+    COMPATIBLE_TEL_TAB_VERSIONS = {"1.0"}
 
     __slots__ = (
         "name",
@@ -271,28 +295,117 @@ class OpticsDescription:
     def __str__(self):
         return self.name
 
+    def to_table(self):
+        """
+        Convert this OpticsDescription to an astropy Table for writing to files.
+
+        See `OpticsDescription.from_table` for the opposite operation.
+        """
+        table = Table()
+        table.meta["TAB_VER"] = self.CURRENT_TEL_TAB_VERSION
+        table.meta["optics_name"] = self.name
+        table.meta["size_type"] = self.size_type.value
+        table.meta["equivalent_focal_length"] = self.equivalent_focal_length.to_value(
+            u.m
+        )
+        table.meta["effective_focal_length"] = self.effective_focal_length.to_value(u.m)
+        table.meta["reflector_shape"] = self.reflector_shape.value
+        table.meta["n_mirrors"] = self.n_mirrors
+        table.meta["n_mirror_tiles"] = self.n_mirror_tiles
+        table.meta["mirror_area"] = self.mirror_area.to_value(u.m**2)
+        return table
+
+    @classmethod
+    def from_table(cls, table: Table | str | Path, **kwargs):
+        """
+        Create an OpticsDescription instance from an astropy Table.
+
+        See `OpticsDescription.to_table` for the opposite operation.
+        """
+        if not isinstance(table, Table):
+            table = Table.read(table, **kwargs)
+
+        version = table.meta.get("TAB_VER")
+        if version not in cls.COMPATIBLE_TEL_TAB_VERSIONS:
+            raise OSError(f"Unsupported telescope optics table version: {version}")
+
+        return cls(
+            name=table.meta["optics_name"],
+            size_type=SizeType(table.meta["size_type"]),
+            equivalent_focal_length=u.Quantity(
+                table.meta["equivalent_focal_length"], u.m
+            ),
+            effective_focal_length=u.Quantity(
+                table.meta["effective_focal_length"], u.m
+            ),
+            n_mirrors=table.meta["n_mirrors"],
+            n_mirror_tiles=table.meta["n_mirror_tiles"],
+            reflector_shape=ReflectorShape(table.meta["reflector_shape"]),
+            mirror_area=u.Quantity(table.meta["mirror_area"], u.m**2),
+        )
+
+    def get_focal_length(self, focal_length_choice=FocalLengthKind.EFFECTIVE):
+        """
+        Get focal length for coordinate transformations.
+
+        This is a helper function to get the focal length, mainly
+        to attach it to the ``CameraFrame`` coordinate frame for
+        pixel coordinate transformations.
+
+        In most cases, the effective focal length should be strongly preferred,
+        as it takes the effect of optical aberrations on the plate scale into account.
+
+        By default, this function will try to use the effective focal length and raise
+        an error if it is not available.
+        """
+        if isinstance(focal_length_choice, str):
+            focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
+
+        if focal_length_choice is FocalLengthKind.EFFECTIVE:
+            focal_length = self.effective_focal_length
+            if np.isnan(focal_length.value):
+                raise RuntimeError(
+                    "`focal_length_choice` was set to 'EFFECTIVE', but the"
+                    " effective focal length was not present in the input. "
+                    " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                    " input files contain the effective focal length"
+                )
+            return focal_length
+
+        if focal_length_choice is FocalLengthKind.EQUIVALENT:
+            return self.equivalent_focal_length
+
+        raise ValueError(f"Invalid focal length choice: {focal_length_choice}")
+
 
 class PSFModel(TelescopeComponent):
     """
     Base component to describe image distortion due to the optics of the different cameras.
     """
 
-    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
     @abstractmethod
-    def pdf(self, x, y, x0, y0) -> np.ndarray:
+    def pdf(self, tel_id, lon, lat, lon0, lat0) -> np.ndarray:
         """
-        Calculates the value of the psf at a given location
+        Calculates the value of the psf at a given location.
 
         Parameters
         ----------
-        x : u.Quantity[length]
-            x-coordinate of the point on the focal plane where the psf is evaluated
-        y : u.Quantity[length]
-            y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : u.Quantity[length]
-            x-coordinate of the point source on the focal plane
-        y0 : u.Quantity[length]
-            y-coordinate of the point source on the focal plane
+        tel_id : int
+            ID of the telescope for which the PSF is evaluated
+        lon : u.Quantity[angle]
+            longitude coordinate of the point on the focal plane where the psf is evaluated
+        lat : u.Quantity[angle]
+            latitude coordinate of the point on the focal plane where the psf is evaluated
+        lon0 : u.Quantity[angle]
+            longitude coordinate of the point source on the focal plane
+        lat0 : u.Quantity[angle]
+            latitude coordinate of the point source on the focal plane
         Returns
         ----------
         psf : np.ndarray
@@ -321,27 +434,18 @@ class ComaPSFModel(PSFModel):
 
     .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
-    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis.
-    Their detailed description is provided in the attributes section.
+    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis,
+    configured via telescope traitlets:
 
-    Attributes
-    ----------
-    asymmetry_params : list
-        Describes the dependency of the PSF on the distance to the center of the camera.
-        Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
-        of the PSF as a function of the distance r to the optical axis.
+    - Asymmetry parameters (:math:`K`):
 
         .. math:: K(r) = 1 - c_0 \tanh(c_1 r) - c_2 r
 
-    radial_scale_params : list
-        Describes the dependency of the radial scale on the distance to the center of the camera.
-        Used to calculate width Sr of the asymmetric radial Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+    - Radial scale parameters (:math:`S_R`):
 
         .. math:: S_{R}(r) = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
-    phi_scale_params : list
-        Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the center of the camera.
-        Used to calculate the width Sf of the polar Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+    - Polar scale parameters (:math:`S_\phi`):
 
         .. math:: S_{\phi}(r) = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
 
@@ -350,94 +454,583 @@ class ComaPSFModel(PSFModel):
     subarray : ctapipe.instrument.SubarrayDescription
         Description of the subarray.
 
+    Notes
+    -----
+    **Model Limitations:**
+
+    - For sources within the central pixel (r0 < pixel_width), the PSF is approximated
+      as a uniform distribution over the pixel area. This avoids singularities at the
+      origin and provides a numerically stable approximation for sub-pixel sources.
+
+    - The angular distribution is limited to a chord around the radial axis based on
+      the approximation that the polar axis is orthogonal to the radial axis. This
+      limits its validity to the inner camera region.
+
+    - This PSF model is designed for pointing determination via star tracking. As the
+      telescope tracks celestial coordinates, stars rotate around the camera center.
+      Their reconstructed positions provide information about the telescope pointing
+      direction. To achieve good pointing accuracy, stars should be located away from
+      the camera center to provide a sufficient lever arm for the pointing solution.
+
     References
     ----------
     For reference, see :cite:p:`startracker`
     """
 
-    asymmetry_params = List(
-        help=(
-            "Describes the dependency of the PSF on the distance "
-            "to the center of the camera. Used to calculate a PDF "
-            "asymmetry parameter :math:`K` of the asymmetric radial Laplacian "
-            "of the PSF as a function of the distance r to the optical axis"
+    asymmetry_max = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Maximum asymmetry parameter K at large distance from the optical axis (:math:`c_0`)",
+    ).tag(config=True)
+
+    asymmetry_decay_rate = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Tanh saturation rate of the asymmetry parameter K with distance to the optical axis (:math:`c_1`)",
+    ).tag(config=True)
+
+    asymmetry_linear_term = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Linear term for the asymmetry parameter K with distance to the optical axis (:math:`c_2`)",
+    ).tag(config=True)
+
+    radial_scale_offset = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Offset of the radial scale :math:`S_R` (:math:`b_1`)",
+    ).tag(config=True)
+
+    radial_scale_linear = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Linear growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_2`)",
+    ).tag(config=True)
+
+    radial_scale_quadratic = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Quadratic growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_3`)",
+    ).tag(config=True)
+
+    radial_scale_cubic = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Cubic growth of the radial scale :math:`S_R` with distance to the optical axis (:math:`b_4`)",
+    ).tag(config=True)
+
+    polar_scale_amplitude = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Initial width :math:`S_\phi` at the center of the camera (r=0) (:math:`a_1`)",
+    ).tag(config=True)
+
+    polar_scale_decay = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Exponential decay of the polar scale :math:`S_\phi` with distance to the optical axis (:math:`a_2`)",
+    ).tag(config=True)
+
+    polar_scale_offset = FloatTelescopeParameter(
+        default_value=None,
+        allow_none=True,
+        help=r"Offset controlling width :math:`S_\phi` at large distance from the optical axis (:math:`a_3`)",
+    ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """Initialize the ComaPSFModel component and check for missing configuration parameters."""
+
+        super().__init__(
+            subarray=subarray,
+            config=config,
+            parent=parent,
+            **kwargs,
         )
-    ).tag(config=True)
+        # Get the pixel size in degrees for the given telescopes.
+        self.pixel_width = {}
+        for tel_id in self.subarray.tels:
+            cam_geom = self.subarray.tel[tel_id].camera.geometry
+            # Transform camera geometry to telescope frame if not already in that frame
+            if cam_geom.frame != TelescopeFrame:
+                cam_geom = cam_geom.transform_to(TelescopeFrame())
 
-    radial_scale_params = List(
-        help=(
-            "Describes the dependency of the radial scale on the "
-            "distance to the center of the camera. Used to calculate "
-            "width :math:`S_R` of the asymmetric radial Laplacian in the PSF "
-            "as a function of the distance r to the optical axis"
+            # pixel width is only used to determine a useful distance measure to the camera center
+            self.pixel_width[tel_id] = cam_geom.pixel_width[0].to_value(u.deg)
+
+        # Check for missing config parameters and raise an error if any are missing.
+        missing_config_parameters = []
+        config_parameter_names = [
+            name
+            for name, trait in self.class_traits().items()
+            if isinstance(trait, FloatTelescopeParameter)
+        ]
+        for name in config_parameter_names:
+            config_parameter = getattr(self, name)
+            if config_parameter.tel[self.subarray.tel_ids[0]] is None:
+                missing_config_parameters.append(name)
+
+        if missing_config_parameters:
+            raise ValueError(
+                f"Missing ComaPSFModel configuration parameters: {missing_config_parameters}"
+            )
+
+    def _k(self, tel_id, r):
+        c0 = self.asymmetry_max.tel[tel_id]
+        c1 = self.asymmetry_decay_rate.tel[tel_id]
+        c2 = self.asymmetry_linear_term.tel[tel_id]
+        return 1 - c0 * np.tanh(c1 * r) - c2 * r
+
+    def _s_r(self, tel_id, r):
+        return np.polyval(
+            [
+                self.radial_scale_cubic.tel[tel_id],
+                self.radial_scale_quadratic.tel[tel_id],
+                self.radial_scale_linear.tel[tel_id],
+                self.radial_scale_offset.tel[tel_id],
+            ],
+            r,
         )
-    ).tag(config=True)
 
-    phi_scale_params = List(
-        help=(
-            "Describes the dependency of the polar scale on the "
-            "distance to the center of the camera. Used to calculate "
-            r"the width :math:`S_\phi` of the polar Laplacian in the PSF "
-            "as a function of the distance r to the optical axis"
-        )
-    ).tag(config=True)
-
-    pixel_width = Float(
-        default_value=0.05,
-        help="Width of a pixel of the camera in meters",
-    ).tag(config=True)
-
-    def _k(self, r):
-        c1, c2, c3 = self.asymmetry_params
-        return 1 - c1 * np.tanh(c2 * r) - c3 * r
-
-    def _s_r(self, r):
-        return np.polyval(self.radial_scale_params[::-1], r)
-
-    def _s_phi(self, r):
-        a1, a2, a3 = self.phi_scale_params
+    def _s_phi(self, tel_id, r):
+        a1 = self.polar_scale_amplitude.tel[tel_id]
+        a2 = self.polar_scale_decay.tel[tel_id]
+        a3 = self.polar_scale_offset.tel[tel_id]
         return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
-    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
-    def pdf(self, x, y, x0, y0) -> np.ndarray:
-        x, y, x0, y0 = all_to_value(x, y, x0, y0, unit=u.m)
-        r, phi = _cartesian_to_polar(x, y)
-        r0, phi0 = _cartesian_to_polar(x0, y0)
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
+    def pdf(self, tel_id, lon, lat, lon0, lat0):
+        # Convert all inputs to degrees for the calculations
+        lon, lat, lon0, lat0 = all_to_value(lon, lat, lon0, lat0, unit=u.deg)
 
-        k = self._k(r0)
-        s_r = self._s_r(r0)
-        s_phi = self._s_phi(r0)
+        r, phi = _cartesian_to_polar(lon, lat)
+        r0, phi0 = _cartesian_to_polar(lon0, lat0)
+
+        # Evaluate PSF parameters at source position
+        k = self._k(tel_id, r0)
+        s_r = self._s_r(tel_id, r0)
+        s_phi = self._s_phi(tel_id, r0)
 
         radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
-        polar_pdf = laplace.pdf(phi, phi0, s_phi)
+        delta_phi = (phi - phi0 + np.pi) % (2 * np.pi) - np.pi
+        polar_pdf = laplace.pdf(delta_phi, 0, s_phi)
 
-        # Phi is not defined at the center
-        at_center = np.isclose(r0, 0, atol=self.pixel_width)
-        polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
         # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
-        chord_length = min(6 * self.pixel_width, 0.5 * r0)
-        if r0 != 0:
+        chord_length = min(6 * self.pixel_width[tel_id], 0.5 * r0)
+
+        pixel_radius = 0.5 * self.pixel_width[tel_id]
+
+        if (
+            r0 > pixel_radius
+        ):  # only apply the chord limit for sources outside the central pixel
             dphi = np.arcsin(chord_length / (2 * r0))
-            polar_pdf[phi < phi0 - dphi] = 0
-            polar_pdf[phi > phi0 + dphi] = 0
+            polar_pdf = np.where(np.abs(delta_phi) <= dphi, polar_pdf, 0.0)
 
-        return radial_pdf * polar_pdf
+        # If the source is within the central pixel, use uniform distribution inside pixel
+        source_in_pixel = r0 < pixel_radius
+        if source_in_pixel:
+            # Uniform distribution inside the pixel, zero outside
+            in_pixel = r < pixel_radius
+            uniform_density = 1.0 / (np.pi * pixel_radius**2)
+            pdf = np.where(in_pixel, uniform_density, 0.0)
+        else:
+            # Normal model: asymmetric Laplacian radial and Laplacian angular with 1/r Jacobian
+            inv_r = np.divide(1.0, r, where=r != 0, out=np.zeros_like(r, dtype=float))
+            pdf = radial_pdf * polar_pdf * inv_r
 
-    @validate("asymmetry_params")
-    def _check_asymmetry_params(self, proposal):
-        if len(proposal["value"]) != 3:
-            raise TraitError("asymmetry_params needs to have length 3")
-        return proposal["value"]
+        return pdf
 
-    @validate("radial_scale_params")
-    def _check_radial_scale_params(self, proposal):
-        if len(proposal["value"]) != 4:
-            raise TraitError("radial_scale_params needs to have length 4")
-        return proposal["value"]
 
-    @validate("phi_scale_params")
-    def _check_phi_scale_params(self, proposal):
-        if len(proposal["value"]) != 3:
-            raise TraitError("phi_scale_params needs to have length 3")
-        return proposal["value"]
+class ZernikePSFModel(PSFModel):
+    r"""PSF model based on wavefront reconstruction using Zernike wavefront coefficients.
+
+    This model reconstructs the optical wavefront from a set of Zernike
+    polynomial coefficients and computes the point spread function (PSF)
+    by Fourier propagation through the telescope pupil. The resulting PSF
+    naturally includes diffraction and wavefront aberrations and is
+    evaluated for arbitrary field positions by allowing selected Zernike
+    coefficients to vary with the source position in the focal plane.
+
+    The model includes:
+
+    - `Zernike polynomials in Noll <https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials>`__
+      indexing to describe the optical path
+      difference (OPD) across the telescope pupil. This indexing convention
+      maps the standard radial and azimuthal modes to a 1D sequence, matching
+      industry standards such as Ansys Zemax.
+    - Scalar Fourier optics to propagate the complex pupil field into the
+      focal plane.
+    - Polychromatic averaging over the Cherenkov emission spectrum using a
+      configurable wavelength range and spectral weighting.
+    - Optional Gaussian smoothing to approximate detector and residual
+      instrumental broadening not explicitly included in the wavefront
+      model.
+
+    In the current parameterization, field-dependent aberrations are
+    represented by linear coma terms and quadratic astigmatism terms,
+    providing a compact phenomenological description of off-axis optical
+    degradation while retaining a physically motivated wavefront model.
+    """
+
+    # Universal model performance parameters
+    pupil_diameter_fraction = Float(
+        default_value=0.12,
+        help=(
+            "Diameter of the telescope pupil as a fraction of the FFT grid size. "
+            "Smaller values increase focal-plane sampling at the expense of "
+            "undersampling the pupil, while larger values improve pupil sampling "
+            "but reduce the field of view and sampling resolution of the computed PSF."
+        ),
+    ).tag(config=True)
+
+    noll_max = 11  # highest Noll index
+
+    wavelength_samples = Int(
+        default_value=20,
+        help="Number of wavelength samples for polychromatic averaging",
+    ).tag(config=True)
+
+    # Universal physical constants
+    cherenkov_spectrum_index = Float(
+        default_value=2.0,
+        help="Power-law index for Cherenkov spectrum weighting (dN/dλ ∝ λ^-index)",
+    ).tag(config=True)
+
+    wavelength_min = AstroQuantity(
+        default_value=300e-9 * u.m,
+        physical_type=u.physical.length,
+        help="Minimum wavelength for polychromatic averaging",
+    ).tag(config=True)
+
+    wavelength_max = AstroQuantity(
+        default_value=600e-9 * u.m,
+        physical_type=u.physical.length,
+        help="Maximum wavelength for polychromatic averaging",
+    ).tag(config=True)
+
+    # Per-telescope optical parameters
+    pupil_size = IntTelescopeParameter(
+        default_value=512,
+        help=(
+            "Number of samples across the FFT grid used to discretize the pupil. "
+            "Larger values improve numerical accuracy and PSF sampling at the "
+            "expense of increased memory usage and computation time."
+        ),
+    ).tag(config=True)
+
+    pupil_edge_softness = FloatTelescopeParameter(
+        default_value=0.08,
+        help=(
+            "Width of the sigmoid taper applied to the pupil edge in normalized "
+            "pupil-radius units. Larger values suppress diffraction ringing but "
+            "slightly blur the effective aperture."
+        ),
+    ).tag(config=True)
+
+    focal_plane_smoothing_sigma_pix = FloatTelescopeParameter(
+        default_value=3.0,
+        help="Gaussian smoothing sigma applied to PSF intensity.",
+    ).tag(config=True)
+
+    psf_extent = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.angle),
+        default_value=0.5 * u.deg,
+        help=(
+            "Angular width of the square grid used to represent a single "
+            "point source's PSF, centered on the source position. Must be "
+            "large enough to contain the full extent of the PSF (including "
+            "aberration tails) or normalization will be biased low; "
+            "not the telescope's camera field of view."
+        ),
+    ).tag(config=True)
+
+    z2 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Tilt X",
+    ).tag(config=True)
+    z3 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Tilt Y",
+    ).tag(config=True)
+    z4 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=1.825e-07 * u.m,
+        help="Defocus",
+    ).tag(config=True)
+    z5 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Astigmatism 45°",
+    ).tag(config=True)
+    z6 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Astigmatism 0°",
+    ).tag(config=True)
+    z7 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Vertical Coma",
+    ).tag(config=True)
+    z8 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Horizontal Coma",
+    ).tag(config=True)
+    z9 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Vertical trefoil",
+    ).tag(config=True)
+    z10 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=0.0 * u.m,
+        help="Horizontal trefoil",
+    ).tag(config=True)
+    z11 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=u.physical.length),
+        default_value=3.467e-08 * u.m,
+        help="Spherical",
+    ).tag(config=True)
+
+    coma_radial_growth = TelescopeParameter(
+        trait=AstroQuantity(physical_type=(u.m / u.deg).physical_type),
+        default_value=1.919e-07 * u.m / u.deg,
+        help="Radial coma growth",
+    ).tag(config=True)
+
+    z5_theta2 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=(u.m / u.deg**2).physical_type),
+        default_value=3.501e-08 * u.m / u.deg**2,
+        help="Quadratic astigmatism growth",
+    ).tag(config=True)
+
+    z6_theta2 = TelescopeParameter(
+        trait=AstroQuantity(physical_type=(u.m / u.deg**2).physical_type),
+        default_value=3.501e-08 * u.m / u.deg**2,
+        help="Quadratic astigmatism growth",
+    ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """Initialize the ZernikePSFModel component and check for missing optional dependency."""
+        if RZern is None:
+            raise OptionalDependencyMissing("zernike")
+        super().__init__(
+            subarray=subarray,
+            config=config,
+            parent=parent,
+            **kwargs,
+        )
+
+    @cached_property
+    def _radial_order(self):
+        n = 0
+        while (n + 1) * (n + 2) // 2 < self.noll_max:
+            n += 1
+        return max(1, n)
+
+    def _zernike_grid(self, tel_id):
+        if not hasattr(self, "_zernike_grid_cache"):
+            self._zernike_grid_cache = {}
+        if tel_id in self._zernike_grid_cache:
+            return self._zernike_grid_cache[tel_id]
+        n = self.pupil_size.tel[tel_id]
+        frac = self.pupil_diameter_fraction
+        if not (0 < frac <= 1):
+            raise ValueError("pupil_diameter_fraction must be in (0, 1]")
+
+        coord_limit = 1.0 / frac
+        x = np.linspace(-coord_limit, coord_limit, n)
+        y = np.linspace(-coord_limit, coord_limit, n)
+        xx, yy = np.meshgrid(x, y)
+
+        rr = np.sqrt(xx**2 + yy**2)
+        mask = rr <= 1
+
+        edge = max(self.pupil_edge_softness.tel[tel_id], 1e-6)
+        aperture = 1.0 / (1.0 + np.exp(np.clip((rr - 1.0) / edge, -60.0, 60.0)))
+        rz = RZern(self._radial_order)
+        rz.make_cart_grid(xx, yy)
+        self._zernike_grid_cache[tel_id] = (rz, mask, aperture)
+
+        return rz, mask, aperture
+
+    def _coeff_vector(self, tel_id, lon0_deg, lat0_deg):
+        """
+        Build the Noll coefficient vector [m] for a given telescope and
+        field-of-view offset. Internally works with plain floats in fixed
+        units (m for OPD amplitudes, deg for angles) after unwrapping the
+        Quantity-valued traits, since the downstream Zernike/FFT machinery
+        is unit-agnostic.
+        """
+        rz, _, _ = self._zernike_grid(tel_id)
+        coeff = np.zeros(rz.nk)
+
+        theta2 = lon0_deg**2 + lat0_deg**2
+        theta = np.sqrt(theta2)
+        if theta > 0:
+            ux = lon0_deg / theta
+            uy = lat0_deg / theta
+        else:
+            ux = 0.0
+            uy = 0.0
+
+        coma_radial_growth_deg = self.coma_radial_growth.tel[tel_id].to_value(
+            u.m / u.deg
+        )
+        z5_theta2_m_per_deg2 = self.z5_theta2.tel[tel_id].to_value(u.m / u.deg**2)
+        z6_theta2_m_per_deg2 = self.z6_theta2.tel[tel_id].to_value(u.m / u.deg**2)
+
+        # Project astigmatism rotation (2*phi)
+        cos_2phi = ux**2 - uy**2
+        sin_2phi = 2.0 * ux * uy
+
+        coma_radial = coma_radial_growth_deg * theta
+        coma_x = coma_radial * ux
+        coma_y = coma_radial * uy
+        noll_coeffs = [
+            0.0,
+            self.z2.tel[tel_id].to_value(u.m),
+            self.z3.tel[tel_id].to_value(u.m),
+            self.z4.tel[tel_id].to_value(u.m),
+            self.z5.tel[tel_id].to_value(u.m)
+            + z5_theta2_m_per_deg2 * theta2 * sin_2phi,
+            self.z6.tel[tel_id].to_value(u.m)
+            + z6_theta2_m_per_deg2 * theta2 * cos_2phi,
+            self.z7.tel[tel_id].to_value(u.m) + coma_y,
+            self.z8.tel[tel_id].to_value(u.m) + coma_x,
+            self.z9.tel[tel_id].to_value(u.m),
+            self.z10.tel[tel_id].to_value(u.m),
+            self.z11.tel[tel_id].to_value(u.m),
+        ]
+
+        upper = min(len(noll_coeffs), self.noll_max, rz.nk)
+        coeff[1:upper] = noll_coeffs[1:upper]
+        return coeff
+
+    def _build_psf(self, tel_id, lon0_deg, lat0_deg):
+        rz, mask, aperture = self._zernike_grid(tel_id)
+        coeff = self._coeff_vector(tel_id, lon0_deg, lat0_deg)
+        wavefront = rz.eval_grid(coeff, matrix=True)
+
+        lam_min = self.wavelength_min.to_value(u.m)
+        lam_max = self.wavelength_max.to_value(u.m)
+        if self.wavelength_samples < 1:
+            raise ValueError("wavelength_samples must be >= 1")
+        if lam_min <= 0 or lam_max <= 0 or lam_max < lam_min:
+            raise ValueError("Invalid wavelength_min/wavelength_max")
+
+        wavelengths = np.linspace(lam_min, lam_max, self.wavelength_samples)
+        weights = wavelengths ** (-self.cherenkov_spectrum_index)
+        weights /= np.sum(weights)
+
+        # Reference wavelength (mean of the range)
+        lambda_ref = np.mean(wavelengths)
+
+        intensity = np.zeros_like(wavefront, dtype=float)
+        h, w = intensity.shape
+        cy, cx = h // 2, w // 2
+        y_ref, x_ref = np.indices((h, w), dtype=float)
+
+        for wavelength, weight in zip(wavelengths, weights):
+            phase = 2 * np.pi * wavefront / wavelength
+            phase_safe = np.zeros_like(phase)
+            phase_safe[mask] = phase[mask]
+            pupil = aperture * np.exp(1j * phase_safe)
+            field = fft2(pupil)
+            intensity_lambda = fftshift(np.abs(field) ** 2)
+
+            scale = lambda_ref / wavelength
+            y_lambda = (y_ref - cy) * scale + cy
+            x_lambda = (x_ref - cx) * scale + cx
+
+            # Interpolate intensity_lambda at the scaled coordinates
+            intensity_rescaled = map_coordinates(
+                intensity_lambda,
+                np.array(
+                    [y_lambda, x_lambda]
+                ),  # map_coordinates expects a single array or tuple
+                order=3,
+                mode="constant",
+                cval=0.0,
+            )
+
+            # Accumulate and protect against minor cubic interpolation under-shoots
+            intensity += weight * np.clip(intensity_rescaled, 0.0, None)  # / (scale**2)
+
+        sigma_pix = max(self.focal_plane_smoothing_sigma_pix.tel[tel_id], 0.0)
+        if sigma_pix > 0:
+            intensity = gaussian_filter(intensity, sigma=sigma_pix, mode="nearest")
+
+        # Convert from discrete probability per FFT pixel to
+        # probability density per angular area.
+        total = intensity.sum()
+        if not np.isfinite(total) or total <= 0:
+            raise RuntimeError(
+                f"Invalid PSF normalization: total intensity is {total!r}"
+            )
+        intensity /= total
+
+        psf_extent = self.psf_extent.tel[tel_id].to_value(u.deg)
+        pixel_scale = psf_extent / (self.pupil_size.tel[tel_id] - 1)
+        pixel_area = pixel_scale**2
+
+        total_volume = intensity.sum() * pixel_area
+        if not np.isfinite(total_volume) or total_volume <= 0:
+            raise RuntimeError(
+                f"Invalid PSF normalization: total integrated volume is {total_volume!r}"
+            )
+
+        intensity /= total_volume
+
+        return intensity
+
+    @u.quantity_input(
+        lon=u.deg,
+        lat=u.deg,
+        lon0=u.deg,
+        lat0=u.deg,
+    )
+    def pdf(self, tel_id, lon, lat, lon0, lat0):
+        dx = np.asarray((lon - lon0).to_value(u.deg))
+        dy = np.asarray((lat - lat0).to_value(u.deg))
+        input_shape = dx.shape
+
+        lon0_deg = lon0.to_value(u.deg)
+        lat0_deg = lat0.to_value(u.deg)
+        intensity = self._build_psf(tel_id, lon0_deg, lat0_deg)
+
+        full_field = self.psf_extent.tel[tel_id].to_value(u.deg)
+        half_field = 0.5 * full_field
+        if half_field <= 0:
+            raise ValueError("psf_extent must be > 0")
+
+        n = self.pupil_size.tel[tel_id]
+        xpix = (dx + half_field) / (2 * half_field) * (n - 1)
+        ypix = (dy + half_field) / (2 * half_field) * (n - 1)
+
+        # map_coordinates requires the "points" dimension to have rank >= 1;
+        # scalar lon/lat collapse to 0-d, so flatten for the call and restore
+        # the original shape (including scalar) afterward.
+        coords = np.array([np.atleast_1d(ypix).ravel(), np.atleast_1d(xpix).ravel()])
+
+        psf = map_coordinates(
+            intensity,
+            coords,
+            order=1,
+            mode="constant",
+            cval=0.0,
+            prefilter=False,
+        )
+
+        psf = np.asarray(psf, dtype=float).reshape(input_shape)
+        psf = np.clip(psf, 0.0, None)
+
+        return psf.item() if psf.shape == () else psf

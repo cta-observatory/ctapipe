@@ -131,9 +131,14 @@ nitpick_ignore = add_reference_type(
         "traitlets.traitlets.ObserveHandler",
         "traitlets.traitlets.T",
         "traitlets.traitlets.G",
+        "traitlets.traitlets.K",
+        "traitlets.traitlets.V",
         "Sentinel",
         "ObserveHandler",
         "dict[K, V]",
+        "T",
+        "T1",
+        "T2",
         "G",
         "K",
         "V",
@@ -144,6 +149,15 @@ nitpick_ignore = add_reference_type(
         "astropy.coordinates.baseframe.BaseCoordinateFrame",
         "astropy.table.table.Table",
         "eventio.simtel.simtelfile.SimTelFile",
+        "ctapipe.core.container.T1",
+        "ctapipe.core.container.T2",
+        "DTypeLike",
+        # astropy, new errors in 8.0, see https://github.com/astropy/astropy/issues/19933
+        "Attribute",
+        "BaseDifferential",
+        "BaseRepresentation",
+        "BaseRepresentationOrDifferential",
+        "RepresentationMapping",
     ],
 )
 nitpick_ignore += add_reference_type(
@@ -161,6 +175,11 @@ nitpick_ignore += add_reference_type(
         "-v",  # fix for wrong syntax in a traitlets docstring
         "cls",
         "name",
+        "T",
+        "T1",
+        "T2",
+        "K",
+        "V",
     ],
 )
 nitpick_ignore += add_reference_type(

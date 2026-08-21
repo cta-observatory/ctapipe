@@ -8,6 +8,7 @@ from ctapipe.containers import (
     ArrayEventContainer,
     HillasParametersContainer,
     ImageParametersContainer,
+    LeakageContainer,
     ParticleClassificationContainer,
     ReconstructedContainer,
     ReconstructedEnergyContainer,
@@ -31,6 +32,7 @@ def mono_table():
             "hillas_intensity": [1, 2, 0, 1, 5, 9],
             "hillas_width": [0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg,
             "hillas_length": 3 * ([0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg),
+            "leakage_intensity_width_2": [0.0, 0.1, 0.0, 0.2, 0.05, 0.3],
             "dummy_tel_energy": [1, 10, 4, 0.5, 0.7, 1] * u.TeV,
             "dummy_tel_is_valid": [
                 True,
@@ -63,7 +65,15 @@ def mono_table():
     )
 
 
-@pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
+@pytest.mark.parametrize(
+    "weights",
+    [
+        "aspect-weighted-intensity",
+        "containment-weighted-intensity",
+        "intensity",
+        "none",
+    ],
+)
 def test_predict_mean_energy(weights, mono_table):
     combine = StereoMeanCombiner(
         prefix="dummy",
@@ -160,17 +170,43 @@ def test_predict_mean_disp(mono_table):
     assert_array_equal(tel_ids[2], [1])
 
 
-@pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
-def test_mean_prediction_single_event(weights):
+def _containment_particle_expected():
+    # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
+    # containment weight is a general image-quality weight affecting all prediction
+    # types.  The other three schemes coincidentally give 0.6 because the test
+    # intensities (100, 200, 400) and equal aspect ratios happen to cancel out.
+    w = np.array(
+        [
+            (100 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.0) ** 4,  # tel 25
+            (200 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.1) ** 4,  # tel 125
+            (400 * (1 - 0.1 / 0.3)) ** 2 * (1 - 0.2) ** 4,  # tel 130
+        ]
+    )
+    return float(np.average([1.0, 0.0, 0.8], weights=w))
+
+
+@pytest.mark.parametrize(
+    ("weights", "expected_particle_prediction"),
+    [
+        ("aspect-weighted-intensity", 0.6),
+        ("containment-weighted-intensity", _containment_particle_expected()),
+        ("intensity", 0.6),
+        ("none", 0.6),
+    ],
+)
+def test_mean_prediction_single_event(weights, expected_particle_prediction):
     event = ArrayEventContainer()
 
-    for tel_id, intensity in zip((25, 125, 130), (100, 200, 400)):
+    for tel_id, intensity, leakage in zip(
+        (25, 125, 130), (100, 200, 400), (0.0, 0.1, 0.2)
+    ):
         event.dl1.tel[tel_id].parameters = ImageParametersContainer(
             hillas=HillasParametersContainer(
                 intensity=intensity,
                 width=0.1 * u.deg,
                 length=0.3 * u.deg,
-            )
+            ),
+            leakage=LeakageContainer(intensity_width_2=leakage),
         )
 
     event.dl2.tel[25] = ReconstructedContainer(
@@ -239,7 +275,15 @@ def test_mean_prediction_single_event(weights):
         assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
-    assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(0.6)
+    # For none/intensity/aspect the weighted mean of [1.0, 0.0, 0.8] coincidentally
+    # equals 0.6 because the test intensities (100, 200, 400) and equal aspect ratios
+    # cancel out.  containment-weighted-intensity breaks that coincidence because
+    # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
+    # containment weight is a general image-quality weight affecting all prediction
+    # types, not just geometry.
+    assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(
+        expected_particle_prediction
+    )
 
 
 def test_reconstructed_container_warning():

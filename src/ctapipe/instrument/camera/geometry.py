@@ -14,7 +14,7 @@ from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.sparse import csr_array, lil_array
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 
 from ctapipe.coordinates import CameraFrame, get_representation_component_names
 from ctapipe.utils import get_table_dataset
@@ -34,6 +34,18 @@ logger = logging.getLogger(__name__)
 
 def _distance(x1, y1, x2, y2):
     return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
+@unique
+class PixelGridType(Enum):
+    """Grid type for pixel coordinate grids."""
+
+    #: Regular square grid with minimal gaps
+    REGULAR_SQUARE = "square"
+    #: Regular hexagonal grid
+    REGULAR_HEX = "hex"
+    #: Everything else
+    IRREGULAR = "irregular"
 
 
 @unique
@@ -100,6 +112,10 @@ class CameraGeometry:
         position of each pixel (y-coordinate)
     pix_area : u.Quantity
         surface area of each pixel
+    grid_type : None | PixelGridType
+        The grid type of the pixel grid. By default, square pixels
+        are assumed to be on a regular square grid and circular and hexagonal
+        pixels are assumed to be on a regular hex grid.
     pix_type : PixelShape
         either 'rectangular' or 'hexagonal'
     pix_rotation : u.Quantity[angle]
@@ -118,8 +134,8 @@ class CameraGeometry:
         Frame in which the pixel coordinates are defined (after applying cam_rotation)
     """
 
-    CURRENT_TAB_VERSION = "2.0"
-    SUPPORTED_TAB_VERSIONS = {"1.0", "1", "1.1", "2.0"}
+    CURRENT_TAB_VERSION = "2.1"
+    SUPPORTED_TAB_VERSIONS = {"1.0", "1", "1.1", "2.0", "2.1"}
 
     def __init__(
         self,
@@ -128,7 +144,8 @@ class CameraGeometry:
         pix_x,
         pix_y,
         pix_area,
-        pix_type,
+        pix_type: PixelShape,
+        grid_type: None | PixelGridType | str = None,
         pix_rotation=0 * u.deg,
         cam_rotation=0 * u.deg,
         neighbors=None,
@@ -140,51 +157,18 @@ class CameraGeometry:
         self.n_pixels = len(pix_id)
         self.unit = pix_x.unit
         self.pix_id = np.array(pix_id)
-
-        if _validate:
-            self.pix_id = np.array(self.pix_id)
-
-            if self.pix_id.ndim != 1:
-                raise ValueError(
-                    f"Pixel coordinates must be 1 dimensional, got {pix_id.ndim}"
-                )
-
-            shape = (self.n_pixels,)
-
-            if pix_x.shape != shape:
-                raise ValueError(
-                    f"pix_x has wrong shape: {pix_x.shape}, expected {shape}"
-                )
-            if pix_y.shape != shape:
-                raise ValueError(
-                    f"pix_y has wrong shape: {pix_y.shape}, expected {shape}"
-                )
-            if pix_area.shape != shape:
-                raise ValueError(
-                    f"pix_area has wrong shape: {pix_area.shape}, expected {shape}"
-                )
-
-            if isinstance(pix_type, str):
-                pix_type = PixelShape.from_string(pix_type)
-            elif not isinstance(pix_type, PixelShape):
-                raise TypeError(
-                    f"pix_type must be a PixelShape or the name of a PixelShape, got {pix_type}"
-                )
-
-            if not isinstance(pix_rotation, Angle):
-                pix_rotation = Angle(pix_rotation)
-
-            if not isinstance(cam_rotation, Angle):
-                cam_rotation = Angle(cam_rotation)
-
         self.pix_x = pix_x
         self.pix_y = pix_y.to(self.unit)
         self.pix_area = pix_area.to(self.unit**2)
         self.pix_type = pix_type
+        self.grid_type = grid_type
         self.pix_rotation = pix_rotation
         self.cam_rotation = cam_rotation
         self._neighbors = neighbors
         self.frame = frame
+
+        if _validate:
+            self._validate()
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -200,6 +184,59 @@ class CameraGeometry:
 
             # cache border pixel mask per instance
         self._border_cache = {}
+
+    def _validate(self):
+        self.pix_id = np.array(self.pix_id)
+
+        if self.pix_id.ndim != 1:
+            raise ValueError(
+                f"Pixel coordinates must be 1 dimensional, got {self.pix_id.ndim}"
+            )
+
+        shape = (self.n_pixels,)
+
+        if self.pix_x.shape != shape:
+            raise ValueError(
+                f"pix_x has wrong shape: {self.pix_x.shape}, expected {shape}"
+            )
+        if self.pix_y.shape != shape:
+            raise ValueError(
+                f"pix_y has wrong shape: {self.pix_y.shape}, expected {shape}"
+            )
+        if self.pix_area.shape != shape:
+            raise ValueError(
+                f"pix_area has wrong shape: {self.pix_area.shape}, expected {shape}"
+            )
+
+        if isinstance(self.pix_type, str):
+            self.pix_type = PixelShape.from_string(self.pix_type)
+        elif not isinstance(self.pix_type, PixelShape):
+            raise TypeError(
+                f"pix_type must be a PixelShape or the name of a PixelShape, got {self.pix_type}"
+            )
+
+        # if grid_type is not given, deduce grid type from pix type assuming regular grids
+        self.grid_type = self._get_grid_type(self.grid_type, self.pix_type)
+
+        if not isinstance(self.pix_rotation, Angle):
+            self.pix_rotation = Angle(self.pix_rotation)
+
+        if not isinstance(self.cam_rotation, Angle):
+            self.cam_rotation = Angle(self.cam_rotation)
+
+    @staticmethod
+    def _get_grid_type(grid_type: PixelGridType | str | None, pixel_shape: PixelShape):
+        if isinstance(grid_type, PixelGridType):
+            return grid_type
+
+        if grid_type is None:
+            # backwards compatibility: assume square grid for square pixels, hexgrid for anything else
+            if pixel_shape is PixelShape.SQUARE:
+                return PixelGridType.REGULAR_SQUARE
+
+            return PixelGridType.REGULAR_HEX
+
+        return PixelGridType(grid_type)
 
     def __eq__(self, other):
         if not isinstance(other, CameraGeometry):
@@ -323,6 +360,7 @@ class CameraGeometry:
             pix_y=trans_y,
             pix_area=pix_area,
             pix_type=cam.pix_type,
+            grid_type=cam.grid_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
             neighbors=cam._neighbors,
@@ -352,6 +390,7 @@ class CameraGeometry:
             pix_y=self.pix_y[slice_],
             pix_area=self.pix_area[slice_],
             pix_type=self.pix_type,
+            grid_type=self.grid_type,
             pix_rotation=self.pix_rotation,
             cam_rotation=self.cam_rotation,
             neighbors=None,
@@ -425,7 +464,7 @@ class CameraGeometry:
         """
 
         pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
-        return cKDTree(pixel_centers)
+        return KDTree(pixel_centers)
 
     @lazyproperty
     def _all_pixel_areas_equal(self):
@@ -621,6 +660,7 @@ class CameraGeometry:
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
                 PIX_TYPE=self.pix_type.value,
+                GRID=self.grid_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
                 TAB_VER=self.CURRENT_TAB_VERSION,
                 CAM_ID=self.name,
@@ -669,6 +709,7 @@ class CameraGeometry:
             pix_y=tab["pix_y"].quantity,
             pix_area=tab["pix_area"].quantity,
             pix_type=tab.meta["PIX_TYPE"],
+            grid_type=tab.meta.get("GRID"),
             pix_rotation=Angle(tab.meta["PIX_ROT"], u.deg),
             cam_rotation=Angle(tab.meta["CAM_ROT"], u.deg),
         )
@@ -722,15 +763,17 @@ class CameraGeometry:
         if self.n_pixels <= 1:
             return csr_array(np.ones((self.n_pixels, self.n_pixels), dtype=bool))
 
-        # assume circle pixels are also on a hex grid
-        if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
+        if self.grid_type is PixelGridType.REGULAR_HEX:
             max_neighbors = 6
             # on a hexgrid, the closest pixel in the second circle is
             # the diameter of the hexagon plus the inradius away
             # in units of the diameter, this is 1 + np.sqrt(3) / 4 = 1.433
             radius = 1.4
             norm = 2  # use L2 norm for hex
-        else:
+            # for square pixels on a hexgrid, the grid is stretched
+            if self.pix_type is PixelShape.SQUARE:
+                radius *= np.sqrt(5) / 2
+        elif self.grid_type is PixelGridType.REGULAR_SQUARE:
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
             # < than 2 * the pixel size, else 4 neighbors with max L1 distance
@@ -745,6 +788,10 @@ class CameraGeometry:
                 max_neighbors = 4
                 radius = 1.5
                 norm = 1
+        else:
+            raise ValueError(
+                "Automatic computation of pixel neighbors only implemented for regular square and hex grids"
+            )
 
         distances, neighbor_candidates = self._kdtree.query(
             self._kdtree.data, k=max_neighbors + 1, p=norm

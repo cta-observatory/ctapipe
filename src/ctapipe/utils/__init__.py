@@ -8,13 +8,11 @@ from .datasets import (
     resource_file,
 )
 from .event_type_filter import EventTypeFilter
-from .fitshistogram import Histogram
 from .index_finder import IndexFinder
 from .table_interpolator import TableInterpolator
 from .unstructured_interpolator import UnstructuredInterpolator
 
 __all__ = [
-    "Histogram",
     "TableInterpolator",
     "UnstructuredInterpolator",
     "find_all_matching_datasets",

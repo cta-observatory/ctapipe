@@ -1,0 +1,1 @@
+Adds star tracker group to hdf5 data format and includes this group in the HDF5Merger.
