@@ -36,7 +36,7 @@ def test_polygon_chord_performances(
     mu_y,
     n_photon_phi,
     n_trials,
-    allowed_time_factor
+    allowed_time_factor,
 ):
     from ctapipe.image.muon.intensity_fitter import PolygonChord, chord_length
 
