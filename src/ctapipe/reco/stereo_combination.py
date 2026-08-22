@@ -13,7 +13,7 @@ from traitlets import UseEnum
 
 from ctapipe.containers import ImageParametersContainer
 from ctapipe.coordinates import NominalFrame, TelescopeFrame
-from ctapipe.core import Component, Container
+from ctapipe.core import Component
 from ctapipe.core.traits import (
     Bool,
     CaselessStrEnum,
@@ -89,7 +89,12 @@ class StereoCombiner(Component):
     classes = [StereoQualityQuery]
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "aspect-weighted-intensity"],
+        [
+            "none",
+            "intensity",
+            "aspect-weighted-intensity",
+            "containment-weighted-intensity",
+        ],
         default_value="none",
         help=(
             "Weighting scheme used to combine telescope-wise mono predictions:\n\n"
@@ -98,7 +103,11 @@ class StereoCombiner(Component):
             "giving higher weight to brighter images.\n"
             "- ``aspect-weighted-intensity``: Contributions are weighted by the "
             "image intensity multiplied by the image aspect ratio (length/width), "
-            "favoring bright and well-elongated images.\n\n"
+            "favoring bright and well-elongated images.\n"
+            " ``containment-weighted-intensity``: down-weights truncated (leaky)"
+            " images via ``(intensity * (1 - width / length))**2 *"
+            " (1 - leakage_intensity_width_2)**4`` and is the most robust option"
+            " at high energies where image truncation dominates.\n\n"
             "The selected weighting is applied consistently to all supported "
             "reconstruction properties (e.g. geometry, energy, particle type)."
         ),
@@ -130,6 +139,11 @@ class StereoCombiner(Component):
             if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
+            if self.weights == "containment-weighted-intensity":
+                elongation = 1 - data.hillas.width / data.hillas.length
+                containment = 1 - data.leakage.intensity_width_2
+                return (data.hillas.intensity * elongation) ** 2 * containment**4
+
             return 1
 
         if isinstance(data, Table):
@@ -142,6 +156,11 @@ class StereoCombiner(Component):
                     * data["hillas_length"]
                     / data["hillas_width"]
                 )
+
+            if self.weights == "containment-weighted-intensity":
+                elongation = 1 - data["hillas_width"] / data["hillas_length"]
+                containment = 1 - data["leakage_intensity_width_2"]
+                return (data["hillas_intensity"] * elongation) ** 2 * containment**4
 
             return np.ones(len(data))
 
@@ -201,24 +220,6 @@ class StereoMeanCombiner(StereoCombiner):
     See :class:`StereoCombiner` for a description of the general interface.
     """
 
-    weights = CaselessStrEnum(
-        [
-            "none",
-            "intensity",
-            "aspect-weighted-intensity",
-            "containment-weighted-intensity",
-        ],
-        default_value="none",
-        help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``,"
-            " ``aspect-weighted-intensity``, ``containment-weighted-intensity``."
-            " ``containment-weighted-intensity`` down-weights truncated (leaky)"
-            " images via ``(intensity * (1 - width / length))**2 *"
-            " (1 - leakage_intensity_width_2)**4`` and is the most robust option"
-            " at high energies where image truncation dominates."
-        ),
-    ).tag(config=True)
-
     log_target = Bool(
         False,
         help="If true, calculate exp(mean(log(values))).",
@@ -237,43 +238,6 @@ class StereoMeanCombiner(StereoCombiner):
                 f"Combination of {self.property} not implemented in "
                 "{self.__class__.__name__}."
             )
-
-    def _calculate_weights(self, data):
-        if isinstance(data, Container):
-            if self.weights == "intensity":
-                return data.hillas.intensity
-
-            if self.weights == "aspect-weighted-intensity":
-                return data.hillas.intensity * data.hillas.length / data.hillas.width
-
-            if self.weights == "containment-weighted-intensity":
-                elongation = 1 - data.hillas.width / data.hillas.length
-                containment = 1 - data.leakage.intensity_width_2
-                return (data.hillas.intensity * elongation) ** 2 * containment**4
-
-            return 1
-
-        if isinstance(data, Table):
-            if self.weights == "intensity":
-                return data["hillas_intensity"]
-
-            if self.weights == "aspect-weighted-intensity":
-                return (
-                    data["hillas_intensity"]
-                    * data["hillas_length"]
-                    / data["hillas_width"]
-                )
-
-            if self.weights == "containment-weighted-intensity":
-                elongation = 1 - data["hillas_width"] / data["hillas_length"]
-                containment = 1 - data["leakage_intensity_width_2"]
-                return (data["hillas_intensity"] * elongation) ** 2 * containment**4
-
-            return np.ones(len(data))
-
-        raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
-        )
 
     def _combine_energy(self, event):
         ids = []
