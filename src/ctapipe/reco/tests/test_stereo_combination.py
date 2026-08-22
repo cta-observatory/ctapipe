@@ -379,6 +379,9 @@ def _make_disp_event(event_dict, prefix="dummy"):
             morphology=MorphologyContainer(
                 n_pixels=10,
             ),
+            leakage=LeakageContainer(
+                intensity_width_2=event_dict["leakage_intensity_width_2"][i]
+            ),
         )
 
         event.dl2.tel[event_dict["tel_id"][i]] = TelescopeReconstructedContainer(
@@ -417,7 +420,15 @@ def test_disp_combiner_trait_validation():
         StereoDispCombiner(n_tel_combinations=3, n_best_tels=2)
 
 
-@pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
+@pytest.mark.parametrize(
+    "weights",
+    [
+        "containment-weighted-intensity",
+        "aspect-weighted-intensity",
+        "intensity",
+        "none",
+    ],
+)
 def test_disp_combiner_single_event(weights):
     event_dict = {
         "tel_id": [1, 2, 9, 10],
@@ -427,6 +438,7 @@ def test_disp_combiner_single_event(weights):
         "hillas_fov_lon": [-0.5, 0, 0.5, 0.1] * u.deg,
         "hillas_fov_lat": [0.3, -0.3, 0.3, 0.2] * u.deg,
         "hillas_psi": [40, 85, -40, 30] * u.deg,
+        "leakage_intensity_width_2": [0.1, 0.05, 0.2, 0.25],
         "disp_tel_alt": [58.5, 58, 62.5, 20] * u.deg,
         "disp_tel_az": [12.5, 15, 13, 30] * u.deg,
         "disp_tel_parameter": [0.65, 1.1, 0.7, 1.0] * u.deg,
@@ -441,7 +453,10 @@ def test_disp_combiner_single_event(weights):
         weights=weights,
     )
     disp_combiner(event)
-    if weights in ["intensity", "aspect-weighted-intensity"]:
+    if weights == "containment-weighted-intensity":
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 70.7807836 * u.deg)
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.22180993 * u.deg)
+    elif weights in ["intensity", "aspect-weighted-intensity"]:
         assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 70.76579427 * u.deg)
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.13152707 * u.deg)
     elif weights == "none":
@@ -482,6 +497,7 @@ def _make_divergent_disp_data():
         "hillas_fov_lon": hillas_centroid_fov_lons,
         "hillas_fov_lat": hillas_centroid_fov_lats,
         "hillas_psi": hillas_psis,
+        "leakage_intensity_width_2": [0.1, 0.05],
         # Mono directions are not combined directly. Just use the known source here.
         "disp_tel_alt": u.Quantity([source_position.alt, source_position.alt]),
         "disp_tel_az": u.Quantity([source_position.az, source_position.az]),
@@ -559,6 +575,7 @@ def test_disp_combiner_single_event_min_ang_diff():
         "hillas_fov_lon": [0.0, 0.1] * u.deg,
         "hillas_fov_lat": [0.0, 0.1] * u.deg,
         "hillas_psi": [5, 8] * u.deg,
+        "leakage_intensity_width_2": [0.1, 0.2],
         "disp_tel_alt": [58.5, 58] * u.deg,
         "disp_tel_az": [12.5, 15] * u.deg,
         "disp_tel_parameter": [0.65, 1.1] * u.deg,
@@ -588,6 +605,7 @@ def test_disp_combiner_n_best_tels_event():
         "hillas_fov_lon": [-0.5, 0.1, 0.3] * u.deg,
         "hillas_fov_lat": [0.3, -0.2, 0.1] * u.deg,
         "hillas_psi": [40, 80, -20] * u.deg,
+        "leakage_intensity_width_2": [0.1, 0.05, 0.2],
         "disp_tel_alt": [58.5, 58, 62.5] * u.deg,
         "disp_tel_az": [12.5, 15, 13] * u.deg,
         "disp_tel_parameter": [0.65, 1.1, 0.7] * u.deg,
@@ -627,6 +645,7 @@ def test_disp_combiner_n_tel_combinations_event():
         "hillas_fov_lon": [-0.5, 0.1, 0.3] * u.deg,
         "hillas_fov_lat": [0.3, -0.2, 0.1] * u.deg,
         "hillas_psi": [40, 80, -20] * u.deg,
+        "leakage_intensity_width_2": [0.1, 0.05, 0.2],
         "disp_tel_alt": [58.5, 58, 62.5] * u.deg,
         "disp_tel_az": [12.5, 15, 13] * u.deg,
         "disp_tel_parameter": [0.65, 1.1, 0.7] * u.deg,
