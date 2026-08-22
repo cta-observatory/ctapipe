@@ -104,7 +104,7 @@ class StereoCombiner(Component):
             "- ``aspect-weighted-intensity``: Contributions are weighted by the "
             "image intensity multiplied by the image aspect ratio (length/width), "
             "favoring bright and well-elongated images.\n"
-            " ``containment-weighted-intensity``: down-weights truncated (leaky)"
+            "- ``containment-weighted-intensity``: down-weights truncated (leaky)"
             " images via ``(intensity * (1 - width / length))**2 *"
             " (1 - leakage_intensity_width_2)**4`` and is the most robust option"
             " at high energies where image truncation dominates.\n\n"
