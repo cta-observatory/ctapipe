@@ -3,7 +3,6 @@ Tests for aggregators and related functions
 """
 
 import astropy.units as u
-import hist
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -16,6 +15,8 @@ from ctapipe.monitoring.aggregator import (
     PlainAggregator,
     SigmaClippingAggregator,
 )
+
+hist = pytest.importorskip("hist")
 
 
 def test_aggregators():
@@ -111,6 +112,7 @@ def test_aggregators():
 
 def test_histograms_aggregator():
     """Test histogram computation shape, values and entry counts for N-D event data."""
+
     # Create dummy data for testing
     times = Time(np.linspace(60117.911, 60117.9258, num=200), scale="tai", format="mjd")
     event_ids = np.linspace(35, 725000, num=200, dtype=int)
@@ -227,7 +229,6 @@ def test_histograms_aggregator_masks_and_nan_handling():
 
 def test_histograms_aggregator_axis_names_not_matching_data():
     """Test that axis names match the histogram data shape."""
-
     # Create dummy data for testing
     n_events = 100
     times = Time(
@@ -272,7 +273,6 @@ def test_histograms_aggregator_axis_names_not_matching_data():
 )
 def test_histograms_aggregator_underflow_overflow(underflow, overflow):
     """Test that under/overflow axis settings are preserved and usable via metadata."""
-
     # Create dummy data for testing
     times = Time(np.linspace(60117.911, 60117.9258, num=8), scale="tai", format="mjd")
     event_ids = np.linspace(35, 725000, num=8, dtype=int)
