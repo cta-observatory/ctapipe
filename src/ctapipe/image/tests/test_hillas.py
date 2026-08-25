@@ -86,6 +86,18 @@ def test_hillas_failure(prod5_lst):
     with pytest.raises(HillasParameterizationError):
         hillas_parameters(geom, blank_image)
 
+def test_hillas_on_negative_images():
+    """
+    This tests if Hillas parameters can be computed with an array containing negative values
+    """
+    s = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+    geometry = s.tel[1].camera.geometry
+
+    image = np.ones(geometry.n_pixels)
+    image[0] = -1
+
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters(geometry, image)
 
 def test_hillas_masked_array(prod5_lst):
     geom = prod5_lst.camera.geometry
@@ -393,16 +405,3 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
                 telescope_result, telescope_frame, camera_frame
             )
             assert u.isclose(transformed_width, camera_result.width, rtol=0.01)
-
-def test_hillas_on_negative_images():
-    """
-    This tests if Hillas parameters can be computed with an array containing negative values
-    """
-    s = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-    geometry = s.tel[1].camera.geometry
-    image, mask = create_sample_image(geometry=geometry)
-
-    n_negatives = (image < 0).sum()
-    assert n_negatives > 0
-
-    hillas_parameters(geometry, image)
