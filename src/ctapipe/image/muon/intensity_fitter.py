@@ -15,7 +15,7 @@ from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
-from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter, BoolTelescopeParameter
 from ...exceptions import OptionalDependencyMissing
 from ...instrument.camera.geometry import PixelShape
 from ..pixel_likelihood import neg_log_likelihood_approx
@@ -97,6 +97,20 @@ class PolygonChord:
 
     @classmethod
     def from_vertices(cls, vertices_i):
+        return cls(np.linspace(0, 2 * np.pi, 100), vertices_i)
+
+    @classmethod
+    def from_telescope_optics(cls, optics, n_vertices=20):
+        phi = np.linspace(0, 2*np.pi, n_vertices, endpoint=False)
+
+        mirror_area = optics.mirror_area.to_value(u.m**2)
+        mirror_radius = np.sqrt(mirror_area / np.pi)
+
+        vertices_i = [
+            np.column_stack((mirror_radius * np.cos(phi),
+                             mirror_radius * np.sin(phi)))
+        ]
+
         return cls(np.linspace(0, 2 * np.pi, 100), vertices_i)
 
     def update(self, phi):
@@ -430,6 +444,7 @@ def create_profile(
     phi,
     pixel_diameter,
     oversampling=3,
+    the_polygon_chord=None,
 ):
     """
     Perform intersection over all angles and return length
@@ -464,7 +479,13 @@ def create_profile(
     # The rotation angle of muon image should go in the opposite direction (-phi).
     ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
-    length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
+    if the_polygon_chord == None :
+        length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
+    else:
+        length = the_polygon_chord.update(ang
+        ).convex_multipolygon_chord(mu_x = impact_parameter * np.cos(phi),
+                                    mu_y = impact_parameter * np.sin(phi))
+
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
     length /= oversampling
 
@@ -570,6 +591,7 @@ def image_prediction_no_units(
     min_lambda_m=300e-9,
     max_lambda_m=600e-9,
     pix_type=PixelShape.HEXAGON,
+    the_polygon_chord=None,
 ):
     """
     Unit-less version of `image_prediction`.
@@ -591,6 +613,7 @@ def image_prediction_no_units(
         phi_rad,
         pixel_diameter_rad,
         oversampling=oversampling,
+        the_polygon_chord=the_polygon_chord
     )
 
     # Produce gaussian weight for each pixel given ring width
@@ -619,6 +642,7 @@ def image_prediction_no_units(
     # multiply by gaussian weight, to account for "fraction of muon ring" which falls
     # within the pixel
     pred *= gauss
+
 
     # Now it would be the total light in an area S delimited by: two radii of the
     # ring, tangent to the sides of the pixel in question, and two circles concentric
@@ -652,6 +676,7 @@ def build_negative_log_likelihood(
     pedestal,
     hole_radius=0 * u.m,
     pix_type=PixelShape.HEXAGON,
+    the_polygon_chord=None,
 ):
     """Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
@@ -734,6 +759,7 @@ def build_negative_log_likelihood(
             min_lambda_m=min_lambda,
             max_lambda_m=max_lambda,
             pix_type=pix_type,
+            the_polygon_chord=the_polygon_chord,
         )
 
         # scale prediction by optical efficiency of the telescope
@@ -803,6 +829,19 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
+    use_polygon_chord = BoolTelescopeParameter(
+        default_value=False,
+        help="If set to True, uses the polygon chord for "
+        "a precise mirror description.",
+    ).tag(config=True)
+
+    print_call_counter = BoolTelescopeParameter(
+        default_value=False,
+        help="Print call counter",
+    ).tag(config=True)
+
+    _n_call_counter = 0
+
     def __init__(self, subarray, **kwargs):
         if Minuit is None:
             raise OptionalDependencyMissing("iminuit") from None
@@ -844,6 +883,12 @@ class MuonIntensityFitter(TelescopeComponent):
                 f" are supported in {self.__class__.__name__}"
             )
 
+        the_polygon_chord = None
+        if self.use_polygon_chord.tel[tel_id] :
+            the_polygon_chord = PolygonChord.from_telescope_optics(
+                telescope.optics
+            )
+
         negative_log_likelihood = build_negative_log_likelihood(
             image=image,
             optics=telescope.optics,
@@ -856,6 +901,7 @@ class MuonIntensityFitter(TelescopeComponent):
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
             pix_type=telescope.camera.geometry.pix_type,
+            the_polygon_chord=the_polygon_chord
         )
         negative_log_likelihood.errordef = Minuit.LIKELIHOOD
 
@@ -888,6 +934,9 @@ class MuonIntensityFitter(TelescopeComponent):
         # Get fitted values
         result = minuit.values
 
+        if self.print_call_counter.tel[tel_id]:
+            self.call_counter()
+
         return MuonEfficiencyContainer(
             impact=result["impact_parameter"] * u.m,
             impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
@@ -898,3 +947,8 @@ class MuonIntensityFitter(TelescopeComponent):
             parameters_at_limit=minuit.fmin.has_parameters_at_limit,
             likelihood_value=minuit.fval,
         )
+
+    @staticmethod
+    def call_counter():
+        print(MuonIntensityFitter._n_call_counter)
+        MuonIntensityFitter._n_call_counter += 1
