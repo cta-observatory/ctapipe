@@ -129,12 +129,9 @@ def hillas_parameters(geom, image):
         cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
 
     except ValueError as e:
-        if (image < 0).any():
-            raise HillasParameterizationError(
-                "All pixels in the image should have values >=0, cannot calculate HillasParameters"
-            )
-        else:
-            raise e
+
+        raise HillasParameterizationError("Failed to compute covariance") from e
+
 
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
