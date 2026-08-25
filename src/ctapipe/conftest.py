@@ -20,7 +20,6 @@ from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
-from ctapipe.instrument.telescope import get_lst_mirror_vertices
 from ctapipe.io import SimTelEventSource, read_table, write_table
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
@@ -1024,4 +1023,24 @@ def test_config():
 
 @pytest.fixture(scope="function")
 def lst_mirror_vertices():
-    return np.array(get_lst_mirror_vertices())
+    vertices_LST_i = [
+        [[ 1076.5       ,    94.18154629],
+         [ 1000.9354948 ,   492.0108511 ],
+         [  801.42440675,   870.10708755],
+         [  399.26391036,  1015.11831225],
+         [    5.9121344 ,  1151.70707085],
+         [ -389.4414259 ,  1020.78956922],
+         [ -790.66947248,   876.31645953],
+         [ -999.5       ,   504.11122836],
+         [-1076.7458115 ,   105.35263753],
+         [-1001.        ,  -279.26267348],
+         [ -922.83547496,  -689.48294193],
+         [ -613.06006666,  -978.86350651],
+         [ -215.18298977, -1119.28590415],
+         [  204.19685007, -1124.27879875],
+         [  602.78770636,  -984.79451054],
+         [  922.5       ,  -704.10468207],
+         [ 1001.        ,  -290.37166312]]
+    ]
+
+    return np.array(vertices_LST_i)
