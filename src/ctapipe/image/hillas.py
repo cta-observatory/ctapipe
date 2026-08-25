@@ -83,6 +83,15 @@ def hillas_parameters(geom, image):
     -------
     HillasParametersContainer:
         container of hillas parameters
+
+    Raises
+    ------
+    HillasParameterizationError
+        If the sum of `image` is equal to 0.0.
+    HillasParameterizationError
+        If at least on element of `image` is negative.
+    ValueError
+        If the shape of `image` and the number of pixels in `geom` do not match.
     """
     unit = geom.pix_x.unit
     pix_x = geom.pix_x.to_value(unit)
