@@ -1,1 +1,1 @@
-Fix bug in `image.hillas.hillas_parameter` function when called with `image` containing at least on negative value
+Fix bug in ``image.hillas.hillas_parameter`` function when called with ``image`` containing at least on negative value
