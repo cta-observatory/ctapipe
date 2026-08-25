@@ -90,8 +90,5 @@ See also `ctapipe.image.tailcuts_clean()` and `ctapipe.image.dilate()`
 for usage examples.
 
 
-Reference/API
-=============
-
-.. automodapi:: ctapipe.instrument.camera.geometry
-    :no-inheritance-diagram:
+See `~ctapipe.instrument.CameraGeometry` and `~ctapipe.instrument.PixelShape`
+in the :ref:`instrument` reference for their full API documentation.

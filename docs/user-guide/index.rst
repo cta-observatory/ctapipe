@@ -4,6 +4,8 @@
 User Guide
 **********
 
+.. currentmodule:: ctapipe
+
 .. toctree::
    :maxdepth: 2
 

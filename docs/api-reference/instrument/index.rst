@@ -29,15 +29,12 @@ Hierarchy of InstrumentDescription Classes
 
     * `CameraDescription` (describes the camera)
 
-        * `CameraGeometry` (describes the geometrical aspects of the camera, e.g.
+      * `CameraGeometry` (describes the geometrical aspects of the camera, e.g.
           only that which is needed by reconstruction methods)
 
-        * `CameraReadout` (describes the aspects related to the waveform
+      * `CameraReadout` (describes the aspects related to the waveform
           readout e.g. sampling rate and reference pulse shape.geometrical
           aspects of the camera, e.g.
-
-        * [to come: classes to hold more detailed hardware-level info about a
-          camera]
 
 
 .. toctree::
