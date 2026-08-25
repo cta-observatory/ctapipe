@@ -16,9 +16,9 @@ from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ...core.traits import (
+    BoolTelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    BoolTelescopeParameter,
 )
 from ...exceptions import OptionalDependencyMissing
 from ...instrument.camera.geometry import PixelShape
@@ -482,7 +482,7 @@ def create_profile(
     # The rotation angle of muon image should go in the opposite direction (-phi).
     ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
-    if the_polygon_chord == None:
+    if the_polygon_chord is None:
         length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     else:
         length = the_polygon_chord.update(ang).convex_multipolygon_chord(
