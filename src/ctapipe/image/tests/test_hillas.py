@@ -393,3 +393,16 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
                 telescope_result, telescope_frame, camera_frame
             )
             assert u.isclose(transformed_width, camera_result.width, rtol=0.01)
+
+def test_hillas_on_negative_images():
+    """
+    This tests if Hillas parameters can be computed with an array containing negative values
+    """
+    s = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+    geometry = s.tel[1].camera.geometry
+    image, mask = create_sample_image(geometry=geometry)
+
+    n_negatives = (image < 0).sum()
+    assert n_negatives > 0
+
+    hillas_parameters(geometry, image)
