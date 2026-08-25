@@ -110,11 +110,6 @@ def hillas_parameters(geom, image):
     if size == 0.0:
         raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
-    if (image < 0).any():
-        raise HillasParameterizationError(
-            "All pixels in the image should have values >=0, cannot calculate HillasParameters"
-        )
-
     # calculate the cog as the mean of the coordinates weighted with the image
     cog_x = np.average(pix_x, weights=image)
     cog_y = np.average(pix_y, weights=image)
@@ -130,7 +125,17 @@ def hillas_parameters(geom, image):
     # The ddof=0 makes this comparable to the other methods,
     # but ddof=1 should be more correct, mostly affects small showers
     # on a percent level
-    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
+    try:
+        cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
+
+    except ValueError as e:
+        if (image < 0).any():
+            raise HillasParameterizationError(
+                "All pixels in the image should have values >=0, cannot calculate HillasParameters"
+            )
+        else:
+            raise e
+
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
