@@ -101,6 +101,9 @@ def hillas_parameters(geom, image):
     if size == 0.0:
         raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
+    if (image < 0).any():
+        raise HillasParameterizationError("All pixels in the image should have values >=0, cannot calculate HillasParameters")
+
     # calculate the cog as the mean of the coordinates weighted with the image
     cog_x = np.average(pix_x, weights=image)
     cog_y = np.average(pix_y, weights=image)
