@@ -5,6 +5,7 @@ from .camera import (
     CameraReadout,
     PixelGridType,
     PixelShape,
+    UnknownPixelShapeWarning,
 )
 from .guess import guess_telescope
 from .optics import (
@@ -14,6 +15,7 @@ from .optics import (
     PSFModel,
     ReflectorShape,
     SizeType,
+    ZernikePSFModel,
 )
 from .subarray import SubarrayDescription, UnknownSubarray, UnknownTelescopeID
 from .telescope import TelescopeDescription
@@ -40,4 +42,6 @@ __all__ = [
     "FromNameWarning",
     "PSFModel",
     "ComaPSFModel",
+    "ZernikePSFModel",
+    "UnknownPixelShapeWarning",
 ]
