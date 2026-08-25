@@ -25,7 +25,7 @@ from scipy.constants import alpha
             0.0,
             100,
             100,
-            30,
+            100,
         ),
     ],
 )
