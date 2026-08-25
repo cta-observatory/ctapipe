@@ -86,6 +86,7 @@ def test_hillas_failure(prod5_lst):
     with pytest.raises(HillasParameterizationError):
         hillas_parameters(geom, blank_image)
 
+
 def test_hillas_on_negative_images():
     """
     This tests if Hillas parameters can be computed with an array containing negative values
@@ -98,6 +99,7 @@ def test_hillas_on_negative_images():
 
     with pytest.raises(HillasParameterizationError):
         hillas_parameters(geometry, image)
+
 
 def test_hillas_masked_array(prod5_lst):
     geom = prod5_lst.camera.geometry
