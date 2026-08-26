@@ -128,12 +128,14 @@ class AstroQuantity(TraitType):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         info = "An ``astropy.units.Quantity`` instance"
         if self.allow_none:
             info += "or None"
         return info
 
     def validate(self, obj, value):
+        """Validate input as astropy quantity."""
         try:
             if isinstance(value, Mapping):
                 quantity = u.Quantity(**value)
@@ -169,6 +171,7 @@ class AstroTime(TraitType):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         info = "an ISO8601 datestring or Time instance"
         if self.allow_none:
             info += "or None"
@@ -214,6 +217,7 @@ class Path(TraitType):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         info = "a pathlib.Path or non-empty str for "
         if self.exists is True:
             info += "an existing"
@@ -356,12 +360,14 @@ class ComponentName(Unicode):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         if self._init_done:
             return f"Any of {list(self.cls.non_abstract_subclasses())}"
         else:
             return f"Any subclass of {self.cls}"
 
     def validate(self, obj, value):
+        """Validate component name."""
         if self.allow_none and value is None:
             return None
 
@@ -405,6 +411,7 @@ class ComponentNameList(List):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         if self._init_done:
             return f"A list of {list(self.cls.non_abstract_subclasses())}"
         else:
