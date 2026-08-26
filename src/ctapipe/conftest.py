@@ -1023,7 +1023,7 @@ def test_config():
 
 @pytest.fixture(scope="function")
 def lst_mirror_vertices():
-    vertices_LST_i = [
+    vertices_lst_i = [
         [
             [1076.5, 94.18154629],
             [1000.9354948, 492.0108511],
@@ -1045,4 +1045,4 @@ def lst_mirror_vertices():
         ]
     ]
 
-    return np.array(vertices_LST_i)
+    return np.array(vertices_lst_i)
