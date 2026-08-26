@@ -1,0 +1,3 @@
+Docs are now build with Sphinx 9.x. The documentation pages was also revised to
+avoid documenting the same things in both top-level modules and submodules,
+which lead to duplicate reference errors.
