@@ -19,3 +19,4 @@ Reference/API
 .. automodapi:: ctapipe.core.traits
     :include-all-objects:
     :no-inheritance-diagram:
+    :skip: Int
