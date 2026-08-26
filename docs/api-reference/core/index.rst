@@ -63,3 +63,4 @@ Reference/API
 
 .. automodapi:: ctapipe.core.traits
    :no-inheritance-diagram:
+   :skip: Integer

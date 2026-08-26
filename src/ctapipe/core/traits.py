@@ -46,6 +46,7 @@ __all__ = [
     "Unicode",
     "flag",
     "observe",
+    "Integer",
 ]
 
 import logging
@@ -71,6 +72,7 @@ class NoneDefaultNotAllowedWarning(UserWarning):
 # Aliases
 Bool = traitlets.Bool
 Int = traitlets.Int
+Integer = traitlets.Int
 CInt = traitlets.CInt
 Float = traitlets.Float
 Unicode = traitlets.Unicode
