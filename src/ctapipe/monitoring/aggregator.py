@@ -561,8 +561,8 @@ class HistogramAggregator(BaseAggregator):
         ``row.meta``) and delegates the actual reconstruction to
         :meth:`hist_from_container`.
 
-        Note
-        ----
+        Notes
+        -----
         ``HistogramAggregator.__call__`` produces an ``astropy.table.Table``
         with one row per chunk. To rebuild the histogram for chunk ``i`` you
         can do::
