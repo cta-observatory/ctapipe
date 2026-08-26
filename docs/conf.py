@@ -181,9 +181,9 @@ nitpick_ignore += add_reference_type(
         "T2",
         "K",
         "V",
-        "ctapipe.core.traits.Int",
     ],
 )
+
 nitpick_ignore += add_reference_type(
     "py:meth",
     [
