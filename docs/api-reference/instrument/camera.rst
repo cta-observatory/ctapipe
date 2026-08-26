@@ -17,12 +17,5 @@ Cherenkov camera, namely the `~camera.geometry.CameraGeometry` and `~camera.read
   camera_geometry
   camera_readout
 
-
-Reference/API
-=============
-
-.. automodapi:: ctapipe.instrument.camera
-    :no-inheritance-diagram:
-
-.. automodapi:: ctapipe.instrument.camera.description
-    :no-inheritance-diagram:
+See `~ctapipe.instrument.CameraDescription` in the :ref:`instrument`
+reference for the full API documentation.

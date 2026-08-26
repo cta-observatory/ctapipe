@@ -12,7 +12,7 @@ from pyirf.cut_optimization import optimize_cuts, optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
-from ..core.traits import AstroQuantity, Float, Integer, List, Path
+from ..core.traits import AstroQuantity, Float, Int, List, Path
 from ..io.dl2_tables_preprocessing import DL2EventQualityQuery
 from .binning import DefaultRecoEnergyBins, ResultValidRange
 
@@ -203,7 +203,7 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
 class GhPercentileCutCalculator(Component):
     """Computes a percentile cut on gammaness."""
 
-    min_counts = Integer(
+    min_counts = Int(
         default_value=10,
         help="Minimum number of events in a bin to attempt to find a cut value",
     ).tag(config=True)
@@ -214,7 +214,7 @@ class GhPercentileCutCalculator(Component):
         help="When given, the width (in units of bins) of gaussian smoothing applied",
     ).tag(config=True)
 
-    target_percentile = Integer(
+    target_percentile = Int(
         default_value=68,
         help="Percent of events in each energy bin to keep after the G/H cut",
     ).tag(config=True)
@@ -251,7 +251,7 @@ class ThetaPercentileCutCalculator(Component):
         help="Largest angular cut value allowed (None means no cut)",
     ).tag(config=True)
 
-    min_counts = Integer(
+    min_counts = Int(
         default_value=10,
         help="Minimum number of events in a bin to attempt to find a cut value",
     ).tag(config=True)
@@ -268,7 +268,7 @@ class ThetaPercentileCutCalculator(Component):
         help="When given, the width (in units of bins) of gaussian smoothing applied",
     ).tag(config=True)
 
-    target_percentile = Integer(
+    target_percentile = Int(
         default_value=68,
         help="Percent of events in each energy bin to keep after the theta cut",
     ).tag(config=True)
@@ -523,7 +523,7 @@ class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
     ).tag(config=True)
 
     multiplicity_cuts = List(
-        Integer(),
+        Int(),
         default_value=[2, 3, 4, 5, 6, 7, 8, 9, 10],
         help="Event-multiplicity cuts used for scanning after optimal cut",
     ).tag(config=True)

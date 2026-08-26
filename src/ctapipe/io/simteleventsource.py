@@ -49,7 +49,7 @@ from ..containers import (
 from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
-from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
+from ..core.traits import Bool, ComponentName, Float, Int, Undefined, UseEnum
 from ..exceptions import InputMissing, OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
@@ -629,7 +629,7 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    override_obs_id = Integer(
+    override_obs_id = Int(
         default_value=None,
         allow_none=True,
         help=(
@@ -638,7 +638,7 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    obs_id_offset = Integer(
+    obs_id_offset = Int(
         default_value=None,
         allow_none=True,
         help=(

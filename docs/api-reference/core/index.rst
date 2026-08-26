@@ -34,12 +34,6 @@ Serialization and Deserialization are simply specialized Components that perform
 .. image:: tool-component.png
 
 
-.. toctree::
-   :maxdepth: 1
-
-   traits
-
-
 Reference/API
 =============
 
@@ -64,3 +58,9 @@ Reference/API
 
 .. automodapi:: ctapipe.core.expression_engine
    :no-inheritance-diagram:
+
+.. currentmodule:: ctapipe.core.traits
+
+.. automodapi:: ctapipe.core.traits
+   :no-inheritance-diagram:
+   :skip: Integer

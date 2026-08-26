@@ -39,15 +39,14 @@ __all__ = [
     "Enum",
     "Float",
     "Int",
-    "Integer",
     "List",
-    "Long",
     "Set",
     "TraitError",
     "Tuple",
     "Unicode",
     "flag",
     "observe",
+    "Integer",
 ]
 
 import logging
@@ -73,10 +72,9 @@ class NoneDefaultNotAllowedWarning(UserWarning):
 # Aliases
 Bool = traitlets.Bool
 Int = traitlets.Int
+Integer = traitlets.Int
 CInt = traitlets.CInt
-Integer = traitlets.Integer
 Float = traitlets.Float
-Long = traitlets.Long
 Unicode = traitlets.Unicode
 Dict = traitlets.Dict
 Enum = traitlets.Enum
@@ -128,12 +126,14 @@ class AstroQuantity(TraitType):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         info = "An ``astropy.units.Quantity`` instance"
         if self.allow_none:
             info += "or None"
         return info
 
     def validate(self, obj, value):
+        """Validate input as astropy quantity."""
         try:
             if isinstance(value, Mapping):
                 quantity = u.Quantity(**value)
@@ -169,6 +169,7 @@ class AstroTime(TraitType):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         info = "an ISO8601 datestring or Time instance"
         if self.allow_none:
             info += "or None"
@@ -214,6 +215,7 @@ class Path(TraitType):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         info = "a pathlib.Path or non-empty str for "
         if self.exists is True:
             info += "an existing"
@@ -356,12 +358,14 @@ class ComponentName(Unicode):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         if self._init_done:
             return f"Any of {list(self.cls.non_abstract_subclasses())}"
         else:
             return f"Any subclass of {self.cls}"
 
     def validate(self, obj, value):
+        """Validate component name."""
         if self.allow_none and value is None:
             return None
 
@@ -405,6 +409,7 @@ class ComponentNameList(List):
 
     @property
     def info_text(self):
+        """Describes the type of this traitlet."""
         if self._init_done:
             return f"A list of {list(self.cls.non_abstract_subclasses())}"
         else:
@@ -465,7 +470,7 @@ class IntTelescopeParameter(TelescopeParameter):
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
-        super().__init__(trait=Integer(), **kwargs)
+        super().__init__(trait=Int(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):

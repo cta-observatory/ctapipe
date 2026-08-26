@@ -318,6 +318,7 @@ class TelescopeParameter(List):
         self._help = value
 
     def from_string(self, s):
+        """Turn string into List."""
         val = super().from_string(s)
         # for strings, parsing fails and traitlets returns None
         if val == [("type", "*", None)] and s != "None":
@@ -330,6 +331,7 @@ class TelescopeParameter(List):
         return self._trait.validate(obj, value)
 
     def validate(self, obj, value):
+        """Validate telescope-component dict."""
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]

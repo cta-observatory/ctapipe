@@ -8,7 +8,7 @@ import numpy as np
 
 from ..compat import COPY_IF_NEEDED
 from ..core import Component
-from ..core.traits import AstroQuantity, Integer
+from ..core.traits import AstroQuantity, Int
 
 __all__ = [
     "ResultValidRange",
@@ -116,7 +116,7 @@ class DefaultTrueEnergyBins(Component):
         physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_n_bins_per_decade = Integer(
+    true_energy_n_bins_per_decade = Int(
         help="Number of bins per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
@@ -145,7 +145,7 @@ class DefaultRecoEnergyBins(Component):
         physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Integer(
+    reco_energy_n_bins_per_decade = Int(
         help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
@@ -174,7 +174,7 @@ class DefaultFoVOffsetBins(Component):
         physical_type=u.physical.angle,
     ).tag(config=True)
 
-    fov_offset_n_bins = Integer(
+    fov_offset_n_bins = Int(
         help="Number of FoV offset bins",
         default_value=1,
     ).tag(config=True)

@@ -50,9 +50,5 @@ function.  Reading it back in can be done with ``CameraReadout.from_table()``.
    readout = CameraReadout.from_table('mycam.fits.gz')
    readout = CameraReadout.from_table('mycam.h5', path='/cameras/mycam')
 
-
-Reference/API
-=============
-
-.. automodapi:: ctapipe.instrument.camera.readout
-    :no-inheritance-diagram:
+See `~ctapipe.instrument.CameraReadout` in the :ref:`instrument`
+reference for the full API documentation.

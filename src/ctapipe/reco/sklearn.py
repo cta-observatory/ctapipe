@@ -325,12 +325,12 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
         help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
-    invalid_class = traits.Integer(
+    invalid_class = traits.Int(
         default_value=-1,
         help="The label value to fill in case no prediction could be made.",
     ).tag(config=True)
 
-    positive_class = traits.Integer(
+    positive_class = traits.Int(
         default_value=1,
         help=(
             "The label value of the positive class in case of binary classification."
@@ -456,7 +456,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     target = "true_shower_primary_id"
 
-    positive_class = traits.Integer(
+    positive_class = traits.Int(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)

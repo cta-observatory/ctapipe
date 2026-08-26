@@ -1,3 +1,5 @@
+"""Utilities for fitting functions to data."""
+
 import numpy as np
 from numba import njit
 
@@ -5,6 +7,15 @@ from .core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 
 EPS = 2 * np.finfo(np.float64).eps
 FIT_RNG = np.random.default_rng(0)
+
+__all__ = [
+    "design_matrix",
+    "linear_regression",
+    "residual_sum_of_squares",
+    "residuals",
+    "choose_two_without_replacement",
+    "lts_linear_regression",
+]
 
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
@@ -28,10 +39,10 @@ def linear_regression(X, y):
     """
     Analytical linear regression
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     X: np.array
-        Design matrix of shape (N, 2), as created by ``~ctapipe.fitting.design_matrix``
+        Design matrix of shape (N, 2), as created by `~ctapipe.fitting.design_matrix`
     y: np.array
         y values
     """
@@ -46,8 +57,8 @@ def linear_regression(X, y):
 def residual_sum_of_squares(X, y, beta):
     """Calculate the residual sum of squares
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     X: np.array
         Design matrix of shape (N, 2), as created by ``~ctapipe.fitting.design_matrix``
     y: np.array
@@ -60,10 +71,10 @@ def residual_sum_of_squares(X, y, beta):
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def residuals(X, y, beta):
-    """Calculate the residuals of a linear regression
+    """Calculate the residuals of a linear regression.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     X: np.array
         Design matrix of shape (N, 2), as created by ``~ctapipe.fitting.design_matrix``
     y: np.array
@@ -76,6 +87,22 @@ def residuals(X, y, beta):
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def choose_two_without_replacement(rng, n):
+    """Draw two distinct random integers from ``[0, n)`` without replacement.
+
+    Parameters
+    ----------
+    rng : numpy.random.Generator
+        Random number generator to draw from.
+    n : int
+        Number of possible values to choose from; values are drawn from
+        ``[0, n)``.
+
+    Returns
+    -------
+    values : np.ndarray
+        Array of two distinct integers, each in ``[0, n)``, drawn uniformly
+        at random without replacement.
+    """
     values = np.empty(2, dtype=np.int64)
 
     # we need to draw two distinct integers in [0, n)
@@ -131,17 +158,19 @@ def lts_linear_regression(
     rng=FIT_RNG,
 ):
     """
-    Perform a Least Trimmed Squares regression based on algorithm (2) described in [lts_regression]_
+    Perform a Least Trimmed Squares regression.
+
+    This is based on algorithm (2) described in :cite:p:`lts-regression`
 
     We start from randomly sampled two points of the dataset and then
-    iteratively choose the `relative_sample_size` fraction of points with the smallest
+    iteratively choose the ``relative_sample_size`` fraction of points with the smallest
     residuals to redo the fit until it convergtes.
 
     This is done for ``samples`` initial samples and the solution with the
     lowest residual sum of squares is returned along with that error.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     x: np.array
         x values for the linear regression
     y: np.array

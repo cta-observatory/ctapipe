@@ -17,9 +17,5 @@ You can also convert them to `astropy.table.Table` objects using
 `SubarrayDescription.to_table()`, which can then be saved to disk or
 manipulated.
 
-
-Reference/API
-=============
-
-.. automodapi:: ctapipe.instrument.subarray
-    :no-inheritance-diagram:
+See `~ctapipe.instrument.SubarrayDescription` in the :ref:`instrument`
+reference for the full API documentation.

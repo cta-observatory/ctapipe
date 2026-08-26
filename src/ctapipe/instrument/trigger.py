@@ -2,7 +2,7 @@ import numpy as np
 
 from ..containers import ArrayEventContainer, EventType
 from ..core import TelescopeComponent
-from ..core.traits import Integer, IntTelescopeParameter, Set, UseEnum
+from ..core.traits import Int, IntTelescopeParameter, Set, UseEnum
 
 __all__ = ["SoftwareTrigger"]
 
@@ -49,7 +49,7 @@ class SoftwareTrigger(TelescopeComponent):
                - "RANDOM_MONO"
     """
 
-    min_telescopes = Integer(
+    min_telescopes = Int(
         default_value=1,
         help=(
             "Minimum number of telescopes required globally."

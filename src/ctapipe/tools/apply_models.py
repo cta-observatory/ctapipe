@@ -8,7 +8,7 @@ from astropy.table import Table, join, vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Integer, List, Path, classes_with_traits, flag
+from ctapipe.core.traits import Bool, Int, List, Path, classes_with_traits, flag
 from ctapipe.io import HDF5Merger, TableLoader, write_table
 from ctapipe.io.astropy_helpers import join_allow_empty, read_table
 from ctapipe.io.hdf5dataformat import (
@@ -63,13 +63,13 @@ class ApplyModels(Tool):
         help="Paths to trained reconstructors to be applied to the input data",
     ).tag(config=True)
 
-    chunk_size = Integer(
+    chunk_size = Int(
         default_value=100000,
         allow_none=True,
         help="How many subarray events to load at once for making predictions.",
     ).tag(config=True)
 
-    n_jobs = Integer(
+    n_jobs = Int(
         default_value=None,
         allow_none=True,
         help="Number of threads to use for the reconstruction. This overwrites the values in the config",

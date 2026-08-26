@@ -96,7 +96,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     configuration parameters (command-line, config file, etc). Note
     that any parameter that should be externally configurable must
     have its ``config`` attribute set to ``True``, e.g. defined like
-    ``myparam = Integer(0, help='the parameter').tag(config=True)``.
+    ``myparam = Int(0, help='the parameter').tag(config=True)``.
 
     All components also contain a ``Logger`` instance in their ``log``
     attribute, that you must use to output info, debugging data,
@@ -112,11 +112,11 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     .. code:: python
 
         from ctapipe.core import Component
-        from traitlets import (Integer, Float)
+        from traitlets import (Int, Float)
 
         class MyComponent(Component):
             \"\"\" Does something \"\"\"
-            some_option = Integer(default_value=6,
+            some_option = Int(default_value=6,
                                   help='a value to set').tag(config=True)
 
 
