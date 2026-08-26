@@ -97,6 +97,51 @@ class ReflectorShape(Enum):
     SCHWARZSCHILD_COUDER = "SCHWARZSCHILD_COUDER"
 
 
+@unique
+class MirrorFacetShape(Enum):
+    """
+    Enumeration of the different mirror facet shapes
+    """
+
+    #: Unknown
+    UNKNOWN = "UNKNOWN"
+    #: Individual mirror facets of circular shape.
+    CIRCLE = "CIRCLE"
+    #: Individual mirror facets of square shape.
+    SQUARE = "SQUARE"
+    #: Individual mirror facets of hexagonal shape.
+    HEXAGON = "HEXAGON"
+
+
+class MirrorFacetsDescription:
+    """
+    Information about the different mirror facet shapes
+    """
+
+    def __init__(self,
+        id,
+        x,
+        y,
+        z,
+        nx,
+        ny,
+        nz,
+        diameter,
+        mirror_shape,
+    ):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.z = z
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+        self.diameter = diameter
+        self.mirror_shape = np.array(
+            [MirrorFacetShape(shape) for shape in mirror_shape]
+        )
+
+
 class OpticsDescription:
     """
     Describes the optics of a Cherenkov Telescope mirror
