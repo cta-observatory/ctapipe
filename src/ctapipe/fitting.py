@@ -160,7 +160,7 @@ def lts_linear_regression(
     """
     Perform a Least Trimmed Squares regression.
 
-    This is based on algorithm (2) described in [lts-regression]_
+    This is based on algorithm (2) described in :cite:p:`lts-regression`
 
     We start from randomly sampled two points of the dataset and then
     iteratively choose the `relative_sample_size` fraction of points with the smallest
