@@ -213,6 +213,14 @@ def calibpipe_camcalib_obslike_different_chunks():
 
 
 @pytest.fixture(scope="session")
+def ctapipe_ref_pules():
+    return read_table(
+        get_dataset_path("calibpipe_camcalib_single_chunk_i0.1.0.dl1.h5"),
+        "/configuration/instrument/telescope/camera/readout_0/",
+    )
+
+
+@pytest.fixture(scope="session")
 def prod5_lst(subarray_prod5_paranal):
     return subarray_prod5_paranal.tel[1]
 
