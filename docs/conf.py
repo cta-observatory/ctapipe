@@ -152,6 +152,7 @@ nitpick_ignore = add_reference_type(
         "ctapipe.core.container.T1",
         "ctapipe.core.container.T2",
         "DTypeLike",
+        "numpy._typing._dtype_like.DTypeLike",
         # astropy, new errors in 8.0, see https://github.com/astropy/astropy/issues/19933
         "Attribute",
         "BaseDifferential",
@@ -180,6 +181,7 @@ nitpick_ignore += add_reference_type(
         "T2",
         "K",
         "V",
+        "ctapipe.core.traits.Int",
     ],
 )
 nitpick_ignore += add_reference_type(
