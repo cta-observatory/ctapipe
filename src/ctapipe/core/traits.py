@@ -39,7 +39,6 @@ __all__ = [
     "Enum",
     "Float",
     "Int",
-    "Integer",
     "List",
     "Long",
     "Set",
@@ -74,7 +73,7 @@ class NoneDefaultNotAllowedWarning(UserWarning):
 Bool = traitlets.Bool
 Int = traitlets.Int
 CInt = traitlets.CInt
-Integer = traitlets.Integer
+Integer = traitlets.Int
 Float = traitlets.Float
 Long = traitlets.Long
 Unicode = traitlets.Unicode
