@@ -47,7 +47,7 @@ function.  Reading it back in can be done with `~ctapipe.instrument.CameraGeomet
 
 .. code-block:: python
 
-   geom = ~ctapipe.instrument.CameraGeometry(...)  # constructed elsewhere
+   geom = ctapipe.instrument.CameraGeometry(...)  # constructed elsewhere
 
    geom.to_table().write('mycam.fits.gz') # FITS output
    geom.to_table().write('mycam.h5', path='/cameras/mycam') # hdf5 output
@@ -55,9 +55,9 @@ function.  Reading it back in can be done with `~ctapipe.instrument.CameraGeomet
 
    # later read back in:
 
-   geom = ~ctapipe.instrument.CameraGeometry.from_table('mycam.ecsv', format='ascii.ecsv')
-   geom = ~ctapipe.instrument.CameraGeometry.from_table('mycam.fits.gz')
-   geom = ~ctapipe.instrument.CameraGeometry.from_table('mycam.h5', path='/cameras/mycam')
+   geom = ctapipe.instrument.CameraGeometry.from_table('mycam.ecsv', format='ascii.ecsv')
+   geom = ctapipe.instrument.CameraGeometry.from_table('mycam.fits.gz')
+   geom = ctapipe.instrument.CameraGeometry.from_table('mycam.h5', path='/cameras/mycam')
 
 
 A Note On Pixel Neighbors
