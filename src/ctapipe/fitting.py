@@ -163,7 +163,7 @@ def lts_linear_regression(
     This is based on algorithm (2) described in :cite:p:`lts-regression`
 
     We start from randomly sampled two points of the dataset and then
-    iteratively choose the `relative_sample_size` fraction of points with the smallest
+    iteratively choose the ``relative_sample_size`` fraction of points with the smallest
     residuals to redo the fit until it convergtes.
 
     This is done for ``samples`` initial samples and the solution with the
