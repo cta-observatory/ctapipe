@@ -40,7 +40,6 @@ __all__ = [
     "Float",
     "Int",
     "List",
-    "Long",
     "Set",
     "TraitError",
     "Tuple",
@@ -75,7 +74,6 @@ Int = traitlets.Int
 CInt = traitlets.CInt
 Integer = traitlets.Int
 Float = traitlets.Float
-Long = traitlets.Long
 Unicode = traitlets.Unicode
 Dict = traitlets.Dict
 Enum = traitlets.Enum

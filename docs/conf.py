@@ -85,7 +85,6 @@ def setup(app):
         "CInt",
         "Int",
         "List",
-        "Long",
         "Set",
         "TraitError",
         "Tuple",
