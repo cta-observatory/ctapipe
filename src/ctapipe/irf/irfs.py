@@ -21,7 +21,7 @@ from pyirf.irf import (
 )
 from pyirf.simulations import SimulatedEventsInfo
 
-from ..core.traits import AstroQuantity, CaselessStrEnum, Float, Integer
+from ..core.traits import AstroQuantity, CaselessStrEnum, Float, Int
 from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 
 __all__ = [
@@ -103,7 +103,7 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
         default_value=5,
     ).tag(config=True)
 
-    energy_migration_n_bins = Integer(
+    energy_migration_n_bins = Int(
         help="Number of bins for energy migration ratio",
         default_value=30,
     ).tag(config=True)
@@ -312,7 +312,7 @@ class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
         physical_type=u.physical.angle,
     ).tag(config=True)
 
-    source_offset_n_bins = Integer(
+    source_offset_n_bins = Int(
         help="Number of bins for Source offset",
         default_value=100,
     ).tag(config=True)

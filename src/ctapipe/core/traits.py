@@ -72,7 +72,6 @@ class NoneDefaultNotAllowedWarning(UserWarning):
 Bool = traitlets.Bool
 Int = traitlets.Int
 CInt = traitlets.CInt
-Integer = traitlets.Int
 Float = traitlets.Float
 Unicode = traitlets.Unicode
 Dict = traitlets.Dict
@@ -469,7 +468,7 @@ class IntTelescopeParameter(TelescopeParameter):
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
-        super().__init__(trait=Integer(), **kwargs)
+        super().__init__(trait=Int(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):

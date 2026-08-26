@@ -4,7 +4,7 @@ import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import AstroQuantity, Integer, classes_with_traits
+from ..core.traits import AstroQuantity, Int, classes_with_traits
 from ..io import DL2EventLoader
 from ..irf import Spectra
 from ..irf.optimize import CutOptimizerBase
@@ -67,7 +67,7 @@ class EventSelectionOptimizer(Tool):
         help="Name of the spectrum used for weights of electron events.",
     ).tag(config=True)
 
-    chunk_size = Integer(
+    chunk_size = Int(
         default_value=100000,
         allow_none=True,
         help="How many subarray events to load at once when preselecting events.",

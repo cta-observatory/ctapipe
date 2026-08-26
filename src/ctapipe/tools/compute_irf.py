@@ -18,7 +18,7 @@ from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
-from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
+from ..core.traits import AstroQuantity, Bool, Int, classes_with_traits, flag
 from ..io.dl2_tables_preprocessing import (
     DL2EventLoader,
     DL2EventQualityQuery,
@@ -110,7 +110,7 @@ class IrfTool(Tool):
         help="Name of the spectrum used for weights of electron events.",
     ).tag(config=True)
 
-    chunk_size = Integer(
+    chunk_size = Int(
         default_value=100000,
         allow_none=True,
         help="How many subarray events to load at once while selecting.",

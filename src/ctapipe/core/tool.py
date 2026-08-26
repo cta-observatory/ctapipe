@@ -86,7 +86,7 @@ class Tool(Application):
     .. code:: python
 
         from ctapipe.core import Tool
-        from traitlets import (Integer, Float, Dict, Unicode)
+        from traitlets import (Int, Float, Dict, Unicode)
 
         class MyTool(Tool):
             name = "mytool"
@@ -98,7 +98,7 @@ class Tool(Application):
             classes = [MyComponent, AdvancedComponent, SecondaryMyComponent]
 
             # local configuration parameters
-            iterations = Integer(5,help="Number of times to run",
+            iterations = Int(5,help="Number of times to run",
                                  allow_none=False).tag(config=True)
 
             def setup(self):

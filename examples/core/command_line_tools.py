@@ -9,7 +9,7 @@ from time import sleep
 from ctapipe.core import Component, TelescopeComponent, Tool
 from ctapipe.core.traits import (
     FloatTelescopeParameter,
-    Integer,
+    Int,
     Path,
     TraitError,
     observe,
@@ -37,7 +37,7 @@ GAMMA_FILE = get_dataset_path("gamma_prod5.simtel.zst")
 class MyComponent(Component):
     """A Component that does stuff"""
 
-    value = Integer(default_value=-1, help="Value to use").tag(config=True)
+    value = Int(default_value=-1, help="Value to use").tag(config=True)
 
     def do_thing(self):
         self.log.debug("Did thing")
@@ -51,7 +51,7 @@ class SecondaryMyComponent(MyComponent):
 class AdvancedComponent(Component):
     """An advanced technique"""
 
-    value1 = Integer(default_value=-1, help="Value to use").tag(config=True)
+    value1 = Int(default_value=-1, help="Value to use").tag(config=True)
     infile = Path(
         help="input file name",
         exists=None,  # set to True to require existing, False for requiring non-existing
@@ -144,7 +144,7 @@ class MyTool(Tool):
     ]
 
     # local configuration parameters
-    iterations = Integer(5, help="Number of times to run", allow_none=False).tag(
+    iterations = Int(5, help="Number of times to run", allow_none=False).tag(
         config=True
     )
 

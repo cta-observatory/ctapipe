@@ -712,13 +712,13 @@ def test_tool_in_tool():
     provenance log."""
 
     class InnerTool(Tool):
-        param1 = traits.Integer(12).tag(config=True)
+        param1 = traits.Int(12).tag(config=True)
 
         def start(self):
             print(f"started inner: {self.get_current_config()}")
 
     class CompoundTool(Tool):
-        param1 = traits.Integer(12).tag(config=True)
+        param1 = traits.Int(12).tag(config=True)
         filename = traits.Unicode().tag(config=True)
 
         classes = [
