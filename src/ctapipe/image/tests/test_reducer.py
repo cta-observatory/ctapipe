@@ -33,10 +33,10 @@ def test_null_data_volume_reducer(subarray_lst):
     rng = np.random.default_rng(0)
     waveforms = rng.uniform(0, 1, (1, 2048, 96))
     reducer = NullDataVolumeReducer(subarray=subarray)
-    reduced_waveforms_mask = reducer(waveforms)
-    reduced_waveforms = waveforms.copy()
-    reduced_waveforms[:, ~reduced_waveforms_mask] = 0
-    assert_array_equal(waveforms, reduced_waveforms)
+    reduced_waveforms_mask = reducer(waveforms, tel_id=1)
+
+    # null reducer keeps all pixels
+    assert_array_equal(reduced_waveforms_mask, True)
 
 
 def test_tailcuts_data_volume_reducer(subarray_lst):
