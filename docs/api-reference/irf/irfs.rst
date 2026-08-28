@@ -1,7 +1,7 @@
 .. _irfs:
 
 **************
-IRF components
+IRF generation
 **************
 
 
