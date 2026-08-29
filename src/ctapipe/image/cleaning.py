@@ -14,6 +14,7 @@ image size and just set unclean pixels to 0 or similar, use
 
 __all__ = [
     "tailcuts_clean",
+    "time_clustering",
     "bright_cleaning",
     "dilate",
     "mars_cleaning_1st_pass",
@@ -24,6 +25,7 @@ __all__ = [
     "nsb_image_cleaning",
     "ImageCleaner",
     "TailcutsImageCleaner",
+    "TimeCleaner",
     "NSBImageCleaner",
     "MARSImageCleaner",
     "FACTImageCleaner",
@@ -33,6 +35,7 @@ __all__ = [
 from abc import abstractmethod
 
 import numpy as np
+from sklearn.cluster import DBSCAN
 
 from ctapipe.image.statistics import n_largest
 
@@ -117,6 +120,78 @@ def tailcuts_clean(
         return (pixels_above_boundary & pixels_with_picture_neighbors) | (
             pixels_in_picture & pixels_with_boundary_neighbors
         )
+
+
+def time_clustering(
+    geom,
+    image,
+    time,
+    minpts=5,
+    eps=1.0,
+    time_scale_ns=4.0,
+    space_scale_m=0.25,
+    hard_cut_pe=4,
+    image_add_pe=4,
+):
+    """
+    Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
+    Previously used for HESS [timecleaning]_.
+    As a neighbor-based image extractor algorithm can lead to biases in the time reconstruction of noise pixels,
+    specially those next to the shower, a cut in the minimum signal image is applied.
+    DBSCAN runs with the reconstructed times and pixel positions after scaling. Scaling is needed because eps
+    is not dimension dependent. If scaling is performed properly, eps can be set to 1. DBSCAN returns the
+    cluster IDs of each point. Pixels associated to cluster ID -1 are classified as noise.
+    At the end, all pixels above image_add_pe cut (even those that did not pass dbscan) pass also the cleaning
+    if they have at least one neighbour above the same threshold.
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel charge information
+    time: array
+        pixel timing information
+    minpts: int
+        Minimum number of points to consider a cluster
+    eps: float
+        Minimum distance in dbscan
+    time_scale_ns: float
+        Time scale in ns
+    space_scale: float
+        Space scale in m
+    hard_cut_pe: float
+        Hard cut in the number of signal pe
+    image_add_pe: float
+        Cut in pe above which a pixel will pass even if dbscan did not find it.
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+    """
+    precut_mask = image > hard_cut_pe
+    arr = np.zeros(len(image), dtype=float)
+    arr[~precut_mask] = -1
+
+    pix_x = geom.pix_x.value[precut_mask] / space_scale_m
+    pix_y = geom.pix_y.value[precut_mask] / space_scale_m
+
+    if len(time[precut_mask]) == 0:
+        mask = np.zeros(len(time)) != 0
+    else:
+        X = np.column_stack((time[precut_mask] / time_scale_ns, pix_x, pix_y))
+        labels = DBSCAN(eps=eps, min_samples=minpts).fit_predict(X)
+
+        y = np.array(arr[(arr == 0)])
+        y[(labels == -1)] = -1
+        arr[arr == 0] = y
+        mask = arr == 0  # we keep these events
+
+    high_charge = image_add_pe
+    neighs = 1
+    number_of_neighbors = geom.neighbor_matrix_sparse.dot((image >= high_charge))
+
+    mask = mask | ((image >= high_charge) & (number_of_neighbors >= neighs))
+
+    return mask
 
 
 def bright_cleaning(image, threshold, fraction, n_pixels=3):
@@ -721,6 +796,48 @@ class TailcutsImageCleaner(ImageCleaner):
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+        )
+
+
+class TimeCleaner(ImageCleaner):
+    """
+    Clean images using the time clustering cleaning method
+    """
+
+    space_scale_m = FloatTelescopeParameter(
+        default_value=0.25, help="Pixel space scaling parameter in m"
+    ).tag(config=True)
+    time_scale_ns = FloatTelescopeParameter(
+        default_value=4.0, help="Time scale parameter in ns"
+    ).tag(config=True)
+    minpts = IntTelescopeParameter(
+        default_value=5, help="minimum number of points to form a cluster"
+    ).tag(config=True)
+    eps = FloatTelescopeParameter(
+        default_value=1.0, help="minimum distance in DBSCAN"
+    ).tag(config=True)
+    hard_cut_pe = FloatTelescopeParameter(
+        default_value=2.5, help="Hard cut in the number of pe"
+    ).tag(config=True)
+    image_add_pe = FloatTelescopeParameter(
+        default_value=4,
+        help="Add all pixels with signal above this cut and with at least one neighbour above the same threshold",
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """Apply HESS image cleaning. see ImageCleaner.__call__()"""
+        return time_clustering(
+            geom=self.subarray.tel[tel_id].camera.geometry,
+            image=image,
+            time=arrival_times,
+            eps=self.eps.tel[tel_id],
+            space_scale_m=self.space_scale_m.tel[tel_id],
+            time_scale_ns=self.time_scale_ns.tel[tel_id],
+            minpts=self.minpts.tel[tel_id],
+            hard_cut_pe=self.hard_cut_pe.tel[tel_id],
+            image_add_pe=self.image_add_pe.tel[tel_id],
         )
 
 
