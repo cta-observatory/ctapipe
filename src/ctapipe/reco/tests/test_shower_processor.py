@@ -11,6 +11,7 @@ from traitlets.config.loader import Config
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.reco import ShowerProcessor
+from ctapipe.reco.impact_utilities import create_dummy_templates
 from ctapipe.utils import get_dataset_path
 
 SIMTEL_PATH = get_dataset_path(
@@ -43,13 +44,44 @@ def table_profile():
     ids=["HillasIntersection", "HillasReconstructor", "ImPACTReconstructor"],
 )
 def test_shower_processor_geometry(
-    example_event, example_subarray, reconstructor_types, table_profile
+    example_event, example_subarray, reconstructor_types, table_profile, tmp_path
 ):
     """Ensure we get shower geometry when we input an event with parametrized images."""
 
     calibrate = CameraCalibrator(subarray=example_subarray)
 
-    config = Config()
+    for tel_type in example_subarray.telescope_types:
+        create_dummy_templates(
+            str(tmp_path) + "/{}.template.gz".format(str(tel_type)),
+            1,
+            str(tel_type),
+        )
+
+    config = Config(
+        {
+            "ShowerProcessor": {
+                "ImPACTReconstructor": {
+                    "image_template_path": [
+                        [
+                            "type",
+                            "MST_MST_FlashCam",
+                            str(tmp_path) + "/MST_MST_FlashCam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "SST_ASTRI_ASTRICam",
+                            str(tmp_path) + "/SST_ASTRI_ASTRICam.template.gz",
+                        ],
+                        [
+                            "type",
+                            "LST_LST_LSTCam",
+                            str(tmp_path) + "/LST_LST_LSTCam.template.gz",
+                        ],
+                    ]
+                }
+            }
+        }
+    )
 
     process_images = ImageProcessor(
         subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
@@ -59,6 +91,7 @@ def test_shower_processor_geometry(
         subarray=example_subarray,
         atmosphere_profile=table_profile,
         reconstructor_types=reconstructor_types,
+        config=config,
     )
 
     calibrate(example_event)
