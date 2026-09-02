@@ -200,6 +200,23 @@ class CameraCalibrator(TelescopeComponent):
             calibration_monitoring_id=r1.calibration_monitoring_id,
         )
 
+    @staticmethod
+    def _get_time_shift(dl0, calib, pixel_index):
+        """Combine the two sources of time shift information."""
+        time_shift = calib.time_shift
+
+        if time_shift is not None and dl0.selected_gain_channel is not None:
+            time_shift = time_shift[dl0.selected_gain_channel, pixel_index]
+
+        if dl0.pixel_time_shift is None:
+            return time_shift
+
+        if time_shift is None:
+            return dl0.pixel_time_shift
+
+        # this intentionally makes a copy to not mutate the calib.time_shift array
+        return time_shift + dl0.pixel_time_shift
+
     def _calibrate_dl1(self, event, tel_id):
         dl0 = event.dl0.tel[tel_id]
 
@@ -213,22 +230,12 @@ class CameraCalibrator(TelescopeComponent):
         selected_gain_channel = dl0.selected_gain_channel
         pixel_index = _get_pixel_index(n_pixels)
 
-        pedestal = calib.pedestal_offset
         factor = calib.factor
-        time_shift = calib.time_shift
-        if selected_gain_channel is not None:
-            if factor is not None:
-                factor = factor[selected_gain_channel, pixel_index]
-            if time_shift is not None:
-                time_shift = time_shift[selected_gain_channel, pixel_index]
-
-        if dl0.pixel_time_shift is not None:
-            # this intentionally makes a copy to not mutate the calib.time_shift array
-            time_shift = time_shift + dl0.pixel_time_shift
-
-        readout = self.subarray.tel[tel_id].camera.readout
+        if factor is not None and selected_gain_channel is not None:
+            factor = factor[selected_gain_channel, pixel_index]
 
         # subtract any remaining pedestal before extraction
+        pedestal = calib.pedestal_offset
         if pedestal is not None:
             if selected_gain_channel is not None:
                 pedestal = pedestal[selected_gain_channel, pixel_index]
@@ -237,6 +244,9 @@ class CameraCalibrator(TelescopeComponent):
             waveforms = waveforms.copy()
             waveforms -= np.atleast_2d(pedestal)[..., np.newaxis]
 
+        time_shift = self._get_time_shift(dl0, calib, pixel_index)
+
+        readout = self.subarray.tel[tel_id].camera.readout
         if n_samples == 1:
             # To handle ASTRI and dst
             # TODO: Improved handling of ASTRI and dst
