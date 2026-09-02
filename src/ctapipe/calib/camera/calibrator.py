@@ -201,14 +201,16 @@ class CameraCalibrator(TelescopeComponent):
         )
 
     def _calibrate_dl1(self, event, tel_id):
-        waveforms = event.dl0.tel[tel_id].waveform
+        dl0 = event.dl0.tel[tel_id]
+
+        waveforms = dl0.waveform
         if self._check_dl0_empty(waveforms):
             return
 
         n_channels, n_pixels, n_samples = waveforms.shape
 
         calib = event.monitoring.tel[tel_id].camera.coefficients
-        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+        selected_gain_channel = dl0.selected_gain_channel
         pixel_index = _get_pixel_index(n_pixels)
 
         pedestal = calib.pedestal_offset
@@ -219,6 +221,10 @@ class CameraCalibrator(TelescopeComponent):
                 factor = factor[selected_gain_channel, pixel_index]
             if time_shift is not None:
                 time_shift = time_shift[selected_gain_channel, pixel_index]
+
+        if dl0.pixel_time_shift is not None:
+            # this intentionally makes a copy to not mutate the calib.time_shift array
+            time_shift = time_shift + dl0.pixel_time_shift
 
         readout = self.subarray.tel[tel_id].camera.readout
 

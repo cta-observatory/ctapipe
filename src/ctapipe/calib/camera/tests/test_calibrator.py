@@ -340,6 +340,33 @@ def test_shift_waveforms():
     assert (shifted_waveforms[:, 4, 14] == 1).all()
 
 
+def test_combined_peak_time_shifts(example_subarray):
+    tel_id = next(iter(example_subarray.tel))
+    readout = example_subarray.tel[tel_id].camera.readout
+    n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
+
+    event = ArrayEventContainer()
+    event.dl0.tel[tel_id].waveform = np.zeros((1, n_pixels, 5))
+    event.dl0.tel[tel_id].waveform[:, :, 3] = 1
+    calibration_time_shift = np.linspace(1.0, 2.0, n_pixels)[np.newaxis]
+    pixel_time_shift = np.linspace(2.0, 3.0, n_pixels)[np.newaxis]
+    event.monitoring.tel[tel_id].camera.coefficients.time_shift = calibration_time_shift
+    event.dl0.tel[tel_id].pixel_time_shift = pixel_time_shift
+
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray),
+    )
+    calibrator._calibrate_dl1(event, tel_id)
+
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time,
+        3 / readout.sampling_rate.to_value(u.GHz)
+        - calibration_time_shift
+        - pixel_time_shift,
+    )
+
+
 def test_invalid_pixels(example_event, example_subarray):
     # switching off the corrections makes it easier to test for
     # the exact value of 1.0
