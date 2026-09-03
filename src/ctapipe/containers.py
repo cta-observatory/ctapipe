@@ -59,6 +59,11 @@ __all__ = [
     "TimingParametersContainer",
     "TriggerContainer",
     "TelescopePointingContainer",
+    "TelescopeStructurePointingContainer",
+    "TelescopeStructureDisplacementContainer",
+    "CameraDisplacementContainer",
+    "AuxiliaryPointingCorrectionContainer",
+    "TelescopePointingCorrectionContainer",
     "ArrayPointingContainer",
     "StatisticsContainer",
     "ChunkContainer",
@@ -71,6 +76,7 @@ __all__ = [
     "ObservationBlockContainer",
     "ObservingMode",
     "ObservationBlockState",
+    "WeatherMonitoringContainer",
 ]
 
 
@@ -1187,8 +1193,105 @@ class DL2Container(Container):
     )
 
 
-# Calibration containers
-# Pointing containers
+# Calibration and Monitoring containers
+
+
+# Pointing-related containers
+class TelescopeStructurePointingContainer(Container):
+    """
+    Pointing of the telescope structure in local coordinates (Alt/Az)
+    as measured by the telescope hardware (e.g. drive encoders).
+    """
+
+    default_prefix = "structure_pointing"
+    azimuth = Field(
+        nan * u.rad, "Raw azimuth measured by structure encoders", unit=u.rad
+    )
+    altitude = Field(
+        nan * u.rad, "Raw altitude measured by structure encoders", unit=u.rad
+    )
+
+
+class TelescopeStructureDisplacementContainer(Container):
+    """
+    Difference between ideal and real direction of the telescope axis for
+    a given elevation in local coordinates (e.g. structural bending model).
+    """
+
+    default_prefix = "structure_displacement"
+    delta_azimuth = Field(
+        nan * u.rad,
+        "Azimuth offset due to structure bending/deformation",
+        unit=u.rad,
+    )
+    delta_altitude = Field(
+        nan * u.rad,
+        "Altitude offset due to structure bending/deformation",
+        unit=u.rad,
+    )
+
+
+class CameraDisplacementContainer(Container):
+    """
+    Displacement and tilt of the camera w.r.t. its nominal position in the
+    telescope structure.
+    """
+
+    default_prefix = "camera_displacement"
+    translation_x = Field(
+        nan * u.m, "Camera displacement along X axis (horizontal)", unit=u.m
+    )
+    translation_y = Field(
+        nan * u.m, "Camera displacement along Y axis (vertical)", unit=u.m
+    )
+    translation_z = Field(
+        nan * u.m, "Camera displacement along optical Z axis (focal offset)", unit=u.m
+    )
+    rotation_x = Field(
+        nan * u.rad, "Camera tilt angle around X axis (pitch)", unit=u.rad
+    )
+    rotation_y = Field(nan * u.rad, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
+    rotation_z = Field(
+        nan * u.rad, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
+    )
+
+
+class AuxiliaryPointingCorrectionContainer(Container):
+    """
+    Pointing correction in celestial coordinates derived using auxiliary hardware, such as e.g. StarGuider camera.
+    """
+
+    default_prefix = "aux_pointing_correction"
+    delta_ra = Field(
+        nan * u.rad, "Residual Right Ascension offset correction", unit=u.rad
+    )
+    delta_dec = Field(nan * u.rad, "Residual Declination offset correction", unit=u.rad)
+
+
+class TelescopePointingCorrectionContainer(Container):
+    """
+    Residual sky-pointing corrections in local coordinates (Alt/Az).
+
+    This container holds pointing offsets in local coordinates regardless of how they were
+    derived (e.g. analytical StarTracker, auxiliary hardware devices,
+    or a combination/fusion model).
+    """
+
+    default_prefix = "pointing_correction"
+    delta_altitude = Field(
+        nan * u.rad, "Residual Altitude offset correction", unit=u.rad
+    )
+    delta_azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
+
+    # Optional uncertainty tracking
+    altitude_uncertainty = Field(
+        nan * u.rad, "Uncertainty on Altitude offset correction", unit=u.rad
+    )
+    azimuth_uncertainty = Field(
+        nan * u.rad, "Uncertainty on Azimuth offset correction", unit=u.rad
+    )
+
+
 class TelescopePointingContainer(Container):
     """
     Container holding pointing information for a single telescope
@@ -1212,6 +1315,29 @@ class ArrayPointingContainer(Container):
     array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
     array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
     array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
+
+
+# Environmental Monitoring containers
+class WeatherMonitoringContainer(Container):
+    """
+    Environmental parameters at the observatory site.
+
+    Note: Astronomical refraction derived from weather measurements SHALL ONLY
+    be used when fitting star positions during offline optical pointing calibration.
+    It SHALL NOT be applied during Cherenkov atmospheric shower direction reconstruction.
+    """
+
+    default_prefix = "weather"
+    temperature = Field(
+        nan * u.K, "Ambient air temperature at observatory site", unit=u.K
+    )
+    pressure = Field(
+        nan * u.hPa, "Atmospheric pressure at observatory site", unit=u.hPa
+    )
+    relative_humidity = Field(
+        nan,
+        "Relative humidity fraction (0.0 to 1.0)",
+    )
 
 
 # Camera containers
@@ -1347,8 +1473,16 @@ class TelescopeMonitoringContainer(Container):
         default_factory=CameraMonitoringContainer,
         description="Container for monitoring data for camera",
     )
+
+    camera_displacement = Field(
+        default=None,
+        type=CameraDisplacementContainer,
+        description="Displacement and tilt of the camera w.r.t. its nominal position in the telescope structure.",
+    )
+
     pointing = Field(
-        default_factory=TelescopePointingContainer,
+        default=None,
+        type=TelescopePointingContainer,
         description="Telescope pointing positions",
     )
 
