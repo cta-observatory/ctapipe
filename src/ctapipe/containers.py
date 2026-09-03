@@ -1238,16 +1238,20 @@ class CameraDisplacementContainer(Container):
     """
 
     default_prefix = "camera_displacement"
-    delta_x = Field(
+    translation_x = Field(
         nan * u.m, "Camera displacement along X axis (horizontal)", unit=u.m
     )
-    delta_y = Field(nan * u.m, "Camera displacement along Y axis (vertical)", unit=u.m)
-    delta_z = Field(
+    translation_y = Field(
+        nan * u.m, "Camera displacement along Y axis (vertical)", unit=u.m
+    )
+    translation_z = Field(
         nan * u.m, "Camera displacement along optical Z axis (focal offset)", unit=u.m
     )
-    tilt_x = Field(nan * u.rad, "Camera tilt angle around X axis (pitch)", unit=u.rad)
-    tilt_y = Field(nan * u.rad, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
-    tilt_z = Field(
+    rotation_x = Field(
+        nan * u.rad, "Camera tilt angle around X axis (pitch)", unit=u.rad
+    )
+    rotation_y = Field(nan * u.rad, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
+    rotation_z = Field(
         nan * u.rad, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
     )
 
