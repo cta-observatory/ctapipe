@@ -203,19 +203,25 @@ class CameraCalibrator(TelescopeComponent):
     @staticmethod
     def _get_time_shift(dl0, calib, pixel_index):
         """Combine the two sources of time shift information."""
-        time_shift = calib.time_shift
+        calib_time_shift = calib.time_shift
+        pixel_time_shift = dl0.pixel_time_shift
 
-        if time_shift is not None and dl0.selected_gain_channel is not None:
-            time_shift = time_shift[dl0.selected_gain_channel, pixel_index]
+        # calib time shifts should always come for both gain channels
+        if calib_time_shift is not None and dl0.selected_gain_channel is not None:
+            calib_time_shift = calib_time_shift[dl0.selected_gain_channel, pixel_index]
 
-        if dl0.pixel_time_shift is None:
-            return time_shift
+        if pixel_time_shift is None:
+            return calib_time_shift
 
-        if time_shift is None:
-            return dl0.pixel_time_shift
+        # we require that if the input data is gain selected, the pixel time shifts are as well
+        if dl0.selected_gain_channel is not None:
+            pixel_time_shift = pixel_time_shift[0]
+
+        if calib_time_shift is None:
+            return pixel_time_shift
 
         # this intentionally makes a copy to not mutate the calib.time_shift array
-        return time_shift + dl0.pixel_time_shift
+        return calib_time_shift + pixel_time_shift
 
     def _calibrate_dl1(self, event, tel_id):
         dl0 = event.dl0.tel[tel_id]
