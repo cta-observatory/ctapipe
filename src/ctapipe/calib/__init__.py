@@ -4,8 +4,10 @@ Module for calibration code
 """
 
 from .camera import CameraCalibrator, GainSelector
+from .optics import PointingCalibrator
 
 __all__ = [
     "CameraCalibrator",
     "GainSelector",
+    "PointingCalibrator",
 ]
