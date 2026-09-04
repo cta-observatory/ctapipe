@@ -43,3 +43,39 @@ def test_mirror_facets_description_from_ecsv():
 def test_mirror_facets_description_from_fits():
     description = MirrorFacetsDescription.from_table(FITS_PATH)
     _check_description(description)
+
+
+def test_get_facet_size_from_table():
+    """flat-to-flat distance for the (all-hexagon) LST1 facet table."""
+    description = MirrorFacetsDescription.from_table(ECSV_PATH)
+    size = description.get_facet_size()
+
+    expected = np.sqrt(2 * description.surface[0] / np.sqrt(3))
+    assert size[0].to_value(u.cm) == pytest.approx(expected.to_value(u.cm))
+    assert size[0].to_value(u.cm) == pytest.approx(151.0)
+    assert np.all(np.isfinite(size))
+
+
+def test_get_facet_size_per_shape():
+    """radius for CIRCLE, side for SQUARE, flat-to-flat for HEXAGON, nan for UNKNOWN."""
+    side = 1.0
+    hexagon_area = 3 * np.sqrt(3) / 2 * side**2
+
+    description = MirrorFacetsDescription(
+        id=np.arange(4),
+        x=np.zeros(4) * u.m,
+        y=np.zeros(4) * u.m,
+        z=np.zeros(4) * u.m,
+        nx=np.zeros(4),
+        ny=np.zeros(4),
+        nz=np.ones(4),
+        surface=np.array([np.pi, side**2, hexagon_area, 1.0]) * u.m**2,
+        mirror_shape=["CIRCLE", "SQUARE", "HEXAGON", "UNKNOWN"],
+    )
+
+    size = description.get_facet_size()
+
+    assert size[0].to_value(u.m) == pytest.approx(1.0)  # radius
+    assert size[1].to_value(u.m) == pytest.approx(1.0)  # side
+    assert size[2].to_value(u.m) == pytest.approx(np.sqrt(3))  # flat-to-flat
+    assert np.isnan(size[3].to_value(u.m))
