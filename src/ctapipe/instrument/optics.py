@@ -215,6 +215,40 @@ class MirrorFacetsDescription:
 
         return ax
 
+    def get_facet_size(self):
+        """
+        Compute a characteristic linear size of each mirror facet from its
+        reflective surface area and shape:
+
+        - `MirrorFacetShape.CIRCLE`: radius
+        - `MirrorFacetShape.SQUARE`: side length
+        - `MirrorFacetShape.HEXAGON`: flat-to-flat distance (the distance
+          between two opposite parallel sides of a regular hexagon)
+
+        Facets with `MirrorFacetShape.UNKNOWN` shape are set to ``nan``.
+
+        Returns
+        -------
+        size : astropy.units.Quantity or numpy.ndarray
+            Characteristic size of each facet, in the same length unit as
+            the square root of ``surface`` (e.g. m if ``surface`` is in
+            m**2).
+        """
+        radius = np.sqrt(self.surface / np.pi)
+        side = np.sqrt(self.surface)
+        flat_to_flat = np.sqrt(2 * self.surface / np.sqrt(3))
+
+        size = radius.copy()
+        size[self.shape == MirrorFacetShape.SQUARE] = side[
+            self.shape == MirrorFacetShape.SQUARE
+        ]
+        size[self.shape == MirrorFacetShape.HEXAGON] = flat_to_flat[
+            self.shape == MirrorFacetShape.HEXAGON
+        ]
+        size[self.shape == MirrorFacetShape.UNKNOWN] = np.nan
+
+        return size
+
 
 class OpticsDescription:
     """
