@@ -1,40 +1,50 @@
 """Tests for MirrorFacetsDescription."""
 
+from pathlib import Path
+
+import astropy.units as u
 import numpy as np
-from astropy import units as u
+import pytest
 
 from ctapipe.instrument.optics import MirrorFacetShape, MirrorFacetsDescription
 
+# Real mirror facet tables shipped alongside the repository for local testing.
+DATA_DIR = Path(__file__).resolve().parents[4] / "tmp_files"
+ECSV_PATH = DATA_DIR / "mirror_CTA-N-LST1_v2019-03-31.ecsv"
+FITS_PATH = DATA_DIR / "mirror_CTA-N-LST1_v2019-03-31.fits"
 
-def test_mirror_facets_description():
-    """Create a mirror facet description and convert its shapes to enums."""
-    description = MirrorFacetsDescription(
-        id=np.array([1, 2, 3]),
-        x=np.array([0.0, 1.0, 2.0]) * u.m,
-        y=np.array([0.0, 0.5, 1.0]) * u.m,
-        z=np.array([10.0, 10.1, 10.2]) * u.m,
-        nx=np.array([0.0, 0.0, 0.0]),
-        ny=np.array([0.0, 0.0, 0.0]),
-        nz=np.array([1.0, 1.0, 1.0]),
-        diameter=np.array([1.2, 1.2, 1.2]) * u.m,
-        mirror_shape=np.array(["CIRCLE", "HEXAGON", "SQUARE"]),
+pytestmark = pytest.mark.skipif(
+    not (ECSV_PATH.exists() and FITS_PATH.exists()),
+    reason="tmp_files/ mirror facet test data not available",
+)
+
+
+def _check_description(description):
+    assert len(description.id) == 198
+    assert description.id[0] == 198
+
+    assert description.x[0].to_value(u.cm) == pytest.approx(461.99999999999994)
+    assert description.y[0].to_value(u.cm) == pytest.approx(-1066.0799453238167)
+    assert description.z[0].to_value(u.cm) == pytest.approx(120.53307587693142)
+    assert description.surface[0].to_value(u.cm**2) == pytest.approx(
+        19746.245231688983
     )
 
-    print (description.diameter)
-    
-    #np.testing.assert_array_equal(description.id, [1, 2, 3])
-    #np.testing.assert_array_equal(description.x, [0, 1, 2] * u.m)
-    #np.testing.assert_array_equal(description.y, [0, 0.5, 1] * u.m)
-    #np.testing.assert_array_equal(description.z, [10, 10.1, 10.2] * u.m)
-    #np.testing.assert_array_equal(description.nx, [0, 0, 0])
-    #np.testing.assert_array_equal(description.ny, [0, 0, 0])
-    #np.testing.assert_array_equal(description.nz, [1, 1, 1])
-    #np.testing.assert_array_equal(description.diameter, [1.2, 1.2, 1.2] * u.m)
-    #np.testing.assert_array_equal(
-    #    description.mirror_shape,
-    #    [
-    #        MirrorFacetShape.CIRCLE,
-    #        MirrorFacetShape.HEXAGON,
-    #        MirrorFacetShape.SQUARE,
-    #    ],
-    #)
+    assert description.nx[0] == pytest.approx(-0.08077963744975176)
+    assert description.ny[0] == pytest.approx(0.18640162657079892)
+    assert description.nz[0] == pytest.approx(0.9791471206030518)
+
+    assert np.all(description.shape == MirrorFacetShape.HEXAGON)
+
+
+def test_mirror_facets_description_from_ecsv():
+    description = MirrorFacetsDescription.from_table(ECSV_PATH)
+    _check_description(description)
+    print(ECSV_PATH)
+    print(description)
+
+def test_mirror_facets_description_from_fits():
+    description = MirrorFacetsDescription.from_table(FITS_PATH)
+    _check_description(description)
+    print(FITS_PATH)
+    print(description)
