@@ -118,7 +118,8 @@ class MirrorFacetsDescription:
     Information about the different mirror facet shapes
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         id,
         x,
         y,
@@ -137,9 +138,7 @@ class MirrorFacetsDescription:
         self.ny = ny
         self.nz = nz
         self.surface = surface
-        self.shape = np.array(
-            [MirrorFacetShape(shape) for shape in mirror_shape]
-        )
+        self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
 
     def __str__(self):
         header = f"{self.__class__.__name__}({len(self.id)} mirror facets)"
