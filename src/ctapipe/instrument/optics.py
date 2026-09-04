@@ -126,7 +126,7 @@ class MirrorFacetsDescription:
         nx,
         ny,
         nz,
-        diameter,
+        surface,
         mirror_shape,
     ):
         self.id = id
@@ -136,9 +136,63 @@ class MirrorFacetsDescription:
         self.nx = nx
         self.ny = ny
         self.nz = nz
-        self.diameter = diameter
-        self.mirror_shape = np.array(
+        self.surface = surface
+        self.shape = np.array(
             [MirrorFacetShape(shape) for shape in mirror_shape]
+        )
+
+    def __str__(self):
+        header = f"{self.__class__.__name__}({len(self.id)} mirror facets)"
+        rows = [
+            f"  id={self.id[i]}, x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
+            f"nx={self.nx[i]:.4f}, ny={self.ny[i]:.4f}, nz={self.nz[i]:.4f}, "
+            f"surface={self.surface[i]}, shape={self.shape[i].value}"
+            for i in range(len(self.id))
+        ]
+        return "\n".join([header, *rows])
+
+    @classmethod
+    def from_table(cls, table: Table | str | Path, **kwargs):
+        """
+        Create a `MirrorFacetsDescription` from an astropy Table, or from a
+        FITS or ECSV file containing such a table.
+
+        Parameters
+        ----------
+        table : astropy.table.Table or str or pathlib.Path
+            Table describing the mirror facets, with columns
+            ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
+            ``surface`` and ``shape``, or the path to a FITS or ECSV file
+            containing such a table.
+        **kwargs
+            Additional keyword arguments passed to `astropy.table.Table.read`
+            when ``table`` is a path.
+
+        Returns
+        -------
+        MirrorFacetsDescription
+        """
+        if not isinstance(table, Table):
+            table = Table.read(table, **kwargs)
+
+        table = QTable(table)
+
+        # FITS tables are read back with byte strings by default, while
+        # ECSV tables are read back as unicode strings.
+        mirror_shape = np.asarray(table["shape"])
+        if mirror_shape.dtype.kind == "S":
+            mirror_shape = mirror_shape.astype(str)
+
+        return cls(
+            id=np.asarray(table["mirror_id"]),
+            x=table["x"],
+            y=table["y"],
+            z=table["z"],
+            nx=np.asarray(table["nx"]),
+            ny=np.asarray(table["ny"]),
+            nz=np.asarray(table["nz"]),
+            surface=table["surface"],
+            mirror_shape=mirror_shape,
         )
 
 
