@@ -194,6 +194,27 @@ class MirrorFacetsDescription:
             mirror_shape=mirror_shape,
         )
 
+    def peek(self):
+        """
+        Draw a quick matplotlib plot of the mirror facet positions and shapes.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        from matplotlib import pyplot as plt
+
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(1, 1, 1)
+
+        ax.set_xlabel("x / m")
+        ax.set_ylabel("y / m")
+        ax.set_aspect("equal")
+        ax.set_title(f"{len(self.id)} mirror facets")
+        ax.legend(loc="best", fontsize="small")
+
+        return ax
+
 
 class OpticsDescription:
     """
