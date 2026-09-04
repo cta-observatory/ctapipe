@@ -139,3 +139,39 @@ def test_create_patches_per_shape():
         MirrorFacetsDescription.create_patches(
             MirrorFacetShape.UNKNOWN, [0.0], [0.0], [1.0]
         )
+
+
+def test_to_table_roundtrip():
+    description = MirrorFacetsDescription.from_table(ECSV_PATH)
+    table = description.to_table()
+
+    assert table.colnames == [
+        "mirror_id",
+        "x",
+        "y",
+        "z",
+        "nx",
+        "ny",
+        "nz",
+        "surface",
+        "shape",
+    ]
+    assert table.meta["EXTNAME"] == "MIRRORS"
+
+    roundtripped = MirrorFacetsDescription.from_table(table)
+    _check_description(roundtripped)
+    np.testing.assert_array_equal(roundtripped.id, description.id)
+
+
+def test_to_table_roundtrip_via_file(tmp_path):
+    description = MirrorFacetsDescription.from_table(ECSV_PATH)
+    table = description.to_table()
+
+    ecsv_path = tmp_path / "roundtrip.ecsv"
+    fits_path = tmp_path / "roundtrip.fits"
+    table.write(ecsv_path)
+    table.write(fits_path)
+
+    for path in (ecsv_path, fits_path):
+        roundtripped = MirrorFacetsDescription.from_table(path)
+        _check_description(roundtripped)
