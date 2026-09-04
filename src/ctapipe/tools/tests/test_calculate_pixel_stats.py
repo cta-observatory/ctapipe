@@ -4,7 +4,6 @@ Test ctapipe-calculate-pixel-statistics tool
 """
 
 import pytest
-from hist import Hist
 from traitlets.config.loader import Config
 
 from ctapipe.containers import ChunkHistogramContainer
@@ -94,6 +93,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
 
 def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_image_file):
     """check tool execution with HistogramAggregator"""
+    hist = pytest.importorskip("hist")
 
     tel_id = 3
     output_file = tmp_path / "subarray_image_hist_monitoring.dl1.h5"
@@ -161,7 +161,7 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
             )
         ):
             h = HistogramAggregator.hist_from_container(container)
-            assert isinstance(h, Hist)
+            assert isinstance(h, hist.Hist)
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):

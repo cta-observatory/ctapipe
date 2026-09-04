@@ -1,0 +1,4 @@
+Move ``hist`` to optional dependencies. This package is used by the ``HistogramAggregator``
+that can be used with ``ctapipe-ctapipe-calculate-pixel-statistics``.
+The default installation of ctapipe ``pip install ctapipe`` or ``conda install ctapipe-base``
+will no longer include this dependency by default.
