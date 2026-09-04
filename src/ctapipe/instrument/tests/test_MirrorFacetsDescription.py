@@ -38,12 +38,8 @@ def _check_description(description):
 def test_mirror_facets_description_from_ecsv():
     description = MirrorFacetsDescription.from_table(ECSV_PATH)
     _check_description(description)
-    print(ECSV_PATH)
-    print(description)
 
 
 def test_mirror_facets_description_from_fits():
     description = MirrorFacetsDescription.from_table(FITS_PATH)
     _check_description(description)
-    print(FITS_PATH)
-    print(description)
