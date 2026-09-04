@@ -26,9 +26,7 @@ def _check_description(description):
     assert description.x[0].to_value(u.cm) == pytest.approx(461.99999999999994)
     assert description.y[0].to_value(u.cm) == pytest.approx(-1066.0799453238167)
     assert description.z[0].to_value(u.cm) == pytest.approx(120.53307587693142)
-    assert description.surface[0].to_value(u.cm**2) == pytest.approx(
-        19746.245231688983
-    )
+    assert description.surface[0].to_value(u.cm**2) == pytest.approx(19746.245231688983)
 
     assert description.nx[0] == pytest.approx(-0.08077963744975176)
     assert description.ny[0] == pytest.approx(0.18640162657079892)
@@ -42,6 +40,7 @@ def test_mirror_facets_description_from_ecsv():
     _check_description(description)
     print(ECSV_PATH)
     print(description)
+
 
 def test_mirror_facets_description_from_fits():
     description = MirrorFacetsDescription.from_table(FITS_PATH)
