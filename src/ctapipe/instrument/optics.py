@@ -249,6 +249,99 @@ class MirrorFacetsDescription:
 
         return size
 
+    @staticmethod
+    def create_patches(shape, facet_x, facet_y, facet_size, facet_rotation=0 * u.deg):
+        """
+        Create matplotlib patches for a set of mirror facets of a single
+        `MirrorFacetShape`.
+
+        This is analogous to
+        `~ctapipe.visualization.CameraDisplay.create_patches`, but for
+        mirror facets: ``facet_size`` is expected to be the corresponding
+        entry of `~MirrorFacetsDescription.get_facet_size` (radius for
+        `MirrorFacetShape.CIRCLE`, side length for
+        `MirrorFacetShape.SQUARE`, flat-to-flat distance for
+        `MirrorFacetShape.HEXAGON`) rather than a generic pixel width.
+
+        Parameters
+        ----------
+        shape : MirrorFacetShape
+            Shape of the facets to draw.
+        facet_x : array_like
+            x position of each facet.
+        facet_y : array_like
+            y position of each facet.
+        facet_size : array_like
+            Characteristic size of each facet, as returned by
+            `~MirrorFacetsDescription.get_facet_size`.
+        facet_rotation : astropy.units.Quantity
+            Rotation angle of the facets (only relevant for
+            `MirrorFacetShape.SQUARE` and `MirrorFacetShape.HEXAGON`).
+
+        Returns
+        -------
+        list of matplotlib.patches.Patch
+        """
+        if shape == MirrorFacetShape.HEXAGON:
+            return MirrorFacetsDescription._create_hex_patches(
+                facet_x, facet_y, facet_size, facet_rotation
+            )
+
+        if shape == MirrorFacetShape.CIRCLE:
+            return MirrorFacetsDescription._create_circle_patches(
+                facet_x, facet_y, facet_size
+            )
+
+        if shape == MirrorFacetShape.SQUARE:
+            return MirrorFacetsDescription._create_square_patches(
+                facet_x, facet_y, facet_size, facet_rotation
+            )
+
+        raise ValueError(f"Unsupported mirror facet shape {shape}")
+
+    @staticmethod
+    def _create_hex_patches(facet_x, facet_y, facet_size, facet_rotation):
+        from matplotlib.patches import RegularPolygon
+
+        orientation = facet_rotation.to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                6,
+                # convert from flat-to-flat distance to outer circle radius
+                radius=size / np.sqrt(3),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, size in zip(facet_x, facet_y, facet_size)
+        ]
+
+    @staticmethod
+    def _create_circle_patches(facet_x, facet_y, facet_size):
+        from matplotlib.patches import Circle
+
+        return [
+            Circle((x, y), radius=size, fill=True)
+            for x, y, size in zip(facet_x, facet_y, facet_size)
+        ]
+
+    @staticmethod
+    def _create_square_patches(facet_x, facet_y, facet_size, facet_rotation):
+        from matplotlib.patches import RegularPolygon
+
+        orientation = (facet_rotation + 45 * u.deg).to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                4,
+                # convert from side length to outer circle radius
+                radius=size / np.sqrt(2),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, size in zip(facet_x, facet_y, facet_size)
+        ]
+
 
 class OpticsDescription:
     """
