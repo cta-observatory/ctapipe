@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 
-from ctapipe.instrument.optics import MirrorFacetShape, MirrorFacetsDescription
+from ctapipe.instrument.optics import MirrorFacetsDescription, MirrorFacetShape
 
 # Real mirror facet tables shipped alongside the repository for local testing.
 DATA_DIR = Path(__file__).resolve().parents[4] / "tmp_files"
