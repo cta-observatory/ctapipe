@@ -150,6 +150,28 @@ class MirrorFacetsDescription:
         ]
         return "\n".join([header, *rows])
 
+    def to_table(self):
+        """
+        Convert this MirrorFacetsDescription to an astropy Table.
+
+        See `MirrorFacetsDescription.from_table` for the opposite operation.
+        """
+        return Table(
+            [
+                self.id,
+                self.x,
+                self.y,
+                self.z,
+                self.nx,
+                self.ny,
+                self.nz,
+                self.surface,
+                np.array([shape.value for shape in self.shape]),
+            ],
+            names=["mirror_id", "x", "y", "z", "nx", "ny", "nz", "surface", "shape"],
+            meta={"EXTNAME": "MIRRORS"},
+        )
+
     @classmethod
     def from_table(cls, table: Table | str | Path, **kwargs):
         """
