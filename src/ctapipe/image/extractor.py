@@ -262,7 +262,7 @@ def neighbor_average_maximum(
             neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
             for neighbor in neighbors:
-                if broken_pixels[ichannel, neighbor]:
+                if broken_pixels is not None and broken_pixels[ichannel, neighbor]:
                     continue
                 average += waveforms[ichannel][neighbor]
 
@@ -596,21 +596,21 @@ class GlobalPeakWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
-        if selected_gain_channel is not None:
+        if broken_pixels is not None and selected_gain_channel is not None:
             broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
+
+        kwargs = {}
+        if broken_pixels is not None:
+            kwargs["where"] = ~broken_pixels[..., np.newaxis]
 
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
-            peak_index = waveforms.mean(
-                axis=-2, where=~broken_pixels[..., np.newaxis]
-            ).argmax(axis=-1)
+            peak_index = waveforms.mean(axis=-2, **kwargs).argmax(axis=-1)
         else:
             n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
             brightest = arg_n_largest(
                 n_pixels,
-                waveforms.max(
-                    axis=-1, where=~broken_pixels[..., np.newaxis], initial=-np.inf
-                ),
+                waveforms.max(axis=-1, **kwargs, initial=-np.inf),
             )
 
             # average over brightest pixels then argmax over samples
@@ -795,7 +795,7 @@ class NeighborPeakWindowSum(ImageExtractor):
     ) -> DL1CameraContainer:
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
 
-        if selected_gain_channel is not None:
+        if broken_pixels is not None and selected_gain_channel is not None:
             broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
             # neighbor_average_maximum indexes using channel.
             broken_pixels = broken_pixels[np.newaxis, ...]
