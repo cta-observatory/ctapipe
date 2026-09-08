@@ -494,7 +494,7 @@ class HDF5MonitoringSource(MonitoringSource):
             first_row = self._camera_coefficients[tel_id][0]
             return dict(zip(first_row.colnames, first_row))
         return self._get_table_rows(
-            self._camera_coefficients[tel_id], time, timestamp_tolerance
+            self._camera_coefficients[tel_id], tel_id, time, timestamp_tolerance
         )
 
     def _get_pixel_statistics_values(
@@ -706,6 +706,7 @@ class HDF5MonitoringSource(MonitoringSource):
     def _get_table_rows(
         self,
         table: astropy.table.Table,
+        tel_id: int,
         time: astropy.time.Time,
         timestamp_tolerance: u.Quantity = 0.0 * u.s,
     ) -> dict:
@@ -720,6 +721,8 @@ class HDF5MonitoringSource(MonitoringSource):
             Table containing ordered timestamp data.
         timestamp_tolerance : astropy.units.Quantity
             Time difference in seconds to consider two timestamps equal. Default is 0s.
+        tel_id : int
+            Telescope ID.
 
         Returns
         -------
@@ -736,25 +739,45 @@ class HDF5MonitoringSource(MonitoringSource):
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(table_times, mjd_times, side="right") - 1
 
+        pointing_table = self._telescope_pointings.get(tel_id)
+
+        if pointing_table is not None:
+            pointing_times = pointing_table["time"]
+            pointing_times = pointing_times.to_value("mjd")
+            validity_start = pointing_times.min()
+            validity_end = pointing_times.max()
+        else:
+            validity_start = None
+            validity_end = None
+
         time_idx = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
-            # Check if the requested time is before the first chunk
-            if preceding_index < 0:
-                # If the time is before the first chunk and not within tolerance, break
-                if (table_times[0] - tolerance_mjd) > mjd:
+            # Check if the requested time is before the first chunk or after the last
+            # If yes, break
+            if validity_start is not None:
+                if (validity_start - tolerance_mjd) > mjd:
                     raise ValueError(
                         f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
-                        f"validity start '{table['time'][0]} MJD' (first entry in the table). "
+                        f"validity start '{validity_start} MJD' (first entry in the table). "
                         f"Please provide a timestamp within the validity range or increase "
                         f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
                     )
-                else:
-                    # Use the first chunk since it's within tolerance
-                    preceding_index = 0
-            # Check upper bounds when requested timestamp is after the last entry
+
+                if (validity_end + tolerance_mjd) < mjd:
+                    raise ValueError(
+                        f"Out of bounds: Requested timestamp '{mjd} MJD' is after the "
+                        f"validity start '{validity_end} MJD' (first entry in the table). "
+                        f"Please provide a timestamp within the validity range or increase "
+                        f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
+                    )
+
+            if preceding_index < 0:
+                preceding_index = 0
+
             if preceding_index >= len(table) - 1:
                 time_idx.append(table["time"][-1])
                 continue
+
             time_idx.append(table["time"][preceding_index])
         # Get table row(s) and convert to dictionary
         table_rows = table.loc[time_idx]

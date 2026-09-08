@@ -1,6 +1,7 @@
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.table import Table
 from astropy.time import Time
 
 from ctapipe.exceptions import InputMissing
@@ -14,7 +15,6 @@ from ctapipe.io import (
 from ctapipe.io.hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
-    DL1_FLATFIELD_PEAK_TIME_GROUP,
     DL1_SKY_PEDESTAL_IMAGE_GROUP,
 )
 from ctapipe.utils import get_dataset_path
@@ -181,10 +181,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
         calibpipe_camcalib_obslike_same_chunks,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
-    flatfield_peak_time = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
-        f"{DL1_FLATFIELD_PEAK_TIME_GROUP}/tel_{tel_id:03d}",
-    )
+
     with HDF5MonitoringSource(
         subarray=None,
         input_files=[calibpipe_camcalib_obslike_same_chunks],
@@ -196,6 +193,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
             monitoring_source.get_camera_monitoring_container(
                 tel_id,
             )
+
         # Read start and end times from the flatfield image container
         t_start = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
             "time_start"
@@ -203,22 +201,40 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
         t_end = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
             "time_end"
         ][-1]
-        # Set the unique timestamp
-        unique_timestamp = t_start - 0.2 * u.s
-        # Test exception of interpolating outside the valid range
+
+        # Telescope pointing defines the validity range
+        monitoring_source._telescope_pointings[tel_id] = Table(
+            {
+                "time": Time(
+                    [
+                        t_start - 1 * u.s,
+                        t_end + 1 * u.s,
+                    ]
+                )
+            }
+        )
+        pointing_start = monitoring_source._telescope_pointings[tel_id]["time"][0]
+
+        unique_timestamp = pointing_start - 0.2 * u.s
+
         with pytest.raises(
             ValueError,
             match="Out of bounds: Requested timestamp",
         ):
-            monitoring_source.get_camera_monitoring_container(
-                tel_id, unique_timestamp, timestamp_tolerance=0.1 * u.s
+            monitoring_source.get_values(
+                MonitoringType.CAMERA_COEFFICIENTS,
+                time=unique_timestamp,
+                tel_id=tel_id,
+                timestamp_tolerance=0.1 * u.s,
             )
-        # Get the camera monitoring container for the given unique timestamps
-        camera_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamp, timestamp_tolerance=0.25 * u.s
+
+        coefficients = monitoring_source.get_values(
+            MonitoringType.CAMERA_COEFFICIENTS,
+            time=unique_timestamp,
+            tel_id=tel_id,
+            timestamp_tolerance=0.25 * u.s,
         )
-        # Validate the returned container
-        camera_mon_con.validate()
+
         for column in [
             "factor",
             "pedestal_offset",
@@ -226,26 +242,32 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
             "outlier_mask",
         ]:
             np.testing.assert_array_equal(
-                camera_mon_con.coefficients[column],
+                coefficients[column],
                 camcalib_coefficients[column][0],
-                err_msg=(
-                    f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration."
-                ),
             )
+
+        # Timestamp before the first camera-coefficient entry,
+        # but still within the telescope-pointing validity range.
+        coefficient_start = Time(camcalib_coefficients["time"][0], format="mjd")
+        unique_timestamp = coefficient_start - 0.2 * u.s
+
+        coefficients = monitoring_source.get_values(
+            MonitoringType.CAMERA_COEFFICIENTS,
+            time=unique_timestamp,
+            tel_id=tel_id,
+        )
+
         for column in [
-            "mean",
-            "median",
-            "std",
+            "factor",
+            "pedestal_offset",
+            "time_shift",
+            "outlier_mask",
         ]:
             np.testing.assert_array_equal(
-                camera_mon_con.pixel_statistics.flatfield_peak_time[column],
-                flatfield_peak_time[column][0],
-                err_msg=(
-                    f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the flatfield peak time."
-                ),
+                coefficients[column],
+                camcalib_coefficients[column][0],
             )
+
         # Set the unique timestamps within the validity range
         unique_timestamps = Time([t_start + 0.2 * u.s, t_end + 0.2 * u.s])
         # Get the camera monitoring container for the given unique timestamps
@@ -338,15 +360,7 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
         calibpipe_camcalib_obslike_same_chunks,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
-    # Define some usual trigger times
-    # Before the validity range should raise an exception
-    trigger_time_before = camcalib_coefficients["time"][0] - 0.5 * u.s
-    # Inside of the validity range should work smoothly
-    # and values should match to the fifth entry
-    trigger_time_middle = camcalib_coefficients["time"][5] + 0.5 * u.s
-    # After the last validity start of a chunk should also work
-    # and match the last entry.
-    trigger_time_after = camcalib_coefficients["time"][-1] + 0.5 * u.s
+
     allowed_tels = {tel_id}
     with EventSource(
         input_url=prod6_gamma_simtel_path, allowed_tels=allowed_tels, max_events=1
@@ -355,10 +369,40 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
             subarray=source.subarray,
             input_files=[calibpipe_camcalib_obslike_same_chunks],
         )
+
+        # Read start and end times from the flatfield image container
+        t_start = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
+            "time_start"
+        ][0]
+        t_end = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
+            "time_end"
+        ][-1]
+        # Telescope pointing defines the validity range
+        monitoring_source._telescope_pointings[tel_id] = Table(
+            {
+                "time": Time(
+                    [
+                        t_start,
+                        t_end + 1 * u.s,
+                    ]
+                )
+            }
+        )
+
+        # Define some usual trigger times
+        # Before the validity range should raise an exception
+        trigger_time_before = t_start - 0.5 * u.s
+        # Inside of the validity range should work smoothly
+        # and values should match to the fifth entry
+        trigger_time_middle = camcalib_coefficients["time"][5] + 0.5 * u.s
+        # After the last validity start of a chunk should also work
+        # and match the last entry.
+        trigger_time_after = camcalib_coefficients["time"][-1] + 0.5 * u.s
+
         assert not monitoring_source.is_simulation
         assert monitoring_source.pixel_statistics
         assert monitoring_source.camera_coefficients
-        assert not monitoring_source.telescope_pointings
+        assert monitoring_source.telescope_pointings
         # Check that the camcalib_coefficients match the event calibration data
         for e in source:
             # Test exception of interpolating outside the valid range
