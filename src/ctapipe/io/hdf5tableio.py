@@ -402,7 +402,7 @@ class HDF5TableWriter(TableWriter):
                         value=value,
                     )
                 except ValueError:
-                    self.log.warning(
+                    self.log.debug(
                         f"Column {col_name}"
                         f" with value {value!r} of type {type(value)} "
                         f" of container {container.__class__.__name__} in"
@@ -612,7 +612,7 @@ class HDF5TableReader(TableReader):
 
                 elif col_name is None or col_name not in column_attrs:
                     missing.append(field_name)
-                    self.log.warning(
+                    self.log.debug(
                         f"Table {table_name} is missing column {col_name} for field {field_name}"
                         f" of container {container}. It will be skipped."
                     )
