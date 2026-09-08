@@ -715,14 +715,16 @@ class HDF5MonitoringSource(MonitoringSource):
 
         Parameters
         ----------
-        time : astropy.time.Time
-            Target timestamp(s) to find the interval.
+
         table : astropy.table.Table
             Table containing ordered timestamp data.
-        timestamp_tolerance : astropy.units.Quantity
-            Time difference in seconds to consider two timestamps equal. Default is 0s.
         tel_id : int
             Telescope ID.
+        time : astropy.time.Time
+            Target timestamp(s) to find the interval.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference in seconds to consider two timestamps equal. Default is 0s.
+
 
         Returns
         -------
@@ -742,34 +744,37 @@ class HDF5MonitoringSource(MonitoringSource):
         pointing_table = self._telescope_pointings.get(tel_id)
 
         if pointing_table is not None:
+            # The telescope pointing defines the validity range of the observation
             pointing_times = pointing_table["time"]
             pointing_times = pointing_times.to_value("mjd")
             validity_start = pointing_times.min()
             validity_end = pointing_times.max()
         else:
-            validity_start = None
+            # Without pointing information, fall back to the bounds of the table
+            # itself: the validity range starts with the first chunk and the last
+            # chunk stays valid for all later timestamps.
+            validity_start = table_times[0]
             validity_end = None
 
         time_idx = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
-            # Check if the requested time is before the first chunk or after the last
-            # If yes, break
-            if validity_start is not None:
-                if (validity_start - tolerance_mjd) > mjd:
-                    raise ValueError(
-                        f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
-                        f"validity start '{validity_start} MJD' (first entry in the table). "
-                        f"Please provide a timestamp within the validity range or increase "
-                        f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
-                    )
+            # Check if the requested time is before the start of the validity range
+            # or after its end, and raise if it is outside of the tolerance
+            if (validity_start - tolerance_mjd) > mjd:
+                raise ValueError(
+                    f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
+                    f"validity start '{validity_start} MJD' (first entry in the table). "
+                    f"Please provide a timestamp within the validity range or increase "
+                    f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
+                )
 
-                if (validity_end + tolerance_mjd) < mjd:
-                    raise ValueError(
-                        f"Out of bounds: Requested timestamp '{mjd} MJD' is after the "
-                        f"validity start '{validity_end} MJD' (first entry in the table). "
-                        f"Please provide a timestamp within the validity range or increase "
-                        f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
-                    )
+            if validity_end is not None and (validity_end + tolerance_mjd) < mjd:
+                raise ValueError(
+                    f"Out of bounds: Requested timestamp '{mjd} MJD' is after the "
+                    f"validity end '{validity_end} MJD' (first entry in the table). "
+                    f"Please provide a timestamp within the validity range or increase "
+                    f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
+                )
 
             if preceding_index < 0:
                 preceding_index = 0

@@ -309,6 +309,71 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
             )
 
 
+def test_validity_range_without_pointings(calibpipe_camcalib_obslike_same_chunks):
+    """test that the validity range falls back to the table when no pointings exist"""
+
+    tel_id = 1
+    camcalib_coefficients = read_table(
+        calibpipe_camcalib_obslike_same_chunks,
+        f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
+    )
+    validity_start = Time(camcalib_coefficients["time"][0], format="mjd")
+
+    with HDF5MonitoringSource(
+        subarray=None,
+        input_files=[calibpipe_camcalib_obslike_same_chunks],
+    ) as monitoring_source:
+        # This file has no telescope pointings, so the first entry of the
+        # camera coefficients defines the start of the validity range.
+        assert not monitoring_source.telescope_pointings
+
+        # Timestamps before the first entry and outside of the tolerance
+        # are out of bounds and must raise.
+        with pytest.raises(
+            ValueError,
+            match="Out of bounds: Requested timestamp",
+        ):
+            monitoring_source.get_values(
+                MonitoringType.CAMERA_COEFFICIENTS,
+                time=validity_start - 0.2 * u.s,
+                tel_id=tel_id,
+                timestamp_tolerance=0.1 * u.s,
+            )
+
+        # The same timestamp within the tolerance returns the first entry.
+        coefficients = monitoring_source.get_values(
+            MonitoringType.CAMERA_COEFFICIENTS,
+            time=validity_start - 0.2 * u.s,
+            tel_id=tel_id,
+            timestamp_tolerance=0.25 * u.s,
+        )
+        for column in ["factor", "pedestal_offset", "time_shift", "outlier_mask"]:
+            np.testing.assert_array_equal(
+                coefficients[column],
+                camcalib_coefficients[column][0],
+                err_msg=(
+                    f"'{column}' do not match after reading the monitoring file "
+                    "through the HDF5MonitoringSource for the camera calibration."
+                ),
+            )
+
+        # Without pointings there is no upper bound: the last chunk stays valid.
+        coefficients = monitoring_source.get_values(
+            MonitoringType.CAMERA_COEFFICIENTS,
+            time=Time(camcalib_coefficients["time"][-1], format="mjd") + 1 * u.d,
+            tel_id=tel_id,
+        )
+        for column in ["factor", "pedestal_offset", "time_shift", "outlier_mask"]:
+            np.testing.assert_array_equal(
+                coefficients[column],
+                camcalib_coefficients[column][-1],
+                err_msg=(
+                    f"'{column}' do not match after reading the monitoring file "
+                    "through the HDF5MonitoringSource for the camera calibration."
+                ),
+            )
+
+
 def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file_obs):
     """test the monitoring filling for the telescope pointings"""
 
