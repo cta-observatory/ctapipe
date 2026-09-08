@@ -11,6 +11,8 @@ import yaml
 from astropy.table import Table
 from requests.exceptions import HTTPError
 
+from ctapipe.core.env import env_bool
+
 from ..compat import ECSV_FMT
 from ..core import Provenance
 from .download import download_file_cached, get_cache_path
@@ -160,18 +162,20 @@ def get_dataset_path(filename, url=None):
         if filepath:
             return filepath
 
-    # last, try downloading the data
-    try:
-        return download_file_cached(filename, default_url=url, progress=True)
-    except HTTPError as e:
-        # let 404 raise the FileNotFoundError instead of HTTPError
-        if e.response.status_code != 404:
-            raise
+    try_download = not env_bool("CTAPIPE_DISABLE_DATA_DOWNLOAD")
+    if try_download:
+        try:
+            return download_file_cached(filename, default_url=url, progress=True)
+        except HTTPError as e:
+            # let 404 raise the FileNotFoundError instead of HTTPError
+            if e.response.status_code != 404:
+                raise
 
-    raise FileNotFoundError(
-        f"Couldn't find resource: '{filename}' locally, in CTAPIPE_SVC_PATH "
-        "or on the test data server."
-    )
+    locations = get_searchpath_dirs(searchpath, url)
+    if try_download:
+        locations.append(url)
+    msg = f"Couldn't find resource '{filename}' in search locations: {locations!r}."
+    raise FileNotFoundError(msg)
 
 
 def try_filetypes(basename, role, file_types, url=None, **kwargs):
