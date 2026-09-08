@@ -713,6 +713,18 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         Retrieve the rows of the table that corresponds to the target time.
 
+        Retrieve table rows corresponding to the requested timestamp(s). For
+        each requested timestamp, the row with the closest preceding table
+        timestamp is selected. If the requested timestamp precedes the first
+        table entry but is still within the validity range, the first table
+        row is returned. Similarly, the last table row remains applicable after
+        its timestamp as long as the requested time is within the validity range.
+        When telescope pointing information is available, its temporal coverage
+        defines the validity range. Otherwise, the first table timestamp defines
+        the start of the validity range and the last table row is considered valid
+        for all later timestamps. ``timestamp_tolerance`` extends the validity
+        boundaries by the specified amount.
+
         Parameters
         ----------
 
