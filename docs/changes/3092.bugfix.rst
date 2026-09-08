@@ -1,0 +1,4 @@
+The ``timestamp_tolerance`` of the ``HDF5MonitoringSource`` is now configurable
+and set to 1 s by default. This fixes reading and applying of camera calibration
+coefficients for the usual case where the first physics event arrives before the
+first calibration event within one OB.

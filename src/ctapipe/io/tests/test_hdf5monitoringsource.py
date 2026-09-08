@@ -188,6 +188,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
     with HDF5MonitoringSource(
         subarray=None,
         input_files=[calibpipe_camcalib_obslike_same_chunks],
+        timestamp_tolerance=0.25 * u.s,
     ) as monitoring_source:
         with pytest.raises(
             ValueError,
@@ -196,26 +197,15 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
             monitoring_source.get_camera_monitoring_container(
                 tel_id,
             )
+        ff_image_table = monitoring_source.pixel_statistics[tel_id]["flatfield_image"]
         # Read start and end times from the flatfield image container
-        t_start = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
-            "time_start"
-        ][0]
-        t_end = monitoring_source.pixel_statistics[tel_id]["flatfield_image"][
-            "time_end"
-        ][-1]
-        # Set the unique timestamp
-        unique_timestamp = t_start - 0.2 * u.s
-        # Test exception of interpolating outside the valid range
-        with pytest.raises(
-            ValueError,
-            match="Out of bounds: Requested timestamp",
-        ):
-            monitoring_source.get_camera_monitoring_container(
-                tel_id, unique_timestamp, timestamp_tolerance=0.1 * u.s
-            )
-        # Get the camera monitoring container for the given unique timestamps
+        t_start = ff_image_table["time_start"][0]
+        t_end = ff_image_table["time_end"][-1]
+        timestamp = t_start - 0.2 * u.s
+
+        # Get the camera monitoring container for the given timestamp
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamp, timestamp_tolerance=0.25 * u.s
+            tel_id, timestamp
         )
         # Validate the returned container
         camera_mon_con.validate()
@@ -250,7 +240,7 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
         unique_timestamps = Time([t_start + 0.2 * u.s, t_end + 0.2 * u.s])
         # Get the camera monitoring container for the given unique timestamps
         camera_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamps, timestamp_tolerance=0.25 * u.s
+            tel_id, unique_timestamps
         )
         # Validate the returned container
         camera_mon_con.validate()
@@ -285,6 +275,33 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
                     "through the HDF5MonitoringSource for the camera calibration."
                 ),
             )
+
+
+def test_get_camera_monitoring_container_obs_invalid(
+    calibpipe_camcalib_obslike_same_chunks,
+):
+    """test the get_camera_monitoring_container method with the monitoring source of observation"""
+
+    tel_id = 1
+    with HDF5MonitoringSource(
+        subarray=None,
+        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        timestamp_tolerance=0.1 * u.s,
+    ) as monitoring_source:
+        with pytest.raises(
+            ValueError,
+            match="Function argument 'time' must be provided for monitoring data from real observations.",
+        ):
+            monitoring_source.get_camera_monitoring_container(tel_id)
+
+        # Read start and end times from the flatfield image container
+        pixel_stats = monitoring_source.pixel_statistics[tel_id]
+        t_start = pixel_stats["flatfield_image"]["time_start"][0]
+        invalid_timestamp = t_start - 0.2 * u.s
+
+        # Test exception of interpolating outside the valid range
+        with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
+            monitoring_source.get_camera_monitoring_container(tel_id, invalid_timestamp)
 
 
 def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file_obs):
@@ -339,8 +356,6 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     # Define some usual trigger times
-    # Before the validity range should raise an exception
-    trigger_time_before = camcalib_coefficients["time"][0] - 0.5 * u.s
     # Inside of the validity range should work smoothly
     # and values should match to the fifth entry
     trigger_time_middle = camcalib_coefficients["time"][5] + 0.5 * u.s
@@ -361,11 +376,6 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
         assert not monitoring_source.telescope_pointings
         # Check that the camcalib_coefficients match the event calibration data
         for e in source:
-            # Test exception of interpolating outside the valid range
-            with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
-                e.trigger.time = trigger_time_before
-                monitoring_source.fill_monitoring_container(e)
-
             for chunk_bin, trigger_time in {
                 5: trigger_time_middle,
                 -1: trigger_time_after,
