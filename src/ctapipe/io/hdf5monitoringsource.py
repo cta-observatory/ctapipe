@@ -6,12 +6,12 @@ import logging
 import warnings
 from contextlib import ExitStack
 
-import astropy
 import astropy.units as u
 import numpy as np
 import tables
 from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import Row
+from astropy.table import Row, Table
+from astropy.time import Time
 from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
@@ -23,7 +23,7 @@ from ..containers import (
     TelescopePointingContainer,
 )
 from ..core import Provenance
-from ..core.traits import List, Path
+from ..core.traits import AstroQuantity, List, Path
 from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
@@ -150,6 +150,11 @@ class HDF5MonitoringSource(MonitoringSource):
         Path(exists=True, directory_ok=False),
         default_value=[],
         help="List of paths to the HDF5 input files containing monitoring data",
+    ).tag(config=True)
+
+    timestamp_tolerance = AstroQuantity(
+        default_value=1.0 * u.s,
+        help="Tolerance for timestamps outside monitoring validity ranges",
     ).tag(config=True)
 
     def __init__(self, subarray=None, config=None, parent=None, **kwargs):
@@ -436,7 +441,7 @@ class HDF5MonitoringSource(MonitoringSource):
     def _get_telescope_pointing_values(
         self,
         tel_id: int,
-        time: astropy.time.Time,
+        time: Time,
     ):
         """
         Get telescope pointing values for a given telescope and time.
@@ -464,12 +469,7 @@ class HDF5MonitoringSource(MonitoringSource):
             frame=AltAz(obstime=time, location=location),
         )
 
-    def _get_camera_coefficients_values(
-        self,
-        tel_id: int,
-        time: astropy.time.Time,
-        timestamp_tolerance: u.Quantity,
-    ) -> dict:
+    def _get_camera_coefficients_values(self, tel_id: int, time: Time) -> dict:
         """
         Get camera coefficients values for a given telescope and time.
 
@@ -479,8 +479,6 @@ class HDF5MonitoringSource(MonitoringSource):
             Telescope ID
         time : astropy.time.Time
             Target timestamp
-        timestamp_tolerance : astropy.units.Quantity
-            Time difference to consider two timestamps equal
 
         Returns
         -------
@@ -493,16 +491,13 @@ class HDF5MonitoringSource(MonitoringSource):
         if self.is_simulation and time is None:
             first_row = self._camera_coefficients[tel_id][0]
             return dict(zip(first_row.colnames, first_row))
-        return self._get_table_rows(
-            self._camera_coefficients[tel_id], time, timestamp_tolerance
-        )
+        return self._get_table_rows(self._camera_coefficients[tel_id], time)
 
     def _get_pixel_statistics_values(
         self,
         tel_id: int,
-        time: astropy.time.Time,
-        subtype: str,
-        timestamp_tolerance: u.Quantity,
+        time: Time,
+        subtype: str | None,
     ) -> dict:
         """
         Get pixel statistics values for a given telescope and time.
@@ -515,8 +510,6 @@ class HDF5MonitoringSource(MonitoringSource):
             Target timestamp
         subtype : str
             Subtype of pixel statistics (e.g., 'pedestal_image', 'flatfield_image')
-        timestamp_tolerance : astropy.units.Quantity
-            Time difference to consider two timestamps equal
 
         Returns
         -------
@@ -537,23 +530,19 @@ class HDF5MonitoringSource(MonitoringSource):
         interpolator = self.pixel_stats_dict[subtype]
         # For simulation, use first entry if time is None
         if self.is_simulation and time is None:
-            from astropy.time import Time
-
             time = Time(
                 self._pixel_statistics[tel_id][subtype]["time_start"][0],
                 format="mjd",
             )
-        return interpolator(tel_id, time, timestamp_tolerance)
+        return interpolator(tel_id, time, self.timestamp_tolerance)
 
     def get_values(
         self,
         monitoring_type: MonitoringType,
-        time: astropy.time.Time,
+        time: Time,
         tel_id: int | None = None,
         **kwargs,
     ):
-        import astropy.units as u
-
         if monitoring_type not in self.monitoring_types:
             raise KeyError(
                 f"Monitoring type {monitoring_type} not available in this source. "
@@ -565,19 +554,13 @@ class HDF5MonitoringSource(MonitoringSource):
                 f"tel_id is required for {monitoring_type.name} monitoring type"
             )
 
-        timestamp_tolerance = kwargs.get("timestamp_tolerance", 0.0 * u.s)
-
         if monitoring_type == MonitoringType.TELESCOPE_POINTINGS:
             return self._get_telescope_pointing_values(tel_id, time)
         elif monitoring_type == MonitoringType.CAMERA_COEFFICIENTS:
-            return self._get_camera_coefficients_values(
-                tel_id, time, timestamp_tolerance
-            )
+            return self._get_camera_coefficients_values(tel_id, time)
         elif monitoring_type == MonitoringType.PIXEL_STATISTICS:
             subtype = kwargs.get("subtype")
-            return self._get_pixel_statistics_values(
-                tel_id, time, subtype, timestamp_tolerance
-            )
+            return self._get_pixel_statistics_values(tel_id, time, subtype)
 
     def fill_monitoring_container(self, event: ArrayEventContainer):
         """
@@ -604,7 +587,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 )
 
     def get_telescope_pointing_container(
-        self, tel_id: int, time: astropy.time.Time
+        self, tel_id: int, time: Time
     ) -> TelescopePointingContainer:
         """
         Get the telescope pointing container for a given telescope ID and time.
@@ -629,8 +612,7 @@ class HDF5MonitoringSource(MonitoringSource):
     def get_camera_monitoring_container(
         self,
         tel_id: int,
-        time: astropy.time.Time = None,
-        timestamp_tolerance: u.Quantity = 0.0 * u.s,
+        time: Time = None,
     ) -> CameraMonitoringContainer:
         """
         Retrieve the camera monitoring container with interpolated data.
@@ -644,8 +626,6 @@ class HDF5MonitoringSource(MonitoringSource):
             timestamp(s) are required to interpolate the monitoring data of observation.
             For monitoring data of simulation, the first entry of the monitoring data is typically
             used if no timestamp is provided.
-        timestamp_tolerance : astropy.units.Quantity
-            Time difference to consider two timestamps equal. Default is 0 seconds.
 
         Returns
         -------
@@ -676,7 +656,6 @@ class HDF5MonitoringSource(MonitoringSource):
                     time=time,
                     tel_id=tel_id,
                     subtype=name,
-                    timestamp_tolerance=timestamp_tolerance,
                 )
                 # Map any pedestal name to the container field name (unique for pedestal)
                 container_name = "pedestal_image" if "pedestal_image" in name else name
@@ -691,7 +670,6 @@ class HDF5MonitoringSource(MonitoringSource):
                 MonitoringType.CAMERA_COEFFICIENTS,
                 time=time,
                 tel_id=tel_id,
-                timestamp_tolerance=timestamp_tolerance,
             )
             cam_mon_container["coefficients"] = CameraCalibrationContainer(
                 time=table_rows["time"],
@@ -703,12 +681,7 @@ class HDF5MonitoringSource(MonitoringSource):
             )
         return cam_mon_container
 
-    def _get_table_rows(
-        self,
-        table: astropy.table.Table,
-        time: astropy.time.Time,
-        timestamp_tolerance: u.Quantity = 0.0 * u.s,
-    ) -> dict:
+    def _get_table_rows(self, table: Table, time: Time) -> dict:
         """
         Retrieve the rows of the table that corresponds to the target time.
 
@@ -718,8 +691,6 @@ class HDF5MonitoringSource(MonitoringSource):
             Target timestamp(s) to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
-        timestamp_tolerance : astropy.units.Quantity
-            Time difference in seconds to consider two timestamps equal. Default is 0s.
 
         Returns
         -------
@@ -732,7 +703,7 @@ class HDF5MonitoringSource(MonitoringSource):
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         table_times = table["time"]
         # Convert timestamp tolerance to MJD days
-        tolerance_mjd = timestamp_tolerance.to_value("day")
+        tolerance_mjd = self.timestamp_tolerance.to_value("day")
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(table_times, mjd_times, side="right") - 1
 
@@ -746,7 +717,7 @@ class HDF5MonitoringSource(MonitoringSource):
                         f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
                         f"validity start '{table['time'][0]} MJD' (first entry in the table). "
                         f"Please provide a timestamp within the validity range or increase "
-                        f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
+                        f"the 'timestamp_tolerance' (currently set to '{self.timestamp_tolerance}')."
                     )
                 else:
                     # Use the first chunk since it's within tolerance

@@ -121,7 +121,7 @@ class MonitoringSource(TelescopeComponent):
         tel_id : int, optional
             Telescope ID for telescope-level monitoring. None for array-level.
         **kwargs
-            Implementation-specific parameters (e.g., timestamp_tolerance, query_method).
+            Implementation-specific parameters
 
         Returns
         -------
