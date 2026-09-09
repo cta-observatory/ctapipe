@@ -15,6 +15,9 @@ from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 __all__ = ["MonitoringSource"]
 
 
+AvailableTypes = tuple[tuple[MonitoringType, str | None], ...]
+
+
 class MonitoringSource(TelescopeComponent):
     """
     Parent class for ``MonitoringSource``.
@@ -43,28 +46,26 @@ class MonitoringSource(TelescopeComponent):
 
     @property
     @abstractmethod
-    def available_data(self) -> tuple[tuple[MonitoringType, str | None], ...]:
+    def available_data(self) -> AvailableTypes:
         """
         Returns the available monitoring types of this source.
 
         Returns
         -------
-        available_data : tuple[tuple[ctapipe.io.MonitoringType, str | None]]
+        available_data :
             A tuple of (type, subtype) pairs of the available monitoring data.
         """
 
     @property
     @abstractmethod
-    def available_telescope_data(
-        self,
-    ) -> dict[int, tuple[TelescopeMonitoringType, str | None]]:
+    def available_telescope_data(self) -> dict[int, AvailableTypes]:
         """
         Returns the available telescope monitoring types of this source.
 
         Returns
         -------
-        available_data : dict[int, tuple[ctapipe.io.TelescopeMonitoringType, str | None]]
-            A dict mapping tel_id to (type, subtype) pairs of the available monitoring data.
+        available_data :
+            A dict mapping tel_id to a tuple of (type, subtype) pairs of the available monitoring data.
         """
 
     @abstractmethod
