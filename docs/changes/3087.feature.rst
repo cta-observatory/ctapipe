@@ -1,0 +1,2 @@
+The ``CameraCalibrator`` now combines the flatfielding peak time shift
+with the new DL0 event-wise ``pixel_time_shift``, if present.

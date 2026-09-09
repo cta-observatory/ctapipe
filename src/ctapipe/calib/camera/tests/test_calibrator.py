@@ -340,6 +340,67 @@ def test_shift_waveforms():
     assert (shifted_waveforms[:, 4, 14] == 1).all()
 
 
+@pytest.mark.parametrize(
+    ("n_channels", "gain_selected"),
+    [
+        pytest.param(1, False, id="single-gain"),
+        pytest.param(2, True, id="two-gain-selected"),
+        pytest.param(2, False, id="two-gain-unselected"),
+    ],
+)
+def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
+    tel_id = next(iter(example_subarray.tel))
+    readout = example_subarray.tel[tel_id].camera.readout
+    n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
+
+    event = ArrayEventContainer()
+    event.dl0.tel[tel_id].waveform = np.zeros((n_channels, n_pixels, 5))
+    event.dl0.tel[tel_id].waveform[:, :, 3] = 1
+
+    calibration_time_shift = np.stack(
+        [
+            np.linspace(1.0 + channel, 2.0 + channel, n_pixels)
+            for channel in range(n_channels)
+        ]
+    )
+    pixel_time_shift = np.stack(
+        [
+            np.linspace(2.0 + channel, 3.0 + channel, n_pixels)
+            for channel in range(n_channels)
+        ]
+    )
+
+    selected_gain_channel = None
+    if gain_selected:
+        selected_gain_channel = np.arange(n_pixels) % n_channels
+        # The input data and its pixel time shift are already gain selected.
+        event.dl0.tel[tel_id].waveform = event.dl0.tel[tel_id].waveform[:1]
+        pixel_time_shift = pixel_time_shift[selected_gain_channel, np.arange(n_pixels)][
+            np.newaxis
+        ]
+        expected_time_shift = (
+            calibration_time_shift[selected_gain_channel, np.arange(n_pixels)]
+            + pixel_time_shift[0]
+        )
+    else:
+        expected_time_shift = calibration_time_shift + pixel_time_shift
+
+    event.monitoring.tel[tel_id].camera.coefficients.time_shift = calibration_time_shift
+    event.dl0.tel[tel_id].pixel_time_shift = pixel_time_shift
+    event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
+
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray),
+    )
+    calibrator._calibrate_dl1(event, tel_id)
+
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time,
+        3 / readout.sampling_rate.to_value(u.GHz) - expected_time_shift,
+    )
+
+
 def test_invalid_pixels(example_event, example_subarray):
     # switching off the corrections makes it easier to test for
     # the exact value of 1.0

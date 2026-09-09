@@ -669,7 +669,8 @@ class R1CameraContainer(Container):
             " for each pixel and each gain, originating from the DRS4 sampling"
             " time interval inhomogeneity. This value must be subtracted from"
             " the reconstructed time to achieve uniform time response for all"
-            " pixels."
+            " pixels. If the input data is gain selected, the pixel_time_shift"
+            " is gain selected."
             " Shape: (num_channels, num_pixels)"
         ),
         dtype=np.float32,
@@ -744,7 +745,8 @@ class DL0CameraContainer(Container):
             " for each pixel and each gain, originating from the DRS4 sampling"
             " time interval inhomogeneity. This value must be subtracted from"
             " the reconstructed time to achieve uniform time response for all"
-            " pixels."
+            " pixels. If the input data is gain selected, the pixel_time_shift"
+            " is gain selected."
             " Shape: (num_channels, num_pixels)"
         ),
         dtype=np.float32,
