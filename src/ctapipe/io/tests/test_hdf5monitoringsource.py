@@ -356,6 +356,8 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     # Define some usual trigger times
+    # before, but within tolerance
+    trigger_time_before = camcalib_coefficients["time"][0] - 0.5 * u.s
     # Inside of the validity range should work smoothly
     # and values should match to the fifth entry
     trigger_time_middle = camcalib_coefficients["time"][5] + 0.5 * u.s
@@ -363,42 +365,45 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
     # and match the last entry.
     trigger_time_after = camcalib_coefficients["time"][-1] + 0.5 * u.s
     allowed_tels = {tel_id}
+
+    expected_bins = {
+        trigger_time_before: 0,
+        trigger_time_middle: 5,
+        trigger_time_after: len(camcalib_coefficients) - 1,
+    }
+
     with EventSource(
         input_url=prod6_gamma_simtel_path, allowed_tels=allowed_tels, max_events=1
     ) as source:
-        monitoring_source = HDF5MonitoringSource(
-            subarray=source.subarray,
-            input_files=[calibpipe_camcalib_obslike_same_chunks],
-        )
-        assert not monitoring_source.is_simulation
-        assert monitoring_source.pixel_statistics
-        assert monitoring_source.camera_coefficients
-        assert not monitoring_source.telescope_pointings
-        # Check that the camcalib_coefficients match the event calibration data
-        for e in source:
-            for chunk_bin, trigger_time in {
-                5: trigger_time_middle,
-                -1: trigger_time_after,
-            }.items():
-                # Set the trigger time to the pointing time
-                e.trigger.time = trigger_time
-                # Fill the monitoring container for the event
-                monitoring_source.fill_monitoring_container(e)
-                # Check that the values match after filling the container
-                for column in [
-                    "factor",
-                    "pedestal_offset",
-                    "time_shift",
-                    "outlier_mask",
-                ]:
-                    np.testing.assert_array_equal(
-                        e.monitoring.tel[tel_id].camera.coefficients[column],
-                        camcalib_coefficients[column][chunk_bin],
-                        err_msg=(
-                            f"'{column}' do not match after reading the monitoring file "
-                            "through the HDF5MonitoringSource."
-                        ),
-                    )
+        event = next(iter(source))
+
+    monitoring_source = HDF5MonitoringSource(
+        subarray=source.subarray,
+        input_files=[calibpipe_camcalib_obslike_same_chunks],
+    )
+    assert not monitoring_source.is_simulation
+    assert monitoring_source.pixel_statistics
+    assert monitoring_source.camera_coefficients
+    assert not monitoring_source.telescope_pointings
+
+    # Check that the camcalib_coefficients match the event calibration data
+    for trigger_time, expected_bin in expected_bins.items():
+        # test with our three dummy times as event times
+        event.trigger.time = trigger_time
+        monitoring_source.fill_monitoring_container(event)
+        coefficients = event.monitoring.tel[tel_id].camera.coefficients
+
+        # Check that the values match after filling the container
+        columns_to_check = ["factor", "pedestal_offset", "time_shift", "outlier_mask"]
+        for column in columns_to_check:
+            np.testing.assert_array_equal(
+                coefficients[column],
+                camcalib_coefficients[column][expected_bin],
+                err_msg=(
+                    f"'{column}' do not match after reading the monitoring file "
+                    "through the HDF5MonitoringSource."
+                ),
+            )
 
 
 def test_hdf5_monitoring_source_multi_files_loading(
