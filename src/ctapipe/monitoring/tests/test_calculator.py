@@ -3,6 +3,7 @@ Tests for CalibrationCalculator and related functions
 """
 
 import numpy as np
+import pytest
 from astropy.table import Table, vstack
 from astropy.time import Time
 from traitlets.config.loader import Config
@@ -91,6 +92,7 @@ def test_statistics_calculator(example_subarray):
 
 def test_statistics_calculator_with_histogram_aggregator(example_subarray):
     """test that PixelStatisticsCalculator works with HistogramAggregator"""
+    pytest.importorskip("hist")
 
     n_images = 120
     times = Time(

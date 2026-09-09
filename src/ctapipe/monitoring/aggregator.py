@@ -12,6 +12,8 @@ The aggregation is always performed along axis=0 (the event dimension), making
 these classes suitable for any N-dimensional event-wise data.
 """
 
+from ctapipe.exceptions import OptionalDependencyMissing
+
 __all__ = [
     "BaseChunking",
     "SizeChunking",
@@ -28,11 +30,9 @@ from collections import defaultdict
 from collections.abc import Generator
 
 import astropy.units as u
-import hist
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Row, Table
-from hist import Hist
 from traitlets import TraitError
 
 from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
@@ -47,6 +47,11 @@ from ..core.traits import (
     List,
     Unicode,
 )
+
+try:
+    import hist
+except ModuleNotFoundError:
+    hist = None
 
 
 class BaseChunking(Component, metaclass=ABCMeta):
@@ -440,6 +445,9 @@ class HistogramAggregator(BaseAggregator):
         parent : ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy
         """
+        if hist is None:
+            raise OptionalDependencyMissing("hist")
+
         super().__init__(config=config, parent=parent, **kwargs)
         self.axis_kwargs = self.axis_definition.copy()
         if "class_name" not in self.axis_kwargs.keys():
@@ -608,6 +616,8 @@ class HistogramAggregator(BaseAggregator):
         hist_container : ChunkHistogramContainer
             Stored histogram container.
         """
+        if hist is None:
+            raise OptionalDependencyMissing("hist")
 
         # Extract axis information from container metadata
         axis_kwargs_meta = hist_container.meta.get("axis_kwargs", {}).copy()
@@ -623,13 +633,13 @@ class HistogramAggregator(BaseAggregator):
             axes.append(hist.axis.IntCategory(categories=np.arange(n_bins), name=name))
 
         # Create a Hist object with the reconstructed axes and fill it with the stored histogram counts.
-        h = Hist(*axes)
+        h = hist.Hist(*axes)
         h[...] = hist_container.histogram[...]
         return h
 
     def _make_histogram(self, values, mask):
         valid_values = values[~mask]
-        hist_object = Hist(self.hist_axis, storage=hist.storage.Int64())
+        hist_object = hist.Hist(self.hist_axis, storage=hist.storage.Int64())
         if len(valid_values) > 0:
             hist_object.fill(**{self.hist_axis.name: valid_values})
         return hist_object
