@@ -2,7 +2,7 @@
 Algorithms for the data volume reduction.
 """
 
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
@@ -18,10 +18,14 @@ from ctapipe.image import TailcutsImageCleaner
 from ctapipe.image.cleaning import dilate
 from ctapipe.image.extractor import ImageExtractor
 
-__all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeReducer"]
+__all__ = [
+    "DataVolumeReducer",
+    "NullDataVolumeReducer",
+    "TailCutsDataVolumeReducer",
+]
 
 
-class DataVolumeReducer(TelescopeComponent):
+class DataVolumeReducer(TelescopeComponent, metaclass=ABCMeta):
     """
     Base component for data volume reducers.
     """
@@ -41,39 +45,12 @@ class DataVolumeReducer(TelescopeComponent):
         self.subarray = subarray
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
-    def __call__(self, waveforms, tel_id=None, selected_gain_channel=None):
-        """
-        Call the relevant functions to perform data volume reduction on the
-        waveforms.
-
-        Parameters
-        ----------
-        waveforms: ndarray
-            Waveforms stored in a numpy array of shape
-            (n_pix, n_samples).
-        tel_id: int
-            The telescope id. Required for the 'image_extractor' and
-            'camera.geometry' in 'TailCutsDataVolumeReducer'.
-        selected_gain_channel: ndarray
-            The channel selected in the gain selection, per pixel. Required for
-            the 'image_extractor' in 'TailCutsDataVolumeReducer'.
-            extraction.
-
-        Returns
-        -------
-        mask: array
-            Mask of selected pixels.
-        """
-        mask = self.select_pixels(
-            waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
-        )
-        return mask
-
     @abstractmethod
-    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
+    def __call__(
+        self, waveforms, tel_id: int, selected_gain_channel=None
+    ) -> np.ndarray[bool]:
         """
-        Abstract method to be defined by a DataVolumeReducer subclass.
-        Call the relevant functions for the required pixel selection.
+        Select pixels of which to keep the waveform data.
 
         Parameters
         ----------
@@ -99,7 +76,7 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
-    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
+    def __call__(self, waveforms, tel_id: int, selected_gain_channel=None):
         n_pixels = waveforms.shape[-2]
         return np.ones(n_pixels, dtype=bool)
 
@@ -122,6 +99,16 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
     do_boundary_dilation: BoolTelescopeParameter
         If set to 'False', the iteration steps in 2) are skipped and
         normal TailcutCleaning is used.
+
+    Parameters
+    ----------
+    subarray: ctapipe.instrument.SubarrayDescription
+        Description of the subarray
+    config: traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    kwargs
     """
 
     image_extractor_type = TelescopeParameter(
@@ -149,17 +136,6 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         image_extractor=None,
         **kwargs,
     ):
-        """
-        Parameters
-        ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        kwargs
-        """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
         if cleaner is None:
@@ -178,7 +154,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             self.image_extractor_type = [("type", "*", name)]
             self.image_extractors[name] = image_extractor
 
-    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
+    def __call__(self, waveforms, tel_id, selected_gain_channel=None):
         camera_geom = self.subarray.tel[tel_id].camera.geometry
         # Pulse-integrate waveforms
         extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
