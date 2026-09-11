@@ -15,7 +15,11 @@ from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
-from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ...core.traits import (
+    BoolTelescopeParameter,
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+)
 from ...exceptions import OptionalDependencyMissing
 from ...instrument.camera.geometry import PixelShape
 from ..pixel_likelihood import neg_log_likelihood_approx
@@ -37,6 +41,301 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 
 # Sqrt of 2, as it is needed multiple times
 SQRT2 = np.sqrt(2)
+
+
+class PolygonChord:
+    """
+    Calculate ray chord lengths through one or more polygons.
+
+    Parameters
+    ----------
+    phi : ndarray
+        Ray direction angle(s) in radians. The ray direction is defined as
+        ``(cos(phi), sin(phi))``.
+
+    vertices_i : ndarray
+        Starting vertices of the polygon edges
+        (run the counter-clockwise direction).
+
+        For multiple polygons, the expected shape is
+        ``(n_polygons, n_edges, 2)``, where the last dimension contains
+        the x and y coordinates.
+
+        For a single polygon, the expected shape is ``(n_edges, 2)``.
+
+    Notes
+    -----
+    The class provides methods for calculating chord lengths formed by
+    intersections between rays and polygon edges.
+
+    Convex multipolygon calculations are performed using a vectorized
+    implementation. The multipolygon representation assumes that all
+    polygons have the same number of vertices.
+
+    A small numerical value is used in the intersection calculation to
+    avoid division by zero for parallel or nearly parallel ray and edge
+    directions.
+
+    Attributes
+    ----------
+    phi : ndarray
+        Ray direction angles in radians.
+
+    vertices_i : ndarray
+        Starting vertices of the polygon edges.
+
+    vertices_f : ndarray
+        Ending vertices of the polygon edges.
+
+    epsilon_d : float
+        Small numerical value used to stabilize the intersection
+        calculation.
+    """
+
+    epsilon_d = 1.0e-20
+
+    def __init__(self, phi, vertices_i):
+        self.phi = np.asarray(phi)
+        self.vertices_i = np.asarray(vertices_i)
+        self.update(self.phi)
+
+    @classmethod
+    def from_vertices(cls, vertices_i):
+        return cls(np.linspace(0, 2 * np.pi, 100), vertices_i)
+
+    @classmethod
+    def from_telescope_optics(cls, optics, n_vertices=20):
+        phi = np.linspace(0, 2 * np.pi, n_vertices, endpoint=False)
+
+        mirror_area = optics.mirror_area.to_value(u.m**2)
+        mirror_radius = np.sqrt(mirror_area / np.pi)
+
+        vertices_i = [
+            np.column_stack((mirror_radius * np.cos(phi), mirror_radius * np.sin(phi)))
+        ]
+
+        return cls(np.linspace(0, 2 * np.pi, 100), vertices_i)
+
+    def update(self, phi):
+
+        self.phi = np.asarray(phi)
+
+        # convex multipolygon usage
+        if self.vertices_i.ndim == 3:
+            self.vertices_f = np.roll(self.vertices_i, 1, axis=1)
+
+            self.ri_x = self.vertices_i[:, :, 0]
+            self.ri_y = self.vertices_i[:, :, 1]
+            self.vi_x = self.vertices_f[:, :, 0] - self.vertices_i[:, :, 0]
+            self.vi_y = self.vertices_f[:, :, 1] - self.vertices_i[:, :, 1]
+
+            self.ri_x = np.repeat(self.ri_x[None, :, :], len(self.phi), axis=0)
+            self.ri_y = np.repeat(self.ri_y[None, :, :], len(self.phi), axis=0)
+            self.vi_x = np.repeat(self.vi_x[None, :, :], len(self.phi), axis=0)
+            self.vi_y = np.repeat(self.vi_y[None, :, :], len(self.phi), axis=0)
+
+            self.vmu_x = np.repeat(
+                np.cos(self.phi)[:, None, None],
+                self.ri_x.shape[1],
+                axis=1,
+            )
+            self.vmu_x = np.repeat(self.vmu_x, self.ri_x.shape[2], axis=2)
+
+            self.vmu_y = np.repeat(
+                np.sin(self.phi)[:, None, None],
+                self.ri_x.shape[1],
+                axis=1,
+            )
+            self.vmu_y = np.repeat(self.vmu_y, self.ri_x.shape[2], axis=2)
+
+        # arbitrary polygon usage
+        if self.vertices_i.ndim == 2:
+            self.vertices_f = np.roll(self.vertices_i, 1, axis=0)
+
+            self.ri_x = self.vertices_i[:, 0]
+            self.ri_y = self.vertices_i[:, 1]
+            self.vi_x = self.vertices_f[:, 0] - self.vertices_i[:, 0]
+            self.vi_y = self.vertices_f[:, 1] - self.vertices_i[:, 1]
+
+        return self
+
+    def convex_multipolygon_chord(self, mu_x, mu_y):
+        """
+        Calculate chord lengths through multiple convex polygons.
+
+        Parameters
+        ----------
+        mu_x : float
+            X-coordinate of the ray origin.
+
+        mu_y : float
+            Y-coordinate of the ray origin.
+
+        Returns
+        -------
+        ndarray
+            Chord length for each ray direction defined by ``phi``.
+
+        Notes
+        -----
+        The calculation assumes that all polygons are convex and have the
+        same number of vertices.
+
+        Ray-polygon intersections are calculated using a vectorized
+        parametric representation of the ray and polygon edges.
+
+        Multiple intersections are paired using alternating signs to
+        calculate the total chord length without explicit Python loops.
+
+        A small value ``epsilon_d`` is added to the intersection determinant
+        to avoid division by zero for parallel or nearly parallel ray and
+        edge directions.
+        """
+
+        c1 = mu_x - self.ri_x
+        c2 = mu_y - self.ri_y
+
+        determinant = self.vi_x * self.vmu_y - self.vi_y * self.vmu_x + self.epsilon_d
+
+        t = (c1 * self.vmu_y - c2 * self.vmu_x) / determinant
+        s = (self.vi_y * c1 - self.vi_x * c2) / determinant
+
+        mask = ((t >= 0) & (t < 1) & (s >= 0)).astype(int)
+
+        mask_alternate_signs = mask.copy()
+
+        count = np.cumsum(mask == 1, axis=2)
+        mask_alternate_signs[(mask_alternate_signs == 1) & (count % 2 == 0)] = -1
+
+        d_x_int_sq = ((self.vi_x * t + self.ri_x) * mask - mu_x) ** 2
+
+        d_y_int_sq = ((self.vi_y * t + self.ri_y) * mask - mu_y) ** 2
+
+        l_sq = np.sqrt(d_x_int_sq + d_y_int_sq)
+        one_chord = np.abs((l_sq * mask_alternate_signs).sum(axis=2))
+
+        return one_chord.sum(axis=1)
+
+    def polygon_chord(self, mu_x, mu_y):
+        """
+        Compute the chord length of a polygon for all ray directions in ``phi``.
+
+
+        The chord length is computed independently for each ray direction
+        using ``_polygon_chord``.
+
+        Parameters
+        ----------
+        mu_x : float
+        X-coordinate of the ray origin.
+
+        mu_y : float
+        Y-coordinate of the ray origin.
+
+        Returns
+        -------
+        ndarray
+        Chord length for each ray direction defined by ``phi``.
+        """
+
+        the_chord = [self._polygon_chord(mu_x, mu_y, az) for az in self.phi]
+
+        return np.array(the_chord)
+
+    def _polygon_chord(self, mu_x, mu_y, phi, return_intersections=False):
+        """
+        Compute the chord length of a ray intersecting a arbitrary polygon.
+
+        The ray originates at ``(mu_x, mu_y)`` and propagates in the
+        direction specified by ``phi``. Intersections between the ray and
+        all polygon edges are computed using a parametric line intersection
+        formulation. The chord length is then derived from the distances
+        between successive intersection points.
+
+        Parameters
+        ----------
+        mu_x : float
+            X-coordinate of the ray origin.
+        mu_y : float
+            Y-coordinate of the ray origin.
+        phi : float
+            Ray direction angle in radians. The ray direction vector is
+            defined as ``(cos(phi), sin(phi))``.
+        return_intersections : bool, optional
+            If ``True``, also return the coordinates of all intersection
+            points found along the ray. Default is ``False``.
+
+        Returns
+        -------
+
+        float or tuple
+
+        If ``return_intersections`` is ``False``, returns the total
+        chord length intersected by the ray.
+
+        If ``return_intersections`` is ``True``, returns a tuple
+        ``(chord_length, x_int, y_int)``
+
+        where ``x_int`` and ``y_int`` contain the coordinates of the
+        intersection points.
+
+        Notes
+        -----
+        Polygon edges are represented parametrically as
+        Intersections are obtained by solving the corresponding 2D linear
+        system for each polygon edge. Only intersections satisfying the
+        edge and ray constraints are retained.
+        For multiple intersections, the distances from the ray origin to
+        the intersection points are sorted and combined with alternating
+        signs, yielding the total length of all segments lying inside the
+        polygon. This approach naturally handles both convex and non-convex
+        polygons.
+        A small value ``epsilon_d`` is added to the intersection determinant
+        to avoid division by zero for parallel or nearly parallel ray and
+        edge directions.
+        """
+
+        # Effective speed of the ray, with unit norm.
+        vmu_x = np.cos(phi)
+        vmu_y = np.sin(phi)
+
+        c1 = mu_x - self.ri_x
+        c2 = mu_y - self.ri_y
+        determinant = self.vi_x * vmu_y - self.vi_y * vmu_x + self.epsilon_d
+
+        t = (c1 * vmu_y - c2 * vmu_x) / determinant
+        s = (self.vi_y * c1 - self.vi_x * c2) / determinant
+
+        mask = (t >= 0) & (t < 1) & (s >= 0)
+
+        x_int = self.vi_x[mask] * t[mask] + self.ri_x[mask]
+        y_int = self.vi_y[mask] * t[mask] + self.ri_y[mask]
+
+        the_length = 0.0
+
+        if x_int.shape[0] == 0:
+            x_int = np.nan
+            y_int = np.nan
+        elif x_int.shape[0] == 1:
+            the_length = np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2)
+        elif x_int.shape[0] == 2:
+            the_length = np.sqrt(
+                (x_int[0] - x_int[1]) ** 2 + (y_int[0] - y_int[1]) ** 2
+            )
+        else:
+            dist = np.sort(np.sqrt((x_int - mu_x) ** 2 + (y_int - mu_y) ** 2))
+            sign_arr = np.ones(x_int.shape[0])
+            if x_int.shape[0] % 2 == 0:
+                sign_arr[0::2] = -1
+                the_length = np.sum(dist * sign_arr)
+            else:
+                sign_arr[1::2] = -1
+                the_length = np.sum(dist * sign_arr)
+
+        if return_intersections:
+            return the_length, x_int, y_int
+
+        return np.squeeze(the_length)
 
 
 def chord_length(radius, rho, phi, phi0=0):
@@ -148,6 +447,7 @@ def create_profile(
     phi,
     pixel_diameter,
     oversampling=3,
+    the_polygon_chord=None,
 ):
     """
     Perform intersection over all angles and return length
@@ -182,7 +482,13 @@ def create_profile(
     # The rotation angle of muon image should go in the opposite direction (-phi).
     ang = linspace_two_pi(pixels_on_circle * oversampling) - phi
 
-    length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
+    if the_polygon_chord is None:
+        length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
+    else:
+        length = the_polygon_chord.update(ang).convex_multipolygon_chord(
+            mu_x=impact_parameter * np.cos(phi), mu_y=impact_parameter * np.sin(phi)
+        )
+
     length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
     length /= oversampling
 
@@ -288,6 +594,7 @@ def image_prediction_no_units(
     min_lambda_m=300e-9,
     max_lambda_m=600e-9,
     pix_type=PixelShape.HEXAGON,
+    the_polygon_chord=None,
 ):
     """
     Unit-less version of `image_prediction`.
@@ -309,6 +616,7 @@ def image_prediction_no_units(
         phi_rad,
         pixel_diameter_rad,
         oversampling=oversampling,
+        the_polygon_chord=the_polygon_chord,
     )
 
     # Produce gaussian weight for each pixel given ring width
@@ -370,6 +678,7 @@ def build_negative_log_likelihood(
     pedestal,
     hole_radius=0 * u.m,
     pix_type=PixelShape.HEXAGON,
+    the_polygon_chord=None,
 ):
     """Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
@@ -452,6 +761,7 @@ def build_negative_log_likelihood(
             min_lambda_m=min_lambda,
             max_lambda_m=max_lambda,
             pix_type=pix_type,
+            the_polygon_chord=the_polygon_chord,
         )
 
         # scale prediction by optical efficiency of the telescope
@@ -521,6 +831,18 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
+    use_polygon_chord = BoolTelescopeParameter(
+        default_value=False,
+        help="If set to True, uses the polygon chord for a precise mirror description.",
+    ).tag(config=True)
+
+    print_call_counter = BoolTelescopeParameter(
+        default_value=False,
+        help="Print call counter",
+    ).tag(config=True)
+
+    _n_call_counter = 0
+
     def __init__(self, subarray, **kwargs):
         if Minuit is None:
             raise OptionalDependencyMissing("iminuit") from None
@@ -562,6 +884,10 @@ class MuonIntensityFitter(TelescopeComponent):
                 f" are supported in {self.__class__.__name__}"
             )
 
+        the_polygon_chord = None
+        if self.use_polygon_chord.tel[tel_id]:
+            the_polygon_chord = PolygonChord.from_telescope_optics(telescope.optics)
+
         negative_log_likelihood = build_negative_log_likelihood(
             image=image,
             optics=telescope.optics,
@@ -574,6 +900,7 @@ class MuonIntensityFitter(TelescopeComponent):
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
             pix_type=telescope.camera.geometry.pix_type,
+            the_polygon_chord=the_polygon_chord,
         )
         negative_log_likelihood.errordef = Minuit.LIKELIHOOD
 
@@ -606,6 +933,9 @@ class MuonIntensityFitter(TelescopeComponent):
         # Get fitted values
         result = minuit.values
 
+        if self.print_call_counter.tel[tel_id]:
+            self.call_counter()
+
         return MuonEfficiencyContainer(
             impact=result["impact_parameter"] * u.m,
             impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
@@ -616,3 +946,8 @@ class MuonIntensityFitter(TelescopeComponent):
             parameters_at_limit=minuit.fmin.has_parameters_at_limit,
             likelihood_value=minuit.fval,
         )
+
+    @staticmethod
+    def call_counter():
+        print(MuonIntensityFitter._n_call_counter)
+        MuonIntensityFitter._n_call_counter += 1
