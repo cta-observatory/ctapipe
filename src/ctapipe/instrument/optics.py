@@ -127,7 +127,7 @@ class MirrorDescription:
         nx,
         ny,
         nz,
-        surface,
+        surface_area,
         mirror_shape,
     ):
         self.id = id
@@ -137,7 +137,7 @@ class MirrorDescription:
         self.nx = nx
         self.ny = ny
         self.nz = nz
-        self.surface = surface
+        self.surface_area = surface_area
         self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
 
     def __str__(self):
@@ -145,7 +145,7 @@ class MirrorDescription:
         rows = [
             f"  id={self.id[i]}, x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
             f"nx={self.nx[i]:.4f}, ny={self.ny[i]:.4f}, nz={self.nz[i]:.4f}, "
-            f"surface={self.surface[i]}, shape={self.shape[i].value}"
+            f"surface_area={self.surface_area[i]}, shape={self.shape[i].value}"
             for i in range(len(self.id))
         ]
         return "\n".join([header, *rows])
@@ -165,7 +165,7 @@ class MirrorDescription:
                 self.nx,
                 self.ny,
                 self.nz,
-                self.surface,
+                self.surface_area,
                 np.array([shape.value for shape in self.shape]),
             ],
             names=["mirror_id", "x", "y", "z", "nx", "ny", "nz", "surface", "shape"],
@@ -212,7 +212,7 @@ class MirrorDescription:
             nx=np.asarray(table["nx"]),
             ny=np.asarray(table["ny"]),
             nz=np.asarray(table["nz"]),
-            surface=table["surface"],
+            surface_area=table["surface"],
             mirror_shape=mirror_shape,
         )
 
@@ -253,12 +253,12 @@ class MirrorDescription:
         -------
         size : astropy.units.Quantity or numpy.ndarray
             Characteristic size of each facet, in the same length unit as
-            the square root of ``surface`` (e.g. m if ``surface`` is in
-            m**2).
+            the square root of ``surface_area`` (e.g. m if ``surface_area``
+            is in m**2).
         """
-        radius = np.sqrt(self.surface / np.pi)
-        side = np.sqrt(self.surface)
-        flat_to_flat = np.sqrt(2 * self.surface / np.sqrt(3))
+        radius = np.sqrt(self.surface_area / np.pi)
+        side = np.sqrt(self.surface_area)
+        flat_to_flat = np.sqrt(2 * self.surface_area / np.sqrt(3))
 
         size = radius.copy()
         size[self.shape == MirrorFacetShape.SQUARE] = side[
