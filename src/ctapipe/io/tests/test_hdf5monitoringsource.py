@@ -237,44 +237,31 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
                 ),
             )
         # Set the unique timestamps within the validity range
-        unique_timestamps = Time([t_start + 0.2 * u.s, t_end + 0.2 * u.s])
-        # Get the camera monitoring container for the given unique timestamps
-        camera_mon_con = monitoring_source.get_camera_monitoring_container(
-            tel_id, unique_timestamps
-        )
-        # Validate the returned container
-        camera_mon_con.validate()
+        timestamps = Time([t_start + 0.2 * u.s, t_end + 0.2 * u.s])
 
-        # Check that the first coefficients match the expected values (first entry)
-        for column in [
-            "factor",
-            "pedestal_offset",
-            "time_shift",
-            "outlier_mask",
-        ]:
-            np.testing.assert_array_equal(
-                camera_mon_con.coefficients[column][0],
-                camcalib_coefficients[column][0],
-                err_msg=(
-                    f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration."
-                ),
+        for expected_index, timestamp in zip([0, -1], timestamps):
+            # Get the camera monitoring container for the given unique timestamps
+            camera_mon_con = monitoring_source.get_camera_monitoring_container(
+                tel_id, timestamp
             )
-        # Check that the second coefficients match the expected values (last entry)
-        for column in [
-            "factor",
-            "pedestal_offset",
-            "time_shift",
-            "outlier_mask",
-        ]:
-            np.testing.assert_array_equal(
-                camera_mon_con.coefficients[column][1],
-                camcalib_coefficients[column][-1],
-                err_msg=(
-                    f"'{column}' do not match after reading the monitoring file "
-                    "through the HDF5MonitoringSource for the camera calibration."
-                ),
-            )
+            # Validate the returned container
+            camera_mon_con.validate()
+
+            # Check that the first coefficients match the expected values (first entry)
+            for column in [
+                "factor",
+                "pedestal_offset",
+                "time_shift",
+                "outlier_mask",
+            ]:
+                np.testing.assert_array_equal(
+                    camera_mon_con.coefficients[column],
+                    camcalib_coefficients[column][expected_index],
+                    err_msg=(
+                        f"'{column}' do not match after reading the monitoring file "
+                        "through the HDF5MonitoringSource for the camera calibration."
+                    ),
+                )
 
 
 def test_get_camera_monitoring_container_obs_invalid(

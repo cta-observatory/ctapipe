@@ -1,0 +1,3 @@
+Fill calibration outlier mask from pixel_status in ``HDF5EventSource``.
+This is the basic information needed to be able to reprocess written R1 data
+again without an additional camera calibration file.
