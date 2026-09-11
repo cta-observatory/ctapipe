@@ -60,7 +60,7 @@ class Field[T]:
         universal content descriptor (see Virtual Observatory standards)
     type : type
         expected type of value
-    dtype : str or np.dtype
+    dtype : None or np.dtype
         expected data type of the value, None to ignore in validation.
         Means value is expected to be a numpy array or astropy quantity
     ndim : int or None
@@ -327,7 +327,7 @@ class Field[T]:
                 raise FieldValidationError(
                     f"{errorstr} Should have dimensionality {self.ndim}"
                 )
-            if value.dtype != self.dtype:
+            if self.dtype is not None and value.dtype != self.dtype:
                 raise FieldValidationError(
                     f"{errorstr} Has dtype "
                     f"{value.dtype}, should have dtype"
