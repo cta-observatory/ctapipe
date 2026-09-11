@@ -26,7 +26,9 @@ def _check_description(description):
     assert description.x[0].to_value(u.cm) == pytest.approx(461.99999999999994)
     assert description.y[0].to_value(u.cm) == pytest.approx(-1066.0799453238167)
     assert description.z[0].to_value(u.cm) == pytest.approx(120.53307587693142)
-    assert description.surface[0].to_value(u.cm**2) == pytest.approx(19746.245231688983)
+    assert description.surface_area[0].to_value(u.cm**2) == pytest.approx(
+        19746.245231688983
+    )
 
     assert description.nx[0] == pytest.approx(-0.08077963744975176)
     assert description.ny[0] == pytest.approx(0.18640162657079892)
@@ -50,7 +52,7 @@ def test_get_facet_size_from_table():
     description = MirrorDescription.from_table(ECSV_PATH)
     size = description.get_facet_size()
 
-    expected = np.sqrt(2 * description.surface[0] / np.sqrt(3))
+    expected = np.sqrt(2 * description.surface_area[0] / np.sqrt(3))
     assert size[0].to_value(u.cm) == pytest.approx(expected.to_value(u.cm))
     assert size[0].to_value(u.cm) == pytest.approx(151.0)
     assert np.all(np.isfinite(size))
@@ -69,7 +71,7 @@ def test_get_facet_size_per_shape():
         nx=np.zeros(4),
         ny=np.zeros(4),
         nz=np.ones(4),
-        surface=np.array([np.pi, side**2, hexagon_area, 1.0]) * u.m**2,
+        surface_area=np.array([np.pi, side**2, hexagon_area, 1.0]) * u.m**2,
         mirror_shape=["CIRCLE", "SQUARE", "HEXAGON", "UNKNOWN"],
     )
 
@@ -136,9 +138,7 @@ def test_create_patches_per_shape():
     assert hexagon.radius == pytest.approx(1.0 / np.sqrt(3))
 
     with pytest.raises(ValueError, match="Unsupported mirror facet shape"):
-        MirrorDescription.create_patches(
-            MirrorFacetShape.UNKNOWN, [0.0], [0.0], [1.0]
-        )
+        MirrorDescription.create_patches(MirrorFacetShape.UNKNOWN, [0.0], [0.0], [1.0])
 
 
 def test_to_table_roundtrip():
