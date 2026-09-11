@@ -41,6 +41,9 @@ class TelescopeComponent(Component):
     @subarray.setter
     def subarray(self, subarray):
         self._subarray = subarray
+        if subarray is None:
+            return
+
         # configure all of the TelescopeParameters
         for attr, trait in self.class_traits().items():
             if not isinstance(trait, TelescopeParameter):

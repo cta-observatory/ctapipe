@@ -3,15 +3,19 @@ Handles reading of monitoring files
 """
 
 from abc import abstractmethod
+from typing import Any
 
 import astropy.table
 import astropy.time
 
 from ..containers import ArrayEventContainer
 from ..core import TelescopeComponent
-from .monitoringtypes import MonitoringType
+from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 
 __all__ = ["MonitoringSource"]
+
+
+AvailableTypes = tuple[tuple[MonitoringType, str | None], ...]
 
 
 class MonitoringSource(TelescopeComponent):
@@ -40,51 +44,46 @@ class MonitoringSource(TelescopeComponent):
 
     plugin_entry_point = "ctapipe_monitoring"
 
-    def __init__(self, subarray=None, config=None, parent=None, **kwargs):
-        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self.metadata = {"is_simulation": False}
-
     @property
     @abstractmethod
-    def monitoring_types(self) -> tuple[MonitoringType]:
+    def available_data(self) -> AvailableTypes:
         """
-        The monitoring types provided by this monitoring source
+        Returns the available monitoring types of this source.
 
         Returns
         -------
-        tuple[ctapipe.io.MonitoringType]
+        available_data :
+            A tuple of (type, subtype) pairs of the available monitoring data.
         """
 
-    def has_any_monitoring_types(self, monitoring_types) -> bool:
+    @property
+    @abstractmethod
+    def available_telescope_data(self) -> dict[int, AvailableTypes]:
         """
-        Check if any of `monitoring_types` is in self.monitoring_types
+        Returns the available telescope monitoring types of this source.
 
-        Parameters
-        ----------
-        monitoring_types: Iterable
-            Iterable of monitoring types
+        Returns
+        -------
+        available_data :
+            A dict mapping tel_id to a tuple of (type, subtype) pairs of the available monitoring data.
         """
-        return any(mt in self.monitoring_types for mt in monitoring_types)
 
     @abstractmethod
-    def get_table(
+    def get_telescope_table(
         self,
-        monitoring_type: MonitoringType,
-        tel_id: int = None,
-        **kwargs,
-    ) -> astropy.table.Table:
+        tel_id: int,
+        monitoring_type: TelescopeMonitoringType,
+        subtype: str | None = None,
+    ):
         """
-        Get the raw monitoring table for a given monitoring type.
+        Get the monitoring table for a given telescope monitoring type.
 
         Parameters
         ----------
         monitoring_type : MonitoringType
             The type of monitoring data to retrieve.
-        tel_id : int, optional
-            Telescope ID for telescope-level monitoring (camera, telescope pointing).
-            None for array-level monitoring (weather, FRAM, LiDAR).
-        **kwargs
-            Implementation-specific parameters (e.g., subtype for PIXEL_STATISTICS).
+        subtype : str | None
+            Optional subtype, e.g. for PIXEL_STATISTICS type
 
         Returns
         -------
@@ -100,13 +99,39 @@ class MonitoringSource(TelescopeComponent):
         """
 
     @abstractmethod
-    def get_values(
+    def get_table(
         self,
         monitoring_type: MonitoringType,
+        subtype: str | None = None,
+    ) -> astropy.table.Table:
+        """
+        Get the monitoring table for a given monitoring type.
+
+        Parameters
+        ----------
+        monitoring_type : MonitoringType
+            The type of monitoring data to retrieve.
+        subtype : str | None
+            Optional subtype
+
+        Returns
+        -------
+        astropy.table.Table
+            The monitoring table.
+
+        Raises
+        ------
+        KeyError
+            If monitoring_type / subtype is not available.
+        """
+
+    @abstractmethod
+    def get_values(
+        self,
         time: astropy.time.Time,
-        tel_id: int = None,
-        **kwargs,
-    ):
+        monitoring_type: MonitoringType,
+        subtype: str | None = None,
+    ) -> Any:
         """
         Get monitoring values for specific timestamp(s).
 
@@ -114,18 +139,16 @@ class MonitoringSource(TelescopeComponent):
 
         Parameters
         ----------
-        monitoring_type : MonitoringType
-            The type of monitoring data to retrieve.
         time : astropy.time.Time
             Target timestamp(s). Can be scalar or array.
-        tel_id : int, optional
-            Telescope ID for telescope-level monitoring. None for array-level.
-        **kwargs
-            Implementation-specific parameters
+        monitoring_type : MonitoringType
+            The type of monitoring data to retrieve.
+        subtype : str | None
+            Optional subtype
 
         Returns
         -------
-        dict[str, astropy.units.Quantity | numpy.ndarray] or astropy.coordinates.SkyCoord
+        monitoring_data :
             Monitoring values at requested time(s). Return type depends on monitoring_type.
 
         Raises
@@ -134,8 +157,41 @@ class MonitoringSource(TelescopeComponent):
             If monitoring_type unavailable
         ValueError
             If time out of bounds.
-        TypeError
-            If tel_id scope doesn't match monitoring_type requirements.
+        """
+
+    @abstractmethod
+    def get_telescope_values(
+        self,
+        tel_id: int,
+        time: astropy.time.Time,
+        monitoring_type: TelescopeMonitoringType,
+        subtype: str | None = None,
+    ) -> Any:
+        """
+        Get monitoring values for specific timestamp(s).
+
+        Performs interpolation or nearest-neighbor lookup as appropriate.
+
+        Parameters
+        ----------
+        time : astropy.time.Time
+            Target timestamp(s). Can be scalar or array.
+        monitoring_type : MonitoringType
+            The type of monitoring data to retrieve.
+        subtype : str | None
+            Optional subtype
+
+        Returns
+        -------
+        monitoring_data :
+            Monitoring values at requested time(s). Return type depends on monitoring_type.
+
+        Raises
+        ------
+        KeyError
+            If monitoring_type unavailable
+        ValueError
+            If time out of bounds.
         """
 
     @abstractmethod

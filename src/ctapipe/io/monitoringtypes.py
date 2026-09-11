@@ -1,8 +1,15 @@
+"""Types of monitoring data."""
+
 from enum import Enum
 
+__all__ = [
+    "TelescopeMonitoringType",
+    "MonitoringType",
+]
 
-class MonitoringType(Enum):
-    """Enum of the different Monitoring Types"""
+
+class TelescopeMonitoringType(Enum):
+    """Enum of the different telescope-wise Monitoring Types"""
 
     #: Camera pixel statistics
     PIXEL_STATISTICS = "camera/pixel_statistics"
@@ -12,9 +19,8 @@ class MonitoringType(Enum):
     TELESCOPE_POINTINGS = "pointing"
 
 
-# Telescope-specific monitoring types (require tel_id parameter)
-TELESCOPE_SPECIFIC_MONITORING = {
-    MonitoringType.PIXEL_STATISTICS,
-    MonitoringType.CAMERA_COEFFICIENTS,
-    MonitoringType.TELESCOPE_POINTINGS,
-}
+class MonitoringType(Enum):
+    """Enum of the different (sub)array-wide Monitoring Types"""
+
+    #: Weather station data
+    WEATHER = "site/weather"
