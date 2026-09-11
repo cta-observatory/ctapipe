@@ -199,7 +199,7 @@ class DefaultFoVPhiBins(Component):
     The range is always assumed to be (0, 360) deg.
     """
 
-    fov_phi_n_bins = Integer(
+    fov_phi_n_bins = Int(
         help="Number of FoV offset bins",
         default_value=4,
     ).tag(config=True)
