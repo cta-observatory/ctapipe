@@ -113,7 +113,7 @@ class MirrorFacetShape(Enum):
     HEXAGON = "HEXAGON"
 
 
-class MirrorFacetsDescription:
+class MirrorDescription:
     """
     Information about the different mirror facet shapes
     """
@@ -152,9 +152,9 @@ class MirrorFacetsDescription:
 
     def to_table(self):
         """
-        Convert this MirrorFacetsDescription to an astropy Table.
+        Convert this MirrorDescription to an astropy Table.
 
-        See `MirrorFacetsDescription.from_table` for the opposite operation.
+        See `MirrorDescription.from_table` for the opposite operation.
         """
         return Table(
             [
@@ -175,7 +175,7 @@ class MirrorFacetsDescription:
     @classmethod
     def from_table(cls, table: Table | str | Path, **kwargs):
         """
-        Create a `MirrorFacetsDescription` from an astropy Table, or from a
+        Create a `MirrorDescription` from an astropy Table, or from a
         FITS or ECSV file containing such a table.
 
         Parameters
@@ -191,7 +191,7 @@ class MirrorFacetsDescription:
 
         Returns
         -------
-        MirrorFacetsDescription
+        MirrorDescription
         """
         if not isinstance(table, Table):
             table = Table.read(table, **kwargs)
@@ -280,7 +280,7 @@ class MirrorFacetsDescription:
         This is analogous to
         `~ctapipe.visualization.CameraDisplay.create_patches`, but for
         mirror facets: ``facet_size`` is expected to be the corresponding
-        entry of `~MirrorFacetsDescription.get_facet_size` (radius for
+        entry of `~MirrorDescription.get_facet_size` (radius for
         `MirrorFacetShape.CIRCLE`, side length for
         `MirrorFacetShape.SQUARE`, flat-to-flat distance for
         `MirrorFacetShape.HEXAGON`) rather than a generic pixel width.
@@ -295,7 +295,7 @@ class MirrorFacetsDescription:
             y position of each facet.
         facet_size : array_like
             Characteristic size of each facet, as returned by
-            `~MirrorFacetsDescription.get_facet_size`.
+            `~MirrorDescription.get_facet_size`.
         facet_rotation : astropy.units.Quantity
             Rotation angle of the facets (only relevant for
             `MirrorFacetShape.SQUARE` and `MirrorFacetShape.HEXAGON`).
@@ -305,17 +305,17 @@ class MirrorFacetsDescription:
         list of matplotlib.patches.Patch
         """
         if shape == MirrorFacetShape.HEXAGON:
-            return MirrorFacetsDescription._create_hex_patches(
+            return MirrorDescription._create_hex_patches(
                 facet_x, facet_y, facet_size, facet_rotation
             )
 
         if shape == MirrorFacetShape.CIRCLE:
-            return MirrorFacetsDescription._create_circle_patches(
+            return MirrorDescription._create_circle_patches(
                 facet_x, facet_y, facet_size
             )
 
         if shape == MirrorFacetShape.SQUARE:
-            return MirrorFacetsDescription._create_square_patches(
+            return MirrorDescription._create_square_patches(
                 facet_x, facet_y, facet_size, facet_rotation
             )
 
