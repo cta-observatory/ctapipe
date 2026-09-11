@@ -1,1 +1,0 @@
-Fix interactive use of ``CameraDisplay`` in jupyter when using the ``ipympl`` backend.
