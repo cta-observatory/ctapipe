@@ -1,3 +1,129 @@
+ctapipe v0.32.0 (2026-09-11)
+============================
+
+
+API Changes
+-----------
+
+- The serialization format for timestamps is now defined at the ``Container``
+  level using ``Field(..., time_resolution=TimeResolution.{LOW,HIGH})`` instead
+  of in the writing methods. [`#3038 <https://github.com/cta-observatory/ctapipe/pull/3038>`__]
+
+
+Bug Fixes
+---------
+
+- Fix ``HillasIntersection`` using the ``equivalent_focal_length`` instead of the
+  focal length the camera geometry (and thus the Hillas parametrization) was
+  defined with, when reconstructing from ``CameraHillasParametersContainer``.
+  Using the equivalent instead of the (by default) effective focal length
+  introduced a plate-scale error that grows with the distance of the image from
+  the camera center, degrading the angular reconstruction for off-axis and
+  high-energy showers. ``HillasIntersection`` now uses
+  ``camera.geometry.frame.focal_length``, consistent with ``HillasReconstructor``. [`#3054 <https://github.com/cta-observatory/ctapipe/pull/3054>`__]
+
+- Fix interactive use of ``CameraDisplay`` in jupyter when using the ``ipympl`` backend. [`#3069 <https://github.com/cta-observatory/ctapipe/pull/3069>`__]
+
+- Fixed bug in ``utilities.get_cache_path`` where the ``env_override`` parameter
+  was ignored, using the hard-coded "CTAPIPE_CACHE" even if the user specified a
+  different one. This did not affect anything inside ctapipe, only external
+  packages that use this method with a non-default cache location. [`#3078 <https://github.com/cta-observatory/ctapipe/pull/3078>`__]
+
+- Fix bug in ``image.hillas.hillas_parameter`` function when called with ``image`` containing at least on negative value [`#3082 <https://github.com/cta-observatory/ctapipe/pull/3082>`__]
+
+- The ``timestamp_tolerance`` of the ``HDF5MonitoringSource`` is now configurable
+  and set to 1 s by default. This fixes reading and applying of camera calibration
+  coefficients for the usual case where the first physics event arrives before the
+  first calibration event within one OB. [`#3092 <https://github.com/cta-observatory/ctapipe/pull/3092>`__]
+
+- Fixed the  validation logic in ``ctapipe.core.containers.Field`` that complained about
+  a dtype being not equal to ``None`` in case only ``ndim`` was specified for a ``Field``. [`#3095 <https://github.com/cta-observatory/ctapipe/pull/3095>`__]
+
+
+New Features
+------------
+
+- Introduces a new Component `~ctapipe.irf.EventWeighter` that has different
+  implementations of spectral event weighting:
+
+  * `~ctapipe.irf.SimpleEventWeighter`: spectral weighting for the full FOV
+  * `~ctapipe.irf.RadialEventWeighter`: spectral weighing in radial bins in the  FOV
+
+  They operate on a pre-processed table of DL2 information, where you specify the
+  energy and FOV coordinate columns to use. The interface is as follows:
+
+  .. code-block:: python
+
+    from astropy.table import QTable
+
+    from ctapipe.irf import RadialEventWeighter  spectrum_from_name
+
+    table = QTable(
+        dict(
+            true_energy=[1.0, 2.0, 0.5, 0.2] * u.TeV,
+            true_fov_offset=[0.1, 1.2, 2.2, 3.2] * u.deg,
+        )
+    )
+    weighter = RadialEventWeighter(
+        source_spectrum=spectrum_from_name("IRFDOC_ELECTRON_SPECTRUM"),
+        target_spectrum_name="CRAB_HEGRA",
+        fov_offset_max=5.0*u.deg,
+        fov_offset_n_bins=5,
+    )
+
+    table_with_weights = weighter(table)
+    print(table_with_weights)
+
+
+  ::
+
+    true_energy true_fov_offset       weight       fov_offset_bin
+        TeV           deg
+    ----------- --------------- ------------------ --------------
+            1.0             0.1 12.399508446433442              1
+            2.0             1.2  7.247055871572714              2
+            0.5             2.2 1.4149219056909543              3
+            0.2             3.2 0.4812883464910382              4 [`#2927 <https://github.com/cta-observatory/ctapipe/pull/2927>`__]
+
+- Added ``ZernikePSFModel``, a new PSF model, which reconstructs the
+  optical wavefront from per-telescope Zernike coefficients (Noll
+  indexing) and computes the point spread function via Fraunhofer
+  diffraction, polychromatically averaged over a configurable wavelength
+  range and weighted by a Cherenkov-like spectral index. [`#3056 <https://github.com/cta-observatory/ctapipe/pull/3056>`__]
+
+- Add a new ``containment-weighted-intensity`` weighting option to
+  ``StereoMeanCombiner``, which down-weights truncated (leaky) images via
+  ``(intensity * (1 - width / length))**2 * (1 - leakage_intensity_width_2)**4``.
+  This is the most robust option at high energies, where image truncation
+  dominates the angular-resolution degradation of the disp reconstruction. [`#3062 <https://github.com/cta-observatory/ctapipe/pull/3062>`__]
+
+- The ``CameraCalibrator`` now combines the flatfielding peak time shift
+  with the new DL0 event-wise ``pixel_time_shift``, if present. [`#3087 <https://github.com/cta-observatory/ctapipe/pull/3087>`__]
+
+- Fill calibration outlier mask from pixel_status in ``HDF5EventSource``.
+  This is the basic information needed to be able to reprocess written R1 data
+  again without an additional camera calibration file. [`#3095 <https://github.com/cta-observatory/ctapipe/pull/3095>`__]
+
+
+Maintenance
+-----------
+
+- Adds star tracker group to hdf5 data format and includes this group in the HDF5Merger. [`#3040 <https://github.com/cta-observatory/ctapipe/pull/3040>`__]
+
+- Fix docs rendering of histogram aggregation tutorial. [`#3042 <https://github.com/cta-observatory/ctapipe/pull/3042>`__]
+
+- Move ``hist`` to optional dependencies. This package is used by the ``HistogramAggregator``
+  that can be used with ``ctapipe-ctapipe-calculate-pixel-statistics``.
+  The default installation of ctapipe ``pip install ctapipe`` or ``conda install ctapipe-base``
+  will no longer include this dependency by default. [`#3080 <https://github.com/cta-observatory/ctapipe/pull/3080>`__]
+
+- Docs are now build with Sphinx 9.x. The documentation pages was also revised to
+  avoid documenting the same things in both top-level modules and submodules,
+  which lead to duplicate reference errors.
+
+  Missing doc pages were added for ``ctapipe.fitting``. [`#3083 <https://github.com/cta-observatory/ctapipe/pull/3083>`__]
+
+
 ctapipe v0.31.0 (2026-06-12)
 ============================
 

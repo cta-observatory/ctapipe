@@ -1,2 +1,0 @@
-Fixed the  validation logic in ``ctapipe.core.containers.Field`` that complained about
-a dtype being not equal to ``None`` in case only ``ndim`` was specified for a ``Field``.
