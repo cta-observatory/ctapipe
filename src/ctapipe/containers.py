@@ -1232,6 +1232,7 @@ class CameraCalibrationContainer(Container):
         "Residual mean pedestal of the waveforms for each pixel."
         " This value is subtracted from the waveforms of each pixel before"
         " the pulse extraction. Shape: (n_channels, n_pixels)",
+        ndim=2,
     )
     factor = Field(
         None,
@@ -1239,16 +1240,20 @@ class CameraCalibrationContainer(Container):
         " into physical units (e.g. photoelectrons or photons) for each pixel."
         " The coefficients include the relative correction between pixels to"
         " achieve a uniform charge response. Shape: (n_channels, n_pixels)",
+        ndim=2,
     )
     time_shift = Field(
         None,
         "Additive coefficients for the timing correction before charge extraction"
         " for each pixel. Shape: (n_channels, n_pixels)",
+        ndim=2,
     )
     outlier_mask = Field(
         None,
         "Boolean mask indicating which pixels are considered outliers."
         " Shape: (n_channels, n_pixels)",
+        ndim=2,
+        dtype=np.bool_,
     )
     is_valid = Field(
         False,
