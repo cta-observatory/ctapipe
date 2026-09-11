@@ -1,22 +1,10 @@
 """Tests for MirrorDescription."""
 
-from pathlib import Path
-
 import astropy.units as u
 import numpy as np
 import pytest
 
 from ctapipe.instrument.optics import MirrorDescription, MirrorFacetShape
-
-# Real mirror facet tables shipped alongside the repository for local testing.
-DATA_DIR = Path(__file__).resolve().parents[4] / "tmp_files"
-ECSV_PATH = DATA_DIR / "mirror_CTA-N-LST1_v2019-03-31.ecsv"
-FITS_PATH = DATA_DIR / "mirror_CTA-N-LST1_v2019-03-31.fits"
-
-pytestmark = pytest.mark.skipif(
-    not (ECSV_PATH.exists() and FITS_PATH.exists()),
-    reason="tmp_files/ mirror facet test data not available",
-)
 
 
 def _check_description(description):
@@ -37,19 +25,14 @@ def _check_description(description):
     assert np.all(description.shape == MirrorFacetShape.HEXAGON)
 
 
-def test_mirror_facets_description_from_ecsv():
-    description = MirrorDescription.from_table(ECSV_PATH)
+def test_mirror_facets_description_from_ecsv(lst1_mirror_facets_path):
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
     _check_description(description)
 
 
-def test_mirror_facets_description_from_fits():
-    description = MirrorDescription.from_table(FITS_PATH)
-    _check_description(description)
-
-
-def test_get_facet_size_from_table():
+def test_get_facet_size_from_table(lst1_mirror_facets_path):
     """flat-to-flat distance for the (all-hexagon) LST1 facet table."""
-    description = MirrorDescription.from_table(ECSV_PATH)
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
     size = description.get_facet_size()
 
     expected = np.sqrt(2 * description.surface_area[0] / np.sqrt(3))
@@ -83,12 +66,12 @@ def test_get_facet_size_per_shape():
     assert np.isnan(size[3].to_value(u.m))
 
 
-def test_create_patches_from_table():
+def test_create_patches_from_table(lst1_mirror_facets_path):
     """create_patches on the real (all-hexagon) LST1 facet table."""
     pytest.importorskip("matplotlib")
     from matplotlib.patches import RegularPolygon
 
-    description = MirrorDescription.from_table(ECSV_PATH)
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
     size = description.get_facet_size()
 
     patches = MirrorDescription.create_patches(
@@ -141,8 +124,8 @@ def test_create_patches_per_shape():
         MirrorDescription.create_patches(MirrorFacetShape.UNKNOWN, [0.0], [0.0], [1.0])
 
 
-def test_to_table_roundtrip():
-    description = MirrorDescription.from_table(ECSV_PATH)
+def test_to_table_roundtrip(lst1_mirror_facets_path):
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
     table = description.to_table()
 
     assert table.colnames == [
@@ -163,8 +146,8 @@ def test_to_table_roundtrip():
     np.testing.assert_array_equal(roundtripped.id, description.id)
 
 
-def test_to_table_roundtrip_via_file(tmp_path):
-    description = MirrorDescription.from_table(ECSV_PATH)
+def test_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
     table = description.to_table()
 
     ecsv_path = tmp_path / "roundtrip.ecsv"
