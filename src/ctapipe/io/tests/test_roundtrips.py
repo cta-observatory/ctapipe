@@ -1,21 +1,37 @@
 """Test assuring combining several steps keeps data consistent"""
 
 import numpy as np
+import pytest
+
+from ctapipe.image import ImageExtractor
 
 
-def test_r1_simtel_broken_pixels(prod5_gamma_simtel_path, tmp_path):
-    """Test that broken pixel information is preserved for simtel r1"""
+@pytest.fixture(scope="session")
+def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
     from ctapipe.io import DataWriter, EventSource
 
+    outdir = tmp_path_factory.mktemp("r1_")
     # write r1 waveforms for simtel file
-    r1_path = tmp_path / "events.r1.h5"
+    #
+    r1_path = outdir / "events.r1.h5"
 
     with EventSource(prod5_gamma_simtel_path) as source:
         with DataWriter(source, output_path=r1_path, write_r1_waveforms=True) as writer:
             for event in source:
                 writer(event)
 
-    with EventSource(r1_path) as source:
+    return r1_path
+
+
+@pytest.mark.parametrize("extractor", ImageExtractor.non_abstract_subclasses().keys())
+def test_r1_simtel_broken_pixels(r1_file, tmp_path, extractor):
+    """Test that broken pixel information is preserved for simtel r1"""
+    from ctapipe.calib.camera import CameraCalibrator
+    from ctapipe.io import EventSource
+
+    with EventSource(r1_file) as source:
+        calibrator = CameraCalibrator(source.subarray, image_extractor_type=extractor)
+
         n_checked = 0
         for event in source:
             for tel_id, mon in event.monitoring.tel.items():
@@ -39,5 +55,9 @@ def test_r1_simtel_broken_pixels(prod5_gamma_simtel_path, tmp_path):
                     assert np.count_nonzero(active_mask) == 0
 
                 n_checked += 1
+
+                # check to dl1
+                calibrator(event)
+                assert event.dl1.tel[tel_id].image is not None
 
         assert n_checked > 0
