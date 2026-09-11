@@ -1,0 +1,8 @@
+Fix ``HillasIntersection`` using the ``equivalent_focal_length`` instead of the
+focal length the camera geometry (and thus the Hillas parametrization) was
+defined with, when reconstructing from ``CameraHillasParametersContainer``.
+Using the equivalent instead of the (by default) effective focal length
+introduced a plate-scale error that grows with the distance of the image from
+the camera center, degrading the angular reconstruction for off-axis and
+high-energy showers. ``HillasIntersection`` now uses
+``camera.geometry.frame.focal_length``, consistent with ``HillasReconstructor``.
