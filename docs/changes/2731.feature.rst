@@ -1,0 +1,11 @@
+Added a new ``StereoDispCombiner`` implementing DISP-based stereo direction
+reconstruction.
+The algorithm is adapted and generalized from the implementations in
+*magic-cta-pipe* and *EventDisplay* and resolves the head–tail ambiguity by
+evaluating all DISP sign combinations and combining multiple telescope
+combinations via weighted means.
+
+The reconstruction supports optional pre-selection of telescopes using
+``n_best_tels`` and rejection of nearly parallel multiplicity-2 events via
+``min_ang_diff``.
+Only geometry reconstruction is supported.
