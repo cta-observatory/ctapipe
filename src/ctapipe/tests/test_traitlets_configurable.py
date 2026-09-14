@@ -29,6 +29,10 @@ ignore_traits = {
     "classes",
 }
 
+not_configurable_traits = {
+    "ctapipe.reco.stereo_combination.StereoDispCombiner": {"property"},
+}
+
 
 def test_all_traitlets_configurable():
     skip_modules = {"_dev_version", "tests"}
@@ -64,14 +68,15 @@ def test_all_traitlets_configurable():
                         has_traits = False
 
                     if has_traits:
+                        fqcn = f"{obj.__module__}.{obj.__name__}"
+                        exempt = not_configurable_traits.get(fqcn, set())
+
                         for traitname, trait in obj.class_traits().items():
-                            if (
-                                not trait.metadata.get("config", False)
-                                and traitname not in ignore_traits
-                            ):
-                                missing_config[f"{obj.__module__}.{obj.__name__}"].add(
-                                    traitname
-                                )
+                            if traitname in exempt or traitname in ignore_traits:
+                                continue
+
+                            if not trait.metadata.get("config", False):
+                                missing_config[fqcn].add(traitname)
 
         return missing_config
 

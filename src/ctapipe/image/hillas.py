@@ -69,7 +69,7 @@ def hillas_parameters(geom, image):
     The recommended form is to pass only the sliced geometry and image
     for the pixels to be considered.
 
-    The method also supports giving a full geometry with image as a masked array, however this performs worse than passing geometry and image only for the selected pixels.
+    Each method gives the same result, but vary in efficiency
 
     Parameters
     ----------
@@ -83,15 +83,6 @@ def hillas_parameters(geom, image):
     -------
     HillasParametersContainer:
         container of hillas parameters
-
-    Raises
-    ------
-    HillasParameterizationError:
-        If the sum of image is equal to 0.0.
-    HillasParameterizationError:
-        If at least one element of image is negative.
-    ValueError:
-        If the shape of image and the number of pixels in geom do not match.
     """
     unit = geom.pix_x.unit
     pix_x = geom.pix_x.to_value(unit)
@@ -125,12 +116,7 @@ def hillas_parameters(geom, image):
     # The ddof=0 makes this comparable to the other methods,
     # but ddof=1 should be more correct, mostly affects small showers
     # on a percent level
-    try:
-        cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
-
-    except ValueError as e:
-        raise HillasParameterizationError("Failed to compute covariance") from e
-
+    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22

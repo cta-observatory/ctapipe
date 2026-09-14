@@ -1,20 +1,17 @@
 import logging
 import warnings
 from collections import defaultdict
-from enum import Enum, auto
 from functools import partial
 from inspect import isclass
 from pprint import pformat
 from textwrap import dedent, wrap
-from typing import Any, Callable, Self, Type, overload
 
 import numpy as np
-from astropy.units import Quantity, Unit, UnitBase, UnitConversionError
-from numpy.typing import DTypeLike, NDArray
+from astropy.units import Quantity, Unit, UnitConversionError
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Container", "Field", "FieldValidationError", "Map", "TimeResolution"]
+__all__ = ["Container", "Field", "FieldValidationError", "Map"]
 
 
 def _fqdn(obj):
@@ -25,22 +22,7 @@ class FieldValidationError(ValueError):
     pass
 
 
-class TimeResolution(Enum):
-    """Determines which format is used for storing astropy Time objects."""
-
-    #: Low resolution timestamp
-    #:
-    #: Stored as float64 time elapsed since epoch,
-    #: achieving ~ms time resolution depending on epoch
-    LOW = auto()
-    #: High resolution timestamp
-    #:
-    #: Stored as two 32-bit unsigned integers
-    #: unix TAI seconds and quarter nanoseconds
-    HIGH = auto()
-
-
-class Field[T]:
+class Field:
     """
     Class for storing data in a `Container`.
 
@@ -49,9 +31,8 @@ class Field[T]:
     default :
         Default value of the item. This will be set when the `Container`
         is constructed, as well as when  ``Container.reset`` is called.
-        The value passed to ``default`` should be immutable, as it is
-        assigned as is to each new container instance.
-        For mutable default values, use ``default_factory`` instead.
+        This should only be used for immutable values. For mutable values,
+        use ``default_factory`` instead.
     description : str
         Help text associated with the item
     unit : str or astropy.units.core.UnitBase
@@ -60,7 +41,7 @@ class Field[T]:
         universal content descriptor (see Virtual Observatory standards)
     type : type
         expected type of value
-    dtype : None or np.dtype
+    dtype : str or np.dtype
         expected data type of the value, None to ignore in validation.
         Means value is expected to be a numpy array or astropy quantity
     ndim : int or None
@@ -72,115 +53,20 @@ class Field[T]:
         encoded string to be used.
     default_factory : Callable
         A callable providing a fresh instance as default value.
-    time_resolution : TimeResolution | None
-        For time fields, whether to serialize as high or low resolution
-        timestamp.
     """
-
-    # only default provided
-    @overload
-    def __init__(
-        self,
-        default: T,
-        description: str = "",
-        *,
-        unit: None = None,
-        ucd: Any = None,
-        dtype: None = None,
-        type: None = None,
-        ndim: None = None,
-        allow_none: bool = False,
-        max_length: None = None,
-        default_factory: None = None,
-        time_resolution: None | TimeResolution = None,
-    ): ...
-
-    # only default_factory provided
-    @overload
-    def __init__(
-        self,
-        default: None = None,
-        description: str = "",
-        *,
-        default_factory: Type[T] | Callable[[], T],
-        unit: None = None,
-        ucd: Any = None,
-        dtype: None = None,
-        type: Type[T] | None = None,
-        ndim: None = None,
-        allow_none: bool = False,
-        max_length: None = None,
-        time_resolution: None = None,
-    ): ...
-
-    # default and type given
-    @overload
-    def __init__[T1, T2](
-        self: "Field[T1 | T2]",
-        default: T1,
-        description: str = "",
-        *,
-        type: Type[T2],
-        unit: None = None,
-        ucd: Any = None,
-        dtype: None = None,
-        ndim: None = None,
-        allow_none: bool = False,
-        max_length: None = None,
-        default_factory: None = None,
-        time_resolution: None | TimeResolution = None,
-    ): ...
-
-    # None default but unit provided -> Quantity | None
-    @overload
-    def __init__(
-        self: "Field[Quantity | None]",
-        default: None,
-        description: str = "",
-        *,
-        unit: UnitBase,
-        type: None = None,
-        ucd: Any = None,
-        dtype: None = None,
-        ndim: None = None,
-        allow_none: bool = False,
-        max_length: None = None,
-        default_factory: None = None,
-        time_resolution: None = None,
-    ): ...
-
-    # array case
-    @overload
-    def __init__(
-        self: "Field[NDArray | None]",
-        default: None,
-        description: str = "",
-        *,
-        unit: None = None,
-        type: None = None,
-        ucd: Any = None,
-        dtype: None | DTypeLike = None,
-        ndim: None | int = None,
-        allow_none: bool = False,
-        max_length: None = None,
-        default_factory: None = None,
-        time_resolution: None = None,
-    ): ...
 
     def __init__(
         self,
         default=None,
         description="",
-        *,
-        default_factory: Type[T] | Callable[[], T] | None = None,
         unit=None,
         ucd=None,
         dtype=None,
         type=None,
         ndim=None,
-        allow_none: bool = True,
-        max_length: int | None = None,
-        time_resolution: None | TimeResolution = None,
+        allow_none=True,
+        max_length=None,
+        default_factory=None,
     ):
         self.default = default
         self.default_factory = default_factory
@@ -192,33 +78,9 @@ class Field[T]:
         self.ndim = ndim
         self.allow_none = allow_none
         self.max_length = max_length
-        self.time_resolution = time_resolution
 
         if default_factory is not None and default is not None:
             raise ValueError("Must only provide one of default or default_factory")
-
-    # we only specify the Descriptor protocol __get__ & __set__ here has it helps type checkers
-    # and IDEs to provide insights on types of container fields. It is not actually used at runtime
-    # since the ContainerMeta turns Fields into __slots__ based access to member variables.
-    # 1. When accessed via the class (e.g., MyContainer.foo), only owner present
-    @overload
-    def __get__(self, instance: None, owner: Any) -> Self: ...
-
-    # 2. access via instance, both arguments present
-    @overload
-    def __get__(self, instance: "Container", owner: "Type[Container]") -> T: ...
-
-    def __get__(
-        self, instance: "Container | None", owner: "Type[Container]"
-    ) -> T | Self:
-        raise NotImplementedError(
-            f"Fields should only be used with Containers ({instance, owner})"
-        )
-
-    def __set__(self, instance: "Container | None", value: T) -> None:
-        raise NotImplementedError(
-            f"Fields should only be used with Containers ({instance, value})"
-        )
 
     def __repr__(self):
         if self.default_factory is not None:
@@ -327,7 +189,7 @@ class Field[T]:
                 raise FieldValidationError(
                     f"{errorstr} Should have dimensionality {self.ndim}"
                 )
-            if self.dtype is not None and value.dtype != self.dtype:
+            if value.dtype != self.dtype:
                 raise FieldValidationError(
                     f"{errorstr} Has dtype "
                     f"{value.dtype}, should have dtype"
@@ -596,7 +458,7 @@ class Container(metaclass=ContainerMeta):
                 )
 
 
-class Map[K, V](defaultdict[K, V]):
+class Map(defaultdict):
     """A dictionary of sub-containers that can be added to a Container. This
     may be used e.g. to store a set of identical sub-Containers (e.g. indexed
     by ``tel_id`` or algorithm name).
@@ -637,10 +499,4 @@ class Map[K, V](defaultdict[K, V]):
             default = _fqdn(self.default_factory)
         else:
             default = repr(self.default_factory)
-
-        key_type = "Any"
-        if self.keys():
-            key_type = type(next(iter(self.keys())))
-            key_type = key_type.__name__ if isclass(key_type) else repr(key_type)
-
-        return f"{self.__class__.__name__}[{key_type}, {default}](keys={list(self.keys())})"
+        return f"{self.__class__.__name__}({default}, {dict.__repr__(self)!s})"

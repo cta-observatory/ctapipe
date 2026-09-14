@@ -1,12 +1,5 @@
 from .atmosphere import get_atmosphere_profile_functions
-from .camera import (
-    CameraDescription,
-    CameraGeometry,
-    CameraReadout,
-    PixelGridType,
-    PixelShape,
-    UnknownPixelShapeWarning,
-)
+from .camera import CameraDescription, CameraGeometry, CameraReadout, PixelShape
 from .guess import guess_telescope
 from .optics import (
     ComaPSFModel,
@@ -15,9 +8,8 @@ from .optics import (
     PSFModel,
     ReflectorShape,
     SizeType,
-    ZernikePSFModel,
 )
-from .subarray import SubarrayDescription, UnknownSubarray, UnknownTelescopeID
+from .subarray import SubarrayDescription, UnknownTelescopeID
 from .telescope import TelescopeDescription
 from .trigger import SoftwareTrigger
 from .warnings import FromNameWarning
@@ -29,12 +21,10 @@ __all__ = [
     "get_atmosphere_profile_functions",
     "guess_telescope",
     "OpticsDescription",
-    "PixelGridType",
     "PixelShape",
     "SubarrayDescription",
     "TelescopeDescription",
     "UnknownTelescopeID",
-    "UnknownSubarray",
     "FocalLengthKind",
     "ReflectorShape",
     "SizeType",
@@ -42,6 +32,4 @@ __all__ = [
     "FromNameWarning",
     "PSFModel",
     "ComaPSFModel",
-    "ZernikePSFModel",
-    "UnknownPixelShapeWarning",
 ]

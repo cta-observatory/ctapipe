@@ -11,7 +11,6 @@ import yaml
 from astropy.table import Table
 from requests.exceptions import HTTPError
 
-from ..compat import ECSV_FMT
 from ..core import Provenance
 from .download import download_file_cached, get_cache_path
 
@@ -264,8 +263,8 @@ def get_table_dataset(table_name, role="resource", **kwargs):
     table_types = {
         ".fits.gz": Table.read,
         ".fits": Table.read,
-        ".ecsv": partial(Table.read, format=ECSV_FMT),
-        ".ecsv.txt": partial(Table.read, format=ECSV_FMT),
+        ".ecsv": partial(Table.read, format="ascii.ecsv"),
+        ".ecsv.txt": partial(Table.read, format="ascii.ecsv"),
     }
 
     return try_filetypes(table_name, role, table_types, **kwargs)

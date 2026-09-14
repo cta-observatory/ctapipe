@@ -16,7 +16,7 @@ from ..io.datalevels import DataLevel
 from ..utils import get_dataset_path
 from ..visualization import CameraDisplay
 
-__all__ = ["ImagePlotter", "DisplayDL1Calib"]
+__all__ = ["ImagePlotter"]
 
 
 class ImagePlotter(Component):
@@ -71,7 +71,7 @@ class ImagePlotter(Component):
         except ModuleNotFoundError:
             raise OptionalDependencyMissing("matplotlib") from None
 
-        self.fig = plt.figure(figsize=(16, 7), layout="constrained")
+        self.fig = plt.figure(figsize=(16, 7))
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
         self.ax_peak_time = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
@@ -92,20 +92,12 @@ class ImagePlotter(Component):
 
             # Redraw camera
             geom = self.subarray.tel[tel_id].camera.geometry
-            image_cmap = copy(plt.get_cmap("inferno"))
-            image_cmap.set_bad("gray")
-            self.c_intensity = CameraDisplay(
-                geom, ax=self.ax_intensity, cmap=image_cmap
-            )
+            self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
 
             time_cmap = copy(plt.get_cmap("RdBu_r"))
             time_cmap.set_under("gray")
             time_cmap.set_over("gray")
-            time_cmap.set_bad("gray")
             self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time, cmap=time_cmap)
-
-            for d in (self.c_intensity, self.c_peak_time):
-                d.pixels.set_rasterized(True)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
@@ -132,7 +124,7 @@ class ImagePlotter(Component):
         self.c_peak_time.set_limits_minmax(t_chargemax - 5, t_chargemax + 5)
 
         self.fig.suptitle(
-            "event_index={}  event_id={}  tel_id={}".format(
+            "Event_index={}  Event_id={}  Telescope={}".format(
                 event.count, event.index.event_id, tel_id
             )
         )
@@ -141,7 +133,7 @@ class ImagePlotter(Component):
             plt.pause(0.001)
 
         if self.pdf is not None:
-            self.pdf.savefig(self.fig, dpi=200)
+            self.pdf.savefig(self.fig)
 
     def __enter__(self):
         self._exit_stack.__enter__()

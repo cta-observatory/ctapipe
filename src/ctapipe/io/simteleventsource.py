@@ -3,7 +3,6 @@ import pathlib
 import warnings
 from contextlib import nullcontext
 from enum import Enum, IntFlag, auto, unique
-from functools import lru_cache
 from gzip import GzipFile
 from io import BufferedReader
 
@@ -49,7 +48,7 @@ from ..containers import (
 from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
-from ..core.traits import Bool, ComponentName, Float, Int, Undefined, UseEnum
+from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
 from ..exceptions import InputMissing, OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
@@ -118,11 +117,6 @@ class SimTelTriggerMask(IntFlag):
     LONG_EVENT = auto()
     MUON = auto()
     RANDOM_MONO = auto()
-
-
-@lru_cache()
-def _get_pixel_index(n_pixels):
-    return np.arange(n_pixels)
 
 
 def _trigger_mask_to_event_type(trigger_mask):
@@ -339,10 +333,11 @@ def _telescope_from_meta(telescope_meta, mirror_area):
 
 
 def apply_simtel_r1_calibration(
-    r0_waveforms, pedestal, factor, calib_scale=1.0, calib_shift=0.0
+    r0_waveforms, pedestal, factor, gain_selector, calib_scale=1.0, calib_shift=0.0
 ):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
+        - Gain selection
         - Pedestal subtraction
         - Conversion of samples into units proportional to photoelectrons
           (If the full signal in the waveform was integrated, then the resulting
@@ -361,6 +356,7 @@ def apply_simtel_r1_calibration(
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
+    gain_selector : ctapipe.calib.camera.gainselection.GainSelector
     calib_scale : float
         Extra global scale factor for calibration.
         Conversion factor to transform the integrated charges
@@ -373,47 +369,27 @@ def apply_simtel_r1_calibration(
     Returns
     -------
     r1_waveforms : ndarray
-        Calibrated waveforms not gain-selected, in units of photoelectrons (p.e.).
+        Calibrated waveforms
         Shape: (n_channels, n_pixels, n_samples)
+    selected_gain_channel : ndarray
+        The gain channel selected for each pixel
+        Shape: (n_pixels)
     """
+    n_pixels = r0_waveforms.shape[-2]
     ped = pedestal[..., np.newaxis]
     factor = factor[..., np.newaxis]
     gain = factor * calib_scale
 
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
 
-    return r1_waveforms
+    if gain_selector is not None:
+        selected_gain_channel = gain_selector(r0_waveforms)
+        r1_waveforms = r1_waveforms[
+            np.newaxis, selected_gain_channel, np.arange(n_pixels)
+        ]
+    else:
+        selected_gain_channel = None
 
-
-def apply_gain_selection(r0_waveforms, r1_waveforms, gain_selector):
-    """
-    Apply gain selection to the R1 waveform.
-
-    Parameters
-    ----------
-    r0_waveforms : ndarray
-        Raw ADC waveforms from a simtel file. All gain channels available.
-        Shape: (n_channels, n_pixels, n_samples)
-    r1_waveforms : ndarray
-        Calibrated waveforms not gain-selected, in units of photoelectrons (p.e.).
-        Shape: (n_channels, n_pixels, n_samples)
-    gain_selector : ctapipe.calib.camera.gainselection.GainSelector
-        The GainSelector to use for selecting the gain channel.
-
-    Returns
-    -------
-    r1_waveforms : ndarray
-        Calibrated waveforms after gain selection, in units of photoelectrons (p.e.).
-        Shape: (1, n_pixels, n_samples)
-    selected_gain_channel : ndarray
-        The gain channel selected for each pixel. Shape: (n_pixels,)
-    """
-    selected_gain_channel = gain_selector(r0_waveforms)
-    r1_waveforms = r1_waveforms[
-        np.newaxis,
-        selected_gain_channel,
-        _get_pixel_index(r0_waveforms.shape[-2]),
-    ]
     return r1_waveforms, selected_gain_channel
 
 
@@ -629,24 +605,10 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    override_obs_id = Int(
+    override_obs_id = Integer(
         default_value=None,
         allow_none=True,
-        help=(
-            "Use the given obs_id instead of the run number from sim_telarray."
-            " The original run number will be stored in the simulation configuration."
-        ),
-    ).tag(config=True)
-
-    obs_id_offset = Int(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Override the obs_id by adding an offset to the run number."
-            " This option is useful if a larger number of runs have overlapping run numbers."
-            " The original run number will be stored in the simulation configuration."
-            " override_obs_id will take precedence if both options are provided."
-        ),
+        help="Use the given obs_id instead of the run number from sim_telarray",
     ).tag(config=True)
 
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
@@ -831,7 +793,22 @@ class SimTelEventSource(EventSource):
                 n_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            focal_length = optics.get_focal_length(self.focal_length_choice)
+            if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
+                if np.isnan(effective_focal_length):
+                    raise RuntimeError(
+                        "`SimTelEventSource.focal_length_choice` was set to 'EFFECTIVE'"
+                        ", but the effective focal length was not present in the file."
+                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                        " input files contain the effective focal length"
+                    )
+                focal_length = effective_focal_length
+            elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
+                focal_length = equivalent_focal_length
+            else:
+                raise ValueError(
+                    f"Invalid focal length choice: {self.focal_length_choice}"
+                )
+
             camera = build_camera(
                 telescope_description,
                 telescope,
@@ -985,7 +962,6 @@ class SimTelEventSource(EventSource):
             data.meta["origin"] = "hessio"
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
-            data.meta["simtel_event"] = array_event
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
@@ -1084,30 +1060,29 @@ class SimTelEventSource(EventSource):
                 factor = array_event["laser_calibrations"][tel_id]["calib"]
                 disabled_pixel_mask = self._get_disabled_pixel_mask(tel_id)
 
-                if self.skip_r1_calibration:
-                    # Skip the simtel R1 calibration
-                    r1_waveform = adc_samples.astype(np.float32)
-                else:
-                    # Apply the simtel R1 calibration to get waveforms in units of photoelectrons (p.e.)
-                    r1_waveform = apply_simtel_r1_calibration(
-                        adc_samples,
-                        pedestal,
-                        factor,
-                        self.calib_scale,
-                        self.calib_shift,
-                    )
-                # Perform the gain selection if requested.
-                # By default, the cosmic events will be gain-selected, not for calibration events.
                 select_gain = self.select_gain is True or (
                     self.select_gain is None
                     and trigger.event_type is EventType.SUBARRAY
                 )
                 if select_gain:
-                    r1_waveform, selected_gain_channel = apply_gain_selection(
-                        adc_samples, r1_waveform, self.gain_selector
-                    )
+                    gain_selector = self.gain_selector
                 else:
+                    gain_selector = None
+
+                if self.skip_r1_calibration:
+                    # Skip the simtel R1 calibration
+                    r1_waveform = adc_samples.astype(np.float32)
                     selected_gain_channel = None
+                else:
+                    # Apply the simtel R1 calibration and the gain selector if selected
+                    r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
+                        adc_samples,
+                        pedestal,
+                        factor,
+                        gain_selector,
+                        self.calib_scale,
+                        self.calib_shift,
+                    )
 
                 pixel_status = self._get_r1_pixel_status(
                     tel_id=tel_id,
@@ -1323,20 +1298,14 @@ class SimTelEventSource(EventSource):
         simulation config is filled
         """
 
-        header = self.file_.header
-        az, alt = header["direction"]
+        az, alt = self.file_.header["direction"]
 
         # this event source always contains only a single OB, so we can
         # also assign a single obs_id
         if self.override_obs_id is not None:
             self.obs_id = self.override_obs_id
-        elif self.obs_id_offset is not None:
-            self.obs_id = self.obs_id_offset + header["run"]
         else:
-            self.obs_id = header["run"]
-
-        if self.obs_id != header["run"]:
-            self.log.info("Setting obs_id=%d for run=%d", self.obs_id, header["run"])
+            self.obs_id = self.file_.header["run"]
 
         # simulations at the moment do not have SBs, use OB id
         self.sb_id = self.obs_id
@@ -1360,8 +1329,8 @@ class SimTelEventSource(EventSource):
                 subarray_pointing_lat=alt * u.rad,
                 subarray_pointing_lon=az * u.rad,
                 subarray_pointing_frame=CoordinateFrameType.ALTAZ,
-                actual_start_time=Time(header["time"], format="unix"),
-                scheduled_start_time=Time(header["time"], format="unix"),
+                actual_start_time=Time(self.file_.header["time"], format="unix"),
+                scheduled_start_time=Time(self.file_.header["time"], format="unix"),
             )
         }
 

@@ -8,7 +8,7 @@ import numpy as np
 
 from ..compat import COPY_IF_NEEDED
 from ..core import Component
-from ..core.traits import AstroQuantity, Int
+from ..core.traits import AstroQuantity, Integer
 
 __all__ = [
     "ResultValidRange",
@@ -17,7 +17,6 @@ __all__ = [
     "DefaultTrueEnergyBins",
     "DefaultRecoEnergyBins",
     "DefaultFoVOffsetBins",
-    "DefaultFoVPhiBins",
 ]
 
 logger = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ class DefaultTrueEnergyBins(Component):
         physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_n_bins_per_decade = Int(
+    true_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
@@ -146,7 +145,7 @@ class DefaultRecoEnergyBins(Component):
         physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Int(
+    reco_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
@@ -175,42 +174,18 @@ class DefaultFoVOffsetBins(Component):
         physical_type=u.physical.angle,
     ).tag(config=True)
 
-    fov_offset_n_bins = Int(
+    fov_offset_n_bins = Integer(
         help="Number of FoV offset bins",
         default_value=1,
     ).tag(config=True)
 
-    @property
-    def fov_offset_bins(self):
-        return u.Quantity(
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.fov_offset_bins = u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
                 self.fov_offset_max.to_value(u.deg),
                 self.fov_offset_n_bins + 1,
-            ),
-            u.deg,
-        )
-
-
-class DefaultFoVPhiBins(Component):
-    """
-    Base class for creating IRFs with phi dependence.
-
-    The range is always assumed to be (0, 360) deg.
-    """
-
-    fov_phi_n_bins = Int(
-        help="Number of FoV offset bins",
-        default_value=4,
-    ).tag(config=True)
-
-    @property
-    def fov_phi_bins(self):
-        return u.Quantity(
-            np.linspace(
-                0.0 * u.deg,
-                360.0 * u.deg,
-                self.fov_phi_n_bins + 1,
             ),
             u.deg,
         )

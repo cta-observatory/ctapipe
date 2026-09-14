@@ -21,11 +21,7 @@ from .ground_frames import (
 from .impact_distance import impact_distance, shower_impact_distance
 from .nominal_frame import NominalFrame
 from .telescope_frame import TelescopeFrame
-from .utils import (
-    altaz_to_nominal,
-    altaz_to_righthanded_cartesian,
-    get_point_on_shower_axis,
-)
+from .utils import altaz_to_righthanded_cartesian, get_point_on_shower_axis
 
 __all__ = [
     "TelescopeFrame",
@@ -41,7 +37,6 @@ __all__ = [
     "impact_distance",
     "shower_impact_distance",
     "get_point_on_shower_axis",
-    "altaz_to_nominal",
 ]
 
 

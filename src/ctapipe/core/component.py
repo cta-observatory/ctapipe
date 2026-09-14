@@ -96,7 +96,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     configuration parameters (command-line, config file, etc). Note
     that any parameter that should be externally configurable must
     have its ``config`` attribute set to ``True``, e.g. defined like
-    ``myparam = Int(0, help='the parameter').tag(config=True)``.
+    ``myparam = Integer(0, help='the parameter').tag(config=True)``.
 
     All components also contain a ``Logger`` instance in their ``log``
     attribute, that you must use to output info, debugging data,
@@ -112,11 +112,11 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     .. code:: python
 
         from ctapipe.core import Component
-        from traitlets import (Int, Float)
+        from traitlets import (Integer, Float)
 
         class MyComponent(Component):
             \"\"\" Does something \"\"\"
-            some_option = Int(default_value=6,
+            some_option = Integer(default_value=6,
                                   help='a value to set').tag(config=True)
 
 
@@ -260,7 +260,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             docstring = publish_parts(clean_doc, writer=writer)["html_body"]
         lines = [
             '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',
-            f"<h3>{name}</h3>",
+            f"<b>{name}</b>",
             docstring,
             "<table>",
             "    <colgroup>",
@@ -292,12 +292,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 )
         lines.append("    </tbody>")
         lines.append("</table>")
-
-        for name, val in self.__dict__.items():
-            if isinstance(val, Component):
-                lines.append(f"<h4>{name}:</h4>")
-                lines.append(val._repr_html_())
-
         lines.append("</div>")
         return "\n".join(lines)
 

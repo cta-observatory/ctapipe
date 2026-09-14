@@ -6,12 +6,11 @@ import logging
 import warnings
 from contextlib import ExitStack
 
+import astropy
 import astropy.units as u
 import numpy as np
 import tables
-from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import Row, Table
-from astropy.time import Time
+from astropy.table import Row
 from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
@@ -23,7 +22,7 @@ from ..containers import (
     TelescopePointingContainer,
 )
 from ..core import Provenance
-from ..core.traits import AstroQuantity, List, Path
+from ..core.traits import List, Path
 from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
@@ -35,7 +34,7 @@ from .hdf5dataformat import (
 )
 from .metadata import read_reference_metadata
 from .monitoringsource import MonitoringSource
-from .monitoringtypes import TELESCOPE_SPECIFIC_MONITORING, MonitoringType
+from .monitoringtypes import MonitoringType
 
 __all__ = ["HDF5MonitoringSource", "get_hdf5_monitoring_types"]
 
@@ -150,11 +149,6 @@ class HDF5MonitoringSource(MonitoringSource):
         Path(exists=True, directory_ok=False),
         default_value=[],
         help="List of paths to the HDF5 input files containing monitoring data",
-    ).tag(config=True)
-
-    timestamp_tolerance = AstroQuantity(
-        default_value=1.0 * u.s,
-        help="Tolerance for timestamps outside monitoring validity ranges",
     ).tag(config=True)
 
     def __init__(self, subarray=None, config=None, parent=None, **kwargs):
@@ -342,6 +336,15 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def _process_telescope_pointings(self, file):
         """Process telescope pointing monitoring data."""
+        if self.is_simulation:
+            msg = (
+                "HDF5MonitoringSource: Telescope pointings are available, but will be ignored. "
+                f"The monitoring file '{file}' is from simulated data."
+            )
+            self.log.warning(msg)
+            warnings.warn(msg, UserWarning)
+            return
+
         from ..monitoring import PointingInterpolator
 
         # Instantiate the pointing interpolator
@@ -358,6 +361,18 @@ class HDF5MonitoringSource(MonitoringSource):
             self._pointing_interpolator.add_table(
                 tel_id, self._telescope_pointings[tel_id]
             )
+            # Instantiate the pointing interpolator
+            self._pointing_interpolator = PointingInterpolator()
+            # Read the pointing data from the file to have the telescope pointings as a property
+            for tel_id in self.subarray.tel_ids:
+                self._telescope_pointings[tel_id] = read_table(
+                    file,
+                    f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
+                )
+                # Register the table with the pointing interpolator
+                self._pointing_interpolator.add_table(
+                    tel_id, self._telescope_pointings[tel_id]
+                )
 
     @property
     def is_simulation(self):
@@ -403,165 +418,6 @@ class HDF5MonitoringSource(MonitoringSource):
     def telescope_pointings(self):
         return self._telescope_pointings
 
-    def get_table(
-        self,
-        monitoring_type: MonitoringType,
-        tel_id: int = None,
-        **kwargs,
-    ):
-        if monitoring_type not in self.monitoring_types:
-            raise KeyError(
-                f"Monitoring type {monitoring_type} not available in this source. "
-                f"Available types: {self.monitoring_types}"
-            )
-
-        if monitoring_type in TELESCOPE_SPECIFIC_MONITORING and tel_id is None:
-            raise TypeError(
-                f"tel_id is required for {monitoring_type.name} monitoring type"
-            )
-
-        if monitoring_type == MonitoringType.PIXEL_STATISTICS:
-            subtype = kwargs.get("subtype")
-            if subtype is None:
-                raise KeyError(
-                    "subtype parameter is required for PIXEL_STATISTICS. "
-                    f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-                )
-            if subtype not in self.pixel_stats_dict:
-                raise KeyError(
-                    f"Unknown subtype '{subtype}' for PIXEL_STATISTICS. "
-                    f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-                )
-            return self._pixel_statistics[tel_id][subtype]
-        elif monitoring_type == MonitoringType.CAMERA_COEFFICIENTS:
-            return self._camera_coefficients[tel_id]
-        elif monitoring_type == MonitoringType.TELESCOPE_POINTINGS:
-            return self._telescope_pointings[tel_id]
-
-    def _get_telescope_pointing_values(
-        self,
-        tel_id: int,
-        time: Time,
-    ):
-        """
-        Get telescope pointing values for a given telescope and time.
-
-        Parameters
-        ----------
-        tel_id : int
-            Telescope ID
-        time : astropy.time.Time
-            Target timestamp
-
-        Returns
-        -------
-        astropy.coordinates.SkyCoord
-            Sky coordinate with altitude and azimuth in AltAz frame
-        """
-        alt, az = self._pointing_interpolator(tel_id, time)
-        # Get individual telescope location for proper AltAz frame
-        location = self.subarray.tel_earth_locations[tel_id]
-        # This is a naive SkyCoord frame that requires meteorological data
-        # for proper transformations to the celestial coordinates.
-        return SkyCoord(
-            alt=alt,
-            az=az,
-            frame=AltAz(obstime=time, location=location),
-        )
-
-    def _get_camera_coefficients_values(self, tel_id: int, time: Time) -> dict:
-        """
-        Get camera coefficients values for a given telescope and time.
-
-        Parameters
-        ----------
-        tel_id : int
-            Telescope ID
-        time : astropy.time.Time
-            Target timestamp
-
-        Returns
-        -------
-        dict[str, astropy.units.Quantity | numpy.ndarray | bool]
-            Dictionary with camera coefficient data where keys are column names
-            (time, factor, pedestal_offset, time_shift, outlier_mask, is_valid)
-            and values are Quantity objects with appropriate units or arrays
-        """
-        # For simulation, use first entry if time is None
-        if self.is_simulation and time is None:
-            first_row = self._camera_coefficients[tel_id][0]
-            return dict(zip(first_row.colnames, first_row))
-        return self._get_table_rows(self._camera_coefficients[tel_id], time)
-
-    def _get_pixel_statistics_values(
-        self,
-        tel_id: int,
-        time: Time,
-        subtype: str | None,
-    ) -> dict:
-        """
-        Get pixel statistics values for a given telescope and time.
-
-        Parameters
-        ----------
-        tel_id : int
-            Telescope ID
-        time : astropy.time.Time
-            Target timestamp
-        subtype : str
-            Subtype of pixel statistics (e.g., 'pedestal_image', 'flatfield_image')
-
-        Returns
-        -------
-        dict[str, astropy.units.Quantity | numpy.ndarray]
-            Dictionary with pixel statistics data where keys are column names
-            (mean, median, std) and values are Quantity objects or arrays.
-        """
-        if subtype is None:
-            raise KeyError(
-                "subtype parameter is required for PIXEL_STATISTICS. "
-                f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-            )
-        if subtype not in self.pixel_stats_dict:
-            raise KeyError(
-                f"Unknown subtype '{subtype}' for PIXEL_STATISTICS. "
-                f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-            )
-        interpolator = self.pixel_stats_dict[subtype]
-        # For simulation, use first entry if time is None
-        if self.is_simulation and time is None:
-            time = Time(
-                self._pixel_statistics[tel_id][subtype]["time_start"][0],
-                format="mjd",
-            )
-        return interpolator(tel_id, time, self.timestamp_tolerance)
-
-    def get_values(
-        self,
-        monitoring_type: MonitoringType,
-        time: Time,
-        tel_id: int | None = None,
-        **kwargs,
-    ):
-        if monitoring_type not in self.monitoring_types:
-            raise KeyError(
-                f"Monitoring type {monitoring_type} not available in this source. "
-                f"Available types: {self.monitoring_types}"
-            )
-
-        if monitoring_type in TELESCOPE_SPECIFIC_MONITORING and tel_id is None:
-            raise TypeError(
-                f"tel_id is required for {monitoring_type.name} monitoring type"
-            )
-
-        if monitoring_type == MonitoringType.TELESCOPE_POINTINGS:
-            return self._get_telescope_pointing_values(tel_id, time)
-        elif monitoring_type == MonitoringType.CAMERA_COEFFICIENTS:
-            return self._get_camera_coefficients_values(tel_id, time)
-        elif monitoring_type == MonitoringType.PIXEL_STATISTICS:
-            subtype = kwargs.get("subtype")
-            return self._get_pixel_statistics_values(tel_id, time, subtype)
-
     def fill_monitoring_container(self, event: ArrayEventContainer):
         """
         Fill the monitoring container for a given event.
@@ -573,11 +429,16 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         # Fill the monitoring container for the event
         for tel_id in self.subarray.tel_ids:
-            time = None if self.is_simulation else event.trigger.time
-            event.monitoring.tel[tel_id].camera = self.get_camera_monitoring_container(
-                tel_id, time
-            )
-
+            if self.is_simulation:
+                event.monitoring.tel[
+                    tel_id
+                ].camera = self.get_camera_monitoring_container(tel_id)
+            else:
+                event.monitoring.tel[
+                    tel_id
+                ].camera = self.get_camera_monitoring_container(
+                    tel_id, event.trigger.time
+                )
             # Only overwrite the telescope pointings for observation data
             if self.has_pointings and not self.is_simulation:
                 event.monitoring.tel[
@@ -587,7 +448,7 @@ class HDF5MonitoringSource(MonitoringSource):
                 )
 
     def get_telescope_pointing_container(
-        self, tel_id: int, time: Time
+        self, tel_id: int, time: astropy.time.Time
     ) -> TelescopePointingContainer:
         """
         Get the telescope pointing container for a given telescope ID and time.
@@ -604,15 +465,14 @@ class HDF5MonitoringSource(MonitoringSource):
         TelescopePointingContainer
             The telescope pointing container.
         """
-        skycoord = self.get_values(
-            MonitoringType.TELESCOPE_POINTINGS, time=time, tel_id=tel_id
-        )
-        return TelescopePointingContainer(altitude=skycoord.alt, azimuth=skycoord.az)
+        alt, az = self._pointing_interpolator(tel_id, time)
+        return TelescopePointingContainer(altitude=alt, azimuth=az)
 
     def get_camera_monitoring_container(
         self,
         tel_id: int,
-        time: Time = None,
+        time: astropy.time.Time = None,
+        timestamp_tolerance: u.Quantity = 0.0 * u.s,
     ) -> CameraMonitoringContainer:
         """
         Retrieve the camera monitoring container with interpolated data.
@@ -626,6 +486,8 @@ class HDF5MonitoringSource(MonitoringSource):
             timestamp(s) are required to interpolate the monitoring data of observation.
             For monitoring data of simulation, the first entry of the monitoring data is typically
             used if no timestamp is provided.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference to consider two timestamps equal. Default is 0 seconds.
 
         Returns
         -------
@@ -650,26 +512,30 @@ class HDF5MonitoringSource(MonitoringSource):
         if self.has_pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
             pixel_stats_container = PixelStatisticsContainer()
-            for name in self.pixel_stats_dict.keys():
-                stats_data = self.get_values(
-                    MonitoringType.PIXEL_STATISTICS,
-                    time=time,
-                    tel_id=tel_id,
-                    subtype=name,
-                )
+            for name, interpolator in self.pixel_stats_dict.items():
+                # Skip if no interpolator is available
+                # Set the timestamp to the first entry if it is not provided
+                # and monitoring is from simulation.
+                if self.is_simulation and time is None:
+                    time = self._pixel_statistics[tel_id][name]["time_start"][0]
+
+                stats_data = interpolator(tel_id, time, timestamp_tolerance)
                 # Map any pedestal name to the container field name (unique for pedestal)
-                container_name = "pedestal_image" if "pedestal_image" in name else name
-                pixel_stats_container[container_name] = StatisticsContainer(
+                if "pedestal_image" in name:
+                    name = "pedestal_image"
+                pixel_stats_container[name] = StatisticsContainer(
                     mean=stats_data["mean"],
                     median=stats_data["median"],
                     std=stats_data["std"],
                 )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if self.has_camera_coefficients:
-            table_rows = self.get_values(
-                MonitoringType.CAMERA_COEFFICIENTS,
-                time=time,
-                tel_id=tel_id,
+            # Set the timestamp to the first entry if it is not provided
+            # and monitoring is from simulation.
+            if self.is_simulation and time is None:
+                time = self._camera_coefficients[tel_id]["time"][0]
+            table_rows = self._get_table_rows(
+                self._camera_coefficients[tel_id], time, timestamp_tolerance
             )
             cam_mon_container["coefficients"] = CameraCalibrationContainer(
                 time=table_rows["time"],
@@ -681,7 +547,12 @@ class HDF5MonitoringSource(MonitoringSource):
             )
         return cam_mon_container
 
-    def _get_table_rows(self, table: Table, time: Time) -> dict:
+    def _get_table_rows(
+        self,
+        table: astropy.table.Table,
+        time: astropy.time.Time,
+        timestamp_tolerance: u.Quantity = 0.0 * u.s,
+    ) -> dict:
         """
         Retrieve the rows of the table that corresponds to the target time.
 
@@ -691,19 +562,20 @@ class HDF5MonitoringSource(MonitoringSource):
             Target timestamp(s) to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
+        timestamp_tolerance : astropy.units.Quantity
+            Time difference in seconds to consider two timestamps equal. Default is 0s.
 
         Returns
         -------
-        table_rows : dict[str, astropy.units.Quantity | numpy.ndarray | Any]
-            Dictionary containing the column names of the original input table as keys and
-            the corresponding data (with units preserved as Quantity objects) for the
-            requested time(s) as values.
+        table_rows : dict
+            Dictionary containing the column of the original input table as keys and
+            the corresponding data for the requested time(s) as values.
         """
 
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         table_times = table["time"]
         # Convert timestamp tolerance to MJD days
-        tolerance_mjd = self.timestamp_tolerance.to_value("day")
+        tolerance_mjd = timestamp_tolerance.to_value("day")
         # Find the index of the closest preceding start time
         preceding_indices = np.searchsorted(table_times, mjd_times, side="right") - 1
 
@@ -717,7 +589,7 @@ class HDF5MonitoringSource(MonitoringSource):
                         f"Out of bounds: Requested timestamp '{mjd} MJD' is before the "
                         f"validity start '{table['time'][0]} MJD' (first entry in the table). "
                         f"Please provide a timestamp within the validity range or increase "
-                        f"the 'timestamp_tolerance' (currently set to '{self.timestamp_tolerance}')."
+                        f"the 'timestamp_tolerance' (currently set to '{timestamp_tolerance}')."
                     )
                 else:
                     # Use the first chunk since it's within tolerance

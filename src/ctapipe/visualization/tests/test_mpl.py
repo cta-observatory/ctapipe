@@ -326,7 +326,7 @@ def test_picker(prod5_lst_cam):
     disp = PickingCameraDisplay(geom, ax=ax)
     disp.enable_pixel_picker()
 
-    fig.canvas.draw_idle()
+    fig.canvas.draw()
 
     # emulate someone clicking the central pixel
     event = MouseEvent(

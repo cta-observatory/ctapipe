@@ -11,7 +11,6 @@ from astropy.utils.decorators import lazyproperty
 from ..atmosphere import AtmosphereDensityProfile
 from ..containers import (
     ArrayEventContainer,
-    CameraCalibrationContainer,
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
@@ -31,7 +30,6 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
-    PixelStatus,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -108,9 +106,6 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.1.0",
     "v7.2.0",
     "v7.3.0",
-    "v7.4.0",
-    "v7.5.0",
-    "v7.6.0",
 ]
 
 
@@ -353,9 +348,7 @@ class HDF5EventSource(EventSource):
             # we can now read both R1 and DL1
             has_muons = DL1_TEL_MUON_GROUP in f.root
             has_sim = SIMULATION_TEL_TABLE in f.root
-            has_trigger = (DL1_SUBARRAY_TRIGGER_TABLE in f) or (
-                DL1_TEL_TRIGGER_TABLE in f
-            )
+            has_trigger = SIMULATION_TEL_TABLE in f.root
 
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
             datalevels = (
@@ -940,32 +933,15 @@ class HDF5EventSource(EventSource):
         if DataLevel.R1 not in self.datalevels:
             return
 
-        r1 = next(waveform_readers[key])
+        data.r1.tel[tel_id] = next(waveform_readers[key])
 
-        if r1.waveform.ndim == 2:
+        r1_waveform = data.r1.tel[tel_id].waveform
+        if r1_waveform.ndim == 2:
             warnings.warn(
                 "Support for datamodel version <6.0.0 will be removed in a future release.",
                 CTAPipeDeprecationWarning,
             )
-            r1.waveform = r1.waveform[np.newaxis, ...]
-
-        data.r1.tel[tel_id] = r1
-        # fill calibration outlier_mask initially from pixel status
-
-        n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
-        disabled_pixels = np.zeros((n_channels, len(r1.pixel_status)), dtype=bool)
-
-        if n_channels == 2:
-            high_gain = np.uint8(PixelStatus.HIGH_GAIN_STORED)
-            low_gain = np.uint8(PixelStatus.LOW_GAIN_STORED)
-            disabled_pixels[0] = ~((r1.pixel_status & high_gain).astype(bool))
-            disabled_pixels[1] = ~((r1.pixel_status & low_gain).astype(bool))
-        else:
-            disabled_pixels[0] = PixelStatus.get_channel_info(r1.pixel_status) == 0
-
-        data.monitoring.tel[tel_id].camera.coefficients = CameraCalibrationContainer(
-            outlier_mask=disabled_pixels,
-        )
+            data.r1.tel[tel_id].waveform = r1_waveform[np.newaxis, ...]
 
     def _fill_images_for_tel(
         self,
