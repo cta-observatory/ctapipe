@@ -20,7 +20,7 @@ from ..io import (
     DataWriter,
     EventSource,
     MonitoringSource,
-    MonitoringType,
+    TelescopeMonitoringType,
     metadata,
     write_table,
 )
@@ -40,9 +40,9 @@ COMPATIBLE_DATALEVELS = [
 ]
 
 COMPATIBLE_MONITORINGTYPES = [
-    MonitoringType.PIXEL_STATISTICS,
-    MonitoringType.CAMERA_COEFFICIENTS,
-    MonitoringType.TELESCOPE_POINTINGS,
+    TelescopeMonitoringType.PIXEL_STATISTICS,
+    TelescopeMonitoringType.CAMERA_COEFFICIENTS,
+    TelescopeMonitoringType.TELESCOPE_POINTINGS,
 ]
 
 
@@ -225,11 +225,16 @@ class ProcessorTool(Tool):
                 )
             )
             # Check if monitoring source has compatible monitoring types
-            if not mon_source.has_any_monitoring_types(COMPATIBLE_MONITORINGTYPES):
+            available_types = {
+                monitoring_type
+                for data in mon_source.available_telescope_data.values()
+                for monitoring_type, _ in data
+            }
+            if not available_types.intersection(COMPATIBLE_MONITORINGTYPES):
                 msg = (
                     f"'{mon_source_name}' needs the MonitoringSource to provide at least "
                     f"one of these monitoring types: {COMPATIBLE_MONITORINGTYPES}, "
-                    f"{mon_source_name} provides only '{mon_source.monitoring_types}'. "
+                    f"{mon_source_name} provides only '{mon_source.available_telescope_data}'. "
                     f"Please make sure the '{mon_source_name}' and its input "
                     f"are suitable for calibrating the data you are processing."
                 )

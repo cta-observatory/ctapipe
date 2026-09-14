@@ -31,11 +31,10 @@ from .hdf5dataformat import (
     DL0_TEL_POINTING_GROUP,
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
-    DL1_TEL_CALIBRATION_GROUP,
 )
 from .metadata import read_reference_metadata
-from .monitoringsource import MonitoringSource
-from .monitoringtypes import TELESCOPE_SPECIFIC_MONITORING, MonitoringType
+from .monitoringsource import AvailableTypes, MonitoringSource
+from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 
 __all__ = ["HDF5MonitoringSource", "get_hdf5_monitoring_types"]
 
@@ -44,42 +43,44 @@ logger = logging.getLogger(__name__)
 
 def get_hdf5_monitoring_types(
     h5file: tables.File | str | Path,
-) -> tuple[MonitoringType]:
-    """Get the monitoring types present in the hdf5 file"""
+) -> tuple[
+    AvailableTypes, dict[int, tuple[tuple[TelescopeMonitoringType, str | None], ...]]
+]:
+    """Return array-wide and per-telescope (type, subtype) availability.
 
+    Currently only telescope monitoring tables are supported, so the array-wide
+    availability is empty. Pixel statistics subtypes use their HDF5 group names.
+    """
+    telescope_data = {}
+    groups = (
+        (TelescopeMonitoringType.PIXEL_STATISTICS, DL1_PIXEL_STATISTICS_GROUP),
+        (TelescopeMonitoringType.CAMERA_COEFFICIENTS, DL1_CAMERA_COEFFICIENTS_GROUP),
+        (TelescopeMonitoringType.TELESCOPE_POINTINGS, DL0_TEL_POINTING_GROUP),
+    )
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
-        try:
-            calibration_group = h5file.get_node(DL1_TEL_CALIBRATION_GROUP)
-            # Iterate over enum values of MonitoringType
-            monitoring_types = [
-                monitoring_type
-                for monitoring_type in [
-                    MonitoringType.PIXEL_STATISTICS,
-                    MonitoringType.CAMERA_COEFFICIENTS,
-                ]
-                if monitoring_type.value in calibration_group
-            ]
-            # TODO: Simplify once backwards compatibility is not needed anymore
-            # Check for telescope pointing
-            if DL0_TEL_POINTING_GROUP in h5file.root:
-                monitoring_types.append(MonitoringType.TELESCOPE_POINTINGS)
-
-        except (KeyError, tables.NoSuchNodeError):
-            # TODO: Simplify once backwards compatibility is not needed anymore
-            # Check for telescope pointing
-            if DL0_TEL_POINTING_GROUP in h5file.root:
-                monitoring_types = [MonitoringType.TELESCOPE_POINTINGS]
-            else:
-                # Return empty tuple if calibration group doesn't exist
-                warnings.warn(
-                    f"No monitoring types found in '{h5file.filename}'.", UserWarning
+        for monitoring_type, path in groups:
+            if path not in h5file:
+                continue
+            for table in h5file.walk_nodes(path, classname="Table"):
+                if not table.name.startswith("tel_"):
+                    continue
+                tel_id = int(table.name.removeprefix("tel_"))
+                subtype = (
+                    table._v_parent._v_name
+                    if monitoring_type == TelescopeMonitoringType.PIXEL_STATISTICS
+                    else None
                 )
-                monitoring_types = []
+                telescope_data.setdefault(tel_id, []).append((monitoring_type, subtype))
 
-    return tuple(monitoring_types)
+        if not telescope_data:
+            warnings.warn(
+                f"No monitoring types found in '{h5file.filename}'.", UserWarning
+            )
+
+    return (), {tel_id: tuple(data) for tel_id, data in telescope_data.items()}
 
 
 class HDF5MonitoringSource(MonitoringSource):
@@ -191,7 +192,9 @@ class HDF5MonitoringSource(MonitoringSource):
             )
 
         # Initialize attributes
-        self._monitoring_types = set()
+        self._available_telescope_data = {}
+        self._pixel_stats = {}
+        self._pointing_interpolator = None
         self._is_simulation = None
         self._camera_coefficients = {}
         self._pixel_statistics = {}
@@ -252,81 +255,71 @@ class HDF5MonitoringSource(MonitoringSource):
                         f"current file has it set to {file_is_simulation}."
                     )
 
-            # Get monitoring types from the file
-            file_monitoring_types = get_hdf5_monitoring_types(open_file)
-            # Check for overlapping monitoring types
-            overlapping_types = set(file_monitoring_types) & self._monitoring_types
-            if overlapping_types:
-                overlapping_names = [mt.name for mt in overlapping_types]
-                msg = (
-                    f"File '{file}' contains monitoring types {overlapping_names} "
-                    f"that are already present in previously processed files. "
-                    f"This may indicate duplicate or overlapping monitoring data."
+            _, telescope_data = get_hdf5_monitoring_types(open_file)
+            telescope_data = {
+                tel_id: data
+                for tel_id, data in telescope_data.items()
+                if tel_id in self.subarray.tel
+            }
+            for tel_id, data in telescope_data.items():
+                available = self._available_telescope_data.get(tel_id, ())
+                overlapping = set(data).intersection(available)
+                if overlapping:
+                    msg = (
+                        f"File '{file}' contains monitoring data {overlapping} for "
+                        f"telescope {tel_id} that are already present in previously "
+                        "processed files. This may indicate duplicate or overlapping "
+                        "monitoring data."
+                    )
+                    self.log.warning(msg)
+                    warnings.warn(msg, UserWarning)
+                self._available_telescope_data[tel_id] = tuple(
+                    dict.fromkeys((*available, *data))
                 )
-                self.log.warning(msg)
-                warnings.warn(msg, UserWarning)
-            # Update monitoring types
-            self._monitoring_types.update(file_monitoring_types)
 
-        # Process each monitoring type
-        if MonitoringType.PIXEL_STATISTICS in file_monitoring_types:
-            self._process_pixel_statistics(file)
+        self._process_pixel_statistics(file, telescope_data)
+        self._process_camera_coefficients(file, telescope_data)
+        self._process_telescope_pointings(file, telescope_data)
 
-        if MonitoringType.CAMERA_COEFFICIENTS in file_monitoring_types:
-            self._process_camera_coefficients(file)
-
-        if MonitoringType.TELESCOPE_POINTINGS in file_monitoring_types:
-            self._process_telescope_pointings(file)
-
-    def _process_pixel_statistics(self, file):
-        """Process pixel statistics monitoring data."""
+    def _process_pixel_statistics(self, file, telescope_data):
+        """Process the pixel statistics available for each telescope in this file."""
         from ..monitoring import (
             FlatfieldImageInterpolator,
             FlatfieldPeakTimeInterpolator,
             PedestalImageInterpolator,
         )
 
-        # Open the file to check for the existence of pixel statistics tables
-        with tables.open_file(file, mode="r") as h5file:
-            # Iterate over pixel statistics tables to check for their existence
-            self.pixel_stats_dict = {}
-            for group in h5file.walk_groups(DL1_PIXEL_STATISTICS_GROUP):
-                # Skip the parent group itself
-                if group._v_pathname == DL1_PIXEL_STATISTICS_GROUP:
+        for tel_id, data in telescope_data.items():
+            for monitoring_type, name in data:
+                if monitoring_type != TelescopeMonitoringType.PIXEL_STATISTICS:
                     continue
-                # Instantiate the appropriate interpolator based on the table name
-                name = group._v_name
-                if "pedestal_image" in name:
-                    self.pixel_stats_dict[name] = PedestalImageInterpolator()
-                elif "flatfield_image" in name:
-                    self.pixel_stats_dict[name] = FlatfieldImageInterpolator()
-                elif "flatfield_peak_time" in name:
-                    self.pixel_stats_dict[name] = FlatfieldPeakTimeInterpolator()
+                if name not in self._pixel_stats:
+                    if "pedestal_image" in name:
+                        interpolator = PedestalImageInterpolator()
+                    elif name == "flatfield_image":
+                        interpolator = FlatfieldImageInterpolator()
+                    elif name == "flatfield_peak_time":
+                        interpolator = FlatfieldPeakTimeInterpolator()
+                    else:
+                        raise ValueError(
+                            f"Unsupported pixel statistics subtype '{name}'"
+                        )
+                    self._pixel_stats[name] = interpolator
 
-        # Process the tables and interpolate the data
-        for tel_id in self.subarray.tel_ids:
-            self._pixel_statistics[tel_id] = {}
-
-            for name, interpolator in self.pixel_stats_dict.items():
-                # Read the tables from the monitoring file
-                self._pixel_statistics[tel_id][name] = read_table(
-                    file,
-                    f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}",
+                table = read_table(
+                    file, f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}"
                 )
+                for col in ("mean", "median", "std"):
+                    table[col][table["outlier_mask"].data] = np.nan
+                self._pixel_statistics.setdefault(tel_id, {})[name] = table
+                self._pixel_stats[name].add_table(tel_id, table)
 
-                # Set outliers to NaNs
-                for col in ["mean", "median", "std"]:
-                    self._pixel_statistics[tel_id][name][col][
-                        self._pixel_statistics[tel_id][name]["outlier_mask"].data
-                    ] = np.nan
-
-                # Register the table with the interpolator
-                interpolator.add_table(tel_id, self._pixel_statistics[tel_id][name])
-
-    def _process_camera_coefficients(self, file):
+    def _process_camera_coefficients(self, file, telescope_data):
         """Process camera coefficients monitoring data."""
         # Read the tables from the monitoring file
-        for tel_id in self.subarray.tel_ids:
+        for tel_id, data in telescope_data.items():
+            if (TelescopeMonitoringType.CAMERA_COEFFICIENTS, None) not in data:
+                continue
             self._camera_coefficients[tel_id] = read_table(
                 file,
                 f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
@@ -340,15 +333,18 @@ class HDF5MonitoringSource(MonitoringSource):
             # Add index for the retrieval later on
             self._camera_coefficients[tel_id].add_index("time")
 
-    def _process_telescope_pointings(self, file):
+    def _process_telescope_pointings(self, file, telescope_data):
         """Process telescope pointing monitoring data."""
         from ..monitoring import PointingInterpolator
 
         # Instantiate the pointing interpolator
-        self._pointing_interpolator = PointingInterpolator()
+        if self._pointing_interpolator is None:
+            self._pointing_interpolator = PointingInterpolator()
 
         # Read the pointing data from the file
-        for tel_id in self.subarray.tel_ids:
+        for tel_id, data in telescope_data.items():
+            if (TelescopeMonitoringType.TELESCOPE_POINTINGS, None) not in data:
+                continue
             self._telescope_pointings[tel_id] = read_table(
                 file,
                 f"{DL0_TEL_POINTING_GROUP}/tel_{tel_id:03d}",
@@ -366,30 +362,36 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         return self._is_simulation
 
-    @lazyproperty
-    def monitoring_types(self):
-        return self._monitoring_types
+    @property
+    def available_data(self) -> AvailableTypes:
+        return ()
+
+    @property
+    def available_telescope_data(
+        self,
+    ) -> dict[int, tuple[tuple[TelescopeMonitoringType, str | None], ...]]:
+        return self._available_telescope_data.copy()
 
     @lazyproperty
     def has_pixel_statistics(self):
         """
         True for files that contain pixel statistics
         """
-        return MonitoringType.PIXEL_STATISTICS in self.monitoring_types
+        return bool(self._pixel_statistics)
 
     @lazyproperty
     def has_camera_coefficients(self):
         """
         True for files that contain camera calibration coefficients
         """
-        return MonitoringType.CAMERA_COEFFICIENTS in self.monitoring_types
+        return bool(self._camera_coefficients)
 
     @lazyproperty
     def has_pointings(self):
         """
         True for files that contain pointing information
         """
-        return MonitoringType.TELESCOPE_POINTINGS in self.monitoring_types
+        return bool(self._telescope_pointings)
 
     @property
     def camera_coefficients(self):
@@ -404,38 +406,49 @@ class HDF5MonitoringSource(MonitoringSource):
         return self._telescope_pointings
 
     def get_table(
-        self,
-        monitoring_type: MonitoringType,
-        tel_id: int = None,
-        **kwargs,
+        self, monitoring_type: MonitoringType, subtype: str | None = None
+    ) -> Table:
+        raise KeyError(
+            f"Monitoring data {(monitoring_type, subtype)} not available in this source."
+        )
+
+    def get_values(
+        self, time: Time, monitoring_type: MonitoringType, subtype: str | None = None
     ):
-        if monitoring_type not in self.monitoring_types:
-            raise KeyError(
-                f"Monitoring type {monitoring_type} not available in this source. "
-                f"Available types: {self.monitoring_types}"
-            )
+        raise KeyError(
+            f"Monitoring data {(monitoring_type, subtype)} not available in this source."
+        )
 
-        if monitoring_type in TELESCOPE_SPECIFIC_MONITORING and tel_id is None:
-            raise TypeError(
-                f"tel_id is required for {monitoring_type.name} monitoring type"
-            )
+    def _check_telescope_data(self, tel_id, monitoring_type, subtype):
+        available = self._available_telescope_data.get(tel_id, ())
+        if (monitoring_type, subtype) in available:
+            return
+        if monitoring_type == TelescopeMonitoringType.PIXEL_STATISTICS:
+            subtypes = [name for kind, name in available if kind == monitoring_type]
+            if subtypes:
+                message = (
+                    "subtype parameter is required for PIXEL_STATISTICS."
+                    if subtype is None
+                    else f"Unknown subtype '{subtype}' for PIXEL_STATISTICS."
+                )
+                raise KeyError(f"{message} Available subtypes: {subtypes}")
+        raise KeyError(
+            f"Monitoring data {(monitoring_type, subtype)} not available for telescope "
+            f"{tel_id}. Available data: {available}"
+        )
 
-        if monitoring_type == MonitoringType.PIXEL_STATISTICS:
-            subtype = kwargs.get("subtype")
-            if subtype is None:
-                raise KeyError(
-                    "subtype parameter is required for PIXEL_STATISTICS. "
-                    f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-                )
-            if subtype not in self.pixel_stats_dict:
-                raise KeyError(
-                    f"Unknown subtype '{subtype}' for PIXEL_STATISTICS. "
-                    f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-                )
+    def get_telescope_table(
+        self,
+        tel_id: int,
+        monitoring_type: TelescopeMonitoringType,
+        subtype: str | None = None,
+    ) -> Table:
+        self._check_telescope_data(tel_id, monitoring_type, subtype)
+        if monitoring_type == TelescopeMonitoringType.PIXEL_STATISTICS:
             return self._pixel_statistics[tel_id][subtype]
-        elif monitoring_type == MonitoringType.CAMERA_COEFFICIENTS:
+        elif monitoring_type == TelescopeMonitoringType.CAMERA_COEFFICIENTS:
             return self._camera_coefficients[tel_id]
-        elif monitoring_type == MonitoringType.TELESCOPE_POINTINGS:
+        elif monitoring_type == TelescopeMonitoringType.TELESCOPE_POINTINGS:
             return self._telescope_pointings[tel_id]
 
     def _get_telescope_pointing_values(
@@ -517,17 +530,7 @@ class HDF5MonitoringSource(MonitoringSource):
             Dictionary with pixel statistics data where keys are column names
             (mean, median, std) and values are Quantity objects or arrays.
         """
-        if subtype is None:
-            raise KeyError(
-                "subtype parameter is required for PIXEL_STATISTICS. "
-                f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-            )
-        if subtype not in self.pixel_stats_dict:
-            raise KeyError(
-                f"Unknown subtype '{subtype}' for PIXEL_STATISTICS. "
-                f"Available subtypes: {list(self.pixel_stats_dict.keys())}"
-            )
-        interpolator = self.pixel_stats_dict[subtype]
+        interpolator = self._pixel_stats[subtype]
         # For simulation, use first entry if time is None
         if self.is_simulation and time is None:
             time = Time(
@@ -536,30 +539,19 @@ class HDF5MonitoringSource(MonitoringSource):
             )
         return interpolator(tel_id, time, self.timestamp_tolerance)
 
-    def get_values(
+    def get_telescope_values(
         self,
-        monitoring_type: MonitoringType,
+        tel_id: int,
         time: Time,
-        tel_id: int | None = None,
-        **kwargs,
+        monitoring_type: TelescopeMonitoringType,
+        subtype: str | None = None,
     ):
-        if monitoring_type not in self.monitoring_types:
-            raise KeyError(
-                f"Monitoring type {monitoring_type} not available in this source. "
-                f"Available types: {self.monitoring_types}"
-            )
-
-        if monitoring_type in TELESCOPE_SPECIFIC_MONITORING and tel_id is None:
-            raise TypeError(
-                f"tel_id is required for {monitoring_type.name} monitoring type"
-            )
-
-        if monitoring_type == MonitoringType.TELESCOPE_POINTINGS:
+        self._check_telescope_data(tel_id, monitoring_type, subtype)
+        if monitoring_type == TelescopeMonitoringType.TELESCOPE_POINTINGS:
             return self._get_telescope_pointing_values(tel_id, time)
-        elif monitoring_type == MonitoringType.CAMERA_COEFFICIENTS:
+        elif monitoring_type == TelescopeMonitoringType.CAMERA_COEFFICIENTS:
             return self._get_camera_coefficients_values(tel_id, time)
-        elif monitoring_type == MonitoringType.PIXEL_STATISTICS:
-            subtype = kwargs.get("subtype")
+        elif monitoring_type == TelescopeMonitoringType.PIXEL_STATISTICS:
             return self._get_pixel_statistics_values(tel_id, time, subtype)
 
     def fill_monitoring_container(self, event: ArrayEventContainer):
@@ -579,7 +571,7 @@ class HDF5MonitoringSource(MonitoringSource):
             )
 
             # Only overwrite the telescope pointings for observation data
-            if self.has_pointings and not self.is_simulation:
+            if tel_id in self._telescope_pointings and not self.is_simulation:
                 event.monitoring.tel[
                     tel_id
                 ].pointing = self.get_telescope_pointing_container(
@@ -604,8 +596,8 @@ class HDF5MonitoringSource(MonitoringSource):
         TelescopePointingContainer
             The telescope pointing container.
         """
-        skycoord = self.get_values(
-            MonitoringType.TELESCOPE_POINTINGS, time=time, tel_id=tel_id
+        skycoord = self.get_telescope_values(
+            tel_id, time, TelescopeMonitoringType.TELESCOPE_POINTINGS
         )
         return TelescopePointingContainer(altitude=skycoord.alt, azimuth=skycoord.az)
 
@@ -647,14 +639,14 @@ class HDF5MonitoringSource(MonitoringSource):
             warnings.warn(msg, UserWarning)
 
         cam_mon_container = CameraMonitoringContainer()
-        if self.has_pixel_statistics:
+        if tel_id in self._pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
             pixel_stats_container = PixelStatisticsContainer()
-            for name in self.pixel_stats_dict.keys():
-                stats_data = self.get_values(
-                    MonitoringType.PIXEL_STATISTICS,
-                    time=time,
-                    tel_id=tel_id,
+            for name in self._pixel_statistics[tel_id]:
+                stats_data = self.get_telescope_values(
+                    tel_id,
+                    time,
+                    TelescopeMonitoringType.PIXEL_STATISTICS,
                     subtype=name,
                 )
                 # Map any pedestal name to the container field name (unique for pedestal)
@@ -665,11 +657,11 @@ class HDF5MonitoringSource(MonitoringSource):
                     std=stats_data["std"],
                 )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
-        if self.has_camera_coefficients:
-            table_rows = self.get_values(
-                MonitoringType.CAMERA_COEFFICIENTS,
-                time=time,
-                tel_id=tel_id,
+        if tel_id in self._camera_coefficients:
+            table_rows = self.get_telescope_values(
+                tel_id,
+                time,
+                TelescopeMonitoringType.CAMERA_COEFFICIENTS,
             )
             cam_mon_container["coefficients"] = CameraCalibrationContainer(
                 time=table_rows["time"],
