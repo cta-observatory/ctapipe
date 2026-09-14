@@ -109,6 +109,10 @@ class WaveformModel:
             Sample width of the waveform
 
         """
+        print("class WaveformModel")
+        print("type                      = ", type(reference_pulse))
+        print("reference_pulse.shape[-2] = ", reference_pulse.shape[-2])
+        print("reference_pulse.shape     = ", reference_pulse.shape)
         self.n_channels = reference_pulse.shape[-2]
         self.upsampling = 10
         reference_pulse_sample_width = reference_pulse_sample_width.to_value(u.ns)
