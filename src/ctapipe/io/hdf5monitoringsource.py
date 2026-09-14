@@ -15,6 +15,7 @@ from astropy.time import Time
 from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
+    PEDESTAL_EVENT_TYPES,
     ArrayEventContainer,
     CameraCalibrationContainer,
     CameraMonitoringContainer,
@@ -289,21 +290,26 @@ class HDF5MonitoringSource(MonitoringSource):
             PedestalImageInterpolator,
         )
 
+        _interpolators = {
+            "flatfield_image": FlatfieldImageInterpolator,
+            "flatfield_peak_time": FlatfieldPeakTimeInterpolator,
+        }
+        for event_type in PEDESTAL_EVENT_TYPES:
+            _interpolators[f"{event_type.name.lower()}_image"] = (
+                PedestalImageInterpolator
+            )
+
         for tel_id, data in telescope_data.items():
             for monitoring_type, name in data:
                 if monitoring_type != TelescopeMonitoringType.PIXEL_STATISTICS:
                     continue
+
                 if name not in self._pixel_stats:
-                    if "pedestal_image" in name:
-                        interpolator = PedestalImageInterpolator()
-                    elif name == "flatfield_image":
-                        interpolator = FlatfieldImageInterpolator()
-                    elif name == "flatfield_peak_time":
-                        interpolator = FlatfieldPeakTimeInterpolator()
-                    else:
-                        raise ValueError(
-                            f"Unsupported pixel statistics subtype '{name}'"
-                        )
+                    try:
+                        interpolator = _interpolators[name](parent=self)
+                    except KeyError:
+                        msg = f"Unsupported pixel statistics subtype '{name}'"
+                        raise ValueError(msg) from None
                     self._pixel_stats[name] = interpolator
 
                 table = read_table(
