@@ -23,7 +23,7 @@ from erfa import ErfaWarning
 
 from .download import download_cached
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 __all__ = ["get_star_catalog", "get_bright_stars", "StarCatalog", "CatalogInfo"]
 

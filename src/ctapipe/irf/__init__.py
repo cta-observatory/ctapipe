@@ -18,11 +18,6 @@ from .binning import (
     check_bins_in_range,
     make_bins_per_decade,
 )
-from .event_weighter import (
-    EventWeighter,
-    RadialEventWeighter,
-    SimpleEventWeighter,
-)
 from .irfs import (
     BackgroundRate2dMaker,
     EffectiveArea2dMaker,
@@ -33,18 +28,10 @@ from .optimize import (
     GhPercentileCutCalculator,
     OptimizationResult,
     PercentileCuts,
-    PointSourceSensitivityGhOptimizer,
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
-from .spectra import (
-    ENERGY_FLUX_UNIT,
-    FLUX_UNIT,
-    SPECTRA,
-    Spectra,
-    spectrum_from_name,
-    spectrum_from_simulation_config,
-)
+from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
 
 __all__ = [
     "AngularResolution2dMaker",
@@ -56,7 +43,6 @@ __all__ = [
     "EffectiveArea2dMaker",
     "ResultValidRange",
     "OptimizationResult",
-    "PointSourceSensitivityGhOptimizer",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
     "Spectra",
@@ -67,9 +53,4 @@ __all__ = [
     "FLUX_UNIT",
     "check_bins_in_range",
     "make_bins_per_decade",
-    "EventWeighter",
-    "RadialEventWeighter",
-    "SimpleEventWeighter",
-    "spectrum_from_simulation_config",
-    "spectrum_from_name",
 ]

@@ -1,7 +1,3 @@
-import pytest
-
-
-@pytest.mark.vizier
 def test_export_astropy_cache(tmp_path):
     from ctapipe.tools.store_astropy_cache import main
 

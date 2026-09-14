@@ -18,7 +18,7 @@ from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
-from ..core.traits import AstroQuantity, Bool, Int, classes_with_traits, flag
+from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..io.dl2_tables_preprocessing import (
     DL2EventLoader,
     DL2EventQualityQuery,
@@ -110,7 +110,7 @@ class IrfTool(Tool):
         help="Name of the spectrum used for weights of electron events.",
     ).tag(config=True)
 
-    chunk_size = Int(
+    chunk_size = Integer(
         default_value=100000,
         allow_none=True,
         help="How many subarray events to load at once while selecting.",
@@ -355,10 +355,6 @@ class IrfTool(Tool):
             self.opt_result.gh_cuts,
             operator.ge,
         )
-        reduced_events["gammas"]["selected"] = reduced_events["gammas"]["selected_gh"]
-        reduced_events["gammas"]["selected_gh_multiplicity"] = reduced_events["gammas"][
-            "selected_gh"
-        ]
         if self.spatial_selection_applied:
             reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
                 reduced_events["gammas"]["theta"],
@@ -366,23 +362,14 @@ class IrfTool(Tool):
                 self.opt_result.spatial_selection_table,
                 operator.le,
             )
-            reduced_events["gammas"]["selected"] &= reduced_events["gammas"][
-                "selected_theta"
-            ]
-
-        if self.opt_result.multiplicity_cuts is not None:
-            reduced_events["gammas"]["selected_multiplicity"] = evaluate_binned_cut(
-                reduced_events["gammas"]["multiplicity"],
-                reduced_events["gammas"]["reco_energy"],
-                self.opt_result.multiplicity_cuts,
-                operator.ge,
+            reduced_events["gammas"]["selected"] = (
+                reduced_events["gammas"]["selected_theta"]
+                & reduced_events["gammas"]["selected_gh"]
             )
-            reduced_events["gammas"]["selected"] &= reduced_events["gammas"][
-                "selected_multiplicity"
+        else:
+            reduced_events["gammas"]["selected"] = reduced_events["gammas"][
+                "selected_gh"
             ]
-            reduced_events["gammas"]["selected_gh_multiplicity"] &= reduced_events[
-                "gammas"
-            ]["selected_multiplicity"]
 
         if self.do_background:
             backgrounds = (
@@ -396,23 +383,9 @@ class IrfTool(Tool):
                     self.opt_result.gh_cuts,
                     operator.ge,
                 )
-                reduced_events[bkg_type]["selected"] = reduced_events[bkg_type][
-                    "selected_gh"
-                ]
-                if self.opt_result.multiplicity_cuts is not None:
-                    reduced_events[bkg_type]["selected_multiplicity"] = (
-                        evaluate_binned_cut(
-                            reduced_events[bkg_type]["multiplicity"],
-                            reduced_events[bkg_type]["reco_energy"],
-                            self.opt_result.multiplicity_cuts,
-                            operator.ge,
-                        )
-                    )
-                    reduced_events[bkg_type]["selected"] &= reduced_events[bkg_type][
-                        "selected_multiplicity"
-                    ]
-
-                n_sel[bkg_type] = np.count_nonzero(reduced_events[bkg_type]["selected"])
+                n_sel[bkg_type] = np.count_nonzero(
+                    reduced_events[bkg_type]["selected_gh"]
+                )
 
             self.log.info(
                 "Keeping %d signal, %d proton events, and %d electron events"
@@ -445,11 +418,7 @@ class IrfTool(Tool):
             )
         )
         hdus.append(
-            self.psf_maker(
-                events=self.signal_events[
-                    self.signal_events["selected_gh_multiplicity"]
-                ]
-            )
+            self.psf_maker(events=self.signal_events[self.signal_events["selected_gh"]])
         )
         if self.spatial_selection_applied:
             # TODO: Support fov binning
@@ -484,9 +453,7 @@ class IrfTool(Tool):
         )
         hdus.append(
             self.angular_resolution_maker(
-                events=self.signal_events[
-                    self.signal_events["selected_gh_multiplicity"]
-                ],
+                events=self.signal_events[self.signal_events["selected_gh"]],
             )
         )
         if self.do_background:
@@ -500,7 +467,7 @@ class IrfTool(Tool):
                 self.sensitivity_maker(
                     signal_events=self.signal_events[self.signal_events["selected"]],
                     background_events=self.background_events[
-                        self.background_events["selected"]
+                        self.background_events["selected_gh"]
                     ],
                     spatial_selection_table=self.opt_result.spatial_selection_table,
                     gamma_spectrum=self.gamma_target_spectrum,
@@ -629,7 +596,7 @@ class IrfTool(Tool):
         if self.do_background:
             hdus.append(
                 self.background_maker(
-                    self.background_events[self.background_events["selected"]],
+                    self.background_events[self.background_events["selected_gh"]],
                     self.obs_time,
                 )
             )
@@ -637,7 +604,7 @@ class IrfTool(Tool):
                 hdus.append(
                     self.effective_area_maker(
                         events=reduced_events["protons"][
-                            reduced_events["protons"]["selected"]
+                            reduced_events["protons"]["selected_gh"]
                         ],
                         spatial_selection_applied=self.spatial_selection_applied,
                         signal_is_point_like=False,
@@ -649,7 +616,7 @@ class IrfTool(Tool):
                 hdus.append(
                     self.effective_area_maker(
                         events=reduced_events["electrons"][
-                            reduced_events["electrons"]["selected"]
+                            reduced_events["electrons"]["selected_gh"]
                         ],
                         spatial_selection_applied=self.spatial_selection_applied,
                         signal_is_point_like=False,

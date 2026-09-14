@@ -20,8 +20,11 @@ from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
 
+from ctapipe.exceptions import TooFewEvents
+
 from ..containers import (
     ArrayEventContainer,
+    CoordinateFrameType,
     DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
@@ -36,9 +39,7 @@ from ..core import (
     ToolConfigurationError,
     traits,
 )
-from ..exceptions import TooFewEvents
 from ..io import write_table
-from .disp import get_tel_pointing
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
 from .stereo_combination import StereoCombiner
@@ -93,8 +94,6 @@ class SKLearnReconstructor(Reconstructor):
 
     #: Property predicted, overridden in subclass.
     property = None
-
-    needs_atmosphere_profile = False
 
     prefix = traits.Unicode(
         default_value=None,
@@ -217,8 +216,8 @@ class SKLearnReconstructor(Reconstructor):
             raise OSError(f"Path {path} exists and overwrite=False")
 
         with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
-            Provenance().add_output_file(path, role=f"{self.__class__.__name__}-model")
 
     @lazyproperty
     def instrument_table(self):
@@ -325,12 +324,12 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
         help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
-    invalid_class = traits.Int(
+    invalid_class = traits.Integer(
         default_value=-1,
         help="The label value to fill in case no prediction could be made.",
     ).tag(config=True)
 
-    positive_class = traits.Int(
+    positive_class = traits.Integer(
         default_value=1,
         help=(
             "The label value of the positive class in case of binary classification."
@@ -456,7 +455,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     target = "true_shower_primary_id"
 
-    positive_class = traits.Int(
+    positive_class = traits.Integer(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
@@ -521,8 +520,6 @@ class DispReconstructor(Reconstructor):
     """
 
     target = "true_disp"
-
-    needs_atmosphere_profile = False
 
     prefix = traits.Unicode(
         default_value="disp",
@@ -666,8 +663,8 @@ class DispReconstructor(Reconstructor):
             raise OSError(f"Path {path} exists and overwrite=False")
 
         with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
-            Provenance().add_output_file(path, role="DispReconstructor-model")
 
     @classmethod
     def read(cls, path, **kwargs):
@@ -683,9 +680,7 @@ class DispReconstructor(Reconstructor):
             )
 
         # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(
-            path, role="DispReconstructor-model", add_meta=False
-        )
+        Provenance().add_input_file(path, role="ml-models", add_meta=False)
         return instance
 
     @lazyproperty
@@ -833,7 +828,7 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
-        pointing_alt, pointing_az = get_tel_pointing(table)
+        pointing_alt, pointing_az = self._get_pointing(table)
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,
@@ -869,6 +864,31 @@ class DispReconstructor(Reconstructor):
             for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
+
+    def _get_pointing(self, table):
+        # prefer to use pointing interpolated to event
+        if "telescope_pointing_altitude" in table.colnames:
+            return (
+                table["telescope_pointing_altitude"].quantity,
+                table["telescope_pointing_azimuth"].quantity,
+            )
+
+        # fallback to fixed pointing of ob
+        if len(np.unique(table["subarray_pointing_frame"])) > 1:
+            msg = "Subarray pointing frame must be the same for all events"
+            raise NotImplementedError(msg)
+
+        # for now only allow fixed altaz, real data should have telescope monitoring
+        # pointing and simulations have fixed pointing in alt az
+        frame_type = CoordinateFrameType(table["subarray_pointing_frame"][0])
+        if frame_type is CoordinateFrameType.ALTAZ:
+            return (
+                table["subarray_pointing_lat"].quantity,
+                table["subarray_pointing_lon"].quantity,
+            )
+
+        msg = f"Only AltAz frame supported for fixed subarray pointing, got {frame_type.name}"
+        raise NotImplementedError(msg)
 
 
 class CrossValidator(Component):
@@ -922,13 +942,13 @@ class CrossValidator(Component):
                         f"Output path {self.output_path} exists, but overwrite=False"
                     )
 
+            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
             self.h5file = open_file(self.output_path, mode="w")
 
     def close(self):
         """Close the output hdf5 file, if ``self.output_path`` is given."""
         if self.output_path:
             self.h5file.close()
-            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
 
     def __enter__(self):
         return self

@@ -100,7 +100,6 @@ class HillasIntersection(HillasGeometryReconstructor):
     ).tag(config=True)
 
     property = ReconstructionProperty.GEOMETRY
-    needs_atmosphere_profile = False
 
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
@@ -217,9 +216,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         for tel_id, hillas in hillas_dict.items():
             if isinstance(hillas, CameraHillasParametersContainer):
-                focal_length = self.subarray.tel[
-                    tel_id
-                ].camera.geometry.frame.focal_length
+                focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
                 camera_frame = CameraFrame(
                     telescope_pointing=telescopes_pointings[tel_id],
                     focal_length=focal_length,

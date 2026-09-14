@@ -35,14 +35,13 @@ class OutlierDetector(TelescopeComponent):
         Parameters
         ----------
         column : astropy.table.Column
-            Column with chunk-wise aggregated statistic values (mean, median, or std)
-            of shape (n_entries, n_channels, n_pixels), or histogram statistics of
-            shape (n_entries, n_bins, n_channels, n_pixels).
+            column with chunk-wise aggregated statistic values (mean, median, or std)
+            of shape (n_entries, n_channels, n_pixels)
 
         Returns
         -------
         boolean mask
-            Mask of outliers with the same shape as ``column``.
+            mask of outliers of shape (n_entries, n_channels, n_pixels)
         """
         pass
 
@@ -67,12 +66,11 @@ class RangeOutlierDetector(OutlierDetector):
     ).tag(config=True)
 
     def __call__(self, column):
-        # Accept both chunk-wise stats (3D) and histogram stats (4D)
-        if column.ndim not in (3, 4):
+        # Validate that the shape of the statistic values has three dimensions
+        if column.ndim != 3:
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
-                "Expected statistic values of shape (n_entries, n_channels, n_pixels) "
-                "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
+                "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
             )
         # Remove outliers is statistical values out a given range
         outliers = np.logical_or(
@@ -102,21 +100,19 @@ class MedianOutlierDetector(OutlierDetector):
     ).tag(config=True)
 
     def __call__(self, column):
-        # Accept both chunk-wise stats (3D) and histogram stats (4D)
-        if column.ndim not in (3, 4):
+        # Validate that the shape of the statistic values has three dimensions
+        if column.ndim != 3:
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
-                "Expected statistic values of shape (n_entries, n_channels, n_pixels) "
-                "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
+                "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
             )
-        pixel_axis = column.ndim - 1
         # Camera median
-        camera_median = np.ma.median(column, axis=pixel_axis)
+        camera_median = np.ma.median(column, axis=2)
         # Detect outliers based on the deviation of the median distribution
-        deviation = column - camera_median[..., np.newaxis]
+        deviation = column - camera_median[:, :, np.newaxis]
         outliers = np.logical_or(
-            deviation < self.median_range_factors[0] * camera_median[..., np.newaxis],
-            deviation > self.median_range_factors[1] * camera_median[..., np.newaxis],
+            deviation < self.median_range_factors[0] * camera_median[:, :, np.newaxis],
+            deviation > self.median_range_factors[1] * camera_median[:, :, np.newaxis],
         )
         return outliers
 
@@ -141,22 +137,20 @@ class StdOutlierDetector(OutlierDetector):
     ).tag(config=True)
 
     def __call__(self, column):
-        # Accept both chunk-wise stats (3D) and histogram stats (4D)
-        if column.ndim not in (3, 4):
+        # Validate that the shape of the statistic values has three dimensions
+        if column.ndim != 3:
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
-                "Expected statistic values of shape (n_entries, n_channels, n_pixels) "
-                "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
+                "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
             )
-        pixel_axis = column.ndim - 1
         # Camera median
-        camera_median = np.ma.median(column, axis=pixel_axis)
+        camera_median = np.ma.median(column, axis=2)
         # Camera std
-        camera_std = np.ma.std(column, axis=pixel_axis)
+        camera_std = np.ma.std(column, axis=2)
         # Detect outliers based on the deviation of the standard deviation distribution
-        deviation = column - camera_median[..., np.newaxis]
+        deviation = column - camera_median[:, :, np.newaxis]
         outliers = np.logical_or(
-            deviation < self.std_range_factors[0] * camera_std[..., np.newaxis],
-            deviation > self.std_range_factors[1] * camera_std[..., np.newaxis],
+            deviation < self.std_range_factors[0] * camera_std[:, :, np.newaxis],
+            deviation > self.std_range_factors[1] * camera_std[:, :, np.newaxis],
         )
         return outliers

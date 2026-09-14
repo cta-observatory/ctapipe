@@ -39,14 +39,15 @@ __all__ = [
     "Enum",
     "Float",
     "Int",
+    "Integer",
     "List",
+    "Long",
     "Set",
     "TraitError",
     "Tuple",
     "Unicode",
     "flag",
     "observe",
-    "Integer",
 ]
 
 import logging
@@ -72,9 +73,10 @@ class NoneDefaultNotAllowedWarning(UserWarning):
 # Aliases
 Bool = traitlets.Bool
 Int = traitlets.Int
-Integer = traitlets.Int
 CInt = traitlets.CInt
+Integer = traitlets.Integer
 Float = traitlets.Float
+Long = traitlets.Long
 Unicode = traitlets.Unicode
 Dict = traitlets.Dict
 Enum = traitlets.Enum
@@ -95,45 +97,36 @@ class AstroQuantity(TraitType):
 
     def __init__(self, physical_type=None, **kwargs):
         super().__init__(**kwargs)
-        if physical_type is None:
-            self.physical_type = None
-        elif isinstance(physical_type, u.PhysicalType):
-            self.physical_type = physical_type
-        elif isinstance(physical_type, u.UnitBase):
-            self.physical_type = u.get_physical_type(physical_type)
+        if physical_type is not None:
+            if isinstance(physical_type, u.PhysicalType):
+                self.physical_type = physical_type
+            elif isinstance(physical_type, u.UnitBase):
+                self.physical_type = u.get_physical_type(physical_type)
+            else:
+                raise TraitError(
+                    "Given physical type must be either of type"
+                    " astropy.units.PhysicalType or a subclass of"
+                    f" astropy.units.UnitBase, was {type(physical_type)}."
+                )
         else:
-            raise TraitError(
-                "Given physical type must be either of type"
-                " astropy.units.PhysicalType or a subclass of"
-                f" astropy.units.UnitBase, was {type(physical_type)}."
-            )
+            self.physical_type = physical_type
 
-        if self.default_value is not Undefined and self.default_value is not None:
-            self._validate_default_value()
-
-    def _validate_default_value(self):
-        if self.physical_type is not None:
+        if self.default_value is not Undefined and self.physical_type is not None:
             default_type = u.get_physical_type(self.default_value)
             if default_type != self.physical_type:
                 raise TraitError(
                     f"Given physical type {self.physical_type} does not match"
-                    f" the default value's physical type {default_type}."
+                    f" physical type of the default value, {default_type}."
                 )
-        else:
-            if not isinstance(self.default_value, u.Quantity):
-                self.default_value = u.Quantity(self.default_value)
-            self.physical_type = u.get_physical_type(self.default_value)
 
     @property
     def info_text(self):
-        """Describes the type of this traitlet."""
         info = "An ``astropy.units.Quantity`` instance"
         if self.allow_none:
             info += "or None"
         return info
 
     def validate(self, obj, value):
-        """Validate input as astropy quantity."""
         try:
             if isinstance(value, Mapping):
                 quantity = u.Quantity(**value)
@@ -169,7 +162,6 @@ class AstroTime(TraitType):
 
     @property
     def info_text(self):
-        """Describes the type of this traitlet."""
         info = "an ISO8601 datestring or Time instance"
         if self.allow_none:
             info += "or None"
@@ -215,7 +207,6 @@ class Path(TraitType):
 
     @property
     def info_text(self):
-        """Describes the type of this traitlet."""
         info = "a pathlib.Path or non-empty str for "
         if self.exists is True:
             info += "an existing"
@@ -358,14 +349,12 @@ class ComponentName(Unicode):
 
     @property
     def info_text(self):
-        """Describes the type of this traitlet."""
         if self._init_done:
             return f"Any of {list(self.cls.non_abstract_subclasses())}"
         else:
             return f"Any subclass of {self.cls}"
 
     def validate(self, obj, value):
-        """Validate component name."""
         if self.allow_none and value is None:
             return None
 
@@ -409,7 +398,6 @@ class ComponentNameList(List):
 
     @property
     def info_text(self):
-        """Describes the type of this traitlet."""
         if self._init_done:
             return f"A list of {list(self.cls.non_abstract_subclasses())}"
         else:
@@ -470,7 +458,7 @@ class IntTelescopeParameter(TelescopeParameter):
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
-        super().__init__(trait=Int(), **kwargs)
+        super().__init__(trait=Integer(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):

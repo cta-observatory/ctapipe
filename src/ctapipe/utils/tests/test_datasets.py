@@ -21,14 +21,14 @@ def test_find_datasets():
     assert not str(r[0]).endswith("gz")
 
 
-def test_datasets_in_custom_path(tmpdir_factory, monkeypatch, server):
+def test_datasets_in_custom_path(tmpdir_factory):
     """
     check that a dataset in a user-defined CTAPIPE_SVC_PATH is located
     """
 
     tmpdir1 = tmpdir_factory.mktemp("datasets1")
     tmpdir2 = tmpdir_factory.mktemp("datasets2")
-    monkeypatch.setenv("CTAPIPE_SVC_PATH", ":".join([str(tmpdir1), str(tmpdir2)]))
+    os.environ["CTAPIPE_SVC_PATH"] = ":".join([str(tmpdir1), str(tmpdir2)])
 
     # create a dummy dataset to search for:
 
@@ -43,7 +43,7 @@ def test_datasets_in_custom_path(tmpdir_factory, monkeypatch, server):
     assert path == Path(dataset_path)
 
     with pytest.raises(FileNotFoundError):
-        datasets.get_dataset_path("does_not_exist", url=server.url)
+        datasets.get_dataset_path("does_not_exist")
 
     # try using find_all_matching_datasets:
 
@@ -53,23 +53,15 @@ def test_datasets_in_custom_path(tmpdir_factory, monkeypatch, server):
     assert dataset_name in {d.name for d in ds}
 
 
-def test_structured_datasets(tmpdir, monkeypatch):
-    import warnings
-
-    from ctapipe.core.provenance import MissingReferenceMetadata
-
+def test_structured_datasets(tmpdir):
     test_data = dict(x=[1, 2, 3, 4, 5], y="test_json")
 
-    monkeypatch.setenv("CTAPIPE_SVC_PATH", ":".join([str(tmpdir)]))
+    os.environ["CTAPIPE_SVC_PATH"] = ":".join([str(tmpdir)])
 
     with tmpdir.join("data_test.json").open(mode="w") as fp:
         json.dump(test_data, fp)
-    with tmpdir.join("data_test.json").open(mode="w") as fp:
-        json.dump(test_data, fp)
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        data1 = datasets.get_structured_dataset("data_test")
+    data1 = datasets.get_structured_dataset("data_test")
     assert data1["x"] == [1, 2, 3, 4, 5]
     assert data1["y"] == "test_json"
     tmpdir.join("data_test.json").remove()
@@ -77,12 +69,7 @@ def test_structured_datasets(tmpdir, monkeypatch):
     test_data["y"] = "test_yaml"
     with tmpdir.join("data_test.yaml").open(mode="w") as fp:
         yaml.dump(test_data, fp)
-    test_data["y"] = "test_yaml"
-    with tmpdir.join("data_test.yaml").open(mode="w") as fp:
-        yaml.dump(test_data, fp)
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        data1 = datasets.get_structured_dataset("data_test")
+    data1 = datasets.get_structured_dataset("data_test")
     assert data1["x"] == [1, 2, 3, 4, 5]
     assert data1["y"] == "test_yaml"

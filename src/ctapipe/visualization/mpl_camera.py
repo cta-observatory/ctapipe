@@ -388,7 +388,7 @@ class CameraDisplay:
     def update(self):
         """redraw the display now"""
         fig = self.axes.figure
-        fig.canvas.draw_idle()
+        fig.canvas.draw()
         if self.colorbar is not None:
             from matplotlib.figure import SubFigure
 
