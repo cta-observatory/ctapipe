@@ -314,9 +314,8 @@ class HDF5MonitoringSource(MonitoringSource):
                     interpolator = _interpolators[name](parent=self)
                     self._pixel_stats[name] = interpolator
 
-                table = read_table(
-                    file, f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}"
-                )
+                h5path = f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}"
+                table = read_table(file, h5path)
                 for col in ("mean", "median", "std"):
                     table[col][table["outlier_mask"].data] = np.nan
                 self._pixel_statistics.setdefault(tel_id, {})[name] = table
