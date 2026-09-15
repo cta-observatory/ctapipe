@@ -189,6 +189,14 @@ class EventType(enum.Enum):
     UNKNOWN = 255
 
 
+PEDESTAL_EVENT_TYPES = (
+    EventType.PEDESTAL,
+    EventType.SKY_PEDESTAL,
+    EventType.DARK_PEDESTAL,
+    EventType.ELECTRONIC_PEDESTAL,
+)
+
+
 class VarianceType(enum.Enum):
     """Enum of variance types used for the VarianceContainer"""
 

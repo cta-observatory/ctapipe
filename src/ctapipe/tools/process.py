@@ -3,12 +3,13 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 
 # pylint: disable=W0201
+import logging
 import sys
 
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool, ToolConfigurationError
+from ..core import QualityQuery, Tool
 from ..core.traits import Bool, ComponentName, List, classes_with_traits, flag
 from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor, WaveformModifier
@@ -20,7 +21,7 @@ from ..io import (
     DataWriter,
     EventSource,
     MonitoringSource,
-    MonitoringType,
+    TelescopeMonitoringType,
     metadata,
     write_table,
 )
@@ -40,9 +41,9 @@ COMPATIBLE_DATALEVELS = [
 ]
 
 COMPATIBLE_MONITORINGTYPES = [
-    MonitoringType.PIXEL_STATISTICS,
-    MonitoringType.CAMERA_COEFFICIENTS,
-    MonitoringType.TELESCOPE_POINTINGS,
+    TelescopeMonitoringType.PIXEL_STATISTICS,
+    TelescopeMonitoringType.CAMERA_COEFFICIENTS,
+    TelescopeMonitoringType.TELESCOPE_POINTINGS,
 ]
 
 
@@ -95,7 +96,7 @@ class ProcessorTool(Tool):
         default_value=False,
     ).tag(config=True)
 
-    monitoring_source_list = List(
+    monitoring_sources = List(
         ComponentName(MonitoringSource),
         help=(
             "List of monitoring sources to use during processing "
@@ -111,7 +112,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "monitoring-source": "ProcessorTool.monitoring_source_list",
+        "monitoring-source": "ProcessorTool.monitoring_sources",
         "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
@@ -216,27 +217,7 @@ class ProcessorTool(Tool):
 
         subarray = self.event_source.subarray
 
-        # Setup the monitoring sources
-        self._monitoring_sources = []
-        for mon_source_name in self.monitoring_source_list:
-            mon_source = self.enter_context(
-                MonitoringSource.from_name(
-                    mon_source_name, subarray=subarray, parent=self
-                )
-            )
-            # Check if monitoring source has compatible monitoring types
-            if not mon_source.has_any_monitoring_types(COMPATIBLE_MONITORINGTYPES):
-                msg = (
-                    f"'{mon_source_name}' needs the MonitoringSource to provide at least "
-                    f"one of these monitoring types: {COMPATIBLE_MONITORINGTYPES}, "
-                    f"{mon_source_name} provides only '{mon_source.monitoring_types}'. "
-                    f"Please make sure the '{mon_source_name}' and its input "
-                    f"are suitable for calibrating the data you are processing."
-                )
-                self.log.critical(msg)
-                raise ToolConfigurationError(msg)
-            # Append the monitoring source to the list if it has compatible monitoring types
-            self._monitoring_sources.append(mon_source)
+        self._setup_monitoring_sources(subarray)
 
         if self.add_nsb_in_waveforms:
             self.waveform_modifier = WaveformModifier(parent=self, subarray=subarray)
@@ -258,6 +239,64 @@ class ProcessorTool(Tool):
             self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)
+
+    def _setup_monitoring_sources(self, subarray):
+        # Setup the monitoring sources
+        self._monitoring_sources = []
+        for mon_source_name in self.monitoring_sources:
+            mon_source = self.enter_context(
+                MonitoringSource.from_name(
+                    mon_source_name, subarray=subarray, parent=self
+                )
+            )
+
+            self.log.info(
+                "%s provides the following subarray monitoring data:", mon_source_name
+            )
+            for mon_type, subtype in mon_source.available_data:
+                self.log.info(
+                    "  - %s%s",
+                    mon_type.name,
+                    f", {subtype}" if subtype is not None else "",
+                )
+
+            self.log.info(
+                "%s provides the following telescope monitoring data:", mon_source_name
+            )
+            level = logging.INFO
+            for (
+                tel_id,
+                available_tel_data,
+            ) in mon_source.available_telescope_data.items():
+                self.log.log(level, "  tel_id = %3d", tel_id)
+                for mon_type, subtype in available_tel_data:
+                    self.log.log(
+                        level,
+                        "    - %s%s",
+                        mon_type.name,
+                        f", {subtype}" if subtype is not None else "",
+                    )
+
+                # show only first telescope as INFO, rest as debug
+                level = logging.DEBUG
+
+            # Check if monitoring source has compatible monitoring types
+            available_types = {
+                monitoring_type
+                for data in mon_source.available_telescope_data.values()
+                for monitoring_type, _ in data
+            }
+            if not available_types.intersection(COMPATIBLE_MONITORINGTYPES):
+                msg = (
+                    f"'{mon_source_name}' does not provide any "
+                    f"of the known monitoring types: {COMPATIBLE_MONITORINGTYPES}, "
+                    f"{mon_source_name} provides only '{mon_source.available_telescope_data}'. "
+                    f"Please make sure the '{mon_source_name}' and its input "
+                    f"are suitable for calibrating the data you are processing."
+                )
+                self.log.warning(msg)
+            # Append the monitoring source to the list if it has compatible monitoring types
+            self._monitoring_sources.append(mon_source)
 
     @property
     def should_compute_dl2(self):
