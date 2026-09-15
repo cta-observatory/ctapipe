@@ -304,12 +304,14 @@ class HDF5MonitoringSource(MonitoringSource):
                 if monitoring_type != TelescopeMonitoringType.PIXEL_STATISTICS:
                     continue
 
+                if name not in _interpolators:
+                    self.log.info(
+                        f"Skipping unsupported pixel statistics subtype '{name}'"
+                    )
+                    continue
+
                 if name not in self._pixel_stats:
-                    try:
-                        interpolator = _interpolators[name](parent=self)
-                    except KeyError:
-                        msg = f"Unsupported pixel statistics subtype '{name}'"
-                        raise ValueError(msg) from None
+                    interpolator = _interpolators[name](parent=self)
                     self._pixel_stats[name] = interpolator
 
                 table = read_table(
