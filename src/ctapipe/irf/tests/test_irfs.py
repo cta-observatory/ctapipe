@@ -147,12 +147,30 @@ def test_make_3d_eff_area(irf_events_table):
     )
 
     assert eff_area_hdu.header["HDUCLAS4"] == "AEFF_3D"
+    assert eff_area_hdu.header["HDUCLAS3"] == "FULL-ENCLOSURE"
+
+    eff_area_hdu_pl = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=True,
+        signal_is_point_like=False,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu_pl.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu_pl.header["HDUCLAS3"] == "POINT-LIKE"
+    assert eff_area_hdu_pl.header["HDUCLAS4"] == "AEFF_3D"
 
     # point-like simulations cannot be used with the 3D effective area
     with pytest.raises(ValueError):
         eff_area_maker(
             events=irf_events_table,
             spatial_selection_applied=False,
+            signal_is_point_like=True,
+            sim_info=sim_info,
+        )
+    with pytest.raises(ValueError):
+        eff_area_maker(
+            events=irf_events_table,
+            spatial_selection_applied=True,
             signal_is_point_like=True,
             sim_info=sim_info,
         )
