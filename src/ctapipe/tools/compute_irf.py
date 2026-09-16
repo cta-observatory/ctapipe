@@ -35,6 +35,7 @@ from ..irf.benchmarks import (
 )
 from ..irf.irfs import (
     BackgroundRateMakerBase,
+    EffectiveArea3DMaker,
     EffectiveAreaMakerBase,
     EnergyDispersionMakerBase,
     PSFMakerBase,
@@ -585,6 +586,13 @@ class IrfTool(Tool):
                 ).value == 0
 
         if self.signal_is_point_like:
+            if isinstance(self.effective_area_maker, EffectiveArea3DMaker):
+                raise ToolConfigurationError(
+                    "The gamma input file contains point-like simulations. "
+                    "The EffectiveArea3DMaker can only be used with "
+                    "non-point-like (e.g. diffuse) simulations."
+                )
+
             errormessage = """The gamma input file contains point-like simulations.
                 Therefore, the IRF can only be calculated at a single point
                 in the FoV, but `fov_offset_n_bins > 1`."""
