@@ -306,7 +306,8 @@ class HDF5MonitoringSource(MonitoringSource):
 
                 if name not in _interpolators:
                     self.log.info(
-                        f"Skipping unsupported pixel statistics subtype '{name}'"
+                        "Skipping unsupported pixel statistics subtype %r",
+                        name,
                     )
                     continue
 

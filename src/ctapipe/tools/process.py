@@ -254,11 +254,8 @@ class ProcessorTool(Tool):
                 "%s provides the following subarray monitoring data:", mon_source_name
             )
             for mon_type, subtype in mon_source.available_data:
-                self.log.info(
-                    "  - %s%s",
-                    mon_type.name,
-                    f", {subtype}" if subtype is not None else "",
-                )
+                subtype_str = f", {subtype}" if subtype is not None else ""
+                self.log.info("  - %s%s", mon_type.name, subtype_str)
 
             self.log.info(
                 "%s provides the following telescope monitoring data:", mon_source_name
@@ -270,12 +267,8 @@ class ProcessorTool(Tool):
             ) in mon_source.available_telescope_data.items():
                 self.log.log(level, "  tel_id = %3d", tel_id)
                 for mon_type, subtype in available_tel_data:
-                    self.log.log(
-                        level,
-                        "    - %s%s",
-                        mon_type.name,
-                        f", {subtype}" if subtype is not None else "",
-                    )
+                    subtype_str = f", {subtype}" if subtype is not None else ""
+                    self.log.log(level, "    - %s%s", mon_type.name, subtype_str)
 
                 # show only first telescope as INFO, rest as debug
                 level = logging.DEBUG
