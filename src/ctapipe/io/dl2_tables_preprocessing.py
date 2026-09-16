@@ -16,7 +16,6 @@ try:
         calculate_event_weights,
     )
     from pyirf.utils import (
-        calculate_source_fov_lonlat,
         calculate_source_fov_offset,
         calculate_theta,
     )
@@ -445,15 +444,19 @@ class DL2EventLoader(Component):
             events, prefix="reco"
         )
 
-        lon, lat = calculate_source_fov_lonlat(events, prefix="true")
-        events["true_source_fov_lon"] = lon
-        events["true_source_fov_lat"] = lat
-
         pointing = SkyCoord(
             alt=events["pointing_alt"], az=events["pointing_az"], frame=AltAz()
         )
-        reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         nominal = NominalFrame(origin=pointing)
+
+        true = SkyCoord(alt=events["true_alt"], az=events["true_az"], frame=AltAz())
+        true_nominal = true.transform_to(nominal)
+        events["true_source_fov_lon"] = u.Quantity(
+            -true_nominal.fov_lon
+        )  # minus for GADF
+        events["true_source_fov_lat"] = u.Quantity(true_nominal.fov_lat)
+
+        reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         reco_nominal = reco.transform_to(nominal)
         events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
