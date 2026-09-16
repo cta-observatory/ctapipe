@@ -17,7 +17,7 @@ from .tableloader import TableLoader
 from .hdf5merger import HDF5Merger
 from .hdf5monitoringsource import HDF5MonitoringSource, get_hdf5_monitoring_types
 from .monitoringsource import MonitoringSource
-from .monitoringtypes import MonitoringType
+from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 
 from .hdf5eventsource import HDF5EventSource, get_hdf5_datalevels
 from .simteleventsource import SimTelEventSource
@@ -38,6 +38,7 @@ __all__ = [
     "MonitoringSource",
     "HDF5MonitoringSource",
     "MonitoringType",
+    "TelescopeMonitoringType",
     "DataLevel",
     "read_table",
     "write_table",

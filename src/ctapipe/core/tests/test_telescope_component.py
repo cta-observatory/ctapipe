@@ -24,8 +24,8 @@ from ctapipe.core.traits import (
 def mock_subarray():
     subarray = mock.MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
-    subarray.get_tel_ids_for_type = (
-        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    subarray.get_tel_ids_for_type = lambda x: (
+        [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
     )
     subarray.telescope_types = [
         "LST_LST_LSTCam",
@@ -355,3 +355,22 @@ def test_telescope_parameter_nonexistent_telescope(mock_subarray):
 
     with pytest.raises(KeyError, match="No telescope with id 0"):
         foo.bar.tel[0]
+
+
+def tests_subarray_none():
+    """Test TelescopeComponent allows subarray to be None."""
+    from ctapipe.core import TelescopeComponent, traits
+
+    class TestNone(TelescopeComponent):
+        value = traits.TelescopeParameter(traits.Int(), default_value=1).tag(
+            config=True
+        )
+
+    component = TestNone(None)
+
+    # we can retrieve the global default
+    assert component.value.tel[None] == 1
+
+    # but no individual telescope values
+    with pytest.raises(ValueError, match="No subarray attached"):
+        assert component.value.tel[5] == 1

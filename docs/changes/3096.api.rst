@@ -1,0 +1,11 @@
+Update the API of the ``MonitoringEventSource``, the abstract interface for monitoring event sources:
+
+- Add separate methods for telescope-wise monitoring data, using ``tel_id`` as positional,
+  required argument.
+  For this, there are two enums now, one for each type of monitoring data.
+- Remove ``**kwargs`` from the abstract interface of all methods as implementation-dependent ``**kwargs``
+  cannot be known by callers that rely on the abstract interface.
+- Promote ``subtype`` from being such an implementation-dependent ``**kwargs`` to a keyword argument and
+  let the ``available_data`` property return tuples of ``(mon_type, subtype)``.
+
+The ``HDF5MonitoringSource`` was adjusted to to implement this new API.
