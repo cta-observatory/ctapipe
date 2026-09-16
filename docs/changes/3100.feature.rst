@@ -1,0 +1,5 @@
+Added :class:`ctapipe.irf.EffectiveArea3DMaker`, a new effective area
+parameterization that stores the effective area in bins of true energy, fov
+longitude and fov latitude as an ``AEFF_3D`` GADF HDU. Can be selected with
+``--effective-area-maker-name=EffectiveArea3DMaker`` in
+``ctapipe-compute-irf``.
