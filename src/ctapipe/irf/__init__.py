@@ -26,6 +26,7 @@ from .event_weighter import (
 from .irfs import (
     BackgroundRate2dMaker,
     EffectiveArea2dMaker,
+    EffectiveArea3DMaker,
     EnergyDispersion2dMaker,
     PSF3DMaker,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "BackgroundRate2dMaker",
     "EnergyDispersion2dMaker",
     "EffectiveArea2dMaker",
+    "EffectiveArea3DMaker",
     "ResultValidRange",
     "OptimizationResult",
     "PointSourceSensitivityGhOptimizer",

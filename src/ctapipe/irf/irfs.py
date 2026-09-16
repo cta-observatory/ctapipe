@@ -4,8 +4,9 @@ from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
-from astropy.io.fits import BinTableHDU
+from astropy.io.fits import BinTableHDU, Header
 from astropy.table import QTable
+from astropy.time import Time
 from pyirf.io import (
     create_aeff2d_hdu,
     create_background_2d_hdu,
@@ -14,6 +15,7 @@ from pyirf.io import (
 )
 from pyirf.irf import (
     background_2d,
+    effective_area_3d_lonlat,
     effective_area_per_energy,
     effective_area_per_energy_and_fov,
     energy_dispersion,
@@ -22,13 +24,19 @@ from pyirf.irf import (
 from pyirf.simulations import SimulatedEventsInfo
 
 from ..core.traits import AstroQuantity, CaselessStrEnum, Float, Int
-from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
+from .binning import (
+    DefaultFoVLonLatBins,
+    DefaultFoVOffsetBins,
+    DefaultRecoEnergyBins,
+    DefaultTrueEnergyBins,
+)
 
 __all__ = [
     "BackgroundRateMakerBase",
     "BackgroundRate2dMaker",
     "EffectiveAreaMakerBase",
     "EffectiveArea2dMaker",
+    "EffectiveArea3DMaker",
     "EnergyDispersionMakerBase",
     "EnergyDispersion2dMaker",
     "PSFMakerBase",
@@ -193,6 +201,75 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
         """
 
 
+def create_aeff3d_lonlat_hdu(
+    effective_area,
+    true_energy_bins,
+    fov_lon_bins,
+    fov_lat_bins,
+    point_like=True,
+    extname="EFFECTIVE AREA",
+):
+    """
+    Create a GADF-compliant ``AEFF_3D`` BinTableHDU with effective area in
+    bins of true energy, fov longitude and fov latitude.
+
+    The column layout follows the ``BKG_3D`` format
+    (https://gamma-astro-data-formats.readthedocs.io), the field of view is
+    given in the GADF longitude/latitude coordinate system.
+
+    Parameters
+    ----------
+    effective_area: astropy.units.Quantity[area]
+        The effective area with shape (n_true_energy_bins, n_fov_lon_bins,
+        n_fov_lat_bins).
+    true_energy_bins: astropy.units.Quantity[energy]
+        True energy bin edges.
+    fov_lon_bins: astropy.units.Quantity[angle]
+        Fov longitude bin edges.
+    fov_lat_bins: astropy.units.Quantity[angle]
+        Fov latitude bin edges.
+    point_like: bool
+        If True, the HDU is declared as point-like, otherwise as
+        full-enclosure.
+    extname: str
+        Name of the BinTableHDU.
+
+    Returns
+    -------
+    BinTableHDU
+    """
+    aeff = QTable()
+    aeff["ENERG_LO"], aeff["ENERG_HI"] = (
+        true_energy_bins[np.newaxis, :-1].to(u.TeV),
+        true_energy_bins[np.newaxis, 1:].to(u.TeV),
+    )
+    aeff["DETX_LO"], aeff["DETX_HI"] = (
+        fov_lon_bins[np.newaxis, :-1].to(u.deg),
+        fov_lon_bins[np.newaxis, 1:].to(u.deg),
+    )
+    aeff["DETY_LO"], aeff["DETY_HI"] = (
+        fov_lat_bins[np.newaxis, :-1].to(u.deg),
+        fov_lat_bins[np.newaxis, 1:].to(u.deg),
+    )
+    aeff["EFFAREA"] = effective_area.T[np.newaxis, ...].to(u.m**2)
+
+    header = Header()
+    header["HDUCLASS"] = "GADF"
+    header["HDUDOC"] = (
+        "https://github.com/open-gamma-ray-astro/gamma-astro-data-formats"
+    )
+    header["HDUVERS"] = "0.3"
+    header["HDUCLAS1"] = "RESPONSE"
+    header["HDUCLAS2"] = "EFF_AREA"
+    header["HDUCLAS3"] = "POINT-LIKE" if point_like else "FULL-ENCLOSURE"
+    header["HDUCLAS4"] = "AEFF_3D"
+    header["DATE"] = Time.now().utc.iso
+    idx = aeff.colnames.index("EFFAREA") + 1
+    header[f"CREF{idx}"] = "(ENERG_LO:ENERG_HI,DETX_LO:DETX_HI,DETY_LO:DETY_HI)"
+
+    return BinTableHDU(aeff, header=header, name=extname)
+
+
 class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     """
     Creates a radially symmetric parameterization of the effective area in equidistant
@@ -232,6 +309,58 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
             effective_area=effective_area,
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
+            point_like=spatial_selection_applied,
+            extname=extname,
+        )
+
+
+class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
+    """
+    Creates a parameterization of the effective area in equidistant bins of
+    logarithmic true energy and fov longitude and latitude.
+
+    The effective area is calculated only for non-point-like (e.g. diffuse)
+    simulations, as the fov dependence does not make sense for point-like ones.
+    """
+
+    subpixels = Int(
+        help="Number of subpixels to use for the integration of the fov bins",
+        default_value=20,
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+
+    def __call__(
+        self,
+        events: QTable,
+        spatial_selection_applied: bool,
+        signal_is_point_like: bool,
+        sim_info: SimulatedEventsInfo,
+        extname: str = "EFFECTIVE AREA",
+    ) -> BinTableHDU:
+        # The fov lon/lat dependent effective area only makes sense for
+        # non-point-like (e.g. diffuse) simulations.
+        if signal_is_point_like:
+            raise ValueError(
+                "EffectiveArea3DMaker can only be used with non-point-like "
+                "(e.g. diffuse) simulations."
+            )
+
+        effective_area = effective_area_3d_lonlat(
+            selected_events=events,
+            simulation_info=sim_info,
+            true_energy_bins=self.true_energy_bins,
+            fov_longitude_bins=self.fov_lon_bins,
+            fov_latitude_bins=self.fov_lat_bins,
+            subpixels=self.subpixels,
+        )
+
+        return create_aeff3d_lonlat_hdu(
+            effective_area=effective_area,
+            true_energy_bins=self.true_energy_bins,
+            fov_lon_bins=self.fov_lon_bins,
+            fov_lat_bins=self.fov_lat_bins,
             point_like=spatial_selection_applied,
             extname=extname,
         )
