@@ -107,6 +107,44 @@ def test_normalise_column_names(dummy_table):
         _ = epp.normalise_column_names(dummy_table)
 
 
+def test_true_source_fov_from_nominal_frame(dummy_table, tmp_path):
+    from astropy.coordinates import AltAz, SkyCoord
+    from traitlets.config import Config
+
+    from ctapipe.coordinates import NominalFrame
+    from ctapipe.io.dl2_tables_preprocessing import DL2EventLoader
+    from ctapipe.irf import Spectra
+
+    config = Config(
+        {
+            "DL2EventPreprocessor": {
+                "energy_reconstructor": "dummy",
+                "geometry_reconstructor": "geom",
+                "gammaness_classifier": "classifier",
+            }
+        }
+    )
+    loader = DL2EventLoader(
+        file=tmp_path / "dummy.h5",
+        target_spectrum=Spectra.CRAB_HEGRA,
+        config=config,
+    )
+    events = loader.epp.normalise_column_names(dummy_table)
+    events = loader.make_derived_columns(events)
+
+    # true_source_fov_* must equal the NominalFrame transform of the true
+    # source direction relative to the array pointing, with the lon sign
+    # flipped to comply with the GADF FOV coordinate convention.
+    pointing = SkyCoord(
+        alt=events["pointing_alt"], az=events["pointing_az"], frame=AltAz()
+    )
+    true = SkyCoord(alt=events["true_alt"], az=events["true_az"], frame=AltAz())
+    nominal = true.transform_to(NominalFrame(origin=pointing))
+
+    assert u.allclose(events["true_source_fov_lon"], u.Quantity(-nominal.fov_lon))
+    assert u.allclose(events["true_source_fov_lat"], u.Quantity(nominal.fov_lat))
+
+
 def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config):
     pytest.importorskip("pyirf", reason="pyirf is an optional dependency")
     from pyirf.simulations import SimulatedEventsInfo
