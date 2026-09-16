@@ -15,7 +15,11 @@ try:
         PowerLaw,
         calculate_event_weights,
     )
-    from pyirf.utils import calculate_source_fov_offset, calculate_theta
+    from pyirf.utils import (
+        calculate_source_fov_lonlat,
+        calculate_source_fov_offset,
+        calculate_theta,
+    )
 
     has_pyirf = True
 except ModuleNotFoundError:
@@ -225,6 +229,16 @@ class DL2EventPreprocessor(Component):
                         name="reco_source_fov_offset",
                         unit=u.deg,
                         description="Reconstructed angular offset from pointing direction",
+                    ),
+                    Column(
+                        name="true_source_fov_lon",
+                        unit=u.deg,
+                        description="True FOV longitude in GADF coordinates",
+                    ),
+                    Column(
+                        name="true_source_fov_lat",
+                        unit=u.deg,
+                        description="True FOV latitude in GADF coordinates",
                     ),
                     Column(
                         name="weight",
@@ -438,6 +452,10 @@ class DL2EventLoader(Component):
         events["reco_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="reco"
         )
+
+        lon, lat = calculate_source_fov_lonlat(events, prefix="true")
+        events["true_source_fov_lon"] = lon
+        events["true_source_fov_lat"] = lat
 
         pointing = SkyCoord(
             alt=events["pointing_alt"], az=events["pointing_az"], frame=AltAz()
