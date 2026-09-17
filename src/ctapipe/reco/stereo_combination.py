@@ -7,7 +7,7 @@ from astropy.table import Table
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
-from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Float, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -47,6 +47,104 @@ class StereoCombiner(Component):
         help="Which property is being combined.",
     ).tag(config=True)
 
+    weights = CaselessStrEnum(
+        [
+            "none",
+            "intensity",
+            "aspect-weighted-intensity",
+            "containment-weighted-intensity",
+            "angular-error",
+        ],
+        default_value="none",
+        help=(
+            "What kind of weights to use. Options: ``none``, ``intensity``,"
+            " ``aspect-weighted-intensity``, ``containment-weighted-intensity``,"
+            " ``angular-error``."
+            " ``containment-weighted-intensity`` down-weights truncated (leaky)"
+            " images via ``(intensity * (1 - width / length))**2 *"
+            " (1 - leakage_intensity_width_2)**4`` and is the most robust option"
+            " at high energies where image truncation dominates."
+            " ``angular-error`` weights each telescope by an exponential penalty"
+            " ``exp(-ang_distance_uncert / angular_error_scale)`` on the predicted"
+            " per-telescope angular error and only applies to direction"
+            " reconstruction (requires a `~ctapipe.reco.DispReconstructor` trained"
+            " with ``predict_angular_error=True``)."
+        ),
+    ).tag(config=True)
+
+    angular_error_scale = Float(
+        default_value=0.2,
+        help=(
+            "Scale (in degrees) of the exponential penalty used when"
+            " ``weights='angular-error'``. Telescopes with a predicted angular"
+            " error much larger than this value are strongly down-weighted."
+            " The default of 0.2 deg reproduces the EventDisplay default weighting"
+            " ``exp(-5 * ang_distance_uncert)`` (``DispError_BDTWeight = 5``)."
+        ),
+    ).tag(config=True)
+
+    def _calculate_weights(self, data):
+        if isinstance(data, Container):
+            return self._weights_from_container(data)
+
+        if isinstance(data, Table):
+            return self._weights_from_table(data)
+
+        raise TypeError(
+            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+        )
+
+    def _weights_from_container(self, data):
+        if self.weights == "intensity":
+            return data.hillas.intensity
+
+        if self.weights == "aspect-weighted-intensity":
+            return data.hillas.intensity * data.hillas.length / data.hillas.width
+
+        if self.weights == "containment-weighted-intensity":
+            elongation = 1 - data.hillas.width / data.hillas.length
+            containment = 1 - data.leakage.intensity_width_2
+            return (data.hillas.intensity * elongation) ** 2 * containment**4
+
+        return 1
+
+    def _weights_from_table(self, data):
+        if self.weights == "intensity":
+            return data["hillas_intensity"]
+
+        if self.weights == "aspect-weighted-intensity":
+            return (
+                data["hillas_intensity"] * data["hillas_length"] / data["hillas_width"]
+            )
+
+        if self.weights == "containment-weighted-intensity":
+            elongation = 1 - data["hillas_width"] / data["hillas_length"]
+            containment = 1 - data["leakage_intensity_width_2"]
+            return (data["hillas_intensity"] * elongation) ** 2 * containment**4
+
+        if self.weights == "angular-error":
+            col = f"{self.prefix}_tel_ang_distance_uncert"
+            if col not in data.colnames:
+                return np.ones(len(data))
+            return self._angular_error_weights(data[col].quantity.to_value(u.deg))
+
+        return np.ones(len(data))
+
+    def _angular_error_weights(self, ang_distance_uncert_deg):
+        """
+        Exponential penalty weights from predicted per-telescope angular error.
+
+        ``weight = exp(-ang_distance_uncert / angular_error_scale)`` following the
+        EventDisplay disp weighting. Telescopes without a valid prediction get
+        zero weight; if no telescope has a valid prediction, equal weights are used.
+        """
+        uncerts = np.asarray(ang_distance_uncert_deg, dtype=float)
+        weights = np.exp(-uncerts / self.angular_error_scale)
+        weights[~np.isfinite(weights)] = 0.0
+        if not np.any(weights > 0):
+            weights = np.ones(len(uncerts))
+        return weights
+
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -66,24 +164,6 @@ class StereoMeanCombiner(StereoCombiner):
     Calculate array-event prediction as (weighted) mean of telescope-wise predictions.
     """
 
-    weights = CaselessStrEnum(
-        [
-            "none",
-            "intensity",
-            "aspect-weighted-intensity",
-            "containment-weighted-intensity",
-        ],
-        default_value="none",
-        help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``,"
-            " ``aspect-weighted-intensity``, ``containment-weighted-intensity``."
-            " ``containment-weighted-intensity`` down-weights truncated (leaky)"
-            " images via ``(intensity * (1 - width / length))**2 *"
-            " (1 - leakage_intensity_width_2)**4`` and is the most robust option"
-            " at high energies where image truncation dominates."
-        ),
-    ).tag(config=True)
-
     log_target = Bool(
         False,
         help="If true, calculate exp(mean(log(values))).",
@@ -101,43 +181,6 @@ class StereoMeanCombiner(StereoCombiner):
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
-
-    def _calculate_weights(self, data):
-        if isinstance(data, Container):
-            if self.weights == "intensity":
-                return data.hillas.intensity
-
-            if self.weights == "aspect-weighted-intensity":
-                return data.hillas.intensity * data.hillas.length / data.hillas.width
-
-            if self.weights == "containment-weighted-intensity":
-                elongation = 1 - data.hillas.width / data.hillas.length
-                containment = 1 - data.leakage.intensity_width_2
-                return (data.hillas.intensity * elongation) ** 2 * containment**4
-
-            return 1
-
-        if isinstance(data, Table):
-            if self.weights == "intensity":
-                return data["hillas_intensity"]
-
-            if self.weights == "aspect-weighted-intensity":
-                return (
-                    data["hillas_intensity"]
-                    * data["hillas_length"]
-                    / data["hillas_width"]
-                )
-
-            if self.weights == "containment-weighted-intensity":
-                elongation = 1 - data["hillas_width"] / data["hillas_length"]
-                containment = 1 - data["leakage_intensity_width_2"]
-                return (data["hillas_intensity"] * elongation) ** 2 * containment**4
-
-            return np.ones(len(data))
-
-        raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
-        )
 
     def _combine_energy(self, event):
         ids = []
@@ -218,9 +261,15 @@ class StereoMeanCombiner(StereoCombiner):
             if mono.is_valid:
                 alt_values.append(mono.alt)
                 az_values.append(mono.az)
-                dl1 = event.dl1.tel[tel_id].parameters
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                if self.weights == "angular-error":
+                    weights.append(mono.ang_distance_uncert.to_value(u.deg))
+                else:
+                    dl1 = event.dl1.tel[tel_id].parameters
+                    weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
+
+        if self.weights == "angular-error" and len(weights) > 0:
+            weights = self._angular_error_weights(weights)
 
         if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
             coord = AltAz(alt=alt_values, az=az_values)

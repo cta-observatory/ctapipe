@@ -14,6 +14,7 @@ from .preprocessing import horizontal_to_telescope
 
 __all__ = [
     "compute_true_disp",
+    "compute_true_angular_error",
 ]
 
 
@@ -104,3 +105,42 @@ def compute_true_disp(
         true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
 
     return true_norm * true_sign
+
+
+def compute_true_angular_error(
+    table: Table, reco_disp: u.Quantity
+) -> Annotated[u.Quantity, "angle"]:
+    """
+    Compute the angular error of a per-telescope disp reconstruction.
+
+    This is the angular distance in the telescope frame between the source
+    position reconstructed from ``reco_disp`` and the true source position.
+    It is used as the training target for the angular-error regressor.
+
+    Parameters
+    ----------
+    table:
+        DL1 telescope events table containing ``hillas_psi``, ``hillas_fov_lon``,
+        ``hillas_fov_lat``, ``true_alt``, ``true_az`` and the telescope pointing.
+    reco_disp:
+        Reconstructed (signed) disp parameter for each row of ``table``.
+
+    Returns
+    -------
+    angular_error:
+        Angular distance between reconstructed and true source position.
+    """
+    pointing_alt, pointing_az = get_tel_pointing(table)
+
+    psi = table["hillas_psi"].quantity.to_value(u.rad)
+    reco_lon = table["hillas_fov_lon"].quantity + reco_disp * np.cos(psi)
+    reco_lat = table["hillas_fov_lat"].quantity + reco_disp * np.sin(psi)
+
+    true_lon, true_lat = horizontal_to_telescope(
+        alt=table["true_alt"],
+        az=table["true_az"],
+        pointing_alt=pointing_alt,
+        pointing_az=pointing_az,
+    )
+
+    return np.sqrt((reco_lon - true_lon) ** 2 + (reco_lat - true_lat) ** 2)
