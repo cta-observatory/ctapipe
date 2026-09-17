@@ -63,6 +63,7 @@ def test_compute_true_disp(subarray_pointing):
 
 def test_compute_true_angular_error():
     from astropy.coordinates import angular_separation
+    from astropy.tests.helper import assert_quantity_allclose
 
     from ctapipe.reco.disp import compute_true_angular_error
 
@@ -75,14 +76,14 @@ def test_compute_true_angular_error():
 
     # matches astropy's great-circle angular separation
     expected = angular_separation(reco_az, reco_alt, true_az, true_alt)
-    np.testing.assert_allclose(error.to_value(u.deg), expected.to_value(u.deg))
+    assert_quantity_allclose(error, expected)
 
     # zero error when reconstructed == true direction
-    assert error[0].to_value(u.deg) == pytest.approx(0.0, abs=1e-9)
+    assert u.isclose(error[0], 0 * u.deg, atol=1e-9 * u.deg)
 
     # a 10 deg azimuth offset at 70 deg altitude is a much smaller on-sky
     # separation than 10 deg: the small-angle approximation would be wrong
-    assert error[1].to_value(u.deg) == pytest.approx(3.42, abs=0.01)
+    assert u.isclose(error[1], 3.42 * u.deg, atol=0.01 * u.deg)
 
     # large separations are handled correctly (no small-angle approximation)
-    assert error[2].to_value(u.deg) == pytest.approx(140.0, abs=1e-6)
+    assert u.isclose(error[2], 140.0 * u.deg, atol=1e-6 * u.deg)
