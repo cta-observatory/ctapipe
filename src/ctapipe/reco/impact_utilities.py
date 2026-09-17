@@ -164,6 +164,7 @@ def generate_fake_template(
 def create_dummy_templates(
     output_file,
     energy,
+    tel_type,
     pe=1000.0,
     energy_range=np.logspace(-1, 1, 7),
     dist_range=np.linspace(0, 200, 5),
@@ -192,5 +193,8 @@ def create_dummy_templates(
 
                 template_dict[key] = template.T * pe
 
+    output_dict = {}
+    output_dict["data"] = template_dict
+    output_dict["tel_type"] = tel_type
     with gzip.open(output_file, "wb") as filehandler:
-        pickle.dump(template_dict, filehandler)
+        pickle.dump(output_dict, filehandler)
