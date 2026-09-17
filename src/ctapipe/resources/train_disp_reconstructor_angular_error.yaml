@@ -44,8 +44,8 @@ TrainDispReconstructor:
     # --- angular-error regression ---------------------------------------
     # Enable the additional regressor predicting the per-telescope angular
     # error. It is trained after the norm/sign models on the same events,
-    # targeting the angular distance between the reconstructed and true
-    # source position.
+    # targeting the angular separation between the reconstructed per-telescope
+    # direction (alt/az) and the true direction.
     predict_angular_error: True
     angular_error_cls: ExtraTreesRegressor
     angular_error_config:

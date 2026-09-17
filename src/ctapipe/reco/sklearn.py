@@ -738,20 +738,28 @@ class DispReconstructor(Reconstructor):
         """
         Fit the angular-error regressor for ``key``.
 
-        The training target is the angular distance between the source position
-        reconstructed by the just-fitted disp models and the true source
-        position, see `~ctapipe.reco.disp.compute_true_angular_error`.
+        The training target is the angular separation between the per-telescope
+        direction (alt/az) reconstructed by the just-fitted disp models and the
+        true direction, see `~ctapipe.reco.disp.compute_true_angular_error`.
+        Because the target is defined on the reconstructed alt/az, the same
+        approach applies to any directional reconstruction algorithm.
         """
         self._angular_error_models[key] = self._new_angular_error_model()
 
         reco_disp, _, _ = self._predict(key, table)
-        true_angular_error = compute_true_angular_error(table, reco_disp)
+        reco_alt, reco_az = self._disp_to_altaz(table, reco_disp)
+        true_angular_error = compute_true_angular_error(
+            reco_alt,
+            reco_az,
+            table["true_alt"].quantity,
+            table["true_az"].quantity,
+        )
         self.angular_error_unit = true_angular_error.unit
 
         X, valid = table_to_X(table, self._angular_error_feature_names, self.log)
         y = true_angular_error[valid].to_value(self.angular_error_unit)
 
-        # rows without a valid disp prediction have a nan target, drop them
+        # rows without a valid direction prediction have a nan target, drop them
         finite = np.isfinite(y)
         X = X[finite]
         y = y[finite]
@@ -787,6 +795,20 @@ class DispReconstructor(Reconstructor):
             prediction = u.Quantity(prediction, self.angular_error_unit, copy=False)
 
         return prediction, valid
+
+    def _disp_to_altaz(self, table, disp):
+        """Convert a signed disp prediction into per-telescope alt/az."""
+        psi = table["hillas_psi"].quantity.to_value(u.rad)
+        fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
+        fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
+
+        pointing_alt, pointing_az = get_tel_pointing(table)
+        return telescope_to_horizontal(
+            lon=fov_lon,
+            lat=fov_lat,
+            pointing_alt=pointing_alt,
+            pointing_az=pointing_az,
+        )
 
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
@@ -956,17 +978,7 @@ class DispReconstructor(Reconstructor):
             add_tel_prefix=True,
         )
 
-        psi = table["hillas_psi"].quantity.to_value(u.rad)
-        fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
-        fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
-
-        pointing_alt, pointing_az = get_tel_pointing(table)
-        alt, az = telescope_to_horizontal(
-            lon=fov_lon,
-            lat=fov_lat,
-            pointing_alt=pointing_alt,
-            pointing_az=pointing_az,
-        )
+        alt, az = self._disp_to_altaz(table, disp)
 
         altaz_result = Table(
             {

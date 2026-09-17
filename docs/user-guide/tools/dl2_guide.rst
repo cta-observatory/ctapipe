@@ -176,7 +176,11 @@ Optionally, the disp reconstructor can train an additional *angular-error regres
 (inspired by Eventdisplay). When ``DispReconstructor.predict_angular_error`` is set to
 ``True`` in the ``$DISP_CONF_FILE``, a further regressor is trained per telescope type
 that estimates the expected angular error of the per-telescope direction reconstruction.
-Its prediction is stored as the per-telescope ``ang_distance_uncert``.
+The training target is the angular separation between the reconstructed per-telescope
+direction (alt/az) and the true direction. Because it is defined on the reconstructed
+alt/az, the same approach applies to any per-telescope directional reconstruction
+algorithm, not only the disp method. Its prediction is stored as the per-telescope
+``ang_distance_uncert``.
 
 This prediction can then be used to weight the individual telescope directions when
 combining them into the array-level direction, using an exponential penalty
