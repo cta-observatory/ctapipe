@@ -20,6 +20,7 @@ CONFIGS_TO_WRITE = [
     "train_energy_regressor.yaml",
     "train_particle_classifier.yaml",
     "train_disp_reconstructor.yaml",
+    "train_disp_reconstructor_angular_error.yaml",
     "optimize_cuts.yaml",
     "compute_irf.yaml",
 ]
@@ -70,6 +71,9 @@ and will not result in well performing models.
 - `train_energy_regressor.yaml`: configuration of energy regression model
 - `train_particle_classifier.yaml`: configuration of particle classification model
 - `train_disp_reconstructor.yaml`: configuration of disp reconstruction models
+- `train_disp_reconstructor_angular_error.yaml`: as above, but additionally training an
+      angular-error regressor (EventDisplay-style) whose prediction can be used as an
+      exponential penalty weight in the stereo direction combination
 
 ## ctapipe-optimize-event-selection / ctapipe-compute-irf configs
 
