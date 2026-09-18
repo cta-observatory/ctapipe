@@ -47,51 +47,50 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux (3.12, mamba, oldest-deps)
-            os: ubuntu-24.04
+          - os: ubuntu-24.04
             python-version: "3.12"
             install-method: mamba
             extras: tests,all
             extra-args: ["oldest-deps"]
             pytest-markers: "-m 'not vizier'"
 
-          - name: Linux (3.12, pip, minimal-dependencies)
-            os: ubuntu-24.04
+          - os: ubuntu-24.04
             python-version: "3.12"
             install-method: pip
             extras: tests
             pytest-markers: "-m 'not vizier'"
 
-          - name: Linux (3.12, pip, coverage)
-            os: ubuntu-24.04
+          - os: ubuntu-24.04
             python-version: "3.12"
             install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
 
-          - name: Linux (3.13, mamba)
-            os: ubuntu-24.04
+          - os: ubuntu-24.04
             python-version: "3.13"
             install-method: mamba
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
-          - name: Linux (3.14, mamba)
-            os: ubuntu-24.04
+          - os: ubuntu-24.04
             python-version: "3.14"
             install-method: mamba
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
-          - name: macos (3.12, arm64, pip)
-            os: macos-26
+          - os: ubuntu-24.04
+            python-version: "3.15"
+            install-method: mamba
+            extras: tests,all
+            pytest-markers: "-m 'not vizier'"
+
+          - os: macos-26
             python-version: "3.12"
             install-method: pip
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
-          - name: macos (3.14, arm64, mamba)
-            os: macos-26
+          - os: macos-26
             python-version: "3.14"
             install-method: mamba
             extras: tests,all
@@ -149,6 +148,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
+          allow-prereleases: true
 
       - if: matrix.install-method == 'pip' && runner.os == 'macOS' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         name: Fix Python PATH on macOS
@@ -165,11 +165,10 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
           EXTRAS: ${{ matrix.extras }}
+          EXTRA_REQUIREMENTS: ${{ matrix.extra-requirements }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          # numba/llvmlite do not provide wheels for macos-intel in recent releases, but pip tries to download
-          # the latest release and build it from source. Force only wheels being considered for these to packages.
-          pip install --only-binary llvmlite --only-binary numba -e ".[${EXTRAS}]"
+          pip install -e ".[${EXTRAS}]" ${EXTRA_REQUIREMENTS}
           pip install ./test_plugin
           pip freeze
 
