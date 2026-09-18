@@ -30,6 +30,24 @@ def _get_pixel_index(n_pixels):
     return np.arange(n_pixels)
 
 
+def _get_invalid_pixels(n_channels, n_pixels, pixel_status, outlier_mask):
+    """Combine pixel status and calibration outliers into a channel-wise mask."""
+    invalid_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+
+    if n_channels == 1:
+        invalid_pixels[0] = PixelStatus.get_channel_info(pixel_status) == 0
+    elif n_channels == 2:
+        invalid_pixels[0] = (pixel_status & PixelStatus.HIGH_GAIN_STORED) == 0
+        invalid_pixels[1] = (pixel_status & PixelStatus.LOW_GAIN_STORED) == 0
+    else:
+        raise ValueError(f"Unsupported number of gain channels: {n_channels}")
+
+    if outlier_mask is not None:
+        invalid_pixels |= np.broadcast_to(outlier_mask, invalid_pixels.shape)
+
+    return invalid_pixels
+
+
 class CameraCalibrator(TelescopeComponent):
     """
     Calibrator to handle the full camera calibration chain, in order to fill
@@ -253,6 +271,13 @@ class CameraCalibrator(TelescopeComponent):
         time_shift = self._get_time_shift(dl0, calib, pixel_index)
 
         readout = self.subarray.tel[tel_id].camera.readout
+        invalid_pixels = _get_invalid_pixels(
+            n_channels=readout.n_channels,
+            n_pixels=n_pixels,
+            pixel_status=dl0.pixel_status,
+            outlier_mask=calib.outlier_mask,
+        )
+
         if n_samples == 1:
             # To handle ASTRI and dst
             # TODO: Improved handling of ASTRI and dst
@@ -284,7 +309,7 @@ class CameraCalibrator(TelescopeComponent):
                 waveforms,
                 tel_id=tel_id,
                 selected_gain_channel=selected_gain_channel,
-                broken_pixels=calib.outlier_mask,
+                broken_pixels=invalid_pixels,
             )
 
             # correct non-integer remainder of the shift if given
@@ -307,7 +332,7 @@ class CameraCalibrator(TelescopeComponent):
                 tel_id,
                 dl1.image,
                 dl1.peak_time,
-                calib.outlier_mask,
+                invalid_pixels,
             )
 
         # store the results in the event structure

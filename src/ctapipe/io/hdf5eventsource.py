@@ -11,7 +11,6 @@ from astropy.utils.decorators import lazyproperty
 from ..atmosphere import AtmosphereDensityProfile
 from ..containers import (
     ArrayEventContainer,
-    CameraCalibrationContainer,
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
@@ -31,7 +30,6 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
-    PixelStatus,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -950,22 +948,6 @@ class HDF5EventSource(EventSource):
             r1.waveform = r1.waveform[np.newaxis, ...]
 
         data.r1.tel[tel_id] = r1
-        # fill calibration outlier_mask initially from pixel status
-
-        n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
-        disabled_pixels = np.zeros((n_channels, len(r1.pixel_status)), dtype=bool)
-
-        if n_channels == 2:
-            high_gain = np.uint8(PixelStatus.HIGH_GAIN_STORED)
-            low_gain = np.uint8(PixelStatus.LOW_GAIN_STORED)
-            disabled_pixels[0] = ~((r1.pixel_status & high_gain).astype(bool))
-            disabled_pixels[1] = ~((r1.pixel_status & low_gain).astype(bool))
-        else:
-            disabled_pixels[0] = PixelStatus.get_channel_info(r1.pixel_status) == 0
-
-        data.monitoring.tel[tel_id].camera.coefficients = CameraCalibrationContainer(
-            outlier_mask=disabled_pixels,
-        )
 
     def _fill_images_for_tel(
         self,
