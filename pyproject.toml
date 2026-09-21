@@ -30,6 +30,7 @@ requires-python = ">=3.12"
 
 dependencies = [
     "astropy >=6.1,<9.0.0",
+    "ctao-datamodel",
     "docutils",
     "joblib",
     "numba >=0.59.0",
