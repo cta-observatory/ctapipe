@@ -8,6 +8,8 @@ import pytest
 import tables
 from astropy.io import fits
 from astropy.table import Table
+from astropy.time import Time
+from ctao_datamodel.models import dataproducts as dp
 
 from ctapipe.core.provenance import Provenance
 from ctapipe.io import metadata as meta
@@ -48,6 +50,44 @@ def reference():
         ),
     )
     return reference
+
+
+@pytest.fixture()
+def ctao_product():
+    return dp.Product(
+        description="ctapipe test product",
+        creation_time=Time("2026-09-21T12:34:56"),
+        data=dp.ProductType(
+            level="DL1",
+            division="Event",
+            association="Subarray",
+            type="Observation",
+        ),
+        instance=dp.InstanceIdentifier(obs_id=42, category="B"),
+        curation=dp.Curation(release="test"),
+        model=dp.DataModel(
+            name="CTAO",
+            version="1.0",
+            url="https://example.org/model",
+        ),
+        contact=dp.Contact(
+            name="Test User",
+            organization="CTAO",
+            email="test@example.org",
+        ),
+        activity=dp.Activity(
+            process="data_processing",
+            name="ctapipe-process",
+            id=uuid.uuid4(),
+            start=Time("2026-09-21T12:00:00"),
+            configuration_id="test-config",
+            software=dp.Software(
+                name="ctapipe",
+                version="0.32",
+                url="https://ctapipe.readthedocs.io",
+            ),
+        ),
+    )
 
 
 def test_to_dict(reference):
@@ -114,6 +154,38 @@ def test_read_hdf5_metadata(tmp_path):
         metadata_out = meta.read_hdf5_metadata(file, path=metadata_path)
 
     assert metadata_out == metadata_in
+
+
+def test_product_metadata_hdf5(tmp_path, ctao_product):
+    filename = tmp_path / "product.h5"
+
+    with tables.open_file(filename, mode="w") as h5file:
+        meta.write_product_metadata(ctao_product, h5file)
+        h5file.root._v_attrs["unrelated"] = "metadata"
+
+        attributes = meta.read_hdf5_metadata(h5file)
+        assert attributes["CTAO.data.level"] == "DL1"
+        assert attributes["CTAO.instance.obs_id"] == 42
+        assert attributes["CTAO.contact.email"] == "test@example.org"
+        assert attributes["CTAO.activity.name"] == "ctapipe-process"
+        assert attributes["CTAO.model.version"] == "1.0"
+
+        product = meta.read_product_metadata(h5file)
+
+    assert product == ctao_product
+    assert attributes["unrelated"] == "metadata"
+
+
+def test_product_metadata_hdf5_non_root(tmp_path, ctao_product):
+    filename = tmp_path / "product.h5"
+    metadata_path = "/node/subnode"
+
+    with tables.open_file(filename, mode="w") as h5file:
+        h5file.create_group(where="/node", name="subnode", createparents=True)
+        meta.write_product_metadata(ctao_product, h5file, path=metadata_path)
+
+    product = meta.read_product_metadata(filename, path=metadata_path)
+    assert product == ctao_product
 
 
 def test_reprs(reference):

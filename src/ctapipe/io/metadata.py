@@ -34,6 +34,8 @@ import tables
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from ctao_datamodel import flatten_model_instance, unflatten_model_instance
+from ctao_datamodel.models.dataproducts import Product as CTAOProduct
 from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
 from traitlets.config import Configurable
@@ -50,6 +52,8 @@ __all__ = [
     "Instrument",
     "write_to_hdf5",
     "read_hdf5_metadata",
+    "write_product_metadata",
+    "read_product_metadata",
     "read_reference_metadata",
 ]
 
@@ -381,6 +385,29 @@ def read_hdf5_metadata(h5file, path="/"):
 
         node = h5file.get_node(path)
         return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
+
+
+def write_product_metadata(product: CTAOProduct, h5file: tables.File, path="/"):
+    """Write a CTAO data model Product as flattened HDF5 attributes."""
+    metadata = flatten_model_instance(
+        product,
+        parent_key="CTAO",
+    )
+    write_to_hdf5(metadata, h5file, path=path)
+
+
+def read_product_metadata(h5file, path="/") -> CTAOProduct:
+    """Read a current CTAO data model Product from flattened HDF5 attributes."""
+    metadata = {
+        key: value
+        for key, value in read_hdf5_metadata(h5file, path=path).items()
+        if key.startswith("CTAO.")
+    }
+    return unflatten_model_instance(
+        metadata,
+        model=CTAOProduct,
+        parent_key="CTAO",
+    )
 
 
 def read_reference_metadata(path):
