@@ -38,7 +38,7 @@ from ..core import (
 )
 from ..exceptions import TooFewEvents
 from ..io import write_table
-from .disp import get_tel_pointing
+from .disp import compute_true_angular_error, get_tel_pointing
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
 from .stereo_combination import StereoCombiner
@@ -565,6 +565,47 @@ class DispReconstructor(Reconstructor):
         help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
+    predict_angular_error = traits.Bool(
+        default_value=False,
+        help=(
+            "If True, additionally train a regressor per telescope type that"
+            " predicts the angular error of the per-telescope direction"
+            " reconstruction. Its prediction is stored as the per-telescope"
+            " ``ang_distance_uncert`` and can be used as a weight in the stereo"
+            " combination (see ``StereoMeanCombiner.weights='angular-error'``)."
+        ),
+    ).tag(config=True)
+
+    angular_error_config = traits.Dict(
+        {}, help="kwargs for the sklearn angular-error regressor."
+    ).tag(config=True)
+
+    angular_error_cls = traits.Enum(
+        SUPPORTED_REGRESSORS.keys(),
+        default_value=None,
+        allow_none=True,
+        help="Which scikit-learn regression model to use for the angular error.",
+    ).tag(config=True)
+
+    angular_error_features = traits.List(
+        traits.Unicode(),
+        default_value=[],
+        help=(
+            "Features to use for the angular-error regressor. If empty, the same"
+            " features as for the disp models are used. To support divergent"
+            " pointing analyses, include the telescope position in the array"
+            " (``pos_x``, ``pos_y``, ``pos_z``) here."
+        ),
+    ).tag(config=True)
+
+    log_angular_error = traits.Bool(
+        default_value=True,
+        help=(
+            "If True, the angular-error regressor is trained to predict the"
+            " natural logarithm of the angular error."
+        ),
+    ).tag(config=True)
+
     stereo_combiner_cls = traits.ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
@@ -583,41 +624,61 @@ class DispReconstructor(Reconstructor):
         Component.__init__(self, **kwargs)
 
         if self.load_path is None:
-            if self.norm_cls is None or self.sign_cls is None:
-                raise TraitError(
-                    "Must provide `norm_cls` and `sign_cls` if not loading from file"
-                )
-
-            if subarray is None:
-                raise TypeError(
-                    "__init__() missing 1 required positional argument: 'subarray'"
-                )
-
-            super().__init__(subarray, atmosphere_profile, **kwargs)
-            self.quality_query = MLQualityQuery(parent=self)
-            self.feature_generator = FeatureGenerator(parent=self)
-
-            # to verify settings
-            self._new_models()
-            self._models = {} if models is None else models
-            self.unit = None
-            self.stereo_combiner = StereoCombiner.from_name(
-                self.stereo_combiner_cls,
-                prefix=self.prefix,
-                property=ReconstructionProperty.GEOMETRY,
-                parent=self,
-            )
+            self._init_new(subarray, atmosphere_profile, models, **kwargs)
         else:
-            loaded = self.read(self.load_path)
-            if (
-                subarray is not None
-                and loaded.subarray.telescope_types != subarray.telescope_types
-            ):
-                self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
-                )
-            self.__dict__.update(loaded.__dict__)
-            self.subarray = subarray
+            self._init_from_file(subarray)
+
+    def _init_new(self, subarray, atmosphere_profile, models, **kwargs):
+        if self.norm_cls is None or self.sign_cls is None:
+            raise TraitError(
+                "Must provide `norm_cls` and `sign_cls` if not loading from file"
+            )
+
+        if self.predict_angular_error and self.angular_error_cls is None:
+            raise TraitError(
+                "Must provide `angular_error_cls` if `predict_angular_error` is True"
+            )
+
+        if subarray is None:
+            raise TypeError(
+                "__init__() missing 1 required positional argument: 'subarray'"
+            )
+
+        super().__init__(subarray, atmosphere_profile, **kwargs)
+        self.quality_query = MLQualityQuery(parent=self)
+        self.feature_generator = FeatureGenerator(parent=self)
+
+        # to verify settings
+        self._new_models()
+        self._models = {} if models is None else models
+        self._angular_error_models = {}
+        self.unit = None
+        self.angular_error_unit = None
+        self.stereo_combiner = StereoCombiner.from_name(
+            self.stereo_combiner_cls,
+            prefix=self.prefix,
+            property=ReconstructionProperty.GEOMETRY,
+            parent=self,
+        )
+
+    def _init_from_file(self, subarray):
+        loaded = self.read(self.load_path)
+        if (
+            subarray is not None
+            and loaded.subarray.telescope_types != subarray.telescope_types
+        ):
+            self.log.warning(
+                "Supplied subarray has different telescopes than subarray loaded from file"
+            )
+        self.__dict__.update(loaded.__dict__)
+        self.subarray = subarray
+
+        # backwards compatibility with models trained before the
+        # angular-error regressor was added
+        if not hasattr(self, "_angular_error_models"):
+            self._angular_error_models = {}
+            self.angular_error_unit = None
+            self.predict_angular_error = False
 
     def _new_models(self):
         norm_cfg = self.norm_config
@@ -628,6 +689,17 @@ class DispReconstructor(Reconstructor):
         norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**norm_cfg)
         sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**sign_cfg)
         return norm_regressor, sign_classifier
+
+    def _new_angular_error_model(self):
+        cfg = self.angular_error_config
+        if self.n_jobs:
+            cfg["n_jobs"] = self.n_jobs
+        return SUPPORTED_REGRESSORS[self.angular_error_cls](**cfg)
+
+    @property
+    def _angular_error_feature_names(self):
+        """Features for the angular-error regressor, defaulting to ``features``."""
+        return self.angular_error_features or self.features
 
     def _table_to_y(self, table, mask=None):
         """
@@ -658,6 +730,85 @@ class DispReconstructor(Reconstructor):
         norm, sign = self._table_to_y(table, mask=valid)
         self._models[key][0].fit(X, norm)
         self._models[key][1].fit(X, sign)
+
+        if self.predict_angular_error:
+            self._fit_angular_error(key, table)
+
+    def _fit_angular_error(self, key, table):
+        """
+        Fit the angular-error regressor for ``key``.
+
+        The training target is the angular separation between the per-telescope
+        direction (alt/az) reconstructed by the just-fitted disp models and the
+        true direction, see `~ctapipe.reco.disp.compute_true_angular_error`.
+        Because the target is defined on the reconstructed alt/az, the same
+        approach applies to any directional reconstruction algorithm.
+        """
+        self._angular_error_models[key] = self._new_angular_error_model()
+
+        reco_disp, _, _ = self._predict(key, table)
+        reco_alt, reco_az = self._disp_to_altaz(table, reco_disp)
+        true_angular_error = compute_true_angular_error(
+            reco_alt,
+            reco_az,
+            table["true_alt"].quantity,
+            table["true_az"].quantity,
+        )
+        self.angular_error_unit = true_angular_error.unit
+
+        X, valid = table_to_X(table, self._angular_error_feature_names, self.log)
+        y = true_angular_error[valid].to_value(self.angular_error_unit)
+
+        # rows without a valid direction prediction have a nan target, drop them
+        finite = np.isfinite(y)
+        X = X[finite]
+        y = y[finite]
+
+        if self.log_angular_error:
+            if np.any(y <= 0):
+                raise ValueError(
+                    "Angular error contains non-positive values, cannot apply log"
+                )
+            y = np.log(y)
+
+        self._angular_error_models[key].fit(X, y)
+
+    def _predict_angular_error(self, key, table):
+        """Predict the per-telescope angular error for a table of events."""
+        if key not in self._angular_error_models:
+            raise KeyError(
+                f"No angular error model available for key {key},"
+                f" available models: {self._angular_error_models.keys()}"
+            )
+
+        X, valid = table_to_X(table, self._angular_error_feature_names, self.log)
+        prediction = np.full(len(table), np.nan)
+
+        if np.any(valid):
+            valid_predictions = self._angular_error_models[key].predict(X)
+            if self.log_angular_error:
+                prediction[valid] = np.exp(valid_predictions)
+            else:
+                prediction[valid] = valid_predictions
+
+        if self.angular_error_unit is not None:
+            prediction = u.Quantity(prediction, self.angular_error_unit, copy=False)
+
+        return prediction, valid
+
+    def _disp_to_altaz(self, table, disp):
+        """Convert a signed disp prediction into per-telescope alt/az."""
+        psi = table["hillas_psi"].quantity.to_value(u.rad)
+        fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
+        fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
+
+        pointing_alt, pointing_az = get_tel_pointing(table)
+        return telescope_to_horizontal(
+            lon=fov_lon,
+            lat=fov_lat,
+            pointing_alt=pointing_alt,
+            pointing_az=pointing_az,
+        )
 
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
@@ -734,50 +885,7 @@ class DispReconstructor(Reconstructor):
         event: ArrayEventContainer
         """
         for tel_id in event.trigger.tels_with_trigger:
-            table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table, subarray=self.subarray)
-
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
-
-            if passes_quality_checks:
-                disp, sign_score, valid = self._predict(
-                    self.subarray.tel[tel_id], table
-                )
-
-                if valid:
-                    disp_container = DispContainer(
-                        parameter=disp[0],
-                        sign_score=sign_score[0],
-                    )
-
-                    hillas = event.dl1.tel[tel_id].parameters.hillas
-                    psi = hillas.psi.to_value(u.rad)
-
-                    fov_lon = hillas.fov_lon + disp[0] * np.cos(psi)
-                    fov_lat = hillas.fov_lat + disp[0] * np.sin(psi)
-                    altaz = TelescopeFrame(
-                        fov_lon=fov_lon,
-                        fov_lat=fov_lat,
-                        telescope_pointing=AltAz(
-                            alt=event.monitoring.tel[tel_id].pointing.altitude,
-                            az=event.monitoring.tel[tel_id].pointing.azimuth,
-                        ),
-                    ).transform_to(AltAz())
-
-                    altaz_container = ReconstructedGeometryContainer(
-                        alt=altaz.alt, az=altaz.az, is_valid=True
-                    )
-
-                else:
-                    disp_container = DispContainer(
-                        parameter=u.Quantity(np.nan, self.unit),
-                    )
-                    altaz_container = deepcopy(_invalid_geometry)
-            else:
-                disp_container = DispContainer(
-                    parameter=u.Quantity(np.nan, self.unit),
-                )
-                altaz_container = deepcopy(_invalid_geometry)
+            disp_container, altaz_container = self._predict_single_tel(event, tel_id)
 
             disp_container.prefix = f"{self.prefix}_tel"
             altaz_container.prefix = f"{self.prefix}_tel"
@@ -785,6 +893,47 @@ class DispReconstructor(Reconstructor):
             event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
 
         self.stereo_combiner(event)
+
+    def _predict_single_tel(self, event, tel_id):
+        """Predict disp and geometry containers for a single telescope."""
+        table = collect_features(event, tel_id, self.instrument_table)
+        table = self.feature_generator(table, subarray=self.subarray)
+
+        invalid_disp = DispContainer(parameter=u.Quantity(np.nan, self.unit))
+
+        if not self.quality_query.get_table_mask(table)[0]:
+            return invalid_disp, deepcopy(_invalid_geometry)
+
+        disp, sign_score, valid = self._predict(self.subarray.tel[tel_id], table)
+        if not valid:
+            return invalid_disp, deepcopy(_invalid_geometry)
+
+        disp_container = DispContainer(parameter=disp[0], sign_score=sign_score[0])
+
+        hillas = event.dl1.tel[tel_id].parameters.hillas
+        psi = hillas.psi.to_value(u.rad)
+        fov_lon = hillas.fov_lon + disp[0] * np.cos(psi)
+        fov_lat = hillas.fov_lat + disp[0] * np.sin(psi)
+        altaz = TelescopeFrame(
+            fov_lon=fov_lon,
+            fov_lat=fov_lat,
+            telescope_pointing=AltAz(
+                alt=event.monitoring.tel[tel_id].pointing.altitude,
+                az=event.monitoring.tel[tel_id].pointing.azimuth,
+            ),
+        ).transform_to(AltAz())
+        altaz_container = ReconstructedGeometryContainer(
+            alt=altaz.alt, az=altaz.az, is_valid=True
+        )
+
+        if self.predict_angular_error:
+            angular_error, ae_valid = self._predict_angular_error(
+                self.subarray.tel[tel_id], table
+            )
+            if ae_valid[0]:
+                altaz_container.ang_distance_uncert = angular_error[0].to(u.deg)
+
+        return disp_container, altaz_container
 
     def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
         """
@@ -829,17 +978,7 @@ class DispReconstructor(Reconstructor):
             add_tel_prefix=True,
         )
 
-        psi = table["hillas_psi"].quantity.to_value(u.rad)
-        fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
-        fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
-
-        pointing_alt, pointing_az = get_tel_pointing(table)
-        alt, az = telescope_to_horizontal(
-            lon=fov_lon,
-            lat=fov_lat,
-            pointing_alt=pointing_alt,
-            pointing_az=pointing_az,
-        )
+        alt, az = self._disp_to_altaz(table, disp)
 
         altaz_result = Table(
             {
@@ -848,6 +987,16 @@ class DispReconstructor(Reconstructor):
                 f"{self.prefix}_tel_is_valid": is_valid,
             }
         )
+
+        if self.predict_angular_error:
+            angular_error = u.Quantity(
+                np.full(n_rows, np.nan), self.angular_error_unit or u.deg, copy=False
+            )
+            angular_error[valid], _ = self._predict_angular_error(key, table[valid])
+            altaz_result[f"{self.prefix}_tel_ang_distance_uncert"] = angular_error.to(
+                u.deg
+            )
+
         add_defaults_and_meta(
             altaz_result,
             ReconstructedGeometryContainer,
@@ -869,6 +1018,10 @@ class DispReconstructor(Reconstructor):
             for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
+
+        if hasattr(self, "_angular_error_models"):
+            for model in self._angular_error_models.values():
+                model.n_jobs = n_jobs.new
 
 
 class CrossValidator(Component):

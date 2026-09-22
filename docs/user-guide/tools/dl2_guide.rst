@@ -168,6 +168,44 @@ and ``$OUTPUT_DIR/disp_reconstructor.pkl``.
 The saved model for the disp reconstruction contains both, the regressor for estimating ``norm(disp)`` and the classifier
 for determining ``sign(disp)``.
 
+.. _angular_error_regressor:
+
+Angular-error regressor for stereo direction weighting
+------------------------------------------------------
+Optionally, the disp reconstructor can train an additional *angular-error regressor*
+(inspired by Eventdisplay). When ``DispReconstructor.predict_angular_error`` is set to
+``True`` in the ``$DISP_CONF_FILE``, a further regressor is trained per telescope type
+that estimates the expected angular error of the per-telescope direction reconstruction.
+The training target is the angular separation between the reconstructed per-telescope
+direction (alt/az) and the true direction. Because it is defined on the reconstructed
+alt/az, the same approach applies to any per-telescope directional reconstruction
+algorithm, not only the disp method. Its prediction is stored as the per-telescope
+``ang_distance_uncert``.
+
+This prediction can then be used to weight the individual telescope directions when
+combining them into the array-level direction, using an exponential penalty
+``exp(-ang_distance_uncert / angular_error_scale)`` that down-weights telescopes with a
+large expected error. It is activated by setting ``StereoMeanCombiner.weights`` to
+``"angular-error"`` (see below). The default ``angular_error_scale`` of 0.2 deg reproduces
+the EventDisplay default weighting ``exp(-5 * ang_distance_uncert)``
+(``DispError_BDTWeight = 5``).
+
+To support divergent-pointing analyses, the telescope position in the array
+(``pos_x``, ``pos_y``, ``pos_z``) can be added to ``angular_error_features`` so that the
+regressor can account for the different pointing directions of the telescopes.
+
+An example configuration enabling this feature is provided in
+``train_disp_reconstructor_angular_error.yaml``, which is written out by
+``ctapipe-quickstart`` alongside the other example configuration files. The
+exponential-penalty weighting is configured in the model-application step
+(``ctapipe-apply-models`` or ``ctapipe-process``), for example::
+
+  DispReconstructor:
+    stereo_combiner_cls: "StereoMeanCombiner"
+    StereoMeanCombiner:
+      weights: "angular-error"
+      angular_error_scale: 0.2  # degrees; default reproduces EventDisplay's exp(-5 * error)
+
 Applying the machine learning models on the test files
 ======================================================
 Now we can apply these trained models on the test files, ``EVAL_GAMMA_FILE``, ``EVAL_PROTON_FILE``, and ``EVAL_ELECTRON_FILE``,
