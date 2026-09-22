@@ -251,7 +251,7 @@ class HDF5Merger(Component):
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
         if appending:
-            self.meta = self._read_meta(self.h5file)
+            self.meta = metadata.read_ctao_metadata(self.h5file)
             self.data_model_version = self.meta.model.version
             self.data_type = self.meta.data.type
             self.data_category = self.meta.instance.category
@@ -281,7 +281,7 @@ class HDF5Merger(Component):
         with exit_stack:
             # first file to be merged
             if self._n_merged == 0:
-                self.meta = self._read_meta(other)
+                self.meta = metadata.read_ctao_metadata(other)
                 self.data_model_version = self.meta.model.version
                 self.data_type = self.meta.data.type
                 metadata.write_product_metadata(self.meta, self.h5file)
@@ -323,18 +323,8 @@ class HDF5Merger(Component):
             ),
         )
 
-    def _read_meta(self, h5file):
-        try:
-            return metadata.read_ctao_metadata(h5file)
-        except metadata.LegacyProductTypeRequired:
-            product_type = self._get_legacy_product_type(h5file)
-            return metadata.read_ctao_metadata(
-                h5file,
-                product_type=product_type,
-            )
-
     def _check_can_merge(self, other):
-        other_meta = self._read_meta(other)
+        other_meta = metadata.read_ctao_metadata(other)
         other_version = other_meta.product.model_version
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
