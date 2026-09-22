@@ -70,7 +70,6 @@ tests = [
     # at the moment, essentially all tests rely on test data from simtel
     # it doesn't make sense to skip all of these.
     "ctapipe[eventio]",
-    "h5py",
     "pandas",
     "pytest >=9.0",
     "pytest-cov",
