@@ -1147,9 +1147,13 @@ class SimTelEventSource(EventSource):
             pixel_status[low_gain_stored] |= np.uint8(PixelStatus.LOW_GAIN_STORED)
 
         # reset gain bits for completely disabled pixels
-        disabled = tel_desc["disabled_pixels"]["HV_disabled"]
+        disabled = np.zeros(n_pixels, dtype=bool)
+        disabled[tel_desc["disabled_pixels"]["HV_disabled"]] = True
         channel_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
         pixel_status[disabled] &= ~np.uint8(channel_bits)
+
+        # set DVR bits to "stored, no DVR applied", the expected value in R1
+        pixel_status[~disabled] |= np.uint8(PixelStatus.DVR_0)
 
         return pixel_status
 

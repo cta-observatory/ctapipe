@@ -318,8 +318,8 @@ def test_r1_pixel_status(n_gains, select_gain):
         )
     )
     selected_gain_channel = np.array([0, 0, n_gains - 1, n_gains - 1])
-    high = PixelStatus.HIGH_GAIN_STORED
-    low = PixelStatus.LOW_GAIN_STORED
+    high = PixelStatus.HIGH_GAIN_STORED | PixelStatus.DVR_0
+    low = PixelStatus.LOW_GAIN_STORED | PixelStatus.DVR_0
     if select_gain:
         expected = [high, 0, high if n_gains == 1 else low, 0]
     else:
@@ -352,7 +352,9 @@ def test_pixel_status_without_gain_selection(select_gain):
                 assert r1.selected_gain_channel is None
                 n_gains, n_pixels, _ = r1.waveform.shape
                 expected = np.full(
-                    n_pixels, PixelStatus.HIGH_GAIN_STORED, dtype=np.uint8
+                    n_pixels,
+                    PixelStatus.HIGH_GAIN_STORED | PixelStatus.DVR_0,
+                    dtype=np.uint8,
                 )
                 if n_gains == 2:
                     expected |= np.uint8(PixelStatus.LOW_GAIN_STORED)
