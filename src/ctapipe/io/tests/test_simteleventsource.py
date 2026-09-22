@@ -4,6 +4,7 @@
 import copy
 from itertools import zip_longest
 from pathlib import Path
+from types import SimpleNamespace
 
 import astropy.units as u
 import numpy as np
@@ -13,6 +14,7 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
+from ctapipe.containers import EventType, PixelStatus
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
 from ctapipe.io import DataLevel
@@ -300,6 +302,65 @@ def test_skip_r1_calibration_with_gain_selection():
                 == event.r1.tel[1].waveform.shape[1]
             ), "selected_gain_channel should have one entry per pixel"
     assert n_processed == n_expected
+
+
+@pytest.mark.parametrize("n_gains", [1, 2])
+@pytest.mark.parametrize("select_gain", [False, True])
+def test_r1_pixel_status(n_gains, select_gain):
+    source = SimpleNamespace(
+        file_=SimpleNamespace(
+            telescope_descriptions={
+                1: {
+                    "camera_organization": {"n_pixels": 4, "n_gains": n_gains},
+                    "disabled_pixels": {"HV_disabled": [1, 3]},
+                }
+            }
+        )
+    )
+    selected_gain_channel = np.array([0, 0, n_gains - 1, n_gains - 1])
+    high = PixelStatus.HIGH_GAIN_STORED
+    low = PixelStatus.LOW_GAIN_STORED
+    if select_gain:
+        expected = [high, 0, high if n_gains == 1 else low, 0]
+    else:
+        selected_gain_channel = None
+        stored = high if n_gains == 1 else high | low
+        expected = [stored, 0, stored, 0]
+
+    status = SimTelEventSource._get_r1_pixel_status(source, 1, selected_gain_channel)
+    assert status.dtype == np.uint8
+    np.testing.assert_array_equal(status, expected)
+
+
+@pytest.mark.parametrize("select_gain", [False, None])
+def test_pixel_status_without_gain_selection(select_gain):
+    with SimTelEventSource(
+        input_url=calib_events_path,
+        skip_calibration_events=False,
+        select_gain=select_gain,
+        focal_length_choice="EQUIVALENT",
+    ) as source:
+        for event in source:
+            for tel_id, r1 in event.r1.tel.items():
+                if (
+                    select_gain is None
+                    and event.trigger.event_type is EventType.SUBARRAY
+                ):
+                    assert r1.selected_gain_channel is not None
+                    continue
+
+                assert r1.selected_gain_channel is None
+                n_gains, n_pixels, _ = r1.waveform.shape
+                expected = np.full(
+                    n_pixels, PixelStatus.HIGH_GAIN_STORED, dtype=np.uint8
+                )
+                if n_gains == 2:
+                    expected |= np.uint8(PixelStatus.LOW_GAIN_STORED)
+                disabled = source.file_.telescope_descriptions[tel_id][
+                    "disabled_pixels"
+                ]["HV_disabled"]
+                expected[disabled] = 0
+                np.testing.assert_array_equal(r1.pixel_status, expected)
 
 
 def test_time_shift():

@@ -1135,12 +1135,16 @@ class SimTelEventSource(EventSource):
         n_pixels = tel_desc["camera_organization"]["n_pixels"]
         pixel_status = np.zeros(n_pixels, dtype=np.uint8)
 
-        high_gain_stored = selected_gain_channel == GainChannel.HIGH
-        low_gain_stored = selected_gain_channel == GainChannel.LOW
-
-        # set gain bits
-        pixel_status[high_gain_stored] |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
-        pixel_status[low_gain_stored] |= np.uint8(PixelStatus.LOW_GAIN_STORED)
+        if selected_gain_channel is None:
+            # Without gain selection, all available channels are stored.
+            pixel_status |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
+            if tel_desc["camera_organization"]["n_gains"] > 1:
+                pixel_status |= np.uint8(PixelStatus.LOW_GAIN_STORED)
+        else:
+            high_gain_stored = selected_gain_channel == GainChannel.HIGH
+            low_gain_stored = selected_gain_channel == GainChannel.LOW
+            pixel_status[high_gain_stored] |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
+            pixel_status[low_gain_stored] |= np.uint8(PixelStatus.LOW_GAIN_STORED)
 
         # reset gain bits for completely disabled pixels
         disabled = tel_desc["disabled_pixels"]["HV_disabled"]
