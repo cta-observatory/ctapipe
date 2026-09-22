@@ -1,0 +1,4 @@
+The ``pixel_status`` field of the R1 data container is now filled correctly
+in the ``SimTelEventSource`` in case of ``select_gain=False``.
+Before, all pixels were marked as invalid because the ``pixel_status``
+was initialized to 0 for all pixels and not updated.
