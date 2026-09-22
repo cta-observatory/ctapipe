@@ -30,12 +30,12 @@ import warnings
 from collections import defaultdict
 from contextlib import ExitStack
 
+import ctao_datamodel as dm
+import ctao_datamodel.models.dataproducts as dp
 import tables
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
-from ctao_datamodel import flatten_model_instance, unflatten_model_instance
-from ctao_datamodel.models.dataproducts import Product as CTAOProduct
 from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
 from traitlets.config import Configurable
@@ -387,29 +387,6 @@ def read_hdf5_metadata(h5file, path="/"):
         return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
 
 
-def write_product_metadata(product: CTAOProduct, h5file: tables.File, path="/"):
-    """Write a CTAO data model Product as flattened HDF5 attributes."""
-    metadata = flatten_model_instance(
-        product,
-        parent_key="CTAO",
-    )
-    write_to_hdf5(metadata, h5file, path=path)
-
-
-def read_product_metadata(h5file, path="/") -> CTAOProduct:
-    """Read a current CTAO data model Product from flattened HDF5 attributes."""
-    metadata = {
-        key: value
-        for key, value in read_hdf5_metadata(h5file, path=path).items()
-        if key.startswith("CTAO.")
-    }
-    return unflatten_model_instance(
-        metadata,
-        model=CTAOProduct,
-        parent_key="CTAO",
-    )
-
-
 def read_reference_metadata(path):
     """Read CTAO data product metadata from path
 
@@ -478,3 +455,141 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
             fitsfile = stack.enter_context(fits.open(fitsfile))
 
         return Reference.from_fits(fitsfile[hdu].header)
+
+
+def _legacy_reference_to_product(
+    reference: Reference,
+    product_type: dp.ProductType,
+) -> dp.Product:
+    """Convert legacy reference metadata to a current CTAO Product."""
+    datalevel_mapping = {
+        DataLevel.R0: dp.DataLevel.R0,
+        DataLevel.R1: dp.DataLevel.R1,
+        DataLevel.DL0: dp.DataLevel.DL0,
+        DataLevel.DL1: dp.DataLevel.DL1,
+        DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
+        DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
+        DataLevel.DL1_MUON: dp.DataLevel.DL1,
+        DataLevel.DL2: dp.DataLevel.DL2,
+        DataLevel.DL3: dp.DataLevel.DL3,
+        DataLevel.DL4: dp.DataLevel.DL4,
+        DataLevel.DL5: dp.DataLevel.DL5,
+        DataLevel.DL6: dp.DataLevel.DL6,
+    }
+    level_order = {level: index for index, level in enumerate(dp.DataLevel)}
+    mapped_datalevels = [
+        datalevel_mapping[level] for level in reference.product.data_levels
+    ]
+    if mapped_datalevels:
+        primary_level = max(mapped_datalevels, key=level_order.__getitem__)
+        if primary_level != product_type.level:
+            raise ValueError(
+                "Legacy data levels are incompatible with the supplied ProductType: "
+                f"{primary_level} != {product_type.level}"
+            )
+
+    association = reference.product.data_association
+    if association != "Other" and association != product_type.association.value:
+        raise ValueError(
+            "Legacy data association is incompatible with the supplied ProductType: "
+            f"{association} != {product_type.association}"
+        )
+
+    instance_kwargs = {}
+    try:
+        instance_kwargs["id"] = uuid.UUID(reference.product.id_)
+    except (AttributeError, TypeError, ValueError):
+        pass
+
+    if reference.product.data_category in {"A", "B", "C"}:
+        instance_kwargs["category"] = reference.product.data_category
+
+    model_url = reference.product.data_model_url.strip()
+    if model_url.lower() == "unknown" or not model_url:
+        model_url = None
+
+    return dp.Product(
+        description=reference.product.description,
+        creation_time=reference.product.creation_time,
+        data=product_type.model_copy(deep=True),
+        instance=dp.InstanceIdentifier(**instance_kwargs),
+        curation=dp.Curation(),
+        model=dp.DataModel(
+            name=reference.product.data_model_name,
+            version=reference.product.data_model_version,
+            url=model_url,
+        ),
+        contact=dp.Contact(
+            name=reference.contact.name,
+            organization=reference.contact.organization,
+            email=reference.contact.email,
+        ),
+        activity=dp.Activity(
+            name=reference.activity.name,
+            id=uuid.UUID(reference.activity.id_),
+            start=reference.activity.start_time,
+            end=reference.activity.stop_time,
+            software=dp.Software(
+                name=reference.activity.software_name,
+                version=reference.activity.software_version,
+                url=None,
+            ),
+            configuration_id="",
+        ),
+    )
+
+
+def write_product_metadata(product: dp.Product, h5file: tables.File, path="/"):
+    """Write a CTAO data model Product as flattened HDF5 attributes."""
+    metadata = dm.flatten_model_instance(
+        product,
+        parent_key="CTAO",
+    )
+    write_to_hdf5(metadata, h5file, path=path)
+
+
+def read_product_metadata(h5file, path="/") -> dp.Product:
+    """Read a current CTAO data model Product from flattened HDF5 attributes."""
+    metadata = {
+        key: value
+        for key, value in read_hdf5_metadata(h5file, path=path).items()
+        if key.startswith("CTAO.")
+    }
+    return dm.unflatten_model_instance(
+        metadata,
+        model=dp.Product,
+        parent_key="CTAO",
+    )
+
+
+def read_ctao_metadata(
+    input_url,
+    *,
+    product_type: dp.ProductType | None = None,
+) -> dp.Product:
+    """Read CTAO metadata from a file, and return a CTAO Product.
+
+    This function will read the file, determine the format, and convert legacy
+    reference metadata to a current CTAO Product if necessary.
+    """
+    metadata = read_hdf5_metadata(...)
+
+    # New data model
+    if "CTAO.ctao_metadata_version" in metadata:
+        return read_product_metadata(...)
+
+    # Old data model
+    if "CTA REFERENCE VERSION" in metadata:
+        if product_type is None:
+            raise ValueError("product_type is required for legacy metadata")
+
+        warnings.warn(
+            "Legacy ctapipe metadata detected. Use ctapipe-merge to migrate the file.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        reference = Reference.from_dict(metadata)
+        return _legacy_reference_to_product(reference, product_type)
+
+    raise ValueError("Unsupported metadata format")
