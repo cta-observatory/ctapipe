@@ -28,6 +28,7 @@ import os
 import uuid
 import warnings
 from collections import defaultdict
+from collections.abc import Iterable
 from contextlib import ExitStack
 
 import ctao_datamodel as dm
@@ -53,8 +54,8 @@ __all__ = [
     "write_to_hdf5",
     "read_hdf5_metadata",
     "write_product_metadata",
-    "read_product_metadata",
     "read_reference_metadata",
+    "_read_product_metadata",
 ]
 
 
@@ -457,31 +458,57 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
         return Reference.from_fits(fitsfile[hdu].header)
 
 
+class LegacyProductTypeRequired(ValueError):
+    """Raised when legacy metadata requires an explicit CTAO ProductType."""
+
+
+def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel:
+    """Convert ctapipe data levels to the primary CTAO data level."""
+    mapping = {
+        DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
+        DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
+        DataLevel.DL1_MUON: dp.DataLevel.DL1,
+    }
+
+    mapped_levels = [
+        mapping[level] if level in mapping else dp.DataLevel[level.name]
+        for level in data_levels
+    ]
+
+    if not mapped_levels:
+        raise ValueError("At least one data level is required")
+
+    level_order = {level: index for index, level in enumerate(dp.DataLevel)}
+    return max(mapped_levels, key=level_order.__getitem__)
+
+
+def _activity_from_provenance(activity) -> dp.Activity:
+    """Create CTAO activity metadata from ctapipe provenance."""
+    provenance = activity.provenance
+
+    return dp.Activity(
+        process=dp.ObservatoryProcess.DATA_PROCESSING,
+        name=provenance["activity_name"],
+        id=uuid.UUID(provenance["activity_uuid"]),
+        start=provenance["start"]["time_utc"],
+        end=provenance["stop"].get("time_utc", Time.now()),
+        software=dp.Software(
+            name="ctapipe",
+            version=provenance["system"]["ctapipe_version"],
+            url=None,
+        ),
+        configuration_id="",
+    )
+
+
 def _legacy_reference_to_product(
     reference: Reference,
     product_type: dp.ProductType,
 ) -> dp.Product:
     """Convert legacy reference metadata to a current CTAO Product."""
-    datalevel_mapping = {
-        DataLevel.R0: dp.DataLevel.R0,
-        DataLevel.R1: dp.DataLevel.R1,
-        DataLevel.DL0: dp.DataLevel.DL0,
-        DataLevel.DL1: dp.DataLevel.DL1,
-        DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
-        DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
-        DataLevel.DL1_MUON: dp.DataLevel.DL1,
-        DataLevel.DL2: dp.DataLevel.DL2,
-        DataLevel.DL3: dp.DataLevel.DL3,
-        DataLevel.DL4: dp.DataLevel.DL4,
-        DataLevel.DL5: dp.DataLevel.DL5,
-        DataLevel.DL6: dp.DataLevel.DL6,
-    }
-    level_order = {level: index for index, level in enumerate(dp.DataLevel)}
-    mapped_datalevels = [
-        datalevel_mapping[level] for level in reference.product.data_levels
-    ]
-    if mapped_datalevels:
-        primary_level = max(mapped_datalevels, key=level_order.__getitem__)
+    if reference.product.data_levels:
+        primary_level = to_ctao_data_level(reference.product.data_levels)
+
         if primary_level != product_type.level:
             raise ValueError(
                 "Legacy data levels are incompatible with the supplied ProductType: "
@@ -496,11 +523,6 @@ def _legacy_reference_to_product(
         )
 
     instance_kwargs = {}
-    try:
-        instance_kwargs["id"] = uuid.UUID(reference.product.id_)
-    except (AttributeError, TypeError, ValueError):
-        pass
-
     if reference.product.data_category in {"A", "B", "C"}:
         instance_kwargs["category"] = reference.product.data_category
 
@@ -539,16 +561,20 @@ def _legacy_reference_to_product(
     )
 
 
-def write_product_metadata(product: dp.Product, h5file: tables.File, path="/"):
+def write_product_metadata(
+    product: dp.Product, h5file: tables.File, path="/", remove_legacy=False
+):
     """Write a CTAO data model Product as flattened HDF5 attributes."""
     metadata = dm.flatten_model_instance(
         product,
         parent_key="CTAO",
     )
+    if remove_legacy:
+        _remove_legacy_metadata(h5file, path=path)
     write_to_hdf5(metadata, h5file, path=path)
 
 
-def read_product_metadata(h5file, path="/") -> dp.Product:
+def _read_product_metadata(h5file, path="/") -> dp.Product:
     """Read a current CTAO data model Product from flattened HDF5 attributes."""
     metadata = {
         key: value
@@ -572,16 +598,18 @@ def read_ctao_metadata(
     This function will read the file, determine the format, and convert legacy
     reference metadata to a current CTAO Product if necessary.
     """
-    metadata = read_hdf5_metadata(...)
+    metadata = read_hdf5_metadata(input_url)
 
     # New data model
     if "CTAO.ctao_metadata_version" in metadata:
-        return read_product_metadata(...)
+        return _read_product_metadata(input_url)
 
     # Old data model
     if "CTA REFERENCE VERSION" in metadata:
         if product_type is None:
-            raise ValueError("product_type is required for legacy metadata")
+            raise LegacyProductTypeRequired(
+                "product_type is required for legacy metadata"
+            )
 
         warnings.warn(
             "Legacy ctapipe metadata detected. Use ctapipe-merge to migrate the file.",
@@ -593,3 +621,21 @@ def read_ctao_metadata(
         return _legacy_reference_to_product(reference, product_type)
 
     raise ValueError("Unsupported metadata format")
+
+
+def _remove_legacy_metadata(h5file, path="/"):
+    """Remove legacy ctapipe reference metadata attributes."""
+    node = h5file.get_node(path)
+
+    legacy_prefixes = (
+        "CTA REFERENCE ",
+        "CTA CONTACT ",
+        "CTA PRODUCT ",
+        "CTA PROCESS ",
+        "CTA ACTIVITY ",
+        "CTA INSTRUMENT ",
+    )
+
+    for name in node._v_attrs._f_list("user"):
+        if name.startswith(legacy_prefixes):
+            node._v_attrs._f_delattr(name)
