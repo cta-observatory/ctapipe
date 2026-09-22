@@ -1,9 +1,9 @@
 import enum
 import uuid
-import warnings
 from contextlib import ExitStack
 from pathlib import Path
 
+import ctao_datamodel.models.dataproducts as dp
 import tables
 from astropy.time import Time
 
@@ -241,6 +241,7 @@ class HDF5Merger(Component):
 
         self.required_nodes = None
         self.data_model_version = None
+        self.data_type = None
         self.data_category = None
         self.subarray = None
         self.meta = None
@@ -251,8 +252,9 @@ class HDF5Merger(Component):
         # any file given matches what we already have
         if appending:
             self.meta = self._read_meta(self.h5file)
-            self.data_model_version = self.meta.product.data_model_version
-            self.data_category = self.meta.product.data_category
+            self.data_model_version = self.meta.model.version
+            self.data_type = self.meta.data.type
+            self.data_category = self.meta.instance.category
 
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
@@ -280,9 +282,9 @@ class HDF5Merger(Component):
             # first file to be merged
             if self._n_merged == 0:
                 self.meta = self._read_meta(other)
-                self.data_model_version = self.meta.product.data_model_version
-                self.data_category = self.meta.product.data_category
-                metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
+                self.data_model_version = self.meta.model.version
+                self.data_type = self.meta.data.type
+                metadata.write_product_metadata(self.meta, self.h5file)
             else:
                 self._check_can_merge(other)
 
@@ -297,29 +299,43 @@ class HDF5Merger(Component):
                 self._update_meta()
 
     def _update_meta(self):
-        # update creation date and id
-        time = Time.now()
-        id_ = str(uuid.uuid4())
-        self.meta.product.id_ = id_
-        self.meta.product.creation_time = time
+        self.meta.instance.id = uuid.uuid4()
+        self.meta.creation_time = Time.now()
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", tables.NaturalNameWarning)
-            self.h5file.root._v_attrs["CTA PRODUCT CREATION TIME"] = time.iso
-            self.h5file.root._v_attrs["CTA PRODUCT ID"] = id_
+        metadata.write_product_metadata(self.meta, self.h5file, remove_legacy=True)
+
         self.h5file.flush()
+
+    def _get_legacy_product_type(self, h5file):
+        reference = metadata._read_reference_metadata_hdf5(h5file)
+        return dp.ProductType(
+            level=metadata.to_ctao_data_level(reference.product.data_levels),
+            division=(
+                dp.DataDivision.MONITORING
+                if self.attach_monitoring  # Change that
+                else dp.DataDivision.EVENT
+            ),
+            association=dp.DataAssociation(reference.product.data_association),
+            type=(
+                dp.DataType.OBSERVATION_SIM
+                if reference.product.data_category == "Sim"  # Change that
+                else dp.DataType.OBSERVATION
+            ),
+        )
 
     def _read_meta(self, h5file):
         try:
-            return metadata._read_reference_metadata_hdf5(h5file)
-        except Exception:
-            raise CannotMerge(
-                f"CTAO Reference meta not found in input file: {h5file.filename}"
+            return metadata.read_ctao_metadata(h5file)
+        except metadata.LegacyProductTypeRequired:
+            product_type = self._get_legacy_product_type(h5file)
+            return metadata.read_ctao_metadata(
+                h5file,
+                product_type=product_type,
             )
 
     def _check_can_merge(self, other):
         other_meta = self._read_meta(other)
-        other_version = other_meta.product.data_model_version
+        other_version = other_meta.product.model_version
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 raise CannotMerge(
@@ -333,11 +349,18 @@ class HDF5Merger(Component):
                     f"Input file {other.filename!r} has different data model version:"
                     f" {other_version}, expected {self.data_model_version}"
                 )
-        other_category = other_meta.product.data_category
-        if self.data_category != other_category:
+        other_data_type = other_meta.product.data.type
+        if self.data_type != other_data_type:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different data type:"
+                f" {other_data_type}, expected {self.data_type}"
+            )
+
+        other_data_category = other_meta.instance.category
+        if self.data_category != other_data_category:
             raise CannotMerge(
                 f"Input file {other.filename!r} has different data category:"
-                f" {other_category}, expected {self.data_category}"
+                f" {other_data_category}, expected {self.data_category}"
             )
 
         for node_path in self.required_nodes:
@@ -362,7 +385,7 @@ class HDF5Merger(Component):
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
             # If monitoring data from the same observation block is being attached,
             # obs_ids can be different in case of MC simulations.
-            if len(different) > 0 and self.data_category != "Sim":
+            if len(different) > 0 and self.data_type != dp.DataType.OBSERVATION_SIM:
                 msg = (
                     f"Merge strategy '{self.merge_strategy}' selected, but input file {other.filename} contains "
                     f"different obs_ids than already merged ({self._merged_obs_ids}): {different}"

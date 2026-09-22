@@ -6,6 +6,7 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 
+import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from traitlets import Dict, Instance
@@ -25,7 +26,7 @@ from .eventsource import EventSource
 from .hdf5tableio import HDF5TableWriter
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
-__all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
+__all__ = ["DataWriter", "DATA_MODEL_VERSION"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -88,72 +89,6 @@ DATA_MODEL_CHANGE_HISTORY = """
 """
 
 PROV = Provenance()
-
-
-def write_reference_metadata_headers(
-    obs_ids: list[int],
-    subarray: SubarrayDescription,
-    writer: "DataWriter",
-    is_simulation: bool,
-    data_levels,
-    contact_info: meta.Contact,
-    instrument_info: meta.Instrument,
-) -> None:
-    """
-    Attaches Core Provenence headers to an output HDF5 file.
-    Right now this is hard-coded for use with the ctapipe-process tool
-
-    Parameters
-    ----------
-    output_path: pathlib.Path
-        output HDF5 file
-    obs_id: int
-        observation ID
-    subarray:
-        SubarrayDescription to get metadata from
-    writer: HDF5TableWriter
-        output
-    data_levels: List[DataLevel]
-        list of data levels that were requested/generated
-        (e.g. from `DataWriter.datalevels`)
-    contact_info: meta.Contact
-        contact metadata
-    instrument_info: meta.Instrument
-        instrument metadata
-    """
-    activity = PROV.current_activity
-    if activity is None and len(PROV.finished_activities) > 0:
-        # assume that we write provenance for a "just finished activity"
-        activity = PROV.finished_activities[-1]
-
-    activity_meta = meta.Activity.from_provenance(activity.provenance)
-    category = "Sim" if is_simulation else "Other"
-    reference = meta.Reference(
-        contact=contact_info,
-        product=meta.Product(
-            description="ctapipe Data Product",
-            data_category=category,
-            data_levels=data_levels,
-            data_association="Subarray",
-            data_model_name="ASWG",
-            data_model_version=DATA_MODEL_VERSION,
-            data_model_url="",
-            format="hdf5",
-        ),
-        process=meta.Process(
-            type_="Simulation" if is_simulation else "Observation",
-            subtype="",
-            id_=",".join(str(x) for x in obs_ids),
-        ),
-        activity=activity_meta,
-        instrument=instrument_info,
-    )
-
-    if reference.instrument.id_ == "unspecified":
-        reference.instrument.id_ = subarray.name
-
-    headers = reference.to_dict()
-    meta.write_to_hdf5(headers, writer.h5file)
 
 
 class DataWriter(Component):
@@ -371,16 +306,7 @@ class DataWriter(Component):
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
 
-        write_reference_metadata_headers(
-            subarray=self._subarray,
-            obs_ids=self.event_source.obs_ids,
-            writer=self._writer,
-            is_simulation=self._is_simulation,
-            data_levels=self.datalevels,
-            contact_info=self.contact_info,
-            instrument_info=self.instrument_info,
-        )
-
+        self._write_product_metadata_headers()
         self._write_context_metadata_headers()
         self._writer.close()
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
@@ -728,6 +654,50 @@ class DataWriter(Component):
             context_dict[key] = value
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
+
+    def write_product_metadata_headers(self):
+        """
+        Write out the product metadata headers to the output file.
+        """
+        product_type = dp.ProductType(
+            level=meta.to_ctao_data_level(self.data_levels),
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=(
+                dp.DataType.OBSERVATION_SIM
+                if self._is_simulation
+                else dp.DataType.OBSERVATION
+            ),
+        )
+
+        obs_ids = self.event_source.obs_ids
+        obs_id = obs_ids[0] if len(obs_ids) == 1 else None
+
+        activity = PROV.current_activity
+        if activity is None and PROV.finished_activities:
+            # assume that we write provenance for a "just finished activity"
+            activity = PROV.finished_activities[-1]
+
+        product = dp.Product(
+            description="ctapipe Data Product",
+            data=product_type,
+            instance=dp.InstanceIdentifier(
+                obs_id=obs_id,
+            ),
+            curation=dp.Curation(),
+            model=dp.DataModel(
+                name="ASWG",
+                version=DATA_MODEL_VERSION,
+                url=None,
+            ),
+            contact=dp.Contact(
+                name=self.contact_info.name,
+                organization=self.contact_info.organization,
+                email=self.contact_info.email,
+            ),
+            activity=meta._activity_from_provenance(activity),
+        )
+        meta.write_product_metadata(product, self._writer.h5file)
 
     def _write_atmosphere_profile(self, path):
         """
