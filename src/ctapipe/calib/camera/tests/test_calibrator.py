@@ -39,7 +39,14 @@ def _valid_pixel_status(n_pixels, n_channels, selected_gain_channel=None):
     return pixel_status
 
 
-def test_get_invalid_pixels():
+@pytest.mark.parametrize(
+    ("selected_gain_channel", "expected"),
+    [
+        (None, [[True, False, True, True], [False, True, True, True]]),
+        (np.array([1, 0, 1, 0]), [[False, False, True, True]]),
+    ],
+)
+def test_get_invalid_pixels(selected_gain_channel, expected):
     pixel_status = np.array(
         [
             PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED,
@@ -58,15 +65,10 @@ def test_get_invalid_pixels():
         n_pixels=4,
         pixel_status=pixel_status,
         outlier_mask=outlier_mask,
+        selected_gain_channel=selected_gain_channel,
     )
 
-    np.testing.assert_array_equal(
-        invalid_pixels,
-        [
-            [True, False, True, True],
-            [False, True, True, True],
-        ],
-    )
+    np.testing.assert_array_equal(invalid_pixels, expected)
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -452,6 +454,47 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
         event.dl1.tel[tel_id].peak_time,
         3 / readout.sampling_rate.to_value(u.GHz) - expected_time_shift,
     )
+
+
+@pytest.mark.parametrize(
+    "extractor_type", [FullWaveformSum, GlobalPeakWindowSum, NeighborPeakWindowSum]
+)
+def test_invalid_pixels_gain_selected(example_subarray, extractor_type):
+    tel_id = next(iter(example_subarray.tel))
+    camera = example_subarray.tel[tel_id].camera
+    n_pixels = camera.geometry.n_pixels
+    selected_gain_channel = np.arange(n_pixels) % 2
+    pixel_index = np.arange(n_pixels)
+
+    event = ArrayEventContainer()
+    dl0 = event.dl0.tel[tel_id]
+    dl0.selected_gain_channel = selected_gain_channel
+    dl0.pixel_status = _valid_pixel_status(n_pixels, 2, selected_gain_channel)
+    dl0.waveform = np.zeros((1, n_pixels, 40))
+    dl0.waveform[:, 3:, 20] = 1
+    dl0.waveform[:, :3, 10] = 9999
+
+    # Unselected channels must not invalidate otherwise valid pixels.
+    outlier_mask = np.ones((2, n_pixels), dtype=bool)
+    outlier_mask[selected_gain_channel, pixel_index] = False
+    # Include calibration outliers in both gains and a pixel with no stored data.
+    outlier_mask[selected_gain_channel[:2], pixel_index[:2]] = True
+    dl0.pixel_status[2] = 0
+    event.monitoring.tel[tel_id].camera.coefficients.outlier_mask = outlier_mask
+
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=extractor_type(subarray=example_subarray),
+    )
+    calibrator._calibrate_dl1(event, tel_id)
+
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time,
+        20 / camera.readout.sampling_rate.to_value(u.GHz),
+    )
+    image = event.dl1.tel[tel_id].image
+    assert image[-1] > 0
+    np.testing.assert_allclose(image, image[-1])
 
 
 def test_invalid_pixels(example_event, example_subarray):

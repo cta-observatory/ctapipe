@@ -30,8 +30,29 @@ def _get_pixel_index(n_pixels):
     return np.arange(n_pixels)
 
 
-def _get_invalid_pixels(n_channels, n_pixels, pixel_status, outlier_mask):
-    """Combine pixel status and calibration outliers into a channel-wise mask."""
+def _select_channel(array, selected_gain_channel, keep_dims=True):
+    """Select values from a full array for the selected gain.
+
+    For an array of shape (n_channels, n_pixels, ...) return an array
+    of shape (n_pixels, ...) for the selected gain give in selected_gain_channel.
+    """
+    pixel_index = _get_pixel_index(len(selected_gain_channel))
+    selected = array[selected_gain_channel, pixel_index]
+
+    if keep_dims:
+        return selected[np.newaxis]
+    else:
+        return selected
+
+
+def _get_invalid_pixels(
+    n_channels, n_pixels, pixel_status, outlier_mask, selected_gain_channel=None
+):
+    """Combine pixel status and calibration outliers into a channel-wise mask.
+
+    If selected_gain_channel is given, return a gain-selected mask with shape
+    (1, n_pixels), matching the waveform channel axis.
+    """
     invalid_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
     if n_channels == 1:
@@ -44,6 +65,9 @@ def _get_invalid_pixels(n_channels, n_pixels, pixel_status, outlier_mask):
 
     if outlier_mask is not None:
         invalid_pixels |= np.broadcast_to(outlier_mask, invalid_pixels.shape)
+
+    if selected_gain_channel is not None:
+        invalid_pixels = _select_channel(invalid_pixels, selected_gain_channel)
 
     return invalid_pixels
 
@@ -219,20 +243,22 @@ class CameraCalibrator(TelescopeComponent):
         )
 
     @staticmethod
-    def _get_time_shift(dl0, calib, pixel_index):
+    def _get_time_shift(dl0, calib):
         """Combine the two sources of time shift information."""
         calib_time_shift = calib.time_shift
         pixel_time_shift = dl0.pixel_time_shift
 
         # calib time shifts should always come for both gain channels
         if calib_time_shift is not None and dl0.selected_gain_channel is not None:
-            calib_time_shift = calib_time_shift[dl0.selected_gain_channel, pixel_index]
+            calib_time_shift = _select_channel(
+                calib_time_shift, dl0.selected_gain_channel, keep_dims=False
+            )
 
         if pixel_time_shift is None:
             return calib_time_shift
 
-        # we require that if the input data is gain selected, the pixel time shifts are as well
         if dl0.selected_gain_channel is not None:
+            # we expect gain selected pixel time shift for gain selected data
             pixel_time_shift = pixel_time_shift[0]
 
         if calib_time_shift is None:
@@ -252,23 +278,22 @@ class CameraCalibrator(TelescopeComponent):
 
         calib = event.monitoring.tel[tel_id].camera.coefficients
         selected_gain_channel = dl0.selected_gain_channel
-        pixel_index = _get_pixel_index(n_pixels)
 
         factor = calib.factor
         if factor is not None and selected_gain_channel is not None:
-            factor = factor[selected_gain_channel, pixel_index]
+            factor = _select_channel(factor, selected_gain_channel, keep_dims=False)
 
         # subtract any remaining pedestal before extraction
         pedestal = calib.pedestal_offset
         if pedestal is not None:
             if selected_gain_channel is not None:
-                pedestal = pedestal[selected_gain_channel, pixel_index]
+                pedestal = _select_channel(pedestal, selected_gain_channel)
             # this copies intentionally, we don't want to modify the dl0 data
             # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
             waveforms = waveforms.copy()
-            waveforms -= np.atleast_2d(pedestal)[..., np.newaxis]
+            waveforms -= pedestal[..., np.newaxis]
 
-        time_shift = self._get_time_shift(dl0, calib, pixel_index)
+        time_shift = self._get_time_shift(dl0, calib)
 
         readout = self.subarray.tel[tel_id].camera.readout
         invalid_pixels = _get_invalid_pixels(
@@ -276,6 +301,7 @@ class CameraCalibrator(TelescopeComponent):
             n_pixels=n_pixels,
             pixel_status=dl0.pixel_status,
             outlier_mask=calib.outlier_mask,
+            selected_gain_channel=selected_gain_channel,
         )
 
         if n_samples == 1:
@@ -324,6 +350,7 @@ class CameraCalibrator(TelescopeComponent):
         if factor is not None:
             if n_samples > 1 and isinstance(extractor, VarianceExtractor):
                 factor = factor**2
+
             dl1.image *= factor
 
         # handle invalid pixels
