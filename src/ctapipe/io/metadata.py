@@ -581,6 +581,12 @@ def _read_product_metadata(h5file, path="/") -> dp.Product:
         for key, value in read_hdf5_metadata(h5file, path=path).items()
         if key.startswith("CTAO.")
     }
+
+    # Temporary workaround for
+    # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
+    metadata.setdefault("CTAO.model.url", None)
+    metadata.setdefault("CTAO.activity.software.url", None)
+
     return dm.unflatten_model_instance(
         metadata,
         model=dp.Product,
@@ -600,17 +606,12 @@ def read_ctao_metadata(
     """
     metadata = read_hdf5_metadata(input_url)
 
-    # New data model
+    # New Data Model
     if "CTAO.ctao_metadata_version" in metadata:
         return _read_product_metadata(input_url)
 
-    # Old data model
+    # Old Data Model
     if "CTA REFERENCE VERSION" in metadata:
-        if product_type is None:
-            raise LegacyProductTypeRequired(
-                "product_type is required for legacy metadata"
-            )
-
         warnings.warn(
             "Legacy ctapipe metadata detected. Use ctapipe-merge to migrate the file.",
             DeprecationWarning,
@@ -618,9 +619,60 @@ def read_ctao_metadata(
         )
 
         reference = Reference.from_dict(metadata)
+
+        if product_type is None:
+            product_type = _legacy_product_type(input_url, reference)
+
         return _legacy_reference_to_product(reference, product_type)
 
     raise ValueError("Unsupported metadata format")
+
+
+def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
+    level = to_ctao_data_level(reference.product.data_levels)
+    association = to_ctao_data_association(reference.product.data_association)
+    data_type = to_ctao_data_type(reference, input_url)
+
+    return dp.ProductType(
+        level=level,
+        division=dp.DataDivision.EVENT,
+        association=association,
+        type=data_type,
+    )
+
+
+def to_ctao_data_type(
+    reference: str,
+    input_url,
+) -> dp.DataType:
+    """Convert a legacy data type to the new CTAO data model."""
+    if reference.process.type_ == "Simulation":
+        return dp.DataType.OBSERVATION_SIM
+
+    if reference.process.type_ == "Observation":
+        return dp.DataType.OBSERVATION
+
+    if reference.product.data_category == "Sim":
+        return dp.DataType.OBSERVATION_SIM
+
+    # final fallback: inspect file
+    with tables.open_file(input_url, mode="r") as h5file:
+        if "/configuration/simulation" in h5file:
+            return dp.DataType.OBSERVATION_SIM
+
+    return dp.DataType.OBSERVATION
+
+
+def to_ctao_data_association(
+    association: str,
+) -> dp.DataAssociation:
+    """Convert a legacy data association to the CTAO data model enum."""
+    try:
+        return dp.DataAssociation(association)
+    except ValueError as err:
+        raise ValueError(
+            f"Unsupported legacy data association: {association!r}"
+        ) from err
 
 
 def _remove_legacy_metadata(h5file, path="/"):
