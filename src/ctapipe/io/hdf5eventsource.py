@@ -246,7 +246,9 @@ class HDF5EventSource(EventSource):
         self.file_ = tables.open_file(self.input_url)
         meta = read_ctao_metadata(self.file_)
         Provenance().add_input_file(
-            str(self.input_url), role="Event", reference_meta=meta
+            str(self.input_url),
+            role="Event",
+            reference_meta=meta.model_dump(mode="json"),
         )
 
         self._full_subarray = SubarrayDescription.from_hdf(
@@ -264,7 +266,7 @@ class HDF5EventSource(EventSource):
             self._observation_block,
         ) = self._parse_sb_and_ob_configs()
 
-        version = meta.product.model.version
+        version = meta.model.version
         self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
         self._obs_ids = tuple(
             self.file_.root.configuration.observation.observation_block.col("obs_id")
@@ -856,7 +858,7 @@ class HDF5EventSource(EventSource):
         )
         # Maybe take some other metadata, but there are still some 'unknown'
         # written out by the process tool
-        data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
+        data.meta["origin"] = self.file_.root._v_attrs["CTAO.data.type"]
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
         return data

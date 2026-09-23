@@ -189,6 +189,7 @@ filterwarnings = [
     "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning:joblib",
     "ignore:The chararray class is deprecated:DeprecationWarning",
     "ignore:Setting the dtype on a NumPy array",
+    "ignore::ctapipe.io.metadata.LegacyMetadataWarning",
 ]
 norecursedirs = [
     ".git",

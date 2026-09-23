@@ -272,7 +272,7 @@ def test_simulated_events_distribution(dl1_file):
 
 def test_provenance(dl1_file, provenance):
     """Make sure that HDF5EventSource reads reference metadata and adds to provenance"""
-    from ctapipe.io.metadata import _read_reference_metadata_hdf5
+    from ctapipe.io.metadata import read_ctao_metadata
 
     provenance.start_activity("test_hdf5eventsource")
     with HDF5EventSource(input_url=dl1_file):
@@ -281,8 +281,8 @@ def test_provenance(dl1_file, provenance):
     inputs = provenance.current_activity.input
     assert len(inputs) == 1
     assert inputs[0]["url"] == str(dl1_file)
-    meta = _read_reference_metadata_hdf5(dl1_file)
-    assert inputs[0]["reference_meta"].product.id_ == meta.product.id_
+    meta = read_ctao_metadata(dl1_file)
+    assert inputs[0]["reference_meta"]["instance"]["id"] == str(meta.instance.id)
 
 
 def test_pointing_old_file():
