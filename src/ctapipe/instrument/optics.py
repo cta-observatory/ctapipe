@@ -192,6 +192,7 @@ class OpticsDescription:
 
         return hash(
             (
+                self.name,
                 round(self.equivalent_focal_length.to_value(u.m), 4),
                 round(effective_focal_length, 4),
                 round(self.mirror_area.to_value(u.m**2)),
