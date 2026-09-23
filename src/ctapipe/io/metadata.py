@@ -42,6 +42,7 @@ from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
 from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
+from ..utils.deprecation import CTAPipeDeprecationWarning
 from .datalevels import DataLevel
 
 __all__ = [
@@ -458,107 +459,9 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
         return Reference.from_fits(fitsfile[hdu].header)
 
 
-class LegacyProductTypeRequired(ValueError):
-    """Raised when legacy metadata requires an explicit CTAO ProductType."""
-
-
-def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel:
-    """Convert ctapipe data levels to the primary CTAO data level."""
-    mapping = {
-        DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
-        DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
-        DataLevel.DL1_MUON: dp.DataLevel.DL1,
-    }
-
-    mapped_levels = [
-        mapping[level] if level in mapping else dp.DataLevel[level.name]
-        for level in data_levels
-    ]
-
-    if not mapped_levels:
-        raise ValueError("At least one data level is required")
-
-    level_order = {level: index for index, level in enumerate(dp.DataLevel)}
-    return max(mapped_levels, key=level_order.__getitem__)
-
-
-def _activity_from_provenance(activity) -> dp.Activity:
-    """Create CTAO activity metadata from ctapipe provenance."""
-    provenance = activity.provenance
-
-    return dp.Activity(
-        process=dp.ObservatoryProcess.DATA_PROCESSING,
-        name=provenance["activity_name"],
-        id=uuid.UUID(provenance["activity_uuid"]),
-        start=provenance["start"]["time_utc"],
-        end=provenance["stop"].get("time_utc", Time.now()),
-        software=dp.Software(
-            name="ctapipe",
-            version=provenance["system"]["ctapipe_version"],
-            url=None,
-        ),
-        configuration_id="",
-    )
-
-
-def _legacy_reference_to_product(
-    reference: Reference,
-    product_type: dp.ProductType,
-) -> dp.Product:
-    """Convert legacy reference metadata to a current CTAO Product."""
-    if reference.product.data_levels:
-        primary_level = to_ctao_data_level(reference.product.data_levels)
-
-        if primary_level != product_type.level:
-            raise ValueError(
-                "Legacy data levels are incompatible with the supplied ProductType: "
-                f"{primary_level} != {product_type.level}"
-            )
-
-    association = reference.product.data_association
-    if association != "Other" and association != product_type.association.value:
-        raise ValueError(
-            "Legacy data association is incompatible with the supplied ProductType: "
-            f"{association} != {product_type.association}"
-        )
-
-    instance_kwargs = {}
-    if reference.product.data_category in {"A", "B", "C"}:
-        instance_kwargs["category"] = reference.product.data_category
-
-    model_url = reference.product.data_model_url.strip()
-    if model_url.lower() == "unknown" or not model_url:
-        model_url = None
-
-    return dp.Product(
-        description=reference.product.description,
-        creation_time=reference.product.creation_time,
-        data=product_type.model_copy(deep=True),
-        instance=dp.InstanceIdentifier(**instance_kwargs),
-        curation=dp.Curation(),
-        model=dp.DataModel(
-            name=reference.product.data_model_name,
-            version=reference.product.data_model_version,
-            url=model_url,
-        ),
-        contact=dp.Contact(
-            name=reference.contact.name,
-            organization=reference.contact.organization,
-            email=reference.contact.email,
-        ),
-        activity=dp.Activity(
-            name=reference.activity.name,
-            id=uuid.UUID(reference.activity.id_),
-            start=reference.activity.start_time,
-            end=reference.activity.stop_time,
-            software=dp.Software(
-                name=reference.activity.software_name,
-                version=reference.activity.software_version,
-                url=None,
-            ),
-            configuration_id="",
-        ),
-    )
+##############################
+####### New Data Model #######
+##############################
 
 
 def write_product_metadata(
@@ -614,7 +517,7 @@ def read_ctao_metadata(
     if "CTA REFERENCE VERSION" in metadata:
         warnings.warn(
             "Legacy ctapipe metadata detected. Use ctapipe-merge to migrate the file.",
-            DeprecationWarning,
+            CTAPipeDeprecationWarning,
             stacklevel=2,
         )
 
@@ -638,6 +541,98 @@ def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
         division=dp.DataDivision.EVENT,
         association=association,
         type=data_type,
+    )
+
+
+def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel:
+    """Convert ctapipe data levels to the primary CTAO data level."""
+    mapping = {
+        DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
+        DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
+        DataLevel.DL1_MUON: dp.DataLevel.DL1,
+    }
+
+    mapped_levels = [
+        mapping[level] if level in mapping else dp.DataLevel[level.name]
+        for level in data_levels
+    ]
+
+    if not mapped_levels:
+        raise ValueError("At least one data level is required")
+
+    level_order = {level: index for index, level in enumerate(dp.DataLevel)}
+    return max(mapped_levels, key=level_order.__getitem__)
+
+
+def _activity_from_provenance(activity) -> dp.Activity:
+    """Create CTAO activity metadata from ctapipe provenance."""
+    provenance = activity.provenance
+
+    return dp.Activity(
+        process=dp.ObservatoryProcess.DATA_PROCESSING,
+        name=provenance["activity_name"],
+        id=uuid.UUID(provenance["activity_uuid"]),
+        start=provenance["start"]["time_utc"],
+        end=provenance["stop"].get("time_utc", Time.now()),
+        software=dp.Software(
+            name="ctapipe",
+            version=provenance["system"]["ctapipe_version"],
+            url=None,
+        ),
+        configuration_id="",
+    )
+
+
+def _legacy_reference_to_product(
+    reference: Reference,
+    product_type: dp.ProductType,
+) -> dp.Product:
+    """Convert legacy reference metadata to a current CTAO Product."""
+    if reference.product.data_levels:
+        primary_level = to_ctao_data_level(reference.product.data_levels)
+
+        if primary_level != product_type.level:
+            raise ValueError(
+                "Legacy data levels are incompatible with the supplied ProductType: "
+                f"{primary_level} != {product_type.level}"
+            )
+
+    instance_kwargs = {}
+    if reference.product.data_category in {"A", "B", "C"}:
+        instance_kwargs["category"] = reference.product.data_category
+
+    model_url = reference.product.data_model_url.strip()
+    if model_url.lower() == "unknown" or not model_url:
+        model_url = None
+
+    return dp.Product(
+        description=reference.product.description,
+        creation_time=reference.product.creation_time,
+        data=product_type.model_copy(deep=True),
+        instance=dp.InstanceIdentifier(**instance_kwargs),
+        curation=dp.Curation(),
+        model=dp.DataModel(
+            name=reference.product.data_model_name,
+            version=reference.product.data_model_version,
+            url=model_url,
+        ),
+        contact=dp.Contact(
+            name=reference.contact.name,
+            organization=reference.contact.organization,
+            email=reference.contact.email,
+        ),
+        activity=dp.Activity(
+            name=reference.activity.name,
+            id=uuid.UUID(reference.activity.id_),
+            start=reference.activity.start_time,
+            end=reference.activity.stop_time,
+            software=dp.Software(
+                name=reference.activity.software_name,
+                version=reference.activity.software_version,
+                url=None,
+            ),
+            configuration_id="",
+        ),
     )
 
 
