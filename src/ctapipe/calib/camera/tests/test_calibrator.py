@@ -10,8 +10,8 @@ import pytest
 from scipy.stats import norm
 from traitlets.config import Config
 
-from ctapipe.calib.camera.calibrator import CameraCalibrator
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.calib.camera.calibrator import CameraCalibrator, _get_invalid_pixels
+from ctapipe.containers import ArrayEventContainer, PixelStatus
 from ctapipe.image.extractor import (
     FullWaveformSum,
     GlobalPeakWindowSum,
@@ -22,6 +22,53 @@ from ctapipe.image.extractor import (
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 from ctapipe.io.eventsource import EventSource
+
+
+def _valid_pixel_status(n_pixels, n_channels, selected_gain_channel=None):
+    pixel_status = np.zeros(n_pixels, dtype=np.uint8)
+
+    if selected_gain_channel is None:
+        pixel_status |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
+        if n_channels == 2:
+            pixel_status |= np.uint8(PixelStatus.LOW_GAIN_STORED)
+    else:
+        high_gain = selected_gain_channel == 0
+        pixel_status[high_gain] |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
+        pixel_status[~high_gain] |= np.uint8(PixelStatus.LOW_GAIN_STORED)
+
+    return pixel_status
+
+
+@pytest.mark.parametrize(
+    ("selected_gain_channel", "expected"),
+    [
+        (None, [[True, False, True, True], [False, True, True, True]]),
+        (np.array([1, 0, 1, 0]), [[False, False, True, True]]),
+    ],
+)
+def test_get_invalid_pixels(selected_gain_channel, expected):
+    pixel_status = np.array(
+        [
+            PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED,
+            PixelStatus.HIGH_GAIN_STORED,
+            PixelStatus.LOW_GAIN_STORED,
+            0,
+        ],
+        dtype=np.uint8,
+    )
+    outlier_mask = np.zeros((2, 4), dtype=bool)
+    outlier_mask[0, 0] = True
+    outlier_mask[1, 2] = True
+
+    invalid_pixels = _get_invalid_pixels(
+        n_channels=2,
+        n_pixels=4,
+        pixel_status=pixel_status,
+        outlier_mask=outlier_mask,
+        selected_gain_channel=selected_gain_channel,
+    )
+
+    np.testing.assert_array_equal(invalid_pixels, expected)
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -114,6 +161,7 @@ def test_check_r1_empty(example_event, example_subarray):
     )
     event = ArrayEventContainer()
     event.dl0.tel[tel_id].waveform = np.full((1, 2048, 128), 2)
+    event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(2048, 1)
     calibrator(event)
     assert (event.dl0.tel[tel_id].waveform == 2).all()
     assert (event.dl1.tel[tel_id].image == 2 * 128).all()
@@ -164,6 +212,7 @@ def test_dl1_variance_calib(example_subarray):
         event.monitoring.tel[tel_id].camera.coefficients.pedestal_offset = pedestal
         event.monitoring.tel[tel_id].camera.coefficients.factor = factor
         event.dl0.tel[tel_id].selected_gain_channel = None
+        event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(n_pixels, n_channels)
         event.r1.tel[tel_id].selected_gain_channel = None
 
     calibrator(event)
@@ -228,6 +277,9 @@ def test_dl1_charge_calib(example_subarray):
             selected_gain_channel = np.zeros(n_pixels, dtype=int)
         event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
         event.r1.tel[tel_id].selected_gain_channel = selected_gain_channel
+        event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(
+            n_pixels, n_channels, selected_gain_channel
+        )
 
         # Test default
         calibrator = CameraCalibrator(
@@ -388,6 +440,9 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
     event.monitoring.tel[tel_id].camera.coefficients.time_shift = calibration_time_shift
     event.dl0.tel[tel_id].pixel_time_shift = pixel_time_shift
     event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
+    event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(
+        n_pixels, n_channels, selected_gain_channel
+    )
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,
@@ -399,6 +454,47 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
         event.dl1.tel[tel_id].peak_time,
         3 / readout.sampling_rate.to_value(u.GHz) - expected_time_shift,
     )
+
+
+@pytest.mark.parametrize(
+    "extractor_type", [FullWaveformSum, GlobalPeakWindowSum, NeighborPeakWindowSum]
+)
+def test_invalid_pixels_gain_selected(example_subarray, extractor_type):
+    tel_id = next(iter(example_subarray.tel))
+    camera = example_subarray.tel[tel_id].camera
+    n_pixels = camera.geometry.n_pixels
+    selected_gain_channel = np.arange(n_pixels) % 2
+    pixel_index = np.arange(n_pixels)
+
+    event = ArrayEventContainer()
+    dl0 = event.dl0.tel[tel_id]
+    dl0.selected_gain_channel = selected_gain_channel
+    dl0.pixel_status = _valid_pixel_status(n_pixels, 2, selected_gain_channel)
+    dl0.waveform = np.zeros((1, n_pixels, 40))
+    dl0.waveform[:, 3:, 20] = 1
+    dl0.waveform[:, :3, 10] = 9999
+
+    # Unselected channels must not invalidate otherwise valid pixels.
+    outlier_mask = np.ones((2, n_pixels), dtype=bool)
+    outlier_mask[selected_gain_channel, pixel_index] = False
+    # Include calibration outliers in both gains and a pixel with no stored data.
+    outlier_mask[selected_gain_channel[:2], pixel_index[:2]] = True
+    dl0.pixel_status[2] = 0
+    event.monitoring.tel[tel_id].camera.coefficients.outlier_mask = outlier_mask
+
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=extractor_type(subarray=example_subarray),
+    )
+    calibrator._calibrate_dl1(event, tel_id)
+
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time,
+        20 / camera.readout.sampling_rate.to_value(u.GHz),
+    )
+    image = event.dl1.tel[tel_id].image
+    assert image[-1] > 0
+    np.testing.assert_allclose(image, image[-1])
 
 
 def test_invalid_pixels(example_event, example_subarray):

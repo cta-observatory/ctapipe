@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from ctapipe.containers import PixelStatus
 from ctapipe.image import ImageExtractor
 
 
@@ -24,7 +25,7 @@ def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
 
 
 @pytest.mark.parametrize("extractor", ImageExtractor.non_abstract_subclasses().keys())
-def test_r1_simtel_broken_pixels(r1_file, tmp_path, extractor):
+def test_r1_simtel_broken_pixels(r1_file, extractor):
     """Test that broken pixel information is preserved for simtel r1"""
     from ctapipe.calib.camera import CameraCalibrator
     from ctapipe.io import EventSource
@@ -34,25 +35,26 @@ def test_r1_simtel_broken_pixels(r1_file, tmp_path, extractor):
 
         n_checked = 0
         for event in source:
-            for tel_id, mon in event.monitoring.tel.items():
-                # not filled at the moment
-                # assert mon.camera.coefficients.time_shift is not None
+            for tel_id, r1 in event.r1.tel.items():
                 readout = source.subarray.tel[tel_id].camera.readout
 
-                # filled from pixel status
-                outlier_mask = mon.camera.coefficients.outlier_mask
-                assert outlier_mask is not None
-                assert outlier_mask.shape == (readout.n_channels, readout.n_pixels)
+                assert r1.pixel_status is not None
+                assert r1.pixel_status.shape == (readout.n_pixels,)
 
                 # flashcam has 6 disabled pixels, only one gain
                 if readout.name == "FlashCam":
-                    assert np.count_nonzero(outlier_mask[0]) == 6
+                    invalid = PixelStatus.is_invalid(r1.pixel_status)
+                    assert np.count_nonzero(invalid) == 6
                 # we expect no other cameras to have disabled pixels here
                 else:
-                    pixel_index = np.arange(readout.n_pixels)
-                    selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
-                    active_mask = outlier_mask[selected_gain_channel, pixel_index]
-                    assert np.count_nonzero(active_mask) == 0
+                    selected_gain_channel = r1.selected_gain_channel
+                    gain_bits = np.where(
+                        selected_gain_channel == 0,
+                        np.uint8(PixelStatus.HIGH_GAIN_STORED),
+                        np.uint8(PixelStatus.LOW_GAIN_STORED),
+                    )
+                    active_gain_stored = (r1.pixel_status & gain_bits) != 0
+                    assert np.all(active_gain_stored)
 
                 n_checked += 1
 

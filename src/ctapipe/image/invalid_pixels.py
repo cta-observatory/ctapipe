@@ -38,7 +38,8 @@ class InvalidPixelHandler(TelescopeComponent, metaclass=ABCMeta):
             Array of pixel peak_time values
         pixel_mask : np.ndarray
             Boolean mask of the pixels to be interpolated
-            Shape: (n_channels, n_pixels)
+            Shape: (n_channels, n_pixels), matching the image channels.
+            For gain-selected images, use a gain-selected mask of shape (1, n_pixels).
 
         Returns
         -------
@@ -67,7 +68,8 @@ class NeighborAverage(InvalidPixelHandler):
             Array of pixel peak_time values
         pixel_mask : np.ndarray
             Boolean mask of the pixels to be interpolated
-            Shape: (n_channels, n_pixels)
+            Shape: (n_channels, n_pixels), matching the image channels.
+            For gain-selected images, use a gain-selected mask of shape (1, n_pixels).
 
         Returns
         -------

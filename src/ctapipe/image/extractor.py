@@ -450,7 +450,9 @@ class ImageExtractor(TelescopeComponent):
             extraction.
         broken_pixels : ndarray
             Mask of broken pixels used for certain `ImageExtractor` types.
-            Shape: (n_channels, n_pix)
+            Shape: (n_channels, n_pix), matching the waveform channel axis.
+            For gain-selected waveforms, the mask must also be gain selected
+            and have shape (1, n_pix).
 
         Returns
         -------
@@ -533,20 +535,6 @@ class FixedWindowSum(ImageExtractor):
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
-@lru_cache()
-def _get_pixel_index(n_pixels):
-    return np.arange(n_pixels)
-
-
-def _select_value_for_gain(array, selected_gain_channel):
-    """Select values from a full array for the selected gain.
-
-    For an array of shape (n_channels, n_pixels, ...) return an array
-    of shape (n_pixels, ...) for the selected gain give in selected_gain_channel.
-    """
-    return array[selected_gain_channel, _get_pixel_index(len(selected_gain_channel))]
-
-
 class GlobalPeakWindowSum(ImageExtractor):
     """
     Extractor which sums in a window about the
@@ -596,9 +584,6 @@ class GlobalPeakWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
-        if selected_gain_channel is not None:
-            broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
-
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
             peak_index = waveforms.mean(
@@ -794,11 +779,6 @@ class NeighborPeakWindowSum(ImageExtractor):
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
-
-        if selected_gain_channel is not None:
-            broken_pixels = _select_value_for_gain(broken_pixels, selected_gain_channel)
-            # neighbor_average_maximum indexes using channel.
-            broken_pixels = broken_pixels[np.newaxis, ...]
 
         peak_index = neighbor_average_maximum(
             waveforms,

@@ -1,0 +1,7 @@
+The ``CameraCalibrator`` now combines the monitoring ``outlier_mask`` and the
+per-event ``pixel_status`` information to determine invalid pixels for the
+``InvalidPixelHandler``.
+
+The channel handling of the invalid pixels has been moved to the ``CameraCalibrator``,
+``ImageExtractor`` and ``InvalidPixelHandler`` implementations get gain selected
+invalid pixel masks for gain selected input data.
