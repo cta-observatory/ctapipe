@@ -111,7 +111,7 @@ def test_write(tmpdir: Path):
         images = h5file.get_node("/dl1/event/telescope/images/tel_004")
         assert images.col("image").max() > 0.0
         assert (
-            h5file.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]  # pylint: disable=protected-access
+            h5file.root._v_attrs["CTAO.model.version"]  # pylint: disable=protected-access
             == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
@@ -258,7 +258,6 @@ def test_metadata(tmpdir: Path):
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
                 },
-                "Instrument": {"site": "CTA-North", "id_": "alpha"},
                 "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
@@ -278,11 +277,9 @@ def test_metadata(tmpdir: Path):
 
         with tables.open_file(output_path) as h5file:
             meta = h5file.root._v_attrs
-            assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
-            assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
-            assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
-            assert meta["CTA INSTRUMENT SITE"] == "CTA-North"
-            assert meta["CTA INSTRUMENT ID"] == "alpha"
+            assert meta["CTAO.contact.name"] == "Maximilian Nöthe"
+            assert meta["CTAO.contact.email"] == "maximilian.noethe@tu-dortmund.de"
+            assert meta["CTAO.contact.organization"] == "TU Dortmund"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
 
 

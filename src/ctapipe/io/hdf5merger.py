@@ -306,26 +306,9 @@ class HDF5Merger(Component):
 
         self.h5file.flush()
 
-    def _get_legacy_product_type(self, h5file):
-        reference = metadata._read_reference_metadata_hdf5(h5file)
-        return dp.ProductType(
-            level=metadata.to_ctao_data_level(reference.product.data_levels),
-            division=(
-                dp.DataDivision.MONITORING
-                if self.attach_monitoring  # Change that
-                else dp.DataDivision.EVENT
-            ),
-            association=dp.DataAssociation(reference.product.data_association),
-            type=(
-                dp.DataType.OBSERVATION_SIM
-                if reference.product.data_category == "Sim"  # Change that
-                else dp.DataType.OBSERVATION
-            ),
-        )
-
     def _check_can_merge(self, other):
         other_meta = metadata.read_ctao_metadata(other)
-        other_version = other_meta.product.model_version
+        other_version = other_meta.model.version
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 raise CannotMerge(
@@ -339,7 +322,7 @@ class HDF5Merger(Component):
                     f"Input file {other.filename!r} has different data model version:"
                     f" {other_version}, expected {self.data_model_version}"
                 )
-        other_data_type = other_meta.product.data.type
+        other_data_type = other_meta.data.type
         if self.data_type != other_data_type:
             raise CannotMerge(
                 f"Input file {other.filename!r} has different data type:"
