@@ -7,6 +7,7 @@ import warnings
 from contextlib import ExitStack
 
 import astropy.units as u
+import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from astropy.coordinates import AltAz, SkyCoord
@@ -232,29 +233,33 @@ class HDF5MonitoringSource(MonitoringSource):
 
         with tables.open_file(file) as open_file:
             # Validate simulation consistency
-            # Determine if the file is from simulation.
-            # First check for the presence of the simulation group.
-            file_is_simulation = False
+            # Prefer the actual simulation group, then current metadata,
+            # then legacy metadata as fallback.
+            attrs = open_file.root._v_attrs
+
             if "simulation" in open_file.root:
                 file_is_simulation = True
+
+            elif "CTAO.data.type" in attrs._v_attrnames:
+                file_is_simulation = (
+                    attrs["CTAO.data.type"] == dp.DataType.OBSERVATION_SIM.value
+                )
+
+            elif "CTA PRODUCT DATA CATEGORY" in attrs._v_attrnames:
+                file_is_simulation = attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
+
             else:
-                # Check for metadata attribute if simulation group is not present
-                if (
-                    "CTA PRODUCT DATA CATEGORY" in open_file.root._v_attrs
-                    and open_file.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-                ):
-                    file_is_simulation = True
+                file_is_simulation = False
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
-            else:
-                if self._is_simulation != file_is_simulation:
-                    raise IOError(
-                        f"HDF5MonitoringSource: Inconsistent simulation flags found in "
-                        f"file '{file}'. Previously processed files have "
-                        f"simulation flag set to {self._is_simulation}, while "
-                        f"current file has it set to {file_is_simulation}."
-                    )
+            elif self._is_simulation != file_is_simulation:
+                raise IOError(
+                    f"HDF5MonitoringSource: Inconsistent simulation flags found in "
+                    f"file '{file}'. Previously processed files have "
+                    f"simulation flag set to {self._is_simulation}, while "
+                    f"current file has it set to {file_is_simulation}."
+                )
 
             _, telescope_data = get_hdf5_monitoring_types(open_file)
             telescope_data = {
