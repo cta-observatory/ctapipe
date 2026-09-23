@@ -33,7 +33,7 @@ from .hdf5dataformat import (
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
 )
-from .metadata import read_reference_metadata
+from .metadata import read_ctao_metadata
 from .monitoringsource import AvailableTypes, MonitoringSource
 from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 
@@ -227,7 +227,7 @@ class HDF5MonitoringSource(MonitoringSource):
         Provenance().add_input_file(
             str(file),
             role="Monitoring",
-            reference_meta=read_reference_metadata(file),
+            reference_meta=read_ctao_metadata(file),
         )
 
         with tables.open_file(file) as open_file:
