@@ -9,6 +9,7 @@ from collections import defaultdict
 import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
+from astropy.time import Time
 from traitlets import Dict, Instance
 
 from ..containers import (
@@ -110,7 +111,6 @@ class DataWriter(Component):
 
     # pylint: disable=too-many-instance-attributes
     contact_info = Instance(meta.Contact, kw={}).tag(config=True)
-    instrument_info = Instance(meta.Instrument, kw={}).tag(config=True)
 
     context_metadata = Dict(
         help=(
@@ -655,12 +655,12 @@ class DataWriter(Component):
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
 
-    def write_product_metadata_headers(self):
+    def _write_product_metadata_headers(self):
         """
         Write out the product metadata headers to the output file.
         """
         product_type = dp.ProductType(
-            level=meta.to_ctao_data_level(self.data_levels),
+            level=meta.to_ctao_data_level(self.datalevels),
             division=dp.DataDivision.EVENT,
             association=dp.DataAssociation.SUBARRAY,
             type=(
@@ -669,6 +669,8 @@ class DataWriter(Component):
                 else dp.DataType.OBSERVATION
             ),
         )
+
+        # TODO: Check calibration files
 
         obs_ids = self.event_source.obs_ids
         obs_id = obs_ids[0] if len(obs_ids) == 1 else None
@@ -680,6 +682,7 @@ class DataWriter(Component):
 
         product = dp.Product(
             description="ctapipe Data Product",
+            creation_time=Time.now(),
             data=product_type,
             instance=dp.InstanceIdentifier(
                 obs_id=obs_id,

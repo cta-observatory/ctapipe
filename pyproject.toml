@@ -190,6 +190,7 @@ filterwarnings = [
     "ignore:The chararray class is deprecated:DeprecationWarning",
     "ignore:Setting the dtype on a NumPy array",
     "once:llvmlite.binding.initialize:DeprecationWarning",
+    "ignore::ctapipe.io.metadata.LegacyMetadataWarning",
 ]
 norecursedirs = [
     ".git",
