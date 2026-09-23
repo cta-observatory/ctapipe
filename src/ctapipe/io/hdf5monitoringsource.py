@@ -224,12 +224,28 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def _process_single_file(self, file):
         """Process a single monitoring file."""
-        # Add the file to the provenance
+        product = read_ctao_metadata(file)
+
         Provenance().add_input_file(
             str(file),
             role="Monitoring",
-            reference_meta=read_ctao_metadata(file),
+            reference_meta=product.model_dump(mode="json"),
         )
+
+        file_is_simulation = product.data.type in {
+            dp.DataType.OBSERVATION_SIM,
+            dp.DataType.CALIBRATION_SIM,
+        }
+
+        if self._is_simulation is None:
+            self._is_simulation = file_is_simulation
+        elif self._is_simulation != file_is_simulation:
+            raise IOError(
+                f"HDF5MonitoringSource: Inconsistent simulation flags found in "
+                f"file '{file}'. Previously processed files have "
+                f"simulation flag set to {self._is_simulation}, while "
+                f"current file has it set to {file_is_simulation}."
+            )
 
         with tables.open_file(file) as open_file:
             # Validate simulation consistency
