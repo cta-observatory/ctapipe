@@ -2,17 +2,20 @@
 name: cta-dev
 channels:
   - conda-forge
+  # needed for numba / python release candidates
+  - conda-forge/label/python_rc
+  - numba
 dependencies:
   - python=3.13
   - pip
-  - astropy>=6.1,<8
+  - astropy-base>=6.1,<9
   - astroquery
   - black
   - bokeh=3
   - nbsphinx
   - cython
   - graphviz
-  - h5py
+  # - h5py
   - iminuit>=2
   - ipython
   - ipywidgets
@@ -48,7 +51,7 @@ dependencies:
   - towncrier
   - tqdm
   - traitlets
-  - vitables
+  # - vitables
   - wheel
   - xz
   - zlib
