@@ -37,12 +37,12 @@ import tables
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from pydantic import ValidationError
 from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
 from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
-from ..utils.deprecation import CTAPipeDeprecationWarning
 from .datalevels import DataLevel
 
 __all__ = [
@@ -91,7 +91,7 @@ class Contact(Configurable):
     """Contact information"""
 
     name = Unicode("unknown").tag(config=True)
-    email = Unicode("unknown").tag(config=True)
+    email = Unicode("unknown@example.org").tag(config=True)
     organization = Unicode("unknown").tag(config=True)
 
     @default("name")
@@ -464,6 +464,14 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
 # -----------------------------------------------------
 
 
+class LegacyMetadataWarning(UserWarning):
+    """Warning for incomplete or invalid legacy metadata."""
+
+
+class LegacyContactRequired(ValueError):
+    """Raised when legacy metadata does not contain valid contact information."""
+
+
 def write_product_metadata(
     product: dp.Product, h5file: tables.File, path="/", remove_legacy=False
 ):
@@ -501,6 +509,7 @@ def read_ctao_metadata(
     input_url,
     *,
     product_type: dp.ProductType | None = None,
+    contact_fallback: dp.Contact | None = None,
 ) -> dp.Product:
     """Read CTAO metadata from a file, and return a CTAO Product.
 
@@ -517,16 +526,23 @@ def read_ctao_metadata(
     if "CTA REFERENCE VERSION" in metadata:
         warnings.warn(
             "Legacy ctapipe metadata detected. Use ctapipe-merge to migrate the file.",
-            CTAPipeDeprecationWarning,
+            LegacyMetadataWarning,
             stacklevel=2,
         )
 
         reference = Reference.from_dict(metadata)
-
+        if contact_fallback is None:
+            contact_fallback = dp.Contact(
+                name="unknown",
+                organization="unknown",
+                email="unknown@example.org",
+            )
         if product_type is None:
             product_type = _legacy_product_type(input_url, reference)
 
-        return _legacy_reference_to_product(reference, product_type)
+        return _legacy_reference_to_product(
+            reference, product_type, contact_fallback=contact_fallback
+        )
 
     raise ValueError("Unsupported metadata format")
 
@@ -583,9 +599,25 @@ def _activity_from_provenance(activity) -> dp.Activity:
     )
 
 
+LEGACY_MISSING_VALUES = {"", "unknown", "unspecified"}
+
+
+def _legacy_optional_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if value.lower() in LEGACY_MISSING_VALUES:
+        return None
+
+    return value
+
+
 def _legacy_reference_to_product(
     reference: Reference,
     product_type: dp.ProductType,
+    contact_fallback: dp.Contact,
 ) -> dp.Product:
     """Convert legacy reference metadata to a current CTAO Product."""
     if reference.product.data_levels:
@@ -598,29 +630,52 @@ def _legacy_reference_to_product(
             )
 
     instance_kwargs = {}
-    if reference.product.data_category in {"A", "B", "C"}:
-        instance_kwargs["category"] = reference.product.data_category
+    try:
+        category = dp.DataProcessingCategory(reference.product.data_category)
+    except ValueError:
+        pass
+    else:
+        instance_kwargs["category"] = category
 
-    model_url = reference.product.data_model_url.strip()
-    if model_url.lower() == "unknown" or not model_url:
-        model_url = None
+    model_url = _legacy_optional_string(reference.product.data_model_url)
+    contact_name = _legacy_optional_string(reference.contact.name)
+    contact_organization = _legacy_optional_string(reference.contact.organization)
+    contact_email = _legacy_optional_string(reference.contact.email)
+
+    invalid_contact = {
+        "name": contact_name,
+        "organization": contact_organization,
+        "email": contact_email,
+    }
+
+    try:
+        contact = dp.Contact(**invalid_contact)
+    except ValidationError:
+        warnings.warn(
+            "Legacy metadata contains invalid contact information: "
+            f"{invalid_contact!r}. "
+            "The contact information is temporarily replaced with the fallback "
+            f"{contact_fallback!r}. "
+            "Ensure that valid contact information is provided when writing new data, "
+            "for example through the DataWriter, or migrate the file explicitly using "
+            "the MergeTool.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        contact = contact_fallback
 
     return dp.Product(
         description=reference.product.description,
         creation_time=reference.product.creation_time,
+        curation=dp.Curation(),
         data=product_type.model_copy(deep=True),
         instance=dp.InstanceIdentifier(**instance_kwargs),
-        curation=dp.Curation(),
         model=dp.DataModel(
             name=reference.product.data_model_name,
             version=reference.product.data_model_version,
             url=model_url,
         ),
-        contact=dp.Contact(
-            name=reference.contact.name,
-            organization=reference.contact.organization,
-            email=reference.contact.email,
-        ),
+        contact=contact,
         activity=dp.Activity(
             name=reference.activity.name,
             id=uuid.UUID(reference.activity.id_),
@@ -637,7 +692,7 @@ def _legacy_reference_to_product(
 
 
 def to_ctao_data_type(
-    reference: str,
+    reference: Reference,
     input_url,
 ) -> dp.DataType:
     """Convert a legacy data type to the new CTAO data model."""
