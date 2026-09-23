@@ -332,10 +332,14 @@ class HDF5EventSource(EventSource):
         with tables.open_file(path) as f:
             metadata = f.root._v_attrs
 
-            if "CTAO.model.version" not in metadata._v_attrnames:
+            # data model version: current metadata first, then legacy fallback
+            if "CTAO.model.version" in metadata._v_attrnames:
+                version = metadata["CTAO.model.version"]
+            elif "CTA PRODUCT DATA MODEL VERSION" in metadata._v_attrnames:
+                version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            else:
                 return False
 
-            version = metadata["CTAO.model.version"]
             if version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 logger.error(
                     "File is a ctapipe HDF5 file but has unsupported data model"
@@ -347,16 +351,19 @@ class HDF5EventSource(EventSource):
                 )
                 return False
 
-            if "CTAO.data.level" not in metadata._v_attrnames:
+            # metadata data level: support current and legacy metadata
+            if not (
+                "CTAO.data.level" in metadata._v_attrnames
+                or "CTA PRODUCT DATA LEVELS" in metadata._v_attrnames
+            ):
                 return False
 
             # we can now read both R1 and DL1
             has_sim = SIMULATION_TEL_TABLE in f.root
-            has_trigger = (DL1_SUBARRAY_TRIGGER_TABLE in f) or (
-                DL1_TEL_TRIGGER_TABLE in f
-            )
+            has_trigger = DL1_SUBARRAY_TRIGGER_TABLE in f or DL1_TEL_TRIGGER_TABLE in f
 
             datalevels = get_hdf5_datalevels(f)
+
             if not any(
                 [
                     datalevels,
