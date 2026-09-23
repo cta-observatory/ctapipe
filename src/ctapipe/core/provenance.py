@@ -269,13 +269,13 @@ class _ActivityProvenance:
         self, url, reference_meta=None, read_meta=True
     ) -> dict | None:
         # here to prevent circular imports / top-level cross-dependencies
-        from ..io.metadata import read_reference_metadata
+        from ..io.metadata import read_ctao_metadata
 
         if reference_meta is not None or read_meta is False:
             return reference_meta
 
         try:
-            return read_reference_metadata(url).to_dict()
+            return read_ctao_metadata(url).model_dump(mode="json")
         except Exception:
             warnings.warn(
                 f"Could not read reference metadata for input file: {url}",
