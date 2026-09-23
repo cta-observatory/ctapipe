@@ -459,9 +459,9 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
         return Reference.from_fits(fitsfile[hdu].header)
 
 
-##############################
-####### New Data Model #######
-##############################
+# -----------------------------------------------------
+#  New Data Model
+# -----------------------------------------------------
 
 
 def write_product_metadata(
