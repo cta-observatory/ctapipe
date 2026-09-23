@@ -1,4 +1,5 @@
 .pytest_cache
+.pixi/
 *.log
 docs/sg_execution_times.rst
 
