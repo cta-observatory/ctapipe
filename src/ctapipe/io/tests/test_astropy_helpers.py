@@ -175,6 +175,8 @@ def test_condition(tmp_path):
 
 def test_read_table_astropy(tmp_path):
     """Test that ctapipe.io.read_table can also read a table written Table.write"""
+    # astropy uses h5py for writing hdf5, which is not a ctapipe dependency
+    pytest.importorskip("h5py")
     table = Table(
         {
             "a": [1, 2, 3],
