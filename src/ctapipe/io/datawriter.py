@@ -110,7 +110,18 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
-    contact_info = Instance(meta.Contact, kw={}).tag(config=True)
+    contact_info = Instance(
+        dp.Contact,
+        kw={
+            "name": "unknown",
+            "organization": "unknown",
+            "email": "unknown@example.org",
+        },
+    ).tag(config=True)
+    metadata_description = Unicode(
+        "ctapipe Data Product",
+        help="Description of the output data product.",
+    ).tag(config=True)
 
     context_metadata = Dict(
         help=(
@@ -655,6 +666,15 @@ class DataWriter(Component):
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
 
+    def _get_processing_sublevel(self):
+        if self.write_dl1_images and not self.write_dl1_parameters:
+            return dp.ProcessingSublevel.IMAGES
+
+        if self.write_dl1_parameters and not self.write_dl1_images:
+            return dp.ProcessingSublevel.PARAMETERS
+
+        return None
+
     def _write_product_metadata_headers(self):
         """
         Write out the product metadata headers to the output file.
@@ -668,33 +688,37 @@ class DataWriter(Component):
         else:
             raise ValueError("Cannot determine CTAO data level for output")
 
-        product_type = dp.ProductType(
-            level=level,
-            division=dp.DataDivision.EVENT,
-            association=dp.DataAssociation.SUBARRAY,
-            type=(
-                dp.DataType.OBSERVATION_SIM
-                if self._is_simulation
-                else dp.DataType.OBSERVATION
-            ),
-        )
-
-        # TODO: Check calibration files
-
         prov_activity = PROV.current_activity
         if prov_activity is None and PROV.finished_activities:
             # assume that we write provenance for a "just finished activity"
             prov_activity = PROV.finished_activities[-1]
 
+        input_reference_meta = prov_activity.input[0]["reference_meta"]
+        data_type = input_reference_meta["CTAO.data.type"]
+
+        product_type = dp.ProductType(
+            level=level,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=data_type,
+        )
+
         obs_ids = self.event_source.obs_ids
         obs_id = obs_ids[0] if len(obs_ids) == 1 else None
+        facility_name = (
+            dp.FacilityName.SIMULATED_CTAO
+            if self.event_source.is_simulation
+            else dp.FacilityName.CTAO
+        )
 
         product = dp.Product(
-            description="ctapipe Data Product",
+            description=self.metadata_description,
             creation_time=Time.now(),
             data=product_type,
             instance=dp.InstanceIdentifier(
                 obs_id=obs_id,
+                facility_name=facility_name,
+                sublevel_id=self._get_processing_sublevel(),
             ),
             curation=dp.Curation(),
             model=dp.DataModel(
@@ -702,11 +726,7 @@ class DataWriter(Component):
                 version=DATA_MODEL_VERSION,
                 url=None,
             ),
-            contact=dp.Contact(
-                name=self.contact_info.name,
-                organization=self.contact_info.organization,
-                email=self.contact_info.email,
-            ),
+            contact=self.contact_info,
             activity=meta._activity_from_provenance(prov_activity),
         )
         meta.write_product_metadata(product, self._writer.h5file)
