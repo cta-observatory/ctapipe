@@ -82,6 +82,13 @@ jobs:
             pixi-environment: test-py314
             pytest-markers: "-m 'not vizier'"
 
+          - name: Linux (3.15, pixi)
+            os: ubuntu-24.04
+            python-version: "3.15"
+            install-method: pixi
+            pixi-environment: test-py315
+            pytest-markers: "-m 'not vizier'"
+
           - name: macos (3.12, arm64, pip)
             os: macos-26
             python-version: "3.12"

@@ -3,6 +3,10 @@ name = "ctapipe"
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64"]
 
+# numba rc is missing metadata in conda package for this mapping
+[workspace.conda-pypi-map]
+numba = { mapping = { numba = "numba", llvmlite = "llvmlite" } }
+
 # Keep constraints in sync with pyproject.toml. The default environment contains
 # only the required runtime dependencies and an editable ctapipe installation.
 [dependencies]
@@ -39,7 +43,6 @@ zernike = "*"
 
 [feature.test.dependencies]
 astroquery = "*"
-h5py = "*"
 pandas = "*"
 pytest = ">=9"
 pytest-cov = "*"
@@ -69,7 +72,7 @@ pandoc = "*"
 pydata-sphinx-theme = "*"
 pypandoc = "*"
 sphinx = ">=9.1,<9.2"
-sphinx-automodapi = "==0.22.0"
+sphinx-automodapi = "*"
 sphinx-design = "*"
 sphinx-gallery = ">=0.16"
 sphinxcontrib-bibtex = "*"
@@ -98,11 +101,21 @@ python = "3.12.*"
 python = "3.13.*"
 
 [feature.py314]
-# Recent numba releases no longer support Intel macOS.
-platforms = ["linux-64", "osx-arm64"]
+platforms = ["linux-64", "osx-arm64"]  # Recent numba releases no longer support Intel macOS.
 
 [feature.py314.dependencies]
 python = "3.14.*"
+
+[feature.py315]
+platforms = ["linux-64", "osx-arm64"]  # Recent numba releases no longer support Intel macOS.
+channels = [
+  "numba",                        # for numba rc with python 3.15 support
+  "conda-forge",
+  "conda-forge/label/python_rc",  # for python rc
+]
+
+[feature.py315.dependencies]
+python = "3.15.*"
 
 [feature.oldest-deps]
 platforms = ["linux-64"]
@@ -125,4 +138,5 @@ dev = { features = ["py314", "eventio", "optional", "test", "doc", "dev"], solve
 test-py312 = { features = ["py312", "eventio", "optional", "test"], solve-group = "py312" }
 test-py313 = { features = ["py313", "eventio", "optional", "test"], solve-group = "py313" }
 test-py314 = { features = ["py314", "eventio", "optional", "test"], solve-group = "py314" }
+test-py315 = { features = ["py315", "eventio", "test"], solve-group = "py315" }
 test-oldest = { features = ["py312", "eventio", "optional", "test", "oldest-deps"] }
