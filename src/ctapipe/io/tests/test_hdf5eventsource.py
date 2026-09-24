@@ -359,7 +359,6 @@ def test_is_compatible_with_only_trigger(tmp_path):
 
     with tables.open_file(filename, mode="w") as h5:
         h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = DATA_MODEL_VERSION
-
         h5.root._v_attrs["CTA PRODUCT DATA LEVELS"] = "R0"
 
         h5.create_group("/", "dl1")
