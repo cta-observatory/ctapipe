@@ -1,6 +1,10 @@
+import shutil
+import warnings
+
 import astropy.units as u
 import numpy as np
 import pytest
+import tables
 from astropy.time import Time
 
 from ctapipe.exceptions import InputMissing
@@ -20,6 +24,30 @@ from ctapipe.io.hdf5dataformat import (
 from ctapipe.utils import get_dataset_path
 
 
+@pytest.fixture(scope="module")
+def calibpipe_camcalib_obslike_same_chunks_fixed_meta(
+    calibpipe_camcalib_obslike_same_chunks,
+    tmp_path_factory,
+):
+    path = (
+        tmp_path_factory.mktemp("obslike_monitoring")
+        / calibpipe_camcalib_obslike_same_chunks.name
+    )
+
+    shutil.copy2(calibpipe_camcalib_obslike_same_chunks, path)
+
+    # The metadata contains "CTA PROCESS TYPE = Simulation", so the file is
+    # classified as simulation data even though this test treats it as observation-like.
+    with (
+        tables.open_file(path, mode="a") as f,
+        warnings.catch_warnings(),
+    ):
+        warnings.simplefilter("ignore", tables.NaturalNameWarning)
+        f.root._v_attrs["CTA PROCESS TYPE"] = "Observation"
+
+    return path
+
+
 def test_hdf5_monitoring_source_subarray():
     """test a simple subarray"""
     file = get_dataset_path("calibpipe_camcalib_sims_single_chunk_i0.2.0.dl1.h5")
@@ -29,13 +57,13 @@ def test_hdf5_monitoring_source_subarray():
         assert source.subarray.optics_types
 
 
-def test_passing_subarray(dl1_file, calibpipe_camcalib_obslike_same_chunks):
+def test_passing_subarray(dl1_file, calibpipe_camcalib_obslike_same_chunks_fixed_meta):
     """test the functionality of passing a subarray from an EventSource"""
     allowed_tels = {1}
     with EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
-            input_files=[calibpipe_camcalib_obslike_same_chunks],
+            input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
         )
         assert monitoring_source.subarray.tel_ids == source.subarray.tel_ids
 
@@ -172,22 +200,24 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_sims_single_chu
             monitoring_source.get_camera_monitoring_container(tel_id, unique_timestamps)
 
 
-def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chunks):
+def test_get_camera_monitoring_container_obs(
+    calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+):
     """test the get_camera_monitoring_container method with the monitoring source of observation"""
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     flatfield_peak_time = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_FLATFIELD_PEAK_TIME_GROUP}/tel_{tel_id:03d}",
     )
     with HDF5MonitoringSource(
         subarray=None,
-        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
         timestamp_tolerance=0.25 * u.s,
     ) as monitoring_source:
         with pytest.raises(
@@ -265,14 +295,14 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
 
 
 def test_get_camera_monitoring_container_obs_invalid(
-    calibpipe_camcalib_obslike_same_chunks,
+    calibpipe_camcalib_obslike_same_chunks_fixed_meta,
 ):
     """test the get_camera_monitoring_container method with the monitoring source of observation"""
 
     tel_id = 1
     with HDF5MonitoringSource(
         subarray=None,
-        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
         timestamp_tolerance=0.1 * u.s,
     ) as monitoring_source:
         with pytest.raises(
@@ -333,13 +363,15 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
             assert not u.isclose(e.monitoring.tel[tel_id].pointing.altitude, old_alt)
 
 
-def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks):
+def test_camcalib_obs(
+    prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks_fixed_meta
+):
     """test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     # Define some usual trigger times
@@ -366,7 +398,7 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
 
     monitoring_source = HDF5MonitoringSource(
         subarray=source.subarray,
-        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
     )
     assert not monitoring_source.is_simulation
     assert monitoring_source.pixel_statistics
@@ -394,18 +426,21 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
 
 
 def test_hdf5_monitoring_source_multi_files_loading(
-    dl1_mon_pointing_file_obs, calibpipe_camcalib_obslike_same_chunks
+    dl1_mon_pointing_file_obs, calibpipe_camcalib_obslike_same_chunks_fixed_meta
 ):
     """Test loading multiple HDF5 monitoring files in the HDF5MonitoringSource"""
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients for the timestamp
     camcalib_coefficients = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     monitoring_source = HDF5MonitoringSource(
-        input_files=[calibpipe_camcalib_obslike_same_chunks, dl1_mon_pointing_file_obs],
+        input_files=[
+            calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+            dl1_mon_pointing_file_obs,
+        ],
     )
     assert not monitoring_source.is_simulation
     assert monitoring_source.pixel_statistics
@@ -443,7 +478,7 @@ def test_hdf5_monitoring_source_multi_files_loading(
 def test_hdf5_monitoring_source_exceptions_and_warnings(
     prod6_gamma_simtel_path,
     calibpipe_camcalib_sims_single_chunk,
-    calibpipe_camcalib_obslike_same_chunks,
+    calibpipe_camcalib_obslike_same_chunks_fixed_meta,
     dl1_mon_pointing_file,
 ):
     """test the common exceptions and warnings of the HDF5MonitoringSource"""
@@ -470,7 +505,10 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         IOError, match="HDF5MonitoringSource: Inconsistent simulation flags found in"
     ):
         HDF5MonitoringSource(
-            input_files=[dl1_mon_pointing_file, calibpipe_camcalib_obslike_same_chunks]
+            input_files=[
+                dl1_mon_pointing_file,
+                calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+            ]
         )
     # Test that we can open a file with pointing data (even for simulation)
     monitoring_source = HDF5MonitoringSource(
@@ -486,8 +524,8 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         HDF5MonitoringSource(
             subarray=None,
             input_files=[
-                calibpipe_camcalib_obslike_same_chunks,
-                calibpipe_camcalib_obslike_same_chunks,
+                calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+                calibpipe_camcalib_obslike_same_chunks_fixed_meta,
             ],
         )
 

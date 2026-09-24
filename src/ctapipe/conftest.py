@@ -772,12 +772,20 @@ def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
         data_category = "CTA PRODUCT DATA CATEGORY"
+        data_process_type = "CTA PROCESS TYPE"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
         if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", tables.NaturalNameWarning)
                 f.root._v_attrs[data_category] = "Other"
+        if (
+            data_process_type in f.root._v_attrs
+            and f.root._v_attrs[data_process_type] == "Simulation"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs[data_process_type] = "Observation"
     return path
 
 
@@ -811,18 +819,23 @@ def dl1_merged_monitoring_file(
 
 @pytest.fixture(scope="session")
 def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
+    import ctao_datamodel.models.dataproducts as dp
+
     path = dl1_tmp_path / "dl1_merged_monitoring_file_obs.dl1.h5"
     shutil.copy(dl1_merged_monitoring_file, path)
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        data_category = "CTA PRODUCT DATA CATEGORY"
+        data_type = "CTAO.data.type"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
-        if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
+        if (
+            data_type in f.root._v_attrs
+            and f.root._v_attrs[data_type] == dp.DataType.CALIBRATION_SIM
+        ):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs[data_category] = "Other"
+                f.root._v_attrs[data_type] = dp.DataType.CALIBRATION
     return path
 
 

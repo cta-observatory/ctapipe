@@ -220,15 +220,15 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def _process_single_file(self, file):
         """Process a single monitoring file."""
-        product = read_ctao_metadata(file)
+        meta_product = read_ctao_metadata(file)
 
         Provenance().add_input_file(
             str(file),
             role="Monitoring",
-            reference_meta=product.model_dump(mode="json"),
+            reference_meta=meta_product.model_dump(mode="json"),
         )
 
-        file_is_simulation = product.data.type in {
+        file_is_simulation = meta_product.data.type in {
             dp.DataType.OBSERVATION_SIM,
             dp.DataType.CALIBRATION_SIM,
         }
