@@ -675,10 +675,10 @@ class DataWriter(Component):
         obs_ids = self.event_source.obs_ids
         obs_id = obs_ids[0] if len(obs_ids) == 1 else None
 
-        activity = PROV.current_activity
-        if activity is None and PROV.finished_activities:
+        prov_activity = PROV.current_activity
+        if prov_activity is None and PROV.finished_activities:
             # assume that we write provenance for a "just finished activity"
-            activity = PROV.finished_activities[-1]
+            prov_activity = PROV.finished_activities[-1]
 
         product = dp.Product(
             description="ctapipe Data Product",
@@ -689,7 +689,7 @@ class DataWriter(Component):
             ),
             curation=dp.Curation(),
             model=dp.DataModel(
-                name="ASWG",
+                name="ctapipe",
                 version=DATA_MODEL_VERSION,
                 url=None,
             ),
@@ -698,7 +698,7 @@ class DataWriter(Component):
                 organization=self.contact_info.organization,
                 email=self.contact_info.email,
             ),
-            activity=meta._activity_from_provenance(activity),
+            activity=meta._activity_from_provenance(prov_activity),
         )
         meta.write_product_metadata(product, self._writer.h5file)
 

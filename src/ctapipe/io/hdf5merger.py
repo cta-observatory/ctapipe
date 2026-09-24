@@ -302,9 +302,20 @@ class HDF5Merger(Component):
         self.meta.instance.id = uuid.uuid4()
         self.meta.creation_time = Time.now()
 
+        self._update_product_type()
+
         metadata.write_product_metadata(self.meta, self.h5file, remove_legacy=True)
 
         self.h5file.flush()
+
+    def _update_product_type(self):
+        if self.attach_monitoring:
+            self.meta.data.division = dp.DataDivision.MONITORING
+
+            if self.meta.data.type == dp.DataType.OBSERVATION_SIM:
+                self.meta.data.type = dp.DataType.CALIBRATION_SIM
+            elif self.meta.data.type == dp.DataType.OBSERVATION:
+                self.meta.data.type = dp.DataType.CALIBRATION
 
     def _check_can_merge(self, other):
         other_meta = metadata.read_ctao_metadata(other)
