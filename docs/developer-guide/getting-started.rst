@@ -104,14 +104,10 @@ The configuration in ``pixi.toml`` provides separate environments:
      - All runtime packages and documentation tools, including Graphviz, Pandoc and FFmpeg.
    * - ``dev``
      - All of the above, plus development tools such as pre-commit, Ruff and towncrier.
-   * - ``test-py312``, ``test-py313``, ``test-py314``
+   * - ``test-py3XX``
      - All test and optional runtime dependencies with the selected Python version.
    * - ``test-oldest``
-     - Python 3.12 with the oldest dependency versions tested in CI (Linux only).
-
-The general-purpose environments use Python 3.14 and support Linux and Apple
-Silicon macOS. The explicit Python 3.12 and 3.13 test environments also support
-Intel macOS.
+     - Oldest still supported dependency versions tested in CI (Linux only).
 
 For example, run tests with ``pixi run -e test-all test`` and build documentation
 with ``pixi run -e doc doc``. Use ``pixi run -e test test`` to test without the
