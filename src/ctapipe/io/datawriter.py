@@ -659,8 +659,17 @@ class DataWriter(Component):
         """
         Write out the product metadata headers to the output file.
         """
+        data_levels = self.datalevels
+
+        if data_levels:
+            level = meta.to_ctao_data_level(data_levels)
+        elif self.event_source.is_simulation:
+            level = dp.DataLevel.SIM
+        else:
+            raise ValueError("Cannot determine CTAO data level for output")
+
         product_type = dp.ProductType(
-            level=meta.to_ctao_data_level(self.datalevels),
+            level=level,
             division=dp.DataDivision.EVENT,
             association=dp.DataAssociation.SUBARRAY,
             type=(
@@ -672,13 +681,13 @@ class DataWriter(Component):
 
         # TODO: Check calibration files
 
-        obs_ids = self.event_source.obs_ids
-        obs_id = obs_ids[0] if len(obs_ids) == 1 else None
-
         prov_activity = PROV.current_activity
         if prov_activity is None and PROV.finished_activities:
             # assume that we write provenance for a "just finished activity"
             prov_activity = PROV.finished_activities[-1]
+
+        obs_ids = self.event_source.obs_ids
+        obs_id = obs_ids[0] if len(obs_ids) == 1 else None
 
         product = dp.Product(
             description="ctapipe Data Product",
