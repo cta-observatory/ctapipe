@@ -60,6 +60,13 @@ if importlib.util.find_spec("pyirf") is None:
     collect_ignore.append("irf")
 
 
+@pytest.fixture(scope="session")
+def lst1_mirror_facets_path():
+    """Path to the real LST-1 mirror facet file from the test data server."""
+
+    return get_dataset_path("mirror_CTA-N-LST1_v2019-03-31.ecsv")
+
+
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
     with pytest.warns(FromNameWarning):
