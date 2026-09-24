@@ -74,16 +74,16 @@ def test_fileinfo(tmp_path, dl1_image_file):
     output = subprocess.run(command.split(" "), capture_output=True, encoding="utf-8")
     assert output.returncode == 0, output.stderr
     header = yaml.safe_load(output.stdout)
-    assert "ID" in header[str(dl1_image_file)]["CTA"]["ACTIVITY"]
+    assert "CTAO.activity.id" in header[str(dl1_image_file)]
 
     tab = Table.read(index_file)
-    assert len(tab["CTA PRODUCT CREATION TIME"]) > 0
+    assert len(tab["CTAO.creation_time"]) > 0
 
     command = f"ctapipe-fileinfo {dl1_image_file} --flat"
     output = subprocess.run(command.split(" "), capture_output=True, encoding="utf-8")
     assert output.returncode == 0, output.stderr
     header = yaml.safe_load(output.stdout)
-    assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
+    assert "CTAO.activity.id" in header[str(dl1_image_file)]
 
 
 def test_dump_instrument(tmp_path, monkeypatch):
