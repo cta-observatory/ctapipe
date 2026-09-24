@@ -2,7 +2,6 @@ import json
 
 from ctapipe.core import Provenance
 from ctapipe.core.provenance import _ActivityProvenance
-from ctapipe.io.metadata import Reference
 
 
 def test_provenance_activity_names(provenance):
@@ -51,6 +50,8 @@ def test_provenance_json(provenance: Provenance):
 
 
 def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
+    import ctao_datamodel.models.dataproducts as dp
+
     provenance.start_activity("test1")
     provenance.add_input_file(dl1_file, "events")
     provenance.finish_activity("test1")
@@ -60,8 +61,8 @@ def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
     assert len(inputs) == 1
     input_meta = inputs[0]
     assert "reference_meta" in input_meta
-    assert "CTA PRODUCT ID" in input_meta["reference_meta"]
-    Reference.from_dict(input_meta["reference_meta"])
+    assert "ctao_metadata_version" in input_meta["reference_meta"]
+    dp.Product.model_validate(input_meta["reference_meta"])
 
 
 def test_get_distribution_of_module():
