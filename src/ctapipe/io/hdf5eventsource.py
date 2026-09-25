@@ -113,6 +113,10 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.6.0",
 ]
 
+COMPATIBLE_METADATA_VERSIONS = [
+    "2.0.0",
+]
+
 
 def get_hdf5_datalevels(h5file: tables.File | str | Path):
     """Get the data levels present in the hdf5 file"""
@@ -333,6 +337,22 @@ class HDF5EventSource(EventSource):
 
         with tables.open_file(path) as f:
             metadata = f.root._v_attrs
+
+            # First check metadata version, if it exists
+            if (
+                "CTAO.ctao_metadata_version" in metadata._v_attrnames
+                and metadata["CTAO.ctao_metadata_version"]
+                not in COMPATIBLE_METADATA_VERSIONS
+            ):
+                logger.error(
+                    "File is a ctapipe HDF5 file but has unsupported CTAO metadata"
+                    f" version {metadata['CTAO.ctao_metadata_version']}"
+                    f", supported versions are {COMPATIBLE_METADATA_VERSIONS}."
+                    " You may need to downgrade ctapipe (if the metadata version is older)"
+                    ", update ctapipe (if the metadata version is newer) or"
+                    " reproduce the file with your current ctapipe version."
+                )
+                return False
 
             # data model version: current metadata first, then legacy fallback
             if "CTAO.model.version" in metadata._v_attrnames:
