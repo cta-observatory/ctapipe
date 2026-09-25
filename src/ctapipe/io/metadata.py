@@ -37,6 +37,7 @@ import tables
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from ctao_datamodel.models.common import SiteID
 from pydantic import ValidationError
 from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
@@ -573,22 +574,44 @@ def _legacy_reference_to_product(
     contact_fallback: dp.Contact,
 ) -> dp.Product:
     """Convert legacy reference metadata to a current CTAO Product."""
-    if reference.product.data_levels:
-        primary_level = to_ctao_data_level(reference.product.data_levels)
-
-        if primary_level != product_type.level:
-            raise ValueError(
-                "Legacy data levels are incompatible with the supplied ProductType: "
-                f"{primary_level} != {product_type.level}"
-            )
-
     instance_kwargs = {}
+
+    # Legacy data levels -> processing sublevel
+    data_levels = set(reference.product.data_levels)
+
+    has_dl1_images = DataLevel.DL1_IMAGES in data_levels
+    has_dl1_parameters = DataLevel.DL1_PARAMETERS in data_levels
+
+    if has_dl1_images and not has_dl1_parameters:
+        instance_kwargs["sublevel_id"] = dp.ProcessingSublevel.IMAGES
+    elif has_dl1_parameters and not has_dl1_images:
+        instance_kwargs["sublevel_id"] = dp.ProcessingSublevel.PARAMETERS
+
+    # Legacy processing category
     try:
         category = dp.DataProcessingCategory(reference.product.data_category)
     except ValueError:
         pass
     else:
         instance_kwargs["category"] = category
+
+    # Legacy instrument site
+    site_id = _legacy_site_id(reference.instrument.site)
+    if site_id is not None:
+        instance_kwargs["site_id"] = site_id
+
+    # Legacy instrument class / id
+    instrument_id = _legacy_instrument_id(reference.instrument.id_)
+
+    if reference.instrument.class_ == "Telescope":
+        instance_kwargs["ae_class"] = dp.ArrayElementClass.TEL
+
+        if instrument_id is not None:
+            instance_kwargs["ae_id"] = instrument_id
+
+    elif reference.instrument.class_ == "Subarray":
+        if instrument_id is not None:
+            instance_kwargs["subarray_id"] = instrument_id
 
     model_url = _legacy_optional_string(reference.product.data_model_url)
     contact_name = _legacy_optional_string(reference.contact.name)
@@ -717,6 +740,38 @@ def to_ctao_data_association(
         raise ValueError(
             f"Unsupported legacy data association: {association!r}"
         ) from err
+
+
+def _legacy_site_id(site: str | None) -> SiteID | None:
+    """Convert an unambiguous legacy instrument site to a CTAO SiteID."""
+    site = _legacy_optional_string(site)
+    if site is None:
+        return None
+
+    mapping = {
+        "North": SiteID.CTAO_NORTH,
+        "South": SiteID.CTAO_SOUTH,
+        "CTAO-North": SiteID.CTAO_NORTH,
+        "CTAO-South": SiteID.CTAO_SOUTH,
+        "SDMC-DPPS": SiteID.SDMC_DPPS,
+        "SDMC-SUSS": SiteID.SDMC_SUSS,
+        "HQ": SiteID.HQ,
+        "EXTERNAL": SiteID.EXTERNAL,
+    }
+
+    return mapping.get(site)
+
+
+def _legacy_instrument_id(value: str | None) -> int | None:
+    """Convert a legacy instrument id to an integer if possible."""
+    value = _legacy_optional_string(value)
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
 
 def _activity_from_provenance(activity) -> dp.Activity:

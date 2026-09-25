@@ -1,6 +1,6 @@
 {
     "DataWriter": {
-        "Contact": {
+        "contact_metadata": {
             "name": "YOUR-NAME-HERE",
             "email": "YOUREMAIL@EXAMPLE.ORG",
             "organization": "YOUR-ORGANIZATION"
