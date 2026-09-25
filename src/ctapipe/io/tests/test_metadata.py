@@ -438,3 +438,21 @@ def test_reprs(reference):
     assert isinstance(repr(reference.contact), str)
     assert isinstance(repr(reference.instrument), str)
     assert isinstance(repr(reference.process), str)
+
+
+def test_get_compatible_metadata_versions(monkeypatch):
+    monkeypatch.setattr(
+        dp.Product,
+        "migration_history",
+        lambda: [
+            {"from": "1.0.0", "to": "1.1.0", "operations": []},
+            {"from": "1.1.0", "to": "2.0.0", "operations": []},
+            {"from": "0.5.0", "to": "0.6.0", "operations": []},
+        ],
+    )
+
+    assert meta.get_compatible_metadata_versions("2.0.0") == {
+        "1.0.0",
+        "1.1.0",
+        "2.0.0",
+    }

@@ -41,6 +41,7 @@ __all__ = [
     "Activity",
     "Instrument",
     "convert",
+    "get_compatible_metadata_versions",
     "write_to_hdf5",
     "write_product_metadata",
     "read_reference_metadata",
@@ -504,6 +505,27 @@ class LegacyMetadataWarning(UserWarning):
 
 class LegacyContactRequired(ValueError):
     """Raised when legacy metadata does not contain valid contact information."""
+
+
+def get_compatible_metadata_versions(
+    current_version=None,
+) -> set[str]:
+    if current_version is None:
+        current_version = dp.Product.model_fields["ctao_metadata_version"].default
+
+    migrations = dp.Product.migration_history()
+
+    compatible = {current_version}
+
+    changed = True
+    while changed:
+        changed = False
+        for migration in migrations:
+            if migration["to"] in compatible and migration["from"] not in compatible:
+                compatible.add(migration["from"])
+                changed = True
+
+    return compatible
 
 
 def read_ctao_metadata(
