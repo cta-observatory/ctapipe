@@ -551,7 +551,9 @@ def read_ctao_metadata(
     # Old Data Model
     if "CTA REFERENCE VERSION" in metadata:
         warnings.warn(
-            "Legacy ctapipe metadata detected. Use ctapipe-merge to migrate the file.",
+            "Legacy ctapipe metadata detected. "
+            "If this file is not already being migrated, use ctapipe-merge to convert it "
+            "to the current CTAO metadata format.",
             LegacyMetadataWarning,
             stacklevel=2,
         )
