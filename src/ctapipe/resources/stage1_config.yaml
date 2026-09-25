@@ -10,6 +10,10 @@
 #  Make sure you first include `--config base_config.yaml` before including this file
 
 DataWriter:
+  contact_metadata:
+    name: YOUR-NAME-HERE
+    email: YOUREMAIL@EXAMPLE.ORG
+    organization: YOUR-ORGANIZATION
   write_dl1_images: true
   write_dl1_parameters: true
   write_dl2: false
