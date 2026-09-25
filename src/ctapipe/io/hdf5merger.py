@@ -281,7 +281,7 @@ class HDF5Merger(Component):
         with exit_stack:
             # first file to be merged
             if self._n_merged == 0:
-                self.meta = metadata.read_ctao_metadata(other)
+                self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.model.version
                 self.data_type = self.meta.data.type
                 metadata.write_product_metadata(self.meta, self.h5file)
@@ -317,8 +317,16 @@ class HDF5Merger(Component):
             elif self.meta.data.type == dp.DataType.OBSERVATION:
                 self.meta.data.type = dp.DataType.CALIBRATION
 
+    def _read_meta(self, h5file):
+        try:
+            return metadata.read_ctao_metadata(h5file)
+        except Exception:
+            raise CannotMerge(
+                f"CTAO Reference meta not found in input file: {h5file.filename}"
+            )
+
     def _check_can_merge(self, other):
-        other_meta = metadata.read_ctao_metadata(other)
+        other_meta = self._read_meta(other)
         other_version = other_meta.model.version
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
