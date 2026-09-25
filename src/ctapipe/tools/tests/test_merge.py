@@ -185,7 +185,7 @@ def test_migrates_legacy_dataset_metadata(
         assert not any(name.startswith("CTA ") for name in names)
 
 
-def test_monitoring_only_append_updates_data_type(
+def test_monitoring_only_append_keeps_product_type(
     tmp_path,
     dl1_tel1_file,
     calibpipe_camcalib_sims_single_chunk,
@@ -194,6 +194,9 @@ def test_monitoring_only_append_updates_data_type(
 
     output = tmp_path / "monitoring_only.dl1.h5"
     shutil.copy2(dl1_tel1_file, output)
+
+    with pytest.warns(meta.LegacyMetadataWarning):
+        original_product = meta.read_ctao_metadata(output)
 
     with pytest.warns(meta.LegacyMetadataWarning):
         run_tool(
@@ -209,8 +212,9 @@ def test_monitoring_only_append_updates_data_type(
         )
 
     product = meta.read_ctao_metadata(output)
-    assert product.data.division is dp.DataDivision.MONITORING
-    assert product.data.type is dp.DataType.CALIBRATION_SIM
+
+    assert product.data.division is original_product.data.division
+    assert product.data.type is original_product.data.type
 
 
 def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):

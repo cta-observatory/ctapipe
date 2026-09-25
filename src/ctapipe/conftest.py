@@ -824,18 +824,23 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
     path = dl1_tmp_path / "dl1_merged_monitoring_file_obs.dl1.h5"
     shutil.copy(dl1_merged_monitoring_file, path)
 
+    simulation_to_observation = {
+        dp.DataType.CALIBRATION_SIM: dp.DataType.CALIBRATION,
+        dp.DataType.OBSERVATION_SIM: dp.DataType.OBSERVATION,
+    }
+
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
         data_type = "CTAO.data.type"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
-        if (
-            data_type in f.root._v_attrs
-            and f.root._v_attrs[data_type] == dp.DataType.CALIBRATION_SIM
-        ):
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs[data_type] = dp.DataType.CALIBRATION
+        if data_type in f.root._v_attrs:
+            current_type = f.root._v_attrs[data_type]
+
+            if current_type in simulation_to_observation:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                    f.root._v_attrs[data_type] = simulation_to_observation[current_type]
     return path
 
 
