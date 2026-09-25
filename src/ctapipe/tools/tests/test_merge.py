@@ -10,10 +10,14 @@ import pytest
 import tables
 from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
+from ctao_datamodel.models import dataproducts as dp
+from ctao_datamodel.models.common import SiteID
 
 from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.io import DataWriter, EventSource, TableLoader
+from ctapipe.io import metadata as meta
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.io.datalevels import DataLevel
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 from ctapipe.tools.process import ProcessorTool
 
@@ -53,6 +57,93 @@ def test_simple(tmp_path, dl1_file, dl1_proton_file):
         raises=True,
     )
     run_stage1(output, cwd=tmp_path)
+
+
+def test_migrates_legacy_metadata(tmp_path, dl1_file):
+    """The tool must migrate headers, not just rely on the conversion helper."""
+    from ctapipe.tools.merge import MergeTool
+
+    legacy_input = tmp_path / "legacy.dl1.h5"
+    output = tmp_path / "migrated.dl1.h5"
+    shutil.copy2(dl1_file, legacy_input)
+
+    legacy = meta.Reference(
+        contact=meta.Contact(
+            name="Legacy Contact",
+            organization="Legacy Organization",
+            email="legacy@example.org",
+        ),
+        product=meta.Product(
+            description="Legacy DL1 images",
+            creation_time="2020-10-11 15:23:31",
+            data_category="B",
+            data_levels=[DataLevel.DL1_IMAGES],
+            data_association="Subarray",
+            data_model_name="ctapipe",
+            data_model_version="v7.6.0",
+            data_model_url="https://example.org/legacy-model",
+            format="hdf5",
+        ),
+        process=meta.Process(type_="Simulation", subtype="legacy", id_="42"),
+        activity=meta.Activity(
+            name="legacy-process",
+            id_="f93617ec-ef95-4147-b627-01f81e8cf2b4",
+            start_time="2020-10-11 15:00:00",
+            stop_time="2020-10-11 15:20:00",
+            software_name="legacy-ctapipe",
+            software_version="0.1",
+        ),
+        instrument=meta.Instrument(
+            site="South",
+            class_="Subarray",
+            type_="legacy-array",
+            subtype="legacy-subtype",
+            version="legacy-version",
+            id_="17",
+        ),
+    )
+
+    with tables.open_file(legacy_input, mode="a") as h5file:
+        attributes = h5file.root._v_attrs
+        for name in attributes._f_list("user"):
+            if name.startswith("CTAO.") or name.startswith("CTA "):
+                del attributes[name]
+        meta.write_to_hdf5(legacy.to_dict(), h5file)
+
+    with pytest.warns(meta.LegacyMetadataWarning, match="Legacy"):
+        run_tool(
+            MergeTool(),
+            argv=[str(legacy_input), f"--output={output}"],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    product = meta.read_ctao_metadata(output)
+    assert product.description == "Legacy DL1 images"
+    assert product.data == dp.ProductType(
+        level=dp.DataLevel.DL1,
+        division=dp.DataDivision.EVENT,
+        association=dp.DataAssociation.SUBARRAY,
+        type=dp.DataType.OBSERVATION_SIM,
+    )
+    assert product.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
+    assert product.instance.category is dp.DataProcessingCategory.B
+    assert product.instance.site_id is SiteID.CTAO_SOUTH
+    assert product.instance.subarray_id == 17
+    assert product.contact == dp.Contact(
+        name="Legacy Contact",
+        organization="Legacy Organization",
+        email="legacy@example.org",
+    )
+    assert product.model.name == "ctapipe"
+    assert product.model.version == "v7.6.0"
+    assert str(product.model.url) == "https://example.org/legacy-model"
+    assert product.activity.name == "ctapipe-merge"
+
+    with tables.open_file(output) as h5file:
+        names = h5file.root._v_attrs._f_list("user")
+        assert "CTAO.ctao_metadata_version" in names
+        assert not any(name.startswith("CTA ") for name in names)
 
 
 def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
