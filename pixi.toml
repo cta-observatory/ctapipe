@@ -117,9 +117,6 @@ channels = [
 [feature.py315.dependencies]
 python = "3.15.*"
 
-[feature.oldest-deps]
-platforms = ["linux-64"]
-
 [feature.oldest-deps.dependencies]
 numpy = "1.26.*"
 numba = "==0.59.0"
