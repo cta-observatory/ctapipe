@@ -253,11 +253,12 @@ def test_metadata(tmpdir: Path):
     config = Config(
         {
             "DataWriter": {
-                "Contact": {
+                "contact_metadata": {
                     "name": "Maximilian Nöthe",
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
                 },
+                "description_metadata": "Test",
                 "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
@@ -280,6 +281,7 @@ def test_metadata(tmpdir: Path):
             assert meta["CTAO.contact.name"] == "Maximilian Nöthe"
             assert meta["CTAO.contact.email"] == "maximilian.noethe@tu-dortmund.de"
             assert meta["CTAO.contact.organization"] == "TU Dortmund"
+            assert meta["CTAO.description"] == "Test"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
 
 
