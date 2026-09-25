@@ -224,18 +224,19 @@ class HDF5Merger(Component):
             )
 
         output_exists = self.output_path.exists()
-        appending = False
+
+        if self.append and not output_exists:
+            raise traits.TraitError(
+                f"Cannot append to '{self.output_path}': file does not exist"
+            )
         if output_exists and not (self.append or self.overwrite):
             raise traits.TraitError(
                 f"output_path '{self.output_path}' exists but neither append nor overwrite allowed"
             )
 
-        if output_exists and self.append:
-            appending = True
-
         self.h5file = tables.open_file(
             self.output_path,
-            mode="a" if appending else "w",
+            mode="a" if self.append else "w",
             filters=DEFAULT_FILTERS,
         )
 
@@ -250,7 +251,7 @@ class HDF5Merger(Component):
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
-        if appending:
+        if self.append:
             self.meta = metadata.read_ctao_metadata(self.h5file)
             self.data_model_version = self.meta.model.version
             self.data_type = self.meta.data.type
@@ -309,7 +310,7 @@ class HDF5Merger(Component):
         self.h5file.flush()
 
     def _update_product_type(self):
-        if self.attach_monitoring:
+        if self.attach_monitoring and not self.append:
             self.meta.data.division = dp.DataDivision.MONITORING
 
             if self.meta.data.type == dp.DataType.OBSERVATION_SIM:
@@ -324,6 +325,22 @@ class HDF5Merger(Component):
             raise CannotMerge(
                 f"CTAO Reference meta not found in input file: {h5file.filename}"
             )
+
+    @staticmethod
+    def _data_type_family(data_type):
+        if data_type in {
+            dp.DataType.OBSERVATION,
+            dp.DataType.CALIBRATION,
+        }:
+            return dp.DataType.OBSERVATION
+
+        if data_type in {
+            dp.DataType.OBSERVATION_SIM,
+            dp.DataType.CALIBRATION_SIM,
+        }:
+            return dp.DataType.OBSERVATION_SIM
+
+        return data_type
 
     def _check_can_merge(self, other):
         other_meta = self._read_meta(other)
@@ -341,11 +358,19 @@ class HDF5Merger(Component):
                     f"Input file {other.filename!r} has different data model version:"
                     f" {other_version}, expected {self.data_model_version}"
                 )
+
         other_data_type = other_meta.data.type
-        if self.data_type != other_data_type:
+        if self.attach_monitoring:
+            compatible = self._data_type_family(
+                self.data_type
+            ) == self._data_type_family(other_data_type)
+        else:
+            compatible = self.data_type == other_data_type
+
+        if not compatible:
             raise CannotMerge(
-                f"Input file {other.filename!r} has different data type:"
-                f" {other_data_type}, expected {self.data_type}"
+                f"Input file {other.filename!r} has incompatible data type:"
+                f" {other_data_type}, expected a type compatible with {self.data_type}"
             )
 
         other_data_category = other_meta.instance.category
@@ -377,7 +402,11 @@ class HDF5Merger(Component):
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
             # If monitoring data from the same observation block is being attached,
             # obs_ids can be different in case of MC simulations.
-            if len(different) > 0 and self.data_type != dp.DataType.OBSERVATION_SIM:
+            is_simulation = self.data_type in {
+                dp.DataType.OBSERVATION_SIM,
+                dp.DataType.CALIBRATION_SIM,
+            }
+            if len(different) > 0 and not is_simulation:
                 msg = (
                     f"Merge strategy '{self.merge_strategy}' selected, but input file {other.filename} contains "
                     f"different obs_ids than already merged ({self._merged_obs_ids}): {different}"

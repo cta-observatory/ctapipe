@@ -1,0 +1,1 @@
+Require the output file to exist when using `ctapipe-merge --append`.
