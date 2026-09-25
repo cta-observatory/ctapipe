@@ -510,6 +510,24 @@ class LegacyContactRequired(ValueError):
 def get_compatible_metadata_versions(
     current_version=None,
 ) -> set[str]:
+    """Return metadata versions that can be migrated to the current version.
+
+    Compatibility is determined from the migration history provided by
+    ``ctao_datamodel``. A version is considered compatible if there is a complete
+    migration path from that version to ``current_version``.
+
+    Parameters
+    ----------
+    current_version : str, optional
+        Target metadata version. If omitted, the current
+        ``dp.Product.ctao_metadata_version`` is used.
+
+    Returns
+    -------
+    set[str]
+        Metadata versions that can be migrated to the target version, including
+        the target version itself.
+    """
     if current_version is None:
         current_version = dp.Product.model_fields["ctao_metadata_version"].default
 
