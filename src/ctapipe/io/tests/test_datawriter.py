@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import tables
 from astropy import units as u
+from ctao_datamodel.models import dataproducts as dp
 from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
@@ -19,6 +20,7 @@ from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
+from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
 
@@ -283,6 +285,20 @@ def test_metadata(tmpdir: Path):
             assert meta["CTAO.contact.organization"] == "TU Dortmund"
             assert meta["CTAO.description"] == "Test"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
+
+        product = read_ctao_metadata(output_path)
+        assert product.data == dp.ProductType(
+            level=dp.DataLevel.DL1,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=dp.DataType.OBSERVATION_SIM,
+        )
+        assert product.instance.obs_id == source.obs_id
+        assert product.instance.facility_name is dp.FacilityName.SIMULATED_CTAO
+        assert product.instance.sublevel_id is None
+        assert product.model.name == "ctapipe"
+        assert product.model.version == DATA_MODEL_VERSION
+        assert product.activity.process is dp.ObservatoryProcess.DATA_PROCESSING
 
 
 def test_write_only_r1(r1_hdf5_file):
