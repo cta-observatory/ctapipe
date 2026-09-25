@@ -1,0 +1,2 @@
+Replace conda ``environment.yaml`` for local dev and CI with separate pixi
+env definitions.
