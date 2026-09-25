@@ -10,7 +10,7 @@
 # ==========================================================================
 
 DataWriter:
-  Contact:
+  contact_metadata:
     # please fill in your contact information here. It will be stored in the
     # output files as provenance information
     name: YOUR-NAME-HERE
@@ -40,8 +40,8 @@ CameraCalibrator:
   # Note this is a telescope-wise parameter, so can be specified per telescope
   # if necessary (see below for an example)
   image_extractor_type:
-    - ['type', '*', 'NeighborPeakWindowSum']
-    - ['type', '*FlashCam', 'FlashCamExtractor']
+    - ["type", "*", "NeighborPeakWindowSum"]
+    - ["type", "*FlashCam", "FlashCamExtractor"]
 
 # The ImageProcessor performs the DL1a-> DL1b (image parameters) transition. It
 # is run only if the parameters `DataWriter.write_image_parameters=True` and the
@@ -92,7 +92,6 @@ ImageProcessor:
     quality_criteria:
       - ["enough_pixels", "np.count_nonzero(image) > 2"]
       - ["enough_charge", "image.sum() > 50"]
-
 
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
 # transition. It is run only if the parameter DataWriter.write_dl2=True.

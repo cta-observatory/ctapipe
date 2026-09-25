@@ -58,7 +58,9 @@ def test_read_yaml_toml_json_config(dl1_image_file, config_files):
         tool.setup()
 
     assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_info"].name
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_metadata"][
+            "name"
+        ]
         == "YOUR-NAME-HERE"
     )
 

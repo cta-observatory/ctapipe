@@ -10,7 +10,7 @@ import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from astropy.time import Time
-from traitlets import Dict, Instance
+from traitlets import Dict
 
 from ..containers import (
     ArrayEventContainer,
@@ -110,15 +110,15 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
-    contact_info = Instance(
-        dp.Contact,
-        kw={
+    contact_metadata = Dict(
+        default_value={
             "name": "unknown",
             "organization": "unknown",
             "email": "unknown@example.org",
         },
+        help="Contact information for the output data product.",
     ).tag(config=True)
-    metadata_description = Unicode(
+    description_metadata = Unicode(
         "ctapipe Data Product",
         help="Description of the output data product.",
     ).tag(config=True)
@@ -208,8 +208,6 @@ class DataWriter(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         self.event_source = event_source
-        self.contact_info = meta.Contact(parent=self)
-        self.instrument_info = meta.Instrument(parent=self)
 
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
@@ -694,7 +692,19 @@ class DataWriter(Component):
             prov_activity = PROV.finished_activities[-1]
 
         input_reference_meta = prov_activity.input[0]["reference_meta"]
-        data_type = input_reference_meta["CTAO.data.type"]
+
+        data_type = (
+            input_reference_meta.get("data", {}).get("type")
+            if input_reference_meta is not None
+            else None
+        )
+
+        if data_type is None:
+            data_type = (
+                dp.DataType.OBSERVATION_SIM
+                if self._is_simulation
+                else dp.DataType.OBSERVATION
+            )
 
         product_type = dp.ProductType(
             level=level,
@@ -707,12 +717,12 @@ class DataWriter(Component):
         obs_id = obs_ids[0] if len(obs_ids) == 1 else None
         facility_name = (
             dp.FacilityName.SIMULATED_CTAO
-            if self.event_source.is_simulation
+            if self._is_simulation
             else dp.FacilityName.CTAO
         )
 
         product = dp.Product(
-            description=self.metadata_description,
+            description=self.description_metadata,
             creation_time=Time.now(),
             data=product_type,
             instance=dp.InstanceIdentifier(
@@ -726,7 +736,7 @@ class DataWriter(Component):
                 version=DATA_MODEL_VERSION,
                 url=None,
             ),
-            contact=self.contact_info,
+            contact=dp.Contact(**self.contact_metadata),
             activity=meta._activity_from_provenance(prov_activity),
         )
         meta.write_product_metadata(product, self._writer.h5file)

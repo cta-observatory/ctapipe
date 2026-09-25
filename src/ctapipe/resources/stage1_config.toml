@@ -1,4 +1,4 @@
-[DataWriter.Contact]
+[DataWriter.contact_metadata]
 # please fill in your contact information here. It will be stored in the
 # output files as provenance information
 name = "YOUR-NAME-HERE"
