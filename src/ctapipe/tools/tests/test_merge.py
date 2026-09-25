@@ -146,6 +146,73 @@ def test_migrates_legacy_metadata(tmp_path, dl1_file):
         assert not any(name.startswith("CTA ") for name in names)
 
 
+def test_migrates_legacy_dataset_metadata(
+    tmp_path, calibpipe_camcalib_sims_single_chunk
+):
+    """Test migration using an unchanged legacy file from the test dataset."""
+    from ctapipe.tools.merge import MergeTool
+
+    output = tmp_path / "migrated_dataset.dl1.h5"
+
+    with pytest.warns(meta.LegacyMetadataWarning):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(calibpipe_camcalib_sims_single_chunk),
+                f"--output={output}",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    product = meta.read_ctao_metadata(output)
+    assert product.description == "ctapipe Data Product"
+    assert product.data == dp.ProductType(
+        level=dp.DataLevel.DL1,
+        division=dp.DataDivision.EVENT,
+        association=dp.DataAssociation.SUBARRAY,
+        type=dp.DataType.OBSERVATION_SIM,
+    )
+    assert product.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
+    assert product.model.name == "ASWG"
+    assert product.model.version == "v7.2.0"
+    assert product.contact.email == "unknown@example.org"
+    assert product.activity.name == "ctapipe-merge"
+
+    with tables.open_file(output) as h5file:
+        names = h5file.root._v_attrs._f_list("user")
+        assert "CTAO.ctao_metadata_version" in names
+        assert not any(name.startswith("CTA ") for name in names)
+
+
+def test_monitoring_only_append_updates_data_type(
+    tmp_path,
+    dl1_tel1_file,
+    calibpipe_camcalib_sims_single_chunk,
+):
+    from ctapipe.tools.merge import MergeTool
+
+    output = tmp_path / "monitoring_only.dl1.h5"
+    shutil.copy2(dl1_tel1_file, output)
+
+    with pytest.warns(meta.LegacyMetadataWarning):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(calibpipe_camcalib_sims_single_chunk),
+                f"--output={output}",
+                "--append",
+                "--merge-strategy=monitoring-only",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    product = meta.read_ctao_metadata(output)
+    assert product.data.division is dp.DataDivision.MONITORING
+    assert product.data.type is dp.DataType.CALIBRATION_SIM
+
+
 def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
     from ctapipe.tools.merge import MergeTool
 
