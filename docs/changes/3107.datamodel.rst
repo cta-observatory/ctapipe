@@ -1,0 +1,2 @@
+Use ``ctao-datamodel`` for CTAO product metadata in HDF5 files, including
+automatic conversion of legacy metadata and migration through ``ctapipe-merge``.
