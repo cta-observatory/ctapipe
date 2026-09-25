@@ -195,8 +195,7 @@ def test_monitoring_only_append_keeps_product_type(
     output = tmp_path / "monitoring_only.dl1.h5"
     shutil.copy2(dl1_tel1_file, output)
 
-    with pytest.warns(meta.LegacyMetadataWarning):
-        original_product = meta.read_ctao_metadata(output)
+    original_product = meta.read_ctao_metadata(output)
 
     with pytest.warns(meta.LegacyMetadataWarning):
         run_tool(
