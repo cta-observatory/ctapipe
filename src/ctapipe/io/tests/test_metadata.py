@@ -4,6 +4,7 @@ Test CTA Reference metadata functionality
 
 import json
 import uuid
+import warnings
 
 import ctao_datamodel as dm
 import ctao_datamodel.models.dataproducts as dp
@@ -192,7 +193,9 @@ def _write_current_metadata(path, product, file_format):
 @pytest.mark.parametrize("file_format", ["hdf5", "fits", "ecsv", "json"])
 def test_read_current_metadata_supported_formats(tmp_path, ctao_product, file_format):
     path = tmp_path / f"product.{file_format}"
-    _write_current_metadata(path, ctao_product, file_format)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", fits.verify.VerifyWarning)
+        _write_current_metadata(path, ctao_product, file_format)
 
     assert meta.read_ctao_metadata(path) == ctao_product
 
@@ -405,7 +408,9 @@ def test_invalid_and_missing_metadata(tmp_path, ctao_product):
     invalid = tmp_path / "invalid.h5"
     with tables.open_file(invalid, mode="w") as h5file:
         meta.write_product_metadata(ctao_product, h5file)
-        h5file.root._v_attrs["CTAO.contact.email"] = "invalid"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", tables.NaturalNameWarning)
+            h5file.root._v_attrs["CTAO.contact.email"] = "invalid"
 
     with pytest.raises(ValidationError):
         meta.read_ctao_metadata(invalid)
@@ -415,7 +420,9 @@ def test_write_product_metadata_removes_only_legacy(tmp_path, ctao_product, refe
     path = tmp_path / "product.h5"
     with tables.open_file(path, mode="w") as h5file:
         meta.write_to_hdf5(reference.to_dict(), h5file)
-        h5file.root._v_attrs["CONTEXT custom"] = "keep"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", tables.NaturalNameWarning)
+            h5file.root._v_attrs["CONTEXT custom"] = "keep"
         meta.write_product_metadata(ctao_product, h5file, remove_legacy=True)
         attributes = meta._read_hdf5_metadata(h5file)
 
