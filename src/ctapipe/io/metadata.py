@@ -1,26 +1,13 @@
-"""
-Management of CTAO Reference Metadata.
+"""Read, write, and migrate CTAO data-product metadata.
 
-Definitions from :cite:`ctao-top-level-data-model`.
-This information is required to be attached to the header of any files generated.
+This module provides serialization helpers for current CTAO product metadata defined
+by :mod:`ctao_datamodel`, including reading metadata from HDF5, FITS, ECSV, and JSON
+files and writing flattened product metadata to HDF5 attributes.
 
-The class Reference collects all required reference metadata, and can be turned into a
-flat dictionary. The user should try to fill out all fields, or use a helper to fill
-them (as in `Activity.from_provenance()`)
-
-.. code-block:: python
-
-    ref = Reference(
-        contact=Contact(name="Some User", email="user@me.com"),
-        product=Product(format='hdf5', ...),
-        process=Process(...),
-        activity=Activity(...),
-        instrument = Instrument(...)
-    )
-
-    some_astropy_table.meta = ref.to_dict()
-    some_astropy_table.write("output.ecsv")
-
+Legacy CTA reference metadata remains supported through :class:`Reference` and its
+component classes. :func:`read_ctao_metadata` transparently converts such metadata to
+the current :class:`ctao_datamodel.models.dataproducts.Product` model, while
+:func:`read_reference_metadata` provides access to the original legacy representation.
 """
 
 import gzip
@@ -53,10 +40,14 @@ __all__ = [
     "Product",
     "Activity",
     "Instrument",
+    "convert",
     "write_to_hdf5",
     "write_product_metadata",
     "read_reference_metadata",
     "read_ctao_metadata",
+    "to_ctao_data_level",
+    "to_ctao_data_type",
+    "to_ctao_data_association",
 ]
 
 
@@ -68,7 +59,21 @@ CONVERSIONS = {
 
 
 def convert(value):
-    """Convert to representation suitable for header infos, such as hdf5 or fits"""
+    """Convert a metadata value to a representation suitable for file headers.
+
+    Values with a registered conversion are serialized to scalar or string values
+    supported by formats such as HDF5 and FITS. Other values are returned unchanged.
+
+    Parameters
+    ----------
+    value
+        Metadata value to convert.
+
+    Returns
+    -------
+    object
+        The converted value, or the original value if no conversion is registered.
+    """
     if (conv := CONVERSIONS.get(type(value))) is not None:
         return conv(value)
     return value
@@ -88,7 +93,11 @@ def _get_user_name():
 
 
 class Contact(Configurable):
-    """Contact information"""
+    """Legacy CTA reference-metadata contact information.
+
+    This configurable class represents the person or organization responsible for a
+    data product written with the legacy CTA metadata schema.
+    """
 
     name = Unicode("unknown").tag(config=True)
     email = Unicode("unknown@example.org").tag(config=True)
@@ -112,7 +121,11 @@ class Contact(Configurable):
 
 
 class Product(HasTraits):
-    """Data product information"""
+    """Legacy CTA reference-metadata description of a data product.
+
+    The fields describe the product identity, data levels, processing category,
+    association, data model, and storage format used by the legacy metadata schema.
+    """
 
     description = Unicode("unknown")
     creation_time = AstroTime()
@@ -161,7 +174,7 @@ class Product(HasTraits):
 
 
 class Process(HasTraits):
-    """Process (top-level workflow) information"""
+    """Legacy CTA reference metadata for the top-level producing process."""
 
     type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
@@ -178,11 +191,22 @@ class Process(HasTraits):
 
 
 class Activity(HasTraits):
-    """Activity (tool) information"""
+    """Legacy CTA reference metadata for the activity producing a data product."""
 
     @classmethod
     def from_provenance(cls, activity):
-        """construct Activity metadata from existing ActivityProvenance object"""
+        """Create legacy activity metadata from a provenance record.
+
+        Parameters
+        ----------
+        activity : dict
+            Serialized ctapipe activity provenance.
+
+        Returns
+        -------
+        Activity
+            Activity metadata populated from the provenance record.
+        """
         return Activity(
             name=activity["activity_name"],
             type_="software",
@@ -226,7 +250,7 @@ class Activity(HasTraits):
 
 
 class Instrument(Configurable):
-    """Instrumental Context"""
+    """Legacy CTA reference metadata describing the instrumental context."""
 
     site = Unicode(
         default_value="Other",
@@ -288,8 +312,11 @@ def _to_dict(hastraits_instance, prefix=""):
 
 
 class Reference(HasTraits):
-    """All the reference Metadata required for a CTAO output file, plus a way to turn
-    it into a dict() for easy addition to the header of a file"""
+    """Complete metadata record using the legacy CTA reference schema.
+
+    A reference combines contact, product, process, activity, and instrument
+    metadata. Use :meth:`to_dict` to flatten it into file-header attributes.
+    """
 
     contact = Instance(Contact)
     product = Instance(Product)
@@ -298,10 +325,17 @@ class Reference(HasTraits):
     instrument = Instance(Instrument)
 
     def to_dict(self, fits=False):
-        """
-        convert Reference metadata to a flat dict.
+        """Convert the reference metadata to a flat dictionary.
 
-        If ``fits=True``, this will include the ``HIERARCH`` keyword in front.
+        Parameters
+        ----------
+        fits : bool
+            If true, prefix keys with ``HIERARCH`` for use in FITS headers.
+
+        Returns
+        -------
+        dict
+            Flattened legacy metadata with CTA header keywords.
         """
         prefix = "CTA " if fits is False else "HIERARCH CTA "
 
@@ -315,6 +349,19 @@ class Reference(HasTraits):
 
     @classmethod
     def from_dict(cls, metadata):
+        """Create a legacy reference record from flattened CTA metadata.
+
+        Parameters
+        ----------
+        metadata : collections.abc.Mapping
+            Metadata containing flattened ``CTA ...`` keys. Unrelated keys are
+            ignored.
+
+        Returns
+        -------
+        Reference
+            Parsed legacy reference metadata.
+        """
         kwargs = defaultdict(dict)
         for hierarchical_key, value in metadata.items():
             components = hierarchical_key.split(" ")
@@ -344,12 +391,14 @@ class Reference(HasTraits):
 
     @classmethod
     def from_fits(cls, header):
+        """Create a legacy reference record from a FITS header."""
         # for now, just use from_dict, but we might need special handling
         # of some keys
         return cls.from_dict(header)
 
     @classmethod
     def from_json(cls, json_data):
+        """Create a legacy reference record from a JSON metadata mapping."""
         return cls.from_dict(json_data)
 
     def __repr__(self):
@@ -357,10 +406,25 @@ class Reference(HasTraits):
 
 
 def read_reference_metadata(path):
-    """Read CTAO data product metadata from path
+    """Read legacy CTA reference metadata from a supported file.
 
-    File is first opened to determine file format, then the metadata
-    is read. Supported are currently FITS and HDF5.
+    The format is detected from the file contents. FITS (including gzip-compressed
+    FITS), HDF5, ECSV, and JSON are supported.
+
+    Parameters
+    ----------
+    path : path-like
+        File containing legacy CTA reference metadata.
+
+    Returns
+    -------
+    Reference
+        Parsed legacy reference metadata.
+
+    Raises
+    ------
+    ValueError
+        If the file format is not supported.
     """
     header_bytes = 8
     with open(path, "rb") as f:
@@ -388,6 +452,7 @@ def read_reference_metadata(path):
 
 
 def _read_reference_metadata_json(path):
+    """Read legacy CTA reference metadata from a JSON file."""
     import json
 
     with open(path) as f:
@@ -396,11 +461,13 @@ def _read_reference_metadata_json(path):
 
 
 def _read_reference_metadata_hdf5(h5file, path="/"):
+    """Read legacy CTA reference metadata from an HDF5 node."""
     meta = _read_hdf5_metadata(h5file, path)
     return Reference.from_dict(meta)
 
 
 def _read_reference_metadata_ecsv(path):
+    """Read legacy CTA reference metadata from an ECSV file."""
     return Reference.from_dict(Table.read(path).meta)
 
 
@@ -445,10 +512,35 @@ def read_ctao_metadata(
     product_type: dp.ProductType | None = None,
     contact_fallback: dp.Contact | None = None,
 ) -> dp.Product:
-    """Read CTAO metadata from a file, and return a CTAO Product.
+    """Read current or legacy CTAO product metadata from a supported file.
 
-    This function will read the file, determine the format, and convert legacy
-    reference metadata to a current CTAO Product if necessary.
+    The format is detected from the file contents. FITS (including gzip-compressed
+    FITS), HDF5, ECSV, and JSON are supported. Legacy CTA reference metadata is
+    converted to the current CTAO data model and emits a
+    :class:`LegacyMetadataWarning`.
+
+    Parameters
+    ----------
+    input_url : path-like or tables.File
+        Input file or open PyTables file handle.
+    product_type : ctao_datamodel.models.dataproducts.ProductType, optional
+        Product type to use when converting legacy metadata. If omitted, it is
+        derived from the legacy metadata and, for HDF5, the file contents.
+    contact_fallback : ctao_datamodel.models.dataproducts.Contact, optional
+        Contact used when legacy contact information is invalid. If omitted, an
+        ``unknown`` contact is used.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.Product
+        Validated metadata using the current CTAO product model.
+
+    Raises
+    ------
+    ValueError
+        If the metadata schema or file format is unsupported.
+    pydantic.ValidationError
+        If current CTAO metadata does not validate against the product model.
     """
     metadata = _read_raw_metadata(input_url)
 
@@ -482,6 +574,7 @@ def read_ctao_metadata(
 
 
 def _read_raw_metadata(input_file) -> dict:
+    """Read flattened metadata from a supported file without validating its schema."""
     if isinstance(input_file, tables.File):
         return _read_hdf5_metadata(input_file)
 
@@ -513,9 +606,7 @@ def _read_raw_metadata(input_file) -> dict:
 
 
 def _read_hdf5_metadata(h5file, path="/"):
-    """
-    Read hdf5 attributes into a dict
-    """
+    """Read hdf5 attributes into a dict"""
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
@@ -525,11 +616,13 @@ def _read_hdf5_metadata(h5file, path="/"):
 
 
 def _read_fits_metadata(path):
+    """Read primary-header metadata from a FITS file."""
     with fits.open(path) as hdul:
         return dict(hdul[0].header)
 
 
 def _read_json_metadata(path):
+    """Read metadata from a JSON file or its top-level metadata field."""
     import json
 
     with open(path) as f:
@@ -539,6 +632,7 @@ def _read_json_metadata(path):
 
 
 def _metadata_to_product(metadata) -> dp.Product:
+    """Convert flattened current CTAO metadata into a validated product model."""
     metadata = {
         key: value for key, value in metadata.items() if key.startswith("CTAO.")
     }
@@ -556,6 +650,7 @@ def _metadata_to_product(metadata) -> dp.Product:
 
 
 def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
+    """Derive a current CTAO product type from legacy reference metadata."""
     level = to_ctao_data_level(reference.product.data_levels)
     association = to_ctao_data_association(reference.product.data_association)
     data_type = to_ctao_data_type(reference, input_url)
@@ -574,7 +669,7 @@ def _legacy_reference_to_product(
     contact_fallback: dp.Contact,
 ) -> dp.Product:
     """Convert legacy reference metadata to a current CTAO Product."""
-    instance_kwargs = {}
+    instance_kwargs = {"id": _legacy_uuid(reference.product.id_, "product")}
 
     # Legacy data levels -> processing sublevel
     data_levels = set(reference.product.data_levels)
@@ -654,7 +749,7 @@ def _legacy_reference_to_product(
         contact=contact,
         activity=dp.Activity(
             name=reference.activity.name,
-            id=uuid.UUID(reference.activity.id_),
+            id=_legacy_uuid(reference.activity.id_, "activity"),
             start=reference.activity.start_time,
             end=reference.activity.stop_time,
             software=dp.Software(
@@ -668,7 +763,26 @@ def _legacy_reference_to_product(
 
 
 def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel:
-    """Convert ctapipe data levels to the primary CTAO data level."""
+    """Select the primary CTAO data level from ctapipe data levels.
+
+    DL1 sublevels such as images, parameters, and muon data are normalized to
+    ``DL1``. If several levels are present, the highest CTAO data level is returned.
+
+    Parameters
+    ----------
+    data_levels : collections.abc.Iterable of DataLevel
+        ctapipe data levels to convert.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.DataLevel
+        Primary CTAO data level.
+
+    Raises
+    ------
+    ValueError
+        If ``data_levels`` is empty.
+    """
     mapping = {
         DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
         DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
@@ -691,6 +805,7 @@ LEGACY_MISSING_VALUES = {"", "unknown", "unspecified"}
 
 
 def _legacy_optional_string(value: str | None) -> str | None:
+    """Normalize legacy placeholder strings to ``None``."""
     if value is None:
         return None
 
@@ -702,10 +817,43 @@ def _legacy_optional_string(value: str | None) -> str | None:
     return value
 
 
+def _legacy_uuid(value: str | None, field: str) -> uuid.UUID:
+    """Parse a legacy UUID, generating a new one for missing or invalid values."""
+    try:
+        return uuid.UUID(value) if value is not None else uuid.uuid4()
+    except (AttributeError, TypeError, ValueError):
+        replacement = uuid.uuid4()
+        warnings.warn(
+            f"Legacy metadata contains an invalid {field} id {value!r}; "
+            f"using a newly generated UUID {replacement}.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        return replacement
+
+
 def to_ctao_data_type(
     reference: Reference,
     input_file,
 ) -> dp.DataType:
+    """Infer the CTAO data type represented by legacy metadata.
+
+    Explicit legacy process and product fields take precedence. As a final fallback,
+    an HDF5 input is inspected for simulation configuration data.
+
+    Parameters
+    ----------
+    reference : Reference
+        Legacy reference metadata.
+    input_file : path-like, tables.File, or None
+        Input used for the HDF5 simulation fallback. ``None`` is accepted when the
+        legacy metadata already determines the result.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.DataType
+        Inferred observation or simulated-observation data type.
+    """
     if reference.process.type_ == "Simulation":
         return dp.DataType.OBSERVATION_SIM
 
@@ -733,7 +881,23 @@ def to_ctao_data_type(
 def to_ctao_data_association(
     association: str,
 ) -> dp.DataAssociation:
-    """Convert a legacy data association to the CTAO data model enum."""
+    """Convert a legacy data association to the CTAO data-model enum.
+
+    Parameters
+    ----------
+    association : str
+        Legacy association value, such as ``"Subarray"`` or ``"Telescope"``.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.DataAssociation
+        Corresponding CTAO data association.
+
+    Raises
+    ------
+    ValueError
+        If the legacy association has no CTAO equivalent.
+    """
     try:
         return dp.DataAssociation(association)
     except ValueError as err:
@@ -796,7 +960,19 @@ def _activity_from_provenance(activity) -> dp.Activity:
 def write_product_metadata(
     product: dp.Product, h5file: tables.File, path="/", remove_legacy=False
 ):
-    """Write a CTAO data model Product as flattened HDF5 attributes."""
+    """Write a current CTAO product as flattened HDF5 attributes.
+
+    Parameters
+    ----------
+    product : ctao_datamodel.models.dataproducts.Product
+        Validated CTAO product metadata to serialize.
+    h5file : tables.File
+        Open PyTables file handle.
+    path : str
+        Path of the existing HDF5 node receiving the attributes.
+    remove_legacy : bool
+        Remove legacy CTA reference attributes from the target node before writing.
+    """
     metadata = dm.flatten_model_instance(
         product,
         parent_key="CTAO",
@@ -821,22 +997,21 @@ def _remove_legacy_metadata(h5file, path="/"):
 
     for name in node._v_attrs._f_list("user"):
         if name.startswith(legacy_prefixes):
-            node._v_attrs._f_delattr(name)
+            del node._v_attrs[name]
 
 
 def write_to_hdf5(metadata, h5file, path="/"):
-    """
-    Write metadata fields to a PyTables HDF5 file handle.
+    """Write flattened metadata as attributes of an HDF5 node.
 
     Parameters
     ----------
-    metadata: dict
-        flat dict as generated by `Reference.to_dict()`
-    h5file: string, Path, or `tables.file.File`
-        pytables filehandle
-    path: string
-        default: '/' is the path to ctapipe global metadata
-        the node must already exist in the 5hfile
+    metadata : collections.abc.Mapping
+        Flat metadata, for example as generated by
+        :func:`ctao_datamodel.flatten_model_instance` or :meth:`Reference.to_dict`.
+    h5file : tables.File
+        Open PyTables file handle.
+    path : str
+        Path of the existing HDF5 node receiving the attributes.
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", NaturalNameWarning)
