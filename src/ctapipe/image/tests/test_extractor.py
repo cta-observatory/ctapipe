@@ -1,5 +1,8 @@
 from copy import deepcopy
 
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import KMeans
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -942,3 +945,174 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
                 assert_allclose(
                     dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
                 )
+
+
+def test_global_peak_window_sum_muons(ctapipe_ref_pules,subarray):
+    from ctapipe.instrument.camera.readout import CameraReadout
+    from ctapipe.image.extractor import ImageExtractor
+    import matplotlib.pyplot as plt
+    #from ctapipe.image.extractor import GlobalPeakWindowSum
+    print("test_global_peak_window_sum_muons")
+    #print(ctapipe_ref_pules)
+    #print(type(ctapipe_ref_pules))
+    #print(ctapipe_ref_pules.colnames)
+    
+    reference_pulse_shape = np.array(
+        [ctapipe_ref_pules["reference_pulse_shape_channel0"]]
+    )
+    reference_pulse_sample_width = (
+        ctapipe_ref_pules["reference_pulse_sample_time"][1] -
+        ctapipe_ref_pules["reference_pulse_sample_time"][0]
+    ) * u.ns
+    
+    sampling_rate = 1 * u.GHz
+    readout = CameraReadout(
+        name="TestCam",
+        sampling_rate=sampling_rate,
+        reference_pulse_shape=reference_pulse_shape,
+        reference_pulse_sample_width=reference_pulse_sample_width,
+        n_channels=1,
+        n_pixels=1,
+        n_samples=40,
+    )
+
+    model = WaveformModel.from_camera_readout(readout)
+    proton_a = np.random.normal(loc=10, scale=3, size=10000)
+    proton_t = np.random.normal(loc=22, scale=1, size=10000)
+    mu_a = np.random.normal(loc=40, scale=5, size=10000)
+    mu_t = np.random.normal(loc=20, scale=0.1, size=10000)
+    wf = model.get_waveform(np.concatenate([proton_a, mu_a]),
+                            np.concatenate([proton_t, mu_t]),
+                            n_samples=40)
+
+    print(wf.shape)
+    
+
+
+
+
+    print("sum proton_a = ",np.sum(proton_a))
+    print("sum mu_a = ",np.sum(mu_a))
+    
+
+    plt.figure()
+    plt.step(ctapipe_ref_pules["reference_pulse_sample_time"],
+             ctapipe_ref_pules["reference_pulse_shape_channel0"],
+             label="interpolated pulse")
+    plt.show()
+    
+
+    #reference_pulse.shape[-2]
+
+    plt.figure()
+    plt.step(np.arange(40),
+             wf[0,0,:],
+             label="interpolated pulse")
+    plt.step(np.arange(40),
+             wf[0,10010,:],
+             label="interpolated pulse")
+
+    extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
+    n_channels, n_pixels, _ = wf.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+    dl1 = extractor(wf, 1, 0, broken_pixels)
+
+
+    
+    # DBSCAN
+    #db = DBSCAN(eps=0.1, min_samples=1000)
+    kmeans = KMeans(n_clusters=2, random_state=42, n_init=10)
+    #kmeans = KMeans(n_clusters=3)
+    
+    #labels = db.fit_predict(dl1["peak_time"].reshape(-1, 1), sample_weight=dl1["image"])
+    #labels = db.fit_predict(dl1["peak_time"].reshape(-1, 1))
+    labels = kmeans.fit_predict(dl1["peak_time"].reshape(-1, 1), sample_weight=np.abs(dl1["image"]))
+
+    print(labels)
+    print(labels.shape)
+
+    print("unique", np.unique(labels))
+
+    plt.figure()
+    for label in np.unique(labels):
+        mask = labels == label
+
+        plt.hist(
+            dl1["peak_time"][mask],
+            bins=np.linspace(9,12,35),
+            alpha=0.5,
+            label=f"Cluster {label}"
+        )
+
+        print("np.mean ",np.mean(dl1["peak_time"][mask]))
+        print("np.std  ",np.std(dl1["peak_time"][mask]))
+        print("np.sum  ",np.sum(dl1["peak_time"][mask]))
+        
+
+    plt.show()
+    
+    #extractor = LocalPeakWindowSum(ImageExtractor(subarray))
+    print(dl1["image"])
+
+    
+    #plt.step(ctapipe_ref_pules["reference_pulse_sample_time"],
+    #         ctapipe_ref_pules["reference_pulse_shape_channel1"],
+    #         label="interpolated pulse")
+    #plt.xlabel("time (ns)")
+    #plt.ylabel("amplitude")
+    #plt.title("Simple reference pulse shape")
+    #plt.legend()
+    #plt.tight_layout()
+    #plt.show()
+
+    #waveform_model = WaveformModel.from_camera_readout(subarray_1_lst.tel[1].camera.readout)
+
+    #print(waveform_model)
+
+    #waveform = waveform_model.get_waveform(np.array([100,10]), np.array([20,10]), 40)
+
+    #print(waveform)
+    #print(waveform.shape)
+
+    #plt.figure()
+    #plt.step(np.arange(len(waveform[0,0,:])),
+    #         waveform[1,0,:],
+    #         label="pulse")
+    #plt.step(ctapipe_ref_pules["reference_pulse_sample_time"],
+    #         ctapipe_ref_pules["reference_pulse_shape_channel1"],
+    #         label="interpolated pulse")
+    #plt.xlabel("time (ns)")
+    #plt.ylabel("amplitude")
+    #plt.title("Simple reference pulse shape")
+    #plt.legend()
+    #plt.tight_layout()
+    plt.show()
+
+    plt.figure()
+    plt.hist(dl1['peak_time'][0:10000],bins=np.linspace(9,12,35),alpha=0.5)
+    plt.hist(dl1['peak_time'][10000::],bins=np.linspace(9,12,35),alpha=0.5)
+    plt.show()
+
+    plt.figure()
+    plt.hist(dl1["image"][0:10000], bins=np.linspace(0.0,200,100),alpha=0.5)
+    plt.hist(dl1['image'][10000::], bins=np.linspace(0.0,200,100),alpha=0.5)
+    plt.show()
+
+    
+    plt.figure()
+    plt.hist(dl1["image"][10000::],bins=np.linspace(0.0,200,100),alpha=0.5)
+    plt.hist(dl1['image'][dl1['peak_time']<9.75], bins=np.linspace(0.0,200,100),alpha=0.5)
+    #plt.hist(dl1["image"][10000::],bins=np.linspace(0.0,200,100),alpha=0.5)
+    plt.show()
+
+    #print(np.sum())
+    #print(np.sum(dl1["image"][0:10000]))
+    
+    
+    #print
+    
+    #wf = WaveformModel(reference_pulse=np.array([ctapipe_ref_pules["reference_pulse_shape_channel0"]]),
+    #    reference_pulse_sample_width = np.array(ctapipe_ref_pules["reference_pulse_sample_time"]),
+    #    sample_width = 1.0)
+    
+    assert 1
