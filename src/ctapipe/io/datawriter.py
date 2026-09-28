@@ -739,7 +739,7 @@ class DataWriter(Component):
                 url=None,
             ),
             contact=dp.Contact(**self.contact_metadata),
-            activity=meta._activity_from_provenance(prov_activity),
+            activity=meta.activity_from_provenance(prov_activity),
         )
         meta.write_product_metadata(product, self._writer.h5file)
 
