@@ -285,6 +285,7 @@ class HDF5Merger(Component):
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.model.version
                 self.data_type = self.meta.data.type
+                self.data_category = self.meta.instance.category
                 metadata.write_product_metadata(self.meta, self.h5file)
             else:
                 self._check_can_merge(other)
