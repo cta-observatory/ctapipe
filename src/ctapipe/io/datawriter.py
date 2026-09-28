@@ -102,7 +102,19 @@ class DataWriter(Component):
 
     .. code-block:: python
 
-        with DataWriter(parent=self) as write_data:
+        with DataWriter(
+            parent=self,
+            contact={
+                "name": "Example User",
+                "organization": "Example Organization",
+                "email": "user@example.org",
+            },
+            curation={
+                "release": "example",
+                "license": "CC-BY-SA-4.0",
+                "copyright": "Example Organization",
+            },
+        ) as write_data:
             for event in source:
                 calibrate(event)
                 process_images(event)
