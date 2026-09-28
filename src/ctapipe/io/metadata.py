@@ -50,6 +50,7 @@ __all__ = [
     "to_ctao_data_type",
     "to_ctao_data_association",
     "metadata_to_product",
+    "activity_from_provenance",
 ]
 
 
@@ -985,7 +986,7 @@ def _legacy_instrument_id(value: str | None) -> int | None:
         return None
 
 
-def _activity_from_provenance(activity) -> dp.Activity:
+def activity_from_provenance(activity) -> dp.Activity:
     """Create CTAO activity metadata from ctapipe provenance."""
     provenance = activity.provenance
 

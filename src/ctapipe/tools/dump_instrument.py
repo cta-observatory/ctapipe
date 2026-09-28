@@ -15,7 +15,7 @@ from ctao_datamodel.models.common import SiteID
 
 from ..compat import ECSV_FMT
 from ..core import Provenance, Tool
-from ..core.traits import Enum, Path, Unicode
+from ..core.traits import Dict, Enum, Path, Unicode
 from ..exceptions import InputMissing
 from ..io import EventSource
 
@@ -40,6 +40,14 @@ class DumpInstrumentTool(Tool):
         help="Format of output file. 'service' creates CTAO service data format directory structure.",
         config=True,
     )
+    contact = Dict(
+        default_value={
+            "name": "unknown",
+            "email": "unknown@example.org",
+            "organization": "unknown",
+        },
+        help="Contact information for generated data products.",
+    ).tag(config=True)
 
     aliases = {
         ("i", "input"): "EventSource.input_url",
@@ -201,13 +209,9 @@ class DumpInstrumentTool(Tool):
                 version=model_version,
                 url=model_url,
             ),
-            contact=dp.Contact(
-                name="unknown",
-                organization="unknown",
-                email="unknown@example.org",
-            ),
+            contact=dp.Contact(**self.contact),
             activity=(
-                meta._activity_from_provenance(activity)
+                meta.activity_from_provenance(activity)
                 if activity is not None
                 else None
             ),
