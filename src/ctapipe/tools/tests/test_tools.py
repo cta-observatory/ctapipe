@@ -122,7 +122,18 @@ def test_dump_instrument(tmp_path, monkeypatch):
 
     # Test service data format
     ret = run_tool(
-        DumpInstrumentTool(),
+        DumpInstrumentTool(
+            contact={
+                "name": "Test User",
+                "organization": "CTAO",
+                "email": "test@example.org",
+            },
+            curation={
+                "release": "test",
+                "license": "CC-BY-SA-4.0",
+                "copyright": "CTAO",
+            },
+        ),
         [f"--input={PROD5B_PATH}", "--format=service"],
         cwd=tmp_path,
         raises=True,
