@@ -138,6 +138,16 @@ calibrate = CameraCalibrator(subarray=source.subarray)
 with DataWriter(
     event_source=source,
     output_path="events.dl1.h5",
+    contact={
+        "name": "Example User",
+        "organization": "Example Organization",
+        "email": "user@example.org",
+    },
+    curation={
+        "release": "example",
+        "license": "CC-BY-SA-4.0",
+        "copyright": "Example Organization",
+    },
     write_dl1_parameters=False,
     overwrite=True,
     write_dl1_images=True,
