@@ -221,9 +221,14 @@ class MirrorDescription:
             mirror_shape=mirror_shape,
         )
 
-    def peek(self):
+    def peek(self, output_path=None):
         """
         Draw a quick matplotlib plot of the mirror facet positions and shapes.
+
+        Parameters
+        ----------
+        output_path : str or pathlib.Path, optional
+            If given, save the resulting figure to this path as a PDF.
 
         Returns
         -------
@@ -239,6 +244,9 @@ class MirrorDescription:
         ax.set_aspect("equal")
         ax.set_title(f"{len(self.id)} mirror facets")
         ax.legend(loc="best", fontsize="small")
+
+        if output_path is not None:
+            fig.savefig(output_path, format="pdf")
 
         return ax
 
