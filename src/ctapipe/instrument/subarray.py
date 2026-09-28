@@ -25,6 +25,7 @@ from ..exceptions import (
     UnknownSubarray,
     UnknownTelescopeID,
 )
+from ..io.metadata import Reference, metadata_to_product
 from ..utils.datasets import get_structured_dataset, get_table_dataset
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import FocalLengthKind, OpticsDescription
@@ -920,14 +921,23 @@ class SubarrayDescription:
         return tel_positions
 
     @staticmethod
-    def _version_check(reference_meta, compatible_versions):
-        """Check if the subarray description is compatible with the current version."""
-        version = reference_meta.product.data_model_version
+    def _version_check(metadata, compatible_versions):
+        """Check if the service data is compatible with the current version."""
+        if "CTAO.ctao_metadata_version" in metadata:
+            product = metadata_to_product(metadata)
+            name = product.model.name
+            version = product.model.version
+
+        else:
+            # Legacy CTA reference metadata
+            reference = Reference.from_json(metadata)
+            name = reference.product.data_model_name
+            version = reference.product.data_model_version
 
         if version not in compatible_versions:
             raise IncompatibleDataModelVersion(
-                f"Incompatible {reference_meta.product.data_model_name} version : {version}. "
-                f"compatible versions: {compatible_versions}"
+                f"Incompatible {name} version: {version}. "
+                f"Compatible versions: {compatible_versions}"
             )
 
     @classmethod
@@ -992,18 +1002,21 @@ class SubarrayDescription:
             New SubarrayDescription instance
         """
         # Check service data version
-        from ..io.metadata import Reference
-
-        reference_meta = Reference.from_json(
-            get_structured_dataset("instrument.meta", role="dl0.sub.svc.meta")
+        metadata = get_structured_dataset(
+            "instrument.meta",
+            role="dl0.sub.svc.meta",
         )
-        cls._version_check(reference_meta, cls.COMPATIBLE_SERVICE_DATA_VERSIONS)
+        cls._version_check(
+            metadata,
+            cls.COMPATIBLE_SERVICE_DATA_VERSIONS,
+        )
+
         # Load array element IDs
         ae_data = get_structured_dataset(
             "array-element-ids", role="dl0.sub.svc.array_elements"
         )
         cls._version_check(
-            Reference.from_json(ae_data.get("metadata", ae_data)),
+            ae_data.get("metadata", ae_data),
             cls.COMPATIBLE_ARRAY_ELEMENTS_IDENTIFIERS_VERSIONS,
         )
         ae_id_to_name = {ae["id"]: ae["name"] for ae in ae_data["array_elements"]}
@@ -1013,7 +1026,7 @@ class SubarrayDescription:
             "subarray-ids", role="dl0.sub.svc.subarray"
         )
         cls._version_check(
-            Reference.from_json(subarray_data.get("metadata", subarray_data)),
+            subarray_data.get("metadata", subarray_data),
             cls.COMPATIBLE_SUBARRAY_IDENTIFIERS_VERSIONS,
         )
         subarray_info = None
