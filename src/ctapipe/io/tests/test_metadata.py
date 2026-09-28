@@ -313,10 +313,12 @@ def test_legacy_data_level_and_sublevel_mapping(
     assert product.instance.sublevel_id is expected_sublevel
 
 
-def test_legacy_product_type_rejects_missing_level_and_unknown_association(reference):
+def test_legacy_product_type_missing_level_and_unknown_association(reference):
     reference.product.data_levels = []
-    with pytest.raises(ValueError, match="At least one data level"):
-        meta._legacy_product_type(None, reference)
+    with pytest.warns(meta.LegacyMetadataWarning):
+        product_type = meta._legacy_product_type(None, reference)
+
+    assert product_type.level is dp.DataLevel.SIM
 
     reference.product.data_levels = [DataLevel.DL1_IMAGES]
     reference.product.data_association = "Other"
