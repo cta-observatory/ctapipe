@@ -41,12 +41,21 @@ class DumpInstrumentTool(Tool):
         config=True,
     )
     contact = Dict(
-        default_value={
-            "name": "unknown",
-            "email": "unknown@example.org",
-            "organization": "unknown",
-        },
-        help="Contact information for generated data products.",
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Contact information for the output data product. "
+            "Must be at least configured with 'name', 'organization', and 'email'."
+        ),
+    ).tag(config=True)
+
+    curation = Dict(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Curation information for the output data product. "
+            "Must be at least configured with 'release', 'license', and 'copyright'."
+        ),
     ).tag(config=True)
 
     aliases = {
@@ -186,6 +195,18 @@ class DumpInstrumentTool(Tool):
 
         activity = Provenance().current_activity
 
+        if self.contact is None:
+            raise ValueError(
+                "contact must be at least configured with "
+                "'name', 'organization', and 'email'"
+            )
+
+        if self.curation is None:
+            raise ValueError(
+                "curation must be at least configured with 'release', "
+                "'license', and 'copyright'"
+            )
+
         return dp.Product(
             description=description,
             creation_time=Time.now(),
@@ -203,7 +224,7 @@ class DumpInstrumentTool(Tool):
                 site_id=SiteID(site),
                 subarray_id=subarray_id,
             ),
-            curation=dp.Curation(),
+            curation=dp.Curation(**self.curation),
             model=dp.DataModel(
                 name=model_name,
                 version=model_version,

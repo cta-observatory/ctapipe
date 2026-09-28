@@ -110,13 +110,22 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
-    contact_metadata = Dict(
-        default_value={
-            "name": "unknown",
-            "organization": "unknown",
-            "email": "unknown@example.org",
-        },
-        help="Contact information for the output data product.",
+    contact = Dict(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Contact information for the output data product. "
+            "Must be at least configured with 'name', 'organization', and 'email'."
+        ),
+    ).tag(config=True)
+
+    curation = Dict(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Curation information for the output data product. "
+            "Must be at least configured with 'release', 'license', and 'copyright'."
+        ),
     ).tag(config=True)
     description_metadata = Unicode(
         "ctapipe Data Product",
@@ -733,6 +742,17 @@ class DataWriter(Component):
             else dp.FacilityName.CTAO
         )
 
+        if self.contact is None:
+            raise ValueError(
+                "contact must be at least configured with "
+                "'name', 'organization', and 'email'"
+            )
+
+        if self.curation is None:
+            raise ValueError(
+                "curation must be at least configured with 'release', "
+                "'license', and 'copyright'"
+            )
         product = dp.Product(
             description=self.description_metadata,
             creation_time=Time.now(),
@@ -742,13 +762,13 @@ class DataWriter(Component):
                 facility_name=facility_name,
                 sublevel_id=self._get_processing_sublevel(),
             ),
-            curation=dp.Curation(),
+            curation=dp.Curation(**self.curation),
             model=dp.DataModel(
                 name="ctapipe",
                 version=DATA_MODEL_VERSION,
                 url=None,
             ),
-            contact=dp.Contact(**self.contact_metadata),
+            contact=dp.Contact(**self.contact),
             activity=(
                 meta.activity_from_provenance(prov_activity)
                 if prov_activity is not None

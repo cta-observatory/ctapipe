@@ -35,6 +35,21 @@ LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
 
 
+def configured_processor_tool():
+    tool = ProcessorTool()
+    tool.config.DataWriter.contact = {
+        "name": "Test User",
+        "organization": "CTAO",
+        "email": "test@example.org",
+    }
+    tool.config.DataWriter.curation = {
+        "release": "test",
+        "license": "CC-BY-SA-4.0",
+        "copyright": "CTAO",
+    }
+    return tool
+
+
 @pytest.mark.parametrize(
     "config_files",
     [
@@ -45,7 +60,7 @@ FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
 )
 def test_read_yaml_toml_json_config(dl1_image_file, config_files):
     """check that we can read multiple formats of config file"""
-    tool = ProcessorTool()
+    tool = configured_processor_tool()
 
     for config_base in config_files:
         config = resource_file(config_base)
@@ -58,16 +73,14 @@ def test_read_yaml_toml_json_config(dl1_image_file, config_files):
         tool.setup()
 
     assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_metadata"][
-            "name"
-        ]
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact"]["name"]
         == "YOUR-NAME-HERE"
     )
 
 
 def test_multiple_configs(dl1_image_file):
     """ensure a config file loaded later overwrites keys from an earlier one"""
-    tool = ProcessorTool()
+    tool = configured_processor_tool()
 
     tool.load_config_file(resource_file("base_config.yaml"))
     tool.load_config_file(resource_file("stage2_config.yaml"))
@@ -89,7 +102,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_path / "dl1b_fromdl1a.dl1.h5"
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={dl1_image_file}",
@@ -136,7 +149,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # DL1B file as input
     ret = run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={dl1_parameters_file}",
@@ -159,7 +172,7 @@ def test_stage1_datalevels(tmp_path):
         infile.write(b"dummy")
 
     config = resource_file("stage1_config.json")
-    tool = ProcessorTool()
+    tool = configured_processor_tool()
 
     with pytest.raises(CalledProcessError):
         run_tool(
@@ -186,7 +199,7 @@ def test_stage_2_from_simtel(tmp_path, provenance):
     provenance_log = tmp_path / "provenance.log"
     input_path = get_dataset_path("gamma_prod5.simtel.zst")
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={input_path}",
@@ -230,7 +243,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={dl1_image_file}",
@@ -253,7 +266,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
 
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={dl1_parameters_file}",
@@ -291,7 +304,7 @@ def test_wf_modification_from_simtel(tmp_path):
         json.dump(config, f)
 
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config_path}",
             f"--input={input}",
@@ -317,7 +330,7 @@ def test_ml_preprocessing_from_simtel(tmp_path):
     output = tmp_path / "test_ml_preprocessing.DL1DL2.h5"
 
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={GAMMA_TEST_LARGE}",
@@ -347,7 +360,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
 
     dl1_modified = tmp_path / "dl1_modified.dl1.h5"
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={noise_config}",
             f"--input={dl1_image_file}",
@@ -435,7 +448,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
     ] + few_tels
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+    assert run_tool(configured_processor_tool(), argv=argv, cwd=tmp_path) == 0
 
     # 2) Create DL1 from simtel.
     dl1_from_simtel = tmp_path / "from_simtel.dl1.h5"
@@ -447,7 +460,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
     ] + many_tels
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+    assert run_tool(configured_processor_tool(), argv=argv, cwd=tmp_path) == 0
 
     # 3) Create from that DL1 file another DL2 file.
     dl2_from_dl1 = tmp_path / "from_dl1.dl2.h5"
@@ -459,7 +472,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
     ] + few_tels
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+    assert run_tool(configured_processor_tool(), argv=argv, cwd=tmp_path) == 0
 
     with TableLoader(dl2_from_simtel) as loader:
         events_from_simtel = loader.read_subarray_events()
@@ -491,7 +504,7 @@ def test_muon_reconstruction_simtel(tmp_path):
 
     muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--input={LST_MUONS}",
             f"--output={muon_simtel_output_file}",
@@ -538,7 +551,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
     from ctapipe.io import HDF5MonitoringSource
 
     output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
-    tool = ProcessorTool()
+    tool = configured_processor_tool()
 
     assert (
         run_tool(
@@ -573,7 +586,7 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
         match="Incompatible subarray descriptions found in input files.",
     ):
         run_tool(
-            ProcessorTool(),
+            configured_processor_tool(),
             argv=[
                 f"--input={GAMMA_TEST_LARGE}",
                 f"--output={output}",
@@ -590,7 +603,7 @@ def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
 
 
 def test_plugin_help(capsys):
-    ProcessorTool().print_help(classes=True)
+    configured_processor_tool().print_help(classes=True)
     captured = capsys.readouterr()
     assert "PluginEventSource.foo" in captured.out, (
         "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
@@ -604,7 +617,7 @@ def test_only_trigger_and_simulation(tmp_path):
     output = tmp_path / "only_trigger_and_simulation.h5"
 
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             "--input=dataset://gamma_prod5.simtel.zst",
             f"--output={output}",
@@ -648,7 +661,7 @@ def test_on_old_file(input_url, args, tmp_path):
 
     output_path = tmp_path / "test.dl1.h5"
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--config={config}",
             f"--input={input_url}",
@@ -682,7 +695,7 @@ def test_prod6_issues(tmp_path):
     output_path = tmp_path / "test.dl1.h5"
 
     run_tool(
-        ProcessorTool(),
+        configured_processor_tool(),
         argv=[
             f"--input={input_url}",
             f"--output={output_path}",

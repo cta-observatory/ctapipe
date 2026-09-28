@@ -30,6 +30,18 @@ def test_process_apply_energy(
     allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
     config = {
         "ProcessorTool": {
+            "DataWriter": {
+                "contact": {
+                    "name": "Test User",
+                    "organization": "CTAO",
+                    "email": "test@example.org",
+                },
+                "curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
+            },
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
@@ -82,6 +94,18 @@ def test_process_apply_classification(
     allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
     config = {
         "ProcessorTool": {
+            "DataWriter": {
+                "contact": {
+                    "name": "Test User",
+                    "organization": "CTAO",
+                    "email": "test@example.org",
+                },
+                "curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
+            },
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
@@ -142,6 +166,18 @@ def test_process_apply_disp(
     allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
     config = {
         "ProcessorTool": {
+            "DataWriter": {
+                "contact": {
+                    "name": "Test User",
+                    "organization": "CTAO",
+                    "email": "test@example.org",
+                },
+                "curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
+            },
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
