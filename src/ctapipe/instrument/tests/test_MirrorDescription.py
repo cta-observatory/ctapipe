@@ -28,6 +28,7 @@ def _check_description(description):
 def test_mirror_facets_description_from_ecsv(lst1_mirror_facets_path):
     description = MirrorDescription.from_table(lst1_mirror_facets_path)
     _check_description(description)
+    description.peek("test.pdf")
 
 
 def test_get_facet_size_from_table(lst1_mirror_facets_path):
