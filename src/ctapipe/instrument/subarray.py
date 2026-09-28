@@ -25,7 +25,6 @@ from ..exceptions import (
     UnknownSubarray,
     UnknownTelescopeID,
 )
-from ..io.metadata import Reference, metadata_to_product
 from ..utils.datasets import get_structured_dataset, get_table_dataset
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import FocalLengthKind, OpticsDescription
@@ -923,6 +922,8 @@ class SubarrayDescription:
     @staticmethod
     def _version_check(metadata, compatible_versions):
         """Check if the service data is compatible with the current version."""
+        from ..io.metadata import Reference, metadata_to_product
+
         if "CTAO.ctao_metadata_version" in metadata:
             product = metadata_to_product(metadata)
             name = product.model.name
