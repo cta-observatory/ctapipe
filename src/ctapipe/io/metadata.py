@@ -49,6 +49,7 @@ __all__ = [
     "to_ctao_data_level",
     "to_ctao_data_type",
     "to_ctao_data_association",
+    "metadata_to_product",
 ]
 
 
@@ -586,7 +587,7 @@ def read_ctao_metadata(
 
     # New Data Model
     if "CTAO.ctao_metadata_version" in metadata:
-        return _metadata_to_product(metadata)
+        return metadata_to_product(metadata)
 
     # Old Data Model
     if "CTA REFERENCE VERSION" in metadata:
@@ -673,7 +674,7 @@ def _read_json_metadata(path):
     return data.get("metadata", data)
 
 
-def _metadata_to_product(metadata) -> dp.Product:
+def metadata_to_product(metadata) -> dp.Product:
     """Convert flattened current CTAO metadata into a validated product model."""
     metadata = {
         key: value for key, value in metadata.items() if key.startswith("CTAO.")
