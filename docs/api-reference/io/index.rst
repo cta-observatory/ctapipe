@@ -176,7 +176,20 @@ It can be used in an event loop like:
 
 .. code-block:: python
 
-    with DataWriter(event_source=source, output_path="events.dl1.h5") as write_data:
+    with DataWriter(
+        event_source=source,
+        output_path="events.dl1.h5",
+        contact={
+            "name": "Example User",
+            "organization": "Example Organization",
+            "email": "user@example.org",
+        },
+        curation={
+            "release": "example",
+            "license": "CC-BY-SA-4.0",
+            "copyright": "Example Organization",
+        },
+    ) as write_data:
         for event in source:
             calibrate(event)
             write_data(event)
