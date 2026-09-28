@@ -326,22 +326,6 @@ class HDF5Merger(Component):
                 f"CTAO Reference meta not found in input file: {h5file.filename}"
             )
 
-    @staticmethod
-    def _data_type_family(data_type):
-        if data_type in {
-            dp.DataType.OBSERVATION,
-            dp.DataType.CALIBRATION,
-        }:
-            return dp.DataType.OBSERVATION
-
-        if data_type in {
-            dp.DataType.OBSERVATION_SIM,
-            dp.DataType.CALIBRATION_SIM,
-        }:
-            return dp.DataType.OBSERVATION_SIM
-
-        return data_type
-
     def _check_can_merge(self, other):
         other_meta = self._read_meta(other)
         other_version = other_meta.model.version
@@ -361,9 +345,22 @@ class HDF5Merger(Component):
 
         other_data_type = other_meta.data.type
         if self.attach_monitoring:
-            compatible = self._data_type_family(
-                self.data_type
-            ) == self._data_type_family(other_data_type)
+            observation_types = {
+                dp.DataType.OBSERVATION,
+                dp.DataType.CALIBRATION,
+            }
+            simulation_types = {
+                dp.DataType.OBSERVATION_SIM,
+                dp.DataType.CALIBRATION_SIM,
+            }
+
+            compatible = (
+                self.data_type in observation_types
+                and other_data_type in observation_types
+            ) or (
+                self.data_type in simulation_types
+                and other_data_type in simulation_types
+            )
         else:
             compatible = self.data_type == other_data_type
 

@@ -681,6 +681,8 @@ class DataWriter(Component):
 
         if data_levels:
             level = meta.to_ctao_data_level(data_levels)
+        elif self.event_source.datalevels:
+            level = meta.to_ctao_data_level(self.event_source.datalevels)
         elif self.event_source.is_simulation:
             level = dp.DataLevel.SIM
         else:
