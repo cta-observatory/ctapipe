@@ -1025,6 +1025,13 @@ def write_product_metadata(
         product,
         parent_key="CTAO",
     )
+
+    # Remove current metadata first
+    node = h5file.get_node(path)
+    for name in node._v_attrs._f_list("user"):
+        if name.startswith("CTAO."):
+            del node._v_attrs[name]
+
     if remove_legacy:
         _remove_legacy_metadata(h5file, path=path)
     write_to_hdf5(metadata, h5file, path=path)
