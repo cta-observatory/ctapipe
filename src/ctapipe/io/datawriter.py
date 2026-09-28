@@ -693,7 +693,17 @@ class DataWriter(Component):
             # assume that we write provenance for a "just finished activity"
             prov_activity = PROV.finished_activities[-1]
 
-        input_reference_meta = prov_activity.input[0]["reference_meta"]
+        input_reference_meta = None
+        # Search for first input with reference_meta
+        if prov_activity is not None:
+            input_reference_meta = next(
+                (
+                    input_["reference_meta"]
+                    for input_ in prov_activity.input
+                    if input_.get("reference_meta") is not None
+                ),
+                None,
+            )
 
         data_type = (
             input_reference_meta.get("data", {}).get("type")
@@ -739,7 +749,11 @@ class DataWriter(Component):
                 url=None,
             ),
             contact=dp.Contact(**self.contact_metadata),
-            activity=meta.activity_from_provenance(prov_activity),
+            activity=(
+                meta.activity_from_provenance(prov_activity)
+                if prov_activity is not None
+                else None
+            ),
         )
         meta.write_product_metadata(product, self._writer.h5file)
 
