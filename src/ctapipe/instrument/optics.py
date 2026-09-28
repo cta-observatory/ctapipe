@@ -130,6 +130,11 @@ class MirrorDescription:
         surface_area,
         mirror_shape,
     ):
+        values = {"x": x, "y": y, "z": z, "surface_area": surface_area}
+        for name, value in values.items():
+            if not isinstance(value, u.Quantity):
+                raise ValueError(f"{name} must have units")
+
         self.id = id
         self.x = x
         self.y = y
@@ -206,13 +211,13 @@ class MirrorDescription:
 
         return cls(
             id=np.asarray(table["mirror_id"]),
-            x=u.Quantity(table["x"], u.m),
-            y=u.Quantity(table["y"], u.m),
-            z=u.Quantity(table["z"], u.m),
+            x=u.Quantity(table["x"], table["x"].unit),
+            y=u.Quantity(table["y"], table["y"].unit),
+            z=u.Quantity(table["z"], table["z"].unit),
             nx=np.asarray(table["nx"]),
             ny=np.asarray(table["ny"]),
             nz=np.asarray(table["nz"]),
-            surface_area=u.Quantity(table["surface"], u.m**2),
+            surface_area=u.Quantity(table["surface"], table["surface"].unit),
             mirror_shape=mirror_shape,
         )
 
