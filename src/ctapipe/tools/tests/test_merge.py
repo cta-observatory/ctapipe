@@ -380,7 +380,20 @@ def dl1_chunks(tmp_path_factory, dl1_file):
     ctx = ExitStack()
     with ctx:
         source = ctx.enter_context(EventSource(dl1_file))
-        writer_kwargs = dict(event_source=source, write_dl1_images=True)
+        writer_kwargs = dict(
+            event_source=source,
+            write_dl1_images=True,
+            contact={
+                "name": "Test User",
+                "organization": "CTAO",
+                "email": "test@example.org",
+            },
+            curation={
+                "release": "test",
+                "license": "CC-BY-SA-4.0",
+                "copyright": "CTAO",
+            },
+        )
         writer1 = ctx.enter_context(DataWriter(output_path=path1, **writer_kwargs))
         writer2 = ctx.enter_context(DataWriter(output_path=path2, **writer_kwargs))
 

@@ -1,6 +1,6 @@
 Require the output file to exist when using `ctapipe-merge --append`.
 Updated the DataWriter API to configure contact information through the
-contact_metadata trait instead of the old Contact instance. Deleted the
+contact trait instead of the old Contact instance. Deleted the
 old instrument_info trait and added a new description_metadata trait.
 Removed the public ``write_reference_metadata_headers`` function; its
 functionality is now handled internally by :class:`DataWriter`.

@@ -1,9 +1,14 @@
 {
     "DataWriter": {
-        "contact_metadata": {
+        "contact": {
             "name": "YOUR NAME HERE",
             "email": "youremail@example.org",
             "organization": "CTA Consortium"
+        },
+        "curation": {
+            "release": "YOUR-DATA-RELEASE",
+            "license": "YOUR-LICENSE",
+            "copyright": "YOUR-COPYRIGHT"
         },
         "overwrite": false,
         "write_dl1_images": true,
