@@ -25,6 +25,7 @@ from types import ModuleType
 import astropy.units as u
 import psutil
 from astropy.time import Time
+from pydantic import BaseModel
 
 from ..version import __version__
 from .support import Singleton
@@ -89,6 +90,9 @@ def json_config_handler(obj):
 
     if isinstance(obj, (Contact, Instrument)):
         return _to_dict(obj)
+
+    if isinstance(obj, BaseModel):
+        return obj.model_dump(mode="json")
 
     raise TypeError(f"{obj!r} cannot be serialized to json")
 
