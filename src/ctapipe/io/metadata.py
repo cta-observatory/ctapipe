@@ -700,6 +700,16 @@ def metadata_to_product(metadata) -> dp.Product:
 def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
     """Derive a current CTAO product type from legacy reference metadata."""
     level = to_ctao_data_level(reference.product.data_levels)
+
+    if level is None:
+        warnings.warn(
+            "Could not determine a data level from legacy metadata. "
+            "Falling back to DataLevel.SIM.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        level = dp.DataLevel.SIM
+
     association = to_ctao_data_association(reference.product.data_association)
     data_type = to_ctao_data_type(reference, input_url)
 
@@ -810,7 +820,7 @@ def _legacy_reference_to_product(
     )
 
 
-def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel:
+def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel | None:
     """Select the primary CTAO data level from ctapipe data levels.
 
     DL1 sublevels such as images, parameters, and muon data are normalized to
@@ -843,7 +853,7 @@ def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel:
     ]
 
     if not mapped_levels:
-        raise ValueError("At least one data level is required")
+        return None
 
     level_order = {level: index for index, level in enumerate(dp.DataLevel)}
     return max(mapped_levels, key=level_order.__getitem__)
