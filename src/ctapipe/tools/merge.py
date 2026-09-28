@@ -223,7 +223,7 @@ class MergeTool(Tool):
     def finish(self):
         # override activity meta with merge current activity
         current_activity = Provenance().current_activity
-        self.merger.meta.activity = meta._activity_from_provenance(current_activity)
+        self.merger.meta.activity = meta.activity_from_provenance(current_activity)
         meta.write_product_metadata(self.merger.meta, self.merger.h5file)
 
 
