@@ -1,0 +1,1 @@
+Include ``OpticsDescription.name`` in its ``__hash__`` function.
