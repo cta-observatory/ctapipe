@@ -625,7 +625,7 @@ def read_ctao_metadata(
     The format is detected from the file contents. FITS (including gzip-compressed
     FITS), HDF5, ECSV, and JSON are supported. Legacy CTA reference metadata is
     converted to the current CTAO data model and emits a
-    :class:`LegacyMetadataWarning`.
+    :class:`~ctapipe.io.metadata.LegacyMetadataWarning`.
 
     Parameters
     ----------
