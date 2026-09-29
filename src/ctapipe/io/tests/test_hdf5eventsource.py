@@ -323,16 +323,6 @@ def test_no_pointing_in_ob(tmp_path):
             source,
             output_path=path,
             write_r1_waveforms=True,
-            contact={
-                "name": "Test User",
-                "organization": "CTAO",
-                "email": "test@example.org",
-            },
-            curation={
-                "release": "test",
-                "license": "CC-BY-SA-4.0",
-                "copyright": "CTAO",
-            },
         ) as writer:
             for event in source:
                 writer(event)

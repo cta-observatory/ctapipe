@@ -6,17 +6,6 @@ import pytest
 from ctapipe.containers import PixelStatus
 from ctapipe.image import ImageExtractor
 
-CONTACT = {
-    "name": "Test User",
-    "organization": "CTAO",
-    "email": "test@example.org",
-}
-CURATION = {
-    "release": "test",
-    "license": "CC-BY-SA-4.0",
-    "copyright": "CTAO",
-}
-
 
 @pytest.fixture(scope="session")
 def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
@@ -32,8 +21,6 @@ def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
             source,
             output_path=r1_path,
             write_r1_waveforms=True,
-            contact=CONTACT,
-            curation=CURATION,
         ) as writer:
             for event in source:
                 writer(event)

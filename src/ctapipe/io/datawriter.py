@@ -10,7 +10,7 @@ import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from astropy.time import Time
-from traitlets import Dict
+from traitlets import Dict, Instance
 
 from ..containers import (
     ArrayEventContainer,
@@ -102,19 +102,7 @@ class DataWriter(Component):
 
     .. code-block:: python
 
-        with DataWriter(
-            parent=self,
-            contact={
-                "name": "Example User",
-                "organization": "Example Organization",
-                "email": "user@example.org",
-            },
-            curation={
-                "release": "example",
-                "license": "CC-BY-SA-4.0",
-                "copyright": "Example Organization",
-            },
-        ) as write_data:
+        with DataWriter(parent=self) as write_data:
             for event in source:
                 calibrate(event)
                 process_images(event)
@@ -122,23 +110,18 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
-    contact = Dict(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Contact information for the output data product. "
-            "Must be at least configured with 'name', 'organization', and 'email'."
-        ),
+    contact_info = Instance(
+        meta.Contact,
+        kw={},
+        help="Contact information for the output data product.",
     ).tag(config=True)
 
-    curation = Dict(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Curation information for the output data product. "
-            "Must be at least configured with 'release', 'license', and 'copyright'."
-        ),
+    curation_info = Instance(
+        meta.Curation,
+        kw={},
+        help="Curation information for the output data product.",
     ).tag(config=True)
+
     description_metadata = Unicode(
         "ctapipe Data Product",
         help="Description of the output data product.",
@@ -227,6 +210,12 @@ class DataWriter(Component):
 
         """
         super().__init__(config=config, parent=parent, **kwargs)
+
+        self.contact_info = meta.Contact(parent=self)
+        self.curation_info = meta.Curation(parent=self)
+        # Validate metadata before creating the output file.
+        self.contact_info.to_model()
+        self.curation_info.to_model()
 
         self.event_source = event_source
 
@@ -754,17 +743,6 @@ class DataWriter(Component):
             else dp.FacilityName.CTAO
         )
 
-        if self.contact is None:
-            raise ValueError(
-                "contact must be at least configured with "
-                "'name', 'organization', and 'email'"
-            )
-
-        if self.curation is None:
-            raise ValueError(
-                "curation must be at least configured with 'release', "
-                "'license', and 'copyright'"
-            )
         product = dp.Product(
             description=self.description_metadata,
             creation_time=Time.now(),
@@ -774,13 +752,13 @@ class DataWriter(Component):
                 facility_name=facility_name,
                 sublevel_id=self._get_processing_sublevel(),
             ),
-            curation=dp.Curation(**self.curation),
+            curation=self.curation_info.to_model(),
             model=dp.DataModel(
                 name="ctapipe",
                 version=DATA_MODEL_VERSION,
                 url=None,
             ),
-            contact=dp.Contact(**self.contact),
+            contact=self.contact_info.to_model(),
             activity=(
                 meta.activity_from_provenance(prov_activity)
                 if prov_activity is not None

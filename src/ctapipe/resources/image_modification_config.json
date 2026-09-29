@@ -1,11 +1,11 @@
 {
     "DataWriter": {
-        "contact": {
+        "Contact": {
             "name": "YOUR NAME HERE",
             "email": "youremail@example.org",
             "organization": "CTA Consortium"
         },
-        "curation": {
+        "Curation": {
             "release": "YOUR-DATA-RELEASE",
             "license": "YOUR-LICENSE",
             "copyright": "YOUR-COPYRIGHT"

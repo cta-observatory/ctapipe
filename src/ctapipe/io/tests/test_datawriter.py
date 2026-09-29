@@ -23,11 +23,6 @@ from ctapipe.io.hdf5tableio import get_column_attrs
 from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
-CONTACT = {
-    "name": "Test User",
-    "organization": "CTAO",
-    "email": "test@example.org",
-}
 CURATION = {
     "release": "test",
     "license": "CC-BY-SA-4.0",
@@ -88,8 +83,6 @@ def test_write(tmpdir: Path):
     with DataWriter(
         event_source=source,
         output_path=output_path,
-        contact=CONTACT,
-        curation=CURATION,
         write_dl1_parameters=False,
         write_dl1_images=True,
         write_dl2=True,
@@ -167,8 +160,6 @@ def test_roundtrip(tmpdir: Path):
     with DataWriter(
         event_source=source,
         output_path=output_path,
-        contact=CONTACT,
-        curation=CURATION,
         write_dl1_parameters=False,
         write_dl1_images=True,
         transform_image=True,
@@ -243,8 +234,6 @@ def test_dl1writer_no_events(tmpdir: Path):
     with DataWriter(
         event_source=source,
         output_path=output_path,
-        contact=CONTACT,
-        curation=CURATION,
         write_dl1_parameters=True,
         write_dl1_images=True,
     ) as writer:
@@ -272,12 +261,12 @@ def test_metadata(tmpdir: Path):
     config = Config(
         {
             "DataWriter": {
-                "contact": {
+                "Contact": {
                     "name": "Maximilian Nöthe",
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
                 },
-                "curation": CURATION,
+                "Curation": CURATION,
                 "description_metadata": "Test",
                 "context_metadata": {"EXAMPLE": "test_value"},
             }

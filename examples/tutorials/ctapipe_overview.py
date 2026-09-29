@@ -371,16 +371,6 @@ f = tempfile.NamedTemporaryFile(suffix=".hdf5")
 with DataWriter(
     source,
     output_path=f.name,
-    contact={
-        "name": "Example User",
-        "organization": "Example Organization",
-        "email": "user@example.org",
-    },
-    curation={
-        "release": "example",
-        "license": "CC-BY-SA-4.0",
-        "copyright": "Example Organization",
-    },
     overwrite=True,
     write_dl2=True,
 ) as writer:
