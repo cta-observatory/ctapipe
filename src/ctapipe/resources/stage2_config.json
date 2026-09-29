@@ -1,11 +1,11 @@
 {
     "DataWriter": {
-        "contact": {
+        "Contact": {
             "name": "YOUR-NAME-HERE",
             "email": "YOUREMAIL@EXAMPLE.ORG",
             "organization": "YOUR-ORGANIZATION"
         },
-        "curation": {
+        "Curation": {
             "release": "YOUR-DATA-RELEASE",
             "license": "YOUR-LICENSE",
             "copyright": "YOUR-COPYRIGHT"

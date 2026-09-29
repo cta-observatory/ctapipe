@@ -473,16 +473,6 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
 
     # Write to service data format using the tool
     tool = DumpInstrumentTool()
-    tool.contact = {
-        "name": "Test User",
-        "organization": "CTAO",
-        "email": "test@example.org",
-    }
-    tool.curation = {
-        "release": "test",
-        "license": "CC-BY-SA-4.0",
-        "copyright": "CTAO",
-    }
     tool.subarray = original_subarray
     tool.infile = input_file
     tool.is_simulation = True

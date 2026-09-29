@@ -63,7 +63,7 @@ def json_config_handler(obj):
     >>> json.dumps(config, default=json_config_handler)
     '{"quantity": {"value": 5.0, "unit": "m"}}'
     """
-    from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
+    from ctapipe.io.metadata import Contact, Curation, Instrument, Reference, _to_dict
 
     if isinstance(obj, (set, UserList)):
         return list(obj)
@@ -88,7 +88,7 @@ def json_config_handler(obj):
             "unit": obj.unit.to_string("vounit"),
         }
 
-    if isinstance(obj, (Contact, Instrument)):
+    if isinstance(obj, (Contact, Curation, Instrument)):
         return _to_dict(obj)
 
     if isinstance(obj, BaseModel):

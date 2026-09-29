@@ -31,21 +31,6 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
 from ctapipe.utils.filelock import FileLock
 
-
-def _configured_processor_tool(tool):
-    tool.config.DataWriter.contact = {
-        "name": "αℓℓ the äüöß",
-        "organization": "CTAO",
-        "email": "test@example.org",
-    }
-    tool.config.DataWriter.curation = {
-        "release": "test",
-        "license": "CC-BY-SA-4.0",
-        "copyright": "CTAO",
-    }
-    return tool
-
-
 PYTEST_HEADER_MODULES.clear()
 PYTEST_HEADER_MODULES["eventio"] = "eventio"
 PYTEST_HEADER_MODULES["numpy"] = "numpy"
@@ -289,12 +274,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
             "--write-images",
             "--write-showers",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl2_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
 
 
@@ -318,12 +298,7 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
             "--write-images",
             "--write-showers",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl2_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
 
 
@@ -348,12 +323,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
             "--write-showers",
             "--max-events=20",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl2_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
 
 
@@ -400,12 +370,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
             "--write-images",
             "--max-events=20",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -426,12 +391,7 @@ def dl1_divergent_file(dl1_tmp_path):
             f"--output={output}",
             "--EventSource.focal_length_choice=EQUIVALENT",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -455,12 +415,7 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
             "--camera-frame",
             "--write-images",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -486,12 +441,7 @@ def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
             "--no-write-parameters",
             "--max-events=20",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl2_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
 
 
@@ -516,12 +466,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
             "--DataWriter.write_dl1_parameters=False",
             "--max-events=20",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -544,12 +489,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-parameters",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -573,12 +513,7 @@ def dl1_tel1_file(dl1_tmp_path, prod6_gamma_simtel_path):
             f"--EventSource.allowed_tels={tel_id}",
             "--write-images",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -604,12 +539,7 @@ def dl1_muon_file(dl1_tmp_path):
             "--no-write-parameters",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -638,12 +568,7 @@ def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
             "--HDF5EventSource.focal_length_choice=EQUIVALENT",
             "--max-events=30",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -665,12 +590,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
             f"--output={output}",
             "--write-images",
         ]
-        assert (
-            run_tool(
-                _configured_processor_tool(ProcessorTool()), argv=argv, cwd=dl1_tmp_path
-            )
-            == 0
-        )
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 

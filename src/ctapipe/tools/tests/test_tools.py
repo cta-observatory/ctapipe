@@ -121,19 +121,9 @@ def test_dump_instrument(tmp_path, monkeypatch):
     assert (tmp_path / "subarray.h5").exists()
 
     # Test service data format
+    tool = DumpInstrumentTool()
     ret = run_tool(
-        DumpInstrumentTool(
-            contact={
-                "name": "Test User",
-                "organization": "CTAO",
-                "email": "test@example.org",
-            },
-            curation={
-                "release": "test",
-                "license": "CC-BY-SA-4.0",
-                "copyright": "CTAO",
-            },
-        ),
+        tool,
         [f"--input={PROD5B_PATH}", "--format=service"],
         cwd=tmp_path,
         raises=True,
