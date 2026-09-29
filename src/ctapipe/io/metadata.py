@@ -40,6 +40,7 @@ from traitlets import (
 from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
+from ..utils.deprecation import CTAPipeDeprecationWarning
 from .datalevels import DataLevel
 
 __all__ = [
@@ -51,6 +52,7 @@ __all__ = [
     "Activity",
     "Instrument",
     "convert",
+    "LegacyMetadataWarning",
     "get_compatible_metadata_versions",
     "write_to_hdf5",
     "write_product_metadata",
@@ -566,12 +568,8 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
 # -----------------------------------------------------
 
 
-class LegacyMetadataWarning(UserWarning):
-    """Warning for incomplete or invalid legacy metadata."""
-
-
-class LegacyContactRequired(ValueError):
-    """Raised when legacy metadata does not contain valid contact information."""
+class LegacyMetadataWarning(CTAPipeDeprecationWarning):
+    """Warning emitted when deprecated legacy CTA metadata is encountered."""
 
 
 def get_compatible_metadata_versions(
