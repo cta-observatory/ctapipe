@@ -32,18 +32,6 @@ def test_process_apply_energy(
     allowed_tels = ALLOWED_TELS_PROD6_NORTH_ALPHA
     config = {
         "ProcessorTool": {
-            "DataWriter": {
-                "contact": {
-                    "name": "Test User",
-                    "organization": "CTAO",
-                    "email": "test@example.org",
-                },
-                "curation": {
-                    "release": "test",
-                    "license": "CC-BY-SA-4.0",
-                    "copyright": "CTAO",
-                },
-            },
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
@@ -96,18 +84,6 @@ def test_process_apply_classification(
     allowed_tels = ALLOWED_TELS_PROD6_NORTH_ALPHA
     config = {
         "ProcessorTool": {
-            "DataWriter": {
-                "contact": {
-                    "name": "Test User",
-                    "organization": "CTAO",
-                    "email": "test@example.org",
-                },
-                "curation": {
-                    "release": "test",
-                    "license": "CC-BY-SA-4.0",
-                    "copyright": "CTAO",
-                },
-            },
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
@@ -168,18 +144,6 @@ def test_process_apply_disp(
     allowed_tels = ALLOWED_TELS_PROD6_NORTH_ALPHA
     config = {
         "ProcessorTool": {
-            "DataWriter": {
-                "contact": {
-                    "name": "Test User",
-                    "organization": "CTAO",
-                    "email": "test@example.org",
-                },
-                "curation": {
-                    "release": "test",
-                    "license": "CC-BY-SA-4.0",
-                    "copyright": "CTAO",
-                },
-            },
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },

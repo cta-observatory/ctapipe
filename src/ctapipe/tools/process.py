@@ -173,8 +173,8 @@ class ProcessorTool(Tool):
             ImageProcessor,
             MuonProcessor,
             ShowerProcessor,
-            metadata.Instrument,
             metadata.Contact,
+            metadata.Curation,
             SoftwareTrigger,
             WaveformModifier,
         ]
