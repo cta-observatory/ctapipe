@@ -223,7 +223,8 @@ class MirrorDescription:
 
     def peek(self, output_path=None):
         """
-        Draw a quick matplotlib plot of the mirror facet positions and shapes.
+        Draw a quick matplotlib plot of the mirror facet positions and shapes,
+        labelling each facet with its mirror ID.
 
         Parameters
         ----------
@@ -235,15 +236,67 @@ class MirrorDescription:
         matplotlib.axes.Axes
         """
         from matplotlib import pyplot as plt
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import Patch
 
         fig = plt.figure(figsize=(6, 6))
         ax = fig.add_subplot(1, 1, 1)
 
+        x = self.x.to_value(u.m)
+        y = self.y.to_value(u.m)
+        size = self.get_facet_size().to_value(u.m)
+
+        legend_handles = []
+        for shape in MirrorFacetShape:
+            if shape == MirrorFacetShape.UNKNOWN:
+                continue
+
+            mask = self.shape == shape
+            if not np.any(mask):
+                continue
+
+            color = "lightgreen"
+            patches = self.create_patches(shape, x[mask], y[mask], size[mask])
+            ax.add_collection(
+                PatchCollection(
+                    patches, facecolor=color, edgecolor="black", linewidth=0.5
+                )
+            )
+            legend_handles.append(
+                Patch(
+                    facecolor=color,
+                    edgecolor="black",
+                    label=f"{shape.value} ({np.count_nonzero(mask)})",
+                )
+            )
+
+        unknown = self.shape == MirrorFacetShape.UNKNOWN
+        if np.any(unknown):
+            ax.scatter(
+                x[unknown],
+                y[unknown],
+                marker="x",
+                color="gray",
+                label=f"{MirrorFacetShape.UNKNOWN.value} ({np.count_nonzero(unknown)})",
+            )
+
+        for facet_id, facet_x, facet_y in zip(self.id, x, y):
+            ax.text(
+                facet_x,
+                facet_y,
+                str(facet_id),
+                ha="center",
+                va="center",
+                fontsize=5,
+            )
+
+        ax.autoscale_view()
         ax.set_xlabel("x / m")
         ax.set_ylabel("y / m")
         ax.set_aspect("equal")
         ax.set_title(f"{len(self.id)} mirror facets")
-        ax.legend(loc="best", fontsize="small")
+        handles, _ = ax.get_legend_handles_labels()
+        ax.legend(handles=legend_handles + handles, loc="best", fontsize="small")
 
         if output_path is not None:
             fig.savefig(output_path, format="pdf")
