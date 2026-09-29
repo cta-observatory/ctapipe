@@ -2,17 +2,6 @@ import pytest
 
 from ctapipe.io import DataWriter, EventSource
 
-CONTACT = {
-    "name": "Test User",
-    "organization": "CTAO",
-    "email": "test@example.org",
-}
-CURATION = {
-    "release": "test",
-    "license": "CC-BY-SA-4.0",
-    "copyright": "CTAO",
-}
-
 
 @pytest.fixture(scope="session")
 def r1_path(tmp_path_factory):
@@ -31,8 +20,6 @@ def r1_hdf5_file(prod5_proton_simtel_path, r1_path):
     writer = DataWriter(
         event_source=source,
         output_path=path,
-        contact=CONTACT,
-        curation=CURATION,
         write_dl1_parameters=False,
         write_dl1_images=False,
         write_dl2=False,

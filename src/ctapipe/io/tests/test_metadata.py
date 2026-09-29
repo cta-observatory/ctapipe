@@ -15,6 +15,7 @@ from astropy.table import Table
 from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
 from pydantic import ValidationError
+from traitlets import TraitError
 
 from ctapipe.core.provenance import Provenance
 from ctapipe.io import metadata as meta
@@ -357,9 +358,10 @@ def test_legacy_instrument_mapping(
 
 def test_legacy_missing_optional_values_and_contact_fallback(reference):
     reference.product.data_model_url = " unspecified "
-    reference.contact.name = "unknown"
-    reference.contact.organization = ""
-    reference.contact.email = "not-an-email"
+    with reference.contact.cross_validation_lock:
+        reference.contact.name = "unknown"
+        reference.contact.organization = ""
+        reference.contact.email = "not-an-email"
     fallback = dp.Contact(
         name="Fallback", organization="CTAO", email="fallback@example.org"
     )
@@ -458,3 +460,31 @@ def test_get_compatible_metadata_versions(monkeypatch):
         "1.1.0",
         "2.0.0",
     }
+
+
+def test_configurable_contact_validation():
+    assert meta.Contact().to_model() == dp.Contact(
+        name="unknown",
+        organization="unknown",
+        email="unknown@example.org",
+    )
+
+    contact = meta.Contact(
+        name="Test User",
+        organization="CTAO",
+        email="test@example.org",
+    )
+    assert contact.to_model() == dp.Contact(
+        name="Test User",
+        organization="CTAO",
+        email="test@example.org",
+    )
+
+    with pytest.raises(TraitError, match="valid email address"):
+        contact.email = "invalid"
+
+
+def test_configurable_curation_validation():
+    curation = meta.Curation(release="test")
+    assert curation.to_model() == dp.Curation(release="test")
+    assert meta.Curation().to_model() == dp.Curation()

@@ -12,12 +12,14 @@ import ctao_datamodel as dm
 import ctao_datamodel.models.dataproducts as dp
 from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
+from traitlets import Instance
 
 from ..compat import ECSV_FMT
 from ..core import Provenance, Tool
-from ..core.traits import Dict, Enum, Path, Unicode
+from ..core.traits import Enum, Path, Unicode
 from ..exceptions import InputMissing
 from ..io import EventSource
+from ..io import metadata as meta
 
 __all__ = ["DumpInstrumentTool"]
 
@@ -40,22 +42,16 @@ class DumpInstrumentTool(Tool):
         help="Format of output file. 'service' creates CTAO service data format directory structure.",
         config=True,
     )
-    contact = Dict(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Contact information for the output data product. "
-            "Must be at least configured with 'name', 'organization', and 'email'."
-        ),
+    contact_info = Instance(
+        meta.Contact,
+        kw={},
+        help="Contact information for the output data product.",
     ).tag(config=True)
 
-    curation = Dict(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Curation information for the output data product. "
-            "Must be at least configured with 'release', 'license', and 'copyright'."
-        ),
+    curation_info = Instance(
+        meta.Curation,
+        kw={},
+        help="Curation information for the output data product.",
     ).tag(config=True)
 
     aliases = {
@@ -64,9 +60,15 @@ class DumpInstrumentTool(Tool):
         ("o", "outdir"): "DumpInstrumentTool.outdir",
     }
 
-    classes = [EventSource]
+    classes = [EventSource, meta.Contact, meta.Curation]
 
     def setup(self):
+
+        self.contact_info = meta.Contact(parent=self)
+        self.curation_info = meta.Curation(parent=self)
+        self.contact_info.to_model()
+        self.curation_info.to_model()
+
         try:
             with EventSource(parent=self) as source:
                 self.infile = source.input_url
@@ -191,21 +193,7 @@ class DumpInstrumentTool(Tool):
         subarray_id,
         model_url=None,
     ):
-        from ctapipe.io import metadata as meta
-
         activity = Provenance().current_activity
-
-        if self.contact is None:
-            raise ValueError(
-                "contact must be at least configured with "
-                "'name', 'organization', and 'email'"
-            )
-
-        if self.curation is None:
-            raise ValueError(
-                "curation must be at least configured with 'release', "
-                "'license', and 'copyright'"
-            )
 
         return dp.Product(
             description=description,
@@ -224,13 +212,13 @@ class DumpInstrumentTool(Tool):
                 site_id=SiteID(site),
                 subarray_id=subarray_id,
             ),
-            curation=dp.Curation(**self.curation),
+            curation=self.curation_info.to_model(),
             model=dp.DataModel(
                 name=model_name,
                 version=model_version,
                 url=model_url,
             ),
-            contact=dp.Contact(**self.contact),
+            contact=self.contact_info.to_model(),
             activity=(
                 meta.activity_from_provenance(activity)
                 if activity is not None

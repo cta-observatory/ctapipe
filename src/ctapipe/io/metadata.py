@@ -11,7 +11,6 @@ the current :class:`ctao_datamodel.models.dataproducts.Product` model, while
 """
 
 import gzip
-import os
 import uuid
 import warnings
 from collections import defaultdict
@@ -27,7 +26,17 @@ from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
 from pydantic import ValidationError
 from tables import NaturalNameWarning
-from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
+from traitlets import (
+    Enum,
+    HasTraits,
+    Instance,
+    List,
+    TraitError,
+    Unicode,
+    UseEnum,
+    default,
+    validate,
+)
 from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
@@ -36,6 +45,7 @@ from .datalevels import DataLevel
 __all__ = [
     "Reference",
     "Contact",
+    "Curation",
     "Process",
     "Product",
     "Activity",
@@ -82,37 +92,42 @@ def convert(value):
     return value
 
 
-def _get_user_name():
-    """return the logged in user's name, as a fall-back if none is specified"""
-    try:
-        import pwd
-
-        return pwd.getpwuid(os.getuid()).pw_gecos
-    except Exception:
-        # the pwd module is not available on some non-unix systems (Windows)
-        # also, a username might not exist (e.g. in docker containers run with a custom uid)
-        # so here we just fall back to a default name
-        return "Unknown User"
-
-
 class Contact(Configurable):
-    """Legacy CTA reference-metadata contact information.
+    """Configurable CTAO contact information.
 
-    This configurable class represents the person or organization responsible for a
-    data product written with the legacy CTA metadata schema.
+    This class is used for current product metadata configuration and remains
+    compatible with the legacy CTA reference metadata schema.
     """
 
-    name = Unicode("unknown").tag(config=True)
-    email = Unicode("unknown@example.org").tag(config=True)
-    organization = Unicode("unknown").tag(config=True)
+    name = Unicode(default_value="unknown").tag(config=True)
+    email = Unicode(default_value="unknown@example.org").tag(config=True)
+    organization = Unicode(default_value="unknown").tag(config=True)
 
-    @default("name")
-    def default_name(self):
-        """if no name specified, use the system's user name"""
+    @validate("name", "email", "organization")
+    def _validate_contact(self, proposal):
+        """Validate contact information using the CTAO data model."""
+        values = {
+            "name": self.name,
+            "email": self.email,
+            "organization": self.organization,
+        }
+        values[proposal["trait"].name] = proposal["value"]
+
         try:
-            return _get_user_name()
-        except RuntimeError:
-            return ""
+            contact = dp.Contact(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+        return getattr(contact, proposal["trait"].name)
+
+    def to_model(self) -> dp.Contact:
+        try:
+            return dp.Contact(
+                name=self.name,
+                email=self.email,
+                organization=self.organization,
+            )
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
 
     def __repr__(self):
         return (
@@ -121,6 +136,49 @@ class Contact(Configurable):
             f", organization='{self.organization}'"
             ")"
         )
+
+
+class Curation(Configurable):
+    """Configurable curation metadata for a CTAO data product."""
+
+    release = Unicode(
+        default_value=dp.Curation.model_fields["release"].default, allow_none=True
+    ).tag(config=True)
+    license = Unicode(
+        dp.Curation.model_fields["license"].default,
+    ).tag(config=True)
+    copyright = Unicode(
+        default_value=dp.Curation.model_fields["copyright"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    @validate("release", "license", "copyright")
+    def _validate_curation(self, proposal):
+        """Validate curation information using the CTAO data model."""
+        values = {
+            "release": self.release,
+            "license": self.license,
+            "copyright": self.copyright,
+        }
+        values[proposal["trait"].name] = proposal["value"]
+
+        try:
+            curation = dp.Curation(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+        return getattr(curation, proposal["trait"].name)
+
+    def to_model(self) -> dp.Curation:
+        """Return validated CTAO curation metadata."""
+        try:
+            return dp.Curation(
+                release=self.release,
+                license=self.license,
+                copyright=self.copyright,
+            )
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
 
 
 class Product(HasTraits):
@@ -384,8 +442,16 @@ class Reference(HasTraits):
 
             kwargs[group][key] = value
 
+        # Legacy files may contain contact data that does not satisfy the current
+        # CTAO model. Preserve it here so migration can apply its documented
+        # fallback contact later.
+        contact = Contact()
+        with contact.cross_validation_lock:
+            for key, value in kwargs["contact"].items():
+                setattr(contact, key, value)
+
         return cls(
-            contact=Contact(**kwargs["contact"]),
+            contact=contact,
             product=Product(**kwargs["product"]),
             process=Process(**kwargs["process"]),
             activity=Activity(**kwargs["activity"]),
