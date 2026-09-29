@@ -1,32 +1,52 @@
 """Helper functions for array-event-wise aggregation of telescope events."""
 
+from collections import namedtuple
+
 import numpy as np
 from numba import njit, uint64
+
+from ctapipe.core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 
 __all__ = ["get_subarray_index", "weighted_mean_std_ufunc"]
 
 
-@njit
+SubarrayIndex = namedtuple(
+    "SubarrayIndex",
+    [
+        "obs_id",
+        "event_id",
+        "multiplicity",
+        "first_tel_event_index",
+        "subarray_event_index",
+    ],
+)
+
+
+@njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def _get_subarray_index(obs_ids, event_ids):
     n_tel_events = len(obs_ids)
     idx = np.zeros(n_tel_events, dtype=uint64)
     current_idx = 0
-    subarray_obs_index = []
-    subarray_event_index = []
+    subarray_obs_ids = []
+    subarray_event_ids = []
+    subarray_first_index = []
+
     multiplicities = []
     multiplicity = 0
 
     if n_tel_events > 0:
-        subarray_obs_index.append(obs_ids[0])
-        subarray_event_index.append(event_ids[0])
+        subarray_obs_ids.append(obs_ids[0])
+        subarray_event_ids.append(event_ids[0])
+        subarray_first_index.append(0)
         multiplicity += 1
 
     for i in range(1, n_tel_events):
         if obs_ids[i] != obs_ids[i - 1] or event_ids[i] != event_ids[i - 1]:
             # append to subarray events
             multiplicities.append(multiplicity)
-            subarray_obs_index.append(obs_ids[i])
-            subarray_event_index.append(event_ids[i])
+            subarray_obs_ids.append(obs_ids[i])
+            subarray_event_ids.append(event_ids[i])
+            subarray_first_index.append(i)
             # reset state
             current_idx += 1
             multiplicity = 0
@@ -38,15 +58,16 @@ def _get_subarray_index(obs_ids, event_ids):
     if n_tel_events > 0:
         multiplicities.append(multiplicity)
 
-    return (
-        np.asarray(subarray_obs_index),
-        np.asarray(subarray_event_index),
+    return SubarrayIndex(
+        np.asarray(subarray_obs_ids),
+        np.asarray(subarray_event_ids),
         np.asarray(multiplicities),
+        np.asarray(subarray_first_index),
         idx,
     )
 
 
-def get_subarray_index(tel_table):
+def get_subarray_index(tel_table) -> SubarrayIndex:
     """
     Get the subarray-event-wise information from a table of telescope events.
 
@@ -59,15 +80,17 @@ def get_subarray_index(tel_table):
 
     Parameters
     ----------
-    tel_table: astropy.table.Table
+    tel_table : astropy.table.Table
         table with telescope events as rows
 
     Returns
     -------
-    Tuple(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
-        obs_ids of subarray events, event_ids of subarray events,
-        multiplicity of subarray events, index of the subarray event
-        for each telescope event
+    subarray_index : SubarrayIndex
+        obs_id of each subarray event,
+        event_id of each subarray event,
+        multiplicity (number of telescope events) for each subarray event,
+        first index in the telescope event table for each subarray event,
+        index into the subarray event array for each telescope event
     """
     obs_idx = tel_table["obs_id"]
     event_idx = tel_table["event_id"]

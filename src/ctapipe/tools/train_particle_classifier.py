@@ -174,7 +174,7 @@ class TrainParticleClassifier(Tool):
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
             table = self._read_input_data(tel_type)
-            self.cross_validate(tel_type, table)
+            self.cross_validate(tel_type, table, keep_subarray_events=True)
 
             self.log.info("Performing final fit for %s", tel_type)
             self.classifier.fit(tel_type, table)

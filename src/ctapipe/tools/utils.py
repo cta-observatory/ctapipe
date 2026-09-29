@@ -111,7 +111,7 @@ def read_training_events(
     n_events_in_file = 0
     n_valid_events_in_file = 0
     n_non_predictable = 0
-    columns = feature_names.copy()
+    columns = ["obs_id", "event_id", "tel_id"] + feature_names.copy()
 
     for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
         log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
