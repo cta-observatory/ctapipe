@@ -58,7 +58,6 @@ __all__ = [
     "read_ctao_metadata",
     "to_ctao_data_level",
     "to_ctao_data_type",
-    "to_ctao_data_association",
     "metadata_to_product",
     "activity_from_provenance",
 ]
@@ -776,7 +775,13 @@ def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
         )
         level = dp.DataLevel.SIM
 
-    association = to_ctao_data_association(reference.product.data_association)
+    try:
+        association = dp.DataAssociation(reference.product.data_association)
+    except ValueError as err:
+        raise ValueError(
+            "Unsupported legacy data association: "
+            f"{reference.product.data_association!r}"
+        ) from err
     data_type = to_ctao_data_type(reference, input_url)
 
     return dp.ProductType(
@@ -1000,34 +1005,6 @@ def to_ctao_data_type(
             pass
 
     return dp.DataType.OBSERVATION
-
-
-def to_ctao_data_association(
-    association: str,
-) -> dp.DataAssociation:
-    """Convert a legacy data association to the CTAO data-model enum.
-
-    Parameters
-    ----------
-    association : str
-        Legacy association value, such as ``"Subarray"`` or ``"Telescope"``.
-
-    Returns
-    -------
-    ctao_datamodel.models.dataproducts.DataAssociation
-        Corresponding CTAO data association.
-
-    Raises
-    ------
-    ValueError
-        If the legacy association has no CTAO equivalent.
-    """
-    try:
-        return dp.DataAssociation(association)
-    except ValueError as err:
-        raise ValueError(
-            f"Unsupported legacy data association: {association!r}"
-        ) from err
 
 
 def _legacy_site_id(site: str | None) -> SiteID | None:
