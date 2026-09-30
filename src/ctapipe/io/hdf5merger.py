@@ -6,6 +6,7 @@ from pathlib import Path
 import ctao_datamodel.models.dataproducts as dp
 import tables
 from astropy.time import Time
+from traitlets import Instance
 
 from ..containers import EventType
 from ..core import Component, Provenance, traits
@@ -118,6 +119,12 @@ class HDF5Merger(Component):
     Class to copy / append / merge ctapipe hdf5 files
     """
 
+    contact_info = Instance(
+        metadata.Contact,
+        kw={},
+        help="Contact information for the output data product.",
+    ).tag(config=True)
+
     output_path = traits.Path(directory_ok=False).tag(config=True)
 
     overwrite = traits.Bool(
@@ -209,6 +216,9 @@ class HDF5Merger(Component):
 
         super().__init__(**kwargs)
 
+        self.contact_info = metadata.Contact(parent=self)
+        self.contact_info.to_model()
+
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
 
@@ -280,17 +290,19 @@ class HDF5Merger(Component):
             other = exit_stack.enter_context(tables.open_file(other, mode="r"))
 
         with exit_stack:
+            other_meta = self._read_meta(other)
             # first file to be merged
             if self._n_merged == 0:
-                self.meta = self._read_meta(other)
+                self.meta = other_meta
                 self.data_model_version = self.meta.model.version
                 self.data_type = self.meta.data.type
                 self.data_category = self.meta.instance.category
-                metadata.write_product_metadata(self.meta, self.h5file)
             else:
-                self._check_can_merge(other)
+                self._check_can_merge(other, other_meta)
 
-            Provenance().add_input_file(other.filename, "data product to merge")
+            Provenance().add_input_file(
+                other.filename, role="data product to merge", reference_meta=other_meta
+            )
             try:
                 self._append(other)
                 # if first file, update required nodes
@@ -305,6 +317,13 @@ class HDF5Merger(Component):
         self.meta.creation_time = Time.now()
 
         self._update_product_type()
+        self._update_datalevel()
+
+        if "Contact" in self.config:
+            self.meta.contact = self.contact_info.to_model()
+
+        if len(self._merged_obs_ids) > 1:
+            self.meta.instance.obs_id = None
 
         metadata.write_product_metadata(self.meta, self.h5file, remove_legacy=True)
 
@@ -319,6 +338,36 @@ class HDF5Merger(Component):
             elif self.meta.data.type == dp.DataType.OBSERVATION:
                 self.meta.data.type = dp.DataType.CALIBRATION
 
+    def _update_datalevel(self):
+        """Update the data level based on data included in the merged output."""
+        if self.attach_monitoring:
+            return
+
+        if (self.dl2_subarray and DL2_SUBARRAY_GROUP in self.h5file.root) or (
+            self.telescope_events
+            and self.dl2_telescope
+            and DL2_TEL_GROUP in self.h5file.root
+        ):
+            data_level = dp.DataLevel.DL2
+
+        elif (
+            (self.dl1_images and DL1_TEL_IMAGES_GROUP in self.h5file.root)
+            or (self.dl1_parameters and DL1_TEL_PARAMETERS_GROUP in self.h5file.root)
+            or (self.dl1_muon and DL1_TEL_MUON_GROUP in self.h5file.root)
+        ):
+            data_level = dp.DataLevel.DL1
+
+        elif self.r1_waveforms and R1_TEL_GROUP in self.h5file.root:
+            data_level = dp.DataLevel.R1
+
+        elif self.r0_waveforms and R0_TEL_GROUP in self.h5file.root:
+            data_level = dp.DataLevel.R0
+
+        else:
+            return
+
+        self.meta.data.level = data_level
+
     def _read_meta(self, h5file):
         try:
             return metadata.read_ctao_metadata(h5file)
@@ -327,9 +376,7 @@ class HDF5Merger(Component):
                 f"CTAO Reference meta not found in input file: {h5file.filename}"
             )
 
-    def _check_can_merge(self, other):
-        other_meta = self._read_meta(other)
-
+    def _check_can_merge(self, other, other_meta):
         self._check_data_model_version(other, other_meta.model.version)
         self._check_data_type(other, other_meta.data.type)
 
