@@ -488,3 +488,41 @@ def test_configurable_curation_validation():
     curation = meta.Curation(release="test")
     assert curation.to_model() == dp.Curation(release="test")
     assert meta.Curation().to_model() == dp.Curation()
+
+
+def test_configurable_instance_metadata_validation():
+    instance = meta.InstanceMetadata(
+        category=dp.DataProcessingCategory.B,
+        site_id=SiteID.CTAO_NORTH,
+        subarray_id=1,
+        target_id="Crab",
+    )
+
+    model = instance.to_model()
+    assert model.category is dp.DataProcessingCategory.B
+    assert model.site_id is SiteID.CTAO_NORTH
+    assert model.subarray_id == 1
+    assert model.target_id == "Crab"
+
+    with pytest.raises(TraitError, match="Invalid ACADADataSource"):
+        instance.data_source = "invalid"
+
+
+def test_configurable_product_metadata_validation(ctao_product):
+    product_info = meta.ProductMetadata(
+        description="Test product",
+        disclaimer="Test disclaimer",
+        instance=meta.InstanceMetadata(target_id="Crab"),
+    )
+    values = ctao_product.model_dump()
+    values.pop("description")
+    values.pop("disclaimer")
+    values.pop("instance")
+
+    product = product_info.to_model(**values)
+    assert product.description == "Test product"
+    assert product.disclaimer == "Test disclaimer"
+    assert product.instance.target_id == "Crab"
+
+    with pytest.raises(TraitError):
+        meta.ProductMetadata().to_model()
