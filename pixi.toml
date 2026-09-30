@@ -83,7 +83,6 @@ make = "*"
 doc = "make doc"
 
 [feature.dev.dependencies]
-cython = "*"
 ipywidgets = "*"
 pip = "*"
 pre-commit = "*"
