@@ -767,7 +767,7 @@ class DataWriter(Component):
                 else None
             ),
         )
-        meta.write_product_metadata(product, self._writer.h5file)
+        meta.write_product_metadata_hdf5(product, self._writer.h5file)
 
     def _write_atmosphere_profile(self, path):
         """

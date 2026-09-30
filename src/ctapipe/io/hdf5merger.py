@@ -325,7 +325,7 @@ class HDF5Merger(Component):
         if len(self._merged_obs_ids) > 1:
             self.meta.instance.obs_id = None
 
-        metadata.write_product_metadata(self.meta, self.h5file, remove_legacy=True)
+        metadata.write_product_metadata_hdf5(self.meta, self.h5file, remove_legacy=True)
 
         self.h5file.flush()
 
