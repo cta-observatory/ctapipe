@@ -1,6 +1,8 @@
+import warnings
 from itertools import zip_longest
 
 import astropy.units as u
+import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import pytest
 
@@ -96,6 +98,8 @@ def test_simulation_info(dl1_file):
 def test_dl1_a_only_data(dl1_image_file):
     with HDF5EventSource(input_url=dl1_image_file) as source:
         assert source.datalevels == (DataLevel.DL1_IMAGES,)
+        assert source.meta.data.level is dp.DataLevel.DL1
+        assert source.meta.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
@@ -106,6 +110,8 @@ def test_dl1_b_only_data(dl1_parameters_file):
     reco_concentrations = []
     with HDF5EventSource(input_url=dl1_parameters_file) as source:
         assert source.datalevels == (DataLevel.DL1_PARAMETERS,)
+        assert source.meta.data.level is dp.DataLevel.DL1
+        assert source.meta.instance.sublevel_id is dp.ProcessingSublevel.PARAMETERS
         for event in source:
             for tel in event.dl1.tel:
                 reco_lons.append(
@@ -272,7 +278,7 @@ def test_simulated_events_distribution(dl1_file):
 
 def test_provenance(dl1_file, provenance):
     """Make sure that HDF5EventSource reads reference metadata and adds to provenance"""
-    from ctapipe.io.metadata import _read_reference_metadata_hdf5
+    from ctapipe.io.metadata import read_ctao_metadata
 
     provenance.start_activity("test_hdf5eventsource")
     with HDF5EventSource(input_url=dl1_file):
@@ -281,8 +287,8 @@ def test_provenance(dl1_file, provenance):
     inputs = provenance.current_activity.input
     assert len(inputs) == 1
     assert inputs[0]["url"] == str(dl1_file)
-    meta = _read_reference_metadata_hdf5(dl1_file)
-    assert inputs[0]["reference_meta"].product.id_ == meta.product.id_
+    meta = read_ctao_metadata(dl1_file)
+    assert inputs[0]["reference_meta"]["instance"]["id"] == str(meta.instance.id)
 
 
 def test_pointing_old_file():
@@ -313,7 +319,11 @@ def test_no_pointing_in_ob(tmp_path):
         )
 
         n_written = 0
-        with DataWriter(source, output_path=path, write_r1_waveforms=True) as writer:
+        with DataWriter(
+            source,
+            output_path=path,
+            write_r1_waveforms=True,
+        ) as writer:
             for event in source:
                 writer(event)
                 n_written += 1
@@ -357,9 +367,13 @@ def test_is_compatible_with_only_trigger(tmp_path):
 
     filename = tmp_path / "only_trigger.h5"
 
-    with tables.open_file(filename, mode="w") as h5:
-        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = DATA_MODEL_VERSION
+    with (
+        tables.open_file(filename, mode="w") as h5,
+        warnings.catch_warnings(),
+    ):
+        warnings.simplefilter("ignore", tables.NaturalNameWarning)
 
+        h5.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"] = DATA_MODEL_VERSION
         h5.root._v_attrs["CTA PRODUCT DATA LEVELS"] = "R0"
 
         h5.create_group("/", "dl1")

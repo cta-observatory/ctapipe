@@ -176,7 +176,18 @@ It can be used in an event loop like:
 
 .. code-block:: python
 
-    with DataWriter(event_source=source, output_path="events.dl1.h5") as write_data:
+    from ctapipe.io.metadata import Contact, Curation
+
+    with DataWriter(
+        event_source=source,
+        output_path="events.dl1.h5",
+        contact_info=Contact(
+            name="Example User",
+            organization="Example Organization",
+            email="user@example.org",
+        ),
+        curation_info=Curation(release="example"),
+    ) as write_data:
         for event in source:
             calibrate(event)
             write_data(event)

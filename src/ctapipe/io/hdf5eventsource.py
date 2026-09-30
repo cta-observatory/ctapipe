@@ -80,7 +80,7 @@ from .hdf5dataformat import (
     SIMULATION_TEL_TABLE,
 )
 from .hdf5tableio import HDF5TableReader, get_column_attrs
-from .metadata import _read_reference_metadata_hdf5
+from .metadata import get_compatible_metadata_versions, read_ctao_metadata
 
 __all__ = ["HDF5EventSource"]
 
@@ -242,9 +242,11 @@ class HDF5EventSource(EventSource):
             )
 
         self.file_ = tables.open_file(self.input_url)
-        meta = _read_reference_metadata_hdf5(self.file_)
+        self.meta = read_ctao_metadata(self.file_)
         Provenance().add_input_file(
-            str(self.input_url), role="Event", reference_meta=meta
+            str(self.input_url),
+            role="Event",
+            reference_meta=self.meta.model_dump(mode="json"),
         )
 
         self._full_subarray = SubarrayDescription.from_hdf(
@@ -262,7 +264,7 @@ class HDF5EventSource(EventSource):
             self._observation_block,
         ) = self._parse_sb_and_ob_configs()
 
-        version = self.file_.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
+        version = self.meta.model.version
         self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
         self._obs_ids = tuple(
             self.file_.root.configuration.observation.observation_block.col("obs_id")
@@ -330,10 +332,32 @@ class HDF5EventSource(EventSource):
         with tables.open_file(path) as f:
             metadata = f.root._v_attrs
 
-            if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
+            # First check compatible metadata versions
+            compatible_versions = get_compatible_metadata_versions()
+
+            metadata_version_key = "CTAO.ctao_metadata_version"
+            if (
+                metadata_version_key in metadata._v_attrnames
+                and metadata[metadata_version_key] not in compatible_versions
+            ):
+                metadata_version = metadata[metadata_version_key]
+
+                logger.error(
+                    "File is a ctapipe HDF5 file but has unsupported CTAO metadata"
+                    f" version {metadata_version}, supported versions are {compatible_versions}."
+                    " The installed ctao-datamodel package cannot migrate this metadata"
+                    " version to the current version."
+                )
                 return False
 
-            version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            # data model version: current metadata first, then legacy fallback
+            if "CTAO.model.version" in metadata._v_attrnames:
+                version = metadata["CTAO.model.version"]
+            elif "CTA PRODUCT DATA MODEL VERSION" in metadata._v_attrnames:
+                version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            else:
+                return False
+
             if version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 logger.error(
                     "File is a ctapipe HDF5 file but has unsupported data model"
@@ -345,31 +369,19 @@ class HDF5EventSource(EventSource):
                 )
                 return False
 
-            if "CTA PRODUCT DATA LEVELS" not in metadata._v_attrnames:
-                return False
-
             # we can now read both R1 and DL1
-            has_muons = DL1_TEL_MUON_GROUP in f.root
             has_sim = SIMULATION_TEL_TABLE in f.root
-            has_trigger = (DL1_SUBARRAY_TRIGGER_TABLE in f) or (
-                DL1_TEL_TRIGGER_TABLE in f
-            )
+            has_trigger = DL1_SUBARRAY_TRIGGER_TABLE in f or DL1_TEL_TRIGGER_TABLE in f
 
-            datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            datalevels = (
-                len(
-                    datalevels
-                    & {
-                        "R1",
-                        "DL1_IMAGES",
-                        "DL1_PARAMETERS",
-                        "DL2",
-                        "DL1_MUON",
-                    }
-                )
-                > 0
-            )
-            if not any([datalevels, has_sim, has_trigger, has_muons]):
+            datalevels = get_hdf5_datalevels(f)
+
+            if not any(
+                [
+                    datalevels,
+                    has_sim,
+                    has_trigger,
+                ]
+            ):
                 return False
 
         return True
@@ -855,7 +867,7 @@ class HDF5EventSource(EventSource):
         )
         # Maybe take some other metadata, but there are still some 'unknown'
         # written out by the process tool
-        data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
+        data.meta["origin"] = self.meta.data.type
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
         return data

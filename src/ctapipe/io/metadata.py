@@ -1,56 +1,70 @@
-"""
-Management of CTAO Reference Metadata.
+"""Read, write, and migrate CTAO data-product metadata.
 
-Definitions from :cite:`ctao-top-level-data-model`.
-This information is required to be attached to the header of any files generated.
+This module provides serialization helpers for current CTAO product metadata defined
+by :mod:`ctao_datamodel`, including reading metadata from HDF5, FITS, ECSV, and JSON
+files and writing flattened product metadata to HDF5 attributes.
 
-The class Reference collects all required reference metadata, and can be turned into a
-flat dictionary. The user should try to fill out all fields, or use a helper to fill
-them (as in `Activity.from_provenance()`)
-
-.. code-block:: python
-
-    ref = Reference(
-        contact=Contact(name="Some User", email="user@me.com"),
-        product=Product(format='hdf5', ...),
-        process=Process(...),
-        activity=Activity(...),
-        instrument = Instrument(...)
-    )
-
-    some_astropy_table.meta = ref.to_dict()
-    some_astropy_table.write("output.ecsv")
-
+Legacy CTA reference metadata remains supported through :class:`Reference` and its
+component classes. :func:`read_ctao_metadata` transparently converts such metadata to
+the current :class:`ctao_datamodel.models.dataproducts.Product` model, while
+:func:`read_reference_metadata` provides access to the original legacy representation.
 """
 
 import gzip
-import os
 import uuid
 import warnings
 from collections import defaultdict
+from collections.abc import Iterable
 from contextlib import ExitStack
 
+import ctao_datamodel as dm
+import ctao_datamodel.models.dataproducts as dp
 import tables
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from ctao_datamodel.models.common import SiteID
+from pydantic import TypeAdapter, ValidationError
 from tables import NaturalNameWarning
-from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
+from traitlets import (
+    Enum,
+    HasTraits,
+    Instance,
+    Integer,
+    List,
+    TraitError,
+    Unicode,
+    UseEnum,
+    default,
+    validate,
+)
 from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
+from ..utils.deprecation import CTAPipeDeprecationWarning
 from .datalevels import DataLevel
 
 __all__ = [
     "Reference",
     "Contact",
+    "Curation",
+    "InstanceMetadata",
+    "ProductMetadata",
     "Process",
     "Product",
     "Activity",
     "Instrument",
+    "convert",
+    "LegacyMetadataWarning",
+    "get_compatible_metadata_versions",
     "write_to_hdf5",
-    "read_hdf5_metadata",
+    "write_product_metadata",
     "read_reference_metadata",
+    "read_ctao_metadata",
+    "to_ctao_data_level",
+    "to_ctao_data_type",
+    "metadata_to_product",
+    "activity_from_provenance",
 ]
 
 
@@ -62,39 +76,65 @@ CONVERSIONS = {
 
 
 def convert(value):
-    """Convert to representation suitable for header infos, such as hdf5 or fits"""
+    """Convert a metadata value to a representation suitable for file headers.
+
+    Values with a registered conversion are serialized to scalar or string values
+    supported by formats such as HDF5 and FITS. Other values are returned unchanged.
+
+    Parameters
+    ----------
+    value
+        Metadata value to convert.
+
+    Returns
+    -------
+    object
+        The converted value, or the original value if no conversion is registered.
+    """
     if (conv := CONVERSIONS.get(type(value))) is not None:
         return conv(value)
     return value
 
 
-def _get_user_name():
-    """return the logged in user's name, as a fall-back if none is specified"""
-    try:
-        import pwd
-
-        return pwd.getpwuid(os.getuid()).pw_gecos
-    except Exception:
-        # the pwd module is not available on some non-unix systems (Windows)
-        # also, a username might not exist (e.g. in docker containers run with a custom uid)
-        # so here we just fall back to a default name
-        return "Unknown User"
-
-
 class Contact(Configurable):
-    """Contact information"""
+    """Configurable CTAO contact information.
 
-    name = Unicode("unknown").tag(config=True)
-    email = Unicode("unknown").tag(config=True)
-    organization = Unicode("unknown").tag(config=True)
+    This class is used for current product metadata configuration and remains
+    compatible with the legacy CTA reference metadata schema.
+    """
 
-    @default("name")
-    def default_name(self):
-        """if no name specified, use the system's user name"""
+    name = Unicode(default_value="unknown").tag(config=True)
+    email = Unicode(default_value="unknown@example.org").tag(config=True)
+    organization = Unicode(default_value="unknown").tag(config=True)
+
+    @validate("name", "email", "organization")
+    def _validate_contact(self, proposal):
+        """Validate contact information using the CTAO data model."""
+        values = {
+            "name": self.name,
+            "email": self.email,
+            "organization": self.organization,
+        }
+        values[proposal["trait"].name] = proposal["value"]
+
         try:
-            return _get_user_name()
-        except RuntimeError:
-            return ""
+            contact = dp.Contact(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+        return getattr(contact, proposal["trait"].name)
+
+    def to_model(self) -> dp.Contact:
+        try:
+            return dp.Contact(
+                name=self.name,
+                email=self.email,
+                organization=self.organization,
+            )
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return self.to_model().model_dump(mode="json")
 
     def __repr__(self):
         return (
@@ -105,8 +145,318 @@ class Contact(Configurable):
         )
 
 
+class Curation(Configurable):
+    """Configurable curation metadata for a CTAO data product."""
+
+    release = Unicode(
+        default_value=dp.Curation.model_fields["release"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    reference = Unicode(
+        default_value=dp.Curation.model_fields["reference"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    license = Unicode(
+        dp.Curation.model_fields["license"].default,
+    ).tag(config=True)
+
+    license_url = Unicode(
+        dp.Curation.model_fields["license_url"].default,
+    ).tag(config=True)
+
+    copyright = Unicode(
+        default_value=dp.Curation.model_fields["copyright"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    rights = UseEnum(
+        dp.DataRights,
+        default_value=dp.Curation.model_fields["rights"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    release_date = AstroTime(
+        default_value=dp.Curation.model_fields["release_date"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    valid_from = AstroTime(
+        default_value=dp.Curation.model_fields["valid_from"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    valid_to = AstroTime(
+        default_value=dp.Curation.model_fields["valid_to"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    @validate(
+        "release",
+        "reference",
+        "license",
+        "license_url",
+        "copyright",
+        "rights",
+        "release_date",
+        "valid_from",
+        "valid_to",
+    )
+    def _validate_curation(self, proposal):
+        """Validate curation information using the CTAO data model."""
+        values = {
+            "release": self.release,
+            "reference": self.reference,
+            "license": self.license,
+            "license_url": self.license_url,
+            "copyright": self.copyright,
+            "rights": self.rights,
+            "release_date": self.release_date,
+            "valid_from": self.valid_from,
+            "valid_to": self.valid_to,
+        }
+        name = proposal["trait"].name
+        values[name] = proposal["value"]
+
+        try:
+            curation = dp.Curation(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+        value = getattr(curation, name)
+
+        # dp.Curation.reference is a pydantic AnyUrl,
+        # while the configurable trait stores a string.
+        if name == "reference" and value is not None:
+            return str(value)
+
+        return value
+
+    def to_model(self) -> dp.Curation:
+        """Return validated CTAO curation metadata."""
+        try:
+            return dp.Curation(
+                release=self.release,
+                reference=self.reference,
+                license=self.license,
+                license_url=self.license_url,
+                copyright=self.copyright,
+                rights=self.rights,
+                release_date=self.release_date,
+                valid_from=self.valid_from,
+                valid_to=self.valid_to,
+            )
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return self.to_model().model_dump(mode="json")
+
+
+class InstanceMetadata(Configurable):
+    """Configurable metadata identifying a CTAO data-product instance."""
+
+    category = UseEnum(
+        dp.DataProcessingCategory,
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    site_id = UseEnum(
+        SiteID,
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    subarray_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    target_id = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    region_id = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    observing_period_id = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    lunar_cycle_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    batch_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    calibration_service_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    event_type = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    data_source = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    assembly_name = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    messenger = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    particle_pdgid = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    @validate(
+        "category",
+        "site_id",
+        "subarray_id",
+        "target_id",
+        "region_id",
+        "observing_period_id",
+        "lunar_cycle_id",
+        "batch_id",
+        "calibration_service_id",
+        "event_type",
+        "data_source",
+        "assembly_name",
+        "messenger",
+        "particle_pdgid",
+    )
+    def _validate_instance_metadata(self, proposal):
+        """Validate instance information using the CTAO data model."""
+        values = self._model_values()
+        name = proposal["trait"].name
+        values[name] = proposal["value"]
+
+        try:
+            instance = dp.InstanceIdentifier(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+        value = getattr(instance, name)
+        if name == "data_source" and value is not None:
+            return str(value)
+        return value
+
+    def _model_values(self):
+        names = (
+            "category",
+            "site_id",
+            "subarray_id",
+            "target_id",
+            "region_id",
+            "observing_period_id",
+            "lunar_cycle_id",
+            "batch_id",
+            "calibration_service_id",
+            "event_type",
+            "data_source",
+            "assembly_name",
+            "messenger",
+            "particle_pdgid",
+        )
+
+        return {
+            name: getattr(self, name)
+            for name in names
+            if getattr(self, name) is not None
+        }
+
+    def to_model(self, **kwargs) -> dp.InstanceIdentifier:
+        """Return validated CTAO data-product instance metadata."""
+        values = self._model_values()
+        values.update(kwargs)
+        try:
+            return dp.InstanceIdentifier(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return self.to_model().model_dump(mode="json")
+
+
+class ProductMetadata(Configurable):
+    """Configurable metadata for a CTAO data product."""
+
+    description = Unicode("ctapipe Data Product").tag(config=True)
+
+    disclaimer = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    instance = Instance(InstanceMetadata)
+
+    @default("instance")
+    def _default_instance(self):
+        return InstanceMetadata(parent=self)
+
+    @validate("description", "disclaimer")
+    def _validate_product_metadata(self, proposal):
+        """Validate product information using the CTAO data model."""
+        name = proposal["trait"].name
+        field = dp.Product.model_fields[name]
+
+        try:
+            return TypeAdapter(field.rebuild_annotation()).validate_python(
+                proposal["value"]
+            )
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_model(self, **kwargs) -> dp.Product:
+        """Return validated CTAO product metadata.
+
+        Additional keyword arguments provide product metadata determined by the
+        writer, such as the creation time, data type, and data model version.
+        """
+        values = {
+            "description": self.description,
+            "disclaimer": self.disclaimer,
+            "instance": self.instance.to_model(),
+        }
+        values.update(kwargs)
+        try:
+            return dp.Product(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return {
+            "description": self.description,
+            "disclaimer": self.disclaimer,
+            "instance": self.instance.to_dict(),
+        }
+
+
 class Product(HasTraits):
-    """Data product information"""
+    """Legacy CTA reference-metadata description of a data product.
+
+    The fields describe the product identity, data levels, processing category,
+    association, data model, and storage format used by the legacy metadata schema.
+    """
 
     description = Unicode("unknown")
     creation_time = AstroTime()
@@ -155,7 +505,7 @@ class Product(HasTraits):
 
 
 class Process(HasTraits):
-    """Process (top-level workflow) information"""
+    """Legacy CTA reference metadata for the top-level producing process."""
 
     type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
@@ -172,11 +522,22 @@ class Process(HasTraits):
 
 
 class Activity(HasTraits):
-    """Activity (tool) information"""
+    """Legacy CTA reference metadata for the activity producing a data product."""
 
     @classmethod
     def from_provenance(cls, activity):
-        """construct Activity metadata from existing ActivityProvenance object"""
+        """Create legacy activity metadata from a provenance record.
+
+        Parameters
+        ----------
+        activity : dict
+            Serialized ctapipe activity provenance.
+
+        Returns
+        -------
+        Activity
+            Activity metadata populated from the provenance record.
+        """
         return Activity(
             name=activity["activity_name"],
             type_="software",
@@ -220,7 +581,7 @@ class Activity(HasTraits):
 
 
 class Instrument(Configurable):
-    """Instrumental Context"""
+    """Legacy CTA reference metadata describing the instrumental context."""
 
     site = Unicode(
         default_value="Other",
@@ -282,8 +643,11 @@ def _to_dict(hastraits_instance, prefix=""):
 
 
 class Reference(HasTraits):
-    """All the reference Metadata required for a CTAO output file, plus a way to turn
-    it into a dict() for easy addition to the header of a file"""
+    """Complete metadata record using the legacy CTA reference schema.
+
+    A reference combines contact, product, process, activity, and instrument
+    metadata. Use :meth:`to_dict` to flatten it into file-header attributes.
+    """
 
     contact = Instance(Contact)
     product = Instance(Product)
@@ -292,10 +656,17 @@ class Reference(HasTraits):
     instrument = Instance(Instrument)
 
     def to_dict(self, fits=False):
-        """
-        convert Reference metadata to a flat dict.
+        """Convert the reference metadata to a flat dictionary.
 
-        If ``fits=True``, this will include the ``HIERARCH`` keyword in front.
+        Parameters
+        ----------
+        fits : bool
+            If true, prefix keys with ``HIERARCH`` for use in FITS headers.
+
+        Returns
+        -------
+        dict
+            Flattened legacy metadata with CTA header keywords.
         """
         prefix = "CTA " if fits is False else "HIERARCH CTA "
 
@@ -309,6 +680,19 @@ class Reference(HasTraits):
 
     @classmethod
     def from_dict(cls, metadata):
+        """Create a legacy reference record from flattened CTA metadata.
+
+        Parameters
+        ----------
+        metadata : collections.abc.Mapping
+            Metadata containing flattened ``CTA ...`` keys. Unrelated keys are
+            ignored.
+
+        Returns
+        -------
+        Reference
+            Parsed legacy reference metadata.
+        """
         kwargs = defaultdict(dict)
         for hierarchical_key, value in metadata.items():
             components = hierarchical_key.split(" ")
@@ -328,8 +712,16 @@ class Reference(HasTraits):
 
             kwargs[group][key] = value
 
+        # Legacy files may contain contact data that does not satisfy the current
+        # CTAO model. Preserve it here so migration can apply its documented
+        # fallback contact later.
+        contact = Contact()
+        with contact.cross_validation_lock:
+            for key, value in kwargs["contact"].items():
+                setattr(contact, key, value)
+
         return cls(
-            contact=Contact(**kwargs["contact"]),
+            contact=contact,
             product=Product(**kwargs["product"]),
             process=Process(**kwargs["process"]),
             activity=Activity(**kwargs["activity"]),
@@ -338,56 +730,40 @@ class Reference(HasTraits):
 
     @classmethod
     def from_fits(cls, header):
+        """Create a legacy reference record from a FITS header."""
         # for now, just use from_dict, but we might need special handling
         # of some keys
         return cls.from_dict(header)
 
     @classmethod
     def from_json(cls, json_data):
+        """Create a legacy reference record from a JSON metadata mapping."""
         return cls.from_dict(json_data)
 
     def __repr__(self):
         return str(self.to_dict())
 
 
-def write_to_hdf5(metadata, h5file, path="/"):
-    """
-    Write metadata fields to a PyTables HDF5 file handle.
+def read_reference_metadata(path):
+    """Read legacy CTA reference metadata from a supported file.
+
+    The format is detected from the file contents. FITS (including gzip-compressed
+    FITS), HDF5, ECSV, and JSON are supported.
 
     Parameters
     ----------
-    metadata: dict
-        flat dict as generated by `Reference.to_dict()`
-    h5file: string, Path, or `tables.file.File`
-        pytables filehandle
-    path: string
-        default: '/' is the path to ctapipe global metadata
-        the node must already exist in the 5hfile
-    """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", NaturalNameWarning)
-        node = h5file.get_node(path)
-        for key, value in metadata.items():
-            node._v_attrs[key] = value  # pylint: disable=protected-access
+    path : path-like
+        File containing legacy CTA reference metadata.
 
+    Returns
+    -------
+    Reference
+        Parsed legacy reference metadata.
 
-def read_hdf5_metadata(h5file, path="/"):
-    """
-    Read hdf5 attributes into a dict
-    """
-    with ExitStack() as stack:
-        if not isinstance(h5file, tables.File):
-            h5file = stack.enter_context(tables.open_file(h5file))
-
-        node = h5file.get_node(path)
-        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
-
-
-def read_reference_metadata(path):
-    """Read CTAO data product metadata from path
-
-    File is first opened to determine file format, then the metadata
-    is read. Supported are currently FITS and HDF5.
+    Raises
+    ------
+    ValueError
+        If the file format is not supported.
     """
     header_bytes = 8
     with open(path, "rb") as f:
@@ -415,6 +791,7 @@ def read_reference_metadata(path):
 
 
 def _read_reference_metadata_json(path):
+    """Read legacy CTA reference metadata from a JSON file."""
     import json
 
     with open(path) as f:
@@ -423,11 +800,13 @@ def _read_reference_metadata_json(path):
 
 
 def _read_reference_metadata_hdf5(h5file, path="/"):
-    meta = read_hdf5_metadata(h5file, path)
+    """Read legacy CTA reference metadata from an HDF5 node."""
+    meta = _read_hdf5_metadata(h5file, path)
     return Reference.from_dict(meta)
 
 
 def _read_reference_metadata_ecsv(path):
+    """Read legacy CTA reference metadata from an ECSV file."""
     return Reference.from_dict(Table.read(path).meta)
 
 
@@ -451,3 +830,565 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
             fitsfile = stack.enter_context(fits.open(fitsfile))
 
         return Reference.from_fits(fitsfile[hdu].header)
+
+
+# -----------------------------------------------------
+#  New Data Model
+# -----------------------------------------------------
+
+
+class LegacyMetadataWarning(CTAPipeDeprecationWarning):
+    """Warning emitted when deprecated legacy CTA metadata is encountered."""
+
+
+def get_compatible_metadata_versions(
+    current_version=None,
+) -> set[str]:
+    """Return metadata versions that can be migrated to the current version.
+
+    Compatibility is determined from the migration history provided by
+    ``ctao_datamodel``. A version is considered compatible if there is a complete
+    migration path from that version to ``current_version``.
+
+    Parameters
+    ----------
+    current_version : str, optional
+        Target metadata version. If omitted, the current
+        ``dp.Product.ctao_metadata_version`` is used.
+
+    Returns
+    -------
+    set[str]
+        Metadata versions that can be migrated to the target version, including
+        the target version itself.
+    """
+    if current_version is None:
+        current_version = dp.Product.model_fields["ctao_metadata_version"].default
+
+    migrations = dp.Product.migration_history()
+
+    compatible = {current_version}
+
+    changed = True
+    while changed:
+        changed = False
+        for migration in migrations:
+            if migration["to"] in compatible and migration["from"] not in compatible:
+                compatible.add(migration["from"])
+                changed = True
+
+    return compatible
+
+
+def read_ctao_metadata(
+    input_url,
+    *,
+    product_type: dp.ProductType | None = None,
+    contact_fallback: dp.Contact | None = None,
+) -> dp.Product:
+    """Read current or legacy CTAO product metadata from a supported file.
+
+    The format is detected from the file contents. FITS (including gzip-compressed
+    FITS), HDF5, ECSV, and JSON are supported. Legacy CTA reference metadata is
+    converted to the current CTAO data model and emits a
+    :class:`~ctapipe.io.metadata.LegacyMetadataWarning`.
+
+    Parameters
+    ----------
+    input_url : path-like or tables.File
+        Input file or open PyTables file handle.
+    product_type : ctao_datamodel.models.dataproducts.ProductType, optional
+        Product type to use when converting legacy metadata. If omitted, it is
+        derived from the legacy metadata and, for HDF5, the file contents.
+    contact_fallback : ctao_datamodel.models.dataproducts.Contact, optional
+        Contact used when legacy contact information is invalid. If omitted, an
+        ``unknown`` contact is used.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.Product
+        Validated metadata using the current CTAO product model.
+
+    Raises
+    ------
+    ValueError
+        If the metadata schema or file format is unsupported.
+    pydantic.ValidationError
+        If current CTAO metadata does not validate against the product model.
+    """
+    metadata = _read_raw_metadata(input_url)
+
+    # New Data Model
+    if "CTAO.ctao_metadata_version" in metadata:
+        return metadata_to_product(metadata)
+
+    # Old Data Model
+    if "CTA REFERENCE VERSION" in metadata:
+        warnings.warn(
+            "Legacy ctapipe metadata detected. "
+            "If this file is not already being migrated, use ctapipe-merge to convert it "
+            "to the current CTAO metadata format.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+
+        reference = Reference.from_dict(metadata)
+        if contact_fallback is None:
+            contact_fallback = dp.Contact(
+                name="unknown",
+                organization="unknown",
+                email="unknown@example.org",
+            )
+        if product_type is None:
+            product_type = _legacy_product_type(input_url, reference)
+
+        return _legacy_reference_to_product(
+            reference, product_type, contact_fallback=contact_fallback
+        )
+
+    raise ValueError("Unsupported metadata format")
+
+
+def _read_raw_metadata(input_file) -> dict:
+    """Read flattened metadata from a supported file without validating its schema."""
+    if isinstance(input_file, tables.File):
+        return _read_hdf5_metadata(input_file)
+
+    # otherwise assume input_file / URL and detect format
+    header_bytes = 8
+
+    with open(input_file, "rb") as f:
+        first_bytes = f.read(header_bytes)
+
+    if first_bytes.startswith(b"\x1f\x8b"):
+        with gzip.open(input_file, "rb") as f:
+            first_bytes = f.read(header_bytes)
+
+    if first_bytes.startswith(b"\x89HDF"):
+        return _read_hdf5_metadata(input_file)
+
+    if first_bytes.startswith(b"SIMPLE"):
+        return _read_fits_metadata(input_file)
+
+    if first_bytes.startswith(b"# %ECSV"):
+        return dict(Table.read(input_file).meta)
+
+    if first_bytes.startswith(b"{"):
+        return _read_json_metadata(input_file)
+
+    raise ValueError(
+        f"'{input_file}' is not one of the supported file formats: fits, hdf5, ecsv, json"
+    )
+
+
+def _read_hdf5_metadata(h5file, path="/"):
+    """Read hdf5 attributes into a dict"""
+    with ExitStack() as stack:
+        if not isinstance(h5file, tables.File):
+            h5file = stack.enter_context(tables.open_file(h5file))
+
+        node = h5file.get_node(path)
+        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
+
+
+def _read_fits_metadata(path):
+    """Read primary-header metadata from a FITS file."""
+    with fits.open(path) as hdul:
+        return dict(hdul[0].header)
+
+
+def _read_json_metadata(path):
+    """Read metadata from a JSON file or its top-level metadata field."""
+    import json
+
+    with open(path) as f:
+        data = json.load(f)
+
+    return data.get("metadata", data)
+
+
+def metadata_to_product(metadata) -> dp.Product:
+    """Convert flattened current CTAO metadata into a validated product model."""
+    metadata = {
+        key: value for key, value in metadata.items() if key.startswith("CTAO.")
+    }
+
+    # Temporary workaround for
+    # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
+    # Only add optional URL fields when their parent metadata object already exists.
+    if any(key.startswith("CTAO.model.") for key in metadata):
+        metadata.setdefault("CTAO.model.url", None)
+
+    if any(key.startswith("CTAO.activity.software.") for key in metadata):
+        metadata.setdefault("CTAO.activity.software.url", None)
+
+    return dm.unflatten_model_instance(
+        metadata,
+        model=dp.Product,
+        parent_key="CTAO",
+    )
+
+
+def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
+    """Derive a current CTAO product type from legacy reference metadata."""
+    level = to_ctao_data_level(reference.product.data_levels)
+
+    if level is None:
+        warnings.warn(
+            "Could not determine a data level from legacy metadata. "
+            "Falling back to DataLevel.SIM.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        level = dp.DataLevel.SIM
+
+    try:
+        association = dp.DataAssociation(reference.product.data_association)
+    except ValueError as err:
+        raise ValueError(
+            "Unsupported legacy data association: "
+            f"{reference.product.data_association!r}"
+        ) from err
+    data_type = to_ctao_data_type(reference, input_url)
+
+    return dp.ProductType(
+        level=level,
+        division=dp.DataDivision.EVENT,
+        association=association,
+        type=data_type,
+    )
+
+
+def _legacy_reference_to_product(
+    reference: Reference,
+    product_type: dp.ProductType,
+    contact_fallback: dp.Contact,
+) -> dp.Product:
+    """Convert legacy reference metadata to a current CTAO Product."""
+    instance_kwargs = {"id": _legacy_uuid(reference.product.id_, "product")}
+
+    # Legacy data levels -> processing sublevel
+    data_levels = set(reference.product.data_levels)
+
+    has_dl1_images = DataLevel.DL1_IMAGES in data_levels
+    has_dl1_parameters = DataLevel.DL1_PARAMETERS in data_levels
+
+    if has_dl1_images and not has_dl1_parameters:
+        instance_kwargs["sublevel_id"] = dp.ProcessingSublevel.IMAGES
+    elif has_dl1_parameters and not has_dl1_images:
+        instance_kwargs["sublevel_id"] = dp.ProcessingSublevel.PARAMETERS
+
+    # Legacy processing category
+    try:
+        category = dp.DataProcessingCategory(reference.product.data_category)
+    except ValueError:
+        pass
+    else:
+        instance_kwargs["category"] = category
+
+    # Legacy instrument site
+    site_id = _legacy_site_id(reference.instrument.site)
+    if site_id is not None:
+        instance_kwargs["site_id"] = site_id
+
+    # Legacy instrument class / id
+    instrument_id = _legacy_instrument_id(reference.instrument.id_)
+
+    if reference.instrument.class_ == "Telescope":
+        instance_kwargs["ae_class"] = dp.ArrayElementClass.TEL
+
+        if instrument_id is not None:
+            instance_kwargs["ae_id"] = instrument_id
+
+    elif reference.instrument.class_ == "Subarray" and instrument_id is not None:
+        instance_kwargs["subarray_id"] = instrument_id
+
+    model_url = _legacy_optional_string(reference.product.data_model_url)
+    contact_name = _legacy_optional_string(reference.contact.name)
+    contact_organization = _legacy_optional_string(reference.contact.organization)
+    contact_email = _legacy_optional_string(reference.contact.email)
+
+    invalid_contact = {
+        "name": contact_name,
+        "organization": contact_organization,
+        "email": contact_email,
+    }
+
+    try:
+        contact = dp.Contact(**invalid_contact)
+    except ValidationError:
+        warnings.warn(
+            "Legacy metadata contains invalid contact information: "
+            f"{invalid_contact!r}. "
+            "The contact information is temporarily replaced with the fallback "
+            f"{contact_fallback!r}. "
+            "Ensure that valid contact information is provided when writing new data, "
+            "for example through the DataWriter, or migrate the file explicitly using "
+            "the MergeTool.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        contact = contact_fallback
+
+    return dp.Product(
+        description=reference.product.description,
+        creation_time=reference.product.creation_time,
+        curation=dp.Curation(),
+        data=product_type.model_copy(deep=True),
+        instance=dp.InstanceIdentifier(**instance_kwargs),
+        model=dp.DataModel(
+            name=reference.product.data_model_name,
+            version=reference.product.data_model_version,
+            url=model_url,
+        ),
+        contact=contact,
+        activity=dp.Activity(
+            name=reference.activity.name,
+            id=_legacy_uuid(reference.activity.id_, "activity"),
+            start=reference.activity.start_time,
+            end=reference.activity.stop_time,
+            software=dp.Software(
+                name=reference.activity.software_name,
+                version=reference.activity.software_version,
+                url=None,
+            ),
+            configuration_id="",
+        ),
+    )
+
+
+def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel | None:
+    """Select the primary CTAO data level from ctapipe data levels.
+
+    DL1 sublevels such as images, parameters, and muon data are normalized to
+    ``DL1``. If several levels are present, the highest CTAO data level is returned.
+
+    Parameters
+    ----------
+    data_levels : collections.abc.Iterable of DataLevel
+        ctapipe data levels to convert.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.DataLevel
+        Primary CTAO data level.
+
+    Raises
+    ------
+    ValueError
+        If ``data_levels`` is empty.
+    """
+    mapping = {
+        DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
+        DataLevel.DL1_PARAMETERS: dp.DataLevel.DL1,
+        DataLevel.DL1_MUON: dp.DataLevel.DL1,
+    }
+
+    mapped_levels = [
+        mapping[level] if level in mapping else dp.DataLevel[level.name]
+        for level in data_levels
+    ]
+
+    if not mapped_levels:
+        return None
+
+    level_order = {level: index for index, level in enumerate(dp.DataLevel)}
+    return max(mapped_levels, key=level_order.__getitem__)
+
+
+LEGACY_MISSING_VALUES = {"", "unknown", "unspecified"}
+
+
+def _legacy_optional_string(value: str | None) -> str | None:
+    """Normalize legacy placeholder strings to ``None``."""
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if value.lower() in LEGACY_MISSING_VALUES:
+        return None
+
+    return value
+
+
+def _legacy_uuid(value: str | None, field: str) -> uuid.UUID:
+    """Parse a legacy UUID, generating a new one for missing or invalid values."""
+    try:
+        return uuid.UUID(value) if value is not None else uuid.uuid4()
+    except (AttributeError, TypeError, ValueError):
+        replacement = uuid.uuid4()
+        warnings.warn(
+            f"Legacy metadata contains an invalid {field} id {value!r}; "
+            f"using a newly generated UUID {replacement}.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        return replacement
+
+
+def to_ctao_data_type(
+    reference: Reference,
+    input_file,
+) -> dp.DataType:
+    """Infer the CTAO data type represented by legacy metadata.
+
+    Explicit legacy process and product fields take precedence. As a final fallback,
+    an HDF5 input is inspected for simulation configuration data.
+
+    Parameters
+    ----------
+    reference : Reference
+        Legacy reference metadata.
+    input_file : path-like, tables.File, or None
+        Input used for the HDF5 simulation fallback. ``None`` is accepted when the
+        legacy metadata already determines the result.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.DataType
+        Inferred observation or simulated-observation data type.
+    """
+    if reference.process.type_ == "Simulation":
+        return dp.DataType.OBSERVATION_SIM
+
+    if reference.process.type_ == "Observation":
+        return dp.DataType.OBSERVATION
+
+    if reference.product.data_category == "Sim":
+        return dp.DataType.OBSERVATION_SIM
+
+    # final HDF5 fallback
+    if isinstance(input_file, tables.File):
+        if "/configuration/simulation" in input_file:
+            return dp.DataType.OBSERVATION_SIM
+    else:
+        try:
+            with tables.open_file(input_file, mode="r") as h5file:
+                if "/configuration/simulation" in h5file:
+                    return dp.DataType.OBSERVATION_SIM
+        except tables.HDF5ExtError:
+            pass
+
+    return dp.DataType.OBSERVATION
+
+
+def _legacy_site_id(site: str | None) -> SiteID | None:
+    """Convert an unambiguous legacy instrument site to a CTAO SiteID."""
+    site = _legacy_optional_string(site)
+    if site is None:
+        return None
+
+    mapping = {
+        "North": SiteID.CTAO_NORTH,
+        "South": SiteID.CTAO_SOUTH,
+        "CTAO-North": SiteID.CTAO_NORTH,
+        "CTAO-South": SiteID.CTAO_SOUTH,
+        "SDMC-DPPS": SiteID.SDMC_DPPS,
+        "SDMC-SUSS": SiteID.SDMC_SUSS,
+        "HQ": SiteID.HQ,
+        "EXTERNAL": SiteID.EXTERNAL,
+    }
+
+    return mapping.get(site)
+
+
+def _legacy_instrument_id(value: str | None) -> int | None:
+    """Convert a legacy instrument id to an integer if possible."""
+    value = _legacy_optional_string(value)
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def activity_from_provenance(activity) -> dp.Activity:
+    """Create CTAO activity metadata from ctapipe provenance."""
+    provenance = activity.provenance
+
+    return dp.Activity(
+        process=dp.ObservatoryProcess.DATA_PROCESSING,
+        name=provenance["activity_name"],
+        id=uuid.UUID(provenance["activity_uuid"]),
+        start=provenance["start"]["time_utc"],
+        end=provenance["stop"].get("time_utc", Time.now()),
+        software=dp.Software(
+            name="ctapipe",
+            version=provenance["system"]["ctapipe_version"],
+            url=None,
+        ),
+        configuration_id="",
+    )
+
+
+def write_product_metadata(
+    product: dp.Product, h5file: tables.File, path="/", remove_legacy=False
+):
+    """Write a current CTAO product as flattened HDF5 attributes.
+
+    Parameters
+    ----------
+    product : ctao_datamodel.models.dataproducts.Product
+        Validated CTAO product metadata to serialize.
+    h5file : tables.File
+        Open PyTables file handle.
+    path : str
+        Path of the existing HDF5 node receiving the attributes.
+    remove_legacy : bool
+        Remove legacy CTA reference attributes from the target node before writing.
+    """
+    metadata = dm.flatten_model_instance(
+        product,
+        parent_key="CTAO",
+    )
+
+    # Remove current metadata first
+    node = h5file.get_node(path)
+    for name in node._v_attrs._f_list("user"):
+        if name.startswith("CTAO."):
+            del node._v_attrs[name]
+
+    if remove_legacy:
+        _remove_legacy_metadata(h5file, path=path)
+    write_to_hdf5(metadata, h5file, path=path)
+
+
+def _remove_legacy_metadata(h5file, path="/"):
+    """Remove legacy ctapipe reference metadata attributes."""
+    node = h5file.get_node(path)
+
+    legacy_prefixes = (
+        "CTA REFERENCE ",
+        "CTA CONTACT ",
+        "CTA PRODUCT ",
+        "CTA PROCESS ",
+        "CTA ACTIVITY ",
+        "CTA INSTRUMENT ",
+    )
+
+    for name in node._v_attrs._f_list("user"):
+        if name.startswith(legacy_prefixes):
+            del node._v_attrs[name]
+
+
+def write_to_hdf5(metadata, h5file, path="/"):
+    """Write flattened metadata as attributes of an HDF5 node.
+
+    Parameters
+    ----------
+    metadata : collections.abc.Mapping
+        Flat metadata, for example as generated by
+        :func:`ctao_datamodel.flatten_model_instance` or :meth:`Reference.to_dict`.
+    h5file : tables.File
+        Open PyTables file handle.
+    path : str
+        Path of the existing HDF5 node receiving the attributes.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", NaturalNameWarning)
+        node = h5file.get_node(path)
+        for key, value in metadata.items():
+            node._v_attrs[key] = value  # pylint: disable=protected-access

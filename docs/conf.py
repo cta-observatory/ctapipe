@@ -33,6 +33,7 @@ import ctapipe
 pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 pyproject = tomllib.loads(pyproject_path.read_text())
 
+DOCS_DIR = Path(__file__).parent
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -426,6 +427,10 @@ intersphinx_mapping = {
     "astropy": ("https://docs.astropy.org/en/stable", None),
     "bokeh": ("https://docs.bokeh.org/en/latest", None),
     "cython": ("https://docs.cython.org/en/stable", None),
+    "ctao-datamodel": (
+        "https://cta-computing.gitlab-pages.cta-observatory.org/common/ctao-datamodel/latest/",
+        str(DOCS_DIR / "_intersphinx" / "ctao-datamodel.objects.inv"),
+    ),
     "iminuit": ("https://scikit-hep.org/iminuit", None),
     "ipywidgets": ("https://ipywidgets.readthedocs.io/en/stable", None),
     "joblib": ("https://joblib.readthedocs.io/en/stable", None),

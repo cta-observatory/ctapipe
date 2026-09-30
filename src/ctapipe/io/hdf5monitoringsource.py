@@ -7,6 +7,7 @@ import warnings
 from contextlib import ExitStack
 
 import astropy.units as u
+import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from astropy.coordinates import AltAz, SkyCoord
@@ -33,7 +34,7 @@ from .hdf5dataformat import (
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
 )
-from .metadata import read_reference_metadata
+from .metadata import read_ctao_metadata
 from .monitoringsource import AvailableTypes, MonitoringSource
 from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 
@@ -223,38 +224,33 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def _process_single_file(self, file):
         """Process a single monitoring file."""
-        # Add the file to the provenance
-        Provenance().add_input_file(
-            str(file),
-            role="Monitoring",
-            reference_meta=read_reference_metadata(file),
-        )
-
         with tables.open_file(file) as open_file:
-            # Validate simulation consistency
-            # Determine if the file is from simulation.
-            # First check for the presence of the simulation group.
-            file_is_simulation = False
-            if "simulation" in open_file.root:
-                file_is_simulation = True
-            else:
-                # Check for metadata attribute if simulation group is not present
-                if (
-                    "CTA PRODUCT DATA CATEGORY" in open_file.root._v_attrs
-                    and open_file.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-                ):
-                    file_is_simulation = True
+            meta_product = read_ctao_metadata(open_file)
+
+            Provenance().add_input_file(
+                str(file),
+                role="Monitoring",
+                reference_meta=meta_product.model_dump(mode="json"),
+            )
+
+            file_is_simulation = (
+                "simulation" in open_file.root
+                or meta_product.data.type
+                in {
+                    dp.DataType.OBSERVATION_SIM,
+                    dp.DataType.CALIBRATION_SIM,
+                }
+            )
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
-            else:
-                if self._is_simulation != file_is_simulation:
-                    raise IOError(
-                        f"HDF5MonitoringSource: Inconsistent simulation flags found in "
-                        f"file '{file}'. Previously processed files have "
-                        f"simulation flag set to {self._is_simulation}, while "
-                        f"current file has it set to {file_is_simulation}."
-                    )
+            elif self._is_simulation != file_is_simulation:
+                raise IOError(
+                    "HDF5MonitoringSource: Inconsistent simulation flags found in "
+                    f"file '{file}'. Previously processed files have "
+                    f"simulation flag set to {self._is_simulation}, while "
+                    f"current file has it set to {file_is_simulation}."
+                )
 
             _, telescope_data = get_hdf5_monitoring_types(open_file)
             telescope_data = {
@@ -262,9 +258,11 @@ class HDF5MonitoringSource(MonitoringSource):
                 for tel_id, data in telescope_data.items()
                 if tel_id in self.subarray.tel
             }
+
             for tel_id, data in telescope_data.items():
                 available = self._available_telescope_data.get(tel_id, ())
                 overlapping = set(data).intersection(available)
+
                 if overlapping:
                     msg = (
                         f"File '{file}' contains monitoring data {overlapping} for "
@@ -274,6 +272,7 @@ class HDF5MonitoringSource(MonitoringSource):
                     )
                     self.log.warning(msg)
                     warnings.warn(msg, UserWarning)
+
                 self._available_telescope_data[tel_id] = tuple(
                     dict.fromkeys((*available, *data))
                 )

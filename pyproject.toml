@@ -29,7 +29,8 @@ dynamic = ["version"]
 requires-python = ">=3.12"
 
 dependencies = [
-    "astropy >=6.1,<9.0.0",
+    "astropy >=7.2,<9.0.0",
+    "ctao-datamodel",
     "docutils",
     "joblib",
     "numba >=0.59.0",
@@ -188,6 +189,7 @@ filterwarnings = [
     "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning:joblib",
     "ignore:The chararray class is deprecated:DeprecationWarning",
     "ignore:Setting the dtype on a NumPy array",
+    "ignore::ctapipe.io.metadata.LegacyMetadataWarning",
 ]
 norecursedirs = [
     ".git",
