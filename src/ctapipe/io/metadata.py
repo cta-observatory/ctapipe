@@ -24,12 +24,13 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 from tables import NaturalNameWarning
 from traitlets import (
     Enum,
     HasTraits,
     Instance,
+    Integer,
     List,
     TraitError,
     Unicode,
@@ -47,6 +48,8 @@ __all__ = [
     "Reference",
     "Contact",
     "Curation",
+    "InstanceMetadata",
+    "ProductMetadata",
     "Process",
     "Product",
     "Activity",
@@ -130,6 +133,9 @@ class Contact(Configurable):
         except ValidationError as err:
             raise TraitError(str(err)) from err
 
+    def to_dict(self):
+        return self.to_model().model_dump(mode="json")
+
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
@@ -143,43 +149,306 @@ class Curation(Configurable):
     """Configurable curation metadata for a CTAO data product."""
 
     release = Unicode(
-        default_value=dp.Curation.model_fields["release"].default, allow_none=True
+        default_value=dp.Curation.model_fields["release"].default,
+        allow_none=True,
     ).tag(config=True)
+
+    reference = Unicode(
+        default_value=dp.Curation.model_fields["reference"].default,
+        allow_none=True,
+    ).tag(config=True)
+
     license = Unicode(
         dp.Curation.model_fields["license"].default,
     ).tag(config=True)
+
+    license_url = Unicode(
+        dp.Curation.model_fields["license_url"].default,
+    ).tag(config=True)
+
     copyright = Unicode(
         default_value=dp.Curation.model_fields["copyright"].default,
         allow_none=True,
     ).tag(config=True)
 
-    @validate("release", "license", "copyright")
+    rights = UseEnum(
+        dp.DataRights,
+        default_value=dp.Curation.model_fields["rights"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    release_date = AstroTime(
+        default_value=dp.Curation.model_fields["release_date"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    valid_from = AstroTime(
+        default_value=dp.Curation.model_fields["valid_from"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    valid_to = AstroTime(
+        default_value=dp.Curation.model_fields["valid_to"].default,
+        allow_none=True,
+    ).tag(config=True)
+
+    @validate(
+        "release",
+        "reference",
+        "license",
+        "license_url",
+        "copyright",
+        "rights",
+        "release_date",
+        "valid_from",
+        "valid_to",
+    )
     def _validate_curation(self, proposal):
         """Validate curation information using the CTAO data model."""
         values = {
             "release": self.release,
+            "reference": self.reference,
             "license": self.license,
+            "license_url": self.license_url,
             "copyright": self.copyright,
+            "rights": self.rights,
+            "release_date": self.release_date,
+            "valid_from": self.valid_from,
+            "valid_to": self.valid_to,
         }
-        values[proposal["trait"].name] = proposal["value"]
+        name = proposal["trait"].name
+        values[name] = proposal["value"]
 
         try:
             curation = dp.Curation(**values)
         except ValidationError as err:
             raise TraitError(str(err)) from err
 
-        return getattr(curation, proposal["trait"].name)
+        value = getattr(curation, name)
+
+        # dp.Curation.reference is a pydantic AnyUrl,
+        # while the configurable trait stores a string.
+        if name == "reference" and value is not None:
+            return str(value)
+
+        return value
 
     def to_model(self) -> dp.Curation:
         """Return validated CTAO curation metadata."""
         try:
             return dp.Curation(
                 release=self.release,
+                reference=self.reference,
                 license=self.license,
+                license_url=self.license_url,
                 copyright=self.copyright,
+                rights=self.rights,
+                release_date=self.release_date,
+                valid_from=self.valid_from,
+                valid_to=self.valid_to,
             )
         except ValidationError as err:
             raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return self.to_model().model_dump(mode="json")
+
+
+class InstanceMetadata(Configurable):
+    """Configurable metadata identifying a CTAO data-product instance."""
+
+    category = UseEnum(
+        dp.DataProcessingCategory,
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    site_id = UseEnum(
+        SiteID,
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    subarray_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    target_id = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    region_id = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    observing_period_id = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    lunar_cycle_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    batch_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    calibration_service_id = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    event_type = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    data_source = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    assembly_name = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    messenger = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    particle_pdgid = Integer(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    @validate(
+        "category",
+        "site_id",
+        "subarray_id",
+        "target_id",
+        "region_id",
+        "observing_period_id",
+        "lunar_cycle_id",
+        "batch_id",
+        "calibration_service_id",
+        "event_type",
+        "data_source",
+        "assembly_name",
+        "messenger",
+        "particle_pdgid",
+    )
+    def _validate_instance_metadata(self, proposal):
+        """Validate instance information using the CTAO data model."""
+        values = self._model_values()
+        name = proposal["trait"].name
+        values[name] = proposal["value"]
+
+        try:
+            instance = dp.InstanceIdentifier(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+        value = getattr(instance, name)
+        if name == "data_source" and value is not None:
+            return str(value)
+        return value
+
+    def _model_values(self):
+        names = (
+            "category",
+            "site_id",
+            "subarray_id",
+            "target_id",
+            "region_id",
+            "observing_period_id",
+            "lunar_cycle_id",
+            "batch_id",
+            "calibration_service_id",
+            "event_type",
+            "data_source",
+            "assembly_name",
+            "messenger",
+            "particle_pdgid",
+        )
+
+        return {
+            name: getattr(self, name)
+            for name in names
+            if getattr(self, name) is not None
+        }
+
+    def to_model(self, **kwargs) -> dp.InstanceIdentifier:
+        """Return validated CTAO data-product instance metadata."""
+        values = self._model_values()
+        values.update(kwargs)
+        try:
+            return dp.InstanceIdentifier(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return self.to_model().model_dump(mode="json")
+
+
+class ProductMetadata(Configurable):
+    """Configurable metadata for a CTAO data product."""
+
+    description = Unicode("ctapipe Data Product").tag(config=True)
+
+    disclaimer = Unicode(
+        default_value=None,
+        allow_none=True,
+    ).tag(config=True)
+
+    instance = Instance(InstanceMetadata)
+
+    @default("instance")
+    def _default_instance(self):
+        return InstanceMetadata(parent=self)
+
+    @validate("description", "disclaimer")
+    def _validate_product_metadata(self, proposal):
+        """Validate product information using the CTAO data model."""
+        name = proposal["trait"].name
+        field = dp.Product.model_fields[name]
+
+        try:
+            return TypeAdapter(field.rebuild_annotation()).validate_python(
+                proposal["value"]
+            )
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_model(self, **kwargs) -> dp.Product:
+        """Return validated CTAO product metadata.
+
+        Additional keyword arguments provide product metadata determined by the
+        writer, such as the creation time, data type, and data model version.
+        """
+        values = {
+            "description": self.description,
+            "disclaimer": self.disclaimer,
+            "instance": self.instance.to_model(),
+        }
+        values.update(kwargs)
+        try:
+            return dp.Product(**values)
+        except ValidationError as err:
+            raise TraitError(str(err)) from err
+
+    def to_dict(self):
+        return {
+            "description": self.description,
+            "disclaimer": self.disclaimer,
+            "instance": self.instance.to_dict(),
+        }
 
 
 class Product(HasTraits):

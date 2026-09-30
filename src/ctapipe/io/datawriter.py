@@ -122,9 +122,10 @@ class DataWriter(Component):
         help="Curation information for the output data product.",
     ).tag(config=True)
 
-    description_metadata = Unicode(
-        "ctapipe Data Product",
-        help="Description of the output data product.",
+    product_info = Instance(
+        meta.ProductMetadata,
+        kw={},
+        help="Product information for the output data product.",
     ).tag(config=True)
 
     context_metadata = Dict(
@@ -213,9 +214,11 @@ class DataWriter(Component):
 
         self.contact_info = meta.Contact(parent=self)
         self.curation_info = meta.Curation(parent=self)
+        self.product_info = meta.ProductMetadata(parent=self)
         # Validate metadata before creating the output file.
         self.contact_info.to_model()
         self.curation_info.to_model()
+        self.product_info.instance.to_model()
 
         self.event_source = event_source
 
@@ -743,11 +746,10 @@ class DataWriter(Component):
             else dp.FacilityName.CTAO
         )
 
-        product = dp.Product(
-            description=self.description_metadata,
+        product = self.product_info.to_model(
             creation_time=Time.now(),
             data=product_type,
-            instance=dp.InstanceIdentifier(
+            instance=self.product_info.instance.to_model(
                 obs_id=obs_id,
                 facility_name=facility_name,
                 sublevel_id=self._get_processing_sublevel(),
