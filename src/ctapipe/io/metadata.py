@@ -45,26 +45,27 @@ from ..utils.deprecation import CTAPipeDeprecationWarning
 from .datalevels import DataLevel
 
 __all__ = [
-    "Reference",
+    "Activity",
     "Contact",
     "Curation",
     "InstanceMetadata",
-    "ProductMetadata",
+    "Instrument",
+    "LegacyMetadataWarning",
     "Process",
     "Product",
-    "Activity",
-    "Instrument",
+    "ProductMetadata",
+    "Reference",
+    "activity_from_provenance",
     "convert",
-    "LegacyMetadataWarning",
     "get_compatible_metadata_versions",
-    "write_to_hdf5",
-    "write_product_metadata",
-    "read_reference_metadata",
+    "metadata_to_product",
     "read_ctao_metadata",
+    "read_reference_metadata",
     "to_ctao_data_level",
     "to_ctao_data_type",
-    "metadata_to_product",
-    "activity_from_provenance",
+    "write_product_metadata_fits_header",
+    "write_product_metadata_hdf5",
+    "write_to_hdf5",
 ]
 
 
@@ -880,12 +881,7 @@ def get_compatible_metadata_versions(
     return compatible
 
 
-def read_ctao_metadata(
-    input_url,
-    *,
-    product_type: dp.ProductType | None = None,
-    contact_fallback: dp.Contact | None = None,
-) -> dp.Product:
+def read_ctao_metadata(input_url) -> dp.Product:
     """Read current or legacy CTAO product metadata from a supported file.
 
     The format is detected from the file contents. FITS (including gzip-compressed
@@ -916,95 +912,102 @@ def read_ctao_metadata(
     pydantic.ValidationError
         If current CTAO metadata does not validate against the product model.
     """
-    metadata = _read_raw_metadata(input_url)
-
-    # New Data Model
-    if "CTAO.ctao_metadata_version" in metadata:
-        return metadata_to_product(metadata)
-
-    # Old Data Model
-    if "CTA REFERENCE VERSION" in metadata:
-        warnings.warn(
-            "Legacy ctapipe metadata detected. "
-            "If this file is not already being migrated, use ctapipe-merge to convert it "
-            "to the current CTAO metadata format.",
-            LegacyMetadataWarning,
-            stacklevel=2,
-        )
-
-        reference = Reference.from_dict(metadata)
-        if contact_fallback is None:
-            contact_fallback = dp.Contact(
-                name="unknown",
-                organization="unknown",
-                email="unknown@example.org",
-            )
-        if product_type is None:
-            product_type = _legacy_product_type(input_url, reference)
-
-        return _legacy_reference_to_product(
-            reference, product_type, contact_fallback=contact_fallback
-        )
-
-    raise ValueError("Unsupported metadata format")
-
-
-def _read_raw_metadata(input_file) -> dict:
-    """Read flattened metadata from a supported file without validating its schema."""
-    if isinstance(input_file, tables.File):
-        return _read_hdf5_metadata(input_file)
+    if isinstance(input_url, tables.File):
+        return _read_hdf5_metadata(input_url)
 
     # otherwise assume input_file / URL and detect format
     header_bytes = 8
 
-    with open(input_file, "rb") as f:
+    with open(input_url, "rb") as f:
         first_bytes = f.read(header_bytes)
 
     if first_bytes.startswith(b"\x1f\x8b"):
-        with gzip.open(input_file, "rb") as f:
+        with gzip.open(input_url, "rb") as f:
             first_bytes = f.read(header_bytes)
 
     if first_bytes.startswith(b"\x89HDF"):
-        return _read_hdf5_metadata(input_file)
-
-    if first_bytes.startswith(b"SIMPLE"):
-        return _read_fits_metadata(input_file)
-
-    if first_bytes.startswith(b"# %ECSV"):
-        return dict(Table.read(input_file).meta)
+        return _read_hdf5_metadata(input_url)
 
     if first_bytes.startswith(b"{"):
-        return _read_json_metadata(input_file)
+        return _read_json_metadata(input_url)
+
+    if first_bytes.startswith(b"# %ECSV"):
+        return _read_ecsv_metadata(input_url)
+
+    if first_bytes.startswith(b"SIMPLE"):
+        return _read_fits_metadata(input_url)
 
     raise ValueError(
-        f"'{input_file}' is not one of the supported file formats: fits, hdf5, ecsv, json"
+        f"'{input_url}' is not one of the supported file formats: fits, hdf5, ecsv, json"
     )
 
 
-def _read_hdf5_metadata(h5file, path="/"):
+def _read_fits_metadata(path) -> dp.Product:
+    """Read primary-header metadata from a FITS file."""
+    with fits.open(path) as hdul:
+        return dm.fits_header_to_instance(
+            hdul[0].header,
+            model=dp.Product,
+        )
+
+
+def _read_ecsv_metadata(path) -> dp.Product:
+    """Read metadata from an ECSV file."""
+    meta = Table.read(path).meta
+    if "ctao_metadata_version" in meta:
+        return dp.Product.model_validate(meta)
+    else:
+        raise ValueError("Unsupported metadata format")
+
+
+def _read_json_metadata(path) -> dp.Product:
+    """Read CTAO product metadata from a JSON file."""
+    import json
+
+    with open(path) as f:
+        metadata = json.load(f)
+
+    if "ctao_metadata_version" in metadata:
+        return dp.Product.model_validate(metadata)
+
+    raise ValueError("Unsupported metadata format")
+
+
+def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
     """Read hdf5 attributes into a dict"""
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
         node = h5file.get_node(path)
-        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
+        metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
 
+        if "CTAO.ctao_metadata_version" in metadata:
+            return metadata_to_product(metadata)
 
-def _read_fits_metadata(path):
-    """Read primary-header metadata from a FITS file."""
-    with fits.open(path) as hdul:
-        return dict(hdul[0].header)
+        # Old Data Model
+        if "CTA REFERENCE VERSION" in metadata:
+            warnings.warn(
+                "Legacy ctapipe metadata detected. "
+                "If this file is not already being migrated, use ctapipe-merge to convert it "
+                "to the current CTAO metadata format.",
+                LegacyMetadataWarning,
+                stacklevel=2,
+            )
 
+            reference = Reference.from_dict(metadata)
+            contact_fallback = dp.Contact(
+                name="unknown",
+                organization="unknown",
+                email="unknown@example.org",
+            )
+            product_type = _legacy_product_type(h5file, reference)
 
-def _read_json_metadata(path):
-    """Read metadata from a JSON file or its top-level metadata field."""
-    import json
+            return _legacy_reference_to_product(
+                reference, product_type, contact_fallback=contact_fallback
+            )
 
-    with open(path) as f:
-        data = json.load(f)
-
-    return data.get("metadata", data)
+        raise ValueError("Unsupported metadata format")
 
 
 def metadata_to_product(metadata) -> dp.Product:
@@ -1324,7 +1327,7 @@ def activity_from_provenance(activity) -> dp.Activity:
     )
 
 
-def write_product_metadata(
+def write_product_metadata_hdf5(
     product: dp.Product, h5file: tables.File, path="/", remove_legacy=False
 ):
     """Write a current CTAO product as flattened HDF5 attributes.
@@ -1392,3 +1395,12 @@ def write_to_hdf5(metadata, h5file, path="/"):
         node = h5file.get_node(path)
         for key, value in metadata.items():
             node._v_attrs[key] = value  # pylint: disable=protected-access
+
+
+def write_product_metadata_fits_header(
+    product: dp.Product,
+    header: fits.Header,
+):
+    """Write CTAO product metadata to a FITS header."""
+    metadata = dm.instance_to_fits_header(product)
+    header.update(metadata)

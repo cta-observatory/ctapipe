@@ -180,7 +180,7 @@ def _write_current_metadata(path, product, file_format):
 
     if file_format == "hdf5":
         with tables.open_file(path, mode="w") as h5file:
-            meta.write_product_metadata(product, h5file)
+            meta.write_product_metadata_hdf5(product, h5file)
     elif file_format == "fits":
         header = fits.Header()
         header.update(flat)
@@ -213,7 +213,7 @@ def test_read_current_metadata_from_open_hdf5(tmp_path, ctao_product):
 def test_read_metadata_ignores_unrelated_attributes(tmp_path, ctao_product):
     path = tmp_path / "product.h5"
     with tables.open_file(path, mode="w") as h5file:
-        meta.write_product_metadata(ctao_product, h5file)
+        meta.write_product_metadata_hdf5(ctao_product, h5file)
         h5file.root._v_attrs["unrelated"] = "metadata"
 
     assert meta.read_ctao_metadata(path) == ctao_product
@@ -411,7 +411,7 @@ def test_invalid_and_missing_metadata(tmp_path, ctao_product):
 
     invalid = tmp_path / "invalid.h5"
     with tables.open_file(invalid, mode="w") as h5file:
-        meta.write_product_metadata(ctao_product, h5file)
+        meta.write_product_metadata_hdf5(ctao_product, h5file)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", tables.NaturalNameWarning)
             h5file.root._v_attrs["CTAO.contact.email"] = "invalid"
@@ -427,7 +427,7 @@ def test_write_product_metadata_removes_only_legacy(tmp_path, ctao_product, refe
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", tables.NaturalNameWarning)
             h5file.root._v_attrs["CONTEXT custom"] = "keep"
-        meta.write_product_metadata(ctao_product, h5file, remove_legacy=True)
+        meta.write_product_metadata_hdf5(ctao_product, h5file, remove_legacy=True)
         attributes = meta._read_hdf5_metadata(h5file)
 
     assert not any(name.startswith("CTA ") for name in attributes)
