@@ -329,7 +329,24 @@ class HDF5Merger(Component):
 
     def _check_can_merge(self, other):
         other_meta = self._read_meta(other)
-        other_version = other_meta.model.version
+
+        self._check_data_model_version(other, other_meta.model.version)
+        self._check_data_type(other, other_meta.data.type)
+
+        other_data_category = other_meta.instance.category
+        if self.data_category != other_data_category:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different data category:"
+                f" {other_data_category}, expected {self.data_category}"
+            )
+
+        for node_path in self.required_nodes:
+            if node_path not in other.root:
+                raise CannotMerge(
+                    f"Required node {node_path} not found in {other.filename}"
+                )
+
+    def _check_data_model_version(self, other, other_version):
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 raise CannotMerge(
@@ -337,14 +354,13 @@ class HDF5Merger(Component):
                     f" for attaching monitoring data: {other_version}, expected one of"
                     f" {COMPATIBLE_DATA_MODEL_VERSIONS}"
                 )
-        else:
-            if self.data_model_version != other_version:
-                raise CannotMerge(
-                    f"Input file {other.filename!r} has different data model version:"
-                    f" {other_version}, expected {self.data_model_version}"
-                )
+        elif self.data_model_version != other_version:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different data model version:"
+                f" {other_version}, expected {self.data_model_version}"
+            )
 
-        other_data_type = other_meta.data.type
+    def _check_data_type(self, other, other_data_type):
         if self.attach_monitoring:
             observation_types = {
                 dp.DataType.OBSERVATION,
@@ -370,19 +386,6 @@ class HDF5Merger(Component):
                 f"Input file {other.filename!r} has incompatible data type:"
                 f" {other_data_type}, expected a type compatible with {self.data_type}"
             )
-
-        other_data_category = other_meta.instance.category
-        if self.data_category != other_data_category:
-            raise CannotMerge(
-                f"Input file {other.filename!r} has different data category:"
-                f" {other_data_category}, expected {self.data_category}"
-            )
-
-        for node_path in self.required_nodes:
-            if node_path not in other.root:
-                raise CannotMerge(
-                    f"Required node {node_path} not found in {other.filename}"
-                )
 
     def _check_obs_ids(self, other):
         keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]

@@ -335,11 +335,12 @@ class HDF5EventSource(EventSource):
             # First check compatible metadata versions
             compatible_versions = get_compatible_metadata_versions()
 
+            metadata_version_key = "CTAO.ctao_metadata_version"
             if (
-                "CTAO.ctao_metadata_version" in metadata._v_attrnames
-                and metadata["CTAO.ctao_metadata_version"] not in compatible_versions
+                metadata_version_key in metadata._v_attrnames
+                and metadata[metadata_version_key] not in compatible_versions
             ):
-                metadata_version = metadata["CTAO.ctao_metadata_version"]
+                metadata_version = metadata[metadata_version_key]
 
                 logger.error(
                     "File is a ctapipe HDF5 file but has unsupported CTAO metadata"

@@ -831,9 +831,8 @@ def _legacy_reference_to_product(
         if instrument_id is not None:
             instance_kwargs["ae_id"] = instrument_id
 
-    elif reference.instrument.class_ == "Subarray":
-        if instrument_id is not None:
-            instance_kwargs["subarray_id"] = instrument_id
+    elif reference.instrument.class_ == "Subarray" and instrument_id is not None:
+        instance_kwargs["subarray_id"] = instrument_id
 
     model_url = _legacy_optional_string(reference.product.data_model_url)
     contact_name = _legacy_optional_string(reference.contact.name)
