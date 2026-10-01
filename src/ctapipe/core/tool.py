@@ -219,7 +219,8 @@ class Tool(Application):
         self.module_name = self.__class__.__module__.split(".")[0]
         self.log = logging.getLogger(f"{self.module_name}.{self.name}")
         self.trait_warning_handler = CollectTraitWarningsHandler()
-        self.update_logging_config()
+        # Configure logging when run() starts so run_tool() can save the
+        # caller's logging state before the tool changes it.
         self._exit_stack = ExitStack()
 
     def enter_context(self, context_manager):
@@ -415,6 +416,7 @@ class Tool(Application):
 
         with self._exit_stack:
             try:
+                self.update_logging_config()
                 self.log.info("Starting: %s", self.name)
                 Provenance().start_activity(self.name)
 
@@ -637,9 +639,80 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     return "\n".join(lines)
 
 
+def _get_logging_state():
+    """Snapshot logger and handler settings before a tool configures logging."""
+    loggers = {
+        name: logger
+        for name, logger in logging.root.manager.loggerDict.items()
+        if isinstance(logger, logging.Logger)
+    }
+    loggers[""] = logging.getLogger()
+    # Tool.update_logging_config() uses dictConfig, which changes process-wide
+    # logging state. Keep it scoped to this run, including nested run_tool calls.
+    logging_state = {
+        name: (
+            logger.level,
+            logger.handlers[:],
+            logger.filters[:],
+            logger.propagate,
+            logger.disabled,
+        )
+        for name, logger in loggers.items()
+    }
+    handler_state = {
+        handler: (handler.level, handler.filters[:], handler.formatter)
+        for _, handlers, _, _, _ in logging_state.values()
+        for handler in handlers
+    }
+    return logging_state, handler_state
+
+
+def _reset_logging_state(logging_state, handler_state):
+    """Restore logger and handler settings after a tool has run."""
+    current_loggers = {
+        name: logger
+        for name, logger in logging.root.manager.loggerDict.items()
+        if isinstance(logger, logging.Logger)
+    }
+    current_loggers[""] = logging.getLogger()
+    old_handlers = {
+        handler
+        for _, handlers, _, _, _ in logging_state.values()
+        for handler in handlers
+    }
+    new_handlers = set()
+    for name, logger in current_loggers.items():
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+            if handler not in old_handlers:
+                new_handlers.add(handler)
+
+        if name in logging_state:
+            level, handlers, filters, propagate, disabled = logging_state[name]
+            logger.setLevel(level)
+            for handler in handlers:
+                logger.addHandler(handler)
+            logger.filters[:] = filters
+            logger.propagate = propagate
+            logger.disabled = disabled
+        else:
+            logger.setLevel(logging.NOTSET)
+            logger.filters.clear()
+            logger.propagate = True
+            logger.disabled = False
+
+    for handler in new_handlers:
+        handler.close()
+    for handler, (level, filters, formatter) in handler_state.items():
+        handler.setLevel(level)
+        handler.filters[:] = filters
+        handler.setFormatter(formatter)
+
+
 def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
     """
-    Utility run a certain tool in a python session without exiting.
+    Run a tool in a Python session without exiting or leaving its logging
+    configuration active afterward.
 
     Parameters
     ----------
@@ -660,6 +733,7 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
     current_cwd = pathlib.Path().absolute()
     cwd = pathlib.Path(cwd) if cwd is not None else mkdtemp()
     argv = argv or []
+    logging_state, handler_state = _get_logging_state()
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
@@ -670,3 +744,4 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
         return e.code
     finally:
         os.chdir(current_cwd)
+        _reset_logging_state(logging_state, handler_state)
