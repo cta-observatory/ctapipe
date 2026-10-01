@@ -99,9 +99,6 @@ python = "3.12.*"
 [feature.py313.dependencies]
 python = "3.13.*"
 
-[feature.py314]
-platforms = ["linux-64", "osx-arm64"]  # Recent numba releases no longer support Intel macOS.
-
 [feature.py314.dependencies]
 python = "3.14.*"
 
