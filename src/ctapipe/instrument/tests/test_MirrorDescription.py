@@ -66,6 +66,23 @@ def test_get_facet_size_per_shape():
     assert np.isnan(size[3].to_value(u.m))
 
 
+@pytest.mark.parametrize("wrong_unit", [u.s, u.deg, u.kg, u.m**2])
+def test_init_x_wrong_unit_type(wrong_unit):
+    """x must have units of length."""
+    with pytest.raises(ValueError, match="x must have units of length"):
+        MirrorDescription(
+            id=np.arange(1),
+            x=np.zeros(1) * wrong_unit,
+            y=np.zeros(1) * u.m,
+            z=np.zeros(1) * u.m,
+            nx=np.zeros(1),
+            ny=np.zeros(1),
+            nz=np.ones(1),
+            surface_area=np.ones(1) * u.m**2,
+            mirror_shape=["HEXAGON"],
+        )
+
+
 def test_create_patches_from_table(lst1_mirror_facets_path):
     """create_patches on the real (all-hexagon) LST1 facet table."""
     pytest.importorskip("matplotlib")
