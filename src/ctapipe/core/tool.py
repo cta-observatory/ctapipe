@@ -743,5 +743,6 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
             raise CalledProcessError(e.code, [tool.name] + argv)
         return e.code
     finally:
+        Provenance().clear()
         os.chdir(current_cwd)
         _reset_logging_state(logging_state, handler_state)
