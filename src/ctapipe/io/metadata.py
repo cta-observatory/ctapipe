@@ -713,16 +713,8 @@ class Reference(HasTraits):
 
             kwargs[group][key] = value
 
-        # Legacy files may contain contact data that does not satisfy the current
-        # CTAO model. Preserve it here so migration can apply its documented
-        # fallback contact later.
-        contact = Contact()
-        with contact.cross_validation_lock:
-            for key, value in kwargs["contact"].items():
-                setattr(contact, key, value)
-
         return cls(
-            contact=contact,
+            contact=Contact(**kwargs["contact"]),
             product=Product(**kwargs["product"]),
             process=Process(**kwargs["process"]),
             activity=Activity(**kwargs["activity"]),
@@ -802,7 +794,7 @@ def _read_reference_metadata_json(path):
 
 def _read_reference_metadata_hdf5(h5file, path="/"):
     """Read legacy CTA reference metadata from an HDF5 node."""
-    meta = _read_hdf5_metadata(h5file, path)
+    meta = _read_hdf5_attributes(h5file, path)
     return Reference.from_dict(meta)
 
 
@@ -867,7 +859,6 @@ def get_compatible_metadata_versions(
         current_version = dp.Product.model_fields["ctao_metadata_version"].default
 
     migrations = dp.Product.migration_history()
-
     compatible = {current_version}
 
     changed = True
@@ -882,35 +873,29 @@ def get_compatible_metadata_versions(
 
 
 def read_ctao_metadata(input_url) -> dp.Product:
-    """Read current or legacy CTAO product metadata from a supported file.
+    """Read CTAO product metadata from a supported file.
 
     The format is detected from the file contents. FITS (including gzip-compressed
-    FITS), HDF5, ECSV, and JSON are supported. Legacy CTA reference metadata is
-    converted to the current CTAO data model and emits a
+    FITS), HDF5, ECSV, and JSON are supported. Legacy ctapipe metadata in HDF5 files
+    is converted to the current CTAO data model and emits a
     :class:`~ctapipe.io.metadata.LegacyMetadataWarning`.
 
     Parameters
     ----------
     input_url : path-like or tables.File
         Input file or open PyTables file handle.
-    product_type : ctao_datamodel.models.dataproducts.ProductType, optional
-        Product type to use when converting legacy metadata. If omitted, it is
-        derived from the legacy metadata and, for HDF5, the file contents.
-    contact_fallback : ctao_datamodel.models.dataproducts.Contact, optional
-        Contact used when legacy contact information is invalid. If omitted, an
-        ``unknown`` contact is used.
 
     Returns
     -------
     ctao_datamodel.models.dataproducts.Product
-        Validated metadata using the current CTAO product model.
+        Validated CTAO product metadata.
 
     Raises
     ------
     ValueError
-        If the metadata schema or file format is unsupported.
+        If the file format or metadata format is unsupported.
     pydantic.ValidationError
-        If current CTAO metadata does not validate against the product model.
+        If the metadata does not validate against the CTAO product model.
     """
     if isinstance(input_url, tables.File):
         return _read_hdf5_metadata(input_url)
@@ -974,40 +959,45 @@ def _read_json_metadata(path) -> dp.Product:
 
 
 def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
+    """Read current or legacy CTAO product metadata from an HDF5 file or node."""
+    metadata = _read_hdf5_attributes(h5file, path)
+
+    if "CTAO.ctao_metadata_version" in metadata:
+        return metadata_to_product(metadata)
+
+    # Old Data Model
+    if "CTA REFERENCE VERSION" in metadata:
+        warnings.warn(
+            "Legacy ctapipe metadata detected. "
+            "If this file is not already being migrated, use ctapipe-merge to convert it "
+            "to the current CTAO metadata format.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+
+        reference = Reference.from_dict(metadata)
+        contact_fallback = dp.Contact(
+            name="unknown",
+            organization="unknown",
+            email="unknown@example.org",
+        )
+        product_type = _legacy_product_type(h5file, reference)
+
+        return _legacy_reference_to_product(
+            reference, product_type, contact_fallback=contact_fallback
+        )
+
+    raise ValueError("Unsupported metadata format")
+
+
+def _read_hdf5_attributes(h5file, path="/"):
     """Read hdf5 attributes into a dict"""
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
         node = h5file.get_node(path)
-        metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
-
-        if "CTAO.ctao_metadata_version" in metadata:
-            return metadata_to_product(metadata)
-
-        # Old Data Model
-        if "CTA REFERENCE VERSION" in metadata:
-            warnings.warn(
-                "Legacy ctapipe metadata detected. "
-                "If this file is not already being migrated, use ctapipe-merge to convert it "
-                "to the current CTAO metadata format.",
-                LegacyMetadataWarning,
-                stacklevel=2,
-            )
-
-            reference = Reference.from_dict(metadata)
-            contact_fallback = dp.Contact(
-                name="unknown",
-                organization="unknown",
-                email="unknown@example.org",
-            )
-            product_type = _legacy_product_type(h5file, reference)
-
-            return _legacy_reference_to_product(
-                reference, product_type, contact_fallback=contact_fallback
-            )
-
-        raise ValueError("Unsupported metadata format")
+        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
 
 
 def metadata_to_product(metadata) -> dp.Product:
@@ -1317,11 +1307,11 @@ def activity_from_provenance(activity) -> dp.Activity:
         name=provenance["activity_name"],
         id=uuid.UUID(provenance["activity_uuid"]),
         start=provenance["start"]["time_utc"],
-        end=provenance["stop"].get("time_utc", Time.now()),
+        end=provenance["stop"].get("time_utc"),
         software=dp.Software(
             name="ctapipe",
             version=provenance["system"]["ctapipe_version"],
-            url=None,
+            url="https://github.com/cta-observatory/ctapipe",
         ),
         configuration_id="",
     )
