@@ -303,7 +303,7 @@ class HDF5Merger(Component):
             Provenance().add_input_file(
                 other.filename,
                 role="data product to merge",
-                reference_meta=other_meta.dump_model(mode="json"),
+                reference_meta=other_meta.model_dump(mode="json"),
             )
             try:
                 self._append(other)
