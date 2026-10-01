@@ -5,7 +5,7 @@
 Getting Started for Developers
 ******************************
 
-We strongly recommend using the `mambaforge conda distribution <https://github.com/conda-forge/miniforge#mambaforge>`_.
+We recommend using `Pixi <https://pixi.sh>`_ to manage the development environment.
 
 .. warning::
 
@@ -73,47 +73,56 @@ See `the GitHub documentation <https://docs.github.com/en/authentication/connect
 Setting Up the Development Environment
 ======================================
 
-We provide a conda environment with all packages needed for development of ctapipe and a couple of additional helpful packages (like ipython, jupyter and vitables):
+Install Pixi following its `installation instructions <https://pixi.sh/latest/installation/>`_,
+then create and activate the development environment from the repository root:
 
 .. code-block:: console
 
-    $ mamba env create -f environment.yml
+    $ pixi install -e dev
+    $ pixi shell -e dev
 
+Run ``pixi shell -e dev`` whenever you open a new terminal to work on ctapipe.
+Alternatively, run individual commands with ``pixi run -e dev <command>``.
 
-Next, switch to this new virtual environment:
+The configuration in ``pixi.toml`` provides separate environments:
 
-.. code-block:: console
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
 
-    $ mamba activate cta-dev
+   * - Environment
+     - Dependencies
+   * - ``default``
+     - Minimal runtime dependencies.
+   * - ``optional``
+     - Runtime dependencies and all optional runtime packages.
+   * - ``test``
+     - Runtime dependencies, eventio, test tools and the test plugin.
+   * - ``test-all``
+     - Test dependencies and all optional runtime packages.
+   * - ``doc``
+     - All runtime packages and documentation tools, including Graphviz, Pandoc and FFmpeg.
+   * - ``dev``
+     - All of the above, plus development tools such as pre-commit, Ruff and towncrier.
+   * - ``test-py3XX``
+     - All test and optional runtime dependencies with the selected Python version.
+   * - ``test-oldest``
+     - Oldest still supported dependency versions tested in CI (Linux only).
 
-You will need to run that last command any time you open a new
-terminal to activate the conda environment.
+For example, run tests with ``pixi run -e test-all test`` and build documentation
+with ``pixi run -e doc doc``. Use ``pixi run -e test test`` to test without the
+optional runtime packages (except eventio, which is required by the test suite).
+To reproduce a CI configuration, use e.g. ``pixi run -e test-py314 test`` or
+``pixi run -e test-oldest test``.
 
 
 Installing ctapipe in Development Mode
 ======================================
 
-Now set up this cloned version for development.
-The following command will use the editable installation feature of python packages.
-From then on, all the ctapipe executables and the library itself will be
-usable from anywhere, given you have activated the ``cta-dev`` conda environment.
-
-.. code-block:: console
-
-    $ pip install -e '.[dev]'
-
-Using the editable installation means you won't have to rerun the installation for
-simple code changes to take effect.
-However, for things like adding new submodules or new entry points, rerunning the above
-step might still be needed.
-
-ctapipe supports adding new ``EventSource`` and ``Reconstructor`` implementations
-through plugins. In order for the respective tests to pass you have to install the
-test plugin via
-
-.. code-block:: console
-
-    $ pip install -e ./test_plugin
+Every Pixi environment installs the local ctapipe checkout in editable mode, so
+code changes take effect without reinstalling. The test and development
+environments also install ``test_plugin`` automatically for the plugin tests.
+Run ``pixi install -e dev`` again after changing dependency or package metadata.
 
 
 We are using the ``pre-commit``, ``codespell`` and ``ruff`` tools

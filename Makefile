@@ -8,7 +8,7 @@ help:
 	@echo '$(PROJECT) available make targets:'
 	@echo ''
 	@echo '  help         Print this help message (the default)'
-	@echo '  env          Create a conda environment for ctapipe development'
+	@echo '  env          Create the Pixi development environment'
 	@echo '  develop      make symlinks to this package in python install dir'
 	@echo '  clean        Remove temp files'
 	@echo '  test         Run tests'
@@ -47,8 +47,7 @@ lint:
 	@flake8 ctapipe
 
 env:
-	conda env create -n cta-dev -f environment.yml
-	source activate cta-dev
+	pixi install -e dev
 
 develop:
 	pip install -e .

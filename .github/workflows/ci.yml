@@ -47,12 +47,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux (3.12, mamba, oldest-deps)
+          - name: Linux (3.12, pixi, oldest-deps)
             os: ubuntu-24.04
             python-version: "3.12"
-            install-method: mamba
-            extras: tests,all
-            extra-args: ["oldest-deps"]
+            install-method: pixi
+            pixi-environment: test-oldest
             pytest-markers: "-m 'not vizier'"
 
           - name: Linux (3.12, pip, minimal-dependencies)
@@ -69,18 +68,25 @@ jobs:
             extra-args: ["codecov"]
             extras: tests,all
 
-          - name: Linux (3.13, mamba)
+          - name: Linux (3.13, pixi)
             os: ubuntu-24.04
             python-version: "3.13"
-            install-method: mamba
-            extras: tests,all
+            install-method: pixi
+            pixi-environment: test-py313
             pytest-markers: "-m 'not vizier'"
 
-          - name: Linux (3.14, mamba)
+          - name: Linux (3.14, pixi)
             os: ubuntu-24.04
             python-version: "3.14"
-            install-method: mamba
-            extras: tests,all
+            install-method: pixi
+            pixi-environment: test-py314
+            pytest-markers: "-m 'not vizier'"
+
+          - name: Linux (3.15, pixi)
+            os: ubuntu-24.04
+            python-version: "3.15"
+            install-method: pixi
+            pixi-environment: test-py315
             pytest-markers: "-m 'not vizier'"
 
           - name: macos (3.12, arm64, pip)
@@ -90,18 +96,17 @@ jobs:
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
-          - name: macos (3.14, arm64, mamba)
+          - name: macos (3.14, arm64, pixi)
             os: macos-26
             python-version: "3.14"
-            install-method: mamba
-            extras: tests,all
+            install-method: pixi
+            pixi-environment: test-py314
             pytest-markers: "-m 'not vizier'"
 
 
     defaults:
       run:
-        # We need login shells (-l) for micromamba to work.
-        shell: bash -leo pipefail {0}
+        shell: bash --noprofile --norc -eo pipefail {0}
 
     steps:
       - uses: actions/checkout@v7
@@ -128,20 +133,13 @@ jobs:
         run: |
           find .cache
 
-      - name: Prepare mamba installation
-        if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: |
-          # setup correct python version
-          sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
-
-      - name: mamba setup
-        if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        uses: mamba-org/setup-micromamba@v3
+      - name: Pixi setup
+        if: matrix.install-method == 'pixi' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        uses: prefix-dev/setup-pixi@v0.10.2
         with:
-          environment-file: environment.yml
-          cache-downloads: true
+          pixi-version: v0.78.0
+          environments: ${{ matrix.pixi-environment }}
+          activate-environment: true
 
       - name: Python setup
         if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
@@ -150,33 +148,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
           check-latest: true
 
-      - if: matrix.install-method == 'pip' && runner.os == 'macOS' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        name: Fix Python PATH on macOS
-        # See https://github.com/actions/setup-python/issues/132 and
-        # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
-        # Login shells on macOS prepend system paths, so we need to
-        # prepend the python path from actions/setup-python.
-        # Micromamba sets up ~/.bash_profile, where we need to set the path now.
-        run: |
-          tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
-
       - name: Install dependencies
-        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
           EXTRAS: ${{ matrix.extras }}
         run: |
-          python --version | grep "Python ${PYTHON_VERSION}"
           # numba/llvmlite do not provide wheels for macos-intel in recent releases, but pip tries to download
           # the latest release and build it from source. Force only wheels being considered for these to packages.
           pip install --only-binary llvmlite --only-binary numba -e ".[${EXTRAS}]"
-          pip install ./test_plugin
+          pip install ./test_plugin setuptools_scm
           pip freeze
 
-      - if: contains(matrix.extra-args, 'oldest-deps') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        run: |
-          micromamba install -n cta-dev -y numpy=1.26 numba=0.59.0 scipy=1.15 astropy=6.1 matplotlib=3.8 eventio=1.11.6
-          micromamba list -n cta-dev
+      - name: Check Python version
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: python --version | grep "Python ${PYTHON_VERSION}"
 
       - name: ctapipe-info
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
@@ -199,6 +186,7 @@ jobs:
           ctapipe-info --version
 
       - name: Store info for sonar
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
@@ -207,7 +195,6 @@ jobs:
           SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
           TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
-          pip install setuptools_scm
           echo "PR_NUMBER=${PR_NUMBER}" >> sonar_env
           echo "SOURCE_REPOSITORY=${SOURCE_REPOSITORY}" >> sonar_env
           echo "SOURCE_BRANCH=${SOURCE_BRANCH}" >> sonar_env

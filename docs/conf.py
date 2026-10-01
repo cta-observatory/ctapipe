@@ -425,7 +425,6 @@ texinfo_documents = [
 intersphinx_mapping = {
     "astropy": ("https://docs.astropy.org/en/stable", None),
     "bokeh": ("https://docs.bokeh.org/en/latest", None),
-    "cython": ("https://docs.cython.org/en/stable", None),
     "iminuit": ("https://scikit-hep.org/iminuit", None),
     "ipywidgets": ("https://ipywidgets.readthedocs.io/en/stable", None),
     "joblib": ("https://joblib.readthedocs.io/en/stable", None),
