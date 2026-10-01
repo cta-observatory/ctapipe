@@ -1,13 +1,15 @@
 """Read, write, and migrate CTAO data-product metadata.
 
-This module provides serialization helpers for current CTAO product metadata defined
-by :mod:`ctao_datamodel`, including reading metadata from HDF5, FITS, ECSV, and JSON
-files and writing flattened product metadata to HDF5 attributes.
+This module provides helpers for configuring, reading, writing, and converting
+CTAO data-product metadata defined by :mod:`ctao_datamodel`. Current product
+metadata can be read from HDF5, FITS, ECSV, and JSON files and written to HDF5
+attributes or FITS headers.
 
-Legacy CTA reference metadata remains supported through :class:`Reference` and its
-component classes. :func:`read_ctao_metadata` transparently converts such metadata to
-the current :class:`ctao_datamodel.models.dataproducts.Product` model, while
-:func:`read_reference_metadata` provides access to the original legacy representation.
+Legacy ctapipe reference metadata remains supported through :class:`Reference`
+and its component classes. :func:`read_reference_metadata` provides access to
+the legacy representation, while legacy metadata in HDF5 files is converted to
+the current :class:`ctao_datamodel.models.dataproducts.Product` model by
+:func:`read_ctao_metadata`.
 """
 
 import gzip
@@ -16,6 +18,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import ExitStack
+from pathlib import Path
 
 import ctao_datamodel as dm
 import ctao_datamodel.models.dataproducts as dp
@@ -320,16 +323,6 @@ class InstanceMetadata(Configurable):
         allow_none=True,
     ).tag(config=True)
 
-    messenger = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    particle_pdgid = Integer(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
     @validate(
         "category",
         "site_id",
@@ -343,8 +336,6 @@ class InstanceMetadata(Configurable):
         "event_type",
         "data_source",
         "assembly_name",
-        "messenger",
-        "particle_pdgid",
     )
     def _validate_instance_metadata(self, proposal):
         """Validate instance information using the CTAO data model."""
@@ -375,8 +366,6 @@ class InstanceMetadata(Configurable):
             "event_type",
             "data_source",
             "assembly_name",
-            "messenger",
-            "particle_pdgid",
         )
 
         return {
@@ -713,8 +702,16 @@ class Reference(HasTraits):
 
             kwargs[group][key] = value
 
+        # Legacy metadata may contain contact values that are invalid in the
+        # current data model. Preserve them here so conversion can replace the
+        # complete contact with its documented fallback.
+        contact = Contact()
+        with contact.cross_validation_lock:
+            for key, value in kwargs["contact"].items():
+                setattr(contact, key, value)
+
         return cls(
-            contact=Contact(**kwargs["contact"]),
+            contact=contact,
             product=Product(**kwargs["product"]),
             process=Process(**kwargs["process"]),
             activity=Activity(**kwargs["activity"]),
@@ -795,6 +792,8 @@ def _read_reference_metadata_json(path):
 def _read_reference_metadata_hdf5(h5file, path="/"):
     """Read legacy CTA reference metadata from an HDF5 node."""
     meta = _read_hdf5_attributes(h5file, path)
+    if "CTA REFERENCE VERSION" not in meta:
+        raise ValueError("No legacy CTA reference metadata found")
     return Reference.from_dict(meta)
 
 
@@ -872,7 +871,16 @@ def get_compatible_metadata_versions(
     return compatible
 
 
-def read_ctao_metadata(input_url) -> dp.Product:
+def _check_metadata_version(version: str | None) -> None:
+    """Check that the CTAO metadata version is supported."""
+    if version is None:
+        raise ValueError("Unsupported metadata format")
+
+    if version not in get_compatible_metadata_versions():
+        raise ValueError(f"Unsupported CTAO metadata version: {version}")
+
+
+def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
     """Read CTAO product metadata from a supported file.
 
     The format is detected from the file contents. FITS (including gzip-compressed
@@ -897,65 +905,73 @@ def read_ctao_metadata(input_url) -> dp.Product:
     pydantic.ValidationError
         If the metadata does not validate against the CTAO product model.
     """
-    if isinstance(input_url, tables.File):
-        return _read_hdf5_metadata(input_url)
+    if isinstance(input_file, tables.File):
+        return _read_hdf5_metadata(input_file)
 
     # otherwise assume input_file / URL and detect format
     header_bytes = 8
 
-    with open(input_url, "rb") as f:
+    with open(input_file, "rb") as f:
         first_bytes = f.read(header_bytes)
 
     if first_bytes.startswith(b"\x1f\x8b"):
-        with gzip.open(input_url, "rb") as f:
+        with gzip.open(input_file, "rb") as f:
             first_bytes = f.read(header_bytes)
 
     if first_bytes.startswith(b"\x89HDF"):
-        return _read_hdf5_metadata(input_url)
+        return _read_hdf5_metadata(input_file)
 
     if first_bytes.startswith(b"{"):
-        return _read_json_metadata(input_url)
+        return _read_json_metadata(input_file)
 
     if first_bytes.startswith(b"# %ECSV"):
-        return _read_ecsv_metadata(input_url)
+        return _read_ecsv_metadata(input_file)
 
     if first_bytes.startswith(b"SIMPLE"):
-        return _read_fits_metadata(input_url)
+        return _read_fits_metadata(input_file)
 
     raise ValueError(
-        f"'{input_url}' is not one of the supported file formats: fits, hdf5, ecsv, json"
+        f"'{input_file}' is not one of the supported file formats: fits, hdf5, ecsv, json"
     )
 
 
-def _read_fits_metadata(path) -> dp.Product:
-    """Read primary-header metadata from a FITS file."""
-    with fits.open(path) as hdul:
+def _read_fits_metadata(fits_file) -> dp.Product:
+    """Read CTAO product metadata from a FITS file."""
+    with fits.open(fits_file) as hdul:
+        header = hdul[0].header
+
+        _check_metadata_version(header.get("CTAOMETA"))
+
+        # Temporary workaround for
+        # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
+        # FITS does not preserve URL keywords whose value is None.
+        if "MODEL" in header and "MODELURL" not in header:
+            header["MODELURL"] = None
+        if "SOFTWARE" in header and "SOFTURL" not in header:
+            header["SOFTURL"] = None
+
         return dm.fits_header_to_instance(
-            hdul[0].header,
+            header,
             model=dp.Product,
         )
 
 
-def _read_ecsv_metadata(path) -> dp.Product:
-    """Read metadata from an ECSV file."""
-    meta = Table.read(path).meta
-    if "ctao_metadata_version" in meta:
-        return dp.Product.model_validate(meta)
-    else:
-        raise ValueError("Unsupported metadata format")
+def _read_ecsv_metadata(ecsv_file) -> dp.Product:
+    """Read CTAO product metadata from an ECSV file."""
+    metadata = Table.read(ecsv_file).meta
+    _check_metadata_version(metadata.get("ctao_metadata_version"))
+    return dp.Product.model_validate(metadata)
 
 
-def _read_json_metadata(path) -> dp.Product:
+def _read_json_metadata(json_file) -> dp.Product:
     """Read CTAO product metadata from a JSON file."""
     import json
 
-    with open(path) as f:
+    with open(json_file) as f:
         metadata = json.load(f)
 
-    if "ctao_metadata_version" in metadata:
-        return dp.Product.model_validate(metadata)
-
-    raise ValueError("Unsupported metadata format")
+    _check_metadata_version(metadata.get("ctao_metadata_version"))
+    return dp.Product.model_validate(metadata)
 
 
 def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
@@ -963,6 +979,7 @@ def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
     metadata = _read_hdf5_attributes(h5file, path)
 
     if "CTAO.ctao_metadata_version" in metadata:
+        _check_metadata_version(metadata.get("CTAO.ctao_metadata_version"))
         return metadata_to_product(metadata)
 
     # Old Data Model
