@@ -2,16 +2,17 @@ import numpy as np
 import pytest
 
 from ctapipe.containers import (
-    EventIndexContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SubarrayEventIndexContainer,
 )
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import TableLoader, read_table
 from ctapipe.io.hdf5dataformat import (
+    DL0_SUBARRAY_TRIGGER_TABLE,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_TRIGGER_TABLE,
     DL2_SUBARRAY_ENERGY_GROUP,
@@ -51,7 +52,10 @@ def test_apply_energy_regressor(
     prefix = "ExtraTreesRegressor"
     table = read_table(output_path, f"{DL2_SUBARRAY_ENERGY_GROUP}/{prefix}")
     for col in "obs_id", "event_id":
-        assert table[col].description == EventIndexContainer.fields[col].description
+        assert (
+            table[col].description
+            == SubarrayEventIndexContainer.fields[col].description
+        )
 
     for name, field in ReconstructedEnergyContainer.fields.items():
         colname = f"{prefix}_{name}"
@@ -83,7 +87,7 @@ def test_apply_energy_regressor(
         assert f"{prefix}_tel_is_valid" in tel_events.colnames
         assert "hillas_intensity" in tel_events.colnames
 
-    trigger = read_table(output_path, DL1_SUBARRAY_TRIGGER_TABLE)
+    trigger = read_table(output_path, DL0_SUBARRAY_TRIGGER_TABLE)
     energy = read_table(output_path, f"{DL2_SUBARRAY_ENERGY_GROUP}/ExtraTreesRegressor")
 
     check_equal_array_event_order(trigger, energy)
@@ -170,6 +174,7 @@ def test_apply_all(
         # test file is produced using 0.17, the descriptions don't match
         # assert table[colname].description == field.description
 
+    # FIXME: old file, change to dl0 when updating test file
     trigger = read_table(output_path, DL1_SUBARRAY_TRIGGER_TABLE)
 
     subarray_tables = (
@@ -182,6 +187,7 @@ def test_apply_all(
         check_equal_array_event_order(trigger, table)
 
     subarray = SubarrayDescription.from_hdf(input_path)
+    # FIXME: old file, change to dl0 when updating test file
     tel_trigger = read_table(output_path, DL1_TEL_TRIGGER_TABLE)
     for tel_id in subarray.tel:
         tel_keys = (

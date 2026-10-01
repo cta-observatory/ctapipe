@@ -118,7 +118,7 @@ def example_event(_global_example_event):
 
     .. code-block::
         def test_my_thing(example_event):
-            assert len(example_event.r0.tel) > 0
+            assert len(example_event.tel) > 0
 
     """
     return deepcopy(_global_example_event)

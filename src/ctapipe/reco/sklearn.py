@@ -21,11 +21,11 @@ from tqdm import tqdm
 from traitlets import TraitError, observe
 
 from ..containers import (
-    ArrayEventContainer,
     DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SubarrayEventContainer,
 )
 from ..coordinates import TelescopeFrame
 from ..core import (
@@ -179,15 +179,14 @@ class SKLearnReconstructor(Reconstructor):
                 self.prefix = self.model_cls
 
     @abstractmethod
-    def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Event-wise prediction for the EventSource-Loop.
+    def __call__(self, event: SubarrayEventContainer) -> None:
+        """Event-wise prediction for the EventSource-Loop.
 
         Fills the event.dl2.<your-feature>[name] container.
 
         Parameters
         ----------
-        event: ArrayEventContainer
+        event: SubarrayEventContainer
         """
 
     @abstractmethod
@@ -398,8 +397,8 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
     target = "true_energy"
     property = ReconstructionProperty.ENERGY
 
-    def __call__(self, event: ArrayEventContainer) -> None:
-        for tel_id in event.trigger.tels_with_trigger:
+    def __call__(self, event: SubarrayEventContainer) -> None:
+        for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
 
@@ -422,7 +421,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
                 )
 
             container.prefix = f"{self.prefix}_tel"
-            event.dl2.tel[tel_id].energy[self.prefix] = container
+            tel_event.dl2.energy[self.prefix] = container
 
         self.stereo_combiner(event)
 
@@ -463,8 +462,8 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     property = ReconstructionProperty.PARTICLE_TYPE
 
-    def __call__(self, event: ArrayEventContainer) -> None:
-        for tel_id in event.trigger.tels_with_trigger:
+    def __call__(self, event: SubarrayEventContainer) -> None:
+        for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
@@ -485,7 +484,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
                 )
 
             container.prefix = f"{self.prefix}_tel"
-            event.dl2.tel[tel_id].particle_type[self.prefix] = container
+            tel_event.dl2.particle_type[self.prefix] = container
 
         self.stereo_combiner(event)
 
@@ -722,18 +721,17 @@ class DispReconstructor(Reconstructor):
 
         return prediction, score, valid
 
-    def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Event-wise prediction for the EventSource-Loop.
+    def __call__(self, event: SubarrayEventContainer) -> None:
+        """Event-wise prediction for the EventSource-Loop.
 
-        Fills the event.dl2.tel[tel_id].disp[prefix] container
-        and event.dl2.tel[tel_id].geometry[prefix] container.
+        Fills the event.tel[tel_id].dl2.disp[prefix] container
+        and event.tel[tel_id].dl2.geometry[prefix] container.
 
         Parameters
         ----------
-        event: ArrayEventContainer
+        event: SubarrayEventContainer
         """
-        for tel_id in event.trigger.tels_with_trigger:
+        for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
 
@@ -749,8 +747,7 @@ class DispReconstructor(Reconstructor):
                         parameter=disp[0],
                         sign_score=sign_score[0],
                     )
-
-                    hillas = event.dl1.tel[tel_id].parameters.hillas
+                    hillas = tel_event.dl1.parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
 
                     fov_lon = hillas.fov_lon + disp[0] * np.cos(psi)
@@ -759,8 +756,8 @@ class DispReconstructor(Reconstructor):
                         fov_lon=fov_lon,
                         fov_lat=fov_lat,
                         telescope_pointing=AltAz(
-                            alt=event.monitoring.tel[tel_id].pointing.altitude,
-                            az=event.monitoring.tel[tel_id].pointing.azimuth,
+                            alt=tel_event.monitoring.pointing.altitude,
+                            az=tel_event.monitoring.pointing.azimuth,
                         ),
                     ).transform_to(AltAz())
 
@@ -781,8 +778,8 @@ class DispReconstructor(Reconstructor):
 
             disp_container.prefix = f"{self.prefix}_tel"
             altaz_container.prefix = f"{self.prefix}_tel"
-            event.dl2.tel[tel_id].disp[self.prefix] = disp_container
-            event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
+            tel_event.dl2.disp[self.prefix] = disp_container
+            tel_event.dl2.geometry[self.prefix] = altaz_container
 
         self.stereo_combiner(event)
 
