@@ -42,6 +42,7 @@ from .disp import get_tel_pointing
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
 from .stereo_combination import StereoCombiner
+from .telescope_event_handling import get_subarray_index
 from .utils import add_defaults_and_meta
 
 __all__ = [
@@ -936,13 +937,55 @@ class CrossValidator(Component):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def __call__(self, telescope_type, table):
+    def _get_cv_it(self, table, telescope_type, keep_subarray_events=False):
+        y = table[self.model_component.target]
+
+        kfold = self.split_data(
+            n_splits=self.n_cross_validations,
+            shuffle=True,
+            # sklearn does not support numpy's new random API yet
+            random_state=self.rng.integers(0, 2**31 - 1),
+        )
+
+        if len(table) <= self.n_cross_validations:
+            raise TooFewEvents(f"Too few telescope events for {telescope_type}.")
+
+        # disp reco is always telescope-event-wise
+        if isinstance(self.model_component, DispReconstructor):
+            yield from kfold.split(table, np.sign(y))
+            return
+
+        # if we do not need to keep telescope event of the same subarray event
+        # together, just return normal kfold
+        if not keep_subarray_events:
+            yield from kfold.split(table, y)
+            return
+
+        # keep subarray events together in cross validation to avoid different telescope events of the
+        # same subarray event in training vs validation set
+        subarray_idx = get_subarray_index(table)
+        reverse_idx = subarray_idx.subarray_event_index
+
+        if len(subarray_idx.event_id) <= self.n_cross_validations:
+            raise TooFewEvents(f"Too few subarray events for {telescope_type}.")
+
+        # assume y is per sub-array event if keep_subarray_events=True (ensured by train tools)
+        y = y[subarray_idx.first_tel_event_index]
+
+        for train_indices, test_indices in kfold.split(np.zeros(len(y)), y):
+            train_mask = np.zeros(len(y), dtype=bool)
+            test_mask = np.zeros(len(y), dtype=bool)
+            train_mask[train_indices] = True
+            test_mask[test_indices] = True
+
+            yield train_mask[reverse_idx], test_mask[reverse_idx]
+
+    def __call__(self, telescope_type, table, keep_subarray_events=False):
         """Perform cross validation for the given model."""
         if self.n_cross_validations == 0:
             return
 
-        if len(table) <= self.n_cross_validations:
-            raise TooFewEvents(f"Too few events for {telescope_type}.")
+        cv_it = self._get_cv_it(table, telescope_type, keep_subarray_events)
 
         self.log.info(
             "Starting cross-validation with %d folds for type %s.",
@@ -951,18 +994,6 @@ class CrossValidator(Component):
         )
 
         scores = defaultdict(list)
-        kfold = self.split_data(
-            n_splits=self.n_cross_validations,
-            shuffle=True,
-            # sklearn does not support numpy's new random API yet
-            random_state=self.rng.integers(0, 2**31 - 1),
-        )
-
-        if isinstance(self.model_component, DispReconstructor):
-            cv_it = kfold.split(table, np.sign(table[self.model_component.target]))
-        else:
-            cv_it = kfold.split(table, table[self.model_component.target])
-
         for fold, (train_indices, test_indices) in enumerate(
             tqdm(
                 cv_it,

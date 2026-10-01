@@ -288,11 +288,9 @@ class StereoMeanCombiner(StereoCombiner):
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
 
-        obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
-            mono_predictions
-        )
-        n_array_events = len(obs_ids)
-        stereo_table = Table({"obs_id": obs_ids, "event_id": event_ids})
+        idx = get_subarray_index(mono_predictions)
+        n_array_events = len(idx.obs_id)
+        stereo_table = Table({"obs_id": idx.obs_id, "event_id": idx.event_id})
         # copy metadata
         for colname in ("obs_id", "event_id"):
             stereo_table[colname].description = mono_predictions[colname].description
@@ -304,8 +302,8 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_predictions, _ = weighted_mean_std_ufunc(
                     mono_predictions[f"{prefix}_prediction"],
                     valid,
-                    tel_to_array_indices,
-                    multiplicity,
+                    idx.subarray_event_index,
+                    idx.multiplicity,
                     weights=weights,
                 )
             else:
@@ -326,8 +324,8 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_energy, std = weighted_mean_std_ufunc(
                     mono_energies,
                     valid,
-                    tel_to_array_indices,
-                    multiplicity,
+                    idx.subarray_event_index,
+                    idx.multiplicity,
                     weights=weights,
                 )
                 if self.log_target:
@@ -359,22 +357,22 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_x, _ = weighted_mean_std_ufunc(
                     mono_x,
                     valid,
-                    tel_to_array_indices,
-                    multiplicity,
+                    idx.subarray_event_index,
+                    idx.multiplicity,
                     weights=weights,
                 )
                 stereo_y, _ = weighted_mean_std_ufunc(
                     mono_y,
                     valid,
-                    tel_to_array_indices,
-                    multiplicity,
+                    idx.subarray_event_index,
+                    idx.multiplicity,
                     weights=weights,
                 )
                 stereo_z, _ = weighted_mean_std_ufunc(
                     mono_z,
                     valid,
-                    tel_to_array_indices,
-                    multiplicity,
+                    idx.subarray_event_index,
+                    idx.multiplicity,
                     weights=weights,
                 )
 
@@ -417,7 +415,7 @@ class StereoMeanCombiner(StereoCombiner):
         tel_ids = [[] for _ in range(n_array_events)]
 
         for index, tel_id in zip(
-            tel_to_array_indices[valid], mono_predictions["tel_id"][valid]
+            idx.subarray_event_index[valid], mono_predictions["tel_id"][valid]
         ):
             tel_ids[index].append(tel_id)
 

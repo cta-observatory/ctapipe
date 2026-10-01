@@ -12,11 +12,16 @@ def test_get_subarray_index(dl1_parameters_file):
     with TableLoader(dl1_parameters_file, **opts) as loader:
         tel_events = loader.read_telescope_events()
 
-    subarray_obs_ids, subarray_event_ids, _, _ = get_subarray_index(tel_events)
+    subarray_obs_ids, subarray_event_ids, multiplicities, first_indices, _ = (
+        get_subarray_index(tel_events)
+    )
     trigger = read_table(dl1_parameters_file, "/dl1/event/subarray/trigger")
 
     assert len(subarray_obs_ids) == len(subarray_event_ids)
     assert len(subarray_obs_ids) == len(trigger)
+    assert np.array_equal(first_indices, np.r_[0, np.cumsum(multiplicities)[:-1]])
+    assert np.array_equal(tel_events["obs_id"][first_indices], subarray_obs_ids)
+    assert np.array_equal(tel_events["event_id"][first_indices], subarray_event_ids)
     check_equal_array_event_order(
         Table({"obs_id": subarray_obs_ids, "event_id": subarray_event_ids}), trigger
     )
@@ -34,7 +39,7 @@ def test_mean_std_ufunc(dl1_parameters_file):
 
     valid = np.isfinite(tel_events["hillas_length"])
 
-    _, _, multiplicity, tel_to_subarray_idx = get_subarray_index(tel_events)
+    _, _, multiplicity, _, tel_to_subarray_idx = get_subarray_index(tel_events)
 
     # test only default uniform weights,
     # other weights are tested in test_stereo_combination

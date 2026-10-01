@@ -139,7 +139,7 @@ class TrainEnergyRegressor(Tool):
             )
 
             self.log.info("Train on %s events", len(table))
-            self.cross_validate(tel_type, table)
+            self.cross_validate(tel_type, table, keep_subarray_events=True)
 
             self.log.info("Performing final fit for %s", tel_type)
             self.regressor.fit(tel_type, table)

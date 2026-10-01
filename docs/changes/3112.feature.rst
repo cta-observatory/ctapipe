@@ -1,0 +1,5 @@
+Add an option for ``CrossValidator`` to keep telescope events of the
+same subarray events in the same cross validation splits.
+This option is used in the energy and particle type classifier and
+will result in lower but more realistic scores due to less correlation
+between training and validation datasets.
