@@ -44,6 +44,7 @@ __all__ = [
     "ComaPSFModel",
     "ZernikePSFModel",
     "MirrorDescription",
+    "MirrorFacetShape",
 ]
 
 
