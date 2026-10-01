@@ -120,6 +120,12 @@ class MirrorDescription:
     Information about the different mirror facet shapes
     """
 
+    @u.quantity_input(
+        x=u.physical.length,
+        y=u.physical.length,
+        z=u.physical.length,
+        surface_area=u.physical.area,
+    )
     def __init__(
         self,
         id,
@@ -132,22 +138,6 @@ class MirrorDescription:
         surface_area,
         mirror_shape,
     ):
-        expected_units = {
-            "x": (x, u.physical.length),
-            "y": (y, u.physical.length),
-            "z": (z, u.physical.length),
-            "surface_area": (surface_area, u.physical.area),
-        }
-        for name, (value, phys_units_type) in expected_units.items():
-            if (
-                not isinstance(value, u.Quantity)
-                or value.unit.physical_type != phys_units_type
-            ):
-                raise ValueError(
-                    f"{name} must have units of {phys_units_type},"
-                    f" got {getattr(value, 'unit', None)}"
-                )
-
         self.id = id
         self.x = x
         self.y = y
