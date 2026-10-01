@@ -313,6 +313,14 @@ class DL2EventLoader(Component):
             table_reader = reader_func(chunk_size, **opts, **self.event_reader_kwargs)
             for _, _, events in table_reader:
                 selected = events[self.epp.quality_query.get_table_mask(events)]
+
+                # Can happen, especially if the last chunk is much smaller thank chunksize
+                if len(selected) == 0:
+                    self.log.info(
+                        "No events left after applying quality_query in current chunk"
+                    )
+                    continue
+
                 selected = self.epp.normalise_column_names(selected)
                 if self.epp.apply_derived_columns:
                     selected = self.make_derived_columns(selected)
