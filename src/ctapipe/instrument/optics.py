@@ -132,10 +132,21 @@ class MirrorDescription:
         surface_area,
         mirror_shape,
     ):
-        values = {"x": x, "y": y, "z": z, "surface_area": surface_area}
-        for name, value in values.items():
-            if not isinstance(value, u.Quantity):
-                raise ValueError(f"{name} must have units")
+        expected_units = {
+            "x": (x, u.physical.length),
+            "y": (y, u.physical.length),
+            "z": (z, u.physical.length),
+            "surface_area": (surface_area, u.physical.area),
+        }
+        for name, (value, phys_units_type) in expected_units.items():
+            if (
+                not isinstance(value, u.Quantity)
+                or value.unit.physical_type != phys_units_type
+            ):
+                raise ValueError(
+                    f"{name} must have units of {phys_units_type},"
+                    f" got {getattr(value, 'unit', None)}"
+                )
 
         self.id = id
         self.x = x
