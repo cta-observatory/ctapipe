@@ -39,6 +39,7 @@ hist = "*"
 iminuit = ">=2"
 matplotlib = ">=3,<4"
 pyirf = ">=0.14,<0.15"
+h5py = "*"
 zernike = "*"
 
 [feature.test.dependencies]
