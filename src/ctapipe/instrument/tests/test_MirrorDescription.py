@@ -69,7 +69,7 @@ def test_get_facet_size_per_shape():
 @pytest.mark.parametrize("wrong_unit", [u.s, u.deg, u.kg, u.m**2])
 def test_init_x_wrong_unit_type(wrong_unit):
     """x must have units of length."""
-    with pytest.raises(ValueError, match="x must have units of length"):
+    with pytest.raises(u.UnitsError, match="Argument 'x'.*'length'"):
         MirrorDescription(
             id=np.arange(1),
             x=np.zeros(1) * wrong_unit,
