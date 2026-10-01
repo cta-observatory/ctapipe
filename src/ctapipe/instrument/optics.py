@@ -158,13 +158,13 @@ class MirrorDescription:
         self.surface_area = surface_area
         self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
 
-    def __str__(self):
+    def __str__(self, n_str=3):
         header = f"{self.__class__.__name__}({len(self.id)} mirror facets)"
         rows = [
             f"  id={self.id[i]}, x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
             f"nx={self.nx[i]:.4f}, ny={self.ny[i]:.4f}, nz={self.nz[i]:.4f}, "
             f"surface_area={self.surface_area[i]}, shape={self.shape[i].value}"
-            for i in range(len(self.id))
+            for i in range(min(n_str, len(self.id)))
         ]
         return "\n".join([header, *rows])
 
