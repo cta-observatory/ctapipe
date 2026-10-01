@@ -43,6 +43,8 @@ __all__ = [
     "PSFModel",
     "ComaPSFModel",
     "ZernikePSFModel",
+    "MirrorDescription",
+    "MirrorFacetShape",
 ]
 
 
@@ -95,6 +97,407 @@ class ReflectorShape(Enum):
     HYBRID = "HYBRID"
     #: A dual mirror Schwarzschild-Couder reflector
     SCHWARZSCHILD_COUDER = "SCHWARZSCHILD_COUDER"
+
+
+@unique
+class MirrorFacetShape(Enum):
+    """
+    Enumeration of the different mirror facet shapes
+    """
+
+    #: Unknown
+    UNKNOWN = "UNKNOWN"
+    #: Individual mirror facets of circular shape.
+    CIRCLE = "CIRCLE"
+    #: Individual mirror facets of square shape.
+    SQUARE = "SQUARE"
+    #: Individual mirror facets of hexagonal shape.
+    HEXAGON = "HEXAGON"
+
+
+class MirrorDescription:
+    """
+    Description of the individual mirror facets of a telescope reflector
+
+    Stores, for each mirror facet, its ID, the position of its centre, the
+    unit vector normal to its surface, its reflective surface area and its
+    shape. All per-facet inputs must be one-dimensional arrays of the same
+    length (one entry per facet).
+
+    A `MirrorDescription` can be read from (and written to) a FITS or ECSV
+    table using `MirrorDescription.from_table` and
+    `MirrorDescription.to_table`, and quickly visualised using
+    `MirrorDescription.peek`.
+
+    Parameters
+    ----------
+    id : array_like of int
+        Unique ID of each mirror facet
+    x : astropy.units.Quantity[length]
+        x coordinate of the centre of each mirror facet
+    y : astropy.units.Quantity[length]
+        y coordinate of the centre of each mirror facet
+    z : astropy.units.Quantity[length]
+        z coordinate of the centre of each mirror facet
+    nx : array_like of float
+        x component of the unit vector normal to each mirror facet
+    ny : array_like of float
+        y component of the unit vector normal to each mirror facet
+    nz : array_like of float
+        z component of the unit vector normal to each mirror facet
+    surface_area : astropy.units.Quantity[area]
+        Reflective surface area of each mirror facet
+    mirror_shape : array_like of str or MirrorFacetShape
+        Shape of each mirror facet, either a `MirrorFacetShape` or its
+        string value (e.g. ``"HEXAGON"``)
+
+    Attributes
+    ----------
+    id : array_like of int
+        Unique ID of each mirror facet
+    x, y, z : astropy.units.Quantity[length]
+        Coordinates of the centre of each mirror facet
+    nx, ny, nz : array_like of float
+        Components of the unit vector normal to each mirror facet
+    surface_area : astropy.units.Quantity[area]
+        Reflective surface area of each mirror facet
+    shape : numpy.ndarray of MirrorFacetShape
+        Shape of each mirror facet
+
+    Raises
+    ------
+    TypeError, astropy.units.UnitsError:
+        if the units of ``x``, ``y``, ``z`` or ``surface_area`` are missing
+        or incompatible (length for ``x``, ``y``, ``z`` and area for
+        ``surface_area``)
+    ValueError:
+        if one of the ``mirror_shape`` values is not a valid
+        `MirrorFacetShape`
+    """
+
+    @u.quantity_input(
+        x=u.physical.length,
+        y=u.physical.length,
+        z=u.physical.length,
+        surface_area=u.physical.area,
+    )
+    def __init__(
+        self,
+        id,
+        x,
+        y,
+        z,
+        nx,
+        ny,
+        nz,
+        surface_area,
+        mirror_shape,
+    ):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.z = z
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+        self.surface_area = surface_area
+        self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
+
+    def __str__(self, n_str=3):
+        """
+        Summary of the mirror facets: a header with the total number of
+        facets, followed by one line per facet for the first ``n_str``
+        facets (or all facets, if there are fewer than ``n_str``).
+
+        Parameters
+        ----------
+        n_str : int
+            Maximum number of facets to list. ``str()`` and ``print()``
+            always use the default value.
+        """
+        header = f"{self.__class__.__name__}({len(self.id)} mirror facets)"
+        rows = [
+            f"  id={self.id[i]}, x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
+            f"nx={self.nx[i]:.4f}, ny={self.ny[i]:.4f}, nz={self.nz[i]:.4f}, "
+            f"surface_area={self.surface_area[i]}, shape={self.shape[i].value}"
+            for i in range(min(n_str, len(self.id)))
+        ]
+        return "\n".join([header, *rows])
+
+    def to_table(self):
+        """
+        Convert this MirrorDescription to an astropy Table.
+
+        See `MirrorDescription.from_table` for the opposite operation.
+        """
+        return Table(
+            [
+                self.id,
+                self.x,
+                self.y,
+                self.z,
+                self.nx,
+                self.ny,
+                self.nz,
+                self.surface_area,
+                np.array([shape.value for shape in self.shape]),
+            ],
+            names=["mirror_id", "x", "y", "z", "nx", "ny", "nz", "surface", "shape"],
+            meta={"EXTNAME": "MIRRORS"},
+        )
+
+    @classmethod
+    def from_table(cls, table: Table | str | Path, **kwargs):
+        """
+        Create a `MirrorDescription` from an astropy Table, or from a
+        FITS or ECSV file containing such a table.
+
+        Parameters
+        ----------
+        table : astropy.table.Table or str or pathlib.Path
+            Table describing the mirror facets, with columns
+            ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
+            ``surface`` and ``shape``, or the path to a FITS or ECSV file
+            containing such a table.
+        **kwargs
+            Additional keyword arguments passed to `astropy.table.Table.read`
+            when ``table`` is a path.
+
+        Returns
+        -------
+        MirrorDescription
+        """
+        if not isinstance(table, Table):
+            table = Table.read(table, **kwargs)
+
+        table = QTable(table)
+
+        # FITS tables are read back with byte strings by default, while
+        # ECSV tables are read back as unicode strings.
+        mirror_shape = np.asarray(table["shape"])
+        if mirror_shape.dtype.kind == "S":
+            mirror_shape = mirror_shape.astype(str)
+
+        return cls(
+            id=np.asarray(table["mirror_id"]),
+            x=u.Quantity(table["x"], table["x"].unit),
+            y=u.Quantity(table["y"], table["y"].unit),
+            z=u.Quantity(table["z"], table["z"].unit),
+            nx=np.asarray(table["nx"]),
+            ny=np.asarray(table["ny"]),
+            nz=np.asarray(table["nz"]),
+            surface_area=u.Quantity(table["surface"], table["surface"].unit),
+            mirror_shape=mirror_shape,
+        )
+
+    def peek(self, output_path=None):
+        """
+        Draw a quick matplotlib plot of the mirror facet positions and shapes,
+        labelling each facet with its mirror ID.
+
+        Parameters
+        ----------
+        output_path : str or pathlib.Path, optional
+            If given, save the resulting figure to this path as a PDF.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        from matplotlib import pyplot as plt
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import Patch
+
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(1, 1, 1)
+
+        x = self.x.to_value(u.m)
+        y = self.y.to_value(u.m)
+        size = self.get_facet_size().to_value(u.m)
+
+        legend_handles = []
+        for shape in MirrorFacetShape:
+            if shape == MirrorFacetShape.UNKNOWN:
+                continue
+
+            mask = self.shape == shape
+            if not np.any(mask):
+                continue
+
+            color = "lightgreen"
+            patches = self.create_patches(shape, x[mask], y[mask], size[mask])
+            ax.add_collection(
+                PatchCollection(
+                    patches, facecolor=color, edgecolor="black", linewidth=0.5
+                )
+            )
+            legend_handles.append(
+                Patch(
+                    facecolor=color,
+                    edgecolor="black",
+                    label=f"{shape.value} ({np.count_nonzero(mask)})",
+                )
+            )
+
+        unknown = self.shape == MirrorFacetShape.UNKNOWN
+        if np.any(unknown):
+            ax.scatter(
+                x[unknown],
+                y[unknown],
+                marker="x",
+                color="gray",
+                label=f"{MirrorFacetShape.UNKNOWN.value} ({np.count_nonzero(unknown)})",
+            )
+
+        for facet_id, facet_x, facet_y in zip(self.id, x, y):
+            ax.text(
+                facet_x,
+                facet_y,
+                str(facet_id),
+                ha="center",
+                va="center",
+                fontsize=5,
+            )
+
+        ax.autoscale_view()
+        ax.set_xlabel("x / m")
+        ax.set_ylabel("y / m")
+        ax.set_aspect("equal")
+        ax.set_title(f"{len(self.id)} mirror facets")
+        handles, _ = ax.get_legend_handles_labels()
+        ax.legend(handles=legend_handles + handles, loc="best", fontsize="small")
+
+        if output_path is not None:
+            fig.savefig(output_path, format="pdf")
+
+        return ax
+
+    def get_facet_size(self):
+        """
+        Compute a characteristic linear size of each mirror facet from its
+        reflective surface area and shape:
+
+        - `MirrorFacetShape.CIRCLE`: radius
+        - `MirrorFacetShape.SQUARE`: side length
+        - `MirrorFacetShape.HEXAGON`: flat-to-flat distance (the distance
+          between two opposite parallel sides of a regular hexagon)
+
+        Facets with `MirrorFacetShape.UNKNOWN` shape are set to ``nan``.
+
+        Returns
+        -------
+        size : astropy.units.Quantity or numpy.ndarray
+            Characteristic size of each facet, in the same length unit as
+            the square root of ``surface_area`` (e.g. m if ``surface_area``
+            is in m**2).
+        """
+        radius = np.sqrt(self.surface_area / np.pi)
+        side = np.sqrt(self.surface_area)
+        flat_to_flat = np.sqrt(2 * self.surface_area / np.sqrt(3))
+
+        size = radius.copy()
+        size[self.shape == MirrorFacetShape.SQUARE] = side[
+            self.shape == MirrorFacetShape.SQUARE
+        ]
+        size[self.shape == MirrorFacetShape.HEXAGON] = flat_to_flat[
+            self.shape == MirrorFacetShape.HEXAGON
+        ]
+        size[self.shape == MirrorFacetShape.UNKNOWN] = np.nan
+
+        return size
+
+    @staticmethod
+    def create_patches(shape, facet_x, facet_y, facet_size, facet_rotation=0 * u.deg):
+        """
+        Create matplotlib patches for a set of mirror facets of a single
+        `MirrorFacetShape`.
+
+        This is analogous to
+        `~ctapipe.visualization.CameraDisplay.create_patches`, but for
+        mirror facets: ``facet_size`` is expected to be the corresponding
+        entry of `~MirrorDescription.get_facet_size` (radius for
+        `MirrorFacetShape.CIRCLE`, side length for
+        `MirrorFacetShape.SQUARE`, flat-to-flat distance for
+        `MirrorFacetShape.HEXAGON`) rather than a generic pixel width.
+
+        Parameters
+        ----------
+        shape : MirrorFacetShape
+            Shape of the facets to draw.
+        facet_x : array_like
+            x position of each facet.
+        facet_y : array_like
+            y position of each facet.
+        facet_size : array_like
+            Characteristic size of each facet, as returned by
+            `~MirrorDescription.get_facet_size`.
+        facet_rotation : astropy.units.Quantity
+            Rotation angle of the facets (only relevant for
+            `MirrorFacetShape.SQUARE` and `MirrorFacetShape.HEXAGON`).
+
+        Returns
+        -------
+        list of matplotlib.patches.Patch
+        """
+        if shape == MirrorFacetShape.HEXAGON:
+            return MirrorDescription._create_hex_patches(
+                facet_x, facet_y, facet_size, facet_rotation
+            )
+
+        if shape == MirrorFacetShape.CIRCLE:
+            return MirrorDescription._create_circle_patches(
+                facet_x, facet_y, facet_size
+            )
+
+        if shape == MirrorFacetShape.SQUARE:
+            return MirrorDescription._create_square_patches(
+                facet_x, facet_y, facet_size, facet_rotation
+            )
+
+        raise ValueError(f"Unsupported mirror facet shape {shape}")
+
+    @staticmethod
+    def _create_hex_patches(facet_x, facet_y, facet_size, facet_rotation):
+        from matplotlib.patches import RegularPolygon
+
+        orientation = facet_rotation.to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                6,
+                # convert from flat-to-flat distance to outer circle radius
+                radius=size / np.sqrt(3),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, size in zip(facet_x, facet_y, facet_size)
+        ]
+
+    @staticmethod
+    def _create_circle_patches(facet_x, facet_y, facet_size):
+        from matplotlib.patches import Circle
+
+        return [
+            Circle((x, y), radius=size, fill=True)
+            for x, y, size in zip(facet_x, facet_y, facet_size)
+        ]
+
+    @staticmethod
+    def _create_square_patches(facet_x, facet_y, facet_size, facet_rotation):
+        from matplotlib.patches import RegularPolygon
+
+        orientation = (facet_rotation + 45 * u.deg).to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                4,
+                # convert from side length to outer circle radius
+                radius=size / np.sqrt(2),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, size in zip(facet_x, facet_y, facet_size)
+        ]
 
 
 class OpticsDescription:
