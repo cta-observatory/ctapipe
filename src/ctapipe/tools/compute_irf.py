@@ -563,7 +563,7 @@ class IrfTool(Tool):
         )
 
         self.meta.data = dp.ProductType(
-            level=dp.DataLevel.SIM,
+            level=dp.DataLevel.DL3,
             division=dp.DataDivision.SERVICE,
             association=dp.DataAssociation.SUBARRAY,
             type=dp.DataType.GRID_IRF,  # TODO: How to check TAILORED?

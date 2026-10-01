@@ -6,7 +6,6 @@ import json
 import uuid
 import warnings
 
-import ctao_datamodel as dm
 import ctao_datamodel.models.dataproducts as dp
 import pytest
 import tables
@@ -157,7 +156,7 @@ def test_reference_metadata_ecsv(tmp_path, reference):
     assert back.to_dict() == reference.to_dict()
 
 
-def test_read_hdf5_metadata(tmp_path):
+def test_read_hdf5_attributes(tmp_path):
     # Testing one can read both a path as well as a PyTables file object
     filename = tmp_path / "test.h5"
     metadata_in = {"SOFTWARE": "ctapipe", "FOO": "BAR"}
@@ -166,29 +165,27 @@ def test_read_hdf5_metadata(tmp_path):
         h5file.create_group(where="/node", name="subnode", createparents=True)
         meta.write_to_hdf5(metadata_in, h5file, path=metadata_path)
 
-    metadata_out = meta._read_hdf5_metadata(filename, path=metadata_path)
+    metadata_out = meta._read_hdf5_attributes(filename, path=metadata_path)
     assert metadata_out == metadata_in
 
     with tables.open_file(filename, "r") as file:
-        metadata_out = meta._read_hdf5_metadata(file, path=metadata_path)
+        metadata_out = meta._read_hdf5_attributes(file, path=metadata_path)
 
     assert metadata_out == metadata_in
 
 
 def _write_current_metadata(path, product, file_format):
-    flat = dm.flatten_model_instance(product, parent_key="CTAO")
-
     if file_format == "hdf5":
         with tables.open_file(path, mode="w") as h5file:
             meta.write_product_metadata_hdf5(product, h5file)
     elif file_format == "fits":
         header = fits.Header()
-        header.update(flat)
+        meta.write_product_metadata_fits_header(product, header)
         fits.PrimaryHDU(header=header).writeto(path)
     elif file_format == "ecsv":
-        Table({"value": [1]}, meta=flat).write(path)
+        Table({"value": [1]}, meta=product.model_dump(mode="json")).write(path)
     elif file_format == "json":
-        path.write_text(json.dumps({"metadata": flat}))
+        path.write_text(json.dumps(product.model_dump(mode="json")))
 
 
 @pytest.mark.parametrize("file_format", ["hdf5", "fits", "ecsv", "json"])
@@ -201,6 +198,20 @@ def test_read_current_metadata_supported_formats(tmp_path, ctao_product, file_fo
     assert meta.read_ctao_metadata(path) == ctao_product
 
 
+@pytest.mark.parametrize("file_format", ["hdf5", "fits", "ecsv", "json"])
+def test_read_current_metadata_rejects_unsupported_version(
+    tmp_path, ctao_product, file_format
+):
+    product = ctao_product.model_copy(update={"ctao_metadata_version": "999.0.0"})
+    path = tmp_path / f"product.{file_format}"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", fits.verify.VerifyWarning)
+        _write_current_metadata(path, product, file_format)
+
+    with pytest.raises(ValueError, match="Unsupported CTAO metadata version: 999.0.0"):
+        meta.read_ctao_metadata(path)
+
+
 def test_read_current_metadata_from_open_hdf5(tmp_path, ctao_product):
     path = tmp_path / "product.h5"
     _write_current_metadata(path, ctao_product, "hdf5")
@@ -208,6 +219,19 @@ def test_read_current_metadata_from_open_hdf5(tmp_path, ctao_product):
     with tables.open_file(path) as h5file:
         assert meta.read_ctao_metadata(h5file) == ctao_product
         assert h5file.isopen
+
+
+def test_read_fits_metadata_with_missing_optional_urls(tmp_path, ctao_product):
+    product = ctao_product.model_copy(deep=True)
+    product.model.url = None
+    product.activity.software.url = None
+    path = tmp_path / "product.fits"
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", fits.verify.VerifyWarning)
+        _write_current_metadata(path, product, "fits")
+
+    assert meta.read_ctao_metadata(path) == product
 
 
 def test_read_metadata_ignores_unrelated_attributes(tmp_path, ctao_product):
@@ -377,6 +401,25 @@ def test_legacy_missing_optional_values_and_contact_fallback(reference):
     assert product.model.url is None
 
 
+def test_read_legacy_metadata_with_invalid_contact(tmp_path, reference):
+    with reference.contact.cross_validation_lock:
+        reference.contact.name = ""
+        reference.contact.email = ""
+
+    path = tmp_path / "legacy-invalid-contact.h5"
+    with tables.open_file(path, mode="w") as h5file:
+        meta.write_to_hdf5(reference.to_dict(), h5file)
+
+    with pytest.warns(meta.LegacyMetadataWarning, match="invalid contact"):
+        product = meta.read_ctao_metadata(path)
+
+    assert product.contact == dp.Contact(
+        name="unknown",
+        organization="unknown",
+        email="unknown@example.org",
+    )
+
+
 @pytest.mark.parametrize(
     ("process_type", "category", "has_simulation_group", "expected"),
     [
@@ -409,6 +452,9 @@ def test_invalid_and_missing_metadata(tmp_path, ctao_product):
     with pytest.raises(ValueError, match="Unsupported metadata format"):
         meta.read_ctao_metadata(unsupported)
 
+    with pytest.raises(ValueError, match="No legacy CTA reference metadata found"):
+        meta.read_reference_metadata(unsupported)
+
     invalid = tmp_path / "invalid.h5"
     with tables.open_file(invalid, mode="w") as h5file:
         meta.write_product_metadata_hdf5(ctao_product, h5file)
@@ -428,7 +474,7 @@ def test_write_product_metadata_removes_only_legacy(tmp_path, ctao_product, refe
             warnings.simplefilter("ignore", tables.NaturalNameWarning)
             h5file.root._v_attrs["CONTEXT custom"] = "keep"
         meta.write_product_metadata_hdf5(ctao_product, h5file, remove_legacy=True)
-        attributes = meta._read_hdf5_metadata(h5file)
+        attributes = meta._read_hdf5_attributes(h5file)
 
     assert not any(name.startswith("CTA ") for name in attributes)
     assert attributes["CONTEXT custom"] == "keep"
