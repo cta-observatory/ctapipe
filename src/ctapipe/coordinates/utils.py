@@ -11,6 +11,7 @@ __all__ = [
     "altaz_to_righthanded_cartesian",
     "get_point_on_shower_axis",
     "altaz_to_nominal",
+    "altaz_to_icrs",
 ]
 
 
@@ -103,3 +104,23 @@ def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> u.Quantity:
     return u.Quantity(
         np.column_stack((nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
     )
+
+
+def altaz_to_icrs(az, alt, obstime, location) -> u.Quantity:
+    """
+    Compute nominal (FOV) coordinates from alt/az coordinates.
+
+    This can be used in a FeatureGenerator or ExpressionEngine to get a single
+    column with fov_lon, fov_lat coordinates.
+
+    Returns
+    -------
+    u.Quantity:
+       2D array of coordinates with 2 columns: ra, dec
+    """
+    event_coord = SkyCoord(
+        az=az, alt=alt, frame="altaz", obstime=obstime, location=location
+    )
+    icrs_coord = event_coord.transform_to("icrs")
+
+    return u.Quantity(np.column_stack((icrs_coord.ra.deg, icrs_coord.dec.deg)), u.deg)
