@@ -999,27 +999,6 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
     )
 
 
-def _read_fits_metadata(fits_file) -> dp.Product:
-    """Read CTAO product metadata from a FITS file."""
-    with fits.open(fits_file) as hdul:
-        header = hdul[0].header
-
-        _check_metadata_version(header.get("CTAOMETA"))
-
-        # Temporary workaround for
-        # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
-        # FITS does not preserve URL keywords whose value is None.
-        if "MODEL" in header and "MODELURL" not in header:
-            header["MODELURL"] = None
-        if "SOFTWARE" in header and "SOFTURL" not in header:
-            header["SOFTURL"] = None
-
-        return dm.fits_header_to_instance(
-            header,
-            model=dp.Product,
-        )
-
-
 def _read_ecsv_metadata(ecsv_file) -> dp.Product:
     """Read CTAO product metadata from an ECSV file."""
     metadata = Table.read(ecsv_file).meta
@@ -1038,6 +1017,34 @@ def _read_json_metadata(json_file) -> dp.Product:
     return dp.Product.model_validate(metadata)
 
 
+def _read_fits_metadata(fits_file) -> dp.Product:
+    """Read current or legacy CTAO product metadata from a FITS file."""
+    with fits.open(fits_file) as hdul:
+        header = hdul[0].header
+
+        # Current CTAO metadata
+        if "CTAOMETA" in header:
+            _check_metadata_version(header["CTAOMETA"])
+
+            # Temporary workaround for
+            # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
+            if "MODEL" in header and "MODELURL" not in header:
+                header["MODELURL"] = None
+            if "SOFTWARE" in header and "SOFTURL" not in header:
+                header["SOFTURL"] = None
+
+            return dm.fits_header_to_instance(
+                header,
+                model=dp.Product,
+            )
+
+        # Legacy CTA metadata
+        if "CTA REFERENCE VERSION" in header:
+            return _read_legacy_product(header, fits_file)
+
+        raise ValueError("Unsupported metadata format")
+
+
 def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
     """Read current or legacy CTAO product metadata from an HDF5 file or node."""
     metadata = _read_hdf5_attributes(h5file, path)
@@ -1046,29 +1053,37 @@ def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
         _check_metadata_version(metadata.get("CTAO.ctao_metadata_version"))
         return metadata_to_product(metadata)
 
-    # Old Data Model
     if "CTA REFERENCE VERSION" in metadata:
-        warnings.warn(
-            "Legacy ctapipe metadata detected. "
-            "If this file is not already being migrated, use ctapipe-merge to convert it "
-            "to the current CTAO metadata format.",
-            LegacyMetadataWarning,
-            stacklevel=2,
-        )
-
-        reference = Reference.from_dict(metadata)
-        contact_fallback = dp.Contact(
-            name="unknown",
-            organization="unknown",
-            email="unknown@example.org",
-        )
-        product_type = _legacy_product_type(h5file, reference)
-
-        return _legacy_reference_to_product(
-            reference, product_type, contact_fallback=contact_fallback
-        )
+        return _read_legacy_product(metadata, h5file)
 
     raise ValueError("Unsupported metadata format")
+
+
+def _read_legacy_product(metadata, input_file) -> dp.Product:
+    """Convert legacy CTA reference metadata to a current CTAO product."""
+    warnings.warn(
+        "Legacy ctapipe metadata detected. "
+        "If this file is not already being migrated, use ctapipe-merge to convert it "
+        "to the current CTAO metadata format.",
+        LegacyMetadataWarning,
+        stacklevel=2,
+    )
+
+    reference = Reference.from_dict(metadata)
+
+    contact_fallback = dp.Contact(
+        name="unknown",
+        organization="unknown",
+        email="unknown@example.org",
+    )
+
+    product_type = _legacy_product_type(input_file, reference)
+
+    return _legacy_reference_to_product(
+        reference,
+        product_type,
+        contact_fallback=contact_fallback,
+    )
 
 
 def _read_hdf5_attributes(h5file, path="/"):
@@ -1303,7 +1318,7 @@ def _legacy_uuid(value: str | None, field: str) -> uuid.UUID:
 
 def to_ctao_data_type(
     reference: Reference,
-    input_file,
+    input_file=None,
 ) -> dp.DataType:
     """Infer the CTAO data type represented by legacy metadata.
 
@@ -1332,17 +1347,12 @@ def to_ctao_data_type(
     if reference.product.data_category == "Sim":
         return dp.DataType.OBSERVATION_SIM
 
-    # final HDF5 fallback
-    if isinstance(input_file, tables.File):
-        if "/configuration/simulation" in input_file:
-            return dp.DataType.OBSERVATION_SIM
-    else:
-        try:
-            with tables.open_file(input_file, mode="r") as h5file:
-                if "/configuration/simulation" in h5file:
-                    return dp.DataType.OBSERVATION_SIM
-        except tables.HDF5ExtError:
-            pass
+    # final HDF5-only fallback
+    if (
+        isinstance(input_file, tables.File)
+        and "/configuration/simulation" in input_file
+    ):
+        return dp.DataType.OBSERVATION_SIM
 
     return dp.DataType.OBSERVATION
 

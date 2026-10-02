@@ -572,3 +572,21 @@ def test_configurable_product_metadata_validation(ctao_product):
 
     with pytest.raises(TraitError):
         meta.ProductMetadata().to_model()
+
+
+def test_read_legacy_fits_metadata(tmp_path, reference):
+    path = tmp_path / "legacy.fits"
+
+    header = fits.Header()
+    header.update(reference.to_dict(fits=True))
+    fits.PrimaryHDU(header=header).writeto(path)
+
+    with fits.open(path) as hdul:
+        assert "CTA REFERENCE VERSION" in hdul[0].header
+
+    with pytest.warns(meta.LegacyMetadataWarning):
+        product = meta.read_ctao_metadata(path)
+
+    assert isinstance(product, dp.Product)
+    assert product.description == reference.product.description
+    assert product.model.name == reference.product.data_model_name
