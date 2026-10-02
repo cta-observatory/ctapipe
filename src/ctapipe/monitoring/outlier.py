@@ -110,7 +110,7 @@ class MedianOutlierDetector(OutlierDetector):
                 "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
             )
         pixel_axis = column.ndim - 1
-        # Mask NaN values (e.g. from per-gain statistics of gain selected data)
+        # Mask NaN values (e.g. from per-channel statistics of gain selected data)
         values = np.ma.masked_invalid(np.asarray(column))
         # Camera median
         camera_median = np.ma.median(values, axis=pixel_axis)
@@ -151,7 +151,7 @@ class StdOutlierDetector(OutlierDetector):
                 "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
             )
         pixel_axis = column.ndim - 1
-        # Mask NaN values (e.g. from per-gain statistics of gain selected data)
+        # Mask NaN values (e.g. from per-channel statistics of gain selected data)
         values = np.ma.masked_invalid(np.asarray(column))
         # Camera median
         camera_median = np.ma.median(values, axis=pixel_axis)

@@ -219,11 +219,11 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         )
 
 
-def test_calculate_pixel_stats_tool_per_gain(tmp_path, dl1_image_file):
-    """check per-gain statistics calculation from gain selected image data"""
+def test_calculate_pixel_stats_tool_per_channel(tmp_path, dl1_image_file):
+    """check per-channel statistics calculation from gain selected image data"""
 
     tel_id = 3
-    output_file = tmp_path / "per_gain_monitoring.dl1.h5"
+    output_file = tmp_path / "per_channel_monitoring.dl1.h5"
     config = Config(
         {
             "PixelStatisticsCalculatorTool": {
@@ -244,7 +244,7 @@ def test_calculate_pixel_stats_tool_per_gain(tmp_path, dl1_image_file):
         argv=[
             f"--input_url={dl1_image_file}",
             f"--output_path={output_file}",
-            "--per-gain",
+            "--per-channel",
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -271,8 +271,8 @@ def test_calculate_pixel_stats_tool_per_gain(tmp_path, dl1_image_file):
     assert np.all(np.isnan(stats["mean"][event_index, 1 - gain, pixel_index]))
 
 
-@pytest.mark.parametrize("per_gain_statistics", [True, False])
-def test_reshape_dl1_dimensions_per_gain(dl1_image_file, per_gain_statistics):
+@pytest.mark.parametrize("per_channel_statistics", [True, False])
+def test_reshape_dl1_dimensions_per_channel(dl1_image_file, per_channel_statistics):
     """check the reshaping of gain selected data with mixed gain channels"""
 
     tel_id = 3
@@ -291,11 +291,11 @@ def test_reshape_dl1_dimensions_per_gain(dl1_image_file, per_gain_statistics):
         }
     )
 
-    tool = PixelStatisticsCalculatorTool(per_gain_statistics=per_gain_statistics)
+    tool = PixelStatisticsCalculatorTool(per_channel_statistics=per_channel_statistics)
     tool.subarray = subarray
     tool._reshape_dl1_dimensions(dl1_table, tel_id)
 
-    if not per_gain_statistics:
+    if not per_channel_statistics:
         assert dl1_table["image"].shape == (n_events, 1, n_pixels)
         return
 
@@ -309,8 +309,8 @@ def test_reshape_dl1_dimensions_per_gain(dl1_image_file, per_gain_statistics):
         assert np.all(np.isnan(dl1_table[col][event_index, 1 - gain, pixel_index]))
 
 
-def test_per_gain_missing_selected_gain_channel(dl1_image_file):
-    """check error if per-gain statistics are requested without gain information"""
+def test_per_channel_missing_selected_gain_channel(dl1_image_file):
+    """check error if per-channel statistics are requested without gain information"""
 
     tel_id = 3
     subarray = SubarrayDescription.from_hdf(dl1_image_file)
@@ -319,7 +319,7 @@ def test_per_gain_missing_selected_gain_channel(dl1_image_file):
 
     tool = PixelStatisticsCalculatorTool(
         config=Config({"SizeChunking": {"chunk_size": 1}}),
-        per_gain_statistics=True,
+        per_channel_statistics=True,
     )
     tool.subarray = subarray
     tool.stats_calculator = PixelStatisticsCalculator(parent=tool, subarray=subarray)

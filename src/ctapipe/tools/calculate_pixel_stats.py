@@ -62,7 +62,7 @@ class PixelStatisticsCalculatorTool(Tool):
         help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
-    per_gain_statistics = Bool(
+    per_channel_statistics = Bool(
         default_value=False,
         help=(
             "If the input data is gain selected, fill each pixel value into the "
@@ -90,9 +90,9 @@ class PixelStatisticsCalculatorTool(Tool):
             {"HDF5Merger": {"append": True}},
             "Append to existing files",
         ),
-        "per-gain": (
-            {"PixelStatisticsCalculatorTool": {"per_gain_statistics": True}},
-            "Calculate per-gain statistics for gain selected input data",
+        "per-channel": (
+            {"PixelStatisticsCalculatorTool": {"per_channel_statistics": True}},
+            "Calculate per-channel statistics for gain selected input data",
         ),
     }
 
@@ -214,15 +214,15 @@ class PixelStatisticsCalculatorTool(Tool):
                 f"Column '{self.input_column_name}' not found "
                 f"in the input data for telescope 'tel_id={tel_id}'."
             )
-        # Check if the gain channel information is available for per-gain statistics
+        # Check if the gain channel information is available for per-channel statistics
         if (
-            self.per_gain_statistics
+            self.per_channel_statistics
             and table[self.input_column_name].ndim == 2
             and self.subarray.tel[tel_id].camera.readout.n_channels > 1
             and "selected_gain_channel" not in table.colnames
         ):
             raise ToolConfigurationError(
-                "Per-gain statistics requested, but column 'selected_gain_channel' "
+                "Per-channel statistics requested, but column 'selected_gain_channel' "
                 f"not found in the gain selected input data for telescope "
                 f"'tel_id={tel_id}'."
             )
@@ -232,31 +232,31 @@ class PixelStatisticsCalculatorTool(Tool):
         """
         Check if the dl1 data is gain selected and add an extra dimension.
 
-        If ``per_gain_statistics`` is enabled, the gain selected data is filled
+        If ``per_channel_statistics`` is enabled, the gain selected data is filled
         into an array of shape (n_events, n_channels, n_pixels) according to
         ``selected_gain_channel``, with NaN for the not selected channel.
         """
         n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
-        fill_per_gain = (
-            self.per_gain_statistics
+        fill_per_channel = (
+            self.per_channel_statistics
             and n_channels > 1
             and "selected_gain_channel" in dl1_table.colnames
         )
         for col in DL1_COLUMN_NAMES:
             if col not in dl1_table.colnames or dl1_table[col].ndim != 2:
                 continue
-            if not fill_per_gain:
+            if not fill_per_channel:
                 dl1_table[col] = dl1_table[col][:, np.newaxis]
                 continue
             unit = dl1_table[col].unit
             data = np.asarray(dl1_table[col])
             gain = np.asarray(dl1_table["selected_gain_channel"])
-            per_gain_data = np.full(
+            per_channel_data = np.full(
                 (data.shape[0], n_channels, data.shape[1]), np.nan, dtype=np.float32
             )
             event_index, pixel_index = np.indices(data.shape)
-            per_gain_data[event_index, gain, pixel_index] = data
-            dl1_table[col] = per_gain_data
+            per_channel_data[event_index, gain, pixel_index] = data
+            dl1_table[col] = per_channel_data
             dl1_table[col].unit = unit
 
     def _process_telescope_stats(self, dl1_table, tel_id):

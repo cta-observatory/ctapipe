@@ -143,7 +143,7 @@ def test_detection_with_nan(example_subarray, detector_cls, config):
 
     rng = np.random.default_rng(0)
     values = rng.normal(77.0, 0.6, size=(10, 2, 1855))
-    # Mimic per-gain statistics of gain selected data with mostly empty low gain
+    # Mimic per-channel statistics of gain selected data with mostly empty low gain
     values[:, 1, 1000:] = np.nan
     values[3, 1, 50] = 21045.1
     values[5, 0, 120] = 21045.1
