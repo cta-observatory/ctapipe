@@ -359,8 +359,8 @@ And then push your changes. Note that when rebasing, ``--force`` is needed.
 
 .. code-block:: console
 
-   $ git push          # when using merge
-   $ git push --force  # when rebasing
+   $ git push                     # when using merge
+   $ git push --force-with-lease  # when rebasing
 
 
 Create a *Pull Request*
