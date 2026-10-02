@@ -7,7 +7,7 @@ import pathlib
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.containers import EventType
+from ctapipe.containers import EventType, PixelStatus
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
@@ -219,10 +219,10 @@ class PixelStatisticsCalculatorTool(Tool):
             self.per_channel_statistics
             and table[self.input_column_name].ndim == 2
             and self.subarray.tel[tel_id].camera.readout.n_channels > 1
-            and "selected_gain_channel" not in table.colnames
+            and "pixel_status" not in table.colnames
         ):
             raise ToolConfigurationError(
-                "Per-channel statistics requested, but column 'selected_gain_channel' "
+                "Per-channel statistics requested, but column 'pixel_status' "
                 f"not found in the gain selected input data for telescope "
                 f"'tel_id={tel_id}'."
             )
@@ -234,28 +234,42 @@ class PixelStatisticsCalculatorTool(Tool):
 
         If ``per_channel_statistics`` is enabled, the gain selected data is filled
         into an array of shape (n_events, n_channels, n_pixels) according to
-        ``selected_gain_channel``, with NaN for the not selected channel.
+        ``selected_gain_channel``, which is derived from ``pixel_status``, with NaN
+        for the not selected channel. Pixels without a stored gain channel
+        (e.g. broken pixels) are NaN in both channels.
         """
         n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
         fill_per_channel = (
             self.per_channel_statistics
             and n_channels > 1
-            and "selected_gain_channel" in dl1_table.colnames
+            and "pixel_status" in dl1_table.colnames
         )
-        for col in DL1_COLUMN_NAMES:
-            if col not in dl1_table.colnames or dl1_table[col].ndim != 2:
-                continue
-            if not fill_per_channel:
+        gain_selected_cols = [
+            col
+            for col in DL1_COLUMN_NAMES
+            if col in dl1_table.colnames and dl1_table[col].ndim == 2
+        ]
+        if not fill_per_channel:
+            for col in gain_selected_cols:
                 dl1_table[col] = dl1_table[col][:, np.newaxis]
-                continue
+            return
+
+        # channel info: 1 = only high gain stored, 2 = only low gain stored
+        channel_info = PixelStatus.get_channel_info(
+            np.asarray(dl1_table["pixel_status"])
+        )
+        stored = (channel_info == 1) | (channel_info == 2)
+        event_index, pixel_index = np.nonzero(stored)
+        selected_gain_channel = channel_info[stored].astype(np.int8) - 1
+        for col in gain_selected_cols:
             unit = dl1_table[col].unit
             data = np.asarray(dl1_table[col])
-            gain = np.asarray(dl1_table["selected_gain_channel"])
             per_channel_data = np.full(
                 (data.shape[0], n_channels, data.shape[1]), np.nan, dtype=np.float32
             )
-            event_index, pixel_index = np.indices(data.shape)
-            per_channel_data[event_index, gain, pixel_index] = data
+            per_channel_data[event_index, selected_gain_channel, pixel_index] = data[
+                event_index, pixel_index
+            ]
             dl1_table[col] = per_channel_data
             dl1_table[col].unit = unit
 
