@@ -8,22 +8,17 @@ if find_spec("pyirf") is None:
     raise OptionalDependencyMissing("pyirf") from None
 
 import operator
-import uuid
 from functools import partial
 
 import astropy.units as u
-import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 from astropy.io import fits
 from astropy.table import vstack
-from astropy.time import Time
 from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
-from traitlets import Instance
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Int, classes_with_traits, flag
-from ..io import metadata as meta
 from ..io.dl2_tables_preprocessing import (
     DL2EventLoader,
     DL2EventQualityQuery,
@@ -62,23 +57,6 @@ class IrfTool(Tool):
         --output irf.fits.gz \\
         --benchmark-output benchmarks.fits.gz
     """
-    contact_info = Instance(
-        meta.Contact,
-        kw={},
-        help="Contact information for the output data product.",
-    ).tag(config=True)
-
-    curation_info = Instance(
-        meta.Curation,
-        kw={},
-        help="Curation information for the output data product.",
-    ).tag(config=True)
-
-    product_info = Instance(
-        meta.ProductMetadata,
-        kw={},
-        help="Product information for the output data product.",
-    ).tag(config=True)
 
     do_background = Bool(
         True,
@@ -273,16 +251,6 @@ class IrfTool(Tool):
         Initialize components from config and load g/h (and theta) cuts.
         """
         self._check_config()
-
-        self.contact_info = meta.Contact(parent=self)
-        self.curation_info = meta.Curation(parent=self)
-        self.product_info = meta.ProductMetadata(parent=self)
-        # Validate metadata before creating the output file.
-        self.contact_info.to_model()
-        self.curation_info.to_model()
-        self.product_info.instance.to_model()
-
-        self.meta = meta.read_ctao_metadata(self.gamma_file)
 
         self.opt_result = OptimizationResult.read(self.cuts_file)
 
@@ -540,38 +508,6 @@ class IrfTool(Tool):
             )
         return hdus
 
-    def _update_meta(self):
-        """Update metadata for the IRF output product."""
-        # configurable overrides
-        if self.product_info.modified:
-            self.meta.description = self.product_info.description
-            self.meta.disclaimer = self.product_info.disclaimer
-        else:
-            self.meta.description = "IRFs generated with ctapipe"
-
-        if self.product_info.instance.modified:
-            self.meta.instance = self.product_info.instance.to_model()
-
-        if self.contact_info.modified:
-            self.meta.contact = self.contact_info.to_model()
-
-        if self.curation_info.modified:
-            self.meta.curation = self.curation_info.to_model()
-
-        # values determined by the tool
-        self.meta.creation_time = Time.now()
-        self.meta.instance.id = uuid.uuid4()
-        self.meta.activity = meta.activity_from_provenance(
-            Provenance().current_activity
-        )
-
-        self.meta.data = dp.ProductType(
-            level=dp.DataLevel.DL3,  # TODO: IRFs = DL3?
-            division=dp.DataDivision.SERVICE,
-            association=dp.DataAssociation.SUBARRAY,
-            type=dp.DataType.GRID_IRF,  # TODO: How to check TAILORED?
-        )
-
     def start(self):
         """
         Load events and calculate the irf (and the benchmarks).
@@ -733,13 +669,6 @@ class IrfTool(Tool):
         Write the irf (and the benchmarks) to the (respective) output file(s).
         """
         self.log.info("Writing outputfile '%s'" % self.output_path)
-
-        self._update_meta()
-        meta.write_product_metadata_fits_header(
-            self.meta,
-            self.hdus[0].header,
-        )
-
         fits.HDUList(self.hdus).writeto(
             self.output_path,
             overwrite=self.overwrite,
