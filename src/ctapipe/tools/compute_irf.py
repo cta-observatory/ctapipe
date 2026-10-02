@@ -543,16 +543,19 @@ class IrfTool(Tool):
     def _update_meta(self):
         """Update metadata for the IRF output product."""
         # configurable overrides
-        if self.config.get("ProductMetadata", {}):
+        if self.product_info.modified:
             self.meta.description = self.product_info.description
+            self.meta.disclaimer = self.product_info.disclaimer
         else:
             self.meta.description = "IRFs generated with ctapipe"
 
-        if self.config.get("InstanceMetadata", {}):
+        if self.product_info.instance.modified:
             self.meta.instance = self.product_info.instance.to_model()
-        if self.config.get("Contact", {}):
+
+        if self.contact_info.modified:
             self.meta.contact = self.contact_info.to_model()
-        if self.config.get("Curation", {}):
+
+        if self.curation_info.modified:
             self.meta.curation = self.curation_info.to_model()
 
         # values determined by the tool
@@ -563,7 +566,7 @@ class IrfTool(Tool):
         )
 
         self.meta.data = dp.ProductType(
-            level=dp.DataLevel.DL3,
+            level=dp.DataLevel.DL3,  # TODO: IRFs = DL3?
             division=dp.DataDivision.SERVICE,
             association=dp.DataAssociation.SUBARRAY,
             type=dp.DataType.GRID_IRF,  # TODO: How to check TAILORED?

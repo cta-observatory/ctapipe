@@ -321,7 +321,7 @@ class HDF5Merger(Component):
         self._update_product_type()
         self._update_datalevel()
 
-        if "Contact" in self.config:
+        if self.contact_info._modified:
             self.meta.contact = self.contact_info.to_model()
 
         if len(self._merged_obs_ids) > 1:
