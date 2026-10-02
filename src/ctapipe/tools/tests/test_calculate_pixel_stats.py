@@ -9,7 +9,7 @@ import pytest
 from astropy.table import Table
 from traitlets.config.loader import Config
 
-from ctapipe.containers import ChunkHistogramContainer, PixelStatus
+from ctapipe.containers import ChunkHistogramContainer
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
@@ -260,23 +260,15 @@ def test_calculate_pixel_stats_tool_per_channel(tmp_path, dl1_image_file):
 
     n_pixels = dl1_table["image"].shape[1]
     assert stats["mean"].shape == (len(dl1_table), 2, n_pixels)
+    # Each sample is filled into exactly one gain channel
+    np.testing.assert_array_equal(stats["n_events"].sum(axis=1), 1)
 
-    channel_info = PixelStatus.get_channel_info(dl1_table["pixel_status"])
-    high_gain_only = channel_info == 1
-    low_gain_only = channel_info == 2
-    assert np.any(high_gain_only)
-    # Each sample with a stored gain channel is filled into exactly one channel
-    np.testing.assert_array_equal(
-        stats["n_events"].sum(axis=1), high_gain_only | low_gain_only
+    gain = dl1_table["selected_gain_channel"]
+    event_index, pixel_index = np.indices(gain.shape)
+    np.testing.assert_allclose(
+        stats["mean"][event_index, gain, pixel_index], dl1_table["image"]
     )
-
-    image = np.asarray(dl1_table["image"])
-    high_gain_mean = stats["mean"][:, 0]
-    low_gain_mean = stats["mean"][:, 1]
-    np.testing.assert_allclose(high_gain_mean[high_gain_only], image[high_gain_only])
-    np.testing.assert_allclose(low_gain_mean[low_gain_only], image[low_gain_only])
-    assert np.all(np.isnan(high_gain_mean[~high_gain_only]))
-    assert np.all(np.isnan(low_gain_mean[~low_gain_only]))
+    assert np.all(np.isnan(stats["mean"][event_index, 1 - gain, pixel_index]))
 
 
 @pytest.mark.parametrize("per_channel_statistics", [True, False])
@@ -289,23 +281,13 @@ def test_reshape_dl1_dimensions_per_channel(dl1_image_file, per_channel_statisti
     n_events = 5
 
     rng = np.random.default_rng(0)
-    gain = rng.integers(0, 2, size=(n_events, n_pixels))
+    gain = rng.integers(0, 2, size=(n_events, n_pixels), dtype=np.int8)
     image = rng.normal(10.0, 1.0, size=(n_events, n_pixels)).astype(np.float32)
-    pixel_status = np.where(
-        gain == 0,
-        np.uint8(PixelStatus.HIGH_GAIN_STORED),
-        np.uint8(PixelStatus.LOW_GAIN_STORED),
-    ).astype(np.uint8)
-    pixel_status |= np.uint8(PixelStatus.DVR_0)
-    # Broken pixels have no gain channel stored
-    broken = np.zeros((n_events, n_pixels), dtype=bool)
-    broken[:, :10] = True
-    pixel_status[broken] = 0
     dl1_table = Table(
         {
             "image": image * u.ct,
             "peak_time": image * u.ns,
-            "pixel_status": pixel_status,
+            "selected_gain_channel": gain,
         }
     )
 
@@ -321,15 +303,13 @@ def test_reshape_dl1_dimensions_per_channel(dl1_image_file, per_channel_statisti
     for col, unit in [("image", u.ct), ("peak_time", u.ns)]:
         assert dl1_table[col].shape == (n_events, 2, n_pixels)
         assert dl1_table[col].unit == unit
-        data = np.asarray(dl1_table[col])
-        selected = data[event_index, gain, pixel_index]
-        not_selected = data[event_index, 1 - gain, pixel_index]
-        np.testing.assert_array_equal(selected[~broken], image[~broken])
-        assert np.all(np.isnan(selected[broken]))
-        assert np.all(np.isnan(not_selected))
+        np.testing.assert_array_equal(
+            dl1_table[col][event_index, gain, pixel_index], image
+        )
+        assert np.all(np.isnan(dl1_table[col][event_index, 1 - gain, pixel_index]))
 
 
-def test_per_channel_missing_pixel_status(dl1_image_file):
+def test_per_channel_missing_selected_gain_channel(dl1_image_file):
     """check error if per-channel statistics are requested without gain information"""
 
     tel_id = 3
@@ -344,5 +324,7 @@ def test_per_channel_missing_pixel_status(dl1_image_file):
     tool.subarray = subarray
     tool.stats_calculator = PixelStatisticsCalculator(parent=tool, subarray=subarray)
 
-    with pytest.raises(ToolConfigurationError, match="'pixel_status' not found"):
+    with pytest.raises(
+        ToolConfigurationError, match="'selected_gain_channel' not found"
+    ):
         tool._is_valid_table(dl1_table, tel_id)
