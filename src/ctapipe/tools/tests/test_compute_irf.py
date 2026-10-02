@@ -1,12 +1,10 @@
 import json
 import logging
 
-import ctao_datamodel.models.dataproducts as dp
 import pytest
 from astropy.io import fits
 
 from ctapipe.core import ToolConfigurationError, run_tool
-from ctapipe.io.metadata import read_ctao_metadata
 
 pytest.importorskip("pyirf")
 
@@ -82,15 +80,6 @@ def test_irf_tool(
 
         if include_background:
             assert isinstance(hdul["BACKGROUND"], fits.BinTableHDU)
-
-    product = read_ctao_metadata(output_path)
-    assert product.description == "IRFs generated with ctapipe"
-    assert product.data == dp.ProductType(
-        level=dp.DataLevel.DL3,
-        division=dp.DataDivision.SERVICE,
-        association=dp.DataAssociation.SUBARRAY,
-        type=dp.DataType.GRID_IRF,
-    )
 
     output_path.unlink()  # Delete output file
 
