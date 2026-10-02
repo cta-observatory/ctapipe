@@ -1,0 +1,5 @@
+Add the option ``per_gain_statistics`` (flag ``--per-gain``) to
+``ctapipe-calculate-pixel-statistics`` to calculate per-gain statistics from
+gain selected input data. Each pixel value is filled into the gain channel given
+by ``selected_gain_channel``, so that mixed-gain inputs result in statistics
+for both gain channels.

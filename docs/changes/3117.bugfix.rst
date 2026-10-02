@@ -1,0 +1,3 @@
+``MedianOutlierDetector`` and ``StdOutlierDetector`` now ignore NaN values when
+computing the camera median and standard deviation. Previously, a single NaN value
+resulted in no outliers being detected for the whole camera.

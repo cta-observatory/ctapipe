@@ -1,0 +1,3 @@
+Add the field ``selected_gain_channel`` to ``DL1CameraContainer``, which is filled
+by the ``CameraCalibrator`` for gain selected data and written to the DL1 image tables.
+The data model version is increased to v7.7.0.
