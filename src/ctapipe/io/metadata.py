@@ -39,6 +39,7 @@ from traitlets import (
     Unicode,
     UseEnum,
     default,
+    observe,
     validate,
 )
 from traitlets.config import Configurable
@@ -110,6 +111,16 @@ class Contact(Configurable):
     name = Unicode(default_value="unknown").tag(config=True)
     email = Unicode(default_value="unknown@example.org").tag(config=True)
     organization = Unicode(default_value="unknown").tag(config=True)
+
+    _modified = False
+
+    @observe("name", "email", "organization")
+    def _mark_modified(self, change):
+        self._modified = True
+
+    @property
+    def modified(self):
+        return self._modified
 
     @validate("name", "email", "organization")
     def _validate_contact(self, proposal):
@@ -195,6 +206,26 @@ class Curation(Configurable):
         default_value=dp.Curation.model_fields["valid_to"].default,
         allow_none=True,
     ).tag(config=True)
+
+    _modified = False
+
+    @observe(
+        "release",
+        "reference",
+        "license",
+        "license_url",
+        "copyright",
+        "rights",
+        "release_date",
+        "valid_from",
+        "valid_to",
+    )
+    def _mark_modified(self, change):
+        self._modified = True
+
+    @property
+    def modified(self):
+        return self._modified
 
     @validate(
         "release",
@@ -323,6 +354,29 @@ class InstanceMetadata(Configurable):
         allow_none=True,
     ).tag(config=True)
 
+    _modified = False
+
+    @observe(
+        "category",
+        "site_id",
+        "subarray_id",
+        "target_id",
+        "region_id",
+        "observing_period_id",
+        "lunar_cycle_id",
+        "batch_id",
+        "calibration_service_id",
+        "event_type",
+        "data_source",
+        "assembly_name",
+    )
+    def _mark_modified(self, change):
+        self._modified = True
+
+    @property
+    def modified(self):
+        return self._modified
+
     @validate(
         "category",
         "site_id",
@@ -398,6 +452,16 @@ class ProductMetadata(Configurable):
     ).tag(config=True)
 
     instance = Instance(InstanceMetadata)
+
+    _modified = False
+
+    @observe("description", "disclaimer")
+    def _mark_modified(self, change):
+        self._modified = True
+
+    @property
+    def modified(self):
+        return self._modified
 
     @default("instance")
     def _default_instance(self):
@@ -702,9 +766,9 @@ class Reference(HasTraits):
 
             kwargs[group][key] = value
 
-        # Legacy metadata may contain contact values that are invalid in the
-        # current data model. Preserve them here so conversion can replace the
-        # complete contact with its documented fallback.
+        # Legacy files may contain contact data that does not satisfy the current
+        # CTAO model. Preserve it here so migration can apply its documented
+        # fallback contact later.
         contact = Contact()
         with contact.cross_validation_lock:
             for key, value in kwargs["contact"].items():

@@ -23,12 +23,6 @@ from ctapipe.io.hdf5tableio import get_column_attrs
 from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
-CURATION = {
-    "release": "test",
-    "license": "CC-BY-SA-4.0",
-    "copyright": "CTAO",
-}
-
 
 def generate_dummy_dl2(event):
     """generate some dummy DL2 info and see if we can write it"""
@@ -266,7 +260,11 @@ def test_metadata(tmpdir: Path):
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
                 },
-                "Curation": CURATION,
+                "Curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
                 "ProductMetadata": {
                     "description": "Test",
                     "disclaimer": "Test disclaimer",
