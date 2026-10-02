@@ -260,7 +260,7 @@ def test_read_legacy_metadata_derives_product_type(legacy_file):
 def test_legacy_metadata_preserves_valid_ids(reference):
     product = meta._legacy_reference_to_product(
         reference,
-        meta._legacy_product_type(None, reference),
+        meta._legacy_product_type(reference),
         contact_fallback=dp.Contact(
             name="Fallback", organization="CTAO", email="fallback@example.org"
         ),
@@ -280,7 +280,7 @@ def test_legacy_metadata_replaces_invalid_ids(reference, field, value):
     with pytest.warns(meta.LegacyMetadataWarning, match=f"invalid {field} id"):
         product = meta._legacy_reference_to_product(
             reference,
-            meta._legacy_product_type(None, reference),
+            meta._legacy_product_type(reference),
             contact_fallback=dp.Contact(
                 name="Fallback", organization="CTAO", email="fallback@example.org"
             ),
@@ -341,14 +341,14 @@ def test_legacy_data_level_and_sublevel_mapping(
 def test_legacy_product_type_missing_level_and_unknown_association(reference):
     reference.product.data_levels = []
     with pytest.warns(meta.LegacyMetadataWarning):
-        product_type = meta._legacy_product_type(None, reference)
+        product_type = meta._legacy_product_type(reference)
 
     assert product_type.level is dp.DataLevel.SIM
 
     reference.product.data_levels = [DataLevel.DL1_IMAGES]
     reference.product.data_association = "Other"
     with pytest.raises(ValueError, match="Unsupported legacy data association"):
-        meta._legacy_product_type(None, reference)
+        meta._legacy_product_type(reference)
 
 
 @pytest.mark.parametrize(
@@ -365,7 +365,7 @@ def test_legacy_instrument_mapping(
     reference.instrument.site = "South"
     reference.instrument.class_ = instrument_class
     reference.instrument.id_ = instrument_id
-    product_type = meta._legacy_product_type(None, reference)
+    product_type = meta._legacy_product_type(reference)
 
     product = meta._legacy_reference_to_product(
         reference,
@@ -393,7 +393,7 @@ def test_legacy_missing_optional_values_and_contact_fallback(reference):
     with pytest.warns(meta.LegacyMetadataWarning, match="invalid contact"):
         product = meta._legacy_reference_to_product(
             reference,
-            meta._legacy_product_type(None, reference),
+            meta._legacy_product_type(reference),
             contact_fallback=fallback,
         )
 

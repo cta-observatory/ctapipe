@@ -948,13 +948,14 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
     """Read CTAO product metadata from a supported file.
 
     The format is detected from the file contents. FITS (including gzip-compressed
-    FITS), HDF5, ECSV, and JSON are supported. Legacy ctapipe metadata in HDF5 files
-    is converted to the current CTAO data model and emits a
+    FITS), HDF5, ECSV, and JSON are supported. Both current CTAO metadata and legacy
+    ctapipe reference metadata are supported for all file formats. Legacy metadata is
+    converted to the current CTAO data model and emits a
     :class:`~ctapipe.io.metadata.LegacyMetadataWarning`.
 
     Parameters
     ----------
-    input_url : path-like or tables.File
+    input_file : path-like or tables.File
         Input file or open PyTables file handle.
 
     Returns
@@ -1002,8 +1003,15 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
 def _read_ecsv_metadata(ecsv_file) -> dp.Product:
     """Read CTAO product metadata from an ECSV file."""
     metadata = Table.read(ecsv_file).meta
-    _check_metadata_version(metadata.get("ctao_metadata_version"))
-    return dp.Product.model_validate(metadata)
+
+    if "ctao_metadata_version" in metadata:
+        _check_metadata_version(metadata["ctao_metadata_version"])
+        return dp.Product.model_validate_versioned(metadata)
+
+    if "CTA REFERENCE VERSION" in metadata:
+        return _read_legacy_product(metadata)
+
+    raise ValueError("Unsupported metadata format")
 
 
 def _read_json_metadata(json_file) -> dp.Product:
@@ -1013,8 +1021,16 @@ def _read_json_metadata(json_file) -> dp.Product:
     with open(json_file) as f:
         metadata = json.load(f)
 
-    _check_metadata_version(metadata.get("ctao_metadata_version"))
-    return dp.Product.model_validate(metadata)
+    metadata = metadata.get("metadata", metadata)
+
+    if "ctao_metadata_version" in metadata:
+        _check_metadata_version(metadata["ctao_metadata_version"])
+        return dp.Product.model_validate_versioned(metadata)
+
+    if "CTA REFERENCE VERSION" in metadata:
+        return _read_legacy_product(metadata)
+
+    raise ValueError("Unsupported metadata format")
 
 
 def _read_fits_metadata(fits_file) -> dp.Product:
@@ -1059,7 +1075,7 @@ def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
     raise ValueError("Unsupported metadata format")
 
 
-def _read_legacy_product(metadata, input_file) -> dp.Product:
+def _read_legacy_product(metadata, input_file=None) -> dp.Product:
     """Convert legacy CTA reference metadata to a current CTAO product."""
     warnings.warn(
         "Legacy ctapipe metadata detected. "
@@ -1077,7 +1093,7 @@ def _read_legacy_product(metadata, input_file) -> dp.Product:
         email="unknown@example.org",
     )
 
-    product_type = _legacy_product_type(input_file, reference)
+    product_type = _legacy_product_type(reference, input_file)
 
     return _legacy_reference_to_product(
         reference,
@@ -1118,7 +1134,7 @@ def metadata_to_product(metadata) -> dp.Product:
     )
 
 
-def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
+def _legacy_product_type(reference: Reference, input_file=None) -> dp.ProductType:
     """Derive a current CTAO product type from legacy reference metadata."""
     level = to_ctao_data_level(reference.product.data_levels)
 
@@ -1138,7 +1154,7 @@ def _legacy_product_type(input_url, reference: Reference) -> dp.ProductType:
             "Unsupported legacy data association: "
             f"{reference.product.data_association!r}"
         ) from err
-    data_type = to_ctao_data_type(reference, input_url)
+    data_type = to_ctao_data_type(reference, input_file)
 
     return dp.ProductType(
         level=level,
