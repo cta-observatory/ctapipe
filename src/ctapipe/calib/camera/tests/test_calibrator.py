@@ -580,8 +580,8 @@ def test_extractor_simtel_eventsource(extractor, prod5_gamma_simtel_path):
         assert n_calibrated == 7
 
 
-def test_dl1_selected_gain_channel(example_subarray):
-    """check that the selected gain channel is propagated to DL1"""
+def test_dl1_pixel_status(example_subarray):
+    """check that the pixel status is propagated to DL1"""
     tel_id = next(iter(example_subarray.tel))
     n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
     selected_gain_channel = np.arange(n_pixels) % 2
@@ -595,6 +595,9 @@ def test_dl1_selected_gain_channel(example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
     calibrator._calibrate_dl1(event, tel_id)
 
-    dl1_gain = event.dl1.tel[tel_id].selected_gain_channel
-    assert dl1_gain.dtype == np.int8
-    np.testing.assert_array_equal(dl1_gain, selected_gain_channel)
+    dl1_pixel_status = event.dl1.tel[tel_id].pixel_status
+    assert dl1_pixel_status.dtype == np.uint8
+    np.testing.assert_array_equal(dl1_pixel_status, dl0.pixel_status)
+    np.testing.assert_array_equal(
+        PixelStatus.get_channel_info(dl1_pixel_status), selected_gain_channel + 1
+    )

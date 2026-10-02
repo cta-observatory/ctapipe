@@ -7,7 +7,7 @@ import pathlib
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.containers import EventType
+from ctapipe.containers import EventType, PixelStatus
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
@@ -66,7 +66,7 @@ class PixelStatisticsCalculatorTool(Tool):
         default_value=False,
         help=(
             "If the input data is gain selected, fill each pixel value into the "
-            "gain channel given by 'selected_gain_channel', so that the statistics "
+            "gain channel stored according to 'pixel_status', so that the statistics "
             "are calculated per gain channel. Unfilled entries are set to NaN and "
             "ignored by the aggregation."
         ),
@@ -219,10 +219,10 @@ class PixelStatisticsCalculatorTool(Tool):
             self.per_channel_statistics
             and table[self.input_column_name].ndim == 2
             and self.subarray.tel[tel_id].camera.readout.n_channels > 1
-            and "selected_gain_channel" not in table.colnames
+            and "pixel_status" not in table.colnames
         ):
             raise ToolConfigurationError(
-                "Per-channel statistics requested, but column 'selected_gain_channel' "
+                "Per-channel statistics requested, but column 'pixel_status' "
                 f"not found in the gain selected input data for telescope "
                 f"'tel_id={tel_id}'."
             )
@@ -234,14 +234,22 @@ class PixelStatisticsCalculatorTool(Tool):
 
         If ``per_channel_statistics`` is enabled, the gain selected data is filled
         into an array of shape (n_events, n_channels, n_pixels) according to
-        ``selected_gain_channel``, with NaN for the not selected channel.
+        the stored gain channel encoded in ``pixel_status``, with NaN for the not
+        selected channel. Pixels without a stored gain channel (e.g. broken pixels)
+        are NaN in both channels.
         """
         n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
         fill_per_channel = (
             self.per_channel_statistics
             and n_channels > 1
-            and "selected_gain_channel" in dl1_table.colnames
+            and "pixel_status" in dl1_table.colnames
         )
+        if fill_per_channel:
+            channel_info = PixelStatus.get_channel_info(
+                np.asarray(dl1_table["pixel_status"])
+            )
+            high_gain_only = channel_info == 1
+            low_gain_only = channel_info == 2
         for col in DL1_COLUMN_NAMES:
             if col not in dl1_table.colnames or dl1_table[col].ndim != 2:
                 continue
@@ -250,12 +258,11 @@ class PixelStatisticsCalculatorTool(Tool):
                 continue
             unit = dl1_table[col].unit
             data = np.asarray(dl1_table[col])
-            gain = np.asarray(dl1_table["selected_gain_channel"])
             per_channel_data = np.full(
                 (data.shape[0], n_channels, data.shape[1]), np.nan, dtype=np.float32
             )
-            event_index, pixel_index = np.indices(data.shape)
-            per_channel_data[event_index, gain, pixel_index] = data
+            per_channel_data[:, 0][high_gain_only] = data[high_gain_only]
+            per_channel_data[:, 1][low_gain_only] = data[low_gain_only]
             dl1_table[col] = per_channel_data
             dl1_table[col].unit = unit
 

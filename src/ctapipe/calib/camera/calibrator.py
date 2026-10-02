@@ -362,8 +362,7 @@ class CameraCalibrator(TelescopeComponent):
                 invalid_pixels,
             )
 
-        if selected_gain_channel is not None:
-            dl1.selected_gain_channel = selected_gain_channel.astype(np.int8)
+        dl1.pixel_status = dl0.pixel_status
 
         # store the results in the event structure
         event.dl1.tel[tel_id] = dl1
