@@ -110,15 +110,17 @@ class MedianOutlierDetector(OutlierDetector):
                 "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
             )
         pixel_axis = column.ndim - 1
+        # Mask NaN values (e.g. from per-gain statistics of gain selected data)
+        values = np.ma.masked_invalid(np.asarray(column))
         # Camera median
-        camera_median = np.ma.median(column, axis=pixel_axis)
+        camera_median = np.ma.median(values, axis=pixel_axis)
         # Detect outliers based on the deviation of the median distribution
-        deviation = column - camera_median[..., np.newaxis]
+        deviation = values - camera_median[..., np.newaxis]
         outliers = np.logical_or(
             deviation < self.median_range_factors[0] * camera_median[..., np.newaxis],
             deviation > self.median_range_factors[1] * camera_median[..., np.newaxis],
         )
-        return outliers
+        return np.ma.filled(outliers, False)
 
 
 class StdOutlierDetector(OutlierDetector):
@@ -149,14 +151,16 @@ class StdOutlierDetector(OutlierDetector):
                 "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
             )
         pixel_axis = column.ndim - 1
+        # Mask NaN values (e.g. from per-gain statistics of gain selected data)
+        values = np.ma.masked_invalid(np.asarray(column))
         # Camera median
-        camera_median = np.ma.median(column, axis=pixel_axis)
+        camera_median = np.ma.median(values, axis=pixel_axis)
         # Camera std
-        camera_std = np.ma.std(column, axis=pixel_axis)
+        camera_std = np.ma.std(values, axis=pixel_axis)
         # Detect outliers based on the deviation of the standard deviation distribution
-        deviation = column - camera_median[..., np.newaxis]
+        deviation = values - camera_median[..., np.newaxis]
         outliers = np.logical_or(
             deviation < self.std_range_factors[0] * camera_std[..., np.newaxis],
             deviation > self.std_range_factors[1] * camera_std[..., np.newaxis],
         )
-        return outliers
+        return np.ma.filled(outliers, False)

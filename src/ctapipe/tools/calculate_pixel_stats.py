@@ -11,6 +11,7 @@ from ctapipe.containers import EventType
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
+    Bool,
     CInt,
     Path,
     Set,
@@ -61,6 +62,16 @@ class PixelStatisticsCalculatorTool(Tool):
         help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
+    per_gain_statistics = Bool(
+        default_value=False,
+        help=(
+            "If the input data is gain selected, fill each pixel value into the "
+            "gain channel given by 'selected_gain_channel', so that the statistics "
+            "are calculated per gain channel. Unfilled entries are set to NaN and "
+            "ignored by the aggregation."
+        ),
+    ).tag(config=True)
+
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
@@ -78,6 +89,10 @@ class PixelStatisticsCalculatorTool(Tool):
         "append": (
             {"HDF5Merger": {"append": True}},
             "Append to existing files",
+        ),
+        "per-gain": (
+            {"PixelStatisticsCalculatorTool": {"per_gain_statistics": True}},
+            "Calculate per-gain statistics for gain selected input data",
         ),
     }
 
@@ -150,7 +165,7 @@ class PixelStatisticsCalculatorTool(Tool):
                 continue
 
             # 2. Reshape and calculate stats
-            self._reshape_dl1_dimensions(dl1_table)
+            self._reshape_dl1_dimensions(dl1_table, tel_id)
             aggregated_stats = self._process_telescope_stats(dl1_table, tel_id)
 
             # 3. Determine output paths and write out results
@@ -199,13 +214,50 @@ class PixelStatisticsCalculatorTool(Tool):
                 f"Column '{self.input_column_name}' not found "
                 f"in the input data for telescope 'tel_id={tel_id}'."
             )
+        # Check if the gain channel information is available for per-gain statistics
+        if (
+            self.per_gain_statistics
+            and table[self.input_column_name].ndim == 2
+            and self.subarray.tel[tel_id].camera.readout.n_channels > 1
+            and "selected_gain_channel" not in table.colnames
+        ):
+            raise ToolConfigurationError(
+                "Per-gain statistics requested, but column 'selected_gain_channel' "
+                f"not found in the gain selected input data for telescope "
+                f"'tel_id={tel_id}'."
+            )
         return True
 
-    def _reshape_dl1_dimensions(self, dl1_table):
-        """Check if the dl1 data is gain selected and add an extra dimension."""
+    def _reshape_dl1_dimensions(self, dl1_table, tel_id):
+        """
+        Check if the dl1 data is gain selected and add an extra dimension.
+
+        If ``per_gain_statistics`` is enabled, the gain selected data is filled
+        into an array of shape (n_events, n_channels, n_pixels) according to
+        ``selected_gain_channel``, with NaN for the not selected channel.
+        """
+        n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
+        fill_per_gain = (
+            self.per_gain_statistics
+            and n_channels > 1
+            and "selected_gain_channel" in dl1_table.colnames
+        )
         for col in DL1_COLUMN_NAMES:
-            if col in dl1_table.colnames and dl1_table[col].ndim == 2:
+            if col not in dl1_table.colnames or dl1_table[col].ndim != 2:
+                continue
+            if not fill_per_gain:
                 dl1_table[col] = dl1_table[col][:, np.newaxis]
+                continue
+            unit = dl1_table[col].unit
+            data = np.asarray(dl1_table[col])
+            gain = np.asarray(dl1_table["selected_gain_channel"])
+            per_gain_data = np.full(
+                (data.shape[0], n_channels, data.shape[1]), np.nan, dtype=np.float32
+            )
+            event_index, pixel_index = np.indices(data.shape)
+            per_gain_data[event_index, gain, pixel_index] = data
+            dl1_table[col] = per_gain_data
+            dl1_table[col].unit = unit
 
     def _process_telescope_stats(self, dl1_table, tel_id):
         """Perform first and (if necessary) second pass statistics calculation."""

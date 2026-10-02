@@ -569,6 +569,13 @@ class DL1CameraContainer(Container):
         dtype=np.bool_,
         ndim=1,
     )
+    selected_gain_channel = Field(
+        None,
+        "Numpy array containing the gain channel chosen for each pixel, "
+        "None if the data is not gain selected. Shape: (n_pixel, )",
+        dtype=np.int8,
+        ndim=1,
+    )
     is_valid = Field(
         False,
         (
