@@ -3,19 +3,24 @@
 Test ctapipe-calculate-pixel-statistics tool
 """
 
+import astropy.units as u
+import numpy as np
 import pytest
+from astropy.table import Table
 from traitlets.config.loader import Config
 
-from ctapipe.containers import ChunkHistogramContainer
+from ctapipe.containers import ChunkHistogramContainer, PixelStatus
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
-from ctapipe.io import HDF5TableReader, read_table
+from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import HDF5TableReader, TableLoader, read_table
 from ctapipe.io.hdf5dataformat import (
     DL1_COLUMN_NAMES,
     DL1_PIXEL_HISTOGRAMS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
 )
 from ctapipe.monitoring import HistogramAggregator
+from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 from ctapipe.tools.merge import MergeTool
 
@@ -212,3 +217,122 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             cwd=tmp_path,
             raises=True,
         )
+
+
+def test_calculate_pixel_stats_tool_per_channel(tmp_path, dl1_image_file):
+    """check per-channel statistics calculation from gain selected image data"""
+
+    tel_id = 3
+    output_file = tmp_path / "per_channel_monitoring.dl1.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {
+                "allowed_tels": [tel_id],
+            },
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [
+                    ("type", "*", "PlainAggregator"),
+                ],
+            },
+            "SizeChunking": {
+                "chunk_size": 1,
+            },
+        }
+    )
+    run_tool(
+        PixelStatisticsCalculatorTool(config=config),
+        argv=[
+            f"--input_url={dl1_image_file}",
+            f"--output_path={output_file}",
+            "--per-channel",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(dl1_image_file) as loader:
+        dl1_table = loader.read_telescope_events(telescopes=[tel_id], dl1_images=True)
+    stats = read_table(
+        output_file,
+        path=f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_{tel_id:03d}",
+    )
+
+    n_pixels = dl1_table["image"].shape[1]
+    assert stats["mean"].shape == (len(dl1_table), 2, n_pixels)
+    # Each sample is filled into exactly one gain channel
+    np.testing.assert_array_equal(stats["n_events"].sum(axis=1), 1)
+
+    channel_info = PixelStatus.get_channel_info(dl1_table["pixel_status"])
+    gain = channel_info.astype(np.int8) - 1
+    event_index, pixel_index = np.indices(gain.shape)
+    np.testing.assert_allclose(
+        stats["mean"][event_index, gain, pixel_index], dl1_table["image"]
+    )
+    assert np.all(np.isnan(stats["mean"][event_index, 1 - gain, pixel_index]))
+
+
+@pytest.mark.parametrize("per_channel_statistics", [True, False])
+def test_reshape_dl1_dimensions_per_channel(dl1_image_file, per_channel_statistics):
+    """check the reshaping of gain selected data with mixed gain channels"""
+
+    tel_id = 3
+    subarray = SubarrayDescription.from_hdf(dl1_image_file)
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
+    n_events = 5
+
+    rng = np.random.default_rng(0)
+    gain = rng.integers(0, 2, size=(n_events, n_pixels), dtype=np.int8)
+    image = rng.normal(10.0, 1.0, size=(n_events, n_pixels)).astype(np.float32)
+    pixel_status = np.where(
+        gain == 0,
+        np.uint8(PixelStatus.HIGH_GAIN_STORED | PixelStatus.DVR_0),
+        np.uint8(PixelStatus.LOW_GAIN_STORED | PixelStatus.DVR_0),
+    ).astype(np.uint8)
+    # Broken pixels have no gain channel stored
+    broken = np.zeros((n_events, n_pixels), dtype=bool)
+    broken[:, :10] = True
+    pixel_status[broken] = 0
+    dl1_table = Table(
+        {
+            "image": image * u.ct,
+            "peak_time": image * u.ns,
+            "pixel_status": pixel_status,
+        }
+    )
+
+    tool = PixelStatisticsCalculatorTool(per_channel_statistics=per_channel_statistics)
+    tool.subarray = subarray
+    tool._reshape_dl1_dimensions(dl1_table, tel_id)
+
+    if not per_channel_statistics:
+        assert dl1_table["image"].shape == (n_events, 1, n_pixels)
+        return
+
+    event_index, pixel_index = np.indices(gain.shape)
+    for col, unit in [("image", u.ct), ("peak_time", u.ns)]:
+        assert dl1_table[col].shape == (n_events, 2, n_pixels)
+        assert dl1_table[col].unit == unit
+        selected = np.asarray(dl1_table[col][event_index, gain, pixel_index])
+        np.testing.assert_array_equal(selected[~broken], image[~broken])
+        assert np.all(np.isnan(selected[broken]))
+        assert np.all(np.isnan(dl1_table[col][event_index, 1 - gain, pixel_index]))
+
+
+def test_per_channel_missing_selected_gain_channel(dl1_image_file):
+    """check error if per-channel statistics are requested without gain information"""
+
+    tel_id = 3
+    subarray = SubarrayDescription.from_hdf(dl1_image_file)
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
+    dl1_table = Table({"image": np.zeros((5, n_pixels), dtype=np.float32)})
+
+    tool = PixelStatisticsCalculatorTool(
+        config=Config({"SizeChunking": {"chunk_size": 1}}),
+        per_channel_statistics=True,
+    )
+    tool.subarray = subarray
+    tool.stats_calculator = PixelStatisticsCalculator(parent=tool, subarray=subarray)
+
+    with pytest.raises(ToolConfigurationError, match="'pixel_status' not found"):
+        tool._is_valid_table(dl1_table, tel_id)

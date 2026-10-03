@@ -129,3 +129,30 @@ def test_check_for_column_shape(example_subarray):
         # Check if ValueError is raised when the provided column shape is invalid
         with pytest.raises(ValueError, match="Invalid shape of the column"):
             outlier_detector(table["median"])
+
+
+@pytest.mark.parametrize(
+    ("detector_cls", "config"),
+    [
+        (MedianOutlierDetector, {"median_range_factors": [-0.9, 8.0]}),
+        (StdOutlierDetector, {"std_range_factors": [-15.0, 15.0]}),
+    ],
+)
+def test_detection_with_nan(example_subarray, detector_cls, config):
+    """test that NaN values are ignored and not flagged as outliers"""
+
+    rng = np.random.default_rng(0)
+    values = rng.normal(77.0, 0.6, size=(10, 2, 1855))
+    # Mimic per-channel statistics of gain selected data with mostly empty low gain
+    values[:, 1, 1000:] = np.nan
+    values[3, 1, 50] = 21045.1
+    values[5, 0, 120] = 21045.1
+    table = Table([values], names=("values",))
+
+    detector = detector_cls(subarray=example_subarray, **config)
+    outliers = detector(table["values"])
+
+    expected_outliers = np.zeros((10, 2, 1855), dtype=bool)
+    expected_outliers[3, 1, 50] = True
+    expected_outliers[5, 0, 120] = True
+    np.testing.assert_array_equal(outliers, expected_outliers)
