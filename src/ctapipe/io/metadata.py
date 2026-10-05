@@ -1103,14 +1103,21 @@ def _legacy_to_product(metadata, input_file=None) -> dp.Product:
 
     # Legacy data levels -> processing sublevel
     data_levels = set(reference.product.data_levels)
-
     has_dl1_images = DataLevel.DL1_IMAGES in data_levels
     has_dl1_parameters = DataLevel.DL1_PARAMETERS in data_levels
+    sublevel = None
+    if has_dl1_images:
+        sublevel = dp.ProcessingSublevel.IMAGES
 
-    if has_dl1_images and not has_dl1_parameters:
-        instance_kwargs["sublevel_id"] = dp.ProcessingSublevel.IMAGES
-    elif has_dl1_parameters and not has_dl1_images:
-        instance_kwargs["sublevel_id"] = dp.ProcessingSublevel.PARAMETERS
+    if has_dl1_parameters:
+        sublevel = (
+            dp.ProcessingSublevel.PARAMETERS
+            if sublevel is None
+            else sublevel | dp.ProcessingSublevel.PARAMETERS
+        )
+
+    if sublevel is not None:
+        instance_kwargs["sublevel_id"] = sublevel
 
     # Legacy processing category
     try:
@@ -1143,7 +1150,7 @@ def _legacy_to_product(metadata, input_file=None) -> dp.Product:
         description=reference.product.description,
         creation_time=reference.product.creation_time,
         curation=dp.Curation(),
-        data=product_type.model_copy(deep=True),
+        data=product_type,
         instance=dp.InstanceIdentifier(**instance_kwargs),
         model=dp.DataModel(
             name=reference.product.data_model_name,
