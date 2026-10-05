@@ -82,6 +82,10 @@ UNKNOWN_ID = np.uint64(np.iinfo(np.uint64).max)
 #: Used for unsigned integer tel_id default value
 UNKNOWN_TEL_ID = np.uint16(np.iinfo(np.uint16).max)
 
+_PIXEL_STATUS_DESCRIPTION = (
+    "Array of pixel status values, see PixelStatus for definition of the values"
+)
+
 
 obs_id_field = partial(Field, UNKNOWN_ID, description="Observation Block ID")
 event_id_field = partial(Field, UNKNOWN_ID, description="Array Event ID")
@@ -571,7 +575,7 @@ class DL1CameraContainer(Container):
     )
     pixel_status = Field(
         None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
+        _PIXEL_STATUS_DESCRIPTION,
         dtype=np.uint8,
         ndim=1,
     )
@@ -636,7 +640,7 @@ class R1CameraContainer(Container):
 
     pixel_status = Field(
         None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
+        _PIXEL_STATUS_DESCRIPTION,
         ndim=1,
         dtype=np.uint8,
     )
@@ -726,7 +730,7 @@ class DL0CameraContainer(Container):
 
     pixel_status = Field(
         None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
+        _PIXEL_STATUS_DESCRIPTION,
         dtype=np.uint8,
         ndim=1,
     )
