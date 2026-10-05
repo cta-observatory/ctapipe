@@ -268,9 +268,11 @@ def test_metadata(tmpdir: Path):
                 "ProductMetadata": {
                     "description": "Test",
                     "disclaimer": "Test disclaimer",
-                    "InstanceMetadata": {
+                    "instance": {
                         "category": "B",
-                        "target_id": "Crab",
+                    },
+                    "activity": {
+                        "configuration_id": "test_config",
                     },
                 },
                 "context_metadata": {"EXAMPLE": "test_value"},
@@ -298,7 +300,7 @@ def test_metadata(tmpdir: Path):
             assert meta["CTAO.description"] == "Test"
             assert meta["CTAO.disclaimer"] == "Test disclaimer"
             assert meta["CTAO.instance.category"] == "B"
-            assert meta["CTAO.instance.target_id"] == "Crab"
+            assert meta["CTAO.activity.configuration_id"] == "test_config"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
 
         product = read_ctao_metadata(output_path)
@@ -310,9 +312,11 @@ def test_metadata(tmpdir: Path):
         )
         assert product.instance.obs_id == source.obs_id
         assert product.instance.facility_name is dp.FacilityName.SIMULATED_CTAO
-        assert product.instance.sublevel_id is None
+        assert (
+            product.instance.sublevel_id
+            is dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS
+        )
         assert product.instance.category is dp.DataProcessingCategory.B
-        assert product.instance.target_id == "Crab"
         assert product.model.name == "ctapipe"
         assert product.model.version == DATA_MODEL_VERSION
         assert product.activity.process is dp.ObservatoryProcess.DATA_PROCESSING

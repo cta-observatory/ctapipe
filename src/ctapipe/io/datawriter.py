@@ -224,7 +224,7 @@ class DataWriter(Component):
         # Validate metadata before creating the output file.
         self.contact_info.to_model()
         self.curation_info.to_model()
-        self.product_info.instance.to_model()
+        self.product_info.validate()
 
         self.event_source = event_source
 
@@ -760,13 +760,17 @@ class DataWriter(Component):
             else dp.FacilityName.CTAO
         )
 
+        lat = self.event_source.subarray.reference_location.geodetic.lat.value
+        site = dp.SiteID.CTAO_NORTH if lat > 0 else dp.SiteID.CTAO_SOUTH
+
         product = self.product_info.to_model(
             creation_time=Time.now(),
             data=product_type,
-            instance=self.product_info.instance.to_model(
+            instance=dp.InstanceIdentifier(
                 obs_id=obs_id,
                 facility_name=facility_name,
                 sublevel_id=self._get_processing_sublevel(),
+                site_id=site,
             ),
             curation=self.curation_info.to_model(),
             model=dp.DataModel(

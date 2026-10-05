@@ -144,7 +144,7 @@ class EventSource(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
 
-        self.metadata = dict(is_simulation=False)
+        self.metadata = None
         self.log.info(f"INPUT PATH = {self.input_url}")
 
         if self.max_events:

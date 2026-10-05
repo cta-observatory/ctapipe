@@ -98,8 +98,8 @@ def test_simulation_info(dl1_file):
 def test_dl1_a_only_data(dl1_image_file):
     with HDF5EventSource(input_url=dl1_image_file) as source:
         assert source.datalevels == (DataLevel.DL1_IMAGES,)
-        assert source.meta.data.level is dp.DataLevel.DL1
-        assert source.meta.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
+        assert source.metadata.data.level is dp.DataLevel.DL1
+        assert source.metadata.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
@@ -110,8 +110,8 @@ def test_dl1_b_only_data(dl1_parameters_file):
     reco_concentrations = []
     with HDF5EventSource(input_url=dl1_parameters_file) as source:
         assert source.datalevels == (DataLevel.DL1_PARAMETERS,)
-        assert source.meta.data.level is dp.DataLevel.DL1
-        assert source.meta.instance.sublevel_id is dp.ProcessingSublevel.PARAMETERS
+        assert source.metadata.data.level is dp.DataLevel.DL1
+        assert source.metadata.instance.sublevel_id is dp.ProcessingSublevel.PARAMETERS
         for event in source:
             for tel in event.dl1.tel:
                 reco_lons.append(
