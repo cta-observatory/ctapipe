@@ -159,6 +159,12 @@ jobs:
           pip install ./test_plugin setuptools_scm
           pip freeze
 
+      - name: Check Python version
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: python --version | grep "Python ${PYTHON_VERSION}"
+
       - name: ctapipe-info
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
