@@ -206,7 +206,6 @@ def create_aeff3d_lonlat_hdu(
     true_energy_bins,
     fov_lon_bins,
     fov_lat_bins,
-    point_like=True,
     extname="EFFECTIVE AREA",
 ):
     """
@@ -215,7 +214,8 @@ def create_aeff3d_lonlat_hdu(
 
     The column layout follows the ``BKG_3D`` format
     (https://gamma-astro-data-formats.readthedocs.io), the field of view is
-    given in the GADF longitude/latitude coordinate system.
+    given in the GADF longitude/latitude coordinate system and is always
+    declared as full-enclosure (``FOVALIGN=ALTAZ``).
 
     Parameters
     ----------
@@ -228,9 +228,6 @@ def create_aeff3d_lonlat_hdu(
         Fov longitude bin edges.
     fov_lat_bins: astropy.units.Quantity[angle]
         Fov latitude bin edges.
-    point_like: bool
-        If True, the HDU is declared as point-like, otherwise as
-        full-enclosure.
     extname: str
         Name of the BinTableHDU.
 
@@ -258,11 +255,12 @@ def create_aeff3d_lonlat_hdu(
     header["HDUDOC"] = (
         "https://github.com/open-gamma-ray-astro/gamma-astro-data-formats"
     )
-    header["HDUVERS"] = "0.3"
+    header["HDUVERS"] = "0.4"
     header["HDUCLAS1"] = "RESPONSE"
     header["HDUCLAS2"] = "EFF_AREA"
-    header["HDUCLAS3"] = "POINT-LIKE" if point_like else "FULL-ENCLOSURE"
+    header["HDUCLAS3"] = "FULL-ENCLOSURE"
     header["HDUCLAS4"] = "AEFF_3D"
+    header["FOVALIGN"] = "ALTAZ"
     header["DATE"] = Time.now().utc.iso
     idx = aeff.colnames.index("EFFAREA") + 1
     header[f"CREF{idx}"] = "(ENERG_LO:ENERG_HI,DETX_LO:DETX_HI,DETY_LO:DETY_HI)"
@@ -321,6 +319,7 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
 
     The effective area is calculated only for non-point-like (e.g. diffuse)
     simulations, as the fov dependence does not make sense for point-like ones.
+    The result is always a full-enclosure ``AEFF_3D`` HDU.
     """
 
     subpixels = Int(
@@ -346,6 +345,11 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
                 "EffectiveArea3DMaker can only be used with non-point-like "
                 "(e.g. diffuse) simulations."
             )
+        if spatial_selection_applied:
+            raise ValueError(
+                "EffectiveArea3DMaker only produces full-enclosure effective "
+                "areas and cannot be used with a spatial selection applied."
+            )
 
         effective_area = effective_area_3d_lonlat(
             selected_events=events,
@@ -361,7 +365,6 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
             true_energy_bins=self.true_energy_bins,
             fov_lon_bins=self.fov_lon_bins,
             fov_lat_bins=self.fov_lat_bins,
-            point_like=spatial_selection_applied,
             extname=extname,
         )
 

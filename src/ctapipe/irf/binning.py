@@ -8,7 +8,7 @@ import numpy as np
 
 from ..compat import COPY_IF_NEEDED
 from ..core import Component
-from ..core.traits import AstroQuantity, Int
+from ..core.traits import AstroQuantity, Float, Int, List
 
 __all__ = [
     "ResultValidRange",
@@ -181,8 +181,25 @@ class DefaultFoVOffsetBins(Component):
         default_value=1,
     ).tag(config=True)
 
+    fov_offset_edges = List(
+        Float(),
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Optional explicit FoV offset bin edges in degrees. "
+            "If set, overrides fov_offset_min/fov_offset_max/fov_offset_n_bins."
+        ),
+    ).tag(config=True)
+
     @property
     def fov_offset_bins(self):
+        if self.fov_offset_edges is not None:
+            edges = np.asarray(self.fov_offset_edges, dtype=float)
+            if not np.all(np.diff(edges) > 0):
+                raise ValueError(
+                    f"fov_offset_edges must be strictly increasing, got {edges}"
+                )
+            return u.Quantity(edges, u.deg)
         return u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
