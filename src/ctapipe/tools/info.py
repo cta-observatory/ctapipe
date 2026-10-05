@@ -158,7 +158,9 @@ def _info_dependencies():
 
     env["extra"] = "all"
     optional_dependencies = [
-        r.name for r in requirements if r.marker is not None and r.marker.evaluate(env)
+        r.name
+        for r in requirements
+        if r.marker is not None and r.marker.evaluate(env) and r.name != "ctapipe"
     ]
 
     for name in dependencies:
