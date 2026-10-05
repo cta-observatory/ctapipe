@@ -176,7 +176,6 @@ jobs:
           echo "COVERAGE_CORE=sysmon" >> $GITHUB_ENV
           echo "NUMBA_JIT_COVERAGE=1" >> $GITHUB_ENV
           echo "PYTEST_ADDOPTS=--cov --cov-report=xml $PYTEST_ADDOPTS" >> $GITHUB_ENV
-          pip install 'numba>=0.67.0rc1'
 
       - name: Tests
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
