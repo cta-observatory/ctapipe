@@ -30,10 +30,10 @@ from ctao_datamodel.models.common import SiteID
 from pydantic import TypeAdapter, ValidationError
 from tables import NaturalNameWarning
 from traitlets import (
+    Dict,
     Enum,
     HasTraits,
     Instance,
-    Integer,
     List,
     TraitError,
     Unicode,
@@ -52,7 +52,6 @@ __all__ = [
     "Activity",
     "Contact",
     "Curation",
-    "InstanceMetadata",
     "Instrument",
     "LegacyMetadataWarning",
     "Process",
@@ -288,173 +287,70 @@ class Curation(Configurable):
         return self.to_model().model_dump(mode="json")
 
 
-class InstanceMetadata(Configurable):
-    """Configurable metadata identifying a CTAO data-product instance."""
+def _validate_model_field(model, name, value):
+    """Validate a single field against a pydantic model."""
+    if name not in model.model_fields:
+        raise TraitError(f"{name!r} is not a valid field of {model.__name__}")
 
-    category = UseEnum(
-        dp.DataProcessingCategory,
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
+    field = model.model_fields[name]
 
-    site_id = UseEnum(
-        SiteID,
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
+    try:
+        return TypeAdapter(field.rebuild_annotation()).validate_python(value)
+    except ValidationError as err:
+        raise TraitError(str(err)) from err
 
-    subarray_id = Integer(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
 
-    target_id = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    region_id = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    observing_period_id = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    lunar_cycle_id = Integer(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    batch_id = Integer(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    calibration_service_id = Integer(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    event_type = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    data_source = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    assembly_name = Unicode(
-        default_value=None,
-        allow_none=True,
-    ).tag(config=True)
-
-    _modified = False
-
-    @observe(
-        "category",
-        "site_id",
-        "subarray_id",
-        "target_id",
-        "region_id",
-        "observing_period_id",
-        "lunar_cycle_id",
-        "batch_id",
-        "calibration_service_id",
-        "event_type",
-        "data_source",
-        "assembly_name",
-    )
-    def _mark_modified(self, change):
-        self._modified = True
-
-    @property
-    def modified(self):
-        return self._modified
-
-    @validate(
-        "category",
-        "site_id",
-        "subarray_id",
-        "target_id",
-        "region_id",
-        "observing_period_id",
-        "lunar_cycle_id",
-        "batch_id",
-        "calibration_service_id",
-        "event_type",
-        "data_source",
-        "assembly_name",
-    )
-    def _validate_instance_metadata(self, proposal):
-        """Validate instance information using the CTAO data model."""
-        values = self._model_values()
-        name = proposal["trait"].name
-        values[name] = proposal["value"]
-
-        try:
-            instance = dp.InstanceIdentifier(**values)
-        except ValidationError as err:
-            raise TraitError(str(err)) from err
-        value = getattr(instance, name)
-        if name == "data_source" and value is not None:
-            return str(value)
-        return value
-
-    def _model_values(self):
-        names = (
-            "category",
-            "site_id",
-            "subarray_id",
-            "target_id",
-            "region_id",
-            "observing_period_id",
-            "lunar_cycle_id",
-            "batch_id",
-            "calibration_service_id",
-            "event_type",
-            "data_source",
-            "assembly_name",
+def _validate_model_overrides(model, values, allowed_fields):
+    """Validate partial overrides against a pydantic model."""
+    unknown = set(values) - allowed_fields
+    if unknown:
+        raise TraitError(
+            f"Fields {sorted(unknown)} cannot be configured for {model.__name__}"
         )
 
-        return {
-            name: getattr(self, name)
-            for name in names
-            if getattr(self, name) is not None
-        }
+    return {
+        name: _validate_model_field(model, name, value)
+        for name, value in values.items()
+    }
 
-    def to_model(self, **kwargs) -> dp.InstanceIdentifier:
-        """Return validated CTAO data-product instance metadata."""
-        values = self._model_values()
-        values.update(kwargs)
-        try:
-            return dp.InstanceIdentifier(**values)
-        except ValidationError as err:
-            raise TraitError(str(err)) from err
 
-    def to_dict(self):
-        return self.to_model().model_dump(mode="json")
+def _apply_model_overrides(model, instance, overrides):
+    """Apply validated overrides to an existing pydantic model."""
+    if not overrides:
+        return instance
+
+    values = instance.model_dump(mode="python")
+    values.update(overrides)
+
+    try:
+        return model.model_validate(values)
+    except ValidationError as err:
+        raise TraitError(str(err)) from err
 
 
 class ProductMetadata(Configurable):
-    """Configurable metadata for a CTAO data product."""
+    """User-configurable CTAO product metadata."""
 
-    description = Unicode("ctapipe Data Product").tag(config=True)
+    description = Unicode(
+        "ctapipe Data Product",
+    ).tag(config=True)
 
     disclaimer = Unicode(
         default_value=None,
         allow_none=True,
     ).tag(config=True)
 
-    instance = Instance(InstanceMetadata)
+    instance = Dict(
+        default_value={},
+    ).tag(config=True)
+
+    activity = Dict(
+        default_value={},
+    ).tag(config=True)
 
     _modified = False
 
-    @observe("description", "disclaimer")
+    @observe("description", "disclaimer", "instance", "activity")
     def _mark_modified(self, change):
         self._modified = True
 
@@ -462,35 +358,77 @@ class ProductMetadata(Configurable):
     def modified(self):
         return self._modified
 
-    @default("instance")
-    def _default_instance(self):
-        return InstanceMetadata(parent=self)
-
     @validate("description", "disclaimer")
     def _validate_product_metadata(self, proposal):
-        """Validate product information using the CTAO data model."""
-        name = proposal["trait"].name
-        field = dp.Product.model_fields[name]
+        return _validate_model_field(
+            dp.Product,
+            proposal["trait"].name,
+            proposal["value"],
+        )
 
-        try:
-            return TypeAdapter(field.rebuild_annotation()).validate_python(
-                proposal["value"]
-            )
-        except ValidationError as err:
-            raise TraitError(str(err)) from err
+    @validate("instance")
+    def _validate_instance(self, proposal):
+        return _validate_model_overrides(
+            dp.InstanceIdentifier,
+            proposal["value"],
+            allowed_fields={"category"},
+        )
+
+    @validate("activity")
+    def _validate_activity(self, proposal):
+        return _validate_model_overrides(
+            dp.Activity,
+            proposal["value"],
+            allowed_fields={"configuration_id"},
+        )
+
+    def validate(self):
+        """Explicitly validate all configurable metadata."""
+        _validate_model_field(
+            dp.Product,
+            "description",
+            self.description,
+        )
+        _validate_model_field(
+            dp.Product,
+            "disclaimer",
+            self.disclaimer,
+        )
+
+        _validate_model_overrides(
+            dp.InstanceIdentifier,
+            self.instance,
+            allowed_fields={"category"},
+        )
+
+        _validate_model_overrides(
+            dp.Activity,
+            self.activity,
+            allowed_fields={"configuration_id"},
+        )
 
     def to_model(self, **kwargs) -> dp.Product:
-        """Return validated CTAO product metadata.
+        """Create a CTAO Product and apply user-configured overrides."""
+        values = dict(kwargs)
 
-        Additional keyword arguments provide product metadata determined by the
-        writer, such as the creation time, data type, and data model version.
-        """
-        values = {
-            "description": self.description,
-            "disclaimer": self.disclaimer,
-            "instance": self.instance.to_model(),
-        }
-        values.update(kwargs)
+        # User configuration overrides values determined by the writer.
+        values["description"] = self.description
+        values["disclaimer"] = self.disclaimer
+
+        if "instance" in values:
+            values["instance"] = _apply_model_overrides(
+                dp.InstanceIdentifier,
+                values["instance"],
+                self.instance,
+            )
+
+        if "activity" in values:
+            values["activity"] = _apply_model_overrides(
+                dp.Activity,
+                values["activity"],
+                self.activity,
+            )
+
         try:
             return dp.Product(**values)
         except ValidationError as err:
@@ -500,7 +438,8 @@ class ProductMetadata(Configurable):
         return {
             "description": self.description,
             "disclaimer": self.disclaimer,
-            "instance": self.instance.to_dict(),
+            "instance": dict(self.instance),
+            "activity": dict(self.activity),
         }
 
 
@@ -1055,7 +994,7 @@ def _read_fits_metadata(fits_file) -> dp.Product:
 
         # Legacy CTA metadata
         if "CTA REFERENCE VERSION" in header:
-            return _legacy_to_product(header, fits_file)
+            return _legacy_to_product(header)
 
         raise ValueError("Unsupported metadata format")
 
@@ -1069,7 +1008,7 @@ def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
         return metadata_to_product(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
-        return _legacy_to_product(metadata, h5file)
+        return _legacy_to_product(metadata)
 
     raise ValueError("Unsupported metadata format")
 
@@ -1084,7 +1023,7 @@ def _read_hdf5_attributes(h5file, path="/"):
         return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
 
 
-def _legacy_to_product(metadata, input_file=None) -> dp.Product:
+def _legacy_to_product(metadata) -> dp.Product:
     """Convert legacy CTA reference metadata to a current CTAO product."""
     warnings.warn(
         "Legacy ctapipe metadata detected. "
@@ -1096,7 +1035,7 @@ def _legacy_to_product(metadata, input_file=None) -> dp.Product:
 
     reference = Reference.from_dict(metadata)
 
-    product_type = _to_ctao_product_type(reference, input_file)
+    product_type = _to_ctao_product_type(reference)
     contact = _to_ctao_contact(reference)
 
     instance_kwargs = {"id": _legacy_uuid(reference.product.id_, "product")}
@@ -1200,7 +1139,7 @@ def _to_ctao_contact(reference: Reference) -> dp.Contact:
     return migrated.to_model()
 
 
-def _to_ctao_product_type(reference: Reference, input_file=None) -> dp.ProductType:
+def _to_ctao_product_type(reference: Reference) -> dp.ProductType:
     """Derive a current CTAO product type from legacy reference metadata."""
     level = to_ctao_data_level(reference.product.data_levels)
 
@@ -1227,21 +1166,8 @@ def _to_ctao_product_type(reference: Reference, input_file=None) -> dp.ProductTy
 
     data_type = dp.DataType.OBSERVATION_SIM
 
-    if reference.process.type_ == "Simulation":
-        data_type = dp.DataType.OBSERVATION_SIM
-
-    elif reference.process.type_ == "Observation":
+    if reference.process.type_ == "Observation":
         data_type = dp.DataType.OBSERVATION
-
-    elif reference.product.data_category == "Sim":
-        data_type = dp.DataType.OBSERVATION_SIM
-
-    # final HDF5-only fallback
-    elif (
-        isinstance(input_file, tables.File)
-        and "/configuration/simulation" in input_file
-    ):
-        data_type = dp.DataType.OBSERVATION_SIM
 
     return dp.ProductType(
         level=level,
@@ -1385,7 +1311,7 @@ def activity_from_provenance(activity) -> dp.Activity:
         name=provenance["activity_name"],
         id=uuid.UUID(provenance["activity_uuid"]),
         start=provenance["start"]["time_utc"],
-        end=provenance["stop"].get("time_utc"),
+        end=provenance["stop"].get("time_utc", Time.now()),
         software=dp.Software(
             name="ctapipe",
             version=provenance["system"]["ctapipe_version"],

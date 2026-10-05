@@ -299,7 +299,7 @@ def test_read_legacy_metadata_from_open_hdf5(legacy_file):
         (
             [DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS],
             dp.DataLevel.DL1,
-            None,
+            dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS,
         ),
         ([DataLevel.R1, DataLevel.DL2], dp.DataLevel.DL2, None),
     ],
@@ -393,27 +393,16 @@ def test_read_legacy_metadata_with_invalid_contact(tmp_path, reference):
 
 
 @pytest.mark.parametrize(
-    ("process_type", "category", "has_simulation_group", "expected"),
+    ("process_type", "expected"),
     [
-        ("Simulation", "Other", False, dp.DataType.OBSERVATION_SIM),
-        ("Observation", "Sim", True, dp.DataType.OBSERVATION),
-        ("Other", "Sim", False, dp.DataType.OBSERVATION_SIM),
-        ("Other", "Other", True, dp.DataType.OBSERVATION_SIM),
-        ("Other", "Other", False, dp.DataType.OBSERVATION_SIM),
+        ("Simulation", dp.DataType.OBSERVATION_SIM),
+        ("Observation", dp.DataType.OBSERVATION),
+        ("Other", dp.DataType.OBSERVATION_SIM),
     ],
 )
-def test_legacy_data_type_fallbacks(
-    tmp_path, reference, process_type, category, has_simulation_group, expected
-):
+def test_legacy_data_type(reference, process_type, expected):
     reference.process.type_ = process_type
-    reference.product.data_category = category
-    path = tmp_path / "legacy.h5"
-    with tables.open_file(path, mode="w") as h5file:
-        if has_simulation_group:
-            h5file.create_group("/configuration", "simulation", createparents=True)
-
-    with tables.open_file(path) as h5file:
-        product_type = meta._to_ctao_product_type(reference, h5file)
+    product_type = meta._to_ctao_product_type(reference)
 
     assert product_type.type is expected
 
@@ -510,39 +499,31 @@ def test_configurable_curation_validation():
     assert meta.Curation().to_model() == dp.Curation()
 
 
-def test_configurable_instance_metadata_validation():
-    instance = meta.InstanceMetadata(
-        category=dp.DataProcessingCategory.B,
-        site_id=SiteID.CTAO_NORTH,
-        subarray_id=1,
-        target_id="Crab",
-    )
-
-    model = instance.to_model()
-    assert model.category is dp.DataProcessingCategory.B
-    assert model.site_id is SiteID.CTAO_NORTH
-    assert model.subarray_id == 1
-    assert model.target_id == "Crab"
-
-    with pytest.raises(TraitError, match="Invalid ACADADataSource"):
-        instance.data_source = "invalid"
-
-
 def test_configurable_product_metadata_validation(ctao_product):
     product_info = meta.ProductMetadata(
         description="Test product",
         disclaimer="Test disclaimer",
-        instance=meta.InstanceMetadata(target_id="Crab"),
+        instance={"category": "A"},
+        activity={"configuration_id": "configured"},
     )
     values = ctao_product.model_dump()
     values.pop("description")
     values.pop("disclaimer")
-    values.pop("instance")
+    values["instance"] = ctao_product.instance
+    values["activity"] = ctao_product.activity
 
     product = product_info.to_model(**values)
     assert product.description == "Test product"
     assert product.disclaimer == "Test disclaimer"
-    assert product.instance.target_id == "Crab"
+    assert product.instance.obs_id == ctao_product.instance.obs_id
+    assert product.instance.category is dp.DataProcessingCategory.A
+    assert product.activity.configuration_id == "configured"
+
+    with pytest.raises(TraitError, match="cannot be configured"):
+        meta.ProductMetadata(instance={"target_id": "Crab"})
+
+    with pytest.raises(TraitError, match="cannot be configured"):
+        meta.ProductMetadata(activity={"name": "custom"})
 
     with pytest.raises(TraitError):
         meta.ProductMetadata().to_model()

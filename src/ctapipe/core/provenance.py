@@ -66,7 +66,6 @@ def json_config_handler(obj):
     from ctapipe.io.metadata import (
         Contact,
         Curation,
-        InstanceMetadata,
         Instrument,
         ProductMetadata,
         Reference,
@@ -82,9 +81,7 @@ def json_config_handler(obj):
     if isinstance(obj, Path):
         return str(obj)
 
-    if isinstance(
-        obj, (Reference, Contact, Curation, InstanceMetadata, ProductMetadata)
-    ):
+    if isinstance(obj, (Reference, Contact, Curation, ProductMetadata)):
         return obj.to_dict()
 
     if isinstance(obj, Time):

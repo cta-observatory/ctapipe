@@ -133,9 +133,6 @@ disp.highlight_pixels(mask, color="white", alpha=0.3, linewidth=2)
 plt.xlim(params.x.to_value(u.m) - 0.5, params.x.to_value(u.m) + 0.5)
 plt.ylim(params.y.to_value(u.m) - 0.5, params.y.to_value(u.m) + 0.5)
 
-######################################################################
-source.metadata
-
 
 ######################################################################
 # More complex image processing:
