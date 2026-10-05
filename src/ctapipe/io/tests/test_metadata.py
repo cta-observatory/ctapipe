@@ -258,13 +258,7 @@ def test_read_legacy_metadata_derives_product_type(legacy_file):
 
 
 def test_legacy_metadata_preserves_valid_ids(reference):
-    product = meta._legacy_reference_to_product(
-        reference,
-        meta._to_ctao_product_type(reference),
-        contact_fallback=dp.Contact(
-            name="Fallback", organization="CTAO", email="fallback@example.org"
-        ),
-    )
+    product = meta._legacy_to_product(reference.to_dict())
 
     assert product.instance.id == uuid.UUID(reference.product.id_)
     assert product.activity.id == uuid.UUID(reference.activity.id_)
@@ -278,13 +272,7 @@ def test_legacy_metadata_replaces_invalid_ids(reference, field, value):
         reference.activity.id_ = value
 
     with pytest.warns(meta.LegacyMetadataWarning, match=f"invalid {field} id"):
-        product = meta._legacy_reference_to_product(
-            reference,
-            meta._to_ctao_product_type(reference),
-            contact_fallback=dp.Contact(
-                name="Fallback", organization="CTAO", email="fallback@example.org"
-            ),
-        )
+        product = meta._legacy_to_product(reference.to_dict())
 
     assert isinstance(product.instance.id, uuid.UUID)
     assert isinstance(product.activity.id, uuid.UUID)
@@ -320,20 +308,7 @@ def test_legacy_data_level_and_sublevel_mapping(
     reference, levels, expected_level, expected_sublevel
 ):
     reference.product.data_levels = levels
-    product_type = dp.ProductType(
-        level=expected_level,
-        division=dp.DataDivision.EVENT,
-        association=dp.DataAssociation.SUBARRAY,
-        type=dp.DataType.OBSERVATION_SIM,
-    )
-
-    product = meta._legacy_reference_to_product(
-        reference,
-        product_type,
-        contact_fallback=dp.Contact(
-            name="Fallback", organization="CTAO", email="fallback@example.org"
-        ),
-    )
+    product = meta._legacy_to_product(reference.to_dict())
     assert product.data.level is expected_level
     assert product.instance.sublevel_id is expected_sublevel
 
@@ -347,8 +322,10 @@ def test_legacy_product_type_missing_level_and_unknown_association(reference):
 
     reference.product.data_levels = [DataLevel.DL1_IMAGES]
     reference.product.data_association = "Other"
-    with pytest.raises(ValueError, match="Unsupported legacy data association"):
-        meta._to_ctao_product_type(reference)
+    with pytest.warns(meta.LegacyMetadataWarning, match="data association"):
+        product_type = meta._to_ctao_product_type(reference)
+
+    assert product_type.association is dp.DataAssociation.SUBARRAY
 
 
 @pytest.mark.parametrize(
@@ -365,39 +342,34 @@ def test_legacy_instrument_mapping(
     reference.instrument.site = "South"
     reference.instrument.class_ = instrument_class
     reference.instrument.id_ = instrument_id
-    product_type = meta._to_ctao_product_type(reference)
-
-    product = meta._legacy_reference_to_product(
-        reference,
-        product_type,
-        contact_fallback=dp.Contact(
-            name="Fallback", organization="CTAO", email="fallback@example.org"
-        ),
-    )
+    product = meta._legacy_to_product(reference.to_dict())
 
     assert product.instance.site_id is SiteID.CTAO_SOUTH
     for name, value in expected.items():
         assert getattr(product.instance, name) == value
 
 
-def test_legacy_missing_optional_values_and_contact_fallback(reference):
+@pytest.mark.parametrize("site", [None, "", "Unknown site"])
+def test_legacy_site_mapping_uses_instance_default(site):
+    expected = dp.InstanceIdentifier.model_fields["site_id"].default
+    assert meta._legacy_site_id(site) is expected
+
+
+def test_legacy_missing_optional_values_and_contact_defaults(reference):
     reference.product.data_model_url = " unspecified "
     with reference.contact.cross_validation_lock:
         reference.contact.name = "unknown"
         reference.contact.organization = ""
         reference.contact.email = "not-an-email"
-    fallback = dp.Contact(
-        name="Fallback", organization="CTAO", email="fallback@example.org"
-    )
 
     with pytest.warns(meta.LegacyMetadataWarning, match="invalid contact"):
-        product = meta._legacy_reference_to_product(
-            reference,
-            meta._to_ctao_product_type(reference),
-            contact_fallback=fallback,
-        )
+        product = meta._legacy_to_product(reference.to_dict())
 
-    assert product.contact == fallback
+    assert product.contact == dp.Contact(
+        name="unknown",
+        organization="unknown",
+        email="unknown@example.org",
+    )
     assert product.model.url is None
 
 
@@ -410,12 +382,12 @@ def test_read_legacy_metadata_with_invalid_contact(tmp_path, reference):
     with tables.open_file(path, mode="w") as h5file:
         meta.write_to_hdf5(reference.to_dict(), h5file)
 
-    with pytest.warns(meta.LegacyMetadataWarning, match="invalid contact"):
+    with pytest.warns(meta.LegacyMetadataWarning, match="Legacy"):
         product = meta.read_ctao_metadata(path)
 
     assert product.contact == dp.Contact(
         name="unknown",
-        organization="unknown",
+        organization="CTA Consortium",
         email="unknown@example.org",
     )
 
@@ -427,7 +399,7 @@ def test_read_legacy_metadata_with_invalid_contact(tmp_path, reference):
         ("Observation", "Sim", True, dp.DataType.OBSERVATION),
         ("Other", "Sim", False, dp.DataType.OBSERVATION_SIM),
         ("Other", "Other", True, dp.DataType.OBSERVATION_SIM),
-        ("Other", "Other", False, dp.DataType.OBSERVATION),
+        ("Other", "Other", False, dp.DataType.OBSERVATION_SIM),
     ],
 )
 def test_legacy_data_type_fallbacks(
@@ -441,7 +413,9 @@ def test_legacy_data_type_fallbacks(
             h5file.create_group("/configuration", "simulation", createparents=True)
 
     with tables.open_file(path) as h5file:
-        assert meta.to_ctao_data_type(reference, h5file) is expected
+        product_type = meta._to_ctao_product_type(reference, h5file)
+
+    assert product_type.type is expected
 
 
 def test_invalid_and_missing_metadata(tmp_path, ctao_product):
