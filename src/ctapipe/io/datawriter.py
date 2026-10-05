@@ -31,6 +31,12 @@ __all__ = ["DataWriter", "DATA_MODEL_VERSION"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
+DL2_SUBLEVELS = {
+    "geometry": dp.ProcessingSublevel.GEOMETRY,
+    "energy": dp.ProcessingSublevel.ENERGY,
+    "particle_type": dp.ProcessingSublevel.GAMMANESS,
+}
+
 
 def _get_tel_index(event, tel_id):
     return TelEventIndexContainer(
@@ -227,6 +233,7 @@ class DataWriter(Component):
         self._subarray: SubarrayDescription = event_source.subarray
 
         self._hdf5_filters = None
+        self._processing_sublevels = dp.ProcessingSublevel(0)
 
         self._setup_output_path()
         self._setup_compression()
@@ -648,6 +655,10 @@ class DataWriter(Component):
         """
         # pylint: disable=no-self-use
         for container_name, algorithm_map in event.dl2.stereo.items():
+            if algorithm_map:
+                sublevel = DL2_SUBLEVELS.get(container_name)
+                if sublevel is not None:
+                    self._processing_sublevels |= sublevel
             for algorithm, container in algorithm_map.items():
                 # note this will only write info if the particular algorithm
                 # generated it (otherwise the algorithm map is empty, and no
@@ -678,13 +689,15 @@ class DataWriter(Component):
         meta.write_to_hdf5(context_dict, self._writer.h5file)
 
     def _get_processing_sublevel(self):
-        if self.write_dl1_images and not self.write_dl1_parameters:
-            return dp.ProcessingSublevel.IMAGES
+        sublevel = self._processing_sublevels
 
-        if self.write_dl1_parameters and not self.write_dl1_images:
-            return dp.ProcessingSublevel.PARAMETERS
+        if self.write_dl1_images:
+            sublevel |= dp.ProcessingSublevel.IMAGES
 
-        return None
+        if self.write_dl1_parameters:
+            sublevel |= dp.ProcessingSublevel.PARAMETERS
+
+        return sublevel or None
 
     def _write_product_metadata_headers(self):
         """
@@ -740,6 +753,7 @@ class DataWriter(Component):
 
         obs_ids = self.event_source.obs_ids
         obs_id = obs_ids[0] if len(obs_ids) == 1 else None
+
         facility_name = (
             dp.FacilityName.SIMULATED_CTAO
             if self._is_simulation
