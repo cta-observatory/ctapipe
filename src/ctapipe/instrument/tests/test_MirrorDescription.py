@@ -175,3 +175,10 @@ def test_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
     for path in (ecsv_path, fits_path):
         roundtripped = MirrorDescription.from_table(path)
         _check_description(roundtripped)
+
+
+def test_peek(lst1_mirror_facets_path):
+    """Check that peek runs without errors."""
+    pytest.importorskip("matplotlib")
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
+    description.peek()
