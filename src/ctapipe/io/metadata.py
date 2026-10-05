@@ -66,7 +66,6 @@ __all__ = [
     "read_ctao_metadata",
     "read_reference_metadata",
     "to_ctao_data_level",
-    "to_ctao_data_type",
     "write_product_metadata_fits_header",
     "write_product_metadata_hdf5",
     "write_to_hdf5",
@@ -1075,6 +1074,16 @@ def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
     raise ValueError("Unsupported metadata format")
 
 
+def _read_hdf5_attributes(h5file, path="/"):
+    """Read hdf5 attributes into a dict"""
+    with ExitStack() as stack:
+        if not isinstance(h5file, tables.File):
+            h5file = stack.enter_context(tables.open_file(h5file))
+
+        node = h5file.get_node(path)
+        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
+
+
 def _legacy_to_product(metadata, input_file=None) -> dp.Product:
     """Convert legacy CTA reference metadata to a current CTAO product."""
     warnings.warn(
@@ -1087,89 +1096,9 @@ def _legacy_to_product(metadata, input_file=None) -> dp.Product:
 
     reference = Reference.from_dict(metadata)
 
-    contact_fallback = dp.Contact(
-        name="unknown",
-        organization="unknown",
-        email="unknown@example.org",
-    )
-
     product_type = _to_ctao_product_type(reference, input_file)
+    contact = _to_ctao_contact(reference)
 
-    return _legacy_reference_to_product(
-        reference,
-        product_type,
-        contact_fallback=contact_fallback,
-    )
-
-
-def _read_hdf5_attributes(h5file, path="/"):
-    """Read hdf5 attributes into a dict"""
-    with ExitStack() as stack:
-        if not isinstance(h5file, tables.File):
-            h5file = stack.enter_context(tables.open_file(h5file))
-
-        node = h5file.get_node(path)
-        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
-
-
-def metadata_to_product(metadata) -> dp.Product:
-    """Convert flattened current CTAO metadata into a validated product model."""
-    metadata = {
-        key: value for key, value in metadata.items() if key.startswith("CTAO.")
-    }
-
-    # Temporary workaround for
-    # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
-    # Only add optional URL fields when their parent metadata object already exists.
-    if any(key.startswith("CTAO.model.") for key in metadata):
-        metadata.setdefault("CTAO.model.url", None)
-
-    if any(key.startswith("CTAO.activity.software.") for key in metadata):
-        metadata.setdefault("CTAO.activity.software.url", None)
-
-    return dm.unflatten_model_instance(
-        metadata,
-        model=dp.Product,
-        parent_key="CTAO",
-    )
-
-
-def _to_ctao_product_type(reference: Reference, input_file=None) -> dp.ProductType:
-    """Derive a current CTAO product type from legacy reference metadata."""
-    level = to_ctao_data_level(reference.product.data_levels)
-
-    if level is None:
-        warnings.warn(
-            "Could not determine a data level from legacy metadata. "
-            "Falling back to DataLevel.SIM.",
-            LegacyMetadataWarning,
-            stacklevel=2,
-        )
-        level = dp.DataLevel.SIM
-
-    try:
-        association = dp.DataAssociation(reference.product.data_association)
-    except ValueError as err:
-        raise ValueError(
-            "Unsupported legacy data association: "
-            f"{reference.product.data_association!r}"
-        ) from err
-    data_type = to_ctao_data_type(reference, input_file)
-
-    return dp.ProductType(
-        level=level,
-        division=dp.DataDivision.EVENT,
-        association=association,
-        type=data_type,
-    )
-
-
-def _legacy_reference_to_product(
-    reference: Reference,
-    product_type: dp.ProductType,
-    contact_fallback: dp.Contact,
-) -> dp.Product:
-    """Convert legacy reference metadata to a current CTAO Product."""
     instance_kwargs = {"id": _legacy_uuid(reference.product.id_, "product")}
 
     # Legacy data levels -> processing sublevel
@@ -1209,31 +1138,6 @@ def _legacy_reference_to_product(
         instance_kwargs["subarray_id"] = instrument_id
 
     model_url = _legacy_optional_string(reference.product.data_model_url)
-    contact_name = _legacy_optional_string(reference.contact.name)
-    contact_organization = _legacy_optional_string(reference.contact.organization)
-    contact_email = _legacy_optional_string(reference.contact.email)
-
-    invalid_contact = {
-        "name": contact_name,
-        "organization": contact_organization,
-        "email": contact_email,
-    }
-
-    try:
-        contact = dp.Contact(**invalid_contact)
-    except ValidationError:
-        warnings.warn(
-            "Legacy metadata contains invalid contact information: "
-            f"{invalid_contact!r}. "
-            "The contact information is temporarily replaced with the fallback "
-            f"{contact_fallback!r}. "
-            "Ensure that valid contact information is provided when writing new data, "
-            "for example through the DataWriter, or migrate the file explicitly using "
-            "the MergeTool.",
-            LegacyMetadataWarning,
-            stacklevel=2,
-        )
-        contact = contact_fallback
 
     return dp.Product(
         description=reference.product.description,
@@ -1259,6 +1163,84 @@ def _legacy_reference_to_product(
             ),
             configuration_id="",
         ),
+    )
+
+
+def _to_ctao_contact(reference: Reference) -> dp.Contact:
+    """Convert legacy contact information, falling back field by field."""
+    migrated = Contact()
+    invalid = {}
+
+    for field in ("name", "organization", "email"):
+        value = _legacy_optional_string(getattr(reference.contact, field))
+
+        if value is None:
+            continue
+
+        try:
+            setattr(migrated, field, value)
+        except TraitError:
+            invalid[field] = value
+
+    if invalid:
+        warnings.warn(
+            "Legacy metadata contains invalid contact information: "
+            f"{invalid!r}. Using default values for these fields.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+
+    return migrated.to_model()
+
+
+def _to_ctao_product_type(reference: Reference, input_file=None) -> dp.ProductType:
+    """Derive a current CTAO product type from legacy reference metadata."""
+    level = to_ctao_data_level(reference.product.data_levels)
+
+    if level is None:
+        warnings.warn(
+            "Could not determine a data level from legacy metadata. "
+            "Falling back to DataLevel.SIM.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+        level = dp.DataLevel.SIM
+
+    try:
+        association = dp.DataAssociation(reference.product.data_association)
+    except ValueError:
+        association = dp.DataAssociation.SUBARRAY
+        warnings.warn(
+            "Could not determine a valid data association from legacy metadata "
+            f"{reference.product.data_association!r}. "
+            "Falling back to DataAssociation.SUBARRAY.",
+            LegacyMetadataWarning,
+            stacklevel=2,
+        )
+
+    data_type = dp.DataType.OBSERVATION_SIM
+
+    if reference.process.type_ == "Simulation":
+        data_type = dp.DataType.OBSERVATION_SIM
+
+    elif reference.process.type_ == "Observation":
+        data_type = dp.DataType.OBSERVATION
+
+    elif reference.product.data_category == "Sim":
+        data_type = dp.DataType.OBSERVATION_SIM
+
+    # final HDF5-only fallback
+    elif (
+        isinstance(input_file, tables.File)
+        and "/configuration/simulation" in input_file
+    ):
+        data_type = dp.DataType.OBSERVATION_SIM
+
+    return dp.ProductType(
+        level=level,
+        division=dp.DataDivision.EVENT,
+        association=association,
+        type=data_type,
     )
 
 
@@ -1332,52 +1314,12 @@ def _legacy_uuid(value: str | None, field: str) -> uuid.UUID:
         return replacement
 
 
-def to_ctao_data_type(
-    reference: Reference,
-    input_file=None,
-) -> dp.DataType:
-    """Infer the CTAO data type represented by legacy metadata.
-
-    Explicit legacy process and product fields take precedence. As a final fallback,
-    an HDF5 input is inspected for simulation configuration data.
-
-    Parameters
-    ----------
-    reference : Reference
-        Legacy reference metadata.
-    input_file : path-like, tables.File, or None
-        Input used for the HDF5 simulation fallback. ``None`` is accepted when the
-        legacy metadata already determines the result.
-
-    Returns
-    -------
-    ctao_datamodel.models.dataproducts.DataType
-        Inferred observation or simulated-observation data type.
-    """
-    if reference.process.type_ == "Simulation":
-        return dp.DataType.OBSERVATION_SIM
-
-    if reference.process.type_ == "Observation":
-        return dp.DataType.OBSERVATION
-
-    if reference.product.data_category == "Sim":
-        return dp.DataType.OBSERVATION_SIM
-
-    # final HDF5-only fallback
-    if (
-        isinstance(input_file, tables.File)
-        and "/configuration/simulation" in input_file
-    ):
-        return dp.DataType.OBSERVATION_SIM
-
-    return dp.DataType.OBSERVATION
-
-
 def _legacy_site_id(site: str | None) -> SiteID | None:
     """Convert an unambiguous legacy instrument site to a CTAO SiteID."""
     site = _legacy_optional_string(site)
+    site_default = dp.InstanceIdentifier.model_fields["site_id"].default
     if site is None:
-        return None
+        return site_default
 
     mapping = {
         "North": SiteID.CTAO_NORTH,
@@ -1390,7 +1332,7 @@ def _legacy_site_id(site: str | None) -> SiteID | None:
         "EXTERNAL": SiteID.EXTERNAL,
     }
 
-    return mapping.get(site)
+    return mapping.get(site, site_default)
 
 
 def _legacy_instrument_id(value: str | None) -> int | None:
@@ -1403,6 +1345,28 @@ def _legacy_instrument_id(value: str | None) -> int | None:
         return int(value)
     except ValueError:
         return None
+
+
+def metadata_to_product(metadata) -> dp.Product:
+    """Convert flattened current CTAO metadata into a validated product model."""
+    metadata = {
+        key: value for key, value in metadata.items() if key.startswith("CTAO.")
+    }
+
+    # Temporary workaround for
+    # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
+    # Only add optional URL fields when their parent metadata object already exists.
+    if any(key.startswith("CTAO.model.") for key in metadata):
+        metadata.setdefault("CTAO.model.url", None)
+
+    if any(key.startswith("CTAO.activity.software.") for key in metadata):
+        metadata.setdefault("CTAO.activity.software.url", None)
+
+    return dm.unflatten_model_instance(
+        metadata,
+        model=dp.Product,
+        parent_key="CTAO",
+    )
 
 
 def activity_from_provenance(activity) -> dp.Activity:
