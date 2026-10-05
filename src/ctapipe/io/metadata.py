@@ -1009,7 +1009,7 @@ def _read_ecsv_metadata(ecsv_file) -> dp.Product:
         return dp.Product.model_validate_versioned(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
-        return _read_legacy_product(metadata)
+        return _legacy_to_product(metadata)
 
     raise ValueError("Unsupported metadata format")
 
@@ -1028,7 +1028,7 @@ def _read_json_metadata(json_file) -> dp.Product:
         return dp.Product.model_validate_versioned(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
-        return _read_legacy_product(metadata)
+        return _legacy_to_product(metadata)
 
     raise ValueError("Unsupported metadata format")
 
@@ -1056,7 +1056,7 @@ def _read_fits_metadata(fits_file) -> dp.Product:
 
         # Legacy CTA metadata
         if "CTA REFERENCE VERSION" in header:
-            return _read_legacy_product(header, fits_file)
+            return _legacy_to_product(header, fits_file)
 
         raise ValueError("Unsupported metadata format")
 
@@ -1070,12 +1070,12 @@ def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
         return metadata_to_product(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
-        return _read_legacy_product(metadata, h5file)
+        return _legacy_to_product(metadata, h5file)
 
     raise ValueError("Unsupported metadata format")
 
 
-def _read_legacy_product(metadata, input_file=None) -> dp.Product:
+def _legacy_to_product(metadata, input_file=None) -> dp.Product:
     """Convert legacy CTA reference metadata to a current CTAO product."""
     warnings.warn(
         "Legacy ctapipe metadata detected. "
@@ -1093,7 +1093,7 @@ def _read_legacy_product(metadata, input_file=None) -> dp.Product:
         email="unknown@example.org",
     )
 
-    product_type = _legacy_product_type(reference, input_file)
+    product_type = _to_ctao_product_type(reference, input_file)
 
     return _legacy_reference_to_product(
         reference,
@@ -1134,7 +1134,7 @@ def metadata_to_product(metadata) -> dp.Product:
     )
 
 
-def _legacy_product_type(reference: Reference, input_file=None) -> dp.ProductType:
+def _to_ctao_product_type(reference: Reference, input_file=None) -> dp.ProductType:
     """Derive a current CTAO product type from legacy reference metadata."""
     level = to_ctao_data_level(reference.product.data_levels)
 
