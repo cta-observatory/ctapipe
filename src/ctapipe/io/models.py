@@ -22,8 +22,8 @@ class ZipModelWriter(Component):
     output_path = Path(directory_ok=False, help="Output path").tag(config=True)
     compression_level = Int(default_value=9).tag(config=True)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, output_path, **kwargs):
+        super().__init__(output_path=output_path, **kwargs)
 
         self.outfile = zipfile.ZipFile(
             self.output_path,

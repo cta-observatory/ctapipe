@@ -20,6 +20,8 @@ from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
 
+from ctapipe.io.models import ZipModelWriter
+
 from ..containers import (
     ArrayEventContainer,
     DispContainer,
@@ -218,16 +220,16 @@ class SKLearnReconstructor(Reconstructor):
             container definition(s)
         """
 
-    @deprecated("v0.33.0", alternative="ctapipe.io.SklearnModelWriter")
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
 
         if path.exists() and not overwrite:
             raise OSError(f"Path {path} exists and overwrite=False")
 
-        with path.open("wb") as f:
-            joblib.dump(self, f, compress=True)
-            Provenance().add_output_file(path, role=f"{self.__class__.__name__}-model")
+        with ZipModelWriter(path, parent=self) as writer:
+            writer.write_reconstructor(self)
+            for key, model in self._models.items():
+                writer(key, model)
 
     @lazyproperty
     def instrument_table(self):
@@ -678,26 +680,6 @@ class DispReconstructor(Reconstructor):
         with path.open("wb") as f:
             joblib.dump(self, f, compress=True)
             Provenance().add_output_file(path, role="DispReconstructor-model")
-
-    @classmethod
-    @deprecated("v0.33.0", alternative="ctapipe.io.ZIPModelWriter")
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(
-            path, role="DispReconstructor-model", add_meta=False
-        )
-        return instance
 
     @lazyproperty
     def instrument_table(self):

@@ -46,3 +46,7 @@ def test_reconstructor_io(tmp_path, classifier):
 
         # we do not read models by default, we load them one-by-one
         assert len(reconstructor._models) == 0
+
+    # should be the same...
+    path = tmp_path / "models2.zip"
+    classifier.write(path)
