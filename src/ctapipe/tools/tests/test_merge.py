@@ -216,6 +216,30 @@ def test_monitoring_only_append_keeps_product_type(
     assert product.data.type is original_product.data.type
 
 
+def test_monitoring_only_sets_product_type(
+    tmp_path, calibpipe_camcalib_sims_single_chunk
+):
+    from ctapipe.tools.merge import MergeTool
+
+    output = tmp_path / "monitoring_only.dl1.h5"
+    with pytest.warns(meta.LegacyMetadataWarning):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(calibpipe_camcalib_sims_single_chunk),
+                f"--output={output}",
+                "--merge-strategy=monitoring-only",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
+
+    product = meta.read_ctao_metadata(output)
+
+    assert product.data.division is dp.DataDivision.MONITORING
+    assert product.data.type is dp.DataType.CALIBRATION_SIM
+
+
 def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
     from ctapipe.tools.merge import MergeTool
 
@@ -272,6 +296,9 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
     t = read_table(output, "/simulation/event/telescope/images/tel_001")
     assert "true_image" not in t.colnames
     assert "true_image_sum" in t.colnames
+
+    product = meta.read_ctao_metadata(output)
+    assert product.data.level is dp.DataLevel.DL1
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):

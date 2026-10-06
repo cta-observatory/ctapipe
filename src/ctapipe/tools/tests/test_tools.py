@@ -2,14 +2,18 @@
 Test individual tool functionality
 """
 
+import json
 import subprocess
 import sys
 
 import pytest
+from ctao_datamodel.models import dataproducts as dp
+from ctao_datamodel.models.common import SiteID
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import metadata
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
@@ -124,7 +128,14 @@ def test_dump_instrument(tmp_path, monkeypatch):
     tool = DumpInstrumentTool()
     ret = run_tool(
         tool,
-        [f"--input={PROD5B_PATH}", "--format=service"],
+        [
+            f"--input={PROD5B_PATH}",
+            "--format=service",
+            "--Contact.name=Service Contact",
+            "--Contact.organization=CTAO",
+            "--Contact.email=service@example.org",
+            "--Curation.release=test-service-data",
+        ],
         cwd=tmp_path,
         raises=True,
     )
@@ -133,6 +144,32 @@ def test_dump_instrument(tmp_path, monkeypatch):
     assert (tmp_path / "instrument/array-element-ids.json").exists()
     assert (tmp_path / "instrument/subarray-ids.json").exists()
     assert (tmp_path / "instrument/positions").exists()
+
+    instrument_dir = tmp_path / "instrument"
+    metadata_dicts = [
+        json.loads((instrument_dir / "instrument.meta.json").read_text()),
+        json.loads((instrument_dir / "array-element-ids.json").read_text())["metadata"],
+        json.loads((instrument_dir / "subarray-ids.json").read_text())["metadata"],
+    ]
+    products = [metadata.metadata_to_product(value) for value in metadata_dicts]
+    positions_path = next((instrument_dir / "positions").glob("*.ecsv"))
+    products.append(metadata.read_ctao_metadata(positions_path))
+
+    for product in products:
+        assert product.data == dp.ProductType(
+            level=dp.DataLevel.DL0,
+            division=dp.DataDivision.SERVICE,
+            association=dp.DataAssociation.SUBARRAY,
+            type=dp.DataType.OBSERVATION_SIM,
+        )
+        assert product.instance.site_id is SiteID.CTAO_SOUTH
+        assert product.instance.subarray_id == 1
+        assert product.contact == dp.Contact(
+            name="Service Contact",
+            organization="CTAO",
+            email="service@example.org",
+        )
+        assert product.curation.release == "test-service-data"
 
     # Check array-elements directory with ae_id subdirectories
     array_elements_dir = tmp_path / "instrument" / "array-elements"
