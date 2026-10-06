@@ -184,6 +184,9 @@ class HDF5EventSource(EventSource):
         Path to the input event file.
     file: tables.File
         File object
+    metadata: ctao_datamodel.models.dataproducts.Product
+        Validated CTAO product metadata read from the file. Legacy ctapipe
+        metadata is converted to the current model.
     obs_ids: list
         Observation ids of the recorded runs. For unmerged files, this
         should only contain a single number.

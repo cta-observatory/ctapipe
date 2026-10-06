@@ -315,6 +315,7 @@ class HDF5Merger(Component):
                 self._update_meta()
 
     def _update_meta(self):
+        """Update and write product metadata after merging an input file."""
         self.meta.instance.id = uuid.uuid4()
         self.meta.creation_time = Time.now()
 
@@ -332,6 +333,7 @@ class HDF5Merger(Component):
         self.h5file.flush()
 
     def _update_product_type(self):
+        """Adapt product division and type for monitoring-only output."""
         if self.attach_monitoring and not self.append:
             self.meta.data.division = dp.DataDivision.MONITORING
 
@@ -371,6 +373,7 @@ class HDF5Merger(Component):
         self.meta.data.level = data_level
 
     def _read_meta(self, h5file):
+        """Read product metadata and translate errors into ``CannotMerge``."""
         try:
             return metadata.read_ctao_metadata(h5file)
         except Exception:
@@ -379,6 +382,7 @@ class HDF5Merger(Component):
             )
 
     def _check_can_merge(self, other, other_meta):
+        """Validate metadata and required nodes before merging a file."""
         self._check_data_model_version(other, other_meta.model.version)
         self._check_data_type(other, other_meta.data.type)
 
@@ -396,6 +400,7 @@ class HDF5Merger(Component):
                 )
 
     def _check_data_model_version(self, other, other_version):
+        """Check data-model-version compatibility for the merge strategy."""
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 raise CannotMerge(
@@ -410,6 +415,7 @@ class HDF5Merger(Component):
             )
 
     def _check_data_type(self, other, other_data_type):
+        """Check CTAO product-type compatibility for the merge strategy."""
         if self.attach_monitoring:
             observation_types = {
                 dp.DataType.OBSERVATION,
