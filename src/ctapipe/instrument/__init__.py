@@ -16,6 +16,8 @@ from .optics import (
     ReflectorShape,
     SizeType,
     ZernikePSFModel,
+    MirrorDescription,
+    MirrorFacetShape,
 )
 from .subarray import SubarrayDescription, UnknownSubarray, UnknownTelescopeID
 from .telescope import TelescopeDescription
@@ -44,4 +46,6 @@ __all__ = [
     "ComaPSFModel",
     "ZernikePSFModel",
     "UnknownPixelShapeWarning",
+    "MirrorDescription",
+    "MirrorFacetShape",
 ]
