@@ -1,7 +1,7 @@
 import json
 
 from ctapipe.core import Provenance
-from ctapipe.core.provenance import _ActivityProvenance
+from ctapipe.core.provenance import _ActivityProvenance, json_config_handler
 
 
 def test_provenance_activity_names(provenance):
@@ -47,6 +47,37 @@ def test_provenance_json(provenance: Provenance):
     packages = activity["system"]["python"].get("packages")
     assert isinstance(packages, list)
     assert any(p["name"] == "numpy" for p in packages)
+
+
+def test_json_config_handler_metadata_models():
+    import ctao_datamodel.models.dataproducts as dp
+
+    from ctapipe.io import metadata
+
+    values = {
+        "contact": metadata.Contact(
+            name="Test User",
+            organization="CTAO",
+            email="test@example.org",
+        ),
+        "curation": metadata.Curation(release="test"),
+        "product": metadata.ProductMetadata(
+            description="Test product",
+            instance={"category": "A"},
+        ),
+        "pydantic": dp.Contact(
+            name="Model User",
+            organization="CTAO",
+            email="model@example.org",
+        ),
+    }
+
+    serialized = json.loads(json.dumps(values, default=json_config_handler))
+
+    assert serialized["contact"]["email"] == "test@example.org"
+    assert serialized["curation"]["release"] == "test"
+    assert serialized["product"]["instance"] == {"category": "A"}
+    assert serialized["pydantic"]["email"] == "model@example.org"
 
 
 def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):

@@ -1,9 +1,15 @@
+from types import SimpleNamespace
+
 import pytest
 import tables
 from astropy.table import vstack
 from astropy.utils.data import shutil
+from ctao_datamodel.models import dataproducts as dp
+from traitlets import TraitError
+from traitlets.config import Config
 
 from ctapipe.instrument.subarray import SubarrayDescription
+from ctapipe.io import metadata
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 from ctapipe.utils.datasets import get_dataset_path
@@ -112,6 +118,16 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
         for table in statistics_tables:
             compare_stats_table(in1, in2, merged, table)
 
+    product = metadata.read_ctao_metadata(output)
+    assert product.data.level is dp.DataLevel.DL2
+
+
+def test_append_requires_existing_output(tmp_path):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    with pytest.raises(TraitError, match="file does not exist"):
+        HDF5Merger(output_path=tmp_path / "missing.h5", append=True)
+
 
 def test_append(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
@@ -130,6 +146,119 @@ def test_append(tmp_path, gamma_train_clf, proton_train_clf):
             CannotMerge, match="Required node .*/energy/ExtraTreesRegressor"
         ):
             merger(gamma_train_en)
+
+
+def test_contact_override(tmp_path, dl1_file):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    output = tmp_path / "contact.h5"
+    config = Config(
+        {
+            "HDF5Merger": {
+                "Contact": {
+                    "name": "Merge Contact",
+                    "organization": "CTAO",
+                    "email": "merge@example.org",
+                }
+            }
+        }
+    )
+
+    with HDF5Merger(output_path=output, config=config) as merger:
+        merger(dl1_file)
+
+    product = metadata.read_ctao_metadata(output)
+    assert product.contact == dp.Contact(
+        name="Merge Contact",
+        organization="CTAO",
+        email="merge@example.org",
+    )
+
+
+@pytest.mark.parametrize(
+    ("merge_strategy", "first_type", "second_type", "compatible"),
+    [
+        ("events-multiple-obs", dp.DataType.OBSERVATION, dp.DataType.OBSERVATION, True),
+        (
+            "events-multiple-obs",
+            dp.DataType.OBSERVATION,
+            dp.DataType.CALIBRATION,
+            False,
+        ),
+        ("monitoring-only", dp.DataType.OBSERVATION, dp.DataType.CALIBRATION, True),
+        (
+            "monitoring-only",
+            dp.DataType.OBSERVATION_SIM,
+            dp.DataType.CALIBRATION_SIM,
+            True,
+        ),
+        (
+            "monitoring-only",
+            dp.DataType.OBSERVATION,
+            dp.DataType.OBSERVATION_SIM,
+            False,
+        ),
+    ],
+)
+def test_data_type_compatibility(
+    tmp_path, merge_strategy, first_type, second_type, compatible
+):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    with HDF5Merger(tmp_path / "merged.h5", merge_strategy=merge_strategy) as merger:
+        merger.data_type = first_type
+
+        if compatible:
+            merger._check_data_type(other, second_type)
+        else:
+            with pytest.raises(CannotMerge, match="incompatible data type"):
+                merger._check_data_type(other, second_type)
+
+
+@pytest.mark.parametrize(
+    ("merge_strategy", "second_version", "compatible"),
+    [
+        ("events-multiple-obs", "v7.6.0", True),
+        ("events-multiple-obs", "v7.5.0", False),
+        ("monitoring-only", "v7.5.0", True),
+        ("monitoring-only", "v7.7.0", False),
+    ],
+)
+def test_data_model_version_compatibility(
+    tmp_path, merge_strategy, second_version, compatible
+):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    with HDF5Merger(tmp_path / "merged.h5", merge_strategy=merge_strategy) as merger:
+        merger.data_model_version = "v7.6.0"
+
+        if compatible:
+            merger._check_data_model_version(other, second_version)
+        else:
+            with pytest.raises(CannotMerge, match="data model version"):
+                merger._check_data_model_version(other, second_version)
+
+
+def test_data_category_compatibility(tmp_path):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    other_metadata = SimpleNamespace(
+        model=SimpleNamespace(version="v7.6.0"),
+        data=SimpleNamespace(type=dp.DataType.OBSERVATION_SIM),
+        instance=SimpleNamespace(category=dp.DataProcessingCategory.A),
+    )
+
+    with HDF5Merger(tmp_path / "merged.h5") as merger:
+        merger.data_model_version = "v7.6.0"
+        merger.data_type = dp.DataType.OBSERVATION_SIM
+        merger.data_category = dp.DataProcessingCategory.B
+        merger.required_nodes = set()
+
+        with pytest.raises(CannotMerge, match="different data category"):
+            merger._check_can_merge(other, other_metadata)
 
 
 def test_filter_column(tmp_path, dl2_shower_geometry_file):
@@ -164,6 +293,9 @@ def test_muon(tmp_path, dl1_muon_output_file):
     n_input = len(input_table)
     assert len(table) == n_input
     assert_table_equal(table, input_table)
+
+    product = metadata.read_ctao_metadata(output)
+    assert product.data.level is dp.DataLevel.DL1
 
 
 def test_duplicated_obs_ids(tmp_path, dl2_shower_geometry_file):

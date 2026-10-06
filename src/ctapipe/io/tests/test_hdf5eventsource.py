@@ -30,8 +30,25 @@ def test_is_compatible(compatible_file, request):
         assert isinstance(source, HDF5EventSource)
 
 
+def test_is_not_compatible_with_unsupported_metadata_version(tmp_path, dl1_file):
+    import shutil
+
+    import tables
+
+    path = tmp_path / "unsupported_metadata.h5"
+    shutil.copy2(dl1_file, path)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", tables.NaturalNameWarning)
+        with tables.open_file(path, mode="a") as h5file:
+            h5file.root._v_attrs["CTAO.ctao_metadata_version"] = "999.0.0"
+
+    assert not HDF5EventSource.is_compatible(path)
+
+
 def test_metadata(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
+        assert isinstance(source.metadata, dp.Product)
         assert source.is_simulation
         assert source.datamodel_version == (7, 6, 0)
         assert set(source.datalevels) == {
