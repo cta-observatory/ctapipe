@@ -77,7 +77,7 @@ def test_migrates_legacy_metadata(tmp_path, dl1_file):
             description="Legacy DL1 images",
             creation_time="2020-10-11 15:23:31",
             data_category="B",
-            data_levels=[DataLevel.DL1_IMAGES],
+            data_levels=[DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS],
             data_association="Subarray",
             data_model_name="ctapipe",
             data_model_version="v7.6.0",
@@ -126,7 +126,10 @@ def test_migrates_legacy_metadata(tmp_path, dl1_file):
         association=dp.DataAssociation.SUBARRAY,
         type=dp.DataType.OBSERVATION_SIM,
     )
-    assert product.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
+    assert (
+        product.instance.sublevel_id
+        is dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS
+    )
     assert product.instance.category is dp.DataProcessingCategory.B
     assert product.instance.site_id is SiteID.CTAO_SOUTH
     assert product.instance.subarray_id == 17
@@ -173,7 +176,7 @@ def test_migrates_legacy_dataset_metadata(
         association=dp.DataAssociation.SUBARRAY,
         type=dp.DataType.OBSERVATION_SIM,
     )
-    assert product.instance.sublevel_id is dp.ProcessingSublevel.IMAGES
+    assert product.instance.sublevel_id is None
     assert product.model.name == "ASWG"
     assert product.model.version == "v7.2.0"
     assert product.contact.email == "unknown@example.org"
@@ -299,6 +302,7 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
 
     product = meta.read_ctao_metadata(output)
     assert product.data.level is dp.DataLevel.DL1
+    assert product.instance.sublevel_id is dp.ProcessingSublevel.PARAMETERS
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
@@ -345,6 +349,13 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
 
     assert len(obs) == 2, "should have two OB entries"
     assert len(sbs) == 2, "should have two SB entries"
+
+    product = meta.read_ctao_metadata(output)
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.IMAGES
+        | dp.ProcessingSublevel.PARAMETERS
+        | dp.ProcessingSublevel.GEOMETRY
+    )
 
     # regression test for #2048
     loader = TableLoader(output)

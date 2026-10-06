@@ -39,9 +39,15 @@ from .hdf5dataformat import (
     DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
     DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
+    DL2_SUBARRAY_ENERGY_GROUP,
+    DL2_SUBARRAY_GEOMETRY_GROUP,
     DL2_SUBARRAY_GROUP,
     DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
+    DL2_SUBARRAY_PARTICLETYPE_GROUP,
+    DL2_TEL_ENERGY_GROUP,
+    DL2_TEL_GEOMETRY_GROUP,
     DL2_TEL_GROUP,
+    DL2_TEL_PARTICLETYPE_GROUP,
     FIXED_POINTING_GROUP,
     OBSERVATION_BLOCK_TABLE,
     R0_TEL_GROUP,
@@ -321,6 +327,7 @@ class HDF5Merger(Component):
 
         self._update_product_type()
         self._update_datalevel()
+        self._update_processing_sublevel()
 
         if self.contact_info._modified:
             self.meta.contact = self.contact_info.to_model()
@@ -371,6 +378,49 @@ class HDF5Merger(Component):
             return
 
         self.meta.data.level = data_level
+
+    def _update_processing_sublevel(self):
+        """Update processing sublevels based on data included in the output."""
+        if self.attach_monitoring:
+            return
+
+        sublevel = dp.ProcessingSublevel(0)
+
+        if self.dl1_images and DL1_TEL_IMAGES_GROUP in self.h5file.root:
+            sublevel |= dp.ProcessingSublevel.IMAGES
+
+        if self.dl1_parameters and DL1_TEL_PARAMETERS_GROUP in self.h5file.root:
+            sublevel |= dp.ProcessingSublevel.PARAMETERS
+
+        dl2_sublevels = (
+            (
+                dp.ProcessingSublevel.GEOMETRY,
+                DL2_SUBARRAY_GEOMETRY_GROUP,
+                DL2_TEL_GEOMETRY_GROUP,
+            ),
+            (
+                dp.ProcessingSublevel.ENERGY,
+                DL2_SUBARRAY_ENERGY_GROUP,
+                DL2_TEL_ENERGY_GROUP,
+            ),
+            (
+                dp.ProcessingSublevel.GAMMANESS,
+                DL2_SUBARRAY_PARTICLETYPE_GROUP,
+                DL2_TEL_PARTICLETYPE_GROUP,
+            ),
+        )
+
+        for flag, subarray_group, telescope_group in dl2_sublevels:
+            has_subarray_data = self.dl2_subarray and subarray_group in self.h5file.root
+            has_telescope_data = (
+                self.telescope_events
+                and self.dl2_telescope
+                and telescope_group in self.h5file.root
+            )
+            if has_subarray_data or has_telescope_data:
+                sublevel |= flag
+
+        self.meta.instance.sublevel_id = sublevel or None
 
     def _read_meta(self, h5file):
         """Read product metadata and translate errors into ``CannotMerge``."""
