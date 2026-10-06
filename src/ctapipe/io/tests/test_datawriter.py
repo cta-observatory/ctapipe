@@ -137,6 +137,15 @@ def test_write(tmpdir: Path):
             assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
             assert "telescopes" not in dl2_tel_energy
 
+    product = read_ctao_metadata(output_path)
+    assert product.data.level is dp.DataLevel.DL2
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.IMAGES
+        | dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+        | dp.ProcessingSublevel.GAMMANESS
+    )
+
 
 @pytest.mark.parametrize("overwrite", [False, True])
 def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):

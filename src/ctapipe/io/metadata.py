@@ -757,8 +757,8 @@ class Reference(HasTraits):
             kwargs[group][key] = value
 
         # Legacy files may contain contact data that does not satisfy the current
-        # CTAO model. Preserve it here so migration can apply its documented
-        # fallback contact later.
+        # CTAO model. Preserve the original values here so migration can validate
+        # each field individually and replace invalid values with their defaults.
         contact = Contact()
         with contact.cross_validation_lock:
             for key, value in kwargs["contact"].items():
@@ -994,11 +994,9 @@ def _read_ecsv_metadata(ecsv_file) -> dp.Product:
     """Read CTAO product metadata from an ECSV file."""
     metadata = Table.read(ecsv_file).meta
 
-    if "ctao_metadata_version" in metadata:
-        _check_metadata_version(metadata["ctao_metadata_version"])
-        # TODO: use model_validate_versioned after fix of
-        # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/52
-        return dp.Product.model_validate(metadata)
+    if "CTAO.ctao_metadata_version" in metadata:
+        _check_metadata_version(metadata["CTAO.ctao_metadata_version"])
+        return metadata_to_product(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
         return _legacy_to_product(metadata)
@@ -1015,11 +1013,9 @@ def _read_json_metadata(json_file) -> dp.Product:
 
     metadata = metadata.get("metadata", metadata)
 
-    if "ctao_metadata_version" in metadata:
-        _check_metadata_version(metadata["ctao_metadata_version"])
-        # TODO: use model_validate_versioned after fix of
-        # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/52
-        return dp.Product.model_validate(metadata)
+    if "CTAO.ctao_metadata_version" in metadata:
+        _check_metadata_version(metadata["CTAO.ctao_metadata_version"])
+        return metadata_to_product(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
         return _legacy_to_product(metadata)
