@@ -229,7 +229,7 @@ class DataWriter(Component):
         # Validate metadata before creating the output file.
         self.contact_info.to_model()
         self.curation_info.to_model()
-        self.product_info.validate()
+        self.product_info.validate_meta()
 
         self.event_source = event_source
 

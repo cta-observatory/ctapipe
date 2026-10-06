@@ -416,7 +416,7 @@ class ProductMetadata(Configurable):
             allowed_fields={"configuration_id"},
         )
 
-    def validate(self):
+    def validate_meta(self):
         """Explicitly validate all configurable metadata."""
         _validate_model_field(
             dp.Product,
