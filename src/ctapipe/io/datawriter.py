@@ -6,8 +6,11 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 
+import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
+from astropy.time import Time
+from ctao_datamodel.models.common import SiteID
 from traitlets import Dict, Instance
 
 from ..containers import (
@@ -25,9 +28,15 @@ from .eventsource import EventSource
 from .hdf5tableio import HDF5TableWriter
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
-__all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
+__all__ = ["DataWriter", "DATA_MODEL_VERSION"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
+
+DL2_SUBLEVELS = {
+    "geometry": dp.ProcessingSublevel.GEOMETRY,
+    "energy": dp.ProcessingSublevel.ENERGY,
+    "particle_type": dp.ProcessingSublevel.GAMMANESS,
+}
 
 
 def _get_tel_index(event, tel_id):
@@ -90,75 +99,13 @@ DATA_MODEL_CHANGE_HISTORY = """
 PROV = Provenance()
 
 
-def write_reference_metadata_headers(
-    obs_ids: list[int],
-    subarray: SubarrayDescription,
-    writer: "DataWriter",
-    is_simulation: bool,
-    data_levels,
-    contact_info: meta.Contact,
-    instrument_info: meta.Instrument,
-) -> None:
-    """
-    Attaches Core Provenence headers to an output HDF5 file.
-    Right now this is hard-coded for use with the ctapipe-process tool
-
-    Parameters
-    ----------
-    output_path: pathlib.Path
-        output HDF5 file
-    obs_id: int
-        observation ID
-    subarray:
-        SubarrayDescription to get metadata from
-    writer: HDF5TableWriter
-        output
-    data_levels: List[DataLevel]
-        list of data levels that were requested/generated
-        (e.g. from `DataWriter.datalevels`)
-    contact_info: meta.Contact
-        contact metadata
-    instrument_info: meta.Instrument
-        instrument metadata
-    """
-    activity = PROV.current_activity
-    if activity is None and len(PROV.finished_activities) > 0:
-        # assume that we write provenance for a "just finished activity"
-        activity = PROV.finished_activities[-1]
-
-    activity_meta = meta.Activity.from_provenance(activity.provenance)
-    category = "Sim" if is_simulation else "Other"
-    reference = meta.Reference(
-        contact=contact_info,
-        product=meta.Product(
-            description="ctapipe Data Product",
-            data_category=category,
-            data_levels=data_levels,
-            data_association="Subarray",
-            data_model_name="ASWG",
-            data_model_version=DATA_MODEL_VERSION,
-            data_model_url="",
-            format="hdf5",
-        ),
-        process=meta.Process(
-            type_="Simulation" if is_simulation else "Observation",
-            subtype="",
-            id_=",".join(str(x) for x in obs_ids),
-        ),
-        activity=activity_meta,
-        instrument=instrument_info,
-    )
-
-    if reference.instrument.id_ == "unspecified":
-        reference.instrument.id_ = subarray.name
-
-    headers = reference.to_dict()
-    meta.write_to_hdf5(headers, writer.h5file)
-
-
 class DataWriter(Component):
-    """
-    Serialize a sequence of events into a HDF5 file, in the correct format
+    """Serialize a sequence of events into the ctapipe HDF5 format.
+
+    CTAO product metadata is generated from the event source, provenance, and
+    the configurable :class:`~ctapipe.io.metadata.Contact`,
+    :class:`~ctapipe.io.metadata.Curation`, and
+    :class:`~ctapipe.io.metadata.ProductMetadata` child components.
 
     Examples
     --------
@@ -174,8 +121,23 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
-    contact_info = Instance(meta.Contact, kw={}).tag(config=True)
-    instrument_info = Instance(meta.Instrument, kw={}).tag(config=True)
+    contact_info = Instance(
+        meta.Contact,
+        kw={},
+        help="Contact information for the output data product.",
+    ).tag(config=True)
+
+    curation_info = Instance(
+        meta.Curation,
+        kw={},
+        help="Curation information for the output data product.",
+    ).tag(config=True)
+
+    product_info = Instance(
+        meta.ProductMetadata,
+        kw={},
+        help="Product information for the output data product.",
+    ).tag(config=True)
 
     context_metadata = Dict(
         help=(
@@ -261,15 +223,22 @@ class DataWriter(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        self.event_source = event_source
         self.contact_info = meta.Contact(parent=self)
-        self.instrument_info = meta.Instrument(parent=self)
+        self.curation_info = meta.Curation(parent=self)
+        self.product_info = meta.ProductMetadata(parent=self)
+        # Validate metadata before creating the output file.
+        self.contact_info.to_model()
+        self.curation_info.to_model()
+        self.product_info.validate_meta()
+
+        self.event_source = event_source
 
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
 
         self._hdf5_filters = None
+        self._processing_sublevels = dp.ProcessingSublevel(0)
 
         self._setup_output_path()
         self._setup_compression()
@@ -371,16 +340,7 @@ class DataWriter(Component):
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
 
-        write_reference_metadata_headers(
-            subarray=self._subarray,
-            obs_ids=self.event_source.obs_ids,
-            writer=self._writer,
-            is_simulation=self._is_simulation,
-            data_levels=self.datalevels,
-            contact_info=self.contact_info,
-            instrument_info=self.instrument_info,
-        )
-
+        self._write_product_metadata_headers()
         self._write_context_metadata_headers()
         self._writer.close()
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
@@ -700,6 +660,10 @@ class DataWriter(Component):
         """
         # pylint: disable=no-self-use
         for container_name, algorithm_map in event.dl2.stereo.items():
+            if algorithm_map:
+                sublevel = DL2_SUBLEVELS.get(container_name)
+                if sublevel is not None:
+                    self._processing_sublevels |= sublevel
             for algorithm, container in algorithm_map.items():
                 # note this will only write info if the particular algorithm
                 # generated it (otherwise the algorithm map is empty, and no
@@ -728,6 +692,106 @@ class DataWriter(Component):
             context_dict[key] = value
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
+
+    def _get_processing_sublevel(self):
+        """Return the CTAO processing-sublevel flags present in the output."""
+        sublevel = self._processing_sublevels
+
+        if self.write_dl1_images:
+            sublevel |= dp.ProcessingSublevel.IMAGES
+
+        if self.write_dl1_parameters:
+            sublevel |= dp.ProcessingSublevel.PARAMETERS
+
+        return sublevel or None
+
+    def _write_product_metadata_headers(self):
+        """
+        Write out the product metadata headers to the output file.
+        """
+        data_levels = self.datalevels
+
+        if data_levels:
+            level = meta.to_ctao_data_level(data_levels)
+        elif self.event_source.datalevels:
+            level = meta.to_ctao_data_level(self.event_source.datalevels)
+        elif self.event_source.is_simulation:
+            level = dp.DataLevel.SIM
+        else:
+            raise ValueError("Cannot determine CTAO data level for output")
+
+        prov_activity = PROV.current_activity
+        if prov_activity is None and PROV.finished_activities:
+            # assume that we write provenance for a "just finished activity"
+            prov_activity = PROV.finished_activities[-1]
+
+        input_reference_meta = None
+        # Search for first input with reference_meta
+        if prov_activity is not None:
+            input_reference_meta = next(
+                (
+                    input_["reference_meta"]
+                    for input_ in prov_activity.input
+                    if input_.get("reference_meta") is not None
+                ),
+                None,
+            )
+
+        data_type = (
+            input_reference_meta.get("data", {}).get("type")
+            if input_reference_meta is not None
+            else None
+        )
+
+        if data_type is None:
+            data_type = (
+                dp.DataType.OBSERVATION_SIM
+                if self._is_simulation
+                else dp.DataType.OBSERVATION
+            )
+
+        product_type = dp.ProductType(
+            level=level,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=data_type,
+        )
+
+        obs_ids = self.event_source.obs_ids
+        obs_id = obs_ids[0] if len(obs_ids) == 1 else None
+
+        facility_name = (
+            dp.FacilityName.SIMULATED_CTAO
+            if self._is_simulation
+            else dp.FacilityName.CTAO
+        )
+
+        lat = self.event_source.subarray.reference_location.geodetic.lat.value
+        site = SiteID.CTAO_NORTH if lat > 0 else SiteID.CTAO_SOUTH
+
+        product = self.product_info.to_model(
+            creation_time=Time.now(),
+            data=product_type,
+            instance=dp.InstanceIdentifier(
+                obs_id=obs_id,
+                facility_name=facility_name,
+                sublevel_id=self._get_processing_sublevel(),
+                site_id=site,
+            ),
+            curation=self.curation_info.to_model(),
+            model=dp.DataModel(
+                name="ctapipe",
+                version=DATA_MODEL_VERSION,
+                url=None,
+            ),
+            contact=self.contact_info.to_model(),
+            activity=(
+                meta.activity_from_provenance(prov_activity)
+                if prov_activity is not None
+                else None
+            ),
+        )
+        meta.write_product_metadata_hdf5(product, self._writer.h5file)
 
     def _write_atmosphere_profile(self, path):
         """

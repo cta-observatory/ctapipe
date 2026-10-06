@@ -25,6 +25,7 @@ from types import ModuleType
 import astropy.units as u
 import psutil
 from astropy.time import Time
+from pydantic import BaseModel
 
 from ..version import __version__
 from .support import Singleton
@@ -62,7 +63,14 @@ def json_config_handler(obj):
     >>> json.dumps(config, default=json_config_handler)
     '{"quantity": {"value": 5.0, "unit": "m"}}'
     """
-    from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
+    from ctapipe.io.metadata import (
+        Contact,
+        Curation,
+        Instrument,
+        ProductMetadata,
+        Reference,
+        _to_dict,
+    )
 
     if isinstance(obj, (set, UserList)):
         return list(obj)
@@ -73,7 +81,7 @@ def json_config_handler(obj):
     if isinstance(obj, Path):
         return str(obj)
 
-    if isinstance(obj, Reference):
+    if isinstance(obj, (Reference, Contact, Curation, ProductMetadata)):
         return obj.to_dict()
 
     if isinstance(obj, Time):
@@ -87,8 +95,11 @@ def json_config_handler(obj):
             "unit": obj.unit.to_string("vounit"),
         }
 
-    if isinstance(obj, (Contact, Instrument)):
+    if isinstance(obj, Instrument):
         return _to_dict(obj)
+
+    if isinstance(obj, BaseModel):
+        return obj.model_dump(mode="json")
 
     raise TypeError(f"{obj!r} cannot be serialized to json")
 
@@ -269,13 +280,13 @@ class _ActivityProvenance:
         self, url, reference_meta=None, read_meta=True
     ) -> dict | None:
         # here to prevent circular imports / top-level cross-dependencies
-        from ..io.metadata import read_reference_metadata
+        from ..io.metadata import read_ctao_metadata
 
         if reference_meta is not None or read_meta is False:
             return reference_meta
 
         try:
-            return read_reference_metadata(url).to_dict()
+            return read_ctao_metadata(url).model_dump(mode="json")
         except Exception:
             warnings.warn(
                 f"Could not read reference metadata for input file: {url}",

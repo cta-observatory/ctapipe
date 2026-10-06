@@ -8,11 +8,18 @@ automatically generated.
 import os
 import pathlib
 
+import ctao_datamodel as dm
+import ctao_datamodel.models.dataproducts as dp
+from astropy.time import Time
+from ctao_datamodel.models.common import SiteID
+from traitlets import Instance
+
 from ..compat import ECSV_FMT
 from ..core import Provenance, Tool
 from ..core.traits import Enum, Path, Unicode
 from ..exceptions import InputMissing
 from ..io import EventSource
+from ..io import metadata as meta
 
 __all__ = ["DumpInstrumentTool"]
 
@@ -35,6 +42,17 @@ class DumpInstrumentTool(Tool):
         help="Format of output file. 'service' creates CTAO service data format directory structure.",
         config=True,
     )
+    contact_info = Instance(
+        meta.Contact,
+        kw={},
+        help="Contact information for the output data product.",
+    ).tag(config=True)
+
+    curation_info = Instance(
+        meta.Curation,
+        kw={},
+        help="Curation information for the output data product.",
+    ).tag(config=True)
 
     aliases = {
         ("i", "input"): "EventSource.input_url",
@@ -42,13 +60,20 @@ class DumpInstrumentTool(Tool):
         ("o", "outdir"): "DumpInstrumentTool.outdir",
     }
 
-    classes = [EventSource]
+    classes = [EventSource, meta.Contact, meta.Curation]
 
     def setup(self):
+
+        self.contact_info = meta.Contact(parent=self)
+        self.curation_info = meta.Curation(parent=self)
+        self.contact_info.to_model()
+        self.curation_info.to_model()
+
         try:
             with EventSource(parent=self) as source:
                 self.infile = source.input_url
                 self.subarray = source.subarray
+                self.is_simulation = source.is_simulation
         except InputMissing:
             self.log.critical(
                 "Specifying EventSource.input_url is required (via -i, --input or a config file)."
@@ -159,6 +184,57 @@ class DumpInstrumentTool(Tool):
                 "couldn't write subarray description '%s' because: %s", filename, err
             )
 
+    def _create_service_product(
+        self,
+        description,
+        model_name,
+        model_version,
+        site,
+        subarray_id,
+        model_url=None,
+    ):
+        """Create CTAO product metadata for one service-data artifact."""
+        activity = Provenance().current_activity
+
+        return dp.Product(
+            description=description,
+            creation_time=Time.now(),
+            data=dp.ProductType(
+                level=dp.DataLevel.DL0,
+                division=dp.DataDivision.SERVICE,
+                association=dp.DataAssociation.SUBARRAY,
+                type=(
+                    dp.DataType.OBSERVATION_SIM
+                    if self.is_simulation
+                    else dp.DataType.OBSERVATION
+                ),
+            ),
+            instance=dp.InstanceIdentifier(
+                site_id=SiteID(site),
+                subarray_id=subarray_id,
+            ),
+            curation=self.curation_info.to_model(),
+            model=dp.DataModel(
+                name=model_name,
+                version=model_version,
+                url=model_url,
+            ),
+            contact=self.contact_info.to_model(),
+            activity=(
+                meta.activity_from_provenance(activity)
+                if activity is not None
+                else None
+            ),
+        )
+
+    @staticmethod
+    def _flatten_product(product):
+        """Flatten CTAO product metadata for JSON or ECSV serialization."""
+        return dm.flatten_model_instance(
+            product,
+            parent_key="CTAO",
+        )
+
     def write_service_data(self, subarray_id=1, site=None):
         """
         Write SubarrayDescription to service data directory structure.
@@ -178,8 +254,6 @@ class DumpInstrumentTool(Tool):
 
         from astropy.table import QTable
 
-        from ctapipe.io import metadata as meta
-
         sub = self.subarray
         self.outdir.mkdir(exist_ok=True, parents=True)
 
@@ -194,63 +268,44 @@ class DumpInstrumentTool(Tool):
 
         # Infer site from coordinates if not provided
         if site is None:
-            # Simple heuristic based on latitude
             lat = sub.reference_location.geodetic.lat.value
-            if lat > 0:
-                site = "CTAO-North"
-            else:
-                site = "CTAO-South"
+            site = "CTAO-North" if lat > 0 else "CTAO-South"
 
-        # Build reference metadata to embed in instrument.meta.json
-        activity = Provenance().current_activity
-        activity_meta = (
-            meta.Activity.from_provenance(activity.provenance)
-            if activity is not None
-            else meta.Activity()
-        )
-        instrument_reference = meta.Reference(
-            contact=meta.Contact(),
-            product=meta.Product(
-                description=f"Instrument description for {sub.name}",
-                data_category="Other",
-                data_association="Subarray",
-                data_model_name="CTAO Service Data",
-                data_model_version=sub.CURRENT_SERVICE_DATA_VERSION,
-                data_model_url="",
-                format="json",
-            ),
-            process=meta.Process(),
-            activity=activity_meta,
-            instrument=meta.Instrument(
-                site=site,
-                class_="Subarray",
-            ),
+        try:
+            site = SiteID(site).value
+        except ValueError as err:
+            raise ValueError(
+                f"Invalid site {site!r}, expected one of "
+                f"{[site.value for site in SiteID]}"
+            ) from err
+
+        # instrument.meta.json
+        instrument_product = self._create_service_product(
+            description=f"Instrument description for {sub.name}",
+            model_name="CTAO Service Data",
+            model_version=sub.CURRENT_SERVICE_DATA_VERSION,
+            site=site,
+            subarray_id=subarray_id,
         )
 
-        # Create instrument.meta.json
         meta_file = instrument_dir / "instrument.meta.json"
         with open(meta_file, "w") as f:
-            json.dump(instrument_reference.to_dict(), f, indent=2)
+            json.dump(self._flatten_product(instrument_product), f, indent=2)
+
         Provenance().add_output_file(meta_file, "ServiceDataMeta")
 
-        # Create array-element-ids.json
-        ae_reference = meta.Reference(
-            contact=meta.Contact(),
-            product=meta.Product(
-                description=f"Array element IDs for {sub.name}",
-                data_category="Other",
-                data_association="Subarray",
-                data_model_name="ctao.common.identifiers.array_elements",
-                data_model_version=sub.CURRENT_ARRAY_ELEMENTS_IDENTIFIERS_VERSION,
-                data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
-                format="json",
-            ),
-            process=meta.Process(),
-            activity=activity_meta,
-            instrument=meta.Instrument(site=site),
+        # array-element-ids.json
+        ae_product = self._create_service_product(
+            description=f"Array element IDs for {sub.name}",
+            model_name="ctao.common.identifiers.array_elements",
+            model_version=sub.CURRENT_ARRAY_ELEMENTS_IDENTIFIERS_VERSION,
+            model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+            site=site,
+            subarray_id=subarray_id,
         )
+
         array_element_ids = {
-            "metadata": ae_reference.to_dict(),
+            "metadata": self._flatten_product(ae_product),
             "array_elements": [
                 {"id": int(tel_id), "name": f"TEL{tel_id:03d}"}
                 for tel_id, tel in sub.tels.items()
@@ -261,24 +316,18 @@ class DumpInstrumentTool(Tool):
             json.dump(array_element_ids, f, indent=2)
         Provenance().add_output_file(ae_ids_file, "ServiceDataArrayElements")
 
-        # Create subarray-ids.json
-        subarray_reference = meta.Reference(
-            contact=meta.Contact(),
-            product=meta.Product(
-                description=f"Subarray IDs for {sub.name}",
-                data_category="Other",
-                data_association="Subarray",
-                data_model_name="ctao.common.identifiers.subarrays",
-                data_model_version=sub.CURRENT_SUBARRAY_IDENTIFIERS_VERSION,
-                data_model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
-                format="json",
-            ),
-            process=meta.Process(),
-            activity=activity_meta,
-            instrument=meta.Instrument(site=site),
+        # subarray-ids.json
+        subarray_product = self._create_service_product(
+            description=f"Subarray IDs for {sub.name}",
+            model_name="ctao.common.identifiers.subarrays",
+            model_version=sub.CURRENT_SUBARRAY_IDENTIFIERS_VERSION,
+            model_url="https://gitlab.cta-observatory.org/cta-computing/common/identifiers",
+            site=site,
+            subarray_id=subarray_id,
         )
+
         subarray_ids = {
-            "metadata": subarray_reference.to_dict(),
+            "metadata": self._flatten_product(subarray_product),
             "subarrays": [
                 {
                     "id": subarray_id,
@@ -314,19 +363,15 @@ class DumpInstrumentTool(Tool):
         positions_table.meta["reference_y"] = str(itrs.y)
         positions_table.meta["reference_z"] = str(itrs.z)
         positions_table.meta["site"] = site
-        positions_reference = meta.Reference(
-            contact=meta.Contact(),
-            product=meta.Product(
-                description=f"Array element positions for {sub.name}",
-                data_category="Other",
-                data_association="Subarray",
-                format="ecsv",
-            ),
-            process=meta.Process(),
-            activity=activity_meta,
-            instrument=meta.Instrument(site=site),
+        positions_product = self._create_service_product(
+            description=f"Array element positions for {sub.name}",
+            model_name="CTAO Service Data",
+            model_version=sub.CURRENT_SERVICE_DATA_VERSION,
+            site=site,
+            subarray_id=subarray_id,
         )
-        positions_table.meta.update(positions_reference.to_dict())
+
+        positions_table.meta.update(self._flatten_product(positions_product))
 
         positions_file = (
             positions_dir / f"{site.replace(' ', '_')}_ArrayElementPositions.ecsv"

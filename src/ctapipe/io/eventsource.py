@@ -90,6 +90,9 @@ class EventSource(Component):
         Ids of the telescopes to be included in the data.
         If given, only this subset of telescopes will be present in the
         generated events. If None, all available telescopes are used.
+    metadata : ctao_datamodel.models.dataproducts.Product or None
+        Validated CTAO product metadata when supplied by the concrete event
+        source, otherwise ``None``.
     """
 
     #: ctapipe_io entry points may provide EventSource implementations
@@ -144,7 +147,7 @@ class EventSource(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
 
-        self.metadata = dict(is_simulation=False)
+        self.metadata = None
         self.log.info(f"INPUT PATH = {self.input_url}")
 
         if self.max_events:

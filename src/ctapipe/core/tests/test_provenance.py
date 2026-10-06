@@ -1,8 +1,7 @@
 import json
 
 from ctapipe.core import Provenance
-from ctapipe.core.provenance import _ActivityProvenance
-from ctapipe.io.metadata import Reference
+from ctapipe.core.provenance import _ActivityProvenance, json_config_handler
 
 
 def test_provenance_activity_names(provenance):
@@ -50,7 +49,40 @@ def test_provenance_json(provenance: Provenance):
     assert any(p["name"] == "numpy" for p in packages)
 
 
+def test_json_config_handler_metadata_models():
+    import ctao_datamodel.models.dataproducts as dp
+
+    from ctapipe.io import metadata
+
+    values = {
+        "contact": metadata.Contact(
+            name="Test User",
+            organization="CTAO",
+            email="test@example.org",
+        ),
+        "curation": metadata.Curation(release="test"),
+        "product": metadata.ProductMetadata(
+            description="Test product",
+            instance={"category": "A"},
+        ),
+        "pydantic": dp.Contact(
+            name="Model User",
+            organization="CTAO",
+            email="model@example.org",
+        ),
+    }
+
+    serialized = json.loads(json.dumps(values, default=json_config_handler))
+
+    assert serialized["contact"]["email"] == "test@example.org"
+    assert serialized["curation"]["release"] == "test"
+    assert serialized["product"]["instance"] == {"category": "A"}
+    assert serialized["pydantic"]["email"] == "model@example.org"
+
+
 def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
+    import ctao_datamodel.models.dataproducts as dp
+
     provenance.start_activity("test1")
     provenance.add_input_file(dl1_file, "events")
     provenance.finish_activity("test1")
@@ -60,8 +92,8 @@ def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
     assert len(inputs) == 1
     input_meta = inputs[0]
     assert "reference_meta" in input_meta
-    assert "CTA PRODUCT ID" in input_meta["reference_meta"]
-    Reference.from_dict(input_meta["reference_meta"])
+    assert "ctao_metadata_version" in input_meta["reference_meta"]
+    dp.Product.model_validate(input_meta["reference_meta"])
 
 
 def test_get_distribution_of_module():

@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import tables
 from astropy import units as u
+from ctao_datamodel.models import dataproducts as dp
 from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
@@ -19,6 +20,7 @@ from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
+from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
 
@@ -111,7 +113,7 @@ def test_write(tmpdir: Path):
         images = h5file.get_node("/dl1/event/telescope/images/tel_004")
         assert images.col("image").max() > 0.0
         assert (
-            h5file.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]  # pylint: disable=protected-access
+            h5file.root._v_attrs["CTAO.model.version"]  # pylint: disable=protected-access
             == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
@@ -131,6 +133,15 @@ def test_write(tmpdir: Path):
             )
             assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
             assert "telescopes" not in dl2_tel_energy
+
+    product = read_ctao_metadata(output_path)
+    assert product.data.level is dp.DataLevel.DL2
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.IMAGES
+        | dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+        | dp.ProcessingSublevel.GAMMANESS
+    )
 
 
 def test_roundtrip(tmpdir: Path):
@@ -258,7 +269,21 @@ def test_metadata(tmpdir: Path):
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
                 },
-                "Instrument": {"site": "CTA-North", "id_": "alpha"},
+                "Curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
+                "ProductMetadata": {
+                    "description": "Test",
+                    "disclaimer": "Test disclaimer",
+                    "instance": {
+                        "category": "B",
+                    },
+                    "activity": {
+                        "configuration_id": "test_config",
+                    },
+                },
                 "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
@@ -278,12 +303,32 @@ def test_metadata(tmpdir: Path):
 
         with tables.open_file(output_path) as h5file:
             meta = h5file.root._v_attrs
-            assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
-            assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
-            assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
-            assert meta["CTA INSTRUMENT SITE"] == "CTA-North"
-            assert meta["CTA INSTRUMENT ID"] == "alpha"
+            assert meta["CTAO.contact.name"] == "Maximilian Nöthe"
+            assert meta["CTAO.contact.email"] == "maximilian.noethe@tu-dortmund.de"
+            assert meta["CTAO.contact.organization"] == "TU Dortmund"
+            assert meta["CTAO.description"] == "Test"
+            assert meta["CTAO.disclaimer"] == "Test disclaimer"
+            assert meta["CTAO.instance.category"] == "B"
+            assert meta["CTAO.activity.configuration_id"] == "test_config"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
+
+        product = read_ctao_metadata(output_path)
+        assert product.data == dp.ProductType(
+            level=dp.DataLevel.DL1,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=dp.DataType.OBSERVATION_SIM,
+        )
+        assert product.instance.obs_id == source.obs_id
+        assert product.instance.facility_name is dp.FacilityName.SIMULATED_CTAO
+        assert (
+            product.instance.sublevel_id
+            is dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS
+        )
+        assert product.instance.category is dp.DataProcessingCategory.B
+        assert product.model.name == "ctapipe"
+        assert product.model.version == DATA_MODEL_VERSION
+        assert product.activity.process is dp.ObservatoryProcess.DATA_PROCESSING
 
 
 def test_write_only_r1(r1_hdf5_file):

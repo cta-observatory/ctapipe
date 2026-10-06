@@ -184,7 +184,6 @@ def test_software_trigger_simtel_process(tmp_path):
         ProcessorTool=dict(
             EventSource=dict(
                 focal_length_choice="EQUIVALENT",
-                # remove 3 LSTs, so that we trigger the 1-LST condition
                 allowed_tels=(1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
             ),
             SoftwareTrigger=dict(

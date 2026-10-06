@@ -2,15 +2,23 @@
 Test CTA Reference metadata functionality
 """
 
+import json
 import uuid
+import warnings
 
+import ctao_datamodel.models.dataproducts as dp
 import pytest
 import tables
 from astropy.io import fits
 from astropy.table import Table
+from astropy.time import Time
+from ctao_datamodel.models.common import SiteID
+from pydantic import ValidationError
+from traitlets import TraitError
 
 from ctapipe.core.provenance import Provenance
 from ctapipe.io import metadata as meta
+from ctapipe.io.datalevels import DataLevel
 
 
 @pytest.fixture()
@@ -48,6 +56,56 @@ def reference():
         ),
     )
     return reference
+
+
+@pytest.fixture()
+def ctao_product():
+    return dp.Product(
+        description="ctapipe test product",
+        creation_time=Time("2026-09-21T12:34:56"),
+        data=dp.ProductType(
+            level=dp.DataLevel.DL1,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=dp.DataType.OBSERVATION,
+        ),
+        instance=dp.InstanceIdentifier(
+            id=uuid.UUID("f08d6e7c-166e-4da2-b850-85a7a454c1e6"),
+            obs_id=42,
+            category=dp.DataProcessingCategory.B,
+        ),
+        curation=dp.Curation(release="test"),
+        model=dp.DataModel(
+            name="ctapipe",
+            version="v7.6.0",
+            url="https://example.org/model",
+        ),
+        contact=dp.Contact(
+            name="Test User",
+            organization="CTAO",
+            email="test@example.org",
+        ),
+        activity=dp.Activity(
+            process=dp.ObservatoryProcess.DATA_PROCESSING,
+            name="ctapipe-process",
+            id=uuid.UUID("fb9d405f-9163-4296-ac2d-f708e6a6b113"),
+            start=Time("2026-09-21T12:00:00"),
+            configuration_id="test-config",
+            software=dp.Software(
+                name="ctapipe",
+                version="0.32",
+                url="https://ctapipe.readthedocs.io",
+            ),
+        ),
+    )
+
+
+@pytest.fixture()
+def legacy_file(tmp_path, reference):
+    path = tmp_path / "legacy.h5"
+    with tables.open_file(path, mode="w") as h5file:
+        meta.write_to_hdf5(reference.to_dict(), h5file)
+    return path
 
 
 def test_to_dict(reference):
@@ -98,7 +156,15 @@ def test_reference_metadata_ecsv(tmp_path, reference):
     assert back.to_dict() == reference.to_dict()
 
 
-def test_read_hdf5_metadata(tmp_path):
+def test_reference_metadata_json(tmp_path, reference):
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps({"metadata": reference.to_dict()}))
+
+    back = meta.read_reference_metadata(path)
+    assert back.to_dict() == reference.to_dict()
+
+
+def test_read_hdf5_attributes(tmp_path):
     # Testing one can read both a path as well as a PyTables file object
     filename = tmp_path / "test.h5"
     metadata_in = {"SOFTWARE": "ctapipe", "FOO": "BAR"}
@@ -107,13 +173,341 @@ def test_read_hdf5_metadata(tmp_path):
         h5file.create_group(where="/node", name="subnode", createparents=True)
         meta.write_to_hdf5(metadata_in, h5file, path=metadata_path)
 
-    metadata_out = meta.read_hdf5_metadata(filename, path=metadata_path)
+    metadata_out = meta._read_hdf5_attributes(filename, path=metadata_path)
     assert metadata_out == metadata_in
 
     with tables.open_file(filename, "r") as file:
-        metadata_out = meta.read_hdf5_metadata(file, path=metadata_path)
+        metadata_out = meta._read_hdf5_attributes(file, path=metadata_path)
 
     assert metadata_out == metadata_in
+
+
+def _write_current_metadata(path, product, file_format):
+    import ctao_datamodel as dm
+
+    if file_format == "hdf5":
+        with tables.open_file(path, mode="w") as h5file:
+            meta.write_product_metadata_hdf5(product, h5file)
+    elif file_format.startswith("fits"):
+        header = fits.Header()
+        meta.write_product_metadata_fits_header(product, header)
+        fits.PrimaryHDU(header=header).writeto(path)
+    elif file_format == "ecsv":
+        metadata = dm.flatten_model_instance(product, parent_key="CTAO")
+        Table({"value": [1]}, meta=metadata).write(path)
+    elif file_format == "json":
+        metadata = dm.flatten_model_instance(product, parent_key="CTAO")
+        path.write_text(json.dumps(metadata))
+
+
+def _write_legacy_metadata(path, reference, file_format):
+    metadata = reference.to_dict()
+
+    if file_format == "hdf5":
+        with tables.open_file(path, mode="w") as h5file:
+            meta.write_to_hdf5(metadata, h5file)
+    elif file_format.startswith("fits"):
+        header = fits.Header()
+        header.update(reference.to_dict(fits=True))
+        fits.PrimaryHDU(header=header).writeto(path)
+    elif file_format == "ecsv":
+        Table({"value": [1]}, meta=metadata).write(path)
+    elif file_format == "json":
+        path.write_text(json.dumps({"metadata": metadata}))
+
+
+@pytest.mark.parametrize("file_format", ["hdf5", "fits", "fits.gz", "ecsv", "json"])
+def test_read_current_metadata_supported_formats(tmp_path, ctao_product, file_format):
+    path = tmp_path / f"product.{file_format}"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", fits.verify.VerifyWarning)
+        _write_current_metadata(path, ctao_product, file_format)
+
+    assert meta.read_ctao_metadata(path) == ctao_product
+
+
+@pytest.mark.parametrize("file_format", ["hdf5", "fits", "fits.gz", "ecsv", "json"])
+def test_read_legacy_metadata_supported_formats(tmp_path, reference, file_format):
+    path = tmp_path / f"legacy.{file_format}"
+    _write_legacy_metadata(path, reference, file_format)
+
+    with pytest.warns(meta.LegacyMetadataWarning):
+        product = meta.read_ctao_metadata(path)
+
+    assert isinstance(product, dp.Product)
+    assert product.description == reference.product.description
+    assert product.model.name == reference.product.data_model_name
+    assert product.contact.email == reference.contact.email
+
+
+@pytest.mark.parametrize("file_format", ["hdf5", "fits", "ecsv", "json"])
+def test_read_current_metadata_rejects_unsupported_version(
+    tmp_path, ctao_product, file_format
+):
+    product = ctao_product.model_copy(update={"ctao_metadata_version": "999.0.0"})
+    path = tmp_path / f"product.{file_format}"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", fits.verify.VerifyWarning)
+        _write_current_metadata(path, product, file_format)
+
+    with pytest.raises(ValueError, match="Unsupported CTAO metadata version: 999.0.0"):
+        meta.read_ctao_metadata(path)
+
+
+def test_read_current_metadata_from_open_hdf5(tmp_path, ctao_product):
+    path = tmp_path / "product.h5"
+    _write_current_metadata(path, ctao_product, "hdf5")
+
+    with tables.open_file(path) as h5file:
+        assert meta.read_ctao_metadata(h5file) == ctao_product
+        assert h5file.isopen
+
+
+def test_read_fits_metadata_with_missing_optional_urls(tmp_path, ctao_product):
+    product = ctao_product.model_copy(deep=True)
+    product.model.url = None
+    product.activity.software.url = None
+    path = tmp_path / "product.fits"
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", fits.verify.VerifyWarning)
+        _write_current_metadata(path, product, "fits")
+
+    assert meta.read_ctao_metadata(path) == product
+
+
+def test_read_metadata_ignores_unrelated_attributes(tmp_path, ctao_product):
+    path = tmp_path / "product.h5"
+    with tables.open_file(path, mode="w") as h5file:
+        meta.write_product_metadata_hdf5(ctao_product, h5file)
+        h5file.root._v_attrs["unrelated"] = "metadata"
+
+    assert meta.read_ctao_metadata(path) == ctao_product
+
+
+def test_read_legacy_metadata_derives_product_type(legacy_file):
+    with pytest.warns(meta.LegacyMetadataWarning, match="Legacy"):
+        product = meta.read_ctao_metadata(legacy_file)
+
+    assert product.description == "An Amazing Product"
+    assert product.data == dp.ProductType(
+        level=dp.DataLevel.DL1,
+        division=dp.DataDivision.EVENT,
+        association=dp.DataAssociation.SUBARRAY,
+        type=dp.DataType.OBSERVATION_SIM,
+    )
+    assert product.contact.email == "a@b.com"
+
+
+def test_legacy_metadata_preserves_valid_ids(reference):
+    product = meta._legacy_to_product(reference.to_dict())
+
+    assert product.instance.id == uuid.UUID(reference.product.id_)
+    assert product.activity.id == uuid.UUID(reference.activity.id_)
+
+
+@pytest.mark.parametrize(("field", "value"), [("product", "invalid"), ("activity", "")])
+def test_legacy_metadata_replaces_invalid_ids(reference, field, value):
+    if field == "product":
+        reference.product.id_ = value
+    else:
+        reference.activity.id_ = value
+
+    with pytest.warns(meta.LegacyMetadataWarning, match=f"invalid {field} id"):
+        product = meta._legacy_to_product(reference.to_dict())
+
+    assert isinstance(product.instance.id, uuid.UUID)
+    assert isinstance(product.activity.id, uuid.UUID)
+
+
+def test_read_legacy_metadata_from_open_hdf5(legacy_file):
+    with tables.open_file(legacy_file) as h5file:
+        with pytest.warns(meta.LegacyMetadataWarning):
+            product = meta.read_ctao_metadata(h5file)
+        assert product.data.type is dp.DataType.OBSERVATION_SIM
+        assert h5file.isopen
+
+
+@pytest.mark.parametrize(
+    ("levels", "expected_level", "expected_sublevel"),
+    [
+        ([DataLevel.R0], dp.DataLevel.R0, None),
+        ([DataLevel.DL1_IMAGES], dp.DataLevel.DL1, dp.ProcessingSublevel.IMAGES),
+        (
+            [DataLevel.DL1_PARAMETERS],
+            dp.DataLevel.DL1,
+            dp.ProcessingSublevel.PARAMETERS,
+        ),
+        (
+            [DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS],
+            dp.DataLevel.DL1,
+            dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS,
+        ),
+        ([DataLevel.R1, DataLevel.DL2], dp.DataLevel.DL2, None),
+    ],
+)
+def test_legacy_data_level_and_sublevel_mapping(
+    reference, levels, expected_level, expected_sublevel
+):
+    reference.product.data_levels = levels
+    product = meta._legacy_to_product(reference.to_dict())
+    assert product.data.level is expected_level
+    assert product.instance.sublevel_id is expected_sublevel
+
+
+def test_to_ctao_data_level():
+    assert meta.to_ctao_data_level([]) is None
+    assert meta.to_ctao_data_level([DataLevel.DL1_MUON]) is dp.DataLevel.DL1
+    assert (
+        meta.to_ctao_data_level([DataLevel.R1, DataLevel.DL1_IMAGES, DataLevel.DL2])
+        is dp.DataLevel.DL2
+    )
+
+
+def test_legacy_product_type_missing_level_and_unknown_association(reference):
+    reference.product.data_levels = []
+    with pytest.warns(meta.LegacyMetadataWarning):
+        product_type = meta._to_ctao_product_type(reference)
+
+    assert product_type.level is dp.DataLevel.SIM
+
+    reference.product.data_levels = [DataLevel.DL1_IMAGES]
+    reference.product.data_association = "Other"
+    with pytest.warns(meta.LegacyMetadataWarning, match="data association"):
+        product_type = meta._to_ctao_product_type(reference)
+
+    assert product_type.association is dp.DataAssociation.SUBARRAY
+
+
+@pytest.mark.parametrize(
+    ("instrument_class", "instrument_id", "expected"),
+    [
+        ("Telescope", "23", {"ae_class": dp.ArrayElementClass.TEL, "ae_id": 23}),
+        ("Subarray", "17", {"subarray_id": 17}),
+        ("Array", "not-an-integer", {}),
+    ],
+)
+def test_legacy_instrument_mapping(
+    reference, instrument_class, instrument_id, expected
+):
+    reference.instrument.site = "South"
+    reference.instrument.class_ = instrument_class
+    reference.instrument.id_ = instrument_id
+    product = meta._legacy_to_product(reference.to_dict())
+
+    assert product.instance.site_id is SiteID.CTAO_SOUTH
+    for name, value in expected.items():
+        assert getattr(product.instance, name) == value
+
+
+@pytest.mark.parametrize("site", [None, "", "Unknown site"])
+def test_legacy_site_mapping_uses_instance_default(site):
+    expected = dp.InstanceIdentifier.model_fields["site_id"].default
+    assert meta._legacy_site_id(site) is expected
+
+
+def test_legacy_missing_optional_values_and_contact_defaults(reference):
+    reference.product.data_model_url = " unspecified "
+    with reference.contact.cross_validation_lock:
+        reference.contact.name = "unknown"
+        reference.contact.organization = ""
+        reference.contact.email = "not-an-email"
+
+    with pytest.warns(meta.LegacyMetadataWarning, match="invalid contact"):
+        product = meta._legacy_to_product(reference.to_dict())
+
+    assert product.contact == dp.Contact(
+        name="unknown",
+        organization="unknown",
+        email="unknown@example.org",
+    )
+    assert product.model.url is None
+
+
+def test_read_legacy_metadata_with_invalid_contact(tmp_path, reference):
+    with reference.contact.cross_validation_lock:
+        reference.contact.name = ""
+        reference.contact.email = ""
+
+    path = tmp_path / "legacy-invalid-contact.h5"
+    with tables.open_file(path, mode="w") as h5file:
+        meta.write_to_hdf5(reference.to_dict(), h5file)
+
+    with pytest.warns(meta.LegacyMetadataWarning, match="Legacy"):
+        product = meta.read_ctao_metadata(path)
+
+    assert product.contact == dp.Contact(
+        name="unknown",
+        organization="CTA Consortium",
+        email="unknown@example.org",
+    )
+
+
+@pytest.mark.parametrize(
+    ("process_type", "expected"),
+    [
+        ("Simulation", dp.DataType.OBSERVATION_SIM),
+        ("Observation", dp.DataType.OBSERVATION),
+        ("Other", dp.DataType.OBSERVATION_SIM),
+    ],
+)
+def test_legacy_data_type(reference, process_type, expected):
+    reference.process.type_ = process_type
+    product_type = meta._to_ctao_product_type(reference)
+
+    assert product_type.type is expected
+
+
+def test_invalid_and_missing_metadata(tmp_path, ctao_product):
+    unsupported = tmp_path / "unsupported.h5"
+    with tables.open_file(unsupported, mode="w"):
+        pass
+
+    with pytest.raises(ValueError, match="Unsupported metadata format"):
+        meta.read_ctao_metadata(unsupported)
+
+    with pytest.raises(ValueError, match="No legacy CTA reference metadata found"):
+        meta.read_reference_metadata(unsupported)
+
+    invalid = tmp_path / "invalid.h5"
+    with tables.open_file(invalid, mode="w") as h5file:
+        meta.write_product_metadata_hdf5(ctao_product, h5file)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", tables.NaturalNameWarning)
+            h5file.root._v_attrs["CTAO.contact.email"] = "invalid"
+
+    with pytest.raises(ValidationError):
+        meta.read_ctao_metadata(invalid)
+
+
+def test_write_product_metadata_removes_only_legacy(tmp_path, ctao_product, reference):
+    path = tmp_path / "product.h5"
+    with tables.open_file(path, mode="w") as h5file:
+        meta.write_to_hdf5(reference.to_dict(), h5file)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", tables.NaturalNameWarning)
+            h5file.root._v_attrs["CONTEXT custom"] = "keep"
+        meta.write_product_metadata_hdf5(ctao_product, h5file, remove_legacy=True)
+        attributes = meta._read_hdf5_attributes(h5file)
+
+    assert not any(name.startswith("CTA ") for name in attributes)
+    assert attributes["CONTEXT custom"] == "keep"
+    assert attributes["CTAO.data.level"] == "DL1"
+
+
+def test_write_product_metadata_replaces_current_attributes(tmp_path, ctao_product):
+    path = tmp_path / "product.h5"
+    without_activity = ctao_product.model_copy(update={"activity": None})
+
+    with tables.open_file(path, mode="w") as h5file:
+        meta.write_product_metadata_hdf5(ctao_product, h5file)
+        assert "CTAO.activity.name" in h5file.root._v_attrs
+
+        meta.write_product_metadata_hdf5(without_activity, h5file)
+        attributes = meta._read_hdf5_attributes(h5file)
+
+    assert not any(name.startswith("CTAO.activity.") for name in attributes)
+    assert meta.read_ctao_metadata(path) == without_activity
 
 
 def test_reprs(reference):
@@ -123,3 +517,100 @@ def test_reprs(reference):
     assert isinstance(repr(reference.contact), str)
     assert isinstance(repr(reference.instrument), str)
     assert isinstance(repr(reference.process), str)
+
+
+def test_get_compatible_metadata_versions(monkeypatch):
+    monkeypatch.setattr(
+        dp.Product,
+        "migration_history",
+        lambda: [
+            {"from": "1.0.0", "to": "1.1.0", "operations": []},
+            {"from": "1.1.0", "to": "2.0.0", "operations": []},
+            {"from": "0.5.0", "to": "0.6.0", "operations": []},
+        ],
+    )
+
+    expected = {
+        "1.0.0",
+        "1.1.0",
+        "2.0.0",
+    }
+    assert meta.get_compatible_metadata_versions("2.0.0") == expected
+    assert meta.get_compatible_metadata_versions() == expected
+
+
+def test_configurable_contact_validation():
+    default_contact = meta.Contact()
+    assert not default_contact.modified
+    assert default_contact.to_model() == dp.Contact(
+        name="unknown",
+        organization="unknown",
+        email="unknown@example.org",
+    )
+
+    contact = meta.Contact(
+        name="Test User",
+        organization="CTAO",
+        email="test@example.org",
+    )
+    assert contact.modified
+    assert contact.to_model() == dp.Contact(
+        name="Test User",
+        organization="CTAO",
+        email="test@example.org",
+    )
+    assert contact.to_dict() == contact.to_model().model_dump(mode="json")
+
+    with pytest.raises(TraitError, match="valid email address"):
+        contact.email = "invalid"
+
+
+def test_configurable_curation_validation():
+    default_curation = meta.Curation()
+    assert not default_curation.modified
+    assert default_curation.to_model() == dp.Curation()
+
+    curation = meta.Curation(release="test")
+    assert curation.modified
+    assert curation.to_model() == dp.Curation(release="test")
+    assert curation.to_dict() == curation.to_model().model_dump(mode="json")
+
+
+def test_configurable_product_metadata_validation(ctao_product):
+    default_product_info = meta.ProductMetadata()
+    assert not default_product_info.modified
+
+    product_info = meta.ProductMetadata(
+        description="Test product",
+        disclaimer="Test disclaimer",
+        instance={"category": "A"},
+        activity={"configuration_id": "configured"},
+    )
+    assert product_info.modified
+    values = ctao_product.model_dump()
+    values.pop("description")
+    values.pop("disclaimer")
+    values["instance"] = ctao_product.instance
+    values["activity"] = ctao_product.activity
+
+    product = product_info.to_model(**values)
+    assert product.description == "Test product"
+    assert product.disclaimer == "Test disclaimer"
+    assert product.instance.obs_id == ctao_product.instance.obs_id
+    assert product.instance.category is dp.DataProcessingCategory.A
+    assert product.activity.configuration_id == "configured"
+    assert product_info.to_dict() == {
+        "description": "Test product",
+        "disclaimer": "Test disclaimer",
+        "instance": {"category": dp.DataProcessingCategory.A},
+        "activity": {"configuration_id": "configured"},
+    }
+
+    with pytest.raises(TraitError, match="cannot be configured"):
+        meta.ProductMetadata(instance={"target_id": "Crab"})
+
+    with pytest.raises(TraitError, match="cannot be configured"):
+        meta.ProductMetadata(activity={"name": "custom"})
+
+    with pytest.raises(TraitError):
+        meta.ProductMetadata().to_model()

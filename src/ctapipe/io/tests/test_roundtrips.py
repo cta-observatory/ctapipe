@@ -17,7 +17,11 @@ def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
     r1_path = outdir / "events.r1.h5"
 
     with EventSource(prod5_gamma_simtel_path) as source:
-        with DataWriter(source, output_path=r1_path, write_r1_waveforms=True) as writer:
+        with DataWriter(
+            source,
+            output_path=r1_path,
+            write_r1_waveforms=True,
+        ) as writer:
             for event in source:
                 writer(event)
 

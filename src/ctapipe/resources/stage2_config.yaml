@@ -11,6 +11,14 @@
 #  Make sure you first include `--config base_config.yaml` before including this file
 
 DataWriter:
+  Contact:
+    name: YOUR-NAME-HERE
+    email: YOUREMAIL@EXAMPLE.ORG
+    organization: YOUR-ORGANIZATION
+  Curation:
+    release: YOUR-DATA-RELEASE
+    license: YOUR-LICENSE
+    copyright: YOUR-COPYRIGHT
   write_dl1_images: false
   write_dl1_parameters: false
   write_dl2: true

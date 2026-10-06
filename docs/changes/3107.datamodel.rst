@@ -1,0 +1,10 @@
+Use ``ctao-datamodel`` for CTAO product metadata written by
+:class:`~ctapipe.io.DataWriter` and ``ctapipe-dump-instrument``. Product metadata
+now records the data level and processing sublevels, data type and division,
+instance identifiers, curation, contact, and provenance activity using the
+current CTAO schema.
+
+Read current and legacy metadata from HDF5, FITS, ECSV, and JSON files. Legacy
+metadata is converted to the current model when read, and ``ctapipe-merge``
+migrates legacy HDF5 metadata in its output while updating product identity,
+creation time, observation identifiers, data level, and product type.
