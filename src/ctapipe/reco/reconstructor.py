@@ -1,4 +1,6 @@
+import warnings
 import weakref
+import zipfile
 from abc import abstractmethod
 from enum import Flag, auto
 
@@ -7,11 +9,12 @@ import joblib
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import Int, List
-
+from ..containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ..coordinates import shower_impact_distance
+from ..core import Provenance, QualityQuery, TelescopeComponent
+from ..core.traits import Int, List
+from ..io.models import ZipModelReader
+from ..utils.deprecation import CTAPipeDeprecationWarning
 
 __all__ = [
     "Reconstructor",
@@ -42,7 +45,7 @@ class ReconstructionProperty(Flag):
     DISP = auto()
 
     def __str__(self):
-        return f"{self.name.lower()}"
+        return self.name.lower()
 
 
 class TooFewTelescopesException(Exception):
@@ -132,8 +135,20 @@ class Reconstructor(TelescopeComponent):
         -------
         Reconstructor instance loaded from file
         """
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
+        # new zip-based format
+        if zipfile.is_zipfile(path):
+            with ZipModelReader(path) as zip_reader:
+                instance = zip_reader.read_compressed_joblib("reconstructor")
+                meta = zip_reader.meta
+            Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
+        else:
+            warnings.warn(
+                "Storing reconstructors using pickle directly is deprecated, used ctapipe.io.ZipModelWriter instead.",
+                CTAPipeDeprecationWarning,
+            )
+            instance = joblib.load(path)
+            # no meta in joblib files
+            Provenance().add_input_file(path, role="reconstructor", add_meta=False)
 
         if not isinstance(instance, cls):
             raise TypeError(
@@ -155,8 +170,6 @@ class Reconstructor(TelescopeComponent):
         for attr, value in kwargs.items():
             setattr(instance, attr, value)
 
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(path, role="reconstructor", add_meta=False)
         return instance
 
 

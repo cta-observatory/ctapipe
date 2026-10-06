@@ -1,37 +1,48 @@
 import pytest
+from astropy.table import Table
 from sklearn.datasets import make_classification
 
 from ctapipe.reco import ParticleClassifier
 
 
 @pytest.fixture(scope="session")
-def models():
-    from sklearn.ensemble import RandomForestClassifier
+def classifier(subarray_prod5_paranal):
 
-    models = {}
+    features = [f"col{i}" for i in range(10)]
+    clf = ParticleClassifier(
+        subarray=subarray_prod5_paranal,
+        model_cls="RandomForestClassifier",
+        features=features,
+    )
+
     for key in ("LST", "MST", "SST"):
-        X, y = make_classification(n_samples=100)
+        X, y = make_classification(
+            n_samples=10000, n_features=len(features), n_classes=2
+        )
 
-        clf = RandomForestClassifier()
-        clf.fit(X, y)
+        table = Table({col: X[:, i] for i, col in enumerate(features)})
+        table["true_shower_primary_id"] = y
+        clf.fit(key, table)
 
-        models[key] = clf
-
-    return models
+    return clf
 
 
-def test_write_reconstructor(tmp_path, subarray_prod5_paranal, models):
-    from ctapipe.io.models import SklearnModelWriter
+def test_reconstructor_io(tmp_path, classifier):
+    from ctapipe.io.models import ZipModelReader, ZipModelWriter
 
     path = tmp_path / "models.zip"
 
-    clf = ParticleClassifier(
-        subarray=subarray_prod5_paranal, model_cls="RandomForestClassifier"
-    )
+    with ZipModelWriter(output_path=path) as writer:
+        writer.write_reconstructor(classifier)
 
-    with SklearnModelWriter(output_path=path) as writer:
-        writer.write_reconstructor_config(clf)
-        writer.write_subarray(subarray_prod5_paranal)
-
-        for key, model in models.items():
+        for key, model in classifier._models.items():
             writer(key, model)
+
+    with ZipModelReader(input_path=path) as reader:
+        subarray = reader.subarray
+        assert subarray == classifier.subarray
+
+        reconstructor = reader.read_compressed_joblib("reconstructor")
+
+        # we do not read models by default, we load them one-by-one
+        assert len(reconstructor._models) == 0

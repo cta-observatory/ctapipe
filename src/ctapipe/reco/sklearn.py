@@ -38,6 +38,7 @@ from ..core import (
 )
 from ..exceptions import TooFewEvents
 from ..io import write_table
+from ..utils.deprecation import deprecated
 from .disp import get_tel_pointing
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
@@ -191,6 +192,12 @@ class SKLearnReconstructor(Reconstructor):
         event: ArrayEventContainer
         """
 
+    def __getstate__(self):
+        d = super().__getstate__()
+        # remove models from state, stored separately in zip
+        d["_models"] = {}
+        return d
+
     @abstractmethod
     def predict_table(self, key, table: Table) -> Table:
         """
@@ -211,6 +218,7 @@ class SKLearnReconstructor(Reconstructor):
             container definition(s)
         """
 
+    @deprecated("v0.33.0", alternative="ctapipe.io.SklearnModelWriter")
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
 
@@ -660,6 +668,7 @@ class DispReconstructor(Reconstructor):
         self._models[key][0].fit(X, norm)
         self._models[key][1].fit(X, sign)
 
+    @deprecated("v0.33.0", alternative="ctapipe.io.ZIPModelWriter")
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
 
@@ -671,6 +680,7 @@ class DispReconstructor(Reconstructor):
             Provenance().add_output_file(path, role="DispReconstructor-model")
 
     @classmethod
+    @deprecated("v0.33.0", alternative="ctapipe.io.ZIPModelWriter")
     def read(cls, path, **kwargs):
         with open(path, "rb") as f:
             instance = joblib.load(f)
