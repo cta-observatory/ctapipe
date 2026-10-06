@@ -1,9 +1,16 @@
 Require the output file to exist when using ``ctapipe-merge --append``.
-Updated the DataWriter API to validate the configurable ``contact_info`` and
-``curation_info`` instances against the CTAO data model. Deleted the old
-``instrument_info`` trait and added a new ``description_metadata`` trait.
-Removed the public ``write_reference_metadata_headers`` function; its
-functionality is now handled internally by :class::class:`~ctapipe.io.datawriter.DataWriter`.
-Renamed ``read_hdf5_metadata`` to the private function ``_read_hdf5_metadata``.
-Use :func:`ctapipe.io.metadata.read_ctao_metadata` instead for reading
-CTAO metadata.
+Update :class:`~ctapipe.io.DataWriter` to validate the configurable
+``contact_info``, ``curation_info``, and ``product_info`` against the CTAO data
+model. Remove the old ``instrument_info`` trait. Add configurable contact and
+curation metadata to ``ctapipe-dump-instrument`` service-data output.
+
+Add :func:`ctapipe.io.metadata.read_ctao_metadata` for reading current or legacy
+CTAO metadata from HDF5, FITS, ECSV, and JSON files. Change
+:attr:`ctapipe.io.HDF5EventSource.metadata` to contain a validated
+`ctao_datamodel.models.dataproducts.Product`; event sources without product
+metadata now use ``None``.
+
+Remove the public ``write_reference_metadata_headers`` function; its
+functionality is now handled internally by :class:`~ctapipe.io.DataWriter`.
+Rename ``read_hdf5_metadata`` to the private function ``_read_hdf5_metadata``;
+use :func:`ctapipe.io.metadata.read_ctao_metadata` instead.
