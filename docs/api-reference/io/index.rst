@@ -295,10 +295,6 @@ reads current metadata from HDF5, FITS, ECSV, and JSON files into a validated
 `ctao_datamodel.models.dataproducts.Product`. It also converts legacy ctapipe
 reference metadata and emits `~ctapipe.io.metadata.LegacyMetadataWarning`.
 
-For HDF5 event files, the validated product is available as
-`~ctapipe.io.HDF5EventSource.metadata`. Event-source implementations without
-product metadata expose ``None`` for this attribute.
-
 Use `~ctapipe.io.metadata.write_product_metadata_hdf5` or
 `~ctapipe.io.metadata.write_product_metadata_fits_header` to serialize a CTAO
 product. `~ctapipe.io.metadata.read_reference_metadata` and the legacy metadata
