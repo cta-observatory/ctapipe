@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -39,7 +42,7 @@ def test_too_few_events(tmp_path, dl2_shower_geometry_file):
 
     tool = TrainEnergyRegressor()
     config = resource_file("train_energy_regressor.yaml")
-    out_file = tmp_path / "energy.pkl"
+    out_file = tmp_path / "energy.zip"
 
     with pytest.raises(TooFewEvents, match="Too few subarray|No events after"):
         run_tool(
@@ -59,7 +62,7 @@ def test_sampling(tmp_path, gamma_dl2_train_small_h5):
 
     tool = TrainEnergyRegressor()
     config = resource_file("train_energy_regressor.yaml")
-    out_file = tmp_path / "energy.pkl"
+    out_file = tmp_path / "energy.zip"
 
     run_tool(
         tool,
@@ -77,9 +80,8 @@ def test_sampling(tmp_path, gamma_dl2_train_small_h5):
 def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
-    tool = TrainParticleClassifier()
     config = resource_file("train_particle_classifier.yaml")
-    out_file = tmp_path / "particle_classifier_.pkl"
+    out_file = tmp_path / "particle_classifier_.zip"
     log_file = tmp_path / "train_particle.log"
 
     with pytest.raises(
@@ -87,7 +89,7 @@ def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
         match="The signal_fraction has to be between 0 and 1",
     ):
         run_tool(
-            tool,
+            tool=TrainParticleClassifier(),
             argv=[
                 f"--signal={gamma_train_clf}",
                 f"--background={proton_train_clf}",
@@ -101,7 +103,7 @@ def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
 
     for frac in [0.7, 0.1]:
         run_tool(
-            tool,
+            tool=TrainParticleClassifier(),
             argv=[
                 f"--signal={gamma_train_clf}",
                 f"--background={proton_train_clf}",
@@ -132,13 +134,12 @@ def test_cross_validation_results(
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
-    tool = TrainEnergyRegressor()
     config = resource_file("train_energy_regressor.yaml")
-    out_file = tmp_path / "energy_.pkl"
+    out_file = tmp_path / "energy.zip"
     energy_cv_out_file = tmp_path / "energy_cv_results.h5"
 
     ret = run_tool(
-        tool,
+        TrainEnergyRegressor(),
         argv=[
             f"--input={gamma_dl2_train_small_h5}",
             f"--output={out_file}",
@@ -151,12 +152,14 @@ def test_cross_validation_results(
     assert energy_cv_out_file.exists()
 
     # test overwrite of cv results works
+    # new main output file to check if we get the error also for CV output
+    out_file = tmp_path / "energy2.zip"
     with pytest.raises(
         ToolConfigurationError,
         match=f"Output path {energy_cv_out_file} exists, but overwrite=False",
     ):
         run_tool(
-            tool,
+            TrainEnergyRegressor(),
             argv=[
                 f"--input={gamma_dl2_train_small_h5}",
                 f"--output={out_file}",
@@ -167,7 +170,7 @@ def test_cross_validation_results(
         )
 
     ret = run_tool(
-        tool,
+        TrainEnergyRegressor(),
         argv=[
             f"--input={gamma_dl2_train_small_h5}",
             f"--output={out_file}",
@@ -180,7 +183,7 @@ def test_cross_validation_results(
 
     tool = TrainParticleClassifier()
     config = resource_file("train_particle_classifier.yaml")
-    out_file = tmp_path / "particle_classifier_.pkl"
+    out_file = tmp_path / "particle_classifier_.zip"
     classifier_cv_out_file = tmp_path / "classifier_cv_results.h5"
 
     ret = run_tool(
@@ -199,7 +202,7 @@ def test_cross_validation_results(
 
     tool = TrainDispReconstructor()
     config = resource_file("train_disp_reconstructor.yaml")
-    out_file = tmp_path / "disp_reconstructor_.pkl"
+    out_file = tmp_path / "disp_reconstructor_.zip"
     disp_cv_out_file = tmp_path / "disp_cv_results.h5"
 
     ret = run_tool(
@@ -219,7 +222,7 @@ def test_cross_validation_results(
 def test_no_cross_validation(tmp_path, gamma_dl2_train_small_h5):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
 
-    out_file = tmp_path / "energy.pkl"
+    out_file = tmp_path / "energy.zip"
 
     tool = TrainEnergyRegressor()
     config = resource_file("train_energy_regressor.yaml")
@@ -252,6 +255,12 @@ def train_models_dataset(request):
     return files
 
 
+def assert_path_in_output(path: Path, provenance_log: Path):
+    provenance = json.loads(provenance_log.read_text())
+    output = provenance[-1]["output"]
+    assert str(path) in [o["url"] for o in output]
+
+
 def test_train_models(tmp_path, train_models_dataset):
     """Test all models on dl2 datasets of different ctapipe versions"""
     from ctapipe.reco.sklearn import (
@@ -270,7 +279,9 @@ def test_train_models(tmp_path, train_models_dataset):
     # Train energy model first, to have the energy usable in later models
     energy_tool = TrainEnergyRegressor()
     energy_config = resource_file("train_energy_regressor.yaml")
-    energy_model = tmp_path / "energy_regressor.pkl"
+    energy_model = tmp_path / "energy_regressor.zip"
+    energy_provlog = tmp_path / "energy_regressor.provlog"
+
     ret = run_tool(
         energy_tool,
         argv=[
@@ -278,11 +289,13 @@ def test_train_models(tmp_path, train_models_dataset):
             f"--output={energy_model}",
             f"--config={energy_config}",
             "--log-level=INFO",
+            f"--provenance-log={energy_provlog}",
         ],
     )
     assert ret == 0
     assert energy_model.is_file()
     EnergyRegressor.read(energy_model)
+    assert_path_in_output(energy_model, energy_provlog)
 
     # apply to proton and gamma for training of disp and particle
     gamma_train_clf = tmp_path / "gamma_train.dl2.h5"
@@ -305,7 +318,8 @@ def test_train_models(tmp_path, train_models_dataset):
     disp_tool = TrainDispReconstructor()
     disp_config = resource_file("train_disp_reconstructor.yaml")
 
-    disp_model = tmp_path / "disp_reconstructor.pkl"
+    disp_model = tmp_path / "disp_reconstructor.zip"
+    disp_provlog = tmp_path / "disp_reconstructor.provlog"
     disp_cv_out_file = tmp_path / "disp_cv_results.h5"
 
     ret = run_tool(
@@ -316,10 +330,12 @@ def test_train_models(tmp_path, train_models_dataset):
             f"--config={disp_config}",
             f"--cv-output={disp_cv_out_file}",
             "--log-level=INFO",
+            f"--provenance-log={disp_provlog}",
         ],
     )
     assert ret == 0
     assert disp_cv_out_file.exists()
+    assert_path_in_output(disp_model, disp_provlog)
 
     disp_reco = DispReconstructor.read(disp_model)
 
@@ -332,7 +348,8 @@ def test_train_models(tmp_path, train_models_dataset):
 
     classifier_tool = TrainParticleClassifier()
     classifier_config = resource_file("train_particle_classifier.yaml")
-    classifier_model = tmp_path / "particle_classifier.pkl"
+    classifier_model = tmp_path / "particle_classifier.zip"
+    classifier_provlog = tmp_path / "particle_classifier.provlog"
 
     ret = run_tool(
         classifier_tool,
@@ -342,7 +359,9 @@ def test_train_models(tmp_path, train_models_dataset):
             f"--output={classifier_model}",
             f"--config={classifier_config}",
             "--log-level=INFO",
+            f"--provenance-log={classifier_provlog}",
         ],
     )
     assert ret == 0
     ParticleClassifier.read(classifier_model)
+    assert_path_in_output(classifier_model, classifier_provlog)

@@ -2,7 +2,7 @@
 
 This module provides helpers for configuring, reading, writing, and converting
 CTAO data-product metadata defined by :mod:`ctao_datamodel`. Current product
-metadata can be read from HDF5, FITS, ECSV, and JSON files and written to HDF5
+metadata can be read from HDF5, FITS, ECSV, JSON, and BagIt ZIP files and written to HDF5
 attributes or FITS headers.
 
 Legacy ctapipe reference metadata remains supported through :class:`Reference`
@@ -14,6 +14,7 @@ metadata from any supported format to the current
 
 import uuid
 import warnings
+import zipfile
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import nullcontext
@@ -1049,19 +1050,21 @@ def _check_metadata_version(version: str | None) -> None:
         raise ValueError(f"Unsupported CTAO metadata version: {version}")
 
 
-def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
+def read_ctao_metadata(
+    input_file: str | Path | tables.File | zipfile.ZipFile,
+) -> dp.Product:
     """Read CTAO product metadata from a supported file.
 
     The format is detected from the file contents. FITS (including gzip-compressed
-    FITS), HDF5, ECSV, and JSON are supported. Both current CTAO metadata and legacy
-    ctapipe reference metadata are supported for all file formats. Legacy metadata is
-    converted to the current CTAO data model and emits a
+    FITS), HDF5, ECSV, JSON, and BagIt ZIP archives are supported. Both current
+    CTAO metadata and legacy ctapipe reference metadata are supported for all file
+    formats. Legacy metadata is converted to the current CTAO data model and emits a
     :class:`~ctapipe.io.metadata.LegacyMetadataWarning`.
 
     Parameters
     ----------
-    input_file : path-like or tables.File
-        Input file or open PyTables file handle.
+    input_file : path-like or tables.File or zipfile.ZipFile
+        Input file, open PyTables file handle, or open BagIt ZIP archive.
 
     Returns
     -------
@@ -1077,6 +1080,8 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
     """
     if isinstance(input_file, tables.File):
         return _read_hdf5_metadata(input_file)
+    if isinstance(input_file, zipfile.ZipFile):
+        return _read_bagit_metadata(input_file)
 
     file_type = get_file_type(input_file)
 
@@ -1089,11 +1094,51 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
             return _read_ecsv_metadata(input_file)
         case "json":
             return _read_json_metadata(input_file)
+        case "zip":
+            return _read_bagit_metadata(input_file)
         case _:
             raise ValueError(
                 f"'{input_file}' is not one of the supported file formats: "
-                "fits, hdf5, ecsv, json"
+                "fits, hdf5, ecsv, json, bagit zip"
             )
+
+
+def _read_bagit_metadata(zip_file) -> dp.Product:
+    """Read CTAO product metadata from bag-info.txt in a BagIt ZIP archive."""
+    file_context = (
+        nullcontext(zip_file)
+        if isinstance(zip_file, zipfile.ZipFile)
+        else zipfile.ZipFile(zip_file)
+    )
+    with file_context as archive:
+        try:
+            declaration = _read_bagit_tag_file(
+                archive.read("bagit.txt").decode("utf-8")
+            )
+            encoding = declaration["Tag-File-Character-Encoding"]
+            metadata = _read_bagit_tag_file(
+                archive.read("bag-info.txt").decode(encoding)
+            )
+        except KeyError as err:
+            raise ValueError(f"Missing required BagIt metadata: {err}") from err
+    return _product_from_flat_metadata(metadata)
+
+
+def _read_bagit_tag_file(text):
+    """Parse BagIt tag entries, unfolding indented continuation lines."""
+    metadata = {}
+    key = None
+    for line in text.splitlines():
+        if line.startswith((" ", "\t")):
+            if key is None:
+                raise ValueError("BagIt tag file starts with a continuation line")
+            metadata[key] += " " + line.lstrip(" \t")
+        else:
+            key, separator, value = line.partition(":")
+            if not separator or not value.startswith((" ", "\t")):
+                raise ValueError(f"Invalid BagIt tag entry: {line!r}")
+            metadata[key] = value[1:]
+    return metadata
 
 
 def _read_ecsv_metadata(ecsv_file) -> dp.Product:

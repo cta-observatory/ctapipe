@@ -319,10 +319,10 @@ def resource_file(filename):
 
 def get_file_type(
     path: str | Path,
-) -> Literal["hdf5", "fits", "ecsv", "json"] | None:
+) -> Literal["hdf5", "fits", "ecsv", "json", "zip"] | None:
     """Determine the file type from its contents.
 
-    Supports HDF5, FITS, ECSV, and JSON, including gzip-compressed files.
+    Supports HDF5, FITS, ECSV, JSON, and ZIP, including gzip-compressed files.
     Returns None if the file type is not recognized.
     """
     path = Path(path)
@@ -346,5 +346,8 @@ def get_file_type(
 
     if first_bytes.lstrip().startswith(b"{"):
         return "json"
+
+    if first_bytes.startswith((b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")):
+        return "zip"
 
     return None

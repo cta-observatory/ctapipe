@@ -97,6 +97,9 @@ def test_structured_datasets(tmpdir, monkeypatch):
         (b"# %ECSV 1.0\n", "ecsv"),
         (b'{"key": "value"}', "json"),
         (b'  {"key": "value"}', "json"),
+        (b"PK\x03\x04", "zip"),
+        (b"PK\x05\x06", "zip"),
+        (b"PK\x07\x08", "zip"),
         (b"unknown format", None),
     ],
 )
