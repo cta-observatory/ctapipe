@@ -120,6 +120,11 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
 
     product = metadata.read_ctao_metadata(output)
     assert product.data.level is dp.DataLevel.DL2
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.PARAMETERS
+        | dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+    )
 
 
 def test_append_requires_existing_output(tmp_path):
@@ -296,6 +301,7 @@ def test_muon(tmp_path, dl1_muon_output_file):
 
     product = metadata.read_ctao_metadata(output)
     assert product.data.level is dp.DataLevel.DL1
+    assert product.instance.sublevel_id is None
 
 
 def test_duplicated_obs_ids(tmp_path, dl2_shower_geometry_file):
