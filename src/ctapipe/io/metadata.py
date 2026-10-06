@@ -77,6 +77,14 @@ CONVERSIONS = {
     DataLevel: lambda value: value.name,
 }
 
+CTAO_METADATA_VERSION_KEY = "CTAO.ctao_metadata_version"
+LEGACY_REFERENCE_VERSION_KEY = "CTA REFERENCE VERSION"
+
+UNSUPPORTED_METADATA_FORMAT = (
+    "Unsupported metadata format. Metadata contains neither "
+    f"{CTAO_METADATA_VERSION_KEY} nor {LEGACY_REFERENCE_VERSION_KEY}."
+)
+
 
 def convert(value):
     """Convert a metadata value to a representation suitable for file headers.
@@ -846,7 +854,7 @@ def _read_reference_metadata_json(path):
 def _read_reference_metadata_hdf5(h5file, path="/"):
     """Read legacy CTA reference metadata from an HDF5 node."""
     meta = _read_hdf5_attributes(h5file, path)
-    if "CTA REFERENCE VERSION" not in meta:
+    if LEGACY_REFERENCE_VERSION_KEY not in meta:
         raise ValueError("No legacy CTA reference metadata found")
     return Reference.from_dict(meta)
 
@@ -928,7 +936,7 @@ def get_compatible_metadata_versions(
 def _check_metadata_version(version: str | None) -> None:
     """Check that the CTAO metadata version is supported."""
     if version is None:
-        raise ValueError("Unsupported metadata format")
+        raise ValueError("Cannot find metadata version in the file")
 
     if version not in get_compatible_metadata_versions():
         raise ValueError(f"Unsupported CTAO metadata version: {version}")
@@ -994,14 +1002,14 @@ def _read_ecsv_metadata(ecsv_file) -> dp.Product:
     """Read CTAO product metadata from an ECSV file."""
     metadata = Table.read(ecsv_file).meta
 
-    if "CTAO.ctao_metadata_version" in metadata:
-        _check_metadata_version(metadata["CTAO.ctao_metadata_version"])
+    if CTAO_METADATA_VERSION_KEY in metadata:
+        _check_metadata_version(metadata[CTAO_METADATA_VERSION_KEY])
         return metadata_to_product(metadata)
 
-    if "CTA REFERENCE VERSION" in metadata:
+    if LEGACY_REFERENCE_VERSION_KEY in metadata:
         return _legacy_to_product(metadata)
 
-    raise ValueError("Unsupported metadata format")
+    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
 
 
 def _read_json_metadata(json_file) -> dp.Product:
@@ -1013,14 +1021,14 @@ def _read_json_metadata(json_file) -> dp.Product:
 
     metadata = metadata.get("metadata", metadata)
 
-    if "CTAO.ctao_metadata_version" in metadata:
-        _check_metadata_version(metadata["CTAO.ctao_metadata_version"])
+    if CTAO_METADATA_VERSION_KEY in metadata:
+        _check_metadata_version(metadata[CTAO_METADATA_VERSION_KEY])
         return metadata_to_product(metadata)
 
-    if "CTA REFERENCE VERSION" in metadata:
+    if LEGACY_REFERENCE_VERSION_KEY in metadata:
         return _legacy_to_product(metadata)
 
-    raise ValueError("Unsupported metadata format")
+    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
 
 
 def _read_fits_metadata(fits_file) -> dp.Product:
@@ -1045,24 +1053,27 @@ def _read_fits_metadata(fits_file) -> dp.Product:
             )
 
         # Legacy CTA metadata
-        if "CTA REFERENCE VERSION" in header:
+        if LEGACY_REFERENCE_VERSION_KEY in header:
             return _legacy_to_product(header)
 
-        raise ValueError("Unsupported metadata format")
+        raise ValueError(
+            "Unsupported metadata format. Metadata contains neither "
+            f"CTAOMETA nor {LEGACY_REFERENCE_VERSION_KEY} in header."
+        )
 
 
 def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
     """Read current or legacy CTAO product metadata from an HDF5 file or node."""
     metadata = _read_hdf5_attributes(h5file, path)
 
-    if "CTAO.ctao_metadata_version" in metadata:
-        _check_metadata_version(metadata.get("CTAO.ctao_metadata_version"))
+    if CTAO_METADATA_VERSION_KEY in metadata:
+        _check_metadata_version(metadata.get(CTAO_METADATA_VERSION_KEY))
         return metadata_to_product(metadata)
 
-    if "CTA REFERENCE VERSION" in metadata:
+    if LEGACY_REFERENCE_VERSION_KEY in metadata:
         return _legacy_to_product(metadata)
 
-    raise ValueError("Unsupported metadata format")
+    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
 
 
 def _read_hdf5_attributes(h5file, path="/"):
