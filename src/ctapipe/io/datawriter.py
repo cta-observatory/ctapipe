@@ -100,8 +100,12 @@ PROV = Provenance()
 
 
 class DataWriter(Component):
-    """
-    Serialize a sequence of events into a HDF5 file, in the correct format
+    """Serialize a sequence of events into the ctapipe HDF5 format.
+
+    CTAO product metadata is generated from the event source, provenance, and
+    the configurable :class:`~ctapipe.io.metadata.Contact`,
+    :class:`~ctapipe.io.metadata.Curation`, and
+    :class:`~ctapipe.io.metadata.ProductMetadata` child components.
 
     Examples
     --------
@@ -690,6 +694,7 @@ class DataWriter(Component):
         meta.write_to_hdf5(context_dict, self._writer.h5file)
 
     def _get_processing_sublevel(self):
+        """Return the CTAO processing-sublevel flags present in the output."""
         sublevel = self._processing_sublevels
 
         if self.write_dl1_images:

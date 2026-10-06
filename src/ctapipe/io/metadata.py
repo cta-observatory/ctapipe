@@ -7,9 +7,9 @@ attributes or FITS headers.
 
 Legacy ctapipe reference metadata remains supported through :class:`Reference`
 and its component classes. :func:`read_reference_metadata` provides access to
-the legacy representation, while legacy metadata in HDF5 files is converted to
-the current :class:`ctao_datamodel.models.dataproducts.Product` model by
-:func:`read_ctao_metadata`.
+the legacy representation, while :func:`read_ctao_metadata` converts legacy
+metadata from any supported format to the current
+:class:`ctao_datamodel.models.dataproducts.Product` model.
 """
 
 import gzip
@@ -114,10 +114,12 @@ class Contact(Configurable):
 
     @observe("name", "email", "organization")
     def _mark_modified(self, change):
+        """Record that contact configuration was changed."""
         self._modified = True
 
     @property
     def modified(self):
+        """Whether any configurable contact field was explicitly changed."""
         return self._modified
 
     @validate("name", "email", "organization")
@@ -137,6 +139,18 @@ class Contact(Configurable):
         return getattr(contact, proposal["trait"].name)
 
     def to_model(self) -> dp.Contact:
+        """Return the contact information as a validated CTAO model.
+
+        Returns
+        -------
+        ctao_datamodel.models.dataproducts.Contact
+            Validated contact metadata.
+
+        Raises
+        ------
+        traitlets.TraitError
+            If the configured values do not satisfy the CTAO data model.
+        """
         try:
             return dp.Contact(
                 name=self.name,
@@ -147,6 +161,7 @@ class Contact(Configurable):
             raise TraitError(str(err)) from err
 
     def to_dict(self):
+        """Return the validated contact information as a JSON-compatible mapping."""
         return self.to_model().model_dump(mode="json")
 
     def __repr__(self):
@@ -219,10 +234,12 @@ class Curation(Configurable):
         "valid_to",
     )
     def _mark_modified(self, change):
+        """Record that curation configuration was changed."""
         self._modified = True
 
     @property
     def modified(self):
+        """Whether any configurable curation field was explicitly changed."""
         return self._modified
 
     @validate(
@@ -267,7 +284,13 @@ class Curation(Configurable):
         return value
 
     def to_model(self) -> dp.Curation:
-        """Return validated CTAO curation metadata."""
+        """Return validated CTAO curation metadata.
+
+        Raises
+        ------
+        traitlets.TraitError
+            If the configured values do not satisfy the CTAO data model.
+        """
         try:
             return dp.Curation(
                 release=self.release,
@@ -284,6 +307,7 @@ class Curation(Configurable):
             raise TraitError(str(err)) from err
 
     def to_dict(self):
+        """Return the validated curation information as a JSON-compatible mapping."""
         return self.to_model().model_dump(mode="json")
 
 
@@ -329,7 +353,12 @@ def _apply_model_overrides(model, instance, overrides):
 
 
 class ProductMetadata(Configurable):
-    """User-configurable CTAO product metadata."""
+    """User-configurable fields of CTAO product metadata.
+
+    ``description`` and ``disclaimer`` override the corresponding product fields.
+    ``instance`` accepts the ``category`` override, while ``activity`` accepts the
+    ``configuration_id`` override. Other product metadata is derived by the writer.
+    """
 
     description = Unicode(
         "ctapipe Data Product",
@@ -352,14 +381,17 @@ class ProductMetadata(Configurable):
 
     @observe("description", "disclaimer", "instance", "activity")
     def _mark_modified(self, change):
+        """Record that product configuration was changed."""
         self._modified = True
 
     @property
     def modified(self):
+        """Whether any configurable product field was explicitly changed."""
         return self._modified
 
     @validate("description", "disclaimer")
     def _validate_product_metadata(self, proposal):
+        """Validate a scalar product field against the CTAO data model."""
         return _validate_model_field(
             dp.Product,
             proposal["trait"].name,
@@ -368,6 +400,7 @@ class ProductMetadata(Configurable):
 
     @validate("instance")
     def _validate_instance(self, proposal):
+        """Validate configurable instance-identifier overrides."""
         return _validate_model_overrides(
             dp.InstanceIdentifier,
             proposal["value"],
@@ -376,6 +409,7 @@ class ProductMetadata(Configurable):
 
     @validate("activity")
     def _validate_activity(self, proposal):
+        """Validate configurable activity overrides."""
         return _validate_model_overrides(
             dp.Activity,
             proposal["value"],
@@ -408,7 +442,24 @@ class ProductMetadata(Configurable):
         )
 
     def to_model(self, **kwargs) -> dp.Product:
-        """Create a CTAO Product and apply user-configured overrides."""
+        """Create a CTAO product and apply user-configured overrides.
+
+        Parameters
+        ----------
+        **kwargs
+            Values required to construct the product. Configured description,
+            disclaimer, instance, and activity values take precedence.
+
+        Returns
+        -------
+        ctao_datamodel.models.dataproducts.Product
+            Validated product metadata.
+
+        Raises
+        ------
+        traitlets.TraitError
+            If the complete product does not satisfy the CTAO data model.
+        """
         values = dict(kwargs)
 
         # User configuration overrides values determined by the writer.
@@ -435,6 +486,7 @@ class ProductMetadata(Configurable):
             raise TraitError(str(err)) from err
 
     def to_dict(self):
+        """Return the configured product overrides as a plain mapping."""
         return {
             "description": self.description,
             "disclaimer": self.disclaimer,
@@ -805,19 +857,19 @@ def _read_reference_metadata_ecsv(path):
 
 
 def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
-    """
-    Read reference metadata from a fits file
+    """Read legacy reference metadata from a FITS HDU.
 
     Parameters
     ----------
-    fitsfile: string, Path, or `tables.file.File`
-        hdf5 file
-    hdu: int or str
+    fitsfile : path-like or astropy.io.fits.HDUList
+        FITS file or an open HDU list.
+    hdu : int or str
         HDU index or name.
 
     Returns
     -------
-    reference_metadata: Reference
+    Reference
+        Parsed legacy reference metadata.
     """
     with ExitStack() as stack:
         if not isinstance(fitsfile, fits.HDUList):
@@ -1194,13 +1246,8 @@ def to_ctao_data_level(data_levels: Iterable[DataLevel]) -> dp.DataLevel | None:
 
     Returns
     -------
-    ctao_datamodel.models.dataproducts.DataLevel
-        Primary CTAO data level.
-
-    Raises
-    ------
-    ValueError
-        If ``data_levels`` is empty.
+    ctao_datamodel.models.dataproducts.DataLevel or None
+        Primary CTAO data level, or ``None`` if ``data_levels`` is empty.
     """
     mapping = {
         DataLevel.DL1_IMAGES: dp.DataLevel.DL1,
@@ -1285,7 +1332,20 @@ def _legacy_instrument_id(value: str | None) -> int | None:
 
 
 def metadata_to_product(metadata) -> dp.Product:
-    """Convert flattened current CTAO metadata into a validated product model."""
+    """Convert flattened current CTAO metadata into a validated product model.
+
+    Parameters
+    ----------
+    metadata : collections.abc.Mapping
+        Flattened metadata with keys below the ``CTAO`` namespace. Unrelated
+        entries are ignored.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.Product
+        Validated product metadata, migrated to the current metadata version
+        when supported by ``ctao-datamodel``.
+    """
     metadata = {
         key: value for key, value in metadata.items() if key.startswith("CTAO.")
     }
@@ -1307,7 +1367,19 @@ def metadata_to_product(metadata) -> dp.Product:
 
 
 def activity_from_provenance(activity) -> dp.Activity:
-    """Create CTAO activity metadata from ctapipe provenance."""
+    """Create CTAO activity metadata from a ctapipe provenance activity.
+
+    Parameters
+    ----------
+    activity : ctapipe.core.provenance._ActivityProvenance
+        Active or completed provenance activity.
+
+    Returns
+    -------
+    ctao_datamodel.models.dataproducts.Activity
+        Activity metadata containing the process name, identifier, timestamps,
+        and ctapipe software information.
+    """
     provenance = activity.provenance
 
     return dp.Activity(
@@ -1399,6 +1471,14 @@ def write_product_metadata_fits_header(
     product: dp.Product,
     header: fits.Header,
 ):
-    """Write CTAO product metadata to a FITS header."""
+    """Write CTAO product metadata to a FITS header.
+
+    Parameters
+    ----------
+    product : ctao_datamodel.models.dataproducts.Product
+        Validated product metadata to serialize.
+    header : astropy.io.fits.Header
+        Header updated in place with CTAO metadata keywords.
+    """
     metadata = dm.instance_to_fits_header(product)
     header.update(metadata)

@@ -193,6 +193,7 @@ class DumpInstrumentTool(Tool):
         subarray_id,
         model_url=None,
     ):
+        """Create CTAO product metadata for one service-data artifact."""
         activity = Provenance().current_activity
 
         return dp.Product(
@@ -228,6 +229,7 @@ class DumpInstrumentTool(Tool):
 
     @staticmethod
     def _flatten_product(product):
+        """Flatten CTAO product metadata for JSON or ECSV serialization."""
         return dm.flatten_model_instance(
             product,
             parent_key="CTAO",

@@ -147,6 +147,15 @@ with DataWriter(
         write_data(event)
 
 # %%
+# HDF5 event sources expose the file's validated CTAO product metadata as a
+# ``ctao_datamodel.models.dataproducts.Product`` instance:
+
+with EventSource(input_url="events.dl1.h5") as dl1_source:
+    product_metadata = dl1_source.metadata
+
+product_metadata
+
+# %%
 # Alternatively doing it with ``ctapipe-process`` would look like this:
 #
 # .. code-block:: bash
