@@ -10,6 +10,7 @@ import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from astropy.time import Time
+from ctao_datamodel.models.common import SiteID
 from traitlets import Dict, Instance
 
 from ..containers import (
@@ -761,7 +762,7 @@ class DataWriter(Component):
         )
 
         lat = self.event_source.subarray.reference_location.geodetic.lat.value
-        site = dp.SiteID.CTAO_NORTH if lat > 0 else dp.SiteID.CTAO_SOUTH
+        site = SiteID.CTAO_NORTH if lat > 0 else SiteID.CTAO_SOUTH
 
         product = self.product_info.to_model(
             creation_time=Time.now(),

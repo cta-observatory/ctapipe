@@ -944,7 +944,9 @@ def _read_ecsv_metadata(ecsv_file) -> dp.Product:
 
     if "ctao_metadata_version" in metadata:
         _check_metadata_version(metadata["ctao_metadata_version"])
-        return dp.Product.model_validate_versioned(metadata)
+        # TODO: use model_validate_versioned after fix of
+        # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/52
+        return dp.Product.model_validate(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
         return _legacy_to_product(metadata)
@@ -963,7 +965,9 @@ def _read_json_metadata(json_file) -> dp.Product:
 
     if "ctao_metadata_version" in metadata:
         _check_metadata_version(metadata["ctao_metadata_version"])
-        return dp.Product.model_validate_versioned(metadata)
+        # TODO: use model_validate_versioned after fix of
+        # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/52
+        return dp.Product.model_validate(metadata)
 
     if "CTA REFERENCE VERSION" in metadata:
         return _legacy_to_product(metadata)
