@@ -6,3 +6,6 @@ longitude and fov latitude as an ``AEFF_3D`` GADF HDU. Can be selected with
 ``pyirf.io.create_aeff3d_lonlat_hdu`` (requires ``pyirf >= 0.15.0``), with
 the additional header keywords of the not-yet-official GADF ``AEFF_3D``
 specification; these will be adjusted once the official format is released.
+``HDUCLAS3`` is set to ``POINT-LIKE`` when a spatial selection was applied
+or the simulation is point-like, and to ``FULL-ENCLOSURE`` otherwise; the
+computed effective area is the same in both cases.
