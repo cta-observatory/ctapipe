@@ -4,11 +4,11 @@ from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
-from astropy.io.fits import BinTableHDU, Header
+from astropy.io.fits import BinTableHDU
 from astropy.table import QTable
-from astropy.time import Time
 from pyirf.io import (
     create_aeff2d_hdu,
+    create_aeff3d_lonlat_hdu,
     create_background_2d_hdu,
     create_energy_dispersion_hdu,
     create_psf_table_hdu,
@@ -201,73 +201,6 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
         """
 
 
-def create_aeff3d_lonlat_hdu(
-    effective_area,
-    true_energy_bins,
-    fov_lon_bins,
-    fov_lat_bins,
-    extname="EFFECTIVE AREA",
-):
-    """
-    Create a GADF-compliant ``AEFF_3D`` BinTableHDU with effective area in
-    bins of true energy, fov longitude and fov latitude.
-
-    The column layout follows the ``BKG_3D`` format
-    (https://gamma-astro-data-formats.readthedocs.io), the field of view is
-    given in the GADF longitude/latitude coordinate system and is always
-    declared as full-enclosure (``FOVALIGN=ALTAZ``).
-
-    Parameters
-    ----------
-    effective_area: astropy.units.Quantity[area]
-        The effective area with shape (n_true_energy_bins, n_fov_lon_bins,
-        n_fov_lat_bins).
-    true_energy_bins: astropy.units.Quantity[energy]
-        True energy bin edges.
-    fov_lon_bins: astropy.units.Quantity[angle]
-        Fov longitude bin edges.
-    fov_lat_bins: astropy.units.Quantity[angle]
-        Fov latitude bin edges.
-    extname: str
-        Name of the BinTableHDU.
-
-    Returns
-    -------
-    BinTableHDU
-    """
-    aeff = QTable()
-    aeff["ENERG_LO"], aeff["ENERG_HI"] = (
-        true_energy_bins[np.newaxis, :-1].to(u.TeV),
-        true_energy_bins[np.newaxis, 1:].to(u.TeV),
-    )
-    aeff["DETX_LO"], aeff["DETX_HI"] = (
-        fov_lon_bins[np.newaxis, :-1].to(u.deg),
-        fov_lon_bins[np.newaxis, 1:].to(u.deg),
-    )
-    aeff["DETY_LO"], aeff["DETY_HI"] = (
-        fov_lat_bins[np.newaxis, :-1].to(u.deg),
-        fov_lat_bins[np.newaxis, 1:].to(u.deg),
-    )
-    aeff["EFFAREA"] = effective_area.T[np.newaxis, ...].to(u.m**2)
-
-    header = Header()
-    header["HDUCLASS"] = "GADF"
-    header["HDUDOC"] = (
-        "https://github.com/open-gamma-ray-astro/gamma-astro-data-formats"
-    )
-    header["HDUVERS"] = "0.4"
-    header["HDUCLAS1"] = "RESPONSE"
-    header["HDUCLAS2"] = "EFF_AREA"
-    header["HDUCLAS3"] = "FULL-ENCLOSURE"
-    header["HDUCLAS4"] = "AEFF_3D"
-    header["FOVALIGN"] = "ALTAZ"
-    header["DATE"] = Time.now().utc.iso
-    idx = aeff.colnames.index("EFFAREA") + 1
-    header[f"CREF{idx}"] = "(ENERG_LO:ENERG_HI,DETX_LO:DETX_HI,DETY_LO:DETY_HI)"
-
-    return BinTableHDU(aeff, header=header, name=extname)
-
-
 class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     """
     Creates a radially symmetric parameterization of the effective area in equidistant
@@ -360,12 +293,22 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
             subpixels=self.subpixels,
         )
 
+        # AEFF_3D is not part of the official GADF format yet. We follow the
+        # proposal in https://github.com/open-gamma-ray-astro/gamma-astro-data-formats
+        # (branch add-aeff-3d-spec) for the remaining header keywords and will
+        # switch to the official specification once it is released.
         return create_aeff3d_lonlat_hdu(
             effective_area=effective_area,
             true_energy_bins=self.true_energy_bins,
-            fov_lon_bins=self.fov_lon_bins,
-            fov_lat_bins=self.fov_lat_bins,
+            fov_longitude_bins=self.fov_lon_bins,
+            fov_latitude_bins=self.fov_lat_bins,
             extname=extname,
+            # this maker only produces full-enclosure IRFs
+            point_like=False,
+            HDUCLASS="GADF",
+            HDUDOC="https://github.com/open-gamma-ray-astro/gamma-astro-data-formats",
+            HDUVERS="0.3",
+            FOVALIGN="ALTAZ",
         )
 
 

@@ -63,7 +63,7 @@ all = [
     "ctapipe[eventio,calibpipe]",
     "iminuit >=2",
     "matplotlib ~=3.0",
-    "pyirf ~=0.14.0",
+    "pyirf ~=0.15.0",
 ]
 
 tests = [
