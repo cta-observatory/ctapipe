@@ -1,5 +1,4 @@
 import astropy.units as u
-import pytest
 from astropy.io.fits import BinTableHDU
 from pyirf.simulations import SimulatedEventsInfo
 
@@ -149,33 +148,27 @@ def test_make_3d_eff_area(irf_events_table):
     assert eff_area_hdu.header["HDUCLAS4"] == "AEFF_3D"
     assert eff_area_hdu.header["HDUCLAS3"] == "FULL-ENCLOSURE"
     assert eff_area_hdu.header["HDUCLASS"] == "GADF"
-    assert eff_area_hdu.header["HDUVERS"] == "0.3"
+    assert eff_area_hdu.header["HDUVERS"] == "0.4"
     assert eff_area_hdu.header["FOVALIGN"] == "ALTAZ"
 
-    # point-like simulations cannot be used with the 3D effective area
-    with pytest.raises(ValueError, match="non-point-like"):
-        eff_area_maker(
-            events=irf_events_table,
-            spatial_selection_applied=False,
-            signal_is_point_like=True,
-            sim_info=sim_info,
-        )
-    with pytest.raises(ValueError, match="non-point-like"):
-        eff_area_maker(
-            events=irf_events_table,
-            spatial_selection_applied=True,
-            signal_is_point_like=True,
-            sim_info=sim_info,
-        )
+    # the selection only affects HDUCLAS3, not the computed effective area
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=False,
+        signal_is_point_like=True,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu.header["HDUCLAS3"] == "POINT-LIKE"
 
-    # the 3D effective area is always a full-enclosure IRF
-    with pytest.raises(ValueError, match="full-enclosure"):
-        eff_area_maker(
-            events=irf_events_table,
-            spatial_selection_applied=True,
-            signal_is_point_like=False,
-            sim_info=sim_info,
-        )
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=True,
+        signal_is_point_like=False,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu.header["HDUCLAS3"] == "POINT-LIKE"
 
 
 def test_make_3d_psf(irf_events_table):
