@@ -250,9 +250,10 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
     Creates a parameterization of the effective area in equidistant bins of
     logarithmic true energy and fov longitude and latitude.
 
-    The effective area is calculated only for non-point-like (e.g. diffuse)
-    simulations, as the fov dependence does not make sense for point-like ones.
-    The result is always a full-enclosure ``AEFF_3D`` HDU.
+    The spatial selection or point-like nature of the input is only stored in
+    the ``HDUCLAS3`` header keyword (``POINT-LIKE`` vs ``FULL-ENCLOSURE``);
+    the computed effective area is always binned over the full configured
+    fov lon/lat grid.
     """
 
     subpixels = Int(
@@ -271,19 +272,6 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
         sim_info: SimulatedEventsInfo,
         extname: str = "EFFECTIVE AREA",
     ) -> BinTableHDU:
-        # The fov lon/lat dependent effective area only makes sense for
-        # non-point-like (e.g. diffuse) simulations.
-        if signal_is_point_like:
-            raise ValueError(
-                "EffectiveArea3DMaker can only be used with non-point-like "
-                "(e.g. diffuse) simulations."
-            )
-        if spatial_selection_applied:
-            raise ValueError(
-                "EffectiveArea3DMaker only produces full-enclosure effective "
-                "areas and cannot be used with a spatial selection applied."
-            )
-
         effective_area = effective_area_3d_lonlat(
             selected_events=events,
             simulation_info=sim_info,
@@ -303,11 +291,11 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
             fov_longitude_bins=self.fov_lon_bins,
             fov_latitude_bins=self.fov_lat_bins,
             extname=extname,
-            # this maker only produces full-enclosure IRFs
-            point_like=False,
+            point_like=signal_is_point_like or spatial_selection_applied,
             HDUCLASS="GADF",
             HDUDOC="https://github.com/open-gamma-ray-astro/gamma-astro-data-formats",
-            HDUVERS="0.3",
+            # AEFF_3D is not part of GADF 0.3
+            HDUVERS="0.4",
             FOVALIGN="ALTAZ",
         )
 
