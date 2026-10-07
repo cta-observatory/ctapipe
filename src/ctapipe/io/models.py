@@ -8,7 +8,7 @@ from astropy.utils import lazyproperty
 
 from ..core import Component
 from ..core.provenance import json_config_handler
-from ..core.traits import Int, Path
+from ..core.traits import Bool, Int, Path
 from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .metadata import Activity, Contact, Instrument, Process, Product, Reference
@@ -21,6 +21,7 @@ class ZipModelWriter(Component):
 
     output_path = Path(directory_ok=False, help="Output path").tag(config=True)
     compression_level = Int(default_value=9).tag(config=True)
+    overwrite = Bool(default_value=False).tag(config=True)
 
     def __init__(self, output_path, **kwargs):
         super().__init__(output_path=output_path, **kwargs)
@@ -57,8 +58,20 @@ class ZipModelWriter(Component):
                     self._get_product_meta(), wrapper, default=json_config_handler
                 )
 
+    def _check_exists(self, name):
+        if self.overwrite:
+            return
+
+        if name in self.outfile.namelist():
+            raise FileExistsError(
+                f"A file with name {name!r} already exists in the archive."
+            )
+
     def _write_compressed_joblib(self, key, obj):
-        with self.outfile.open(f"{key}.pkl", "w") as f:
+        name = f"{key}.pkl"
+        self._check_exists(name)
+
+        with self.outfile.open(name, mode="w") as f:
             joblib.dump(obj, f, compress=self.compression_level)
 
     def __enter__(self):
@@ -68,6 +81,9 @@ class ZipModelWriter(Component):
         self.close()
 
     def write_subarray(self, subarray):
+        name = "subarray.h5"
+        self._check_exists(name)
+
         h5file = tables.open_file(
             "__in_memory__",
             mode="w",
@@ -80,13 +96,16 @@ class ZipModelWriter(Component):
         hdf5_payload = h5file.get_file_image()
         h5file.close()
 
-        with self.outfile.open("subarray.h5", "w") as f:
+        with self.outfile.open(name, "w") as f:
             f.write(hdf5_payload)
 
     def write_reconstructor_config(self, reconstructor):
+        name = "reconstructor_config.json"
+        self._check_exists(name)
+
         config = reconstructor.get_current_config()
 
-        with self.outfile.open("reconstructor_config.json", mode="w") as f:
+        with self.outfile.open(name, mode="w") as f:
             with TextIOWrapper(f, encoding="utf-8") as wrapper:
                 json.dump(config, wrapper, default=json_config_handler)
 

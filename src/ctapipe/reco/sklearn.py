@@ -20,7 +20,7 @@ from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
 
-from ctapipe.io.models import ZipModelWriter
+from ctapipe.io.models import ZipModelReader, ZipModelWriter
 
 from ..containers import (
     ArrayEventContainer,
@@ -159,6 +159,7 @@ class SKLearnReconstructor(Reconstructor):
             # to verify settings
             self._new_model()
 
+            self.reader = None
             self._models = {} if models is None else models
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
@@ -168,7 +169,9 @@ class SKLearnReconstructor(Reconstructor):
                 parent=self,
             )
         else:
-            loaded = self.read(self.load_path)
+            self.reader = ZipModelReader(self.load_path, parent=self)
+            loaded = self.reader.read_reconstructor()
+
             if (
                 subarray is not None
                 and loaded.subarray.telescope_types != subarray.telescope_types
@@ -181,6 +184,15 @@ class SKLearnReconstructor(Reconstructor):
 
             if self.prefix is None:
                 self.prefix = self.model_cls
+
+    def load_model(self, key):
+        if key in self._models:
+            return
+
+        if self.reader is None:
+            raise ValueError("load_path is None, cannot load models from file")
+
+        self.reader
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -198,6 +210,8 @@ class SKLearnReconstructor(Reconstructor):
         d = super().__getstate__()
         # remove models from state, stored separately in zip
         d["_models"] = {}
+        # subarray stored also separately in zip
+        d["subarray"] = None
         return d
 
     @abstractmethod
