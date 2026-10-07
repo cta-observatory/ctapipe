@@ -148,7 +148,8 @@ def test_make_3d_eff_area(irf_events_table):
 
     assert eff_area_hdu.header["HDUCLAS4"] == "AEFF_3D"
     assert eff_area_hdu.header["HDUCLAS3"] == "FULL-ENCLOSURE"
-    assert eff_area_hdu.header["HDUVERS"] == "0.4"
+    assert eff_area_hdu.header["HDUCLASS"] == "GADF"
+    assert eff_area_hdu.header["HDUVERS"] == "0.3"
     assert eff_area_hdu.header["FOVALIGN"] == "ALTAZ"
 
     # point-like simulations cannot be used with the 3D effective area
