@@ -267,66 +267,6 @@ class CameraCalibrator(TelescopeComponent):
         # this intentionally makes a copy to not mutate the calib.time_shift array
         return calib_time_shift + pixel_time_shift
 
-    @staticmethod
-    def _subtract_pedestal(waveforms, pedestal, selected_gain_channel):
-        """Subtract any remaining pedestal from the waveforms."""
-        if pedestal is None:
-            return waveforms
-
-        if selected_gain_channel is not None:
-            pedestal = _select_channel(pedestal, selected_gain_channel)
-        # this copies intentionally, we don't want to modify the dl0 data
-        # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
-        waveforms = waveforms.copy()
-        waveforms -= pedestal[..., np.newaxis]
-        return waveforms
-
-    def _shift_waveforms(self, tel_id, waveforms, time_shift):
-        """Shift waveforms by the time shift and return the remaining shift."""
-        if time_shift is None:
-            return waveforms, None
-
-        if not self.apply_waveform_time_shift.tel[tel_id]:
-            return waveforms, time_shift
-
-        readout = self.subarray.tel[tel_id].camera.readout
-        sampling_rate = readout.sampling_rate.to_value(u.GHz)
-        time_shift_samples = time_shift * sampling_rate
-        waveforms, remaining_shift = shift_waveforms(waveforms, time_shift_samples)
-        remaining_shift /= sampling_rate
-        return waveforms, remaining_shift
-
-    def _extract_image(
-        self,
-        extractor,
-        tel_id,
-        waveforms,
-        time_shift,
-        selected_gain_channel,
-        invalid_pixels,
-    ):
-        """Extract the DL1 image from time shifted waveforms."""
-        waveforms, remaining_shift = self._shift_waveforms(
-            tel_id, waveforms, time_shift
-        )
-
-        dl1 = extractor(
-            waveforms,
-            tel_id=tel_id,
-            selected_gain_channel=selected_gain_channel,
-            broken_pixels=invalid_pixels,
-        )
-
-        # correct non-integer remainder of the shift if given
-        if (
-            dl1.peak_time is not None
-            and self.apply_peak_time_shift.tel[tel_id]
-            and remaining_shift is not None
-        ):
-            dl1.peak_time -= remaining_shift
-
-        return dl1
-
     def _calibrate_dl1(self, event, tel_id):
         dl0 = event.dl0.tel[tel_id]
 
@@ -344,9 +284,14 @@ class CameraCalibrator(TelescopeComponent):
             factor = _select_channel(factor, selected_gain_channel, keep_dims=False)
 
         # subtract any remaining pedestal before extraction
-        waveforms = self._subtract_pedestal(
-            waveforms, calib.pedestal_offset, selected_gain_channel
-        )
+        pedestal = calib.pedestal_offset
+        if pedestal is not None:
+            if selected_gain_channel is not None:
+                pedestal = _select_channel(pedestal, selected_gain_channel)
+            # this copies intentionally, we don't want to modify the dl0 data
+            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
+            waveforms = waveforms.copy()
+            waveforms -= pedestal[..., np.newaxis]
 
         time_shift = self._get_time_shift(dl0, calib)
 
@@ -371,21 +316,39 @@ class CameraCalibrator(TelescopeComponent):
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
                 is_valid=True,
             )
-            extractor = None
         else:
+            # shift waveforms if time_shift is available
+            remaining_shift = None
+            if time_shift is not None:
+                if self.apply_waveform_time_shift.tel[tel_id]:
+                    sampling_rate = readout.sampling_rate.to_value(u.GHz)
+                    time_shift_samples = time_shift * sampling_rate
+                    waveforms, remaining_shift = shift_waveforms(
+                        waveforms, time_shift_samples
+                    )
+                    remaining_shift /= sampling_rate
+                else:
+                    remaining_shift = time_shift
+
             extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
-            dl1 = self._extract_image(
-                extractor,
-                tel_id,
+            dl1 = extractor(
                 waveforms,
-                time_shift,
-                selected_gain_channel,
-                invalid_pixels,
+                tel_id=tel_id,
+                selected_gain_channel=selected_gain_channel,
+                broken_pixels=invalid_pixels,
             )
+
+            # correct non-integer remainder of the shift if given
+            if (
+                dl1.peak_time is not None
+                and self.apply_peak_time_shift.tel[tel_id]
+                and remaining_shift is not None
+            ):
+                dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
         if factor is not None:
-            if isinstance(extractor, VarianceExtractor):
+            if n_samples > 1 and isinstance(extractor, VarianceExtractor):
                 factor = factor**2
 
             dl1.image *= factor
