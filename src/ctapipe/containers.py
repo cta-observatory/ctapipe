@@ -86,6 +86,15 @@ UNKNOWN_TEL_ID = np.uint16(np.iinfo(np.uint16).max)
 obs_id_field = partial(Field, UNKNOWN_ID, description="Observation Block ID")
 event_id_field = partial(Field, UNKNOWN_ID, description="Array Event ID")
 tel_id_field = partial(Field, UNKNOWN_TEL_ID, description="Telescope ID")
+pixel_status_field = partial(
+    Field,
+    default=None,
+    description=(
+        "Array of pixel status values, see PixelStatus for definition of the values"
+    ),
+    dtype=np.uint8,
+    ndim=1,
+)
 
 
 class SchedulingBlockType(enum.Enum):
@@ -569,6 +578,7 @@ class DL1CameraContainer(Container):
         dtype=np.bool_,
         ndim=1,
     )
+    pixel_status = pixel_status_field()
     is_valid = Field(
         False,
         (
@@ -628,12 +638,7 @@ class R1CameraContainer(Container):
         ),
     )
 
-    pixel_status = Field(
-        None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
-        ndim=1,
-        dtype=np.uint8,
-    )
+    pixel_status = pixel_status_field()
 
     first_cell_id = Field(
         None,
@@ -718,12 +723,7 @@ class DL0CameraContainer(Container):
         ),
     )
 
-    pixel_status = Field(
-        None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
-        dtype=np.uint8,
-        ndim=1,
-    )
+    pixel_status = pixel_status_field()
 
     first_cell_id = Field(
         None,

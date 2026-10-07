@@ -7,10 +7,11 @@ import pathlib
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.containers import EventType
+from ctapipe.containers import EventType, PixelStatus
 from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
+    Bool,
     CInt,
     Path,
     Set,
@@ -61,6 +62,16 @@ class PixelStatisticsCalculatorTool(Tool):
         help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
+    per_channel_statistics = Bool(
+        default_value=False,
+        help=(
+            "If the input data is gain selected, fill each pixel value into the "
+            "gain channel given by 'selected_gain_channel', so that the statistics "
+            "are calculated per gain channel. Unfilled entries are set to NaN and "
+            "ignored by the aggregation."
+        ),
+    ).tag(config=True)
+
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
@@ -78,6 +89,10 @@ class PixelStatisticsCalculatorTool(Tool):
         "append": (
             {"HDF5Merger": {"append": True}},
             "Append to existing files",
+        ),
+        "per-channel": (
+            {"PixelStatisticsCalculatorTool": {"per_channel_statistics": True}},
+            "Calculate per-channel statistics for gain selected input data",
         ),
     }
 
@@ -150,7 +165,7 @@ class PixelStatisticsCalculatorTool(Tool):
                 continue
 
             # 2. Reshape and calculate stats
-            self._reshape_dl1_dimensions(dl1_table)
+            self._reshape_dl1_dimensions(dl1_table, tel_id)
             aggregated_stats = self._process_telescope_stats(dl1_table, tel_id)
 
             # 3. Determine output paths and write out results
@@ -199,13 +214,64 @@ class PixelStatisticsCalculatorTool(Tool):
                 f"Column '{self.input_column_name}' not found "
                 f"in the input data for telescope 'tel_id={tel_id}'."
             )
+        # Check if the gain channel information is available for per-channel statistics
+        if (
+            self.per_channel_statistics
+            and table[self.input_column_name].ndim == 2
+            and self.subarray.tel[tel_id].camera.readout.n_channels > 1
+            and "pixel_status" not in table.colnames
+        ):
+            raise ToolConfigurationError(
+                "Per-channel statistics requested, but column 'pixel_status' "
+                f"not found in the gain selected input data for telescope "
+                f"'tel_id={tel_id}'."
+            )
         return True
 
-    def _reshape_dl1_dimensions(self, dl1_table):
-        """Check if the dl1 data is gain selected and add an extra dimension."""
-        for col in DL1_COLUMN_NAMES:
-            if col in dl1_table.colnames and dl1_table[col].ndim == 2:
+    def _reshape_dl1_dimensions(self, dl1_table, tel_id):
+        """
+        Check if the dl1 data is gain selected and add an extra dimension.
+
+        If ``per_channel_statistics`` is enabled, the gain selected data is filled
+        into an array of shape (n_events, n_channels, n_pixels) according to
+        ``selected_gain_channel``, which is derived from ``pixel_status``, with NaN
+        for the not selected channel. Pixels without a stored gain channel
+        (e.g. broken pixels) are NaN in both channels.
+        """
+        n_channels = self.subarray.tel[tel_id].camera.readout.n_channels
+        fill_per_channel = (
+            self.per_channel_statistics
+            and n_channels > 1
+            and "pixel_status" in dl1_table.colnames
+        )
+        gain_selected_cols = [
+            col
+            for col in DL1_COLUMN_NAMES
+            if col in dl1_table.colnames and dl1_table[col].ndim == 2
+        ]
+        if not fill_per_channel:
+            for col in gain_selected_cols:
                 dl1_table[col] = dl1_table[col][:, np.newaxis]
+            return
+
+        # channel info: 1 = only high gain stored, 2 = only low gain stored
+        channel_info = PixelStatus.get_channel_info(
+            np.asarray(dl1_table["pixel_status"])
+        )
+        stored = (channel_info == 1) | (channel_info == 2)
+        event_index, pixel_index = np.nonzero(stored)
+        selected_gain_channel = channel_info[stored].astype(np.int8) - 1
+        for col in gain_selected_cols:
+            unit = dl1_table[col].unit
+            data = np.asarray(dl1_table[col])
+            per_channel_data = np.full(
+                (data.shape[0], n_channels, data.shape[1]), np.nan, dtype=np.float32
+            )
+            per_channel_data[event_index, selected_gain_channel, pixel_index] = data[
+                event_index, pixel_index
+            ]
+            dl1_table[col] = per_channel_data
+            dl1_table[col].unit = unit
 
     def _process_telescope_stats(self, dl1_table, tel_id):
         """Perform first and (if necessary) second pass statistics calculation."""
