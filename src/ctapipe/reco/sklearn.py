@@ -244,7 +244,7 @@ class SKLearnReconstructor(Reconstructor):
         with ZipModelWriter(path, parent=self) as writer:
             writer.write_reconstructor(self)
             for key, model in self._models.items():
-                writer(key, model)
+                writer.write_joblib(key, model)
 
     @lazyproperty
     def instrument_table(self):
