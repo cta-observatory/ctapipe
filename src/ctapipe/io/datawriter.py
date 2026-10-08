@@ -104,11 +104,6 @@ PROV = Provenance()
 class DataWriter(Component):
     """Serialize a sequence of events into the ctapipe HDF5 format.
 
-    CTAO product metadata is generated from the event source, provenance, and
-    the configurable :class:`~ctapipe.io.metadata.Contact`,
-    :class:`~ctapipe.io.metadata.Curation`, and
-    :class:`~ctapipe.io.metadata.ProductMetadata` child components.
-
     Examples
     --------
     inside a Tool:
