@@ -408,6 +408,9 @@ def test_legacy_site_mapping_uses_instance_default(site):
 
 def test_legacy_missing_optional_values_and_contact_defaults(reference):
     reference.product.data_model_url = " unspecified "
+
+    # Intentionally set invalid values to test legacy metadata handling.
+    # Suppress traitlets cross-validation to allow these values.
     with reference.contact.cross_validation_lock:
         reference.contact.name = "unknown"
         reference.contact.organization = ""
