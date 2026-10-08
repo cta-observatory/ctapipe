@@ -114,7 +114,7 @@ class TrainDispReconstructor(Tool):
         """
         Train models per telescope type using a cross-validation.
         """
-        types = self.loader.subarray.telescope_types
+        types = sorted({str(tel) for tel in self.loader.subarray.telescope_types})
         self.log.info("Inputfile: %s", self.loader.input_url)
 
         self.log.info("Training models for %d types", len(types))
@@ -135,8 +135,11 @@ class TrainDispReconstructor(Tool):
             "subarray_pointing_lon",
         ]
 
-        for i, tel_type in enumerate(types):
-            self.log.info("Loading events for %s", tel_type)
+        for tel_type in types:
+            self.log.info("Loading events for %s, tel_ids:", tel_type)
+            for tel_id in self.loader.subarray.get_tel_ids(tel_type):
+                self.log.info("  %3d", tel_id)
+
             table = read_training_events(
                 loader=self.loader,
                 chunk_size=self.chunk_size,
@@ -160,10 +163,9 @@ class TrainDispReconstructor(Tool):
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            model_key = f"model_tel_type_{i}"
-            self.reconstructor.fit(model_key, table)
-            self.log.info("Saving model for %s using key %s", tel_type, model_key)
-            self.writer(model_key, self.reconstructor._models[model_key])
+            self.reconstructor.fit(tel_type, table)
+            self.log.info("Saving model for %s", tel_type)
+            self.writer(tel_type, self.reconstructor._models[tel_type])
             self.log.info("done")
 
     def finish(self):

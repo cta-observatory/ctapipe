@@ -107,11 +107,16 @@ class TrainEnergyRegressor(Tool):
         Train models per telescope type.
         """
 
-        types = self.loader.subarray.telescope_types
+        types = sorted({str(tel) for tel in self.loader.subarray.telescope_types})
+
         self.log.info("Inputfile: %s", self.loader.input_url)
         self.log.info("Training models for %d types", len(types))
-        for i, tel_type in enumerate(types):
-            self.log.info("Loading events for %s", tel_type)
+
+        for tel_type in types:
+            self.log.info("Loading events for %s, tel_ids:", tel_type)
+            for tel_id in self.loader.subarray.get_tel_ids(tel_type):
+                self.log.info("  %3d", tel_id)
+
             feature_names = self.regressor.features + [
                 self.regressor.target,
                 "true_impact_distance",
@@ -131,11 +136,10 @@ class TrainEnergyRegressor(Tool):
             self.cross_validate(tel_type, table, keep_subarray_events=True)
 
             self.log.info("Performing final fit for %s", tel_type)
-            model_key = f"model_tel_type_{i}"
-            self.regressor.fit(model_key, table)
+            self.regressor.fit(tel_type, table)
 
-            self.log.info("Writing model for %s using key %s", tel_type, model_key)
-            self.writer(model_key, self.regressor._models[model_key])
+            self.log.info("Writing model for %s", tel_type)
+            self.writer(tel_type, self.regressor._models[tel_type])
             self.log.info("done")
 
     def finish(self):

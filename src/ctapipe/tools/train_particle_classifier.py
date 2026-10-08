@@ -153,22 +153,26 @@ class TrainParticleClassifier(Tool):
         Train models per telescope type.
         """
         # By construction both loaders have the same types defined
-        types = self.signal_loader.subarray.telescope_types
+        types = sorted(
+            {str(tel) for tel in self.signal_loader.subarray.telescope_types}
+        )
 
         self.log.info("Signal input-file: %s", self.signal_loader.input_url)
         self.log.info("Background input-file: %s", self.background_loader.input_url)
         self.log.info("Training models for %d types", len(types))
 
         for i, tel_type in enumerate(types):
-            self.log.info("Loading events for %s", tel_type)
+            self.log.info("Loading events for %s, tel_ids:", tel_type)
+            for tel_id in self.signal_loader.subarray.get_tel_ids(tel_type):
+                self.log.info("  %3d", tel_id)
             table = self._read_input_data(tel_type)
+
             self.cross_validate(tel_type, table, keep_subarray_events=True)
 
             self.log.info("Performing final fit for %s", tel_type)
-            model_key = f"model_tel_type_{i}"
-            self.classifier.fit(model_key, table)
-            self.log.info("Writing model for %s using key %s", tel_type, model_key)
-            self.writer(model_key, self.classifier._models[model_key])
+            self.classifier.fit(tel_type, table)
+            self.log.info("Writing model for %s using key %s", tel_type, tel_type)
+            self.writer(tel_type, self.classifier._models[tel_type])
             self.log.info("done")
 
     def _read_input_data(self, tel_type):
