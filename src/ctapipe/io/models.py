@@ -8,7 +8,7 @@ from astropy.utils import lazyproperty
 
 from ..core import Component
 from ..core.provenance import json_config_handler
-from ..core.traits import Bool, Int, Path
+from ..core.traits import Bool, Int, Path, TraitError
 from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .metadata import Activity, Contact, Instrument, Process, Product, Reference
@@ -23,12 +23,21 @@ class ZipModelWriter(Component):
     compression_level = Int(default_value=9).tag(config=True)
     overwrite = Bool(default_value=False).tag(config=True)
 
-    def __init__(self, output_path, **kwargs):
-        super().__init__(output_path=output_path, **kwargs)
+    def __init__(self, output_path=None, **kwargs):
+        if output_path is not None:
+            kwargs["output_path"] = output_path
+        super().__init__(**kwargs)
 
+        if self.output_path is None:
+            raise TraitError("output_path of ZipModelWriter must not be None")
+
+        if not self.overwrite and self.output_path.exists():
+            raise ValueError(f"output_path={output_path} exists and overwrite=False")
+
+        self.output_path.parent.mkdir(exist_ok=True, parents=True)
         self.outfile = zipfile.ZipFile(
             self.output_path,
-            mode="x",
+            mode="w",
             compresslevel=self.compression_level,
             # we store the model payloads zstd compressed, so no additional compression
             compression=zipfile.ZIP_STORED,
@@ -99,7 +108,7 @@ class ZipModelWriter(Component):
         with self.outfile.open(name, "w") as f:
             f.write(hdf5_payload)
 
-    def write_reconstructor_config(self, reconstructor):
+    def _write_reconstructor_config(self, reconstructor):
         name = "reconstructor_config.json"
         self._check_exists(name)
 
@@ -111,6 +120,7 @@ class ZipModelWriter(Component):
 
     def write_reconstructor(self, reconstructor):
         self._write_compressed_joblib("reconstructor", reconstructor)
+        self._write_reconstructor_config(reconstructor)
         self.write_subarray(reconstructor.subarray)
 
     def __call__(self, key, model):
@@ -169,9 +179,14 @@ class ZipModelReader(Component):
         ) as h5file:
             return SubarrayDescription.from_hdf(h5file)
 
-    def read_compressed_joblib(self, key):
+    def _read_compressed_joblib(self, key):
         with self.zip.open(f"{key}.pkl", "r") as f:
             return joblib.load(f)
+
+    def read_reconstructor(self):
+        reconstructor = self._read_compressed_joblib("reconstructor")
+        reconstructor.subarray = self.subarray
+        return reconstructor
 
     def close(self):
         self.zip.close()

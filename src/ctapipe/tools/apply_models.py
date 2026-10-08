@@ -202,21 +202,26 @@ class ApplyModels(Tool):
 
         for tel_id, table in tel_tables.items():
             tel = self.loader.subarray.tel[tel_id]
+            type_index = self.loader.subarray.telescope_types.index(tel)
+            model_key = f"model_tel_type_{type_index}"
 
             if len(table) == 0:
                 self.log.info("No events for telescope %d", tel_id)
                 continue
 
             try:
-                predictions = reconstructor.predict_table(tel, table)
+                reconstructor.load_model(model_key)
             except KeyError:
                 self.log.warning(
-                    "No model in %s for telescope type %s, skipping tel %d",
+                    "No model in %s for telescope type %s, key %s, skipping tel %d",
                     reconstructor,
                     tel,
+                    model_key,
                     tel_id,
                 )
                 continue
+
+            predictions = reconstructor.predict_table(model_key, table)
 
             for prop, prediction_table in predictions.items():
                 # copy/overwrite columns into full feature table

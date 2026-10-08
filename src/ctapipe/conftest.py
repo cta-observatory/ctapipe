@@ -310,6 +310,8 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
             "--write-images",
             "--write-showers",
         ]
+        for tel_id in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 19]:
+            argv.append(f"--EventSource.allowed_tels={tel_id}")
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
 

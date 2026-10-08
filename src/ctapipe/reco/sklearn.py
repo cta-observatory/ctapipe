@@ -169,8 +169,8 @@ class SKLearnReconstructor(Reconstructor):
                 parent=self,
             )
         else:
-            self.reader = ZipModelReader(self.load_path, parent=self)
-            loaded = self.reader.read_reconstructor()
+            with ZipModelReader(self.load_path, parent=self) as reader:
+                loaded = reader.read_reconstructor()
 
             if (
                 subarray is not None
@@ -189,10 +189,11 @@ class SKLearnReconstructor(Reconstructor):
         if key in self._models:
             return
 
-        if self.reader is None:
+        if self.load_path is None:
             raise ValueError("load_path is None, cannot load models from file")
 
-        self.reader
+        with ZipModelReader(self.load_path, parent=self) as reader:
+            self._models[key] = reader._read_compressed_joblib(key)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -653,6 +654,16 @@ class DispReconstructor(Reconstructor):
         norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**norm_cfg)
         sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**sign_cfg)
         return norm_regressor, sign_classifier
+
+    def load_model(self, key):
+        if key in self._models:
+            return
+
+        if self.load_path is None:
+            raise ValueError("load_path is None, cannot load models from file")
+
+        with ZipModelReader(self.load_path, parent=self) as reader:
+            self._models[key] = reader._read_compressed_joblib(key)
 
     def _table_to_y(self, table, mask=None):
         """

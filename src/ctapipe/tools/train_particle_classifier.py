@@ -8,6 +8,7 @@ from astropy.table import vstack
 from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Float, Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
+from ctapipe.io.models import ZipModelWriter
 from ctapipe.reco import CrossValidator, ParticleClassifier
 
 from .utils import read_training_events
@@ -47,14 +48,6 @@ class TrainParticleClassifier(Tool):
         exists=True,
         directory_ok=False,
         help="Input dl1b/dl2 file for the background class.",
-    ).tag(config=True)
-
-    output_path = Path(
-        directory_ok=False,
-        help=(
-            "Output file for the trained reconstructor."
-            " At the moment, pickle is the only supported format."
-        ),
     ).tag(config=True)
 
     n_events = IntTelescopeParameter(
@@ -101,7 +94,7 @@ class TrainParticleClassifier(Tool):
         "n-events": "TrainParticleClassifier.n_events",
         "signal-fraction": "TrainParticleClassifier.signal_fraction",
         "n-jobs": "ParticleClassifier.n_jobs",
-        ("o", "output"): "TrainParticleClassifier.output_path",
+        ("o", "output"): "ZipModelWriter.output_path",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -127,12 +120,6 @@ class TrainParticleClassifier(Tool):
             )
             self.exit(1)
 
-        if self.output_path is None:
-            self.log.critical(
-                "Setting output_path is required (via -o, --output or a config file)."
-            )
-            self.exit(1)
-
         self.signal_loader = self.enter_context(
             TableLoader(
                 parent=self,
@@ -152,13 +139,14 @@ class TrainParticleClassifier(Tool):
         self.classifier = ParticleClassifier(
             subarray=self.signal_loader.subarray, parent=self
         )
+        self.writer = self.enter_context(ZipModelWriter(parent=self))
+
         self.cross_validate = self.enter_context(
             CrossValidator(
                 parent=self, model_component=self.classifier, overwrite=self.overwrite
             )
         )
         self.rng = np.random.default_rng(self.random_seed)
-        self.check_output(self.output_path)
 
     def start(self):
         """
@@ -171,13 +159,16 @@ class TrainParticleClassifier(Tool):
         self.log.info("Background input-file: %s", self.background_loader.input_url)
         self.log.info("Training models for %d types", len(types))
 
-        for tel_type in types:
+        for i, tel_type in enumerate(types):
             self.log.info("Loading events for %s", tel_type)
             table = self._read_input_data(tel_type)
             self.cross_validate(tel_type, table, keep_subarray_events=True)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.classifier.fit(tel_type, table)
+            model_key = f"model_tel_type_{i}"
+            self.classifier.fit(model_key, table)
+            self.log.info("Writing model for %s using key %s", tel_type, model_key)
+            self.writer(model_key, self.classifier._models[model_key])
             self.log.info("done")
 
     def _read_input_data(self, tel_type):
@@ -248,7 +239,7 @@ class TrainParticleClassifier(Tool):
         """
         self.log.info("Writing output")
         self.classifier.n_jobs = None
-        self.classifier.write(self.output_path, overwrite=self.overwrite)
+        self.writer.write_reconstructor(self.classifier)
         self.signal_loader.close()
         self.background_loader.close()
         self.cross_validate.close()

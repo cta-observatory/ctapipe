@@ -5,9 +5,10 @@ Tool for training the DispReconstructor
 import numpy as np
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
+from ctapipe.core.traits import Bool, Int, IntTelescopeParameter
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import TableLoader
+from ctapipe.io.models import ZipModelWriter
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.disp import compute_true_disp
 
@@ -35,14 +36,6 @@ class TrainDispReconstructor(Tool):
         --input gamma.dl2.h5 \\
         --output disp_models.pkl
     """
-
-    output_path = Path(
-        directory_ok=False,
-        help=(
-            "Output path for the trained reconstructor."
-            " At the moment, pickle is the only supported format."
-        ),
-    ).tag(config=True)
 
     n_events = IntTelescopeParameter(
         default_value=None,
@@ -81,7 +74,7 @@ class TrainDispReconstructor(Tool):
 
     aliases = {
         ("i", "input"): "TableLoader.input_url",
-        ("o", "output"): "TrainDispReconstructor.output_path",
+        ("o", "output"): "ZipModelWriter.output_path",
         "n-events": "TrainDispReconstructor.n_events",
         "n-jobs": "DispReconstructor.n_jobs",
         "cv-output": "CrossValidator.output_path",
@@ -101,22 +94,21 @@ class TrainDispReconstructor(Tool):
             )
             self.exit(1)
 
-        if self.output_path is None:
-            self.log.critical(
-                "setting output_path is required (via -o, --output or a config file)."
-            )
-            self.exit(1)
+        self.writer = self.enter_context(
+            ZipModelWriter(parent=self, overwrite=self.overwrite)
+        )
 
         self.n_events.attach_subarray(self.loader.subarray)
-        self.models = DispReconstructor(self.loader.subarray, parent=self)
+        self.reconstructor = DispReconstructor(self.loader.subarray, parent=self)
 
         self.cross_validate = self.enter_context(
             CrossValidator(
-                parent=self, model_component=self.models, overwrite=self.overwrite
+                parent=self,
+                model_component=self.reconstructor,
+                overwrite=self.overwrite,
             )
         )
         self.rng = np.random.default_rng(self.random_seed)
-        self.check_output(self.output_path)
 
     def start(self):
         """
@@ -126,7 +118,7 @@ class TrainDispReconstructor(Tool):
         self.log.info("Inputfile: %s", self.loader.input_url)
 
         self.log.info("Training models for %d types", len(types))
-        feature_names = self.models.features + [
+        feature_names = self.reconstructor.features + [
             "true_energy",
             "true_impact_distance",
             "true_alt",
@@ -143,30 +135,35 @@ class TrainDispReconstructor(Tool):
             "subarray_pointing_lon",
         ]
 
-        for tel_type in types:
+        for i, tel_type in enumerate(types):
             self.log.info("Loading events for %s", tel_type)
             table = read_training_events(
                 loader=self.loader,
                 chunk_size=self.chunk_size,
                 telescope_type=tel_type,
-                reconstructor=self.models,
+                reconstructor=self.reconstructor,
                 feature_names=feature_names,
                 optional_columns=optional_columns,
                 rng=self.rng,
                 log=self.log,
                 n_events=self.n_events.tel[tel_type],
             )
-            table[self.models.target] = compute_true_disp(table, self.project_disp)
+            table[self.reconstructor.target] = compute_true_disp(
+                table, self.project_disp
+            )
             table = table[
-                self.models.features
-                + [self.models.target, "true_energy", "true_impact_distance"]
+                self.reconstructor.features
+                + [self.reconstructor.target, "true_energy", "true_impact_distance"]
             ]
 
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.models.fit(tel_type, table)
+            model_key = f"model_tel_type_{i}"
+            self.reconstructor.fit(model_key, table)
+            self.log.info("Saving model for %s using key %s", tel_type, model_key)
+            self.writer(model_key, self.reconstructor._models[model_key])
             self.log.info("done")
 
     def finish(self):
@@ -174,8 +171,8 @@ class TrainDispReconstructor(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        self.models.n_jobs = None
-        self.models.write(self.output_path, overwrite=self.overwrite)
+        self.reconstructor.n_jobs = None
+        self.writer.write_reconstructor(self.reconstructor)
         self.loader.close()
         self.cross_validate.close()
 

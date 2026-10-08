@@ -138,7 +138,8 @@ class Reconstructor(TelescopeComponent):
         # new zip-based format
         if zipfile.is_zipfile(path):
             with ZipModelReader(path) as zip_reader:
-                instance = zip_reader.read_compressed_joblib("reconstructor")
+                instance = zip_reader.read_reconstructor()
+                instance.load_path = path
                 meta = zip_reader.meta
             Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
         else:
