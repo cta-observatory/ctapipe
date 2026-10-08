@@ -161,7 +161,7 @@ class TrainParticleClassifier(Tool):
         self.log.info("Background input-file: %s", self.background_loader.input_url)
         self.log.info("Training models for %d types", len(types))
 
-        for i, tel_type in enumerate(types):
+        for tel_type in types:
             self.log.info("Loading events for %s, tel_ids:", tel_type)
             for tel_id in self.signal_loader.subarray.get_tel_ids(tel_type):
                 self.log.info("  %3d", tel_id)
@@ -172,7 +172,7 @@ class TrainParticleClassifier(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.classifier.fit(tel_type, table)
             self.log.info("Writing model for %s using key %s", tel_type, tel_type)
-            self.writer(tel_type, self.classifier._models[tel_type])
+            self.writer.write_joblib(tel_type, self.classifier._models[tel_type])
             self.log.info("done")
 
     def _read_input_data(self, tel_type):

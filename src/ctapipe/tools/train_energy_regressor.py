@@ -139,7 +139,7 @@ class TrainEnergyRegressor(Tool):
             self.regressor.fit(tel_type, table)
 
             self.log.info("Writing model for %s", tel_type)
-            self.writer(tel_type, self.regressor._models[tel_type])
+            self.writer.write_joblib(tel_type, self.regressor._models[tel_type])
             self.log.info("done")
 
     def finish(self):

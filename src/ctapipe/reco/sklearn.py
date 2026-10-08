@@ -193,7 +193,7 @@ class SKLearnReconstructor(Reconstructor):
             raise ValueError("load_path is None, cannot load models from file")
 
         with ZipModelReader(self.load_path, parent=self) as reader:
-            self._models[key] = reader._read_compressed_joblib(key)
+            self._models[key] = reader.read_joblib(key)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:

@@ -36,7 +36,7 @@ def test_reconstructor_io(tmp_path, classifier):
         writer.write_reconstructor(classifier)
 
         for key, model in classifier._models.items():
-            writer(key, model)
+            writer.write_joblib(key, model)
 
     with ZipModelReader(input_path=path) as reader:
         subarray = reader.subarray
@@ -48,7 +48,7 @@ def test_reconstructor_io(tmp_path, classifier):
 
         assert reader.keys == ("LST", "MST", "SST")
         for key in reader.keys:
-            reader._read_compressed_joblib(key)
+            reader.read_joblib(key)
 
     # should be the same...
     path = tmp_path / "models2.zip"

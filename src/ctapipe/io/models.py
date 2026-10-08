@@ -76,7 +76,7 @@ class ZipModelWriter(Component):
                 f"A file with name {name!r} already exists in the archive."
             )
 
-    def _write_compressed_joblib(self, key, obj):
+    def write_joblib(self, key, obj):
         name = f"{key}.pkl"
         self._check_exists(name)
 
@@ -119,12 +119,9 @@ class ZipModelWriter(Component):
                 json.dump(config, wrapper, default=json_config_handler)
 
     def write_reconstructor(self, reconstructor):
-        self._write_compressed_joblib("reconstructor", reconstructor)
+        self.write_joblib("reconstructor", reconstructor)
         self._write_reconstructor_config(reconstructor)
         self.write_subarray(reconstructor.subarray)
-
-    def __call__(self, key, model):
-        self._write_compressed_joblib(key, model)
 
 
 SUPPORTED_VERSIONS = {"1.0.0"}
@@ -181,12 +178,12 @@ class ZipModelReader(Component):
         ) as h5file:
             return SubarrayDescription.from_hdf(h5file)
 
-    def _read_compressed_joblib(self, key):
+    def read_joblib(self, key):
         with self.zip.open(f"{key}.pkl", "r") as f:
             return joblib.load(f)
 
     def read_reconstructor(self):
-        reconstructor = self._read_compressed_joblib("reconstructor")
+        reconstructor = self.read_joblib("reconstructor")
         reconstructor.subarray = self.subarray
         return reconstructor
 

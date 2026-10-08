@@ -165,7 +165,7 @@ class TrainDispReconstructor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.reconstructor.fit(tel_type, table)
             self.log.info("Saving model for %s", tel_type)
-            self.writer(tel_type, self.reconstructor._models[tel_type])
+            self.writer.write_joblib(tel_type, self.reconstructor._models[tel_type])
             self.log.info("done")
 
     def finish(self):
