@@ -235,8 +235,23 @@ def test_no_cross_validation(tmp_path):
     assert ret == 0
 
 
-def test_train_models_0_17(tmp_path):
-    """Test for training disp reconstructor on the older (ctapipe 0.17) test data"""
+@pytest.fixture(scope="session", params=["0.17", "0.23"])
+def train_models_dataset(request):
+    version = request.param
+
+    files = {}
+    if version == "0.17":
+        files["gamma"] = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+        files["proton"] = get_dataset_path("proton_dl2_train_small.dl2.h5")
+    elif version == "0.23":
+        files["gamma"] = get_dataset_path("gamma_diffuse_train_0.23.1.dl2.h5")
+        files["proton"] = get_dataset_path("proton_train_0.23.1.dl2.h5")
+
+    return files
+
+
+def test_train_models(tmp_path, train_models_dataset):
+    """Test all models on dl2 datasets of different ctapipe versions"""
     from ctapipe.reco.sklearn import (
         DispReconstructor,
         EnergyRegressor,
@@ -247,8 +262,8 @@ def test_train_models_0_17(tmp_path):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
-    gamma_input = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
-    proton_input = get_dataset_path("proton_dl2_train_small.dl2.h5")
+    gamma_input = train_models_dataset["gamma"]
+    proton_input = train_models_dataset["proton"]
 
     # Train energy model first, to have the energy usable in later models
     energy_tool = TrainEnergyRegressor()
@@ -304,9 +319,10 @@ def test_train_models_0_17(tmp_path):
     assert ret == 0
     assert disp_cv_out_file.exists()
 
-    DispReconstructor.read(disp_model)
+    disp_reco = DispReconstructor.read(disp_model)
 
-    cv_table = read_table(disp_cv_out_file, "/cv_predictions/LST_LST_LSTCam")
+    tel_key = str(next(iter(disp_reco.subarray.telescope_types)))
+    cv_table = read_table(disp_cv_out_file, f"/cv_predictions/{tel_key}")
     disp = cv_table["disp_parameter"]
     true_disp = cv_table["truth"]
     accuracy = np.count_nonzero(np.sign(disp) == np.sign(true_disp)) / len(disp)
