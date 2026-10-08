@@ -677,7 +677,6 @@ class SimTelEventSource(EventSource):
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
         )
-        self.metadata = None
 
         # TODO: read metadata from simtel metaparams once we have files that
         # actually provide the reference metadata.
