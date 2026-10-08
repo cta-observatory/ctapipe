@@ -1040,13 +1040,6 @@ def _read_fits_metadata(fits_file) -> dp.Product:
         if "CTAOMETA" in header:
             _check_metadata_version(header["CTAOMETA"])
 
-            # Temporary workaround for
-            # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
-            if "MODEL" in header and "MODELURL" not in header:
-                header["MODELURL"] = None
-            if "SOFTWARE" in header and "SOFTURL" not in header:
-                header["SOFTURL"] = None
-
             return dm.fits_header_to_instance(
                 header,
                 model=dp.Product,
@@ -1356,15 +1349,6 @@ def metadata_to_product(metadata) -> dp.Product:
     metadata = {
         key: value for key, value in metadata.items() if key.startswith("CTAO.")
     }
-
-    # Temporary workaround for
-    # https://gitlab.cta-observatory.org/cta-computing/common/ctao-datamodel/-/work_items/48
-    # Only add optional URL fields when their parent metadata object already exists.
-    if any(key.startswith("CTAO.model.") for key in metadata):
-        metadata.setdefault("CTAO.model.url", None)
-
-    if any(key.startswith("CTAO.activity.software.") for key in metadata):
-        metadata.setdefault("CTAO.activity.software.url", None)
 
     return dm.unflatten_model_instance(
         metadata,
