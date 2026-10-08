@@ -146,7 +146,9 @@ class ZipModelReader(Component):
             raise ValueError(f"input_path {self.input_path} does not contain meta.json")
 
         self._keys = tuple(
-            f.removesuffix(".pkl") for f in self._files if f.endswith(".pkl")
+            f.removesuffix(".pkl")
+            for f in self._files
+            if f.endswith(".pkl") and not f == "reconstructor.pkl"
         )
 
         self._meta = json.loads(self.zip.read("meta.json").decode("utf-8"))

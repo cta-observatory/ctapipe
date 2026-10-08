@@ -41,11 +41,14 @@ def test_reconstructor_io(tmp_path, classifier):
     with ZipModelReader(input_path=path) as reader:
         subarray = reader.subarray
         assert subarray == classifier.subarray
-
-        reconstructor = reader.read_compressed_joblib("reconstructor")
+        reconstructor = reader.read_reconstructor()
 
         # we do not read models by default, we load them one-by-one
         assert len(reconstructor._models) == 0
+
+        assert reader.keys == ("LST", "MST", "SST")
+        for key in reader.keys:
+            reader._read_compressed_joblib(key)
 
     # should be the same...
     path = tmp_path / "models2.zip"
