@@ -78,7 +78,6 @@ def test_sampling(tmp_path, gamma_dl2_train_small_h5):
 def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
-    tool = TrainParticleClassifier()
     config = resource_file("train_particle_classifier.yaml")
     out_file = tmp_path / "particle_classifier_.zip"
     log_file = tmp_path / "train_particle.log"
@@ -88,7 +87,7 @@ def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
         match="The signal_fraction has to be between 0 and 1",
     ):
         run_tool(
-            tool,
+            tool=TrainParticleClassifier(),
             argv=[
                 f"--signal={gamma_train_clf}",
                 f"--background={proton_train_clf}",
@@ -102,7 +101,7 @@ def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
 
     for frac in [0.7, 0.1]:
         run_tool(
-            tool,
+            tool=TrainParticleClassifier(),
             argv=[
                 f"--signal={gamma_train_clf}",
                 f"--background={proton_train_clf}",
@@ -131,13 +130,12 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
-    tool = TrainEnergyRegressor()
     config = resource_file("train_energy_regressor.yaml")
-    out_file = tmp_path / "energy_.zip"
+    out_file = tmp_path / "energy.zip"
     energy_cv_out_file = tmp_path / "energy_cv_results.h5"
 
     ret = run_tool(
-        tool,
+        TrainEnergyRegressor(),
         argv=[
             "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
             f"--output={out_file}",
@@ -150,12 +148,14 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     assert energy_cv_out_file.exists()
 
     # test overwrite of cv results works
+    # new main output file to check if we get the error also for CV output
+    out_file = tmp_path / "energy2.zip"
     with pytest.raises(
         ToolConfigurationError,
         match=f"Output path {energy_cv_out_file} exists, but overwrite=False",
     ):
         run_tool(
-            tool,
+            TrainEnergyRegressor(),
             argv=[
                 "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
                 f"--output={out_file}",
@@ -166,7 +166,7 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
         )
 
     ret = run_tool(
-        tool,
+        TrainEnergyRegressor(),
         argv=[
             "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
             f"--output={out_file}",

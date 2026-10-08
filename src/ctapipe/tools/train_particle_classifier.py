@@ -139,7 +139,9 @@ class TrainParticleClassifier(Tool):
         self.classifier = ParticleClassifier(
             subarray=self.signal_loader.subarray, parent=self
         )
-        self.writer = self.enter_context(ZipModelWriter(parent=self))
+        self.writer = self.enter_context(
+            ZipModelWriter(parent=self, overwrite=self.overwrite)
+        )
 
         self.cross_validate = self.enter_context(
             CrossValidator(

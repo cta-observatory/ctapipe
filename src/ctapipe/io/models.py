@@ -32,8 +32,8 @@ class ZipModelWriter(Component):
             raise TraitError("output_path of ZipModelWriter must not be None")
 
         if not self.overwrite and self.output_path.exists():
-            raise ValueError(
-                f"output_path={self.output_path} exists and overwrite=False"
+            raise TraitError(
+                f"Output path {self.output_path} exists and overwrite=False"
             )
 
         self.output_path.parent.mkdir(exist_ok=True, parents=True)

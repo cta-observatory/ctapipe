@@ -89,7 +89,9 @@ class TrainEnergyRegressor(Tool):
             )
             self.exit(1)
 
-        self.writer = self.enter_context(ZipModelWriter(parent=self))
+        self.writer = self.enter_context(
+            ZipModelWriter(parent=self, overwrite=self.overwrite)
+        )
 
         self.n_events.attach_subarray(self.loader.subarray)
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)

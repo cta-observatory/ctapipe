@@ -314,4 +314,4 @@ def test_disp_fixed_icrs_pointing(disp_reconstructor_path):
     disp_model = DispReconstructor.read(disp_reconstructor_path)
 
     with pytest.raises(ValueError, match="horizontal coordinates"):
-        disp_model.predict_table(disp_model.subarray.tel[1], events)
+        disp_model.predict_table(str(disp_model.subarray.tel[1]), events)
