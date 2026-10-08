@@ -413,12 +413,16 @@ class DataWriter(Component):
         self.log.debug("compression filters: %s", self._hdf5_filters)
 
     def _setup_output_path(self):
-        """
-        ensure output path exists, and if requested delete what is there for
-        overwriting
-        """
+        """Validate the output path and prevent overwriting the input file."""
         self.output_path = self.output_path.expanduser()
         if self.output_path.exists():
+            if self.event_source.input_url is not None and self.output_path.samefile(
+                self.event_source.input_url
+            ):
+                raise ToolConfigurationError(
+                    "Input and output files must not be the same."
+                )
+
             if self.overwrite:
                 self.log.warning("Overwriting %s", self.output_path)
                 self.output_path.unlink()
