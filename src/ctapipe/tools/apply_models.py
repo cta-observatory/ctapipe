@@ -208,7 +208,7 @@ class ApplyModels(Tool):
                 continue
 
             try:
-                reconstructor.load_model(tel_type)
+                predictions = reconstructor.predict_table(tel_type, table)
             except KeyError:
                 self.log.warning(
                     "No model in %s for telescope type %s, skipping tel %d",
@@ -217,8 +217,6 @@ class ApplyModels(Tool):
                     tel_id,
                 )
                 continue
-
-            predictions = reconstructor.predict_table(tel_type, table)
 
             for prop, prediction_table in predictions.items():
                 # copy/overwrite columns into full feature table

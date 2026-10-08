@@ -171,6 +171,8 @@ class SKLearnReconstructor(Reconstructor):
         else:
             with ZipModelReader(self.load_path, parent=self) as reader:
                 loaded = reader.read_reconstructor()
+                for key in reader.keys:
+                    loaded._models[key] = reader.read_joblib(key)
 
             if (
                 subarray is not None
@@ -434,7 +436,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
             if passes_quality_checks:
                 prediction, valid = self._predict(
-                    self.subarray.tel[tel_id],
+                    str(self.subarray.tel[tel_id]),
                     table,
                 )
                 container = ReconstructedEnergyContainer(
@@ -497,7 +499,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
             if passes_quality_checks:
                 prediction, valid = self._predict_score(
-                    self.subarray.tel[tel_id],
+                    str(self.subarray.tel[tel_id]),
                     table,
                 )
 
@@ -759,7 +761,7 @@ class DispReconstructor(Reconstructor):
 
             if passes_quality_checks:
                 disp, sign_score, valid = self._predict(
-                    self.subarray.tel[tel_id], table
+                    str(self.subarray.tel[tel_id]), table
                 )
 
                 if valid:
