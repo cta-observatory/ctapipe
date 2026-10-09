@@ -8,12 +8,14 @@ from astropy.io.fits import BinTableHDU
 from astropy.table import QTable
 from pyirf.io import (
     create_aeff2d_hdu,
+    create_aeff3d_lonlat_hdu,
     create_background_2d_hdu,
     create_energy_dispersion_hdu,
     create_psf_table_hdu,
 )
 from pyirf.irf import (
     background_2d,
+    effective_area_3d_lonlat,
     effective_area_per_energy,
     effective_area_per_energy_and_fov,
     energy_dispersion,
@@ -22,13 +24,19 @@ from pyirf.irf import (
 from pyirf.simulations import SimulatedEventsInfo
 
 from ..core.traits import AstroQuantity, CaselessStrEnum, Float, Int
-from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
+from .binning import (
+    DefaultFoVLonLatBins,
+    DefaultFoVOffsetBins,
+    DefaultRecoEnergyBins,
+    DefaultTrueEnergyBins,
+)
 
 __all__ = [
     "BackgroundRateMakerBase",
     "BackgroundRate2dMaker",
     "EffectiveAreaMakerBase",
     "EffectiveArea2dMaker",
+    "EffectiveArea3DMaker",
     "EnergyDispersionMakerBase",
     "EnergyDispersion2dMaker",
     "PSFMakerBase",
@@ -234,6 +242,61 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
             fov_offset_bins=self.fov_offset_bins,
             point_like=spatial_selection_applied,
             extname=extname,
+        )
+
+
+class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
+    """
+    Creates a parameterization of the effective area in equidistant bins of
+    logarithmic true energy and fov longitude and latitude.
+
+    The spatial selection or point-like nature of the input is only stored in
+    the ``HDUCLAS3`` header keyword (``POINT-LIKE`` vs ``FULL-ENCLOSURE``);
+    the computed effective area is always binned over the full configured
+    fov lon/lat grid.
+    """
+
+    subpixels = Int(
+        help="Number of subpixels to use for the integration of the fov bins",
+        default_value=20,
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+
+    def __call__(
+        self,
+        events: QTable,
+        spatial_selection_applied: bool,
+        signal_is_point_like: bool,
+        sim_info: SimulatedEventsInfo,
+        extname: str = "EFFECTIVE AREA",
+    ) -> BinTableHDU:
+        effective_area = effective_area_3d_lonlat(
+            selected_events=events,
+            simulation_info=sim_info,
+            true_energy_bins=self.true_energy_bins,
+            fov_longitude_bins=self.fov_lon_bins,
+            fov_latitude_bins=self.fov_lat_bins,
+            subpixels=self.subpixels,
+        )
+
+        # AEFF_3D is not part of the official GADF format yet. We follow the
+        # proposal in https://github.com/open-gamma-ray-astro/gamma-astro-data-formats
+        # (branch add-aeff-3d-spec) for the remaining header keywords and will
+        # switch to the official specification once it is released.
+        return create_aeff3d_lonlat_hdu(
+            effective_area=effective_area,
+            true_energy_bins=self.true_energy_bins,
+            fov_longitude_bins=self.fov_lon_bins,
+            fov_latitude_bins=self.fov_lat_bins,
+            extname=extname,
+            point_like=signal_is_point_like or spatial_selection_applied,
+            HDUCLASS="GADF",
+            HDUDOC="https://github.com/open-gamma-ray-astro/gamma-astro-data-formats",
+            # AEFF_3D is not part of GADF 0.3
+            HDUVERS="0.4",
+            FOVALIGN="ALTAZ",
         )
 
 

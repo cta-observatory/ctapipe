@@ -109,6 +109,68 @@ def test_make_2d_eff_area(irf_events_table):
     assert eff_area_hdu.data["EFFAREA"].shape == (1, 1, 29)
 
 
+def test_make_3d_eff_area(irf_events_table):
+    from ctapipe.irf import EffectiveArea3DMaker
+
+    eff_area_maker = EffectiveArea3DMaker(
+        fov_lon_n_bins=5,
+        fov_lon_max=3 * u.deg,
+        fov_lat_n_bins=5,
+        fov_lat_max=3 * u.deg,
+        true_energy_n_bins_per_decade=7,
+        true_energy_max=155 * u.TeV,
+    )
+    sim_info = SimulatedEventsInfo(
+        n_showers=3000,
+        energy_min=0.01 * u.TeV,
+        energy_max=10 * u.TeV,
+        max_impact=1000 * u.m,
+        spectral_index=-1.9,
+        viewcone_min=0 * u.deg,
+        viewcone_max=10 * u.deg,
+    )
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=False,
+        signal_is_point_like=False,
+        sim_info=sim_info,
+    )
+    # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+
+    _check_boundaries_in_hdu(
+        eff_area_hdu,
+        lo_vals=[-3 * u.deg, -3 * u.deg, 0.015 * u.TeV],
+        hi_vals=[3 * u.deg, 3 * u.deg, 155 * u.TeV],
+        colnames=["DETX", "DETY", "ENERG"],
+    )
+
+    assert eff_area_hdu.header["HDUCLAS4"] == "AEFF_3D"
+    assert eff_area_hdu.header["HDUCLAS3"] == "FULL-ENCLOSURE"
+    assert eff_area_hdu.header["HDUCLASS"] == "GADF"
+    assert eff_area_hdu.header["HDUVERS"] == "0.4"
+    assert eff_area_hdu.header["FOVALIGN"] == "ALTAZ"
+
+    # the selection only affects HDUCLAS3, not the computed effective area
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=False,
+        signal_is_point_like=True,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu.header["HDUCLAS3"] == "POINT-LIKE"
+
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=True,
+        signal_is_point_like=False,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu.header["HDUCLAS3"] == "POINT-LIKE"
+
+
 def test_make_3d_psf(irf_events_table):
     from ctapipe.irf import PSF3DMaker
 

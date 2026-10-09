@@ -15,7 +15,10 @@ try:
         PowerLaw,
         calculate_event_weights,
     )
-    from pyirf.utils import calculate_source_fov_offset, calculate_theta
+    from pyirf.utils import (
+        calculate_source_fov_offset,
+        calculate_theta,
+    )
 
     has_pyirf = True
 except ModuleNotFoundError:
@@ -227,6 +230,16 @@ class DL2EventPreprocessor(Component):
                         description="Reconstructed angular offset from pointing direction",
                     ),
                     Column(
+                        name="true_source_fov_lon",
+                        unit=u.deg,
+                        description="True FOV longitude in GADF coordinates",
+                    ),
+                    Column(
+                        name="true_source_fov_lat",
+                        unit=u.deg,
+                        description="True FOV latitude in GADF coordinates",
+                    ),
+                    Column(
                         name="weight",
                         dtype=np.float64,
                         description="Event weight",
@@ -434,8 +447,16 @@ class DL2EventLoader(Component):
         pointing = SkyCoord(
             alt=events["pointing_alt"], az=events["pointing_az"], frame=AltAz()
         )
-        reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         nominal = NominalFrame(origin=pointing)
+
+        true = SkyCoord(alt=events["true_alt"], az=events["true_az"], frame=AltAz())
+        true_nominal = true.transform_to(nominal)
+        events["true_source_fov_lon"] = u.Quantity(
+            -true_nominal.fov_lon
+        )  # minus for GADF
+        events["true_source_fov_lat"] = u.Quantity(true_nominal.fov_lat)
+
+        reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         reco_nominal = reco.transform_to(nominal)
         events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
         events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)

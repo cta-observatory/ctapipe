@@ -105,3 +105,30 @@ def test_fov_offset_bins_base():
     assert np.isclose(binning.fov_offset_bins[0], binning.fov_offset_min, rtol=1e-9)
     assert np.isclose(binning.fov_offset_bins[-1], binning.fov_offset_max, rtol=1e-9)
     assert np.allclose(np.diff(binning.fov_offset_bins.to_value(u.deg)), 1)
+
+
+def test_fov_offset_edges():
+    from ctapipe.irf.binning import DefaultFoVOffsetBins
+
+    # default is None -> linspace fallback (covered by test_fov_offset_bins_base)
+    assert DefaultFoVOffsetBins().fov_offset_edges is None
+
+    # explicit edges override fov_offset_min/max/n_bins
+    edges = [0.0, 0.3, 0.6, 1.0, 2.0, 3.5]
+    binning = DefaultFoVOffsetBins(
+        fov_offset_min=0 * u.deg,
+        fov_offset_max=5 * u.deg,
+        fov_offset_n_bins=10,
+        fov_offset_edges=edges,
+    )
+    assert binning.fov_offset_bins.unit == u.deg
+    assert len(binning.fov_offset_bins) == len(edges)
+    assert np.allclose(binning.fov_offset_bins.to_value(u.deg), edges)
+
+    # decreasing edges raise
+    with pytest.raises(ValueError, match="strictly increasing"):
+        DefaultFoVOffsetBins(fov_offset_edges=[1.0, 0.5]).fov_offset_bins
+
+    # duplicate (non-increasing) edges raise
+    with pytest.raises(ValueError, match="strictly increasing"):
+        DefaultFoVOffsetBins(fov_offset_edges=[0.0, 0.5, 0.5, 1.0]).fov_offset_bins

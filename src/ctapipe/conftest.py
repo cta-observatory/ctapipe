@@ -972,6 +972,14 @@ def irf_events_table():
         "true_source_fov_offset",
         np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg,
     )
+    bulk_tab.replace_column(
+        "true_source_fov_lon",
+        np.append(np.full(N1, 0.1), np.full(N2, 0.02)) * u.deg,
+    )
+    bulk_tab.replace_column(
+        "true_source_fov_lat",
+        np.append(np.full(N1, 0.2), np.full(N2, 0.03)) * u.deg,
+    )
 
     for name in unitless:
         bulk_tab.add_column(

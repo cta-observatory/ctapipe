@@ -8,7 +8,7 @@ import numpy as np
 
 from ..compat import COPY_IF_NEEDED
 from ..core import Component
-from ..core.traits import AstroQuantity, Int
+from ..core.traits import AstroQuantity, Float, Int, List
 
 __all__ = [
     "ResultValidRange",
@@ -17,6 +17,7 @@ __all__ = [
     "DefaultTrueEnergyBins",
     "DefaultRecoEnergyBins",
     "DefaultFoVOffsetBins",
+    "DefaultFoVLonLatBins",
     "DefaultFoVPhiBins",
 ]
 
@@ -180,13 +181,95 @@ class DefaultFoVOffsetBins(Component):
         default_value=1,
     ).tag(config=True)
 
+    fov_offset_edges = List(
+        Float(),
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Optional explicit FoV offset bin edges in degrees. "
+            "If set, overrides fov_offset_min/fov_offset_max/fov_offset_n_bins."
+        ),
+    ).tag(config=True)
+
     @property
     def fov_offset_bins(self):
+        if self.fov_offset_edges is not None:
+            edges = np.asarray(self.fov_offset_edges, dtype=float)
+            if not np.all(np.diff(edges) > 0):
+                raise ValueError(
+                    f"fov_offset_edges must be strictly increasing, got {edges}"
+                )
+            return u.Quantity(edges, u.deg)
         return u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
                 self.fov_offset_max.to_value(u.deg),
                 self.fov_offset_n_bins + 1,
+            ),
+            u.deg,
+        )
+
+
+class DefaultFoVLonLatBins(Component):
+    """Base class for creating irfs or benchmarks binned in fov longitude and latitude.
+
+    The bins are given as a rectangular grid following the
+    `GADF field of view coordinate definition
+    <https://gamma-astro-data-formats.readthedocs.io/en/latest/general/coordinates.html>`_.
+    """
+
+    fov_lon_min = AstroQuantity(
+        help="Minimum value for fov longitude bins",
+        default_value=u.Quantity(-3, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    fov_lon_max = AstroQuantity(
+        help="Maximum value for fov longitude bins",
+        default_value=u.Quantity(3, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    fov_lon_n_bins = Int(
+        help="Number of fov longitude bins",
+        default_value=15,
+    ).tag(config=True)
+
+    fov_lat_min = AstroQuantity(
+        help="Minimum value for fov latitude bins",
+        default_value=u.Quantity(-3, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    fov_lat_max = AstroQuantity(
+        help="Maximum value for fov latitude bins",
+        default_value=u.Quantity(3, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    fov_lat_n_bins = Int(
+        help="Number of fov latitude bins",
+        default_value=15,
+    ).tag(config=True)
+
+    @property
+    def fov_lon_bins(self):
+        return u.Quantity(
+            np.linspace(
+                self.fov_lon_min.to_value(u.deg),
+                self.fov_lon_max.to_value(u.deg),
+                self.fov_lon_n_bins + 1,
+            ),
+            u.deg,
+        )
+
+    @property
+    def fov_lat_bins(self):
+        return u.Quantity(
+            np.linspace(
+                self.fov_lat_min.to_value(u.deg),
+                self.fov_lat_max.to_value(u.deg),
+                self.fov_lat_n_bins + 1,
             ),
             u.deg,
         )
