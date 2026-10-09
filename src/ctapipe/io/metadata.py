@@ -12,7 +12,6 @@ metadata from any supported format to the current
 :class:`ctao_datamodel.models.dataproducts.Product` model.
 """
 
-import gzip
 import uuid
 import warnings
 from collections import defaultdict
@@ -45,6 +44,7 @@ from traitlets import (
 from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
+from ..utils import get_file_type
 from ..utils.deprecation import CTAPipeDeprecationWarning
 from .datalevels import DataLevel
 
@@ -817,29 +817,22 @@ def read_reference_metadata(path):
     ValueError
         If the file format is not supported.
     """
-    header_bytes = 8
-    with open(path, "rb") as f:
-        first_bytes = f.read(header_bytes)
+    file_type = get_file_type(path)
 
-    if first_bytes.startswith(b"\x1f\x8b"):
-        with gzip.open(path, "rb") as f:
-            first_bytes = f.read(header_bytes)
-
-    if first_bytes.startswith(b"\x89HDF"):
-        return _read_reference_metadata_hdf5(path)
-
-    if first_bytes.startswith(b"SIMPLE"):
-        return _read_reference_metadata_fits(path)
-
-    if first_bytes.startswith(b"# %ECSV"):
-        return Reference.from_dict(Table.read(path).meta)
-
-    if first_bytes.startswith(b"{"):
-        return _read_reference_metadata_json(path)
-
-    raise ValueError(
-        f"'{path}' is not one of the supported file formats: fits, hdf5, ecsv, json"
-    )
+    match file_type:
+        case "hdf5":
+            return _read_reference_metadata_hdf5(path)
+        case "fits":
+            return _read_reference_metadata_fits(path)
+        case "ecsv":
+            return _read_reference_metadata_ecsv(path)
+        case "json":
+            return _read_reference_metadata_json(path)
+        case _:
+            raise ValueError(
+                f"'{path}' is not one of the supported file formats: "
+                "fits, hdf5, ecsv, json"
+            )
 
 
 def _read_reference_metadata_json(path):
@@ -971,31 +964,22 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
     if isinstance(input_file, tables.File):
         return _read_hdf5_metadata(input_file)
 
-    # otherwise assume input_file / URL and detect format
-    header_bytes = 8
+    file_type = get_file_type(input_file)
 
-    with open(input_file, "rb") as f:
-        first_bytes = f.read(header_bytes)
-
-    if first_bytes.startswith(b"\x1f\x8b"):
-        with gzip.open(input_file, "rb") as f:
-            first_bytes = f.read(header_bytes)
-
-    if first_bytes.startswith(b"\x89HDF"):
-        return _read_hdf5_metadata(input_file)
-
-    if first_bytes.startswith(b"{"):
-        return _read_json_metadata(input_file)
-
-    if first_bytes.startswith(b"# %ECSV"):
-        return _read_ecsv_metadata(input_file)
-
-    if first_bytes.startswith(b"SIMPLE"):
-        return _read_fits_metadata(input_file)
-
-    raise ValueError(
-        f"'{input_file}' is not one of the supported file formats: fits, hdf5, ecsv, json"
-    )
+    match file_type:
+        case "hdf5":
+            return _read_hdf5_metadata(input_file)
+        case "fits":
+            return _read_fits_metadata(input_file)
+        case "ecsv":
+            return _read_ecsv_metadata(input_file)
+        case "json":
+            return _read_json_metadata(input_file)
+        case _:
+            raise ValueError(
+                f"'{input_file}' is not one of the supported file formats: "
+                "fits, hdf5, ecsv, json"
+            )
 
 
 def _read_ecsv_metadata(ecsv_file) -> dp.Product:
