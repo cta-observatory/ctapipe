@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import logging
+import shutil
 from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
+import pytest
 import tables
 from astropy import units as u
 from traitlets.config import Config
@@ -15,6 +17,7 @@ from ctapipe.containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
+from ctapipe.core import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
@@ -131,6 +134,26 @@ def test_write(tmpdir: Path):
             )
             assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
             assert "telescopes" not in dl2_tel_energy
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):
+
+    input_path = tmp_path / "input.h5"
+    shutil.copy(dl1_image_file, input_path)
+
+    with EventSource(input_path) as source:
+        with pytest.raises(
+            ToolConfigurationError,
+            match="Input and output files must not be the same",
+        ):
+            DataWriter(
+                event_source=source,
+                output_path=input_path,
+                overwrite=overwrite,
+            )
+
+    assert input_path.exists()
 
 
 def test_roundtrip(tmpdir: Path):

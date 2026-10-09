@@ -1,0 +1,2 @@
+Prevent ``DataWriter`` from overwriting its input file, even
+when the ``overwrite`` option is enabled.
