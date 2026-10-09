@@ -290,6 +290,7 @@ class MirrorDescription:
             mirror_shape=mirror_shape,
         )
 
+    # peek -> ready to be removed
     def peek(self, output_path=None):
         """
         Draw a quick matplotlib plot of the mirror facet positions and shapes,
