@@ -16,7 +16,7 @@ import uuid
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
-from contextlib import ExitStack
+from contextlib import nullcontext
 from pathlib import Path
 
 import ctao_datamodel as dm
@@ -873,11 +873,14 @@ def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
     Reference
         Parsed legacy reference metadata.
     """
-    with ExitStack() as stack:
-        if not isinstance(fitsfile, fits.HDUList):
-            fitsfile = stack.enter_context(fits.open(fitsfile))
+    file_context = (
+        nullcontext(fitsfile)
+        if isinstance(fitsfile, fits.HDUList)
+        else fits.open(fitsfile)
+    )
 
-        return Reference.from_fits(fitsfile[hdu].header)
+    with file_context as hdul:
+        return Reference.from_fits(hdul[hdu].header)
 
 
 # -----------------------------------------------------
@@ -1032,12 +1035,15 @@ def _read_fits_metadata(fits_file) -> dp.Product:
 
 
 def _read_hdf5_attributes(h5file, path="/"):
-    """Read hdf5 attributes into a dict"""
-    with ExitStack() as stack:
-        if not isinstance(h5file, tables.File):
-            h5file = stack.enter_context(tables.open_file(h5file))
+    """Read HDF5 attributes into a dict."""
+    file_context = (
+        nullcontext(h5file)
+        if isinstance(h5file, tables.File)
+        else tables.open_file(h5file)
+    )
 
-        node = h5file.get_node(path)
+    with file_context as f:
+        node = f.get_node(path)
         return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
 
 
