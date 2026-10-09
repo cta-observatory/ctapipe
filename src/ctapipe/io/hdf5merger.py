@@ -1,5 +1,6 @@
 import enum
 import uuid
+import warnings
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -268,7 +269,7 @@ class HDF5Merger(Component):
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
         if self.append:
-            self.meta = metadata.read_ctao_metadata(self.h5file)
+            self.meta = self._read_meta(self.h5file)
             self.data_model_version = self.meta.model.version
             self.data_type = self.meta.data.type
             self.data_category = self.meta.instance.category
@@ -423,9 +424,15 @@ class HDF5Merger(Component):
         self.meta.instance.sublevel_id = sublevel or None
 
     def _read_meta(self, h5file):
-        """Read product metadata and translate errors into ``CannotMerge``."""
+        """Read product metadata and translate errors into CannotMerge."""
         try:
-            return metadata.read_ctao_metadata(h5file)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=r"Legacy ctapipe metadata detected\.",
+                    category=metadata.LegacyMetadataWarning,
+                )
+                return metadata.read_ctao_metadata(h5file)
         except Exception:
             raise CannotMerge(
                 f"CTAO Reference meta not found in input file: {h5file.filename}"
