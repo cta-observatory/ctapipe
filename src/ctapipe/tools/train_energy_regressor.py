@@ -5,9 +5,10 @@ Tool for training the EnergyRegressor
 import numpy as np
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Int, IntTelescopeParameter, Path
+from ctapipe.core.traits import Int, IntTelescopeParameter
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import TableLoader
+from ctapipe.io.models import ZipModelWriter
 from ctapipe.reco import CrossValidator, EnergyRegressor
 
 from .utils import read_training_events
@@ -36,14 +37,6 @@ class TrainEnergyRegressor(Tool):
         --output energy_regressor.pkl
     """
 
-    output_path = Path(
-        directory_ok=False,
-        help=(
-            "Output path for the trained reconstructor."
-            " At the moment, pickle is the only supported format."
-        ),
-    ).tag(config=True)
-
     n_events = IntTelescopeParameter(
         default_value=None,
         allow_none=True,
@@ -71,7 +64,7 @@ class TrainEnergyRegressor(Tool):
 
     aliases = {
         ("i", "input"): "TableLoader.input_url",
-        ("o", "output"): "TrainEnergyRegressor.output_path",
+        ("o", "output"): "ZipModelWriter.output_path",
         "n-events": "TrainEnergyRegressor.n_events",
         "chunk-size": "TrainEnergyRegressor.chunk_size",
         "n-jobs": "EnergyRegressor.n_jobs",
@@ -96,11 +89,9 @@ class TrainEnergyRegressor(Tool):
             )
             self.exit(1)
 
-        if self.output_path is None:
-            self.log.critical(
-                "Setting output_path is required (via -o, --output or a config file)."
-            )
-            self.exit(1)
+        self.writer = self.enter_context(
+            ZipModelWriter(parent=self, overwrite=self.overwrite)
+        )
 
         self.n_events.attach_subarray(self.loader.subarray)
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
@@ -111,18 +102,23 @@ class TrainEnergyRegressor(Tool):
             )
         )
         self.rng = np.random.default_rng(self.random_seed)
-        self.check_output(self.output_path)
+        self._reconstructor_written = False
 
     def start(self):
         """
         Train models per telescope type.
         """
 
-        types = self.loader.subarray.telescope_types
+        types = sorted({str(tel) for tel in self.loader.subarray.telescope_types})
+
         self.log.info("Inputfile: %s", self.loader.input_url)
         self.log.info("Training models for %d types", len(types))
+
         for tel_type in types:
-            self.log.info("Loading events for %s", tel_type)
+            self.log.info("Loading events for %s, tel_ids:", tel_type)
+            for tel_id in self.loader.subarray.get_tel_ids(tel_type):
+                self.log.info("  %3d", tel_id)
+
             feature_names = self.regressor.features + [
                 self.regressor.target,
                 "true_impact_distance",
@@ -143,15 +139,17 @@ class TrainEnergyRegressor(Tool):
 
             self.log.info("Performing final fit for %s", tel_type)
             self.regressor.fit(tel_type, table)
+
+            self.log.info("Writing model for %s", tel_type)
+            self.writer.write_joblib(tel_type, self.regressor._models[tel_type])
             self.log.info("done")
 
     def finish(self):
         """
         Write-out trained models and cross-validation results.
         """
-        self.log.info("Writing output")
         self.regressor.n_jobs = None
-        self.regressor.write(self.output_path, overwrite=self.overwrite)
+        self.writer.write_reconstructor(self.regressor)
         self.loader.close()
         self.cross_validate.close()
 

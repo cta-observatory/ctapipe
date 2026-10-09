@@ -12,7 +12,8 @@ from pathlib import Path
 import numpy as np
 from astropy.table import vstack
 
-from ..core.traits import Int
+from ctapipe.reco import DispReconstructor
+
 from ..exceptions import TooFewEvents
 from ..instrument import TelescopeDescription
 from ..io import TableLoader
@@ -89,9 +90,9 @@ def _add_optional_columns(table, columns, optional_columns):
 
 def read_training_events(
     loader: TableLoader,
-    chunk_size: Int,
+    chunk_size: int,
     telescope_type: TelescopeDescription,
-    reconstructor: type[SKLearnReconstructor],
+    reconstructor: SKLearnReconstructor | DispReconstructor,
     feature_names: list[str],
     rng: np.random.Generator,
     log=LOG,

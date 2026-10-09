@@ -201,19 +201,19 @@ class ApplyModels(Tool):
         prefix = reconstructor.prefix
 
         for tel_id, table in tel_tables.items():
-            tel = self.loader.subarray.tel[tel_id]
+            tel_type = str(self.loader.subarray.tel[tel_id])
 
             if len(table) == 0:
                 self.log.info("No events for telescope %d", tel_id)
                 continue
 
             try:
-                predictions = reconstructor.predict_table(tel, table)
+                predictions = reconstructor.predict_table(tel_type, table)
             except KeyError:
                 self.log.warning(
                     "No model in %s for telescope type %s, skipping tel %d",
                     reconstructor,
-                    tel,
+                    tel_type,
                     tel_id,
                 )
                 continue
