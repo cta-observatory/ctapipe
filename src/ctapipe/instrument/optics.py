@@ -279,13 +279,13 @@ class MirrorDescription:
 
         return cls(
             id=np.asarray(table["mirror_id"]),
-            x=u.Quantity(table["x"], table["x"].unit),
-            y=u.Quantity(table["y"], table["y"].unit),
-            z=u.Quantity(table["z"], table["z"].unit),
+            x=table["x"],
+            y=table["y"],
+            z=table["z"],
             nx=np.asarray(table["nx"]),
             ny=np.asarray(table["ny"]),
             nz=np.asarray(table["nz"]),
-            surface_area=u.Quantity(table["surface"], table["surface"].unit),
+            surface_area=table["surface"],
             mirror_shape=mirror_shape,
         )
 
