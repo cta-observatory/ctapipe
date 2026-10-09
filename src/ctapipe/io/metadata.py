@@ -986,15 +986,7 @@ def read_ctao_metadata(input_file: str | Path | tables.File) -> dp.Product:
 def _read_ecsv_metadata(ecsv_file) -> dp.Product:
     """Read CTAO product metadata from an ECSV file."""
     metadata = Table.read(ecsv_file).meta
-
-    if CTAO_METADATA_VERSION_KEY in metadata:
-        _check_metadata_version(metadata[CTAO_METADATA_VERSION_KEY])
-        return metadata_to_product(metadata)
-
-    if LEGACY_REFERENCE_VERSION_KEY in metadata:
-        return _legacy_to_product(metadata)
-
-    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
+    return _product_from_flat_metadata(metadata)
 
 
 def _read_json_metadata(json_file) -> dp.Product:
@@ -1005,15 +997,13 @@ def _read_json_metadata(json_file) -> dp.Product:
         metadata = json.load(f)
 
     metadata = metadata.get("metadata", metadata)
+    return _product_from_flat_metadata(metadata)
 
-    if CTAO_METADATA_VERSION_KEY in metadata:
-        _check_metadata_version(metadata[CTAO_METADATA_VERSION_KEY])
-        return metadata_to_product(metadata)
 
-    if LEGACY_REFERENCE_VERSION_KEY in metadata:
-        return _legacy_to_product(metadata)
-
-    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
+def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
+    """Read current or legacy CTAO product metadata from an HDF5 file or node."""
+    metadata = _read_hdf5_attributes(h5file, path)
+    return _product_from_flat_metadata(metadata)
 
 
 def _read_fits_metadata(fits_file) -> dp.Product:
@@ -1041,20 +1031,6 @@ def _read_fits_metadata(fits_file) -> dp.Product:
         )
 
 
-def _read_hdf5_metadata(h5file, path="/") -> dp.Product:
-    """Read current or legacy CTAO product metadata from an HDF5 file or node."""
-    metadata = _read_hdf5_attributes(h5file, path)
-
-    if CTAO_METADATA_VERSION_KEY in metadata:
-        _check_metadata_version(metadata.get(CTAO_METADATA_VERSION_KEY))
-        return metadata_to_product(metadata)
-
-    if LEGACY_REFERENCE_VERSION_KEY in metadata:
-        return _legacy_to_product(metadata)
-
-    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
-
-
 def _read_hdf5_attributes(h5file, path="/"):
     """Read hdf5 attributes into a dict"""
     with ExitStack() as stack:
@@ -1063,6 +1039,18 @@ def _read_hdf5_attributes(h5file, path="/"):
 
         node = h5file.get_node(path)
         return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
+
+
+def _product_from_flat_metadata(metadata) -> dp.Product:
+    """Convert current or legacy flattened metadata to a CTAO product."""
+    if CTAO_METADATA_VERSION_KEY in metadata:
+        _check_metadata_version(metadata[CTAO_METADATA_VERSION_KEY])
+        return metadata_to_product(metadata)
+
+    if LEGACY_REFERENCE_VERSION_KEY in metadata:
+        return _legacy_to_product(metadata)
+
+    raise ValueError(UNSUPPORTED_METADATA_FORMAT)
 
 
 def _legacy_to_product(metadata) -> dp.Product:
