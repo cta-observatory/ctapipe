@@ -11,6 +11,8 @@ from .guess import guess_telescope
 from .optics import (
     ComaPSFModel,
     FocalLengthKind,
+    MirrorDescription,
+    MirrorFacetShape,
     OpticsDescription,
     PSFModel,
     ReflectorShape,
@@ -44,4 +46,6 @@ __all__ = [
     "ComaPSFModel",
     "ZernikePSFModel",
     "UnknownPixelShapeWarning",
+    "MirrorDescription",
+    "MirrorFacetShape",
 ]
