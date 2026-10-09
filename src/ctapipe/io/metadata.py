@@ -78,6 +78,7 @@ CONVERSIONS = {
 }
 
 CTAO_METADATA_VERSION_KEY = "CTAO.ctao_metadata_version"
+CTAO_FITS_METADATA_VERSION_KEY = "CTAOMETA"
 LEGACY_REFERENCE_VERSION_KEY = "CTA REFERENCE VERSION"
 
 UNSUPPORTED_METADATA_FORMAT = (
@@ -1021,8 +1022,8 @@ def _read_fits_metadata(fits_file) -> dp.Product:
         header = hdul[0].header
 
         # Current CTAO metadata
-        if "CTAOMETA" in header:
-            _check_metadata_version(header["CTAOMETA"])
+        if CTAO_FITS_METADATA_VERSION_KEY in header:
+            _check_metadata_version(header[CTAO_FITS_METADATA_VERSION_KEY])
 
             return dm.fits_header_to_instance(
                 header,
@@ -1035,7 +1036,8 @@ def _read_fits_metadata(fits_file) -> dp.Product:
 
         raise ValueError(
             "Unsupported metadata format. Metadata contains neither "
-            f"CTAOMETA nor {LEGACY_REFERENCE_VERSION_KEY} in header."
+            f"{CTAO_FITS_METADATA_VERSION_KEY} nor "
+            f"{LEGACY_REFERENCE_VERSION_KEY} in header."
         )
 
 
