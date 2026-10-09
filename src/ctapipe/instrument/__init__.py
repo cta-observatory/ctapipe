@@ -11,13 +11,13 @@ from .guess import guess_telescope
 from .optics import (
     ComaPSFModel,
     FocalLengthKind,
+    MirrorDescription,
+    MirrorFacetShape,
     OpticsDescription,
     PSFModel,
     ReflectorShape,
     SizeType,
     ZernikePSFModel,
-    MirrorDescription,
-    MirrorFacetShape,
 )
 from .subarray import SubarrayDescription, UnknownSubarray, UnknownTelescopeID
 from .telescope import TelescopeDescription
