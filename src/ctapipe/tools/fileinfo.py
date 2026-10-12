@@ -4,25 +4,13 @@ Display information about ctapipe output files (DL1 or DL2)
 
 from pathlib import Path
 
+import ctao_datamodel as dm
 import tables
 import yaml
 from astropy.table import Table
 
+from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.tools.utils import get_parser
-
-
-def unflatten(dictionary, separator=" "):
-    """turn flattened dict keys into nested"""
-    hierarch_dict = dict()
-    for key, value in dictionary.items():
-        parts = key.split(separator)
-        tmp_dict = hierarch_dict
-        for part in parts[:-1]:
-            if part not in tmp_dict:
-                tmp_dict[part] = dict()
-            tmp_dict = tmp_dict[part]
-        tmp_dict[parts[-1]] = value
-    return hierarch_dict
 
 
 def fileinfo(args):
@@ -45,21 +33,23 @@ def fileinfo(args):
         else:
             try:
                 with tables.open_file(filename, mode="r") as infile:
-                    # pylint: disable=W0212,E1101
-                    attrs = {
-                        name: str(infile.root._v_attrs[name])
-                        for name in infile.root._v_attrs._f_list()
-                    }
+                    product = read_ctao_metadata(infile)
+                    flat_metadata = dm.flatten_model_instance(product)
+
                     if args.flat:
-                        info[filename] = attrs.copy()
+                        info[filename] = flat_metadata
                     else:
-                        info[filename] = unflatten(attrs)
+                        info[filename] = product.model_dump(
+                            mode="json",
+                            exclude_none=True,
+                        )
 
                     if args.output_table:
-                        attrs["PATH"] = filename
-                        files.append(attrs)
+                        table_row = flat_metadata.copy()
+                        table_row["PATH"] = filename
+                        files.append(table_row)
 
-            except tables.exceptions.HDF5ExtError as err:
+            except (tables.exceptions.HDF5ExtError, ValueError) as err:
                 info[filename] = f"ERROR {err}"
 
         print(yaml.dump(info, indent=4))
@@ -68,7 +58,13 @@ def fileinfo(args):
         if args.output_table.endswith(".fits") or args.output_table.endswith(
             ".fits.gz"
         ):
-            files = [{k: v.encode("utf-8") for k, v in info.items()} for info in files]
+            files = [
+                {
+                    k: v.encode("utf-8") if isinstance(v, str) else v
+                    for k, v in info.items()
+                }
+                for info in files
+            ]
 
         table = Table(files)
         table.write(args.output_table, format=args.table_format, overwrite=True)
