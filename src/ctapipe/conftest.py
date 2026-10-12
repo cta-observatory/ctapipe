@@ -813,7 +813,7 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
 
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        data_type = "CTAO.data.type"
+        data_type = "data.type"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
         if data_type in f.root._v_attrs:

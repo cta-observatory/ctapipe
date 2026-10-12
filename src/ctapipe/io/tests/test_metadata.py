@@ -193,10 +193,10 @@ def _write_current_metadata(path, product, file_format):
         meta.write_product_metadata_fits_header(product, header)
         fits.PrimaryHDU(header=header).writeto(path)
     elif file_format == "ecsv":
-        metadata = dm.flatten_model_instance(product, parent_key="CTAO")
+        metadata = dm.flatten_model_instance(product)
         Table({"value": [1]}, meta=metadata).write(path)
     elif file_format == "json":
-        metadata = dm.flatten_model_instance(product, parent_key="CTAO")
+        metadata = dm.flatten_model_instance(product)
         path.write_text(json.dumps(metadata))
 
 
@@ -244,7 +244,9 @@ def test_read_legacy_metadata_supported_formats(tmp_path, reference, file_format
 def test_read_current_metadata_rejects_unsupported_version(
     tmp_path, ctao_product, file_format
 ):
-    product = ctao_product.model_copy(update={"ctao_metadata_version": "999.0.0"})
+    product = ctao_product.model_copy(
+        update={meta.CTAO_METADATA_VERSION_KEY: "999.0.0"}
+    )
     path = tmp_path / f"product.{file_format}"
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", fits.verify.VerifyWarning)
@@ -477,7 +479,7 @@ def test_invalid_and_missing_metadata(tmp_path, ctao_product):
         meta.write_product_metadata_hdf5(ctao_product, h5file)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", tables.NaturalNameWarning)
-            h5file.root._v_attrs["CTAO.contact.email"] = "invalid"
+            h5file.root._v_attrs["contact.email"] = "invalid"
 
     with pytest.raises(ValidationError):
         meta.read_ctao_metadata(invalid)
@@ -495,7 +497,7 @@ def test_write_product_metadata_removes_only_legacy(tmp_path, ctao_product, refe
 
     assert not any(name.startswith("CTA ") for name in attributes)
     assert attributes["CONTEXT custom"] == "keep"
-    assert attributes["CTAO.data.level"] == "DL1"
+    assert attributes["data.level"] == "DL1"
 
 
 def test_write_product_metadata_replaces_current_attributes(tmp_path, ctao_product):
@@ -504,12 +506,12 @@ def test_write_product_metadata_replaces_current_attributes(tmp_path, ctao_produ
 
     with tables.open_file(path, mode="w") as h5file:
         meta.write_product_metadata_hdf5(ctao_product, h5file)
-        assert "CTAO.activity.name" in h5file.root._v_attrs
+        assert "activity.name" in h5file.root._v_attrs
 
         meta.write_product_metadata_hdf5(without_activity, h5file)
         attributes = meta._read_hdf5_attributes(h5file)
 
-    assert not any(name.startswith("CTAO.activity.") for name in attributes)
+    assert not any(name.startswith("activity.") for name in attributes)
     assert meta.read_ctao_metadata(path) == without_activity
 
 

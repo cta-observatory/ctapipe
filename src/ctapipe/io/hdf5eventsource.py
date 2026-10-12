@@ -78,7 +78,11 @@ from .hdf5dataformat import (
     SIMULATION_TEL_TABLE,
 )
 from .hdf5tableio import HDF5TableReader, get_column_attrs
-from .metadata import get_compatible_metadata_versions, read_ctao_metadata
+from .metadata import (
+    CTAO_METADATA_VERSION_KEY,
+    get_compatible_metadata_versions,
+    read_ctao_metadata,
+)
 
 __all__ = ["HDF5EventSource"]
 
@@ -337,12 +341,11 @@ class HDF5EventSource(EventSource):
             # First check compatible metadata versions
             compatible_versions = get_compatible_metadata_versions()
 
-            metadata_version_key = "CTAO.ctao_metadata_version"
             if (
-                metadata_version_key in metadata._v_attrnames
-                and metadata[metadata_version_key] not in compatible_versions
+                CTAO_METADATA_VERSION_KEY in metadata._v_attrnames
+                and metadata[CTAO_METADATA_VERSION_KEY] not in compatible_versions
             ):
-                metadata_version = metadata[metadata_version_key]
+                metadata_version = metadata[CTAO_METADATA_VERSION_KEY]
 
                 logger.error(
                     "File is a ctapipe HDF5 file but has unsupported CTAO metadata"
@@ -353,8 +356,8 @@ class HDF5EventSource(EventSource):
                 return False
 
             # data model version: current metadata first, then legacy fallback
-            if "CTAO.model.version" in metadata._v_attrnames:
-                version = metadata["CTAO.model.version"]
+            if "model.version" in metadata._v_attrnames:
+                version = metadata["model.version"]
             elif "CTA PRODUCT DATA MODEL VERSION" in metadata._v_attrnames:
                 version = metadata["CTA PRODUCT DATA MODEL VERSION"]
             else:
