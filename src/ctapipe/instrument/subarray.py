@@ -922,9 +922,13 @@ class SubarrayDescription:
     @staticmethod
     def _version_check(metadata, compatible_versions):
         """Check if the service data is compatible with the current version."""
-        from ..io.metadata import Reference, metadata_to_product
+        from ..io.metadata import (
+            CTAO_METADATA_VERSION_KEY,
+            Reference,
+            metadata_to_product,
+        )
 
-        if "CTAO.ctao_metadata_version" in metadata:
+        if CTAO_METADATA_VERSION_KEY in metadata:
             product = metadata_to_product(metadata)
             name = product.model.name
             version = product.model.version

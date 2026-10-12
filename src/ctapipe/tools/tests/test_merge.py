@@ -106,7 +106,9 @@ def test_migrates_legacy_metadata(tmp_path, dl1_file):
     with tables.open_file(legacy_input, mode="a") as h5file:
         attributes = h5file.root._v_attrs
         for name in attributes._f_list("user"):
-            if name.startswith("CTAO.") or name.startswith("CTA "):
+            if name.split(".", 1)[0] in dp.Product.model_fields or name.startswith(
+                "CTA "
+            ):
                 del attributes[name]
         meta.write_to_hdf5(legacy.to_dict(), h5file)
 
@@ -145,7 +147,7 @@ def test_migrates_legacy_metadata(tmp_path, dl1_file):
 
     with tables.open_file(output) as h5file:
         names = h5file.root._v_attrs._f_list("user")
-        assert "CTAO.ctao_metadata_version" in names
+        assert meta.CTAO_METADATA_VERSION_KEY in names
         assert not any(name.startswith("CTA ") for name in names)
 
 
@@ -184,7 +186,7 @@ def test_migrates_legacy_dataset_metadata(
 
     with tables.open_file(output) as h5file:
         names = h5file.root._v_attrs._f_list("user")
-        assert "CTAO.ctao_metadata_version" in names
+        assert meta.CTAO_METADATA_VERSION_KEY in names
         assert not any(name.startswith("CTA ") for name in names)
 
 

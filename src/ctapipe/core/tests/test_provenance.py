@@ -2,6 +2,7 @@ import json
 
 from ctapipe.core import Provenance
 from ctapipe.core.provenance import _ActivityProvenance, json_config_handler
+from ctapipe.io.metadata import CTAO_METADATA_VERSION_KEY
 
 
 def test_provenance_activity_names(provenance):
@@ -92,7 +93,7 @@ def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
     assert len(inputs) == 1
     input_meta = inputs[0]
     assert "reference_meta" in input_meta
-    assert "ctao_metadata_version" in input_meta["reference_meta"]
+    assert CTAO_METADATA_VERSION_KEY in input_meta["reference_meta"]
     dp.Product.model_validate(input_meta["reference_meta"])
 
 

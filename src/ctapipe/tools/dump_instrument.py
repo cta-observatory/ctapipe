@@ -230,10 +230,7 @@ class DumpInstrumentTool(Tool):
     @staticmethod
     def _flatten_product(product):
         """Flatten CTAO product metadata for JSON or ECSV serialization."""
-        return dm.flatten_model_instance(
-            product,
-            parent_key="CTAO",
-        )
+        return dm.flatten_model_instance(product)
 
     def write_service_data(self, subarray_id=1, site=None):
         """

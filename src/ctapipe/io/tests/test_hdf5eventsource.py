@@ -12,6 +12,7 @@ from ctapipe.containers import (
     ObservationBlockContainer,
 )
 from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
+from ctapipe.io.metadata import CTAO_METADATA_VERSION_KEY
 
 
 def test_is_not_compatible(prod5_gamma_simtel_path):
@@ -41,7 +42,7 @@ def test_is_not_compatible_with_unsupported_metadata_version(tmp_path, dl1_file)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", tables.NaturalNameWarning)
         with tables.open_file(path, mode="a") as h5file:
-            h5file.root._v_attrs["CTAO.ctao_metadata_version"] = "999.0.0"
+            h5file.root._v_attrs[CTAO_METADATA_VERSION_KEY] = "999.0.0"
 
     assert not HDF5EventSource.is_compatible(path)
 

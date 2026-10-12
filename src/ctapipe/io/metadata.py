@@ -77,7 +77,7 @@ CONVERSIONS = {
     DataLevel: lambda value: value.name,
 }
 
-CTAO_METADATA_VERSION_KEY = "CTAO.ctao_metadata_version"
+CTAO_METADATA_VERSION_KEY = "ctao_metadata_version"
 CTAO_FITS_METADATA_VERSION_KEY = "CTAOMETA"
 LEGACY_REFERENCE_VERSION_KEY = "CTA REFERENCE VERSION"
 
@@ -914,7 +914,7 @@ def get_compatible_metadata_versions(
         the target version itself.
     """
     if current_version is None:
-        current_version = dp.Product.model_fields["ctao_metadata_version"].default
+        current_version = dp.Product.model_fields[CTAO_METADATA_VERSION_KEY].default
 
     migrations = dp.Product.migration_history()
     compatible = {current_version}
@@ -1317,8 +1317,7 @@ def metadata_to_product(metadata) -> dp.Product:
     Parameters
     ----------
     metadata : collections.abc.Mapping
-        Flattened metadata with keys below the ``CTAO`` namespace. Unrelated
-        entries are ignored.
+        Flattened product metadata. Unrelated entries are ignored.
 
     Returns
     -------
@@ -1326,14 +1325,16 @@ def metadata_to_product(metadata) -> dp.Product:
         Validated product metadata, migrated to the current metadata version
         when supported by ``ctao-datamodel``.
     """
+    product_fields = set(dp.Product.model_fields)
     metadata = {
-        key: value for key, value in metadata.items() if key.startswith("CTAO.")
+        key: value
+        for key, value in metadata.items()
+        if key.split(".", 1)[0] in product_fields
     }
 
     return dm.unflatten_model_instance(
         metadata,
         model=dp.Product,
-        parent_key="CTAO",
     )
 
 
@@ -1384,15 +1385,13 @@ def write_product_metadata_hdf5(
     remove_legacy : bool
         Remove legacy CTA reference attributes from the target node before writing.
     """
-    metadata = dm.flatten_model_instance(
-        product,
-        parent_key="CTAO",
-    )
+    metadata = dm.flatten_model_instance(product)
 
     # Remove current metadata first
     node = h5file.get_node(path)
+    product_fields = set(dp.Product.model_fields)
     for name in node._v_attrs._f_list("user"):
-        if name.startswith("CTAO."):
+        if name.split(".", 1)[0] in product_fields:
             del node._v_attrs[name]
 
     if remove_legacy:
