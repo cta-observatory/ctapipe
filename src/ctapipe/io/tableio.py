@@ -290,7 +290,7 @@ class ColumnTransform(metaclass=ABCMeta):
     A Transformation to be applied before serialization / after deserialization.
 
     The ``TableWriter`` will call the transform on the data to be stored and
-    ``TableReader`` will call `.inverse`` to reverse the transformation
+    ``TableReader`` will call ``.inverse`` to reverse the transformation
     when a transformation is detected in the file through metadata.
 
     Transformations implement ``get_meta`` to provide the necessary metadata
