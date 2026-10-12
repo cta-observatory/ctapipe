@@ -1,7 +1,6 @@
 """Helper functions for array-event-wise aggregation of telescope events."""
 
 from collections import namedtuple
-
 from functools import lru_cache
 from itertools import combinations, product
 
