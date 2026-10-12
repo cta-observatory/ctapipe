@@ -15,9 +15,9 @@ from ctapipe.containers import ImageParametersContainer
 from ctapipe.coordinates import NominalFrame, TelescopeFrame
 from ctapipe.core import Component
 from ctapipe.core.traits import (
+    AstroQuantity,
     Bool,
     CaselessStrEnum,
-    Float,
     Integer,
     TraitError,
     Unicode,
@@ -596,17 +596,6 @@ class StereoDispCombiner(StereoCombiner):
     and the optimal DISP sign assignment is determined accordingly. Single-
     telescope events are handled separately using the mono reconstruction.
 
-    **Traits**
-
-    - ``n_tel_combinations``: Size of each telescope combination (minimum 2).
-      Larger values increase computation time. For events with lower effective
-      multiplicity, all available telescopes are used.
-    - ``n_best_tels``: If set, restricts the reconstruction to the
-      ``n_best_tels`` highest-weight telescopes per event.
-    - ``min_ang_diff``: For multiplicity-2 events only, reject events with
-      nearly parallel main shower axes (difference below this angle).
-    - ``weights``: Telescope weights used in the per-combination and final
-      mean (``none``, ``intensity``, ``aspect-weighted-intensity``).
 
     Notes
     -----
@@ -639,9 +628,10 @@ class StereoDispCombiner(StereoCombiner):
         ),
     ).tag(config=True)
 
-    min_ang_diff = Float(
+    min_ang_diff = AstroQuantity(
+        physical_type=u.deg,
         default_value=None,
-        min=0.0,
+        min=0.0 * u.deg,
         allow_none=True,
         help=(
             "Minimum angular separation (in degrees) between the reconstructed main "
@@ -653,14 +643,7 @@ class StereoDispCombiner(StereoCombiner):
         ),
     ).tag(config=True)
 
-    property = UseEnum(
-        ReconstructionProperty,
-        default_value=ReconstructionProperty.GEOMETRY,
-        help=(
-            "Reconstruction property produced by this combiner (not configurable - "
-            "fixed to GEOMETRY)."
-        ),
-    ).tag(config=False)
+    property = ReconstructionProperty.GEOMETRY
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
