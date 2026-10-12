@@ -69,25 +69,51 @@ def test_info():
 
 
 def test_fileinfo(tmp_path, dl1_image_file):
-    """check we can run ctapipe-fileinfo and get results"""
+    """Check hierarchical, flat, and table output of ctapipe-fileinfo."""
     import yaml
     from astropy.table import Table
 
     index_file = tmp_path / "index.fits"
+
+    # Default: hierarchical output
     command = f"ctapipe-fileinfo {dl1_image_file} --output-table {index_file}"
-    output = subprocess.run(command.split(" "), capture_output=True, encoding="utf-8")
+    output = subprocess.run(
+        command.split(),
+        capture_output=True,
+        encoding="utf-8",
+    )
+
     assert output.returncode == 0, output.stderr
+
     header = yaml.safe_load(output.stdout)
-    assert "CTAO.activity.id" in header[str(dl1_image_file)]
+    product = header[str(dl1_image_file)]
 
-    tab = Table.read(index_file)
-    assert len(tab["CTAO.creation_time"]) > 0
+    assert "activity" in product
+    assert "id" in product["activity"]
+    assert "activity.id" not in product
 
+    # Output table: flattened
+    table = Table.read(index_file)
+
+    assert "creation_time" in table.colnames
+    assert "activity.id" in table.colnames
+    assert "PATH" in table.colnames
+
+    # Explicit flat output
     command = f"ctapipe-fileinfo {dl1_image_file} --flat"
-    output = subprocess.run(command.split(" "), capture_output=True, encoding="utf-8")
+    output = subprocess.run(
+        command.split(),
+        capture_output=True,
+        encoding="utf-8",
+    )
+
     assert output.returncode == 0, output.stderr
+
     header = yaml.safe_load(output.stdout)
-    assert "CTAO.activity.id" in header[str(dl1_image_file)]
+    product = header[str(dl1_image_file)]
+
+    assert "activity.id" in product
+    assert "activity" not in product
 
 
 def test_dump_instrument(tmp_path, monkeypatch):
