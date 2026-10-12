@@ -260,16 +260,23 @@ def test_calculate_pixel_stats_tool_per_channel(tmp_path, dl1_image_file):
 
     n_pixels = dl1_table["image"].shape[1]
     assert stats["mean"].shape == (len(dl1_table), 2, n_pixels)
-    # Each sample is filled into exactly one gain channel
-    np.testing.assert_array_equal(stats["n_events"].sum(axis=1), 1)
 
-    channel_info = PixelStatus.get_channel_info(dl1_table["pixel_status"])
-    gain = channel_info.astype(np.int8) - 1
-    event_index, pixel_index = np.indices(gain.shape)
-    np.testing.assert_allclose(
-        stats["mean"][event_index, gain, pixel_index], dl1_table["image"]
-    )
-    assert np.all(np.isnan(stats["mean"][event_index, 1 - gain, pixel_index]))
+    pixel_status = np.asarray(dl1_table["pixel_status"])
+    high_gain = (pixel_status & PixelStatus.HIGH_GAIN_STORED) != 0
+    low_gain = (pixel_status & PixelStatus.LOW_GAIN_STORED) != 0
+    # gain selected data has at most one channel stored per pixel
+    assert not np.any(high_gain & low_gain)
+
+    image = np.asarray(dl1_table["image"])
+    high_gain_mean, low_gain_mean = stats["mean"][:, 0], stats["mean"][:, 1]
+    # with chunk_size=1, each pixel is counted only in its stored channel
+    np.testing.assert_array_equal(stats["n_events"][:, 0], high_gain)
+    np.testing.assert_array_equal(stats["n_events"][:, 1], low_gain)
+    np.testing.assert_allclose(high_gain_mean[high_gain], image[high_gain])
+    np.testing.assert_allclose(low_gain_mean[low_gain], image[low_gain])
+    # not stored channels, including broken pixels, stay NaN
+    assert np.all(np.isnan(high_gain_mean[~high_gain]))
+    assert np.all(np.isnan(low_gain_mean[~low_gain]))
 
 
 @pytest.mark.parametrize("per_channel_statistics", [True, False])
