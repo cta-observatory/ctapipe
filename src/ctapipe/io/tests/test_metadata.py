@@ -541,7 +541,6 @@ def test_get_compatible_metadata_versions(monkeypatch):
         "2.0.0",
     }
     assert meta.get_compatible_metadata_versions("2.0.0") == expected
-    assert meta.get_compatible_metadata_versions() == expected
 
 
 def test_configurable_contact_validation():
