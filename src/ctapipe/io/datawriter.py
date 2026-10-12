@@ -416,13 +416,16 @@ class DataWriter(Component):
         """Validate the output path and prevent overwriting the input file."""
         self.output_path = self.output_path.expanduser()
         if self.output_path.exists():
-            if self.event_source.input_url is not None and self.output_path.samefile(
-                self.event_source.input_url
-            ):
-                raise ToolConfigurationError(
-                    "Input and output files must not be the same."
-                )
+            activity = Provenance().current_activity
 
+            if activity is not None:
+                for input_ in activity.input:
+                    input_path = pathlib.Path(input_["url"])
+
+                    if input_path.exists() and self.output_path.samefile(input_path):
+                        raise ToolConfigurationError(
+                            "Input and output files must not be the same."
+                        )
             if self.overwrite:
                 self.log.warning("Overwriting %s", self.output_path)
                 self.output_path.unlink()
