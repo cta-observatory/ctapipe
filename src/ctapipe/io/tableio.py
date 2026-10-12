@@ -16,7 +16,17 @@ from ..core import Component
 from ..instrument import SubarrayDescription
 from ..time import ctao_high_res_to_time, time_to_ctao_high_res
 
-__all__ = ["TableReader", "TableWriter"]
+__all__ = [
+    "TableReader",
+    "TableWriter",
+    "ColumnTransform",
+    "TimeColumnTransform",
+    "QuantityColumnTransform",
+    "FixedPointColumnTransform",
+    "TelListToMaskTransform",
+    "StringTransform",
+    "EnumColumnTransform",
+]
 
 
 class TableWriter(Component, metaclass=ABCMeta):
