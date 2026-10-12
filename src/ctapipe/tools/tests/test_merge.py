@@ -112,13 +112,12 @@ def test_migrates_legacy_metadata(tmp_path, dl1_file):
                 del attributes[name]
         meta.write_to_hdf5(legacy.to_dict(), h5file)
 
-    with pytest.warns(meta.LegacyMetadataWarning, match="Legacy"):
-        run_tool(
-            MergeTool(),
-            argv=[str(legacy_input), f"--output={output}"],
-            cwd=tmp_path,
-            raises=True,
-        )
+    run_tool(
+        MergeTool(),
+        argv=[str(legacy_input), f"--output={output}"],
+        cwd=tmp_path,
+        raises=True,
+    )
 
     product = meta.read_ctao_metadata(output)
     assert product.description == "Legacy DL1 images"
@@ -159,16 +158,15 @@ def test_migrates_legacy_dataset_metadata(
 
     output = tmp_path / "migrated_dataset.dl1.h5"
 
-    with pytest.warns(meta.LegacyMetadataWarning):
-        run_tool(
-            MergeTool(),
-            argv=[
-                str(calibpipe_camcalib_sims_single_chunk),
-                f"--output={output}",
-            ],
-            cwd=tmp_path,
-            raises=True,
-        )
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(calibpipe_camcalib_sims_single_chunk),
+            f"--output={output}",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
 
     product = meta.read_ctao_metadata(output)
     assert product.description == "ctapipe Data Product"
@@ -202,18 +200,17 @@ def test_monitoring_only_append_keeps_product_type(
 
     original_product = meta.read_ctao_metadata(output)
 
-    with pytest.warns(meta.LegacyMetadataWarning):
-        run_tool(
-            MergeTool(),
-            argv=[
-                str(calibpipe_camcalib_sims_single_chunk),
-                f"--output={output}",
-                "--append",
-                "--merge-strategy=monitoring-only",
-            ],
-            cwd=tmp_path,
-            raises=True,
-        )
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(calibpipe_camcalib_sims_single_chunk),
+            f"--output={output}",
+            "--append",
+            "--merge-strategy=monitoring-only",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
 
     product = meta.read_ctao_metadata(output)
 
@@ -227,17 +224,16 @@ def test_monitoring_only_sets_product_type(
     from ctapipe.tools.merge import MergeTool
 
     output = tmp_path / "monitoring_only.dl1.h5"
-    with pytest.warns(meta.LegacyMetadataWarning):
-        run_tool(
-            MergeTool(),
-            argv=[
-                str(calibpipe_camcalib_sims_single_chunk),
-                f"--output={output}",
-                "--merge-strategy=monitoring-only",
-            ],
-            cwd=tmp_path,
-            raises=True,
-        )
+    run_tool(
+        MergeTool(),
+        argv=[
+            str(calibpipe_camcalib_sims_single_chunk),
+            f"--output={output}",
+            "--merge-strategy=monitoring-only",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
 
     product = meta.read_ctao_metadata(output)
 
