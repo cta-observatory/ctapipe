@@ -3,6 +3,7 @@ Component Wrappers around sklearn models
 """
 
 import pathlib
+import warnings
 from abc import abstractmethod
 from collections import defaultdict
 from copy import deepcopy
@@ -65,6 +66,20 @@ _invalid_geometry = ReconstructedGeometryContainer(
     az=u.Quantity(np.nan, unit=u.deg),
     is_valid=False,
 )
+
+
+def _model_keys_to_str(instance, path):
+    models = {}
+    for key, model in instance._models.items():
+        models[str(key)] = model
+
+    if len(models) < len(instance._models):
+        warnings.warn(
+            f"String representation of models in path {path} is not unique."
+            " Please re-train with a current version of ctapipe."
+        )
+
+    instance._models = models
 
 
 class MLQualityQuery(QualityQuery):
@@ -220,6 +235,12 @@ class SKLearnReconstructor(Reconstructor):
         with path.open("wb") as f:
             joblib.dump(self, f, compress=True)
             Provenance().add_output_file(path, role=f"{self.__class__.__name__}-model")
+
+    @classmethod
+    def read(cls, path, parent=None, subarray=None, **kwargs):
+        instance = super().read(path, parent=parent, subarray=subarray, **kwargs)
+        _model_keys_to_str(instance, path)
+        return instance
 
     @lazyproperty
     def instrument_table(self):
@@ -671,22 +692,9 @@ class DispReconstructor(Reconstructor):
             Provenance().add_output_file(path, role="DispReconstructor-model")
 
     @classmethod
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(
-            path, role="DispReconstructor-model", add_meta=False
-        )
+    def read(cls, path, parent=None, subarray=None, **kwargs):
+        instance = super().read(path, parent=parent, subarray=subarray, **kwargs)
+        _model_keys_to_str(instance, path)
         return instance
 
     @lazyproperty
