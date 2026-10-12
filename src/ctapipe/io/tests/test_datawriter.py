@@ -17,7 +17,7 @@ from ctapipe.containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
-from ctapipe.core import ToolConfigurationError
+from ctapipe.core import Provenance, ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
@@ -138,20 +138,25 @@ def test_write(tmpdir: Path):
 
 @pytest.mark.parametrize("overwrite", [False, True])
 def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):
-
     input_path = tmp_path / "input.h5"
     shutil.copy(dl1_image_file, input_path)
 
-    with EventSource(input_path) as source:
-        with pytest.raises(
-            ToolConfigurationError,
-            match="Input and output files must not be the same",
-        ):
-            DataWriter(
-                event_source=source,
-                output_path=input_path,
-                overwrite=overwrite,
-            )
+    provenance = Provenance()
+    provenance.start_activity("test_cannot_overwrite_input")
+
+    try:
+        with EventSource(input_path) as source:
+            with pytest.raises(
+                ToolConfigurationError,
+                match="Input and output files must not be the same",
+            ):
+                DataWriter(
+                    event_source=source,
+                    output_path=input_path,
+                    overwrite=overwrite,
+                )
+    finally:
+        provenance.finish_activity(activity_name="test_cannot_overwrite_input")
 
     assert input_path.exists()
 
