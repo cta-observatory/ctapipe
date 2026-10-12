@@ -13,6 +13,9 @@ from ..exceptions import InputMissing
 from ..instrument import SubarrayDescription
 from .metadata import Activity, Contact, Instrument, Process, Product, Reference
 
+METADATA_NAME = "meta.json"
+SUBARRAY_NAME = "subarray.h5"
+
 
 class ZipModelWriter(Component):
     """
@@ -63,7 +66,7 @@ class ZipModelWriter(Component):
         ).to_dict()
 
     def _write_product_meta(self):
-        with self.outfile.open("meta.json", mode="w") as f:
+        with self.outfile.open(METADATA_NAME, mode="w") as f:
             with TextIOWrapper(f, encoding="utf-8") as wrapper:
                 json.dump(
                     self._get_product_meta(), wrapper, default=json_config_handler
@@ -92,7 +95,7 @@ class ZipModelWriter(Component):
         self.close()
 
     def write_subarray(self, subarray):
-        name = "subarray.h5"
+        name = SUBARRAY_NAME
         self._check_exists(name)
 
         h5file = tables.open_file(
@@ -141,16 +144,18 @@ class ZipModelReader(Component):
         self.zip = zipfile.ZipFile(self.input_path, mode="r")
 
         self._files = self.zip.namelist()
-        if "meta.json" not in self._files:
-            raise ValueError(f"input_path {self.input_path} does not contain meta.json")
+        if METADATA_NAME not in self._files:
+            raise ValueError(
+                f"input_path {self.input_path} does not contain {METADATA_NAME}"
+            )
 
         self._keys = tuple(
             f.removesuffix(".pkl")
             for f in self._files
-            if f.endswith(".pkl") and not f == "reconstructor.pkl"
+            if f.endswith(".pkl") and f != "reconstructor.pkl"
         )
 
-        self._meta = json.loads(self.zip.read("meta.json").decode("utf-8"))
+        self._meta = json.loads(self.zip.read(METADATA_NAME).decode("utf-8"))
         if self._meta["CTA PRODUCT DATA MODEL VERSION"] not in SUPPORTED_VERSIONS:
             raise ValueError("")
 
@@ -164,10 +169,10 @@ class ZipModelReader(Component):
 
     @lazyproperty
     def subarray(self):
-        if "subarray.h5" not in self._files:
+        if SUBARRAY_NAME not in self._files:
             raise KeyError(f"No subarray stored in input_path {self.input_path}")
 
-        with self.zip.open("subarray.h5", "r") as f:
+        with self.zip.open(SUBARRAY_NAME, "r") as f:
             hdf5_payload = f.read()
         with tables.open_file(
             # must not exist on disk, h5 still checks even when using the in-memory data
