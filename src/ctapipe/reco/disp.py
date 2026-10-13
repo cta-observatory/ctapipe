@@ -7,6 +7,7 @@ from typing import Annotated
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import angular_separation
 from astropy.table import Table
 
 from ..containers import CoordinateFrameType
@@ -14,6 +15,7 @@ from .preprocessing import horizontal_to_telescope
 
 __all__ = [
     "compute_true_disp",
+    "compute_true_angular_error",
 ]
 
 
@@ -104,3 +106,33 @@ def compute_true_disp(
         true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
 
     return true_norm * true_sign
+
+
+def compute_true_angular_error(
+    reco_alt: u.Quantity,
+    reco_az: u.Quantity,
+    true_alt: u.Quantity,
+    true_az: u.Quantity,
+) -> Annotated[u.Quantity, "angle"]:
+    """
+    Compute the angular error of a per-telescope direction reconstruction.
+
+    This is the angular separation between the reconstructed and the true
+    source direction. As it only depends on the reconstructed altitude and
+    azimuth, it can be used as the training target of a per-telescope
+    angular-error regressor for any directional reconstruction algorithm,
+    not only the disp method.
+
+    Parameters
+    ----------
+    reco_alt, reco_az:
+        Reconstructed per-telescope altitude and azimuth.
+    true_alt, true_az:
+        True altitude and azimuth of the source.
+
+    Returns
+    -------
+    angular_error:
+        Angular separation between the reconstructed and true direction.
+    """
+    return angular_separation(reco_az, reco_alt, true_az, true_alt)

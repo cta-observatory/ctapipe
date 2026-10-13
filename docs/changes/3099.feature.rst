@@ -1,0 +1,16 @@
+Add an optional angular-error regressor to the `~ctapipe.reco.DispReconstructor`.
+When ``predict_angular_error`` is enabled, ``ctapipe-train-disp-reconstructor``
+trains an additional per-telescope-type regressor that estimates the angular
+error of the per-telescope direction reconstruction. The training target is the
+angular separation between the reconstructed and true per-telescope direction
+(alt/az), so the same approach applies to any directional reconstruction
+algorithm, not only the disp method. The prediction is stored as the
+per-telescope ``ang_distance_uncert`` and can be used as an exponential
+penalty weight in the stereo direction combination via the new
+``StereoCombiner.weights = "angular-error"`` option. The ``angular_error_scale``
+default of 0.2 deg reproduces the EventDisplay weighting
+``exp(-5 * ang_distance_uncert)`` (``DispError_BDTWeight = 5``). The telescope
+position in the array (``pos_x``, ``pos_y``, ``pos_z``) can be included among the
+regressor features to support divergent-pointing analyses. An example
+configuration ``train_disp_reconstructor_angular_error.yaml`` is provided by
+``ctapipe-quickstart``.

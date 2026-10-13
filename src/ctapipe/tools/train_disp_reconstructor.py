@@ -126,15 +126,7 @@ class TrainDispReconstructor(Tool):
         self.log.info("Inputfile: %s", self.loader.input_url)
 
         self.log.info("Training models for %d types", len(types))
-        feature_names = self.models.features + [
-            "true_energy",
-            "true_impact_distance",
-            "true_alt",
-            "true_az",
-            "hillas_fov_lat",
-            "hillas_fov_lon",
-            "hillas_psi",
-        ]
+        feature_names = self._feature_names()
         optional_columns = [
             "telescope_pointing_altitude",
             "telescope_pointing_azimuth",
@@ -157,10 +149,7 @@ class TrainDispReconstructor(Tool):
                 n_events=self.n_events.tel[tel_type],
             )
             table[self.models.target] = compute_true_disp(table, self.project_disp)
-            table = table[
-                self.models.features
-                + [self.models.target, "true_energy", "true_impact_distance"]
-            ]
+            table = table[self._training_columns(table, optional_columns)]
 
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
@@ -168,6 +157,48 @@ class TrainDispReconstructor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.models.fit(tel_type, table)
             self.log.info("done")
+
+    def _feature_names(self):
+        """Columns to load for training, including angular-error features."""
+        feature_names = self.models.features + [
+            "true_energy",
+            "true_impact_distance",
+            "true_alt",
+            "true_az",
+            "hillas_fov_lat",
+            "hillas_fov_lon",
+            "hillas_psi",
+        ]
+        if self.models.predict_angular_error:
+            for feature in self.models.angular_error_features:
+                if feature not in feature_names:
+                    feature_names.append(feature)
+        return feature_names
+
+    def _training_columns(self, table, optional_columns):
+        """Columns to keep in the training table for the given configuration."""
+        columns = self.models.features + [
+            self.models.target,
+            "true_energy",
+            "true_impact_distance",
+        ]
+        if not self.models.predict_angular_error:
+            return columns
+
+        # keep the columns needed to compute the angular-error target
+        # and the (possibly divergent-pointing) position features
+        extra_columns = self.models.angular_error_features + [
+            "true_alt",
+            "true_az",
+            "hillas_fov_lat",
+            "hillas_fov_lon",
+            "hillas_psi",
+        ]
+        extra_columns += [c for c in optional_columns if c in table.colnames]
+        for column in extra_columns:
+            if column not in columns:
+                columns.append(column)
+        return columns
 
     def finish(self):
         """

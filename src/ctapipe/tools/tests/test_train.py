@@ -33,6 +33,52 @@ def test_train_disp_reconstructor(disp_reconstructor_path):
     assert accuracy > 0.75
 
 
+def test_train_disp_reconstructor_angular_error(tmp_path, gamma_train_clf):
+    """Train the disp reconstructor with the optional angular-error regressor."""
+    import astropy.units as u
+
+    from ctapipe.io import TableLoader
+    from ctapipe.reco import DispReconstructor
+    from ctapipe.reco.reconstructor import ReconstructionProperty
+    from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
+
+    # use the shipped example config (also provided by ctapipe-quickstart), which
+    # enables the angular-error regressor and includes the telescope position
+    # features needed for divergent pointing analyses
+    config = resource_file("train_disp_reconstructor_angular_error.yaml")
+    out_file = tmp_path / "disp_reconstructor_angular_error.pkl"
+
+    ret = run_tool(
+        TrainDispReconstructor(),
+        argv=[
+            f"--input={gamma_train_clf}",
+            f"--output={out_file}",
+            f"--config={config}",
+            "--CrossValidator.n_cross_validations=0",
+            "--log-level=INFO",
+        ],
+    )
+    assert ret == 0
+
+    model = DispReconstructor.read(out_file)
+    assert model.predict_angular_error
+    assert len(model._angular_error_models) > 0
+    assert "pos_x" in model._angular_error_feature_names
+
+    with TableLoader(gamma_train_clf) as loader:
+        events = loader.read_telescope_events(
+            [1, 2, 3, 4], stop=50, instrument=True, observation_info=True
+        )
+
+    predictions = model.predict_table(model.subarray.tel[1], events)
+    geometry = predictions[ReconstructionProperty.GEOMETRY]
+    col = "disp_tel_ang_distance_uncert"
+    assert col in geometry.colnames
+    assert geometry[col].unit == u.deg
+    valid = geometry["disp_tel_is_valid"]
+    assert np.all(geometry[col].quantity[valid] > 0 * u.deg)
+
+
 def test_too_few_events(tmp_path, dl2_shower_geometry_file):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
 

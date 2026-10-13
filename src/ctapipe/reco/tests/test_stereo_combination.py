@@ -170,6 +170,93 @@ def test_predict_mean_disp(mono_table):
     assert_array_equal(tel_ids[2], [1])
 
 
+def test_predict_disp_angular_error_weights():
+    """The exponential penalty must down-weight high angular-error telescopes."""
+    table = Table(
+        {
+            "obs_id": [1, 1],
+            "event_id": [1, 1],
+            "tel_id": [1, 2],
+            "disp_tel_alt": [70.0, 60.0] * u.deg,
+            "disp_tel_az": [10.0, 10.0] * u.deg,
+            "disp_tel_ang_distance_uncert": [0.01, 1.0] * u.deg,
+            "disp_tel_is_valid": [True, True],
+        }
+    )
+    combine = StereoMeanCombiner(
+        prefix="disp",
+        property=ReconstructionProperty.GEOMETRY,
+        weights="angular-error",
+        angular_error_scale=0.1,
+    )
+    stereo = combine.predict_table(table)
+    # the accurate telescope (alt=70, tiny predicted error) dominates
+    assert stereo["disp_alt"].quantity[0] > 69.5 * u.deg
+
+
+def test_combine_altaz_angular_error_weights():
+    """Event-wise geometry combination using the angular-error penalty."""
+    event = ArrayEventContainer()
+    for tel_id, alt, uncert in zip((1, 2), (70.0, 60.0), (0.01, 1.0)):
+        event.dl1.tel[tel_id].parameters = ImageParametersContainer(
+            hillas=HillasParametersContainer(
+                intensity=100, width=0.1 * u.deg, length=0.3 * u.deg
+            ),
+        )
+        event.dl2.tel[tel_id] = ReconstructedContainer(
+            geometry={
+                "disp": ReconstructedGeometryContainer(
+                    alt=alt * u.deg,
+                    az=10 * u.deg,
+                    ang_distance_uncert=uncert * u.deg,
+                    is_valid=True,
+                )
+            },
+        )
+
+    combine = StereoMeanCombiner(
+        prefix="disp",
+        property=ReconstructionProperty.GEOMETRY,
+        weights="angular-error",
+        angular_error_scale=0.1,
+    )
+    combine(event)
+    assert event.dl2.stereo.geometry["disp"].alt > 69.5 * u.deg
+
+
+def test_angular_error_weights_missing_column():
+    """Fall back to equal weights if the angular-error column is not present."""
+    table = Table(
+        {
+            "obs_id": [1, 1],
+            "event_id": [1, 1],
+            "tel_id": [1, 2],
+            "disp_tel_alt": [70.0, 60.0] * u.deg,
+            "disp_tel_az": [10.0, 10.0] * u.deg,
+            "disp_tel_is_valid": [True, True],
+        }
+    )
+    combine = StereoMeanCombiner(
+        prefix="disp",
+        property=ReconstructionProperty.GEOMETRY,
+        weights="angular-error",
+    )
+    weights = combine._calculate_weights(table)
+    assert_array_equal(weights, np.ones(2))
+
+
+def test_angular_error_weights_all_invalid():
+    """If no telescope has a valid prediction, use equal weights."""
+    combine = StereoMeanCombiner(
+        prefix="disp",
+        property=ReconstructionProperty.GEOMETRY,
+        weights="angular-error",
+        angular_error_scale=0.2,
+    )
+    weights = combine._angular_error_weights(np.array([np.nan, np.inf]))
+    assert_array_equal(weights, np.ones(2))
+
+
 def _containment_particle_expected():
     # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
     # containment weight is a general image-quality weight affecting all prediction
