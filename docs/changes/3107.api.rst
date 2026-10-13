@@ -6,6 +6,8 @@ curation metadata to ``ctapipe-dump-instrument`` service-data output.
 
 Add :func:`ctapipe.io.metadata.read_ctao_metadata` for reading current or legacy
 CTAO metadata from HDF5, FITS, ECSV, and JSON files.
+The base :class:`~ctapipe.io.EventSource` no longer provides a ``metadata``
+attribute.
 
 Remove the public ``write_reference_metadata_headers`` function; its
 functionality is now handled internally by :class:`~ctapipe.io.DataWriter`.
