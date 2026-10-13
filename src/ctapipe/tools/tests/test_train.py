@@ -125,7 +125,9 @@ def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
         assert np.allclose(n_signal / (n_signal + n_background), frac, atol=1e-4)
 
 
-def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
+def test_cross_validation_results(
+    tmp_path, gamma_dl2_train_small_h5, gamma_train_clf, proton_train_clf
+):
     from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
@@ -138,7 +140,7 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     ret = run_tool(
         tool,
         argv=[
-            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--input={gamma_dl2_train_small_h5}",
             f"--output={out_file}",
             f"--config={config}",
             f"--cv-output={energy_cv_out_file}",
@@ -156,7 +158,7 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
         run_tool(
             tool,
             argv=[
-                "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+                f"--input={gamma_dl2_train_small_h5}",
                 f"--output={out_file}",
                 f"--config={config}",
                 f"--cv-output={energy_cv_out_file}",
@@ -167,7 +169,7 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     ret = run_tool(
         tool,
         argv=[
-            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--input={gamma_dl2_train_small_h5}",
             f"--output={out_file}",
             f"--config={config}",
             f"--cv-output={energy_cv_out_file}",
@@ -214,7 +216,7 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     assert disp_cv_out_file.exists()
 
 
-def test_no_cross_validation(tmp_path):
+def test_no_cross_validation(tmp_path, gamma_dl2_train_small_h5):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
 
     out_file = tmp_path / "energy.pkl"
@@ -224,7 +226,7 @@ def test_no_cross_validation(tmp_path):
     ret = run_tool(
         tool,
         argv=[
-            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--input={gamma_dl2_train_small_h5}",
             f"--output={out_file}",
             f"--config={config}",
             "--CrossValidator.n_cross_validations=0",
