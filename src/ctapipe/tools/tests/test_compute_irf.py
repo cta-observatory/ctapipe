@@ -1,10 +1,13 @@
 import json
 import logging
+from types import SimpleNamespace
 
 import pytest
 from astropy.io import fits
 
 from ctapipe.core import ToolConfigurationError, run_tool
+from ctapipe.irf import EffectiveArea2dMaker, EffectiveArea3DMaker
+from ctapipe.tools.compute_irf import IrfTool
 
 pytest.importorskip("pyirf")
 
@@ -282,3 +285,47 @@ def test_irf_tool_wrong_cuts(
         "Quality criteria are different from quality criteria "
         "used for calculating g/h / theta cuts." in logpath.read_text()
     )
+
+
+def _point_like_tool(effective_area_maker):
+    tool = IrfTool()
+    tool.signal_is_point_like = True
+    tool.spatial_selection_applied = False
+    tool.do_background = False
+    tool.benchmarks_output_path = None
+    tool.effective_area_maker = effective_area_maker
+    fov_single_bin = SimpleNamespace(fov_offset_n_bins=1)
+    tool.energy_dispersion_maker = fov_single_bin
+    tool.psf_maker = fov_single_bin
+    tool.background_maker = fov_single_bin
+    tool.angular_resolution_maker = fov_single_bin
+    tool.bias_resolution_maker = fov_single_bin
+    tool.sensitivity_maker = fov_single_bin
+    return tool
+
+
+@pytest.mark.parametrize(
+    "maker_cls, maker_kwargs, raises",
+    [
+        (EffectiveArea3DMaker, {}, True),
+        (EffectiveArea3DMaker, {"fov_lon_n_bins": 1}, True),
+        (EffectiveArea3DMaker, {"fov_lat_n_bins": 1}, True),
+        (EffectiveArea3DMaker, {"fov_lon_n_bins": 1, "fov_lat_n_bins": 1}, False),
+        (EffectiveArea2dMaker, {"fov_offset_n_bins": 3}, True),
+        (EffectiveArea2dMaker, {"fov_offset_n_bins": 1}, False),
+    ],
+)
+def test_point_like_fov_configuration(maker_cls, maker_kwargs, raises):
+    tool = _point_like_tool(maker_cls(**maker_kwargs))
+
+    if raises:
+        with pytest.raises(ToolConfigurationError):
+            tool._check_point_like_fov_configuration()
+    else:
+        tool._check_point_like_fov_configuration()
+
+
+def test_non_point_like_skips_fov_configuration_check():
+    tool = _point_like_tool(EffectiveArea3DMaker())
+    tool.signal_is_point_like = False
+    tool._check_point_like_fov_configuration()
