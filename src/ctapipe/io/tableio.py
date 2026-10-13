@@ -16,7 +16,17 @@ from ..core import Component
 from ..instrument import SubarrayDescription
 from ..time import ctao_high_res_to_time, time_to_ctao_high_res
 
-__all__ = ["TableReader", "TableWriter"]
+__all__ = [
+    "TableReader",
+    "TableWriter",
+    "ColumnTransform",
+    "TimeColumnTransform",
+    "QuantityColumnTransform",
+    "FixedPointColumnTransform",
+    "TelListToMaskTransform",
+    "StringTransform",
+    "EnumColumnTransform",
+]
 
 
 class TableWriter(Component, metaclass=ABCMeta):
@@ -280,7 +290,7 @@ class ColumnTransform(metaclass=ABCMeta):
     A Transformation to be applied before serialization / after deserialization.
 
     The ``TableWriter`` will call the transform on the data to be stored and
-    ``TableReader`` will call `.inverse`` to reverse the transformation
+    ``TableReader`` will call ``.inverse`` to reverse the transformation
     when a transformation is detected in the file through metadata.
 
     Transformations implement ``get_meta`` to provide the necessary metadata
