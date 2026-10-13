@@ -133,15 +133,14 @@ def test_true_source_fov_from_nominal_frame(dummy_table, tmp_path):
     events = loader.make_derived_columns(events)
 
     # true_source_fov_* must equal the NominalFrame transform of the true
-    # source direction relative to the array pointing, with the lon sign
-    # flipped to comply with the GADF FOV coordinate convention.
+    # source direction relative to the array pointing.
     pointing = SkyCoord(
         alt=events["pointing_alt"], az=events["pointing_az"], frame=AltAz()
     )
     true = SkyCoord(alt=events["true_alt"], az=events["true_az"], frame=AltAz())
     nominal = true.transform_to(NominalFrame(origin=pointing))
 
-    assert u.allclose(events["true_source_fov_lon"], u.Quantity(-nominal.fov_lon))
+    assert u.allclose(events["true_source_fov_lon"], u.Quantity(nominal.fov_lon))
     assert u.allclose(events["true_source_fov_lat"], u.Quantity(nominal.fov_lat))
 
 

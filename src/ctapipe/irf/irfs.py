@@ -272,8 +272,12 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
         sim_info: SimulatedEventsInfo,
         extname: str = "EFFECTIVE AREA",
     ) -> BinTableHDU:
+        selected_events = events[
+            ["true_energy", "true_source_fov_lon", "true_source_fov_lat"]
+        ]
+        selected_events["true_source_fov_lon"] *= -1  # GADF uses the opposite sign
         effective_area = effective_area_3d_lonlat(
-            selected_events=events,
+            selected_events=selected_events,
             simulation_info=sim_info,
             true_energy_bins=self.true_energy_bins,
             fov_longitude_bins=self.fov_lon_bins,

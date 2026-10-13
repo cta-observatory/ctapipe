@@ -232,12 +232,12 @@ class DL2EventPreprocessor(Component):
                     Column(
                         name="true_source_fov_lon",
                         unit=u.deg,
-                        description="True FOV longitude in GADF coordinates",
+                        description="True FOV longitude",
                     ),
                     Column(
                         name="true_source_fov_lat",
                         unit=u.deg,
-                        description="True FOV latitude in GADF coordinates",
+                        description="True FOV latitude",
                     ),
                     Column(
                         name="weight",
@@ -451,10 +451,8 @@ class DL2EventLoader(Component):
 
         true = SkyCoord(alt=events["true_alt"], az=events["true_az"], frame=AltAz())
         true_nominal = true.transform_to(nominal)
-        events["true_source_fov_lon"] = u.Quantity(
-            -true_nominal.fov_lon
-        )  # minus for GADF
-        events["true_source_fov_lat"] = u.Quantity(true_nominal.fov_lat)
+        events["true_source_fov_lon"] = true_nominal.fov_lon
+        events["true_source_fov_lat"] = true_nominal.fov_lat
 
         reco = SkyCoord(alt=events["reco_alt"], az=events["reco_az"], frame=AltAz())
         reco_nominal = reco.transform_to(nominal)
