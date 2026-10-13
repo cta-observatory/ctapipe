@@ -509,6 +509,47 @@ class IrfTool(Tool):
             )
         return hdus
 
+    def _check_point_like_fov_configuration(self):
+        """
+        Point-like data only permits a single FOV bin for all IRF components.
+        """
+        if not self.signal_is_point_like:
+            return
+
+        errormessage = """The gamma input file contains point-like simulations.
+            Therefore, the IRF can only be calculated at a single point
+            in the FoV, but `fov_offset_n_bins > 1`."""
+
+        if isinstance(self.effective_area_maker, EffectiveArea3DMaker):
+            aeff_multiple_fov_bins = (
+                self.effective_area_maker.fov_lon_n_bins > 1
+                or self.effective_area_maker.fov_lat_n_bins > 1
+            )
+        else:
+            aeff_multiple_fov_bins = self.effective_area_maker.fov_offset_n_bins > 1
+
+        if (
+            self.energy_dispersion_maker.fov_offset_n_bins > 1
+            or aeff_multiple_fov_bins
+        ):
+            raise ToolConfigurationError(errormessage)
+
+        if (
+            not self.spatial_selection_applied
+            and self.psf_maker.fov_offset_n_bins > 1
+        ):
+            raise ToolConfigurationError(errormessage)
+
+        if self.do_background and self.background_maker.fov_offset_n_bins > 1:
+            raise ToolConfigurationError(errormessage)
+
+        if self.benchmarks_output_path is not None and (
+            self.angular_resolution_maker.fov_offset_n_bins > 1
+            or self.bias_resolution_maker.fov_offset_n_bins > 1
+            or self.sensitivity_maker.fov_offset_n_bins > 1
+        ):
+            raise ToolConfigurationError(errormessage)
+
     def start(self):
         """
         Load events and calculate the irf (and the benchmarks).
@@ -585,39 +626,7 @@ class IrfTool(Tool):
                     meta["sim_info"].viewcone_max - meta["sim_info"].viewcone_min
                 ).value == 0
 
-        if self.signal_is_point_like:
-            if isinstance(self.effective_area_maker, EffectiveArea3DMaker):
-                raise ToolConfigurationError(
-                    "The gamma input file contains point-like simulations. "
-                    "The EffectiveArea3DMaker can only be used with "
-                    "non-point-like (e.g. diffuse) simulations."
-                )
-
-            errormessage = """The gamma input file contains point-like simulations.
-                Therefore, the IRF can only be calculated at a single point
-                in the FoV, but `fov_offset_n_bins > 1`."""
-
-            if (
-                self.energy_dispersion_maker.fov_offset_n_bins > 1
-                or self.effective_area_maker.fov_offset_n_bins > 1
-            ):
-                raise ToolConfigurationError(errormessage)
-
-            if (
-                not self.spatial_selection_applied
-                and self.psf_maker.fov_offset_n_bins > 1
-            ):
-                raise ToolConfigurationError(errormessage)
-
-            if self.do_background and self.background_maker.fov_offset_n_bins > 1:
-                raise ToolConfigurationError(errormessage)
-
-            if self.benchmarks_output_path is not None and (
-                self.angular_resolution_maker.fov_offset_n_bins > 1
-                or self.bias_resolution_maker.fov_offset_n_bins > 1
-                or self.sensitivity_maker.fov_offset_n_bins > 1
-            ):
-                raise ToolConfigurationError(errormessage)
+        self._check_point_like_fov_configuration()
 
         reduced_events = self.calculate_selections(reduced_events)
 
