@@ -9,6 +9,7 @@ import warnings
 import ctao_datamodel.models.dataproducts as dp
 import pytest
 import tables
+from astropy import units as u
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
@@ -589,13 +590,29 @@ def test_configurable_product_metadata_validation(ctao_product):
         disclaimer="Test disclaimer",
         instance={"category": "A"},
         activity={"configuration_id": "configured"},
+        simulation={
+            "production_name": "PROD_TEST",
+            "node": {
+                "nsb_factor": 1,
+            },
+        },
     )
     assert product_info.modified
     values = ctao_product.model_dump()
     values.pop("description")
     values.pop("disclaimer")
-    values["instance"] = ctao_product.instance
+    values["instance"] = ctao_product.instance.model_copy(
+        update={"site_id": SiteID.CTAO_SOUTH}
+    )
     values["activity"] = ctao_product.activity
+    values["simulation"] = dp.Simulation(
+        production_name="PROD_ORIGINAL",
+        node=dp.SimulationGridNode(
+            zenith=20 * u.deg,
+            azimuth=180 * u.deg,
+            nsb_factor=0.5,
+        ),
+    )
 
     product = product_info.to_model(**values)
     assert product.description == "Test product"
@@ -603,11 +620,21 @@ def test_configurable_product_metadata_validation(ctao_product):
     assert product.instance.obs_id == ctao_product.instance.obs_id
     assert product.instance.category is dp.DataProcessingCategory.A
     assert product.activity.configuration_id == "configured"
+    assert product.simulation.production_name == "PROD_TEST"
+    assert product.simulation.node.zenith == 20 * u.deg
+    assert product.simulation.node.azimuth == 180 * u.deg
+    assert product.simulation.node.nsb_factor == 1
     assert product_info.to_dict() == {
         "description": "Test product",
         "disclaimer": "Test disclaimer",
         "instance": {"category": dp.DataProcessingCategory.A},
         "activity": {"configuration_id": "configured"},
+        "simulation": {
+            "production_name": "PROD_TEST",
+            "node": {
+                "nsb_factor": 1,
+            },
+        },
     }
 
     with pytest.raises(TraitError, match="cannot be configured"):
@@ -615,6 +642,19 @@ def test_configurable_product_metadata_validation(ctao_product):
 
     with pytest.raises(TraitError, match="cannot be configured"):
         meta.ProductMetadata(activity={"name": "custom"})
+
+    with pytest.raises(TraitError, match="Unknown simulation fields"):
+        meta.ProductMetadata(simulation={"product_name": "invalid"})
+
+    with pytest.raises(TraitError, match="simulation.node must be a dictionary"):
+        meta.ProductMetadata(simulation={"node": "invalid"})
+
+    with pytest.raises(TraitError, match="cannot be configured"):
+        meta.ProductMetadata(simulation={"node": {"zenith": 10 * u.deg}})
+
+    values["simulation"] = dp.Simulation(production_name="PROD_ORIGINAL")
+    with pytest.raises(TraitError, match="node is None"):
+        product_info.to_model(**values)
 
     with pytest.raises(TraitError):
         meta.ProductMetadata().to_model()

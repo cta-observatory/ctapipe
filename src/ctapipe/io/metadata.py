@@ -347,6 +347,36 @@ def _validate_model_overrides(model, values, allowed_fields):
     }
 
 
+def _validate_simulation_overrides(values):
+    """Validate configurable simulation metadata overrides."""
+    allowed_fields = {"production_name", "node"}
+
+    unknown = set(values) - allowed_fields
+    if unknown:
+        raise TraitError(f"Unknown simulation fields: {sorted(unknown)}")
+
+    validated = {}
+
+    if "production_name" in values:
+        validated["production_name"] = _validate_model_field(
+            dp.Simulation,
+            "production_name",
+            values["production_name"],
+        )
+
+    if "node" in values:
+        if not isinstance(values["node"], dict):
+            raise TraitError("simulation.node must be a dictionary")
+
+        validated["node"] = _validate_model_overrides(
+            dp.SimulationGridNode,
+            values["node"],
+            allowed_fields={"nsb_factor"},
+        )
+
+    return validated
+
+
 def _apply_model_overrides(model, instance, overrides):
     """Apply validated overrides to an existing pydantic model."""
     if not overrides:
@@ -357,6 +387,31 @@ def _apply_model_overrides(model, instance, overrides):
 
     try:
         return model.model_validate(values)
+    except ValidationError as err:
+        raise TraitError(str(err)) from err
+
+
+def _apply_simulation_overrides(
+    simulation: dp.Simulation,
+    overrides: dict,
+) -> dp.Simulation:
+    """Apply nested simulation overrides to an existing model."""
+    if not overrides:
+        return simulation
+
+    values = simulation.model_dump(mode="python")
+
+    if "production_name" in overrides:
+        values["production_name"] = overrides["production_name"]
+
+    if "node" in overrides:
+        if values["node"] is None:
+            raise TraitError("Cannot override simulation.node: node is None")
+
+        values["node"].update(overrides["node"])
+
+    try:
+        return dp.Simulation.model_validate(values)
     except ValidationError as err:
         raise TraitError(str(err)) from err
 
@@ -383,6 +438,10 @@ class ProductMetadata(Configurable):
     ).tag(config=True)
 
     activity = Dict(
+        default_value={},
+    ).tag(config=True)
+
+    simulation = Dict(
         default_value={},
     ).tag(config=True)
 
@@ -425,6 +484,11 @@ class ProductMetadata(Configurable):
             allowed_fields={"configuration_id"},
         )
 
+    @validate("simulation")
+    def _validate_simulation(self, proposal):
+        """Validate configurable simulation overrides."""
+        return _validate_simulation_overrides(proposal["value"])
+
     def validate_meta(self):
         """Explicitly validate all configurable metadata."""
         _validate_model_field(
@@ -449,6 +513,7 @@ class ProductMetadata(Configurable):
             self.activity,
             allowed_fields={"configuration_id"},
         )
+        _validate_simulation_overrides(self.simulation)
 
     def to_model(self, **kwargs) -> dp.Product:
         """Create a CTAO product and apply user-configured overrides.
@@ -489,6 +554,12 @@ class ProductMetadata(Configurable):
                 self.activity,
             )
 
+        if values.get("simulation") is not None:
+            values["simulation"] = _apply_simulation_overrides(
+                values["simulation"],
+                self.simulation,
+            )
+
         try:
             return dp.Product(**values)
         except ValidationError as err:
@@ -501,6 +572,7 @@ class ProductMetadata(Configurable):
             "disclaimer": self.disclaimer,
             "instance": dict(self.instance),
             "activity": dict(self.activity),
+            "simulation": dict(self.simulation),
         }
 
 
