@@ -450,6 +450,12 @@ class HDF5Merger(Component):
                 f" {other_data_category}, expected {self.data_category}"
             )
 
+        if self.meta.simulation != other_meta.simulation:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation metadata:"
+                f" {other_meta.simulation}, expected {self.meta.simulation}"
+            )
+
         for node_path in self.required_nodes:
             if node_path not in other.root:
                 raise CannotMerge(
