@@ -135,7 +135,7 @@ jobs:
 
       - name: Pixi setup
         if: matrix.install-method == 'pixi' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        uses: prefix-dev/setup-pixi@v0.10.2
+        uses: prefix-dev/setup-pixi@v0.11.0
         with:
           pixi-version: v0.78.0
           environments: ${{ matrix.pixi-environment }}
