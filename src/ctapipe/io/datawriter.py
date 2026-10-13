@@ -6,9 +6,11 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 
+import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
+from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
 from traitlets import Dict, Instance
@@ -19,6 +21,7 @@ from ..containers import (
     TelEventIndexContainer,
 )
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
+from ..core.provenance import _ActivityProvenance
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
 from . import metadata as meta
@@ -697,7 +700,192 @@ class DataWriter(Component):
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
 
-    def _get_processing_sublevel(self):
+    def _get_data_level(self) -> dp.DataLevel:
+        """Return the highest CTAO data level of the output product."""
+        if self.datalevels:
+            level = meta.to_ctao_data_level(self.datalevels)
+            if level is not None:
+                return level
+
+        if self.event_source.datalevels:
+            level = meta.to_ctao_data_level(self.event_source.datalevels)
+            if level is not None:
+                return level
+
+        if self._is_simulation:
+            return dp.DataLevel.SIM
+
+        raise ValueError("Cannot determine CTAO data level for output")
+
+    def _get_provenance_activity(self) -> _ActivityProvenance | None:
+        """Return the current or most recently finished provenance activity."""
+        if PROV.current_activity is not None:
+            return PROV.current_activity
+
+        if PROV.finished_activities:
+            return PROV.finished_activities[-1]
+
+        return None
+
+    def _get_input_product(
+        self,
+        prov_activity: _ActivityProvenance | None,
+    ) -> dp.Product | None:
+        """Return the first input product stored in provenance."""
+        if prov_activity is None:
+            return None
+
+        reference_meta = next(
+            (
+                input_["reference_meta"]
+                for input_ in prov_activity.input
+                if input_.get("reference_meta") is not None
+            ),
+            None,
+        )
+
+        if reference_meta is None:
+            return None
+
+        return dp.Product.model_validate(reference_meta)
+
+    def _get_product_type(
+        self,
+        input_product: dp.Product | None,
+    ) -> dp.ProductType:
+        """Return the CTAO product type of the output."""
+        if input_product is not None:
+            data_type = input_product.data.type
+        else:
+            data_type = (
+                dp.DataType.OBSERVATION_SIM
+                if self._is_simulation
+                else dp.DataType.OBSERVATION
+            )
+
+        return dp.ProductType(
+            level=self._get_data_level(),
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=data_type,
+        )
+
+    def _get_facility_name(
+        self,
+        input_product: dp.Product | None,
+    ) -> dp.FacilityName:
+        """Return the facility name, preferring input metadata."""
+        if input_product is not None:
+            facility_name = input_product.instance.facility_name
+            if facility_name is not None:
+                return facility_name
+
+        return (
+            dp.FacilityName.SIMULATED_CTAO
+            if self._is_simulation
+            else dp.FacilityName.CTAO
+        )
+
+    def _get_site_id(
+        self,
+        input_product: dp.Product | None,
+    ) -> SiteID | None:
+        """Return the site identifier without inferring it from a dummy location."""
+        if input_product is not None:
+            site_id = input_product.instance.site_id
+            if site_id is not None:
+                return site_id
+
+        location = self._get_simulation_location()
+
+        if location is None:
+            self.log.warning(
+                "Cannot determine site_id: no input site identifier "
+                "or valid reference location is available."
+            )
+            return None
+
+        # This inference assumes the data belongs to one of the two CTAO sites.
+        latitude = location.lat.to_value(u.deg)
+        return SiteID.CTAO_NORTH if latitude > 0 else SiteID.CTAO_SOUTH
+
+    def _get_instance_identifier(
+        self,
+        input_product: dp.Product | None,
+    ) -> dp.InstanceIdentifier:
+        """Create the instance identifier for the output product."""
+        obs_ids = self.event_source.obs_ids
+        obs_id = obs_ids[0] if len(obs_ids) == 1 else None
+
+        return dp.InstanceIdentifier(
+            obs_id=obs_id,
+            facility_name=self._get_facility_name(input_product),
+            sublevel_id=self._get_processing_sublevel(),
+            site_id=self._get_site_id(input_product),
+        )
+
+    def _get_simulation_location(self) -> EarthLocation | None:
+        """Return the subarray location, excluding missing and legacy dummy values."""
+        location = self._subarray.reference_location
+
+        if location is None:
+            return None
+
+        lon = location.lon.to_value(u.deg)
+        lat = location.lat.to_value(u.deg)
+        height = location.height.to_value(u.m)
+
+        if not np.all(np.isfinite([lon, lat, height])):
+            return None
+
+        # Older SimTel and HDF5 inputs use a dummy (lon, lat) = (0, 0)
+        # when the actual reference location is unavailable.
+        if np.isclose(lon, 0.0, rtol=0.0, atol=1e-10) and np.isclose(
+            lat, 0.0, rtol=0.0, atol=1e-10
+        ):
+            return None
+
+        return location
+
+    def _get_simulation_metadata(
+        self,
+        input_product: dp.Product | None,
+    ) -> dp.Simulation | None:
+        """Return simulation metadata for the output product."""
+        if not self._is_simulation:
+            return None
+
+        # There is currently no reliable way to get the Simulation.product_name from
+        if input_product is not None and input_product.simulation is not None:
+            simulation = input_product.simulation.model_copy(deep=True)
+        else:
+            obs_ids = self.event_source.obs_ids
+            ob = self.event_source.observation_blocks[obs_ids[0]]
+
+            production_name = self.product_info.simulation.get("production_name")
+            if not production_name:
+                return None
+
+            simulation = dp.Simulation(
+                production_name=production_name,
+                node=dp.SimulationGridNode(
+                    zenith=(90 * u.deg - ob.subarray_pointing_lat).to(u.deg),
+                    azimuth=ob.subarray_pointing_lon.to(u.deg),
+                    hour_angle=None,
+                    declination=None,
+                    nsb_factor=None,
+                ),
+            )
+
+        if simulation.node is not None:
+            location = self._get_simulation_location()
+
+            if location is not None:
+                simulation.node.validate_coordinates(location)
+
+        return simulation
+
+    def _get_processing_sublevel(self) -> dp.ProcessingSublevel | None:
         """Return the CTAO processing-sublevel flags present in the output."""
         sublevel = self._processing_sublevels
 
@@ -709,79 +897,15 @@ class DataWriter(Component):
 
         return sublevel or None
 
-    def _write_product_metadata_headers(self):
-        """
-        Write out the product metadata headers to the output file.
-        """
-        data_levels = self.datalevels
-
-        if data_levels:
-            level = meta.to_ctao_data_level(data_levels)
-        elif self.event_source.datalevels:
-            level = meta.to_ctao_data_level(self.event_source.datalevels)
-        elif self.event_source.is_simulation:
-            level = dp.DataLevel.SIM
-        else:
-            raise ValueError("Cannot determine CTAO data level for output")
-
-        prov_activity = PROV.current_activity
-        if prov_activity is None and PROV.finished_activities:
-            # assume that we write provenance for a "just finished activity"
-            prov_activity = PROV.finished_activities[-1]
-
-        input_reference_meta = None
-        # Search for first input with reference_meta
-        if prov_activity is not None:
-            input_reference_meta = next(
-                (
-                    input_["reference_meta"]
-                    for input_ in prov_activity.input
-                    if input_.get("reference_meta") is not None
-                ),
-                None,
-            )
-
-        data_type = (
-            input_reference_meta.get("data", {}).get("type")
-            if input_reference_meta is not None
-            else None
-        )
-
-        if data_type is None:
-            data_type = (
-                dp.DataType.OBSERVATION_SIM
-                if self._is_simulation
-                else dp.DataType.OBSERVATION
-            )
-
-        product_type = dp.ProductType(
-            level=level,
-            division=dp.DataDivision.EVENT,
-            association=dp.DataAssociation.SUBARRAY,
-            type=data_type,
-        )
-
-        obs_ids = self.event_source.obs_ids
-        obs_id = obs_ids[0] if len(obs_ids) == 1 else None
-
-        facility_name = (
-            dp.FacilityName.SIMULATED_CTAO
-            if self._is_simulation
-            else dp.FacilityName.CTAO
-        )
-
-        lat = self.event_source.subarray.reference_location.geodetic.lat.value
-        site = SiteID.CTAO_NORTH if lat > 0 else SiteID.CTAO_SOUTH
+    def _write_product_metadata_headers(self) -> None:
+        """Write CTAO product metadata to the output file."""
+        prov_activity = self._get_provenance_activity()
+        input_product = self._get_input_product(prov_activity)
 
         product = self.product_info.to_model(
             creation_time=Time.now(),
-            data=product_type,
-            instance=dp.InstanceIdentifier(
-                obs_id=obs_id,
-                facility_name=facility_name,
-                sublevel_id=self._get_processing_sublevel(),
-                site_id=site,
-            ),
+            data=self._get_product_type(input_product),
+            instance=self._get_instance_identifier(input_product),
             curation=self.curation_info.to_model(),
             model=dp.DataModel(
                 name="ctapipe",
@@ -794,7 +918,9 @@ class DataWriter(Component):
                 if prov_activity is not None
                 else None
             ),
+            simulation=self._get_simulation_metadata(input_product),
         )
+
         meta.write_product_metadata_hdf5(product, self._writer.h5file)
 
     def _write_atmosphere_profile(self, path):
