@@ -146,6 +146,27 @@ def _info_tools():
     print("")
 
 
+def _get_optional_dependencies(requirements, extra="all"):
+    env = default_environment()
+    env["extra"] = extra
+
+    optional_dependencies = []
+    for r in requirements:
+        if r.marker is None or not r.marker.evaluate(env):
+            continue
+
+        # resolve self-reference
+        if r.name == "ctapipe":
+            for extra in r.extras:
+                optional_dependencies.extend(
+                    _get_optional_dependencies(requirements, extra=extra)
+                )
+        else:
+            optional_dependencies.append(r.name)
+
+    return sorted(optional_dependencies)
+
+
 def _info_dependencies():
     """Print info about dependencies."""
     print("\n*** ctapipe core dependencies ***\n")
@@ -156,18 +177,12 @@ def _info_dependencies():
         r.name for r in requirements if r.marker is None or r.marker.evaluate(env)
     ]
 
-    env["extra"] = "all"
-    optional_dependencies = [
-        r.name
-        for r in requirements
-        if r.marker is not None and r.marker.evaluate(env) and r.name != "ctapipe"
-    ]
-
     for name in dependencies:
         print(f"{name:>20s} -- {version(name)}")
 
     print("\n*** ctapipe optional dependencies ***\n")
 
+    optional_dependencies = _get_optional_dependencies(requirements)
     for name in optional_dependencies:
         try:
             v = version(name)
