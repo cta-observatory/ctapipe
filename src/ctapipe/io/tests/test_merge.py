@@ -251,15 +251,43 @@ def test_data_category_compatibility(tmp_path):
         model=SimpleNamespace(version="v7.6.0"),
         data=SimpleNamespace(type=dp.DataType.OBSERVATION_SIM),
         instance=SimpleNamespace(category=dp.DataProcessingCategory.A),
+        simulation=None,
     )
 
     with HDF5Merger(tmp_path / "merged.h5") as merger:
         merger.data_model_version = "v7.6.0"
         merger.data_type = dp.DataType.OBSERVATION_SIM
         merger.data_category = dp.DataProcessingCategory.B
+        merger.meta = SimpleNamespace(simulation=None)
         merger.required_nodes = set()
 
         with pytest.raises(CannotMerge, match="different data category"):
+            merger._check_can_merge(other, other_metadata)
+
+
+def test_simulation_metadata_compatibility(tmp_path):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    simulation = dp.Simulation(production_name="prod")
+    other_metadata = SimpleNamespace(
+        model=SimpleNamespace(version="v7.6.0"),
+        data=SimpleNamespace(type=dp.DataType.OBSERVATION_SIM),
+        instance=SimpleNamespace(category=dp.DataProcessingCategory.A),
+        simulation=simulation.model_copy(),
+    )
+
+    with HDF5Merger(tmp_path / "merged.h5") as merger:
+        merger.data_model_version = "v7.6.0"
+        merger.data_type = dp.DataType.OBSERVATION_SIM
+        merger.data_category = dp.DataProcessingCategory.A
+        merger.meta = SimpleNamespace(simulation=simulation)
+        merger.required_nodes = set()
+
+        merger._check_can_merge(other, other_metadata)
+
+        other_metadata.simulation.production_name = "other-prod"
+        with pytest.raises(CannotMerge, match="different simulation metadata"):
             merger._check_can_merge(other, other_metadata)
 
 
