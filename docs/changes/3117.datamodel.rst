@@ -1,0 +1,3 @@
+Add the field ``pixel_status`` to ``DL1CameraContainer``, which is filled
+by the ``CameraCalibrator`` from the DL0 pixel status and written to the DL1 image tables.
+The data model version is increased to v7.7.0.
