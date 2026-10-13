@@ -20,6 +20,8 @@ from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
 
+from ctapipe.io.models import ZipModelReader, ZipModelWriter
+
 from ..containers import (
     ArrayEventContainer,
     DispContainer,
@@ -38,6 +40,7 @@ from ..core import (
 )
 from ..exceptions import TooFewEvents
 from ..io import write_table
+from ..utils.deprecation import deprecated
 from .disp import get_tel_pointing
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
@@ -156,6 +159,7 @@ class SKLearnReconstructor(Reconstructor):
             # to verify settings
             self._new_model()
 
+            self.reader = None
             self._models = {} if models is None else models
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
@@ -165,7 +169,11 @@ class SKLearnReconstructor(Reconstructor):
                 parent=self,
             )
         else:
-            loaded = self.read(self.load_path)
+            with ZipModelReader(self.load_path, parent=self) as reader:
+                loaded = reader.read_reconstructor()
+                for key in reader.keys:
+                    loaded._models[key] = reader.read_joblib(key)
+
             if (
                 subarray is not None
                 and loaded.subarray.telescope_types != subarray.telescope_types
@@ -179,6 +187,16 @@ class SKLearnReconstructor(Reconstructor):
             if self.prefix is None:
                 self.prefix = self.model_cls
 
+    def load_model(self, key):
+        if key in self._models:
+            return
+
+        if self.load_path is None:
+            raise ValueError("load_path is None, cannot load models from file")
+
+        with ZipModelReader(self.load_path, parent=self) as reader:
+            self._models[key] = reader.read_joblib(key)
+
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -190,6 +208,14 @@ class SKLearnReconstructor(Reconstructor):
         ----------
         event: ArrayEventContainer
         """
+
+    def __getstate__(self):
+        d = super().__getstate__()
+        # remove models from state, stored separately in zip
+        d["_models"] = {}
+        # subarray stored also separately in zip
+        d["subarray"] = None
+        return d
 
     @abstractmethod
     def predict_table(self, key, table: Table) -> Table:
@@ -217,9 +243,10 @@ class SKLearnReconstructor(Reconstructor):
         if path.exists() and not overwrite:
             raise OSError(f"Path {path} exists and overwrite=False")
 
-        with path.open("wb") as f:
-            joblib.dump(self, f, compress=True)
-            Provenance().add_output_file(path, role=f"{self.__class__.__name__}-model")
+        with ZipModelWriter(path, parent=self) as writer:
+            writer.write_reconstructor(self)
+            for key, model in self._models.items():
+                writer.write_joblib(key, model)
 
     @lazyproperty
     def instrument_table(self):
@@ -409,7 +436,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
             if passes_quality_checks:
                 prediction, valid = self._predict(
-                    self.subarray.tel[tel_id],
+                    str(self.subarray.tel[tel_id]),
                     table,
                 )
                 container = ReconstructedEnergyContainer(
@@ -472,7 +499,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
             if passes_quality_checks:
                 prediction, valid = self._predict_score(
-                    self.subarray.tel[tel_id],
+                    str(self.subarray.tel[tel_id]),
                     table,
                 )
 
@@ -630,6 +657,16 @@ class DispReconstructor(Reconstructor):
         sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**sign_cfg)
         return norm_regressor, sign_classifier
 
+    def load_model(self, key):
+        if key in self._models:
+            return
+
+        if self.load_path is None:
+            raise ValueError("load_path is None, cannot load models from file")
+
+        with ZipModelReader(self.load_path, parent=self) as reader:
+            self._models[key] = reader._read_compressed_joblib(key)
+
     def _table_to_y(self, table, mask=None):
         """
         Extract target values as numpy array from input table.
@@ -660,6 +697,7 @@ class DispReconstructor(Reconstructor):
         self._models[key][0].fit(X, norm)
         self._models[key][1].fit(X, sign)
 
+    @deprecated("v0.33.0", alternative="ctapipe.io.ZIPModelWriter")
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
 
@@ -669,25 +707,6 @@ class DispReconstructor(Reconstructor):
         with path.open("wb") as f:
             joblib.dump(self, f, compress=True)
             Provenance().add_output_file(path, role="DispReconstructor-model")
-
-    @classmethod
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(
-            path, role="DispReconstructor-model", add_meta=False
-        )
-        return instance
 
     @lazyproperty
     def instrument_table(self):
@@ -742,7 +761,7 @@ class DispReconstructor(Reconstructor):
 
             if passes_quality_checks:
                 disp, sign_score, valid = self._predict(
-                    self.subarray.tel[tel_id], table
+                    str(self.subarray.tel[tel_id]), table
                 )
 
                 if valid:

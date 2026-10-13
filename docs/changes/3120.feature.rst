@@ -1,0 +1,3 @@
+Store machine learning models in zip files, containing
+separate file entries for reconstructor wrapper, models and
+data products metadata.

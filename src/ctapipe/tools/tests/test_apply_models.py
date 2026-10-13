@@ -22,7 +22,6 @@ from ctapipe.io.hdf5dataformat import (
     DL2_TEL_PARTICLETYPE_GROUP,
 )
 from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
-from ctapipe.utils.datasets import get_dataset_path
 
 
 def test_apply_energy_regressor(
@@ -116,13 +115,14 @@ def test_apply_all(
     energy_regressor_path,
     particle_classifier_path,
     disp_reconstructor_path,
+    gamma_dl2_train_small_h5,
     tmp_path,
 ):
     from ctapipe.tools.apply_models import ApplyModels
 
     disp_reconstructor_path, _ = disp_reconstructor_path
 
-    input_path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+    input_path = gamma_dl2_train_small_h5
     output_path = tmp_path / "particle-and-energy-and-disp.dl2.h5"
 
     ret = run_tool(
