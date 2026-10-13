@@ -14,9 +14,11 @@ from ctapipe.io.hdf5dataformat import (
     DL2_TEL_GROUP,
 )
 
+ALLOWED_TELS_PROD6_NORTH_ALPHA = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 19]
+
 
 def test_process_apply_energy(
-    tmp_path, energy_regressor_path, prod5_gamma_lapalma_simtel_path
+    tmp_path, energy_regressor_path, prod6_gamma_lapalma_simtel_path
 ):
     from ctapipe.tools.process import ProcessorTool
 
@@ -24,10 +26,10 @@ def test_process_apply_energy(
 
     config_path = tmp_path / "config.json"
 
-    input_url = prod5_gamma_lapalma_simtel_path
+    input_url = prod6_gamma_lapalma_simtel_path
 
     # la palma alpha config
-    allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
+    allowed_tels = ALLOWED_TELS_PROD6_NORTH_ALPHA
     config = {
         "ProcessorTool": {
             "EventSource": {
@@ -69,7 +71,7 @@ def test_process_apply_classification(
     tmp_path,
     energy_regressor_path,
     particle_classifier_path,
-    prod5_gamma_lapalma_simtel_path,
+    prod6_gamma_lapalma_simtel_path,
 ):
     from ctapipe.tools.process import ProcessorTool
 
@@ -77,9 +79,9 @@ def test_process_apply_classification(
 
     config_path = tmp_path / "config.json"
 
-    input_url = prod5_gamma_lapalma_simtel_path
+    input_url = prod6_gamma_lapalma_simtel_path
 
-    allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
+    allowed_tels = ALLOWED_TELS_PROD6_NORTH_ALPHA
     config = {
         "ProcessorTool": {
             "EventSource": {
@@ -127,7 +129,7 @@ def test_process_apply_disp(
     tmp_path,
     energy_regressor_path,
     disp_reconstructor_path,
-    prod5_gamma_lapalma_simtel_path,
+    prod6_gamma_lapalma_simtel_path,
 ):
     from ctapipe.tools.process import ProcessorTool
 
@@ -137,9 +139,9 @@ def test_process_apply_disp(
 
     config_path = tmp_path / "config.json"
 
-    input_url = prod5_gamma_lapalma_simtel_path
+    input_url = prod6_gamma_lapalma_simtel_path
 
-    allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
+    allowed_tels = ALLOWED_TELS_PROD6_NORTH_ALPHA
     config = {
         "ProcessorTool": {
             "EventSource": {

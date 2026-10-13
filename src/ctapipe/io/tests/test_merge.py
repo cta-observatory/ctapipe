@@ -6,7 +6,6 @@ from astropy.utils.data import shutil
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
-from ctapipe.utils.datasets import get_dataset_path
 
 
 def compare_table(in1, in2, merged, table):
@@ -113,10 +112,8 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
             compare_stats_table(in1, in2, merged, table)
 
 
-def test_append(tmp_path, gamma_train_clf, proton_train_clf):
+def test_append(tmp_path, gamma_train_clf, proton_train_clf, gamma_dl2_train_small_h5):
     from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
-
-    gamma_train_en = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
 
     output = tmp_path / "merged_simple.dl2.h5"
     shutil.copy2(gamma_train_clf, output)
@@ -129,7 +126,7 @@ def test_append(tmp_path, gamma_train_clf, proton_train_clf):
         with pytest.raises(
             CannotMerge, match="Required node .*/energy/ExtraTreesRegressor"
         ):
-            merger(gamma_train_en)
+            merger(gamma_dl2_train_small_h5)
 
 
 def test_filter_column(tmp_path, dl2_shower_geometry_file):
