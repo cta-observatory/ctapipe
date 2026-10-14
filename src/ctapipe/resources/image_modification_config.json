@@ -5,6 +5,11 @@
             "email": "youremail@example.org",
             "organization": "CTA Consortium"
         },
+        "Curation": {
+            "release": "YOUR-DATA-RELEASE",
+            "license": "YOUR-LICENSE",
+            "copyright": "YOUR-COPYRIGHT"
+        },
         "overwrite": false,
         "write_dl1_images": true,
         "write_dl1_parameters": true,

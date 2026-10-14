@@ -1,4 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+import gzip
 import json
 import logging
 import os
@@ -6,6 +7,7 @@ import re
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from astropy.table import Table
@@ -18,11 +20,17 @@ from .download import download_file_cached, get_cache_path
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "get_dataset_path",
-    "find_in_path",
-    "find_all_matching_datasets",
-    "get_default_url",
     "DEFAULT_URL",
+    "find_all_matching_datasets",
+    "find_in_path",
+    "get_dataset_path",
+    "get_default_url",
+    "get_file_type",
+    "get_searchpath_dirs",
+    "get_structured_dataset",
+    "get_table_dataset",
+    "resource_file",
+    "try_filetypes",
 ]
 
 
@@ -307,3 +315,36 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 def resource_file(filename):
     """Get the absolute path of ctapipe resource files."""
     return files("ctapipe").joinpath("resources", filename)
+
+
+def get_file_type(
+    path: str | Path,
+) -> Literal["hdf5", "fits", "ecsv", "json"] | None:
+    """Determine the file type from its contents.
+
+    Supports HDF5, FITS, ECSV, and JSON, including gzip-compressed files.
+    Returns None if the file type is not recognized.
+    """
+    path = Path(path)
+    header_bytes = 8
+
+    with path.open("rb") as f:
+        first_bytes = f.read(header_bytes)
+
+    if first_bytes.startswith(b"\x1f\x8b"):
+        with gzip.open(path, "rb") as f:
+            first_bytes = f.read(header_bytes)
+
+    if first_bytes.startswith(b"\x89HDF\r\n\x1a\n"):
+        return "hdf5"
+
+    if first_bytes.startswith(b"SIMPLE"):
+        return "fits"
+
+    if first_bytes.startswith(b"# %ECSV"):
+        return "ecsv"
+
+    if first_bytes.lstrip().startswith(b"{"):
+        return "json"
+
+    return None

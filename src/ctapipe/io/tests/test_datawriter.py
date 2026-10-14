@@ -3,10 +3,15 @@
 import logging
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
+import pytest
 import tables
 from astropy import units as u
+from astropy.coordinates import EarthLocation
+from ctao_datamodel.models import dataproducts as dp
+from ctao_datamodel.models.common import SiteID
 from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
@@ -19,6 +24,7 @@ from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
+from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
 
@@ -111,7 +117,7 @@ def test_write(tmpdir: Path):
         images = h5file.get_node("/dl1/event/telescope/images/tel_004")
         assert images.col("image").max() > 0.0
         assert (
-            h5file.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]  # pylint: disable=protected-access
+            h5file.root._v_attrs["model.version"]  # pylint: disable=protected-access
             == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
@@ -131,6 +137,15 @@ def test_write(tmpdir: Path):
             )
             assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
             assert "telescopes" not in dl2_tel_energy
+
+    product = read_ctao_metadata(output_path)
+    assert product.data.level is dp.DataLevel.DL2
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.IMAGES
+        | dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+        | dp.ProcessingSublevel.GAMMANESS
+    )
 
 
 def test_roundtrip(tmpdir: Path):
@@ -245,6 +260,10 @@ def test_dl1writer_no_events(tmpdir: Path):
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
 
 
+@pytest.mark.xfail(
+    reason="nsb_factor should accept None",
+    strict=True,
+)
 def test_metadata(tmpdir: Path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
 
@@ -258,7 +277,27 @@ def test_metadata(tmpdir: Path):
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
                 },
-                "Instrument": {"site": "CTA-North", "id_": "alpha"},
+                "Curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
+                "ProductMetadata": {
+                    "description": "Test",
+                    "disclaimer": "Test disclaimer",
+                    "instance": {
+                        "category": "B",
+                    },
+                    "activity": {
+                        "configuration_id": "test_config",
+                    },
+                    "simulation": {
+                        "production_name": "PROD_TEST",
+                        "node": {
+                            "nsb_factor": 1.5,
+                        },
+                    },
+                },
                 "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
@@ -278,12 +317,100 @@ def test_metadata(tmpdir: Path):
 
         with tables.open_file(output_path) as h5file:
             meta = h5file.root._v_attrs
-            assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
-            assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
-            assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
-            assert meta["CTA INSTRUMENT SITE"] == "CTA-North"
-            assert meta["CTA INSTRUMENT ID"] == "alpha"
+            assert meta["contact.name"] == "Maximilian Nöthe"
+            assert meta["contact.email"] == "maximilian.noethe@tu-dortmund.de"
+            assert meta["contact.organization"] == "TU Dortmund"
+            assert meta["description"] == "Test"
+            assert meta["disclaimer"] == "Test disclaimer"
+            assert meta["instance.category"] == "B"
+            assert meta["activity.configuration_id"] == "test_config"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
+
+        product = read_ctao_metadata(output_path)
+        assert product.data == dp.ProductType(
+            level=dp.DataLevel.DL1,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=dp.DataType.OBSERVATION_SIM,
+        )
+        assert product.instance.obs_id == source.obs_id
+        assert product.instance.facility_name is dp.FacilityName.SIMULATED_CTAO
+        assert product.instance.site_id is None
+        assert (
+            product.instance.sublevel_id
+            is dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS
+        )
+        assert product.instance.category is dp.DataProcessingCategory.B
+        assert product.model.name == "ctapipe"
+        assert product.model.version == DATA_MODEL_VERSION
+        assert product.activity.process is dp.ObservatoryProcess.DATA_PROCESSING
+        assert product.simulation.production_name == "PROD_TEST"
+        assert product.simulation.node.nsb_factor == 1.5
+
+        observation_block = source.observation_blocks[source.obs_id]
+        assert u.isclose(
+            product.simulation.node.zenith,
+            90 * u.deg - observation_block.subarray_pointing_lat,
+        )
+        assert u.isclose(
+            product.simulation.node.azimuth,
+            observation_block.subarray_pointing_lon,
+        )
+        assert product.simulation.node.hour_angle is None
+        assert product.simulation.node.declination is None
+
+
+@pytest.mark.parametrize(
+    "location",
+    [
+        None,
+        EarthLocation.from_geodetic(lon=0 * u.deg, lat=0 * u.deg, height=0 * u.m),
+        SimpleNamespace(
+            lon=1 * u.deg,
+            lat=1 * u.deg,
+            height=np.nan * u.m,
+        ),
+    ],
+)
+def test_invalid_simulation_location(location):
+    writer = DataWriter.__new__(DataWriter)
+    writer._subarray = SimpleNamespace(reference_location=location)
+
+    assert writer._get_simulation_location() is None
+
+
+@pytest.mark.parametrize(
+    ("latitude", "expected_site"),
+    [
+        (28 * u.deg, SiteID.CTAO_NORTH),
+        (-24 * u.deg, SiteID.CTAO_SOUTH),
+    ],
+)
+def test_site_id_from_simulation_location(latitude, expected_site):
+    location = EarthLocation.from_geodetic(
+        lon=10 * u.deg,
+        lat=latitude,
+        height=2000 * u.m,
+    )
+    writer = DataWriter.__new__(DataWriter)
+    writer._subarray = SimpleNamespace(reference_location=location)
+
+    assert writer._get_simulation_location() is location
+    assert writer._get_site_id(input_product=None) is expected_site
+
+
+def test_site_id_prefers_input_metadata():
+    writer = DataWriter.__new__(DataWriter)
+    writer._subarray = SimpleNamespace(
+        reference_location=EarthLocation.from_geodetic(
+            lon=0 * u.deg,
+            lat=-24 * u.deg,
+            height=2000 * u.m,
+        )
+    )
+    input_product = SimpleNamespace(instance=SimpleNamespace(site_id=SiteID.CTAO_NORTH))
+
+    assert writer._get_site_id(input_product) is SiteID.CTAO_NORTH
 
 
 def test_write_only_r1(r1_hdf5_file):

@@ -1,3 +1,4 @@
+import gzip
 import json
 import os
 from pathlib import Path
@@ -86,3 +87,28 @@ def test_structured_datasets(tmpdir, monkeypatch):
         data1 = datasets.get_structured_dataset("data_test")
     assert data1["x"] == [1, 2, 3, 4, 5]
     assert data1["y"] == "test_yaml"
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (b"\x89HDF\r\n\x1a\n", "hdf5"),
+        (b"SIMPLE  =", "fits"),
+        (b"# %ECSV 1.0\n", "ecsv"),
+        (b'{"key": "value"}', "json"),
+        (b'  {"key": "value"}', "json"),
+        (b"unknown format", None),
+    ],
+)
+def test_get_file_type(tmp_path, content, expected):
+    path = tmp_path / "test.dat"
+    path.write_bytes(content)
+
+    assert datasets.get_file_type(path) == expected
+
+
+def test_get_file_type_gzip(tmp_path):
+    path = tmp_path / "test.fits.gz"
+    path.write_bytes(gzip.compress(b"SIMPLE  ="))
+
+    assert datasets.get_file_type(path) == "fits"
