@@ -169,6 +169,13 @@ class ApplyModels(Tool):
         self._reconstructors = []
         for path in self.reconstructor_paths:
             r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            # older ctapipe versions stored models by the telescope description instance
+            # we now use the string representation. Since we cannot know before-hand which
+            # class we are loading from `path`, we cannot rely on the overridden `SKLearnReconstructor.read`.
+            if hasattr(r, "_models"):
+                str_models = {str(key): model for key, model in r._models.items()}
+                r._models = str_models
+
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
             self._reconstructors.append(r)
