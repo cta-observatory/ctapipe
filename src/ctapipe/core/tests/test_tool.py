@@ -367,9 +367,14 @@ def test_tool_logging_multiple_loggers(capsys):
     )
 
     tool = MyLogTool(config=config)
-    run_tool(tool)
+    original_start = tool.start
 
-    logger.debug("another-debug")
+    def start():
+        original_start()
+        logger.debug("another-debug")
+
+    tool.start = start
+    run_tool(tool)
 
     # split lines and skip last empty line
     log = capsys.readouterr().err.split("\n")[:-1]
