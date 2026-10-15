@@ -3,7 +3,6 @@ import pathlib
 import warnings
 from contextlib import nullcontext
 from enum import Enum, IntFlag, auto, unique
-from functools import lru_cache
 from gzip import GzipFile
 from io import BufferedReader
 
@@ -68,6 +67,7 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
+from ..utils.arrays import cached_arange
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -118,11 +118,6 @@ class SimTelTriggerMask(IntFlag):
     LONG_EVENT = auto()
     MUON = auto()
     RANDOM_MONO = auto()
-
-
-@lru_cache()
-def _get_pixel_index(n_pixels):
-    return np.arange(n_pixels)
 
 
 def _trigger_mask_to_event_type(trigger_mask):
@@ -412,7 +407,7 @@ def apply_gain_selection(r0_waveforms, r1_waveforms, gain_selector):
     r1_waveforms = r1_waveforms[
         np.newaxis,
         selected_gain_channel,
-        _get_pixel_index(r0_waveforms.shape[-2]),
+        cached_arange(r0_waveforms.shape[-2]),
     ]
     return r1_waveforms, selected_gain_channel
 

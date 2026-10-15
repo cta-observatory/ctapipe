@@ -3,8 +3,6 @@ Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
 
-from functools import cache
-
 import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
@@ -20,14 +18,9 @@ from ctapipe.core.traits import (
 from ctapipe.image.extractor import ImageExtractor, VarianceExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
+from ctapipe.utils.arrays import cached_arange
 
 __all__ = ["CameraCalibrator"]
-
-
-@cache
-def _get_pixel_index(n_pixels):
-    """Cached version of ``np.arange(n_pixels)``"""
-    return np.arange(n_pixels)
 
 
 def _select_channel(array, selected_gain_channel, keep_dims=True):
@@ -36,7 +29,7 @@ def _select_channel(array, selected_gain_channel, keep_dims=True):
     For an array of shape (n_channels, n_pixels, ...) return an array
     of shape (n_pixels, ...) for the selected gain give in selected_gain_channel.
     """
-    pixel_index = _get_pixel_index(len(selected_gain_channel))
+    pixel_index = cached_arange(len(selected_gain_channel))
     selected = array[selected_gain_channel, pixel_index]
 
     if keep_dims:
@@ -361,6 +354,8 @@ class CameraCalibrator(TelescopeComponent):
                 dl1.peak_time,
                 invalid_pixels,
             )
+
+        dl1.pixel_status = dl0.pixel_status
 
         # store the results in the event structure
         event.dl1.tel[tel_id] = dl1

@@ -86,6 +86,15 @@ UNKNOWN_TEL_ID = np.uint16(np.iinfo(np.uint16).max)
 obs_id_field = partial(Field, UNKNOWN_ID, description="Observation Block ID")
 event_id_field = partial(Field, UNKNOWN_ID, description="Array Event ID")
 tel_id_field = partial(Field, UNKNOWN_TEL_ID, description="Telescope ID")
+pixel_status_field = partial(
+    Field,
+    default=None,
+    description=(
+        "Array of pixel status values, see PixelStatus for definition of the values"
+    ),
+    dtype=np.uint8,
+    ndim=1,
+)
 
 
 class SchedulingBlockType(enum.Enum):
@@ -263,6 +272,25 @@ class PixelStatus(enum.IntFlag):
         """
         gain_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
         return (pixel_status & gain_bits) >> 2
+
+    @staticmethod
+    def selected_channel(pixel_status):
+        """
+        Return gain-channel indices for selecting per-pixel calibration data.
+
+        Parameters
+        ----------
+        pixel_status : int or array[uint8]
+            Pixel status containing the stored gain-channel bits.
+
+        Returns
+        -------
+        selected_channel : uint8 or array[uint8]
+            1 for pixels with only low gain stored, otherwise 0 (high gain).
+            If both gains are stored, high gain is preferred. Invalid pixels
+            also return 0; use `is_invalid` to identify them separately.
+        """
+        return np.uint8(PixelStatus.get_channel_info(pixel_status) == 2)
 
     @staticmethod
     def is_invalid(pixel_status):
@@ -569,6 +597,7 @@ class DL1CameraContainer(Container):
         dtype=np.bool_,
         ndim=1,
     )
+    pixel_status = pixel_status_field()
     is_valid = Field(
         False,
         (
@@ -628,12 +657,7 @@ class R1CameraContainer(Container):
         ),
     )
 
-    pixel_status = Field(
-        None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
-        ndim=1,
-        dtype=np.uint8,
-    )
+    pixel_status = pixel_status_field()
 
     first_cell_id = Field(
         None,
@@ -718,12 +742,7 @@ class DL0CameraContainer(Container):
         ),
     )
 
-    pixel_status = Field(
-        None,
-        "Array of pixel status values, see PixelStatus for definition of the values",
-        dtype=np.uint8,
-        ndim=1,
-    )
+    pixel_status = pixel_status_field()
 
     first_cell_id = Field(
         None,
@@ -1276,9 +1295,9 @@ class CameraCalibrationContainer(Container):
 class StatisticsContainer(Container):
     """Container for descriptive statistics"""
 
-    mean = Field(None, "mean value")
-    median = Field(None, "median value")
-    std = Field(None, "standard deviation")
+    mean = Field(None, "mean value", dtype=np.float64)
+    median = Field(None, "median value", dtype=np.float64)
+    std = Field(None, "standard deviation", dtype=np.float64)
 
 
 class ChunkContainer(Container):
@@ -1294,8 +1313,8 @@ class ChunkContainer(Container):
         "high resolution end time of the chunk",
         time_resolution=TimeResolution.LOW,
     )
-    event_id_start = Field(None, "event id of the first event of the chunk")
-    event_id_end = Field(None, "event id of the last event of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk", type=int)
+    event_id_end = Field(None, "event id of the last event of the chunk", type=int)
     n_events = Field(
         -1, "number of events used for the calculation of the chunk values"
     )
