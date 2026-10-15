@@ -18,6 +18,7 @@ from ctapipe.io.hdf5dataformat import (
 )
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.reco import Reconstructor
+from ctapipe.reco.sklearn import _model_keys_to_str
 
 __all__ = [
     "ApplyModels",
@@ -173,8 +174,7 @@ class ApplyModels(Tool):
             # we now use the string representation. Since we cannot know before-hand which
             # class we are loading from `path`, we cannot rely on the overridden `SKLearnReconstructor.read`.
             if hasattr(r, "_models"):
-                str_models = {str(key): model for key, model in r._models.items()}
-                r._models = str_models
+                _model_keys_to_str(r, path)
 
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
