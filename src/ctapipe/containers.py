@@ -282,6 +282,25 @@ class PixelStatus(enum.IntFlag):
         return (pixel_status & gain_bits) >> 2
 
     @staticmethod
+    def selected_channel(pixel_status):
+        """
+        Return gain-channel indices for selecting per-pixel calibration data.
+
+        Parameters
+        ----------
+        pixel_status : int or array[uint8]
+            Pixel status containing the stored gain-channel bits.
+
+        Returns
+        -------
+        selected_channel : uint8 or array[uint8]
+            1 for pixels with only low gain stored, otherwise 0 (high gain).
+            If both gains are stored, high gain is preferred. Invalid pixels
+            also return 0; use `is_invalid` to identify them separately.
+        """
+        return np.uint8(PixelStatus.get_channel_info(pixel_status) == 2)
+
+    @staticmethod
     def is_invalid(pixel_status):
         """Return if pixel values are marked as invalid
 
