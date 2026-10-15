@@ -19,6 +19,8 @@ from docutils.core import publish_parts
 from traitlets import List, TraitError, default
 from traitlets.config import Application, Config, Configurable
 
+from ctapipe.core.env import env_bool
+
 from .. import __version__ as version
 from . import Provenance
 from .component import Component
@@ -82,6 +84,10 @@ class Tool(Application):
     User-defined code can raise custom exceptions both in the components
     or in the tool methods. If these custom exceptions have an ``exit_code`` attribute,
     it will be propagated to the final exit code of the tool.
+
+    To disable the exception handling of a Tool to debug it exceptions interactively
+    in the debugger, set the CTAPIPE_TOOL_DEBUG=1 environment variable.
+    This allows e.g. pdb to handle the exception and allow interactive debugging.
 
     .. code:: python
 
@@ -390,7 +396,7 @@ class Tool(Application):
         """
         self.log.info("Goodbye")
 
-    def run(self, argv=None, raises=False):
+    def run(self, argv=None, raises=None):
         """Run the tool.
 
         This automatically calls `~ctapipe.core.tool.Tool.initialize`, `~ctapipe.core.tool.Tool.start` and `~ctapipe.core.tool.Tool.finish`
@@ -403,11 +409,15 @@ class Tool(Application):
             from sys.argv automatically
 
         raises : bool
-            Whether to raise Exceptions (to test them) or not.
+            Whether to re-raise exceptions instead of converting them into exit
+            codes. If None, ``CTAPIPE_TOOL_DEBUG`` environment variable is used.
+            If the variable is not set, this defaults to False.
         """
 
         # return codes are taken from:
         #  https://tldp.org/LDP/abs/html/exitcodes.html
+        if raises is None:
+            raises = env_bool("CTAPIPE_TOOL_DEBUG", False)
 
         status = "completed"
         exit_status = 0
