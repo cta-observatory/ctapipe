@@ -1304,9 +1304,9 @@ class CameraCalibrationContainer(Container):
 class StatisticsContainer(Container):
     """Container for descriptive statistics"""
 
-    mean = Field(None, "mean value")
-    median = Field(None, "median value")
-    std = Field(None, "standard deviation")
+    mean = Field(None, "mean value", dtype=np.float64)
+    median = Field(None, "median value", dtype=np.float64)
+    std = Field(None, "standard deviation", dtype=np.float64)
 
 
 class ChunkContainer(Container):
@@ -1322,8 +1322,8 @@ class ChunkContainer(Container):
         "high resolution end time of the chunk",
         time_resolution=TimeResolution.LOW,
     )
-    event_id_start = Field(None, "event id of the first event of the chunk")
-    event_id_end = Field(None, "event id of the last event of the chunk")
+    event_id_start = Field(None, "event id of the first event of the chunk", type=int)
+    event_id_end = Field(None, "event id of the last event of the chunk", type=int)
     n_events = Field(
         -1, "number of events used for the calculation of the chunk values"
     )

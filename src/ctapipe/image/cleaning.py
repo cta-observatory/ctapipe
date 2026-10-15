@@ -12,6 +12,8 @@ image size and just set unclean pixels to 0 or similar, use
 
 """
 
+from ctapipe.utils.arrays import cached_arange
+
 __all__ = [
     "tailcuts_clean",
     "bright_cleaning",
@@ -36,7 +38,7 @@ import numpy as np
 
 from ctapipe.image.statistics import n_largest
 
-from ..containers import CameraMonitoringContainer
+from ..containers import CameraMonitoringContainer, PixelStatus
 from ..core import TelescopeComponent
 from ..core.traits import (
     BoolTelescopeParameter,
@@ -652,6 +654,7 @@ class ImageCleaner(TelescopeComponent):
         image: np.ndarray,
         arrival_times: np.ndarray = None,
         *,
+        pixel_status: np.ndarray = None,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """
@@ -669,6 +672,10 @@ class ImageCleaner(TelescopeComponent):
         monitoring : `ctapipe.containers.CameraMonitoringContainer`
             `ctapipe.containers.CameraMonitoringContainer` to make use of
             additional parameters from monitoring data e.g. sky pedestal std.
+        pixel_status : np.ndarray or None
+            pixel status, can be used by cleaners to determine
+            selected gain channel and/or invalid pixels together
+            with the monitoring information.
 
         Returns
         -------
@@ -708,6 +715,7 @@ class TailcutsImageCleaner(ImageCleaner):
         image: np.ndarray,
         arrival_times: np.ndarray = None,
         *,
+        pixel_status: np.ndarray = None,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """
@@ -724,10 +732,28 @@ class TailcutsImageCleaner(ImageCleaner):
         )
 
 
+def _get_pedestal_std(monitoring, pixel_status):
+    if monitoring is None:
+        return None
+
+    pedestal_std = monitoring.pixel_statistics.pedestal_image.std
+    if pedestal_std is None:
+        return None
+
+    if pedestal_std.shape[0] == 1:
+        return pedestal_std[0]
+
+    selected_channel = PixelStatus.selected_channel(pixel_status)
+    return pedestal_std[selected_channel, cached_arange(pedestal_std.shape[1])]
+
+
 class NSBImageCleaner(TailcutsImageCleaner):
     """
     Clean images based on lstchains image cleaning technique described in
     :cite:p:`lst1-crab-paper`. See `ctapipe.image.nsb_image_cleaning`.
+
+    For gain-selected images, use the gain-channel bits in ``pixel_status``
+    to select the pedestal statistics for each pixel.
     """
 
     time_limit = FloatTelescopeParameter(
@@ -790,14 +816,13 @@ class NSBImageCleaner(TailcutsImageCleaner):
         image: np.ndarray,
         arrival_times: np.ndarray = None,
         *,
+        pixel_status: np.ndarray = None,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """
         Apply NSB image cleaning used by lstchain. See `ImageCleaner.__call__()`
         """
-        pedestal_std = None
-        if monitoring is not None:
-            pedestal_std = monitoring.pixel_statistics.pedestal_image.std
+        pedestal_std = _get_pedestal_std(monitoring, pixel_status)
 
         return nsb_image_cleaning(
             self.subarray.tel[tel_id].camera.geometry,
@@ -829,6 +854,7 @@ class MARSImageCleaner(TailcutsImageCleaner):
         image: np.ndarray,
         arrival_times: np.ndarray = None,
         *,
+        pixel_status: np.ndarray = None,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """
@@ -861,6 +887,7 @@ class FACTImageCleaner(TailcutsImageCleaner):
         image: np.ndarray,
         arrival_times: np.ndarray = None,
         *,
+        pixel_status: np.ndarray = None,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
@@ -897,6 +924,7 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
         image: np.ndarray,
         arrival_times: np.ndarray = None,
         *,
+        pixel_status: np.ndarray = None,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """

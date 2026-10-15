@@ -18,8 +18,10 @@ from ctapipe.image import ImageCleaner, ImageProcessor
 
 
 @pytest.mark.parametrize("cleaner", ImageCleaner.non_abstract_subclasses().values())
-def test_image_processor(cleaner, example_event, example_subarray):
+@pytest.mark.parametrize("dl1_only", [False, True])
+def test_image_processor(cleaner, dl1_only, example_event, example_subarray):
     """ensure we get parameters out when we input an event with images"""
+    example_event = deepcopy(example_event)
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
@@ -29,7 +31,21 @@ def test_image_processor(cleaner, example_event, example_subarray):
     assert isinstance(process_images.clean, cleaner)
 
     calibrate(example_event)
+    if cleaner.__name__ == "NSBImageCleaner":
+        for tel_id, dl1_camera in example_event.dl1.tel.items():
+            n_channels = example_subarray.tel[tel_id].camera.readout.n_channels
+            pedestal_std = np.ones((n_channels, dl1_camera.image.shape[-1]))
+            if n_channels == 2:
+                pedestal_std[1] = 1000.0
+            monitoring = example_event.monitoring.tel[tel_id].camera
+            monitoring.pixel_statistics.pedestal_image.std = pedestal_std
+    if dl1_only:
+        example_event.r1.tel.clear()
+        example_event.dl0.tel.clear()
     process_images(example_event)
+    if dl1_only:
+        assert not example_event.r1.tel
+        assert not example_event.dl0.tel
 
     for dl1tel in example_event.dl1.tel.values():
         n_survived_pixels = dl1tel.image_mask.sum()
