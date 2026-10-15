@@ -1,0 +1,1 @@
+Add a description of the mirror facets to the optical description of the instrument.
