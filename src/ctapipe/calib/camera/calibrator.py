@@ -362,6 +362,8 @@ class CameraCalibrator(TelescopeComponent):
                 invalid_pixels,
             )
 
+        dl1.pixel_status = dl0.pixel_status
+
         # store the results in the event structure
         event.dl1.tel[tel_id] = dl1
 
