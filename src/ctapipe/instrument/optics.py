@@ -354,6 +354,8 @@ class OpticsDescription:
         total reflective surface area of the optical system (in m^2)
     n_mirror_tiles : int
         number of mirror facets
+    mirrors_description : MirrorDescription or None
+        Optional description of the individual mirror facets of the reflector
 
     Raises
     ------
@@ -381,6 +383,7 @@ class OpticsDescription:
         "n_mirrors",
         "n_mirror_tiles",
         "reflector_shape",
+        "mirrors_description",
     )
 
     @u.quantity_input(
@@ -398,6 +401,7 @@ class OpticsDescription:
         mirror_area,
         n_mirror_tiles,
         reflector_shape,
+        mirrors_description=None,
     ):
         self.name = name
         self.size_type = SizeType(size_type)
@@ -407,6 +411,7 @@ class OpticsDescription:
         self.mirror_area = mirror_area
         self.n_mirrors = n_mirrors
         self.n_mirror_tiles = n_mirror_tiles
+        self.mirrors_description = mirrors_description
 
     def __hash__(self):
         """Make this hashable, so it can be used as dict keys or in sets"""
