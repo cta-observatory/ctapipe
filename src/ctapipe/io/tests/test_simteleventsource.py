@@ -887,3 +887,18 @@ def test_has_true_image_first_missing():
             assert event.simulation.tel[1].true_image is not None
             n_found += 1
         assert n_found == 2
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "expected"),
+    [
+        ("prod6_gamma_lapalma_simtel_path", 1.0),
+        ("prod5_gamma_simtel_path", None),  # no metaparams in prod5 files
+    ],
+)
+def test_nsb_scaling_factor(request, fixture_name, expected):
+    path = request.getfixturevalue(fixture_name)
+
+    with SimTelEventSource(path) as source:
+        config = next(iter(source.simulation_config.values()))
+        assert config["nsb_scaling_factor"] == expected

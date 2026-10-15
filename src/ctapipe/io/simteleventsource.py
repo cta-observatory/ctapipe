@@ -1287,6 +1287,10 @@ class SimTelEventSource(EventSource):
         # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
+        nsb_scaling_factor = self.file_.global_meta.get(b"NSB_SCALING_FACTOR")
+        if nsb_scaling_factor is not None:
+            nsb_scaling_factor = float(nsb_scaling_factor)
+
         simulation_config = SimulationConfigContainer(
             run_number=self.file_.header["run"],
             detector_prog_start=mc_run_head["detector_prog_start"],
@@ -1323,6 +1327,7 @@ class SimTelEventSource(EventSource):
             corsika_wlen_max=mc_run_head["corsika_wlen_max"] * u.nm,
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
+            nsb_scaling_factor=nsb_scaling_factor,
         )
         return {obs_id: simulation_config}
 
