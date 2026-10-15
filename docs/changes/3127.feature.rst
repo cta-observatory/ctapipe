@@ -1,0 +1,9 @@
+ctapipe now uses the str representation of the telescope description
+for machine learning model training and application.
+This allows training and then applying models on slightly different but compatible
+telescope descriptions.
+
+This will also change how many models are trained in case several telescopes
+have different telescope descriptions with the same string representation.
+A single model is now trained for all telescopes sharing the same string representation
+in such cases.

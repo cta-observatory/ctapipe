@@ -165,7 +165,9 @@ class TrainParticleClassifier(Tool):
         Train models per telescope type.
         """
         # By construction both loaders have the same types defined
-        types = self.signal_loader.subarray.telescope_types
+        types = sorted(
+            {str(tel) for tel in self.signal_loader.subarray.telescope_types}
+        )
 
         self.log.info("Signal input-file: %s", self.signal_loader.input_url)
         self.log.info("Background input-file: %s", self.background_loader.input_url)
