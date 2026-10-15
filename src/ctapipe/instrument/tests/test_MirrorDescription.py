@@ -117,3 +117,31 @@ def test_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
     for path in (ecsv_path, fits_path):
         roundtripped = MirrorDescription.from_table(path)
         _check_description(roundtripped)
+
+
+def _optics_kwargs():
+    from ctapipe.instrument.optics import ReflectorShape, SizeType
+
+    return dict(
+        name="test",
+        size_type=SizeType.LST,
+        reflector_shape=ReflectorShape.PARABOLIC,
+        n_mirrors=1,
+        n_mirror_tiles=198,
+        mirror_area=u.Quantity(386, u.m**2),
+        equivalent_focal_length=u.Quantity(28, u.m),
+        effective_focal_length=u.Quantity(29.3, u.m),
+    )
+
+
+def test_optics_mirrors_description_attribute(lst1_mirror_facets_path):
+    """OpticsDescription stores an optional MirrorDescription."""
+    from ctapipe.instrument.optics import OpticsDescription
+
+    optics = OpticsDescription(**_optics_kwargs())
+    assert optics.mirrors_description is None
+
+    mirrors = MirrorDescription.from_table(lst1_mirror_facets_path)
+    optics = OpticsDescription(**_optics_kwargs(), mirrors_description=mirrors)
+    assert optics.mirrors_description is mirrors
+    _check_description(optics.mirrors_description)
