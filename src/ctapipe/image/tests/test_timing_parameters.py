@@ -2,7 +2,8 @@ import astropy.units as u
 import numpy as np
 from numpy.testing import assert_allclose
 
-from ctapipe.containers import CameraHillasParametersContainer
+from ctapipe.containers import HillasParametersContainer
+from ctapipe.coordinates import TelescopeFrame
 
 
 def test_psi_0(prod5_lst):
@@ -16,8 +17,10 @@ def test_psi_0(prod5_lst):
     intercept = 1.0
     deviation = 0.1
 
-    geom = prod5_lst.camera.geometry
-    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
+    hillas = HillasParametersContainer(
+        fov_lon=0 * u.deg, fov_lat=0 * u.deg, psi=0 * u.deg
+    )
 
     random = np.random.default_rng(0)
     peak_time = intercept + grad * geom.pix_x.value
@@ -45,9 +48,9 @@ def test_psi_20(prod5_lst):
     intercept = 1
     deviation = 0.1
 
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
     psi = 20 * u.deg
-    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
+    hillas = HillasParametersContainer(fov_lon=0 * u.deg, fov_lat=0 * u.deg, psi=psi)
 
     random = np.random.default_rng(0)
     peak_time = intercept + grad * (
@@ -76,8 +79,10 @@ def test_ignore_negative(prod5_lst):
     intercept = 1.0
     deviation = 0.1
 
-    geom = prod5_lst.camera.geometry
-    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
+    hillas = HillasParametersContainer(
+        fov_lon=0 * u.deg, fov_lat=0 * u.deg, psi=0 * u.deg
+    )
 
     random = np.random.default_rng(0)
     peak_time = intercept + grad * geom.pix_x.value

@@ -554,8 +554,10 @@ def test_Two_pass_window_sum_no_noise(subarray_1_lst):
     max_time_readout = (n_samples / sampling_rate) * u.ns
 
     # True image settings
-    x = 0.0 * u.m
-    y = 0.0 * u.m
+    # Use different, non-zero coordinates to ensure the second pass uses both
+    # transformed centroid coordinates when predicting pulse times.
+    x = 0.1 * u.m
+    y = -0.05 * u.m
     length = 0.2 * u.m
     width = 0.05 * u.m
     psi = 45.0 * u.deg
@@ -636,7 +638,7 @@ def test_Two_pass_window_sum_no_noise(subarray_1_lst):
     reco_charge2 = np.sum(dl1_pass2.image[signal_pixels & integration_window_inside])
     # since there is no noise in this test, 1st pass will find the peak and 2nd
     # can at most do the same
-    assert (reco_charge2 / reco_charge1) < 1
+    assert (reco_charge2 / reco_charge1) <= 1
     assert dl1_pass1.is_valid
 
     # Test only signal pixels for which it is expected to find most of the

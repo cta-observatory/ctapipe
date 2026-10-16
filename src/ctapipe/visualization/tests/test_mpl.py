@@ -10,10 +10,7 @@ from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
+from ctapipe.containers import HillasParametersContainer
 from ctapipe.coordinates.telescope_frame import TelescopeFrame
 from ctapipe.instrument import PixelShape, SubarrayDescription
 
@@ -87,19 +84,6 @@ def test_camera_display_single(prod5_lst_cam, tmp_path):
 
     disp.add_ellipse(centroid=(0, 0), width=0.1, length=0.1, angle=0.1)
     disp.clear_overlays()
-    fig.savefig(tmp_path / "result.png")
-
-
-def test_hillas_overlay_camera_frame(prod5_lst_cam, tmp_path):
-    from ctapipe.visualization import CameraDisplay
-
-    fig, ax = plt.subplots()
-    disp = CameraDisplay(prod5_lst_cam, ax=ax)
-    hillas = CameraHillasParametersContainer(
-        x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
-    )
-
-    disp.overlay_moments(hillas, color="w")
     fig.savefig(tmp_path / "result.png")
 
 
@@ -208,16 +192,13 @@ def test_array_display(prod5_mst_nectarcam, reference_location):
     # ...with scalar color
     ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m, c=3)
 
-    geom = prod5_mst_nectarcam.camera.geometry
+    geom = prod5_mst_nectarcam.camera.geometry.transform_to(TelescopeFrame())
     rot_angle = 20 * u.deg
-    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
+    hillas = HillasParametersContainer(
+        fov_lon=0 * u.deg, fov_lat=0 * u.deg, psi=rot_angle
+    )
 
-    # test using hillas params CameraFrame:
-    hillas_dict = {
-        1: CameraHillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
-        2: CameraHillasParametersContainer(length=20000 * u.cm, psi="95deg"),
-    }
-
+    # test using hillas params for divergent pointing in telescopeframe:
     grad = 2
     intercept = 1
 
@@ -229,19 +210,11 @@ def test_array_display(prod5_mst_nectarcam, reference_location):
         cleaning_mask=np.ones(geom.n_pixels, dtype=bool),
     )
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
+
     core_dict = {
         tel_id: dl1.parameters.core.psi for tel_id, dl1 in event.dl1.tel.items()
     }
-    ad.set_vector_hillas(
-        hillas_dict=hillas_dict,
-        core_dict=core_dict,
-        length=500,
-        time_gradient=gradient_dict,
-        angle_offset=0 * u.deg,
-    )
-    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
 
-    # test using hillas params for divergent pointing in telescopeframe:
     hillas_dict = {
         1: HillasParametersContainer(
             fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg

@@ -1,11 +1,7 @@
 import astropy.units as u
 import numpy as np
 
-from ..containers import (
-    CameraHillasParametersContainer,
-    ConcentrationContainer,
-    HillasParametersContainer,
-)
+from ..containers import ConcentrationContainer
 from ..instrument import CameraGeometry
 from ..utils.quantities import all_to_value
 from .hillas import camera_to_shower_coordinates
@@ -21,33 +17,43 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     areas to the full intensity of the image.
 
     These features are useful for g/h separation and energy estimation.
+
+    Parameters
+    ----------
+    geom : ctapipe.instrument.CameraGeometry
+        Camera geometry transformed to
+        `~ctapipe.coordinates.TelescopeFrame`. The pixel coordinates must have
+        angular units and use the same frame as ``hillas_parameters``.
+    image : array_like
+        Charge in each pixel after image cleaning.
+    hillas_parameters : ctapipe.containers.HillasParametersContainer
+        Result of :func:`~ctapipe.image.hillas_parameters` for ``geom``, with
+        angular coordinates in the same telescope frame.
+
+    Returns
+    -------
+    ctapipe.containers.ConcentrationContainer
+        Container holding the concentration ratios.
+
+    Raises
+    ------
+    astropy.units.UnitConversionError
+        If the geometry coordinates and Hillas parameters do not have compatible
+        angular units.
     """
 
     h = hillas_parameters
-    if isinstance(h, CameraHillasParametersContainer):
-        unit = h.x.unit
-        pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
-            geom.pix_x,
-            geom.pix_y,
-            h.x,
-            h.y,
-            h.length,
-            h.width,
-            geom.pixel_width,
-            unit=unit,
-        )
-    elif isinstance(h, HillasParametersContainer):
-        unit = h.fov_lon.unit
-        pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
-            geom.pix_x,
-            geom.pix_y,
-            h.fov_lon,
-            h.fov_lat,
-            h.length,
-            h.width,
-            geom.pixel_width,
-            unit=unit,
-        )
+    unit = h.fov_lon.unit
+    pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
+        geom.pix_x,
+        geom.pix_y,
+        h.fov_lon,
+        h.fov_lat,
+        h.length,
+        h.width,
+        geom.pixel_width,
+        unit=unit,
+    )
 
     delta_x = pix_x - x
     delta_y = pix_y - y

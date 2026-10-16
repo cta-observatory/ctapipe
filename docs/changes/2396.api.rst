@@ -1,0 +1,7 @@
+Drop support for computing image parameters in ``CameraFrame`` (meters on the camera plane).
+Going forward, ctapipe only implements computing image parameters in telescope frame (degrees on the sky).
+
+* ``ctapipe-process`` and ``ImageProcessor`` no longer have options to chose between ``CameraFrame`` and ``TelescopeFrame```
+* All image parameter functions do not support inputs in length units anymore
+* If using these low-level functions directly in your code, you will need to transform your camera geometries into ``TelescopeFrame``
+  using ``geometry.transform_to(TelescopeFrame)``. This requires a correctly set ``frame`` attribute with a ``focal_length`` on the ``CameraGeometry``. If reading files using the ``SimTelEventSource`` or ``HDF5EventSource``, this is already the case, io plugins might need to adapt.
