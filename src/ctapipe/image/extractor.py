@@ -38,6 +38,7 @@ from ctapipe.containers import (
     DL1CameraContainer,
     VarianceType,
 )
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -896,6 +897,12 @@ class TwoPassWindowSum(ImageExtractor):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
+        telescope_frame = TelescopeFrame()
+        self.telescope_frame_geometries = {
+            tel_id: telescope.camera.geometry.transform_to(telescope_frame)
+            for tel_id, telescope in self.subarray.tel.items()
+        }
+
         self.invalid_pixel_handler = None
         if self.invalid_pixel_handler_type is not None:
             self.invalid_pixel_handler = InvalidPixelHandler.from_name(
@@ -1110,9 +1117,12 @@ class TwoPassWindowSum(ImageExtractor):
             return charge_1stpass, pulse_time_1stpass, False
 
         # otherwise we proceed by parametrizing the image
-        camera_geometry_brightest = camera_geometry[mask_brightest_island]
+        telescope_frame_geometry = self.telescope_frame_geometries[tel_id]
+        telescope_frame_geometry_brightest = telescope_frame_geometry[
+            mask_brightest_island
+        ]
         charge_brightest = charge_1stpass[mask_brightest_island]
-        hillas = hillas_parameters(camera_geometry_brightest, charge_brightest)
+        hillas = hillas_parameters(telescope_frame_geometry_brightest, charge_brightest)
 
         # STEP 5
 
@@ -1120,7 +1130,7 @@ class TwoPassWindowSum(ImageExtractor):
         # using only the main island surviving the preliminary
         # image cleaning
         timing = timing_parameters(
-            geom=camera_geometry_brightest,
+            geom=telescope_frame_geometry_brightest,
             image=charge_brightest,
             peak_time=pulse_time_1stpass[mask_brightest_island],
             hillas_parameters=hillas,
@@ -1132,10 +1142,10 @@ class TwoPassWindowSum(ImageExtractor):
 
         # get projected distances along main image axis
         longitude, _ = camera_to_shower_coordinates(
-            camera_geometry.pix_x,
-            camera_geometry.pix_y,
+            telescope_frame_geometry.pix_x,
+            telescope_frame_geometry.pix_y,
             hillas.fov_lon,
-            hillas.fov_lon,
+            hillas.fov_lat,
             hillas.psi,
         )
 
