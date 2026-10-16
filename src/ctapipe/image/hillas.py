@@ -69,7 +69,9 @@ def hillas_parameters(geom, image):
     The recommended form is to pass only the sliced geometry and image
     for the pixels to be considered.
 
-    The method also supports giving a full geometry with image as a masked array, however this performs worse than passing geometry and image only for the selected pixels.
+    The method also supports giving a full geometry with image as a masked
+    array, however this performs worse than passing geometry and image only
+    for the selected pixels.
 
     Parameters
     ----------
@@ -94,6 +96,12 @@ def hillas_parameters(geom, image):
         If the shape of image and the number of pixels in geom do not match.
     """
     unit = geom.pix_x.unit
+    if not unit.is_equivalent(u.deg):
+        raise ValueError(
+            "hillas_parameters requires angular pixel coordinates. "
+            "Use geometry.transform_to(TelescopeFrame())."
+        )
+
     pix_x = geom.pix_x.to_value(unit)
     pix_y = geom.pix_y.to_value(unit)
     pix_area = geom.pix_area.to_value(unit**2)

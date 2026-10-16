@@ -266,16 +266,16 @@ def test_single_pixel():
 
 
 def test_psi_uncertainty():
-    x = y = np.arange(3)
-    x, y = np.meshgrid(x, y)
+    x, y = np.meshgrid(np.arange(3), np.arange(3))
 
     geom = CameraGeometry(
         name="testcam",
         pix_id=np.arange(9),
-        pix_x=x.ravel() * u.cm,
-        pix_y=y.ravel() * u.cm,
+        pix_x=x.ravel() * u.deg,
+        pix_y=y.ravel() * u.deg,
         pix_type="rectangular",
-        pix_area=np.full(9, 1.0) * u.cm**2,
+        pix_area=np.full(9, 1.0) * u.deg**2,
+        frame=TelescopeFrame(),
     )
 
     image = np.zeros((3, 3))
