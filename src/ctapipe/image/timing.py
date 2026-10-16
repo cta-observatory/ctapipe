@@ -27,21 +27,33 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
 
     Parameters
     ----------
-    geom: ctapipe.instrument.CameraGeometry
-        Camera geometry
+    geom : ctapipe.instrument.CameraGeometry
+        Camera geometry transformed to
+        `~ctapipe.coordinates.TelescopeFrame`. The pixel coordinates must have
+        angular units and use the same frame as ``hillas_parameters``.
     image : array_like
         Pixel values
     peak_time : array_like
         Time of the pulse extracted from each pixels waveform
-    hillas_parameters: ctapipe.containers.HillasParametersContainer
-        Result of hillas_parameters
-    cleaning_mask: optional, array, dtype=bool
+    hillas_parameters : ctapipe.containers.HillasParametersContainer
+        Result of :func:`~ctapipe.image.hillas_parameters` for ``geom``, with
+        angular coordinates in the same telescope frame.
+    cleaning_mask : array_like of bool, optional
         The pixels that survived cleaning, e.g. tailcuts_clean
         The non-masked pixels must verify signal > 0
 
     Returns
     -------
-    timing_parameters: TimingParametersContainer
+    ctapipe.containers.TimingParametersContainer
+        Container of timing parameters.
+
+    Raises
+    ------
+    ValueError
+        If the unmasked image contains negative values.
+    astropy.units.UnitConversionError
+        If the geometry coordinates and Hillas parameters do not have compatible
+        angular units.
     """
 
     # numba needs arguments to be the same type, so upcast to float64 if necessary

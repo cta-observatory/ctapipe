@@ -17,6 +17,29 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     areas to the full intensity of the image.
 
     These features are useful for g/h separation and energy estimation.
+
+    Parameters
+    ----------
+    geom : ctapipe.instrument.CameraGeometry
+        Camera geometry transformed to
+        `~ctapipe.coordinates.TelescopeFrame`. The pixel coordinates must have
+        angular units and use the same frame as ``hillas_parameters``.
+    image : array_like
+        Charge in each pixel after image cleaning.
+    hillas_parameters : ctapipe.containers.HillasParametersContainer
+        Result of :func:`~ctapipe.image.hillas_parameters` for ``geom``, with
+        angular coordinates in the same telescope frame.
+
+    Returns
+    -------
+    ctapipe.containers.ConcentrationContainer
+        Container holding the concentration ratios.
+
+    Raises
+    ------
+    astropy.units.UnitConversionError
+        If the geometry coordinates and Hillas parameters do not have compatible
+        angular units.
     """
 
     h = hillas_parameters

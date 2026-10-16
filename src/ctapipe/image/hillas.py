@@ -75,16 +75,18 @@ def hillas_parameters(geom, image):
 
     Parameters
     ----------
-    geom: ctapipe.instrument.CameraGeometry
-        Camera geometry, the cleaning mask should be applied to improve performance
+    geom : ctapipe.instrument.CameraGeometry
+        Camera geometry transformed to
+        `~ctapipe.coordinates.TelescopeFrame`. The pixel coordinates must have
+        angular units. The cleaning mask should be applied to improve performance.
     image : array_like
         Charge in each pixel, the cleaning mask should already be applied to
         improve performance.
 
     Returns
     -------
-    HillasParametersContainer:
-        container of hillas parameters
+    ctapipe.containers.HillasParametersContainer
+        Container of Hillas parameters in angular units.
 
     Raises
     ------
@@ -92,8 +94,9 @@ def hillas_parameters(geom, image):
         If the sum of image is equal to 0.0.
     HillasParameterizationError:
         If at least one element of image is negative.
-    ValueError:
-        If the shape of image and the number of pixels in geom do not match.
+    ValueError
+        If the geometry does not use angular pixel coordinates or if the shape of
+        image and the number of pixels in geom do not match.
     """
     unit = geom.pix_x.unit
     if not unit.is_equivalent(u.deg):
