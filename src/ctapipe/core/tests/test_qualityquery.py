@@ -146,3 +146,22 @@ def test_setup():
     # 3-tuple fails
     with pytest.raises(TraitError):
         QualityQuery(quality_criteria=[("1", "2", "3")])
+
+
+def test_add_columns():
+    """Test that we can add columns."""
+
+    query = QualityQuery(
+        quality_criteria=[
+            ("low", "x>0"),
+            ("high", "x < 10"),
+        ],
+    )
+
+    table = Table({"x": [-10, 1, 2, 3, 5, 11, 5]})
+
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert "low" in table_with_cols.colnames
+    assert "high" in table_with_cols.colnames
+    assert table_with_cols["low"].sum() == 6
