@@ -1,0 +1,2 @@
+Add ``nsb_scaling_factor`` field of the ``SimulationConfigurationContainer`` and
+fill it in the ``SimTelEventSource`` if available.
