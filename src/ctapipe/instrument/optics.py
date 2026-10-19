@@ -326,8 +326,8 @@ class OpticsDescription:
 
     #: Version for the new, per-telescope table that will allow describing
     #: mirror facets in the future
-    CURRENT_TEL_TAB_VERSION = "1.0"
-    COMPATIBLE_TEL_TAB_VERSIONS = {"1.0"}
+    CURRENT_TEL_TAB_VERSION = "2.0"
+    COMPATIBLE_TEL_TAB_VERSIONS = {"1.0", "2.0"}
 
     __slots__ = (
         "name",
