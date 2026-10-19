@@ -10,6 +10,7 @@ from pathlib import Path
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import Angle
 from astropy.table import QTable, Table
 from numpy.fft import fft2, fftshift
 from scipy.ndimage import gaussian_filter, map_coordinates
@@ -277,6 +278,40 @@ class MirrorDescription:
         size[self.shape == MirrorFacetShape.UNKNOWN] = np.nan
 
         return size
+
+    @classmethod
+    def get_facet_rotation(cls, shape):
+        """
+        Rotation angle of a mirror facet of the given shape:
+
+        - `MirrorFacetShape.UNKNOWN`: 0 deg
+        - `MirrorFacetShape.CIRCLE`: 0 deg
+        - `MirrorFacetShape.SQUARE`: 45 deg
+        - `MirrorFacetShape.HEXAGON`: 30 deg
+
+        Parameters
+        ----------
+        shape : MirrorFacetShape or str or array_like of these
+            Facet shape(s), either `MirrorFacetShape` members or their
+            string values (e.g. ``"HEXAGON"``)
+
+        Returns
+        -------
+        rotation : astropy.coordinates.Angle
+            Rotation angle for each shape, scalar if ``shape`` is a single
+            shape
+        """
+        rotations = {
+            MirrorFacetShape.UNKNOWN: 0.0,
+            MirrorFacetShape.CIRCLE: 0.0,
+            MirrorFacetShape.SQUARE: 45.0,
+            MirrorFacetShape.HEXAGON: 30.0,
+        }
+
+        if isinstance(shape, MirrorFacetShape | str):
+            return Angle(rotations[MirrorFacetShape(shape)], u.deg)
+
+        return Angle([rotations[MirrorFacetShape(s)] for s in shape], u.deg)
 
 
 class OpticsDescription:
