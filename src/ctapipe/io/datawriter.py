@@ -10,7 +10,8 @@ import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import EarthLocation, Longitude
+from astropy.stats import circmean
 from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
 from traitlets import Dict, Instance
@@ -868,20 +869,32 @@ class DataWriter(Component):
         if input_product is not None and input_product.simulation is not None:
             simulation = input_product.simulation.model_copy(deep=True)
         else:
-            ob = self.event_source.observation_blocks[obs_ids[0]]
-
             production_name = self.product_info.simulation.get("production_name")
             if not production_name:
                 return None
 
+            altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
+            azimuth = Longitude(
+                circmean(
+                    u.Quantity([simulation_config.min_az, simulation_config.max_az])
+                )
+            )
+
             simulation = dp.Simulation(
                 production_name=production_name,
                 node=dp.SimulationGridNode(
-                    zenith=(90 * u.deg - ob.subarray_pointing_lat).to(u.deg),
-                    azimuth=ob.subarray_pointing_lon.to(u.deg),
+                    zenith=(90 * u.deg - altitude).to(u.deg),
+                    azimuth=azimuth.to(u.deg),
                     hour_angle=None,
                     declination=None,
-                    nsb_factor=nsb_factor,
+                    # cond. expr. not needed anymore after fix in ctao_datamodel
+                    nsb_factor=(
+                        nsb_factor
+                        if nsb_factor is not None
+                        else self.product_info.simulation.get("node", {}).get(
+                            "nsb_factor"
+                        )
+                    ),
                 ),
             )
 

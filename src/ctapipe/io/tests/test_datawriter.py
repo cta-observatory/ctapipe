@@ -20,13 +20,14 @@ from ctapipe.containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SimulationConfigContainer,
 )
 from ctapipe.core import Provenance, ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
-from ctapipe.io.metadata import read_ctao_metadata
+from ctapipe.io.metadata import ProductMetadata, read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
 
@@ -287,22 +288,16 @@ def test_dl1writer_no_events(tmpdir: Path):
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
 
 
-@pytest.mark.xfail(
-    reason="nsb_factor should accept None",
-    strict=True,
-)
-def test_metadata(tmpdir: Path):
+def test_metadata(tmpdir: Path, prod6_gamma_simtel_path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
-
-    dataset = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
     config = Config(
         {
             "DataWriter": {
                 "Contact": {
-                    "name": "Maximilian Nöthe",
-                    "email": "maximilian.noethe@tu-dortmund.de",
-                    "organization": "TU Dortmund",
+                    "name": "Maximilian Linhoff",
+                    "email": "maximilian.linhoff@cta-observatory.org",
+                    "organization": "CTAO",
                 },
                 "Curation": {
                     "release": "test",
@@ -330,29 +325,23 @@ def test_metadata(tmpdir: Path):
         }
     )
 
-    writer = None
-    with EventSource(get_dataset_path(dataset)) as source:
-        try:
-            with DataWriter(
-                event_source=source,
-                output_path=output_path,
-                write_dl1_parameters=True,
-                write_dl1_images=True,
-                config=config,
-            ) as writer:
-                pass
-        finally:
-            # DataWriter.finish fails before closing the file until the model is fixed.
-            if writer is not None and writer._writer.h5file.isopen:
-                writer._writer.close()
+    with EventSource(prod6_gamma_simtel_path) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output_path,
+            write_dl1_parameters=True,
+            write_dl1_images=True,
+            config=config,
+        ):
+            pass
 
         assert output_path.exists()
 
         with tables.open_file(output_path) as h5file:
             meta = h5file.root._v_attrs
-            assert meta["contact.name"] == "Maximilian Nöthe"
-            assert meta["contact.email"] == "maximilian.noethe@tu-dortmund.de"
-            assert meta["contact.organization"] == "TU Dortmund"
+            assert meta["contact.name"] == "Maximilian Linhoff"
+            assert meta["contact.email"] == "maximilian.linhoff@cta-observatory.org"
+            assert meta["contact.organization"] == "CTAO"
             assert meta["description"] == "Test"
             assert meta["disclaimer"] == "Test disclaimer"
             assert meta["instance.category"] == "B"
@@ -368,7 +357,7 @@ def test_metadata(tmpdir: Path):
         )
         assert product.instance.obs_id == source.obs_id
         assert product.instance.facility_name is dp.FacilityName.SIMULATED_CTAO
-        assert product.instance.site_id is None
+        assert product.instance.site_id is SiteID.CTAO_SOUTH
         assert (
             product.instance.sublevel_id
             is dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS
@@ -380,17 +369,19 @@ def test_metadata(tmpdir: Path):
         assert product.simulation.production_name == "PROD_TEST"
         assert product.simulation.node.nsb_factor == 1.5
 
-        observation_block = source.observation_blocks[source.obs_id]
+        simulation_config = source.simulation_config[source.obs_id]
+        altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
+        azimuth = (simulation_config.min_az + simulation_config.max_az) / 2
         assert u.isclose(
             product.simulation.node.zenith,
-            90 * u.deg - observation_block.subarray_pointing_lat,
+            90 * u.deg - altitude,
         )
         assert u.isclose(
             product.simulation.node.azimuth,
-            observation_block.subarray_pointing_lon,
+            azimuth,
         )
-        assert product.simulation.node.hour_angle is None
-        assert product.simulation.node.declination is None
+        assert product.simulation.node.hour_angle is not None
+        assert product.simulation.node.declination is not None
 
 
 def test_simulation_metadata_nsb_factor_from_simtel(tmp_path, prod6_gamma_simtel_path):
@@ -416,6 +407,41 @@ def test_simulation_metadata_nsb_factor_from_simtel(tmp_path, prod6_gamma_simtel
     product = read_ctao_metadata(output_path)
 
     assert product.simulation.node.nsb_factor == 1.0
+
+
+@pytest.mark.parametrize(
+    ("min_az", "max_az", "expected_az"),
+    [
+        (20 * u.deg, 40 * u.deg, 30 * u.deg),
+        (359 * u.deg, 1 * u.deg, 0 * u.deg),
+    ],
+)
+def test_simulation_metadata_direction_from_simulation_config(
+    min_az, max_az, expected_az
+):
+    obs_id = 1
+    simulation_config = SimulationConfigContainer(
+        min_alt=60 * u.deg,
+        max_alt=80 * u.deg,
+        min_az=min_az,
+        max_az=max_az,
+    )
+
+    writer = DataWriter.__new__(DataWriter)
+    writer._is_simulation = True
+    writer._subarray = SimpleNamespace(reference_location=None)
+    writer.event_source = SimpleNamespace(
+        obs_ids=[obs_id],
+        simulation_config={obs_id: simulation_config},
+    )
+    writer.product_info = ProductMetadata(
+        simulation={"production_name": "PROD_TEST", "node": {"nsb_factor": 1.5}},
+    )
+
+    simulation = writer._get_simulation_metadata(input_product=None)
+
+    assert u.isclose(simulation.node.zenith, 20 * u.deg)
+    assert u.isclose(simulation.node.azimuth, expected_az)
 
 
 @pytest.mark.parametrize(
