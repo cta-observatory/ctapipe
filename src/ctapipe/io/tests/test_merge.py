@@ -11,6 +11,7 @@ from traitlets.config import Config
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import metadata
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.io.datawriter import DATA_MODEL_VERSION
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 
 
@@ -221,10 +222,10 @@ def test_data_type_compatibility(
 @pytest.mark.parametrize(
     ("merge_strategy", "second_version", "compatible"),
     [
-        ("events-multiple-obs", "v7.6.0", True),
-        ("events-multiple-obs", "v7.5.0", False),
-        ("monitoring-only", "v7.5.0", True),
-        ("monitoring-only", "v7.7.0", False),
+        ("events-multiple-obs", DATA_MODEL_VERSION, True),
+        ("events-multiple-obs", "unsupported-version", False),
+        ("monitoring-only", DATA_MODEL_VERSION, True),
+        ("monitoring-only", "unsupported-version", False),
     ],
 )
 def test_data_model_version_compatibility(
@@ -234,7 +235,7 @@ def test_data_model_version_compatibility(
 
     other = SimpleNamespace(filename="input.h5")
     with HDF5Merger(tmp_path / "merged.h5", merge_strategy=merge_strategy) as merger:
-        merger.data_model_version = "v7.6.0"
+        merger.data_model_version = DATA_MODEL_VERSION
 
         if compatible:
             merger._check_data_model_version(other, second_version)
