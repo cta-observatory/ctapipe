@@ -288,7 +288,7 @@ def test_dl1writer_no_events(tmpdir: Path):
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
 
 
-def test_metadata(tmpdir: Path, prod6_gamma_simtel_path):
+def test_metadata(tmpdir: Path, prod6_gamma_simtel_path, provenance):
     output_path = Path(tmpdir / "metadata.dl1.h5")
 
     config = Config(
