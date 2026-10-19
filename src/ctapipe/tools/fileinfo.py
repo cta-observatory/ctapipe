@@ -65,7 +65,7 @@ def fileinfo(args):
 
     for filename in args.files:
         info, table_row = _read_file_info(filename, args.flat)
-        print(yaml.dump({filename: info}, indent=4))
+        print(yaml.dump({filename: info}, indent=4, sort_keys=False))
 
         if args.output_table and table_row is not None:
             files.append(table_row)
