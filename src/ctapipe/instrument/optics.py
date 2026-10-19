@@ -452,6 +452,7 @@ class OpticsDescription:
                 self.reflector_shape.value,
                 self.n_mirrors,
                 self.n_mirror_tiles,
+                self.mirrors_description,
             )
         )
 
