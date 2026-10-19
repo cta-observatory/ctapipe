@@ -230,15 +230,13 @@ def test_precal_neighbors():
 def test_slicing(prod5_mst_nectarcam):
     """Check that we can slice a camera into a smaller one"""
     prod5_nectarcam = prod5_mst_nectarcam.camera.geometry
-    frame = CameraFrame(focal_length=16 * u.m)
-    prod5_nectarcam.frame = frame
     sliced1 = prod5_nectarcam[100:200]
 
     assert len(sliced1.pix_x) == 100
     assert len(sliced1.pix_y) == 100
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
-    assert sliced1.frame is frame
+    assert sliced1.frame is prod5_nectarcam.frame
 
     sliced2 = prod5_nectarcam[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
