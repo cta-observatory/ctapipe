@@ -7,6 +7,7 @@ import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 
+from ctapipe.coordinates import CameraFrame
 from ctapipe.instrument import CameraGeometry, PixelShape
 from ctapipe.instrument.warnings import FromNameWarning
 
@@ -229,12 +230,15 @@ def test_precal_neighbors():
 def test_slicing(prod5_mst_nectarcam):
     """Check that we can slice a camera into a smaller one"""
     prod5_nectarcam = prod5_mst_nectarcam.camera.geometry
+    frame = CameraFrame(focal_length=16 * u.m)
+    prod5_nectarcam.frame = frame
     sliced1 = prod5_nectarcam[100:200]
 
     assert len(sliced1.pix_x) == 100
     assert len(sliced1.pix_y) == 100
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
+    assert sliced1.frame is frame
 
     sliced2 = prod5_nectarcam[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
@@ -316,7 +320,6 @@ def test_camera_from_name(camera_geometry):
 def test_camera_coordinate_transform(camera_geometry):
     """test conversion of the coordinates stored in a camera frame"""
     from ctapipe.coordinates import (
-        CameraFrame,
         EngineeringCameraFrame,
         NominalFrame,
         TelescopeFrame,

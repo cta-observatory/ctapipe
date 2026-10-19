@@ -396,6 +396,7 @@ class CameraGeometry:
             neighbors=None,
             apply_derotation=False,
             _validate=False,
+            frame=self.frame,
         )
 
     @lazyproperty
