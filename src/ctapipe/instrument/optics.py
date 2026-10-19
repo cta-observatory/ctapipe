@@ -202,6 +202,26 @@ class MirrorDescription:
         self.surface_area = surface_area
         self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
 
+    def __hash__(self):
+        """Make this hashable, so it can be used as dict keys or in sets"""
+        return hash(
+            (
+                np.asarray(self.id, dtype=np.int64).tobytes(),
+                tuple(np.round(self.x.to_value(u.m), 4).tolist()),
+                tuple(np.round(self.y.to_value(u.m), 4).tolist()),
+                tuple(np.round(self.z.to_value(u.m), 4).tolist()),
+                tuple(np.round(self.nx, 6).tolist()),
+                tuple(np.round(self.ny, 6).tolist()),
+                tuple(np.round(self.nz, 6).tolist()),
+                tuple(np.round(self.surface_area.to_value(u.m**2), 4).tolist()),
+                tuple(shape.value for shape in self.shape),
+            )
+        )
+
+    def __eq__(self, other):
+        """For eq, we just compare equal hash"""
+        return hash(self) == hash(other)
+
     def __str__(self, n_str=3):
         """
         Summary of the mirror facets: a header with the total number of
