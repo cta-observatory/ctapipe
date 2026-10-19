@@ -878,8 +878,17 @@ class DataWriter(Component):
             )
 
         if simulation.node is not None:
-            location = self._get_simulation_location()
+            global_meta = getattr(
+                getattr(self.event_source, "file_", None),
+                "global_meta",
+                {},
+            )
+            simtel_nsb_factor = global_meta.get(b"NSB_SCALING_FACTOR")
 
+            if simtel_nsb_factor is not None:
+                simulation.node.nsb_factor = float(simtel_nsb_factor)
+
+            location = self._get_simulation_location()
             if location is not None:
                 simulation.node.validate_coordinates(location)
 
