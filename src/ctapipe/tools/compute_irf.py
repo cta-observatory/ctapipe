@@ -528,16 +528,10 @@ class IrfTool(Tool):
         else:
             aeff_multiple_fov_bins = self.effective_area_maker.fov_offset_n_bins > 1
 
-        if (
-            self.energy_dispersion_maker.fov_offset_n_bins > 1
-            or aeff_multiple_fov_bins
-        ):
+        if self.energy_dispersion_maker.fov_offset_n_bins > 1 or aeff_multiple_fov_bins:
             raise ToolConfigurationError(errormessage)
 
-        if (
-            not self.spatial_selection_applied
-            and self.psf_maker.fov_offset_n_bins > 1
-        ):
+        if not self.spatial_selection_applied and self.psf_maker.fov_offset_n_bins > 1:
             raise ToolConfigurationError(errormessage)
 
         if self.do_background and self.background_maker.fov_offset_n_bins > 1:
