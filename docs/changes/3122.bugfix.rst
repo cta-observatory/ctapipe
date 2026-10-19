@@ -1,0 +1,2 @@
+Prevent ``DataWriter`` from overwriting input files of the current ``Activity`` to prevent data loss, even
+when the ``overwrite`` option is enabled.

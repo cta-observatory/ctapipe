@@ -151,7 +151,7 @@ def read_training_events(
         )
 
     if n_non_predictable > 0:
-        log.warning("Dropping %d non-predictable events.", n_non_predictable)
+        log.warning("Dropped %d non-predictable events.", n_non_predictable)
 
     if n_events is not None:
         if n_events > len(table):

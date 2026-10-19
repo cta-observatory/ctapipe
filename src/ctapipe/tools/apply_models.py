@@ -18,6 +18,7 @@ from ctapipe.io.hdf5dataformat import (
 )
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.reco import Reconstructor
+from ctapipe.reco.sklearn import _model_keys_to_str
 
 __all__ = [
     "ApplyModels",
@@ -169,6 +170,12 @@ class ApplyModels(Tool):
         self._reconstructors = []
         for path in self.reconstructor_paths:
             r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            # older ctapipe versions stored models by the telescope description instance
+            # we now use the string representation. Since we cannot know before-hand which
+            # class we are loading from `path`, we cannot rely on the overridden `SKLearnReconstructor.read`.
+            if hasattr(r, "_models"):
+                _model_keys_to_str(r, path)
+
             if self.n_jobs:
                 r.n_jobs = self.n_jobs
             self._reconstructors.append(r)
@@ -201,19 +208,19 @@ class ApplyModels(Tool):
         prefix = reconstructor.prefix
 
         for tel_id, table in tel_tables.items():
-            tel = self.loader.subarray.tel[tel_id]
+            tel_type = str(self.loader.subarray.tel[tel_id])
 
             if len(table) == 0:
                 self.log.info("No events for telescope %d", tel_id)
                 continue
 
             try:
-                predictions = reconstructor.predict_table(tel, table)
+                predictions = reconstructor.predict_table(tel_type, table)
             except KeyError:
                 self.log.warning(
                     "No model in %s for telescope type %s, skipping tel %d",
                     reconstructor,
-                    tel,
+                    tel_type,
                     tel_id,
                 )
                 continue

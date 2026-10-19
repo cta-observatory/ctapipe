@@ -46,7 +46,8 @@ def _get_tel_index(event, tel_id):
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v7.7.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v7.7.0: - Add new field pixel_status in DL1CameraContainer.
+- v7.7.0: - Add pixel_status field to DL1CameraContainer.
+          - Add field "nsb_scaling_factor" to the simulation configuration
 - v7.6.0: - Add new monitoring group for pixel histograms: DL1_PIXEL_HISTOGRAMS_GROUP.
 - v7.5.0: - Add new field pixel_time_shift in R1CameraContainer and DL0CameraContainer
 - v7.4.0: - Add new data quality and top-level monitoring groups for DL0 and DL1 data.
@@ -414,12 +415,19 @@ class DataWriter(Component):
         self.log.debug("compression filters: %s", self._hdf5_filters)
 
     def _setup_output_path(self):
-        """
-        ensure output path exists, and if requested delete what is there for
-        overwriting
-        """
+        """Validate the output path and prevent overwriting the input file."""
         self.output_path = self.output_path.expanduser()
         if self.output_path.exists():
+            activity = Provenance().current_activity
+
+            if activity is not None:
+                for input_ in activity.input:
+                    input_path = pathlib.Path(input_["url"])
+
+                    if input_path.exists() and self.output_path.samefile(input_path):
+                        raise ToolConfigurationError(
+                            "Input and output files must not be the same."
+                        )
             if self.overwrite:
                 self.log.warning("Overwriting %s", self.output_path)
                 self.output_path.unlink()

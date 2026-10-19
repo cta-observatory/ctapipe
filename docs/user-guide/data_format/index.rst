@@ -89,10 +89,10 @@ DL2 Data Format
 ===============
 
 This describes data that change per-event. The following datasets will be
-written to the group ``/dl2/event/subarray/<algorithm>/`` and or
-``/dl2/event/telescope/<algorithm>/``, one for each reconstruction algorithm in the
-output file, where ``<algorithm>`` is the identifier of the algorithm
-(e.g. "HillasReconstructor"):
+written to the groups ``/dl2/event/subarray/<reconstruction>/<algorithm>`` and/or
+``/dl2/event/telescope/<reconstruction>/<algorithm>/tel_{TEL_ID:03d}``, one for each
+reconstruction type and algorithm in the output file, where ``<algorithm>`` is the
+identifier of the algorithm (e.g. "HillasReconstructor"):
 
 .. list-table::
     :widths: 25 50 25
@@ -101,13 +101,13 @@ output file, where ``<algorithm>`` is the identifier of the algorithm
     * - Group/Dataset
       - Description
       - Contents
-    * - /geometry
+    * - ``geometry``
       - shower geometry reconstruction
       - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedGeometryContainer`
-    * - /energy
+    * - ``energy``
       - shower energy reconstruction
       - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
-    * - /particle_type
+    * - ``particle_type``
       - shower classification parameters
       - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
 

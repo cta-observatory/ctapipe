@@ -931,6 +931,10 @@ class SimulationConfigContainer(Container):
         nan, description="More details on high E interaction model (version etc.)"
     )
 
+    nsb_scaling_factor = Field(
+        None, description="Simulated NSB as multiple of the nominal dark night NSB."
+    )
+
 
 class SimulatedShowerDistribution(Container):
     """
