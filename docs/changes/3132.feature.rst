@@ -1,0 +1,10 @@
+Allow disabling the exception handling in ``Tool`` by setting the environment
+variable ``CTAPIPE_TOOL_DEBUG=1``. This is useful for debugging exceptions using
+pdb using e.g.:
+
+.. code-block:: shell
+
+   CTAPIPE_TOOL_DEBUG=1 python -m pdb -m ctapipe.tools.process -i ... -o ...
+
+By default, tool catches exceptions and transforms them into log messages, preventing
+the use of the debugger.
