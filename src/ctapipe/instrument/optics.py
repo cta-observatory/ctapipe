@@ -124,9 +124,10 @@ class MirrorDescription:
     shape. All per-facet inputs must be one-dimensional arrays of the same
     length (one entry per facet).
 
-    A `MirrorDescription` can be read from (and written to) a FITS or ECSV
-    table using `OpticsDescription.from_mirror_description_table` and
-    `MirrorDescription.to_table`.
+    A `MirrorDescription` is written as the rows of the table returned by
+    `OpticsDescription.to_table` and can be read back from such a table
+    (or a FITS or ECSV file containing it) using
+    `OpticsDescription.from_mirror_description_table`.
 
     Parameters
     ----------
@@ -242,28 +243,6 @@ class MirrorDescription:
             for i in range(min(n_str, len(self.id)))
         ]
         return "\n".join([header, *rows])
-
-    def to_table(self):
-        """
-        Convert this MirrorDescription to an astropy Table.
-
-        See `OpticsDescription.from_mirror_description_table` for the opposite operation.
-        """
-        return Table(
-            [
-                self.id,
-                self.x,
-                self.y,
-                self.z,
-                self.nx,
-                self.ny,
-                self.nz,
-                self.surface_area,
-                np.array([shape.value for shape in self.shape]),
-            ],
-            names=["mirror_id", "x", "y", "z", "nx", "ny", "nz", "surface", "shape"],
-            meta={"EXTNAME": "MIRRORS"},
-        )
 
     def get_facet_size(self):
         """
@@ -509,9 +488,41 @@ class OpticsDescription:
         """
         Convert this OpticsDescription to an astropy Table for writing to files.
 
+        If ``mirrors_description`` is set, the table has one row per mirror
+        facet, with columns ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``,
+        ``nz``, ``surface`` and ``shape``. Otherwise the table has no rows and
+        only the metadata describes the optics.
+
         See `OpticsDescription.from_table` for the opposite operation.
         """
-        table = Table()
+        mirrors = self.mirrors_description
+        if mirrors is None:
+            table = Table()
+        else:
+            table = Table(
+                [
+                    mirrors.id,
+                    mirrors.x,
+                    mirrors.y,
+                    mirrors.z,
+                    mirrors.nx,
+                    mirrors.ny,
+                    mirrors.nz,
+                    mirrors.surface_area,
+                    np.array([shape.value for shape in mirrors.shape]),
+                ],
+                names=[
+                    "mirror_id",
+                    "x",
+                    "y",
+                    "z",
+                    "nx",
+                    "ny",
+                    "nz",
+                    "surface",
+                    "shape",
+                ],
+            )
         table.meta["TAB_VER"] = self.CURRENT_TEL_TAB_VERSION
         table.meta["optics_name"] = self.name
         table.meta["size_type"] = self.size_type.value
@@ -530,6 +541,9 @@ class OpticsDescription:
         """
         Create an OpticsDescription instance from an astropy Table.
 
+        If the table contains mirror facet rows, they are read into
+        ``mirrors_description``, otherwise it is set to None.
+
         See `OpticsDescription.to_table` for the opposite operation.
         """
         if not isinstance(table, Table):
@@ -538,6 +552,10 @@ class OpticsDescription:
         version = table.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_TEL_TAB_VERSIONS:
             raise OSError(f"Unsupported telescope optics table version: {version}")
+
+        mirrors_description = None
+        if "mirror_id" in table.colnames:
+            mirrors_description = cls.from_mirror_description_table(table)
 
         return cls(
             name=table.meta["optics_name"],
@@ -552,6 +570,7 @@ class OpticsDescription:
             n_mirror_tiles=table.meta["n_mirror_tiles"],
             reflector_shape=ReflectorShape(table.meta["reflector_shape"]),
             mirror_area=u.Quantity(table.meta["mirror_area"], u.m**2),
+            mirrors_description=mirrors_description,
         )
 
     @staticmethod
