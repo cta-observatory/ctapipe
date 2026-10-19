@@ -4,7 +4,11 @@ import astropy.units as u
 import numpy as np
 import pytest
 
-from ctapipe.instrument.optics import MirrorDescription, MirrorFacetShape
+from ctapipe.instrument.optics import (
+    MirrorDescription,
+    MirrorFacetShape,
+    OpticsDescription,
+)
 
 
 def _check_description(description):
@@ -26,13 +30,17 @@ def _check_description(description):
 
 
 def test_mirror_facets_description_from_ecsv(lst1_mirror_facets_path):
-    description = MirrorDescription.from_table(lst1_mirror_facets_path)
+    description = OpticsDescription.from_mirror_description_table(
+        lst1_mirror_facets_path
+    )
     _check_description(description)
 
 
 def test_get_facet_size_from_table(lst1_mirror_facets_path):
     """flat-to-flat distance for the (all-hexagon) LST1 facet table."""
-    description = MirrorDescription.from_table(lst1_mirror_facets_path)
+    description = OpticsDescription.from_mirror_description_table(
+        lst1_mirror_facets_path
+    )
     size = description.get_facet_size()
 
     expected = np.sqrt(2 * description.surface_area[0] / np.sqrt(3))
@@ -84,7 +92,9 @@ def test_init_x_wrong_unit_type(wrong_unit):
 
 
 def test_to_table_roundtrip(lst1_mirror_facets_path):
-    description = MirrorDescription.from_table(lst1_mirror_facets_path)
+    description = OpticsDescription.from_mirror_description_table(
+        lst1_mirror_facets_path
+    )
     table = description.to_table()
 
     assert table.colnames == [
@@ -100,13 +110,15 @@ def test_to_table_roundtrip(lst1_mirror_facets_path):
     ]
     assert table.meta["EXTNAME"] == "MIRRORS"
 
-    roundtripped = MirrorDescription.from_table(table)
+    roundtripped = OpticsDescription.from_mirror_description_table(table)
     _check_description(roundtripped)
     np.testing.assert_array_equal(roundtripped.id, description.id)
 
 
 def test_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
-    description = MirrorDescription.from_table(lst1_mirror_facets_path)
+    description = OpticsDescription.from_mirror_description_table(
+        lst1_mirror_facets_path
+    )
     table = description.to_table()
 
     ecsv_path = tmp_path / "roundtrip.ecsv"
@@ -115,7 +127,7 @@ def test_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
     table.write(fits_path)
 
     for path in (ecsv_path, fits_path):
-        roundtripped = MirrorDescription.from_table(path)
+        roundtripped = OpticsDescription.from_mirror_description_table(path)
         _check_description(roundtripped)
 
 
@@ -136,12 +148,10 @@ def _optics_kwargs():
 
 def test_optics_mirrors_description_attribute(lst1_mirror_facets_path):
     """OpticsDescription stores an optional MirrorDescription."""
-    from ctapipe.instrument.optics import OpticsDescription
-
     optics = OpticsDescription(**_optics_kwargs())
     assert optics.mirrors_description is None
 
-    mirrors = MirrorDescription.from_table(lst1_mirror_facets_path)
+    mirrors = OpticsDescription.from_mirror_description_table(lst1_mirror_facets_path)
     optics = OpticsDescription(**_optics_kwargs(), mirrors_description=mirrors)
     assert optics.mirrors_description is mirrors
     _check_description(optics.mirrors_description)
@@ -149,8 +159,12 @@ def test_optics_mirrors_description_attribute(lst1_mirror_facets_path):
 
 def test_mirror_description_hash_eq(lst1_mirror_facets_path):
     """Equal facets give equal hashes, also across units and table roundtrips."""
-    description = MirrorDescription.from_table(lst1_mirror_facets_path)
-    roundtripped = MirrorDescription.from_table(description.to_table())
+    description = OpticsDescription.from_mirror_description_table(
+        lst1_mirror_facets_path
+    )
+    roundtripped = OpticsDescription.from_mirror_description_table(
+        description.to_table()
+    )
     assert description == roundtripped
     assert hash(description) == hash(roundtripped)
 
@@ -183,14 +197,14 @@ def test_mirror_description_hash_eq(lst1_mirror_facets_path):
 
 
 def test_optics_hash_eq_includes_mirrors_description(lst1_mirror_facets_path):
-    from ctapipe.instrument.optics import OpticsDescription
-
-    mirrors = MirrorDescription.from_table(lst1_mirror_facets_path)
+    mirrors = OpticsDescription.from_mirror_description_table(lst1_mirror_facets_path)
     without = OpticsDescription(**_optics_kwargs())
     with_mirrors = OpticsDescription(**_optics_kwargs(), mirrors_description=mirrors)
     with_same_mirrors = OpticsDescription(
         **_optics_kwargs(),
-        mirrors_description=MirrorDescription.from_table(mirrors.to_table()),
+        mirrors_description=OpticsDescription.from_mirror_description_table(
+            mirrors.to_table()
+        ),
     )
 
     assert without == OpticsDescription(**_optics_kwargs())
