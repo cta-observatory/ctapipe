@@ -1,0 +1,4 @@
+Apply event gain selection when ``HDF5MonitoringSource`` fills camera monitoring
+containers. Pixel statistics match the gain-selected image, fixing NSB cleaning
+with dual-gain pedestal statistics. Calibration coefficients keep a singleton
+channel axis, and ``CameraCalibrator`` accepts already-selected coefficients.

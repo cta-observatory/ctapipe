@@ -265,6 +265,11 @@ def test_roundtrip(tmpdir: Path, south_site_config):
                 read_peaktime = tel_event.dl1.peak_time
                 assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
+                np.testing.assert_array_equal(
+                    tel_event.dl1.pixel_status,
+                    events[event.count].tel[tel_id].dl1.pixel_status,
+                )
+
 
 def test_dl1writer_no_events(tmpdir: Path, south_site_config):
     """
