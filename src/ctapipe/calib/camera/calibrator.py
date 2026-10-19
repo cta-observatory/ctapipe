@@ -35,9 +35,13 @@ def _select_channel(array, selected_gain_channel, keep_dims=True):
 
     For an array of shape (n_channels, n_pixels, ...) return an array
     of shape (n_pixels, ...) for the selected gain give in selected_gain_channel.
+    Arrays with a singleton channel axis are treated as already selected.
     """
     pixel_index = _get_pixel_index(len(selected_gain_channel))
-    selected = array[selected_gain_channel, pixel_index]
+    # Monitoring sources can already have applied the gain selection.
+    selected = (
+        array[0] if array.shape[0] == 1 else array[selected_gain_channel, pixel_index]
+    )
 
     if keep_dims:
         return selected[np.newaxis]
@@ -248,7 +252,7 @@ class CameraCalibrator(TelescopeComponent):
         calib_time_shift = calib.time_shift
         pixel_time_shift = dl0.pixel_time_shift
 
-        # calib time shifts should always come for both gain channels
+        # Calibration time shifts may already have been gain selected.
         if calib_time_shift is not None and dl0.selected_gain_channel is not None:
             calib_time_shift = _select_channel(
                 calib_time_shift, dl0.selected_gain_channel, keep_dims=False
@@ -362,8 +366,8 @@ class CameraCalibrator(TelescopeComponent):
                 invalid_pixels,
             )
 
+        # Preserve gain selection for monitoring when reprocessing DL1 images.
         dl1.pixel_status = dl0.pixel_status
-
         # store the results in the event structure
         event.dl1.tel[tel_id] = dl1
 

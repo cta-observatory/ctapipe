@@ -1,9 +1,13 @@
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
 from astropy.time import Time
 
+from ctapipe.containers import ArrayEventContainer, PixelStatus
 from ctapipe.exceptions import InputMissing
+from ctapipe.image import NSBImageCleaner
 from ctapipe.io import (
     EventSource,
     HDF5MonitoringSource,
@@ -114,7 +118,10 @@ def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
             for column in ["factor", "pedestal_offset", "time_shift", "outlier_mask"]:
                 np.testing.assert_array_equal(
                     e.monitoring.tel[tel_id].camera.coefficients[column],
-                    camcalib_coefficients[column],
+                    camcalib_coefficients[column][
+                        e.r1.tel[tel_id].selected_gain_channel,
+                        np.arange(len(e.r1.tel[tel_id].selected_gain_channel)),
+                    ][np.newaxis],
                     err_msg=(
                         f"'{column}' do not match after reading the monitoring file "
                         "through the HDF5MonitoringSource."
@@ -401,7 +408,10 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
         for column in columns_to_check:
             np.testing.assert_array_equal(
                 coefficients[column],
-                camcalib_coefficients[column][expected_bin],
+                camcalib_coefficients[column][expected_bin][
+                    event.r1.tel[tel_id].selected_gain_channel,
+                    np.arange(len(event.r1.tel[tel_id].selected_gain_channel)),
+                ][np.newaxis],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
                     "through the HDF5MonitoringSource."
@@ -751,3 +761,102 @@ def test_unavailable_telescope(dl1_merged_monitoring_file):
             source.get_telescope_values(
                 tel_id, None, TelescopeMonitoringType.CAMERA_COEFFICIENTS
             )
+
+
+@pytest.mark.parametrize("level", ["r1", "dl0", "dl1"])
+@pytest.mark.parametrize("gain_selected", [False, True])
+@pytest.mark.parametrize("n_channels", [1, 2])
+def test_fill_monitoring_gain_selection(
+    level, gain_selected, n_channels, monkeypatch, calibpipe_camcalib_sims_single_chunk
+):
+    with HDF5MonitoringSource(
+        input_files=[calibpipe_camcalib_sims_single_chunk]
+    ) as source:
+        tel_id = source.subarray.tel_ids[0]
+        if n_channels == 1:
+            monkeypatch.setattr(
+                source.subarray.tel[tel_id].camera.readout, "n_channels", 1
+            )
+            get_values = source.get_telescope_values
+
+            def single_channel_values(*args, **kwargs):
+                return {
+                    name: value[:1]
+                    if isinstance(value, np.ndarray) and value.ndim == 2
+                    else value
+                    for name, value in get_values(*args, **kwargs).items()
+                }
+
+            monkeypatch.setattr(source, "get_telescope_values", single_channel_values)
+        full = deepcopy(source.get_camera_monitoring_container(tel_id))
+        assert full.coefficients.factor.shape[0] == n_channels
+        n_pixels = full.coefficients.factor.shape[1]
+        pixels = np.arange(n_pixels)
+        event = ArrayEventContainer()
+        camera = getattr(event, level).tel[tel_id]
+        if level == "dl1":
+            camera.image = np.zeros(
+                n_pixels if gain_selected else (n_channels, n_pixels)
+            )
+        else:
+            camera.waveform = np.zeros(
+                (1 if gain_selected else n_channels, n_pixels, 1)
+            )
+
+        # Reuse the event with different selections: cached monitoring must stay intact.
+        for offset in (0, 1):
+            selected = (pixels + offset) % n_channels
+            if level == "dl1":
+                camera.pixel_status = np.where(
+                    selected == 0,
+                    PixelStatus.HIGH_GAIN_STORED,
+                    PixelStatus.LOW_GAIN_STORED,
+                ).astype(np.uint8)
+                if not gain_selected and n_channels == 2:
+                    camera.pixel_status[:] = np.uint8(
+                        PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
+                    )
+            else:
+                camera.selected_gain_channel = selected if gain_selected else None
+            source.fill_monitoring_container(event)
+            actual = event.monitoring.tel[tel_id].camera
+            actual.validate()
+            for name in ("factor", "pedestal_offset", "time_shift", "outlier_mask"):
+                expected = full.coefficients[name]
+                if gain_selected:
+                    expected = expected[selected, pixels][np.newaxis]
+                np.testing.assert_array_equal(actual.coefficients[name], expected)
+            for name in ("pedestal_image", "flatfield_image", "flatfield_peak_time"):
+                for statistic in ("mean", "median", "std"):
+                    expected = full.pixel_statistics[name][statistic]
+                    if gain_selected:
+                        expected = expected[selected, pixels]
+                    np.testing.assert_array_equal(
+                        actual.pixel_statistics[name][statistic], expected
+                    )
+            if gain_selected:
+                cleaner = NSBImageCleaner(subarray=source.subarray)
+                mask = cleaner(
+                    tel_id,
+                    image=np.zeros(n_pixels),
+                    arrival_times=np.zeros(n_pixels),
+                    monitoring=actual,
+                )
+                assert mask.shape == (n_pixels,)
+                assert not mask.any()
+                # Event-local changes must not affect cached monitoring or later events.
+                actual.coefficients.factor[:] = -123.0
+                actual.pixel_statistics.pedestal_image.std[:] = -123.0
+            assert actual.coefficients.is_valid == full.coefficients.is_valid
+            assert actual.coefficients.time == full.coefficients.time
+            for other_level in {"r1", "dl0", "dl1"} - {level}:
+                assert not getattr(event, other_level).tel
+
+        unselected = source.get_camera_monitoring_container(tel_id)
+        np.testing.assert_array_equal(
+            unselected.coefficients.factor, full.coefficients.factor
+        )
+        np.testing.assert_array_equal(
+            unselected.pixel_statistics.pedestal_image.std,
+            full.pixel_statistics.pedestal_image.std,
+        )
