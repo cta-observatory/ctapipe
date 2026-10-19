@@ -145,3 +145,38 @@ def test_optics_mirrors_description_attribute(lst1_mirror_facets_path):
     optics = OpticsDescription(**_optics_kwargs(), mirrors_description=mirrors)
     assert optics.mirrors_description is mirrors
     _check_description(optics.mirrors_description)
+
+
+def test_mirror_description_hash_eq(lst1_mirror_facets_path):
+    """Equal facets give equal hashes, also across units and table roundtrips."""
+    description = MirrorDescription.from_table(lst1_mirror_facets_path)
+    roundtripped = MirrorDescription.from_table(description.to_table())
+    assert description == roundtripped
+    assert hash(description) == hash(roundtripped)
+
+    in_meters = MirrorDescription(
+        id=description.id,
+        x=description.x.to(u.m),
+        y=description.y.to(u.m),
+        z=description.z.to(u.m),
+        nx=description.nx,
+        ny=description.ny,
+        nz=description.nz,
+        surface_area=description.surface_area.to(u.m**2),
+        mirror_shape=description.shape,
+    )
+    assert description == in_meters
+
+    shifted = MirrorDescription(
+        id=description.id,
+        x=description.x + 1 * u.cm,
+        y=description.y,
+        z=description.z,
+        nx=description.nx,
+        ny=description.ny,
+        nz=description.nz,
+        surface_area=description.surface_area,
+        mirror_shape=description.shape,
+    )
+    assert description != shifted
+    assert len({description, roundtripped, in_meters, shifted}) == 2
