@@ -125,7 +125,7 @@ class MirrorDescription:
     length (one entry per facet).
 
     A `MirrorDescription` can be read from (and written to) a FITS or ECSV
-    table using `MirrorDescription.from_table` and
+    table using `OpticsDescription.from_mirror_description_table` and
     `MirrorDescription.to_table`.
 
     Parameters
@@ -247,7 +247,7 @@ class MirrorDescription:
         """
         Convert this MirrorDescription to an astropy Table.
 
-        See `MirrorDescription.from_table` for the opposite operation.
+        See `OpticsDescription.from_mirror_description_table` for the opposite operation.
         """
         return Table(
             [
@@ -263,50 +263,6 @@ class MirrorDescription:
             ],
             names=["mirror_id", "x", "y", "z", "nx", "ny", "nz", "surface", "shape"],
             meta={"EXTNAME": "MIRRORS"},
-        )
-
-    @classmethod
-    def from_table(cls, table: Table | str | Path, **kwargs):
-        """
-        Create a `MirrorDescription` from an astropy Table, or from a
-        FITS or ECSV file containing such a table.
-
-        Parameters
-        ----------
-        table : astropy.table.Table or str or pathlib.Path
-            Table describing the mirror facets, with columns
-            ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
-            ``surface`` and ``shape``, or the path to a FITS or ECSV file
-            containing such a table.
-        **kwargs
-            Additional keyword arguments passed to `astropy.table.Table.read`
-            when ``table`` is a path.
-
-        Returns
-        -------
-        MirrorDescription
-        """
-        if not isinstance(table, Table):
-            table = Table.read(table, **kwargs)
-
-        table = QTable(table)
-
-        # FITS tables are read back with byte strings by default, while
-        # ECSV tables are read back as unicode strings.
-        mirror_shape = np.asarray(table["shape"])
-        if mirror_shape.dtype.kind == "S":
-            mirror_shape = mirror_shape.astype(str)
-
-        return cls(
-            id=np.asarray(table["mirror_id"]),
-            x=table["x"],
-            y=table["y"],
-            z=table["z"],
-            nx=np.asarray(table["nx"]),
-            ny=np.asarray(table["ny"]),
-            nz=np.asarray(table["nz"]),
-            surface_area=table["surface"],
-            mirror_shape=mirror_shape,
         )
 
     def get_facet_size(self):
@@ -596,6 +552,50 @@ class OpticsDescription:
             n_mirror_tiles=table.meta["n_mirror_tiles"],
             reflector_shape=ReflectorShape(table.meta["reflector_shape"]),
             mirror_area=u.Quantity(table.meta["mirror_area"], u.m**2),
+        )
+
+    @staticmethod
+    def from_mirror_description_table(table: Table | str | Path, **kwargs):
+        """
+        Create a `MirrorDescription` from an astropy Table, or from a
+        FITS or ECSV file containing such a table.
+
+        Parameters
+        ----------
+        table : astropy.table.Table or str or pathlib.Path
+            Table describing the mirror facets, with columns
+            ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
+            ``surface`` and ``shape``, or the path to a FITS or ECSV file
+            containing such a table.
+        **kwargs
+            Additional keyword arguments passed to `astropy.table.Table.read`
+            when ``table`` is a path.
+
+        Returns
+        -------
+        MirrorDescription
+        """
+        if not isinstance(table, Table):
+            table = Table.read(table, **kwargs)
+
+        table = QTable(table)
+
+        # FITS tables are read back with byte strings by default, while
+        # ECSV tables are read back as unicode strings.
+        mirror_shape = np.asarray(table["shape"])
+        if mirror_shape.dtype.kind == "S":
+            mirror_shape = mirror_shape.astype(str)
+
+        return MirrorDescription(
+            id=np.asarray(table["mirror_id"]),
+            x=table["x"],
+            y=table["y"],
+            z=table["z"],
+            nx=np.asarray(table["nx"]),
+            ny=np.asarray(table["ny"]),
+            nz=np.asarray(table["nz"]),
+            surface_area=table["surface"],
+            mirror_shape=mirror_shape,
         )
 
     def get_focal_length(self, focal_length_choice=FocalLengthKind.EFFECTIVE):
