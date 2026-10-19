@@ -855,11 +855,19 @@ class DataWriter(Component):
         if not self._is_simulation:
             return None
 
+        obs_ids = self.event_source.obs_ids
+        simulation_configs = self.event_source.simulation_config or {}
+        simulation_config = simulation_configs.get(obs_ids[0])
+        nsb_factor = (
+            simulation_config.nsb_scaling_factor
+            if simulation_config is not None
+            else None
+        )
+
         # There is currently no reliable way to get the Simulation.product_name from
         if input_product is not None and input_product.simulation is not None:
             simulation = input_product.simulation.model_copy(deep=True)
         else:
-            obs_ids = self.event_source.obs_ids
             ob = self.event_source.observation_blocks[obs_ids[0]]
 
             production_name = self.product_info.simulation.get("production_name")
@@ -873,21 +881,11 @@ class DataWriter(Component):
                     azimuth=ob.subarray_pointing_lon.to(u.deg),
                     hour_angle=None,
                     declination=None,
-                    nsb_factor=None,
+                    nsb_factor=nsb_factor,
                 ),
             )
 
         if simulation.node is not None:
-            global_meta = getattr(
-                getattr(self.event_source, "file_", None),
-                "global_meta",
-                {},
-            )
-            simtel_nsb_factor = global_meta.get(b"NSB_SCALING_FACTOR")
-
-            if simtel_nsb_factor is not None:
-                simulation.node.nsb_factor = float(simtel_nsb_factor)
-
             location = self._get_simulation_location()
             if location is not None:
                 simulation.node.validate_coordinates(location)

@@ -393,10 +393,6 @@ def test_metadata(tmpdir: Path):
         assert product.simulation.node.declination is None
 
 
-@pytest.mark.xfail(
-    reason="nsb_factor should accept None",
-    strict=True,
-)
 def test_simulation_metadata_nsb_factor_from_simtel(tmp_path, prod6_gamma_simtel_path):
     output_path = tmp_path / "metadata.dl1.h5"
     config = Config(
@@ -409,19 +405,13 @@ def test_simulation_metadata_nsb_factor_from_simtel(tmp_path, prod6_gamma_simtel
         }
     )
 
-    writer = None
-    try:
-        with EventSource(prod6_gamma_simtel_path) as source:
-            with DataWriter(
-                event_source=source,
-                output_path=output_path,
-                config=config,
-            ) as writer:
-                pass
-    finally:
-        # DataWriter.finish fails before closing the file until the data model is fixed.
-        if writer is not None and writer._writer.h5file.isopen:
-            writer._writer.close()
+    with EventSource(prod6_gamma_simtel_path) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output_path,
+            config=config,
+        ):
+            pass
 
     product = read_ctao_metadata(output_path)
 
