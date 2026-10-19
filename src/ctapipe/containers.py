@@ -96,6 +96,14 @@ pixel_status_field = partial(
     ndim=1,
 )
 
+pedestal_intensity_field = partial(
+    Field,
+    None,
+    "Pedestal intensity in each pixel in DC",
+    dtype=np.float32,
+    ndim=1,
+)
+
 
 class SchedulingBlockType(enum.Enum):
     """
@@ -654,12 +662,7 @@ class R1CameraContainer(Container):
         ndim=1,
     )
 
-    pedestal_intensity = Field(
-        None,
-        "Pedestal intensity in each pixel in DC",
-        dtype=np.float32,
-        ndim=1,
-    )
+    pedestal_intensity = pedestal_intensity_field()
 
     calibration_monitoring_id = Field(
         None,
@@ -736,6 +739,8 @@ class DL0CameraContainer(Container):
         None,
         "ID of the CalibrationMonitoringSet containing the applied pre-calibration parameters",
     )
+
+    pedestal_intensity = pedestal_intensity_field()
 
     selected_gain_channel = Field(
         None,

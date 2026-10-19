@@ -240,6 +240,7 @@ class CameraCalibrator(TelescopeComponent):
             pixel_status=dl0_pixel_status,
             first_cell_id=r1.first_cell_id,
             calibration_monitoring_id=r1.calibration_monitoring_id,
+            pedestal_intensity=r1.pedestal_intensity,
         )
 
     @staticmethod
