@@ -7,7 +7,6 @@ import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.coordinates import CameraFrame
 from ctapipe.instrument import CameraGeometry, PixelShape
 from ctapipe.instrument.warnings import FromNameWarning
 
@@ -318,6 +317,7 @@ def test_camera_from_name(camera_geometry):
 def test_camera_coordinate_transform(camera_geometry):
     """test conversion of the coordinates stored in a camera frame"""
     from ctapipe.coordinates import (
+        CameraFrame,
         EngineeringCameraFrame,
         NominalFrame,
         TelescopeFrame,
