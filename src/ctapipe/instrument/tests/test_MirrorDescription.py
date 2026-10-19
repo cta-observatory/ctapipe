@@ -180,3 +180,20 @@ def test_mirror_description_hash_eq(lst1_mirror_facets_path):
     )
     assert description != shifted
     assert len({description, roundtripped, in_meters, shifted}) == 2
+
+
+def test_optics_hash_eq_includes_mirrors_description(lst1_mirror_facets_path):
+    from ctapipe.instrument.optics import OpticsDescription
+
+    mirrors = MirrorDescription.from_table(lst1_mirror_facets_path)
+    without = OpticsDescription(**_optics_kwargs())
+    with_mirrors = OpticsDescription(**_optics_kwargs(), mirrors_description=mirrors)
+    with_same_mirrors = OpticsDescription(
+        **_optics_kwargs(),
+        mirrors_description=MirrorDescription.from_table(mirrors.to_table()),
+    )
+
+    assert without == OpticsDescription(**_optics_kwargs())
+    assert with_mirrors == with_same_mirrors
+    assert hash(with_mirrors) == hash(with_same_mirrors)
+    assert with_mirrors != without
