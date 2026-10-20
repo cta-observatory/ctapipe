@@ -859,45 +859,39 @@ class DataWriter(Component):
         obs_ids = self.event_source.obs_ids
         simulation_configs = self.event_source.simulation_config or {}
         simulation_config = simulation_configs.get(obs_ids[0])
-        nsb_factor = (
-            simulation_config.nsb_scaling_factor
-            if simulation_config is not None
-            else None
-        )
 
-        # There is currently no reliable way to get the Simulation.product_name from
         if input_product is not None and input_product.simulation is not None:
             simulation = input_product.simulation.model_copy(deep=True)
         else:
-            production_name = self.product_info.simulation.get(
-                "production_name", "unknown"
-            )
-            if not production_name:
-                return None
-
-            altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
-            azimuth = Longitude(
-                circmean(
-                    u.Quantity([simulation_config.min_az, simulation_config.max_az])
+            node = None
+            if simulation_config is not None:
+                altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
+                azimuth = Longitude(
+                    circmean(
+                        u.Quantity([simulation_config.min_az, simulation_config.max_az])
+                    )
                 )
-            )
-
-            simulation = dp.Simulation(
-                production_name=production_name,
-                node=dp.SimulationGridNode(
+                nsb_factor = simulation_config.nsb_scaling_factor
+                # not needed anymore after fix in ctao_datamodel #54
+                if nsb_factor is None:
+                    nsb_factor = self.product_info.simulation.get("node", {}).get(
+                        "nsb_factor", 1
+                    )
+                node = dp.SimulationGridNode(
                     zenith=(90 * u.deg - altitude).to(u.deg),
                     azimuth=azimuth.to(u.deg),
                     hour_angle=None,
                     declination=None,
-                    # cond. expr. not needed anymore after fix in ctao_datamodel
-                    nsb_factor=(
-                        nsb_factor
-                        if nsb_factor is not None
-                        else self.product_info.simulation.get("node", {}).get(
-                            "nsb_factor"
-                        )
-                    ),
-                ),
+                    nsb_factor=nsb_factor,
+                )
+
+            # There is currently no reliable way to get the Simulation.production_name from
+            production_name = self.product_info.simulation.get(
+                "production_name", "unknown"
+            )
+            simulation = dp.Simulation(
+                production_name=production_name,
+                node=node,
             )
 
         if simulation.node is not None:

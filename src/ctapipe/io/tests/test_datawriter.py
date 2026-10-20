@@ -384,29 +384,47 @@ def test_metadata(tmpdir: Path, prod6_gamma_simtel_path, provenance):
         assert product.simulation.node.declination is not None
 
 
-def test_simulation_metadata_nsb_factor_from_simtel(tmp_path, prod6_gamma_simtel_path):
+def test_simulation_metadata_from_simtel(tmp_path, prod6_gamma_simtel_path):
+    from astropy.coordinates import Longitude
+    from astropy.stats import circmean
+
     output_path = tmp_path / "metadata.dl1.h5"
-    config = Config(
-        {
-            "DataWriter": {
-                "ProductMetadata": {
-                    "simulation": {"production_name": "PROD_TEST"},
-                },
-            },
-        }
-    )
 
     with EventSource(prod6_gamma_simtel_path) as source:
+        simulation_config = source.simulation_config[source.obs_id]
+
         with DataWriter(
             event_source=source,
             output_path=output_path,
-            config=config,
         ):
             pass
 
     product = read_ctao_metadata(output_path)
 
-    assert product.simulation.node.nsb_factor == 1.0
+    assert product.simulation is not None
+    assert product.simulation.production_name == "unknown"
+
+    node = product.simulation.node
+    assert node is not None
+
+    altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
+    azimuth = Longitude(
+        circmean(
+            u.Quantity(
+                [
+                    simulation_config.min_az,
+                    simulation_config.max_az,
+                ]
+            )
+        )
+    )
+
+    assert u.isclose(node.zenith, 90 * u.deg - altitude)
+    assert u.isclose(node.azimuth, azimuth)
+    assert node.nsb_factor == simulation_config.nsb_scaling_factor
+
+    assert node.hour_angle is not None
+    assert node.declination is not None
 
 
 @pytest.mark.parametrize(
