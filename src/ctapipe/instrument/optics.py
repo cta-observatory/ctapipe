@@ -401,7 +401,7 @@ class OpticsDescription:
         self.mirror_area = mirror_area
         self.n_mirrors = n_mirrors
         self.n_mirror_tiles = n_mirror_tiles
-        self.mirrors_description = mirrors_description
+        self.mirror_description = mirror_description
 
     def __hash__(self):
         """Make this hashable, so it can be used as dict keys or in sets"""
