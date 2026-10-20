@@ -535,28 +535,17 @@ class OpticsDescription:
             table = Table()
         else:
             table = Table(
-                [
-                    mirrors.id,
-                    mirrors.x,
-                    mirrors.y,
-                    mirrors.z,
-                    mirrors.nx,
-                    mirrors.ny,
-                    mirrors.nz,
-                    mirrors.surface_area,
-                    np.array([shape.value for shape in mirrors.shape]),
-                ],
-                names=[
-                    "mirror_id",
-                    "x",
-                    "y",
-                    "z",
-                    "nx",
-                    "ny",
-                    "nz",
-                    "surface",
-                    "shape",
-                ],
+                {
+                    "mirror_id": mirrors.id,
+                    "x": mirrors.x,
+                    "y": mirrors.y,
+                    "z": mirrors.z,
+                    "nx": mirrors.nx,
+                    "ny": mirrors.ny,
+                    "nz": mirrors.nz,
+                    "surface_area": mirrors.surface_area,
+                    "shape": np.array([shape.value for shape in mirrors.shape]),
+                },
             )
         table.meta["TAB_VER"] = self.CURRENT_TEL_TAB_VERSION
         table.meta["optics_name"] = self.name
