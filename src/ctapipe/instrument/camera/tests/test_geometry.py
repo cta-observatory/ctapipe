@@ -235,6 +235,7 @@ def test_slicing(prod5_mst_nectarcam):
     assert len(sliced1.pix_y) == 100
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
+    assert sliced1.frame is prod5_nectarcam.frame
 
     sliced2 = prod5_nectarcam[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
