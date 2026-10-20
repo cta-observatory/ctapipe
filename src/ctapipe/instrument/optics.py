@@ -391,7 +391,7 @@ class OpticsDescription:
         mirror_area,
         n_mirror_tiles,
         reflector_shape,
-        mirrors_description=None,
+        mirror_description=None,
     ):
         self.name = name
         self.size_type = SizeType(size_type)
