@@ -579,7 +579,7 @@ class OpticsDescription:
 
         mirrors_description = None
         if "mirror_id" in table.colnames:
-            mirrors_description = cls.from_mirror_description_table(table)
+            mirrors_description = cls._mirror_description_from_table(table)
 
         return cls(
             name=table.meta["optics_name"],
