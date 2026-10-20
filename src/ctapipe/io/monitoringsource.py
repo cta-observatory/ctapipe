@@ -202,6 +202,11 @@ class MonitoringSource(TelescopeComponent):
         Populates event.monitoring with telescope-level and array-level monitoring
         data for the event's trigger time.
 
+        For fields that contain a gain channel axis, it is expected that the monitoring
+        source selects the correct channel depending on the pixel_status information in
+        the event. If no r1/dl0/dl1 pixel status information is present, all available
+        gain channels should be kept.
+
         Parameters
         ----------
         event : ArrayEventContainer

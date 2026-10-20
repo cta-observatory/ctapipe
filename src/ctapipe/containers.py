@@ -521,6 +521,13 @@ class DL1CameraContainer(Container):
         "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
         "else: (n_channels, n_pixel)",
     )
+    pixel_status = Field(
+        None,
+        "Array of pixel status values, including the stored gain channel bits. "
+        "See PixelStatus for the definition of the values.",
+        dtype=np.uint8,
+        ndim=1,
+    )
     image_mask = Field(
         None,
         "Boolean numpy array where True means the pixel has passed cleaning."
@@ -1179,6 +1186,9 @@ class ArrayPointingContainer(Container):
 class CameraCalibrationContainer(Container):
     """
     Storage of camera calibration coefficients for a given time.
+
+    Channel-dependent fields retain a singleton channel axis when a monitoring
+    source has applied the event's gain selection.
     """
 
     time = Field(
