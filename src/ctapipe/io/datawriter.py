@@ -869,7 +869,9 @@ class DataWriter(Component):
         if input_product is not None and input_product.simulation is not None:
             simulation = input_product.simulation.model_copy(deep=True)
         else:
-            production_name = self.product_info.simulation.get("production_name")
+            production_name = self.product_info.simulation.get(
+                "production_name", "unknown"
+            )
             if not production_name:
                 return None
 
