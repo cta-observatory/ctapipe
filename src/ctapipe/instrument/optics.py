@@ -373,7 +373,7 @@ class OpticsDescription:
         "n_mirrors",
         "n_mirror_tiles",
         "reflector_shape",
-        "mirrors_description",
+        "mirror_description",
     )
 
     @u.quantity_input(
