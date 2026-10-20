@@ -594,7 +594,7 @@ class OpticsDescription:
             n_mirror_tiles=table.meta["n_mirror_tiles"],
             reflector_shape=ReflectorShape(table.meta["reflector_shape"]),
             mirror_area=u.Quantity(table.meta["mirror_area"], u.m**2),
-            mirrors_description=mirrors_description,
+            mirror_description=mirror_description,
         )
 
     @staticmethod
