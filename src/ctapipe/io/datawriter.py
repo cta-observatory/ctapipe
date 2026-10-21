@@ -652,6 +652,11 @@ class DataWriter(Component):
 
             tel_index = _get_tel_index(event, tel_id)
             for container_name, algorithm_map in dl2_tel.items():
+                if algorithm_map:
+                    sublevel = DL2_SUBLEVELS.get(container_name)
+                    if sublevel is not None:
+                        self._processing_sublevels |= sublevel
+
                 for algorithm, container in algorithm_map.items():
                     name = (
                         f"dl2/event/telescope/{container_name}/{algorithm}/{table_name}"

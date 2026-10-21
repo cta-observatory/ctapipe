@@ -72,6 +72,33 @@ def generate_dummy_dl2(event):
         )
 
 
+def test_dl2_telescope_events_update_processing_sublevels():
+    writer = DataWriter.__new__(DataWriter)
+    writer._processing_sublevels = dp.ProcessingSublevel(0)
+    writer._writer = SimpleNamespace(write=lambda **kwargs: None)
+
+    event = SimpleNamespace(
+        index=SimpleNamespace(obs_id=1, event_id=2),
+        dl2=SimpleNamespace(
+            tel={
+                1: {
+                    "geometry": {"geometry": object()},
+                    "energy": {"energy": object()},
+                    "particle_type": {"particle_type": object()},
+                }
+            }
+        ),
+    )
+
+    writer._write_dl2_telescope_events(event)
+
+    assert writer._processing_sublevels == (
+        dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+        | dp.ProcessingSublevel.GAMMANESS
+    )
+
+
 def test_write(tmpdir: Path, south_site_config, provenance):
     """
     Check that we can write and read data from R0-DL2 to files
