@@ -2,8 +2,19 @@
 Some utility functions to work with numpy (rec) arrays
 """
 
+from functools import cache
+
 import numpy as np
 from numpy.lib.recfunctions import repack_fields
+
+
+@cache
+def cached_arange(n):
+    """Cached version of np.arange."""
+    idx = np.arange(n)
+    # prevent modification of returned array
+    idx.flags.writeable = False
+    return idx
 
 
 def recarray_drop_columns(array, columns):
