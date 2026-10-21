@@ -4,6 +4,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.coordinates import Angle
+from astropy.table import Table
 
 from ctapipe.instrument.optics import (
     MirrorDescription,
@@ -32,7 +33,7 @@ def _check_description(description):
 
 def test_mirror_facets_description_from_ecsv(lst1_mirror_facets_path):
     description = OpticsDescription._mirror_description_from_table(
-        lst1_mirror_facets_path
+        Table.read(lst1_mirror_facets_path)
     )
     _check_description(description)
 
@@ -40,7 +41,7 @@ def test_mirror_facets_description_from_ecsv(lst1_mirror_facets_path):
 def test_get_facet_size_from_table(lst1_mirror_facets_path):
     """flat-to-flat distance for the (all-hexagon) LST1 facet table."""
     description = OpticsDescription._mirror_description_from_table(
-        lst1_mirror_facets_path
+        Table.read(lst1_mirror_facets_path)
     )
     size = description.get_facet_size()
 
@@ -100,7 +101,7 @@ def test_get_facet_rotation_array(lst1_mirror_facets_path):
     np.testing.assert_array_equal(rotation.to_value(u.deg), [0, 0, 45, 30])
 
     description = OpticsDescription._mirror_description_from_table(
-        lst1_mirror_facets_path
+        Table.read(lst1_mirror_facets_path)
     )
     rotation = description.get_facet_rotation(description.shape)
     assert rotation.shape == (198,)
@@ -145,7 +146,9 @@ def _mirrors_to_table(mirrors):
 
 def test_optics_to_table_roundtrip(lst1_mirror_facets_path):
     """The facets are written as the rows of the optics table."""
-    mirrors = OpticsDescription._mirror_description_from_table(lst1_mirror_facets_path)
+    mirrors = OpticsDescription._mirror_description_from_table(
+        Table.read(lst1_mirror_facets_path)
+    )
     optics = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     table = optics.to_table()
 
@@ -185,7 +188,9 @@ def test_optics_to_table_without_mirrors():
 # optics metadata keys are longer than 8 characters -> FITS HIERARCH cards
 @pytest.mark.filterwarnings("ignore::astropy.io.fits.verify.VerifyWarning")
 def test_optics_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
-    mirrors = OpticsDescription._mirror_description_from_table(lst1_mirror_facets_path)
+    mirrors = OpticsDescription._mirror_description_from_table(
+        Table.read(lst1_mirror_facets_path)
+    )
     optics = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     table = optics.to_table()
 
@@ -205,7 +210,9 @@ def test_optics_mirror_description_attribute(lst1_mirror_facets_path):
     optics = OpticsDescription(**_optics_kwargs())
     assert optics.mirror_description is None
 
-    mirrors = OpticsDescription._mirror_description_from_table(lst1_mirror_facets_path)
+    mirrors = OpticsDescription._mirror_description_from_table(
+        Table.read(lst1_mirror_facets_path)
+    )
     optics = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     assert optics.mirror_description is mirrors
     _check_description(optics.mirror_description)
@@ -214,7 +221,7 @@ def test_optics_mirror_description_attribute(lst1_mirror_facets_path):
 def test_mirror_description_hash_eq(lst1_mirror_facets_path):
     """Equal facets give equal hashes, also across units and table roundtrips."""
     description = OpticsDescription._mirror_description_from_table(
-        lst1_mirror_facets_path
+        Table.read(lst1_mirror_facets_path)
     )
     roundtripped = OpticsDescription._mirror_description_from_table(
         _mirrors_to_table(description)
@@ -251,7 +258,9 @@ def test_mirror_description_hash_eq(lst1_mirror_facets_path):
 
 
 def test_optics_hash_eq_includes_mirror_description(lst1_mirror_facets_path):
-    mirrors = OpticsDescription._mirror_description_from_table(lst1_mirror_facets_path)
+    mirrors = OpticsDescription._mirror_description_from_table(
+        Table.read(lst1_mirror_facets_path)
+    )
     without = OpticsDescription(**_optics_kwargs())
     with_mirrors = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     with_same_mirrors = OpticsDescription(
