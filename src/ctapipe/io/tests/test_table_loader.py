@@ -7,7 +7,6 @@ from astropy.table import Table
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.hdf5dataformat import DL1_SUBARRAY_TRIGGER_TABLE, DL1_TEL_TRIGGER_TABLE
-from ctapipe.utils.datasets import get_dataset_path
 
 
 def check_equal_array_event_order(table1, table2):
@@ -456,11 +455,11 @@ def test_read_empty_table(dl2_shower_geometry_file):
         assert len(table) == 0
 
 
-def test_order_merged():
+def test_order_merged(gamma_dl2_train_small_h5):
     """Test reading functions return data in correct event order"""
     from ctapipe.io import TableLoader
 
-    path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+    path = gamma_dl2_train_small_h5
 
     trigger = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)
     tel_trigger = read_table(path, DL1_TEL_TRIGGER_TABLE)

@@ -5,11 +5,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    CameraTimingParametersContainer,
-    ObservationBlockContainer,
-)
+from ctapipe.containers import ObservationBlockContainer
 from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 
 
@@ -239,28 +235,6 @@ def test_read_dl2(dl2_shower_geometry_file):
             impact = e.dl2.tel[tel_id].impact[algorithm]
             assert impact.prefix == algorithm + "_tel_impact"
             assert impact.distance is not None
-
-
-def test_dl1_camera_frame(dl1_camera_frame_file):
-    with HDF5EventSource(dl1_camera_frame_file) as s:
-        tel_id = None
-        for e in s:
-            for tel_id, dl1 in e.dl1.tel.items():
-                assert isinstance(
-                    dl1.parameters.hillas, CameraHillasParametersContainer
-                )
-                assert isinstance(
-                    dl1.parameters.timing, CameraTimingParametersContainer
-                )
-                assert dl1.parameters.hillas.intensity is not None
-
-            for tel_id, sim in e.simulation.tel.items():
-                assert isinstance(
-                    sim.true_parameters.hillas, CameraHillasParametersContainer
-                )
-                assert sim.true_parameters.hillas.intensity is not None
-
-        assert tel_id is not None, "did not test any events"
 
 
 def test_simulated_events_distribution(dl1_file):

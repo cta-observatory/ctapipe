@@ -8,7 +8,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 
-from ..containers import CameraHillasParametersContainer, HillasParametersContainer
+from ..containers import HillasParametersContainer
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
@@ -69,20 +69,24 @@ def hillas_parameters(geom, image):
     The recommended form is to pass only the sliced geometry and image
     for the pixels to be considered.
 
-    The method also supports giving a full geometry with image as a masked array, however this performs worse than passing geometry and image only for the selected pixels.
+    The method also supports giving a full geometry with image as a masked
+    array, however this performs worse than passing geometry and image only
+    for the selected pixels.
 
     Parameters
     ----------
-    geom: ctapipe.instrument.CameraGeometry
-        Camera geometry, the cleaning mask should be applied to improve performance
+    geom : ctapipe.instrument.CameraGeometry
+        Camera geometry transformed to
+        `~ctapipe.coordinates.TelescopeFrame`. The pixel coordinates must have
+        angular units. The cleaning mask should be applied to improve performance.
     image : array_like
         Charge in each pixel, the cleaning mask should already be applied to
         improve performance.
 
     Returns
     -------
-    HillasParametersContainer:
-        container of hillas parameters
+    ctapipe.containers.HillasParametersContainer
+        Container of Hillas parameters in angular units.
 
     Raises
     ------
@@ -90,10 +94,17 @@ def hillas_parameters(geom, image):
         If the sum of image is equal to 0.0.
     HillasParameterizationError:
         If at least one element of image is negative.
-    ValueError:
-        If the shape of image and the number of pixels in geom do not match.
+    ValueError
+        If the geometry does not use angular pixel coordinates or if the shape of
+        image and the number of pixels in geom do not match.
     """
     unit = geom.pix_x.unit
+    if not unit.is_equivalent(u.deg):
+        raise ValueError(
+            "hillas_parameters requires angular pixel coordinates. "
+            "Use geometry.transform_to(TelescopeFrame())."
+        )
+
     pix_x = geom.pix_x.to_value(unit)
     pix_y = geom.pix_y.to_value(unit)
     pix_area = geom.pix_area.to_value(unit**2)
@@ -212,23 +223,6 @@ def hillas_parameters(geom, image):
             np.sum((((b * A) + (a * B) + (-c * C)) ** 2.0) * image)
         ) / (2 * width)
 
-    if unit.is_equivalent(u.m):
-        return CameraHillasParametersContainer(
-            x=u.Quantity(cog_x, unit),
-            y=u.Quantity(cog_y, unit),
-            r=u.Quantity(cog_r, unit),
-            phi=Angle(cog_phi, unit=u.rad),
-            intensity=size,
-            length=u.Quantity(length, unit),
-            length_uncertainty=u.Quantity(length_uncertainty, unit),
-            width=u.Quantity(width, unit),
-            width_uncertainty=u.Quantity(width_uncertainty, unit),
-            psi=Angle(psi, unit=u.rad),
-            psi_uncertainty=Angle(psi_uncert, unit=u.rad),
-            transverse_cog_uncertainty=u.Quantity(transverse_cog_uncert, unit),
-            skewness=skewness_long,
-            kurtosis=kurtosis_long,
-        )
     return HillasParametersContainer(
         fov_lon=u.Quantity(cog_x, unit),
         fov_lat=u.Quantity(cog_y, unit),
