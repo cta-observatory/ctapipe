@@ -1,18 +1,13 @@
-Use ``ctao-datamodel`` for CTAO product metadata written by
-:class:`~ctapipe.io.DataWriter` and ``ctapipe-dump-instrument``. Product metadata
-now records the data level and processing sublevels, data type and division,
-instance identifiers, curation, contact, and provenance activity using the
-current CTAO schema.
+Adopt ``ctao-datamodel`` as the metadata model for ctapipe data products.
+:class:`~ctapipe.io.DataWriter` now writes validated CTAO product metadata,
+including instance identifiers, data type and division, data level and
+processing sublevels, observation or simulation information, contact, curation,
+and provenance activity. Site identifiers and observation locations are derived
+from the input subarray when available. ``ctapipe-dump-instrument`` uses the
+same metadata model for service-data products.
 
-Read current and legacy metadata from HDF5, FITS, ECSV, and JSON files. Legacy
-metadata is converted to the current model when read, and ``ctapipe-merge``
-migrates legacy HDF5 metadata in its output while updating product identity,
-creation time, observation identifiers, data level, and product type.
-
-Allow configuring ``instance.site_id`` and ``observation.location`` in
-:class:`~ctapipe.io.metadata.ProductMetadata`. The
-:class:`~ctapipe.io.DataWriter` now derives observation locations and site identifiers
-from valid subarray locations and writes them so that simulation-node coordinates can
-be validated. Simulation compatibility checks in ``ctapipe-merge`` compare the
-production name and simulated zenith and azimuth with a small numerical tolerance;
-when no simulation node is available, available site identifiers are compared instead.
+Support reading current CTAO and legacy ctapipe reference metadata from HDF5,
+FITS, ECSV, and JSON files. Legacy metadata is converted to the current CTAO
+product model when read. ``ctapipe-merge`` migrates legacy HDF5 metadata in its
+output, updates the metadata to describe the merged product, and validates
+merge compatibility using the available observation and simulation metadata.
