@@ -613,7 +613,7 @@ class OpticsDescription:
         -------
         MirrorDescription
         """
-        table = QTable(table)
+        table = QTable(table, copy=False)
 
         # FITS tables are read back with byte strings by default, while
         # ECSV tables are read back as unicode strings.
