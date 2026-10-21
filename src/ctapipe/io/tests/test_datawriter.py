@@ -72,7 +72,7 @@ def generate_dummy_dl2(event):
         )
 
 
-def test_write(tmpdir: Path):
+def test_write(tmpdir: Path, south_site_config):
     """
     Check that we can write and read data from R0-DL2 to files
     """
@@ -89,6 +89,7 @@ def test_write(tmpdir: Path):
         write_dl2=True,
         write_r0_waveforms=True,
         write_r1_waveforms=True,
+        config=south_site_config,
     ) as writer:
         writer.log.level = logging.DEBUG
         for event in source:
@@ -176,7 +177,7 @@ def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):
     assert input_path.exists()
 
 
-def test_roundtrip(tmpdir: Path):
+def test_roundtrip(tmpdir: Path, south_site_config):
     """
     Check that we can write DL1+DL2 info to files and read them back
 
@@ -204,6 +205,7 @@ def test_roundtrip(tmpdir: Path):
         peak_time_dtype="int16",
         peak_time_scale=100,
         write_dl2=True,
+        config=south_site_config,
     ) as write:
         write.log.level = logging.DEBUG
         for event in source:
@@ -248,7 +250,7 @@ def test_roundtrip(tmpdir: Path):
                 assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
 
-def test_dl1writer_no_events(tmpdir: Path):
+def test_dl1writer_no_events(tmpdir: Path, south_site_config):
     """
     Check that we can write DL1 files even when no events are given
 
@@ -271,6 +273,7 @@ def test_dl1writer_no_events(tmpdir: Path):
         output_path=output_path,
         write_dl1_parameters=True,
         write_dl1_images=True,
+        config=south_site_config,
     ) as writer:
         writer.log.level = logging.DEBUG
         writer.write_simulated_shower_distributions(
@@ -384,7 +387,7 @@ def test_metadata(tmpdir: Path, prod6_gamma_simtel_path, provenance):
         assert product.simulation.node.declination is not None
 
 
-def test_simulation_metadata_from_simtel(tmp_path, prod6_gamma_simtel_path):
+def test_simulation_metadata_from_simtel(tmp_path, prod6_gamma_simtel_path, provenance):
     from astropy.coordinates import Longitude
     from astropy.stats import circmean
 
@@ -474,11 +477,11 @@ def test_simulation_metadata_direction_from_simulation_config(
         ),
     ],
 )
-def test_invalid_simulation_location(location):
+def test_invalid_observation_location(location):
     writer = DataWriter.__new__(DataWriter)
     writer._subarray = SimpleNamespace(reference_location=location)
 
-    assert writer._get_simulation_location() is None
+    assert writer._get_observation_metadata(input_product=None) is None
 
 
 @pytest.mark.parametrize(
@@ -488,7 +491,7 @@ def test_invalid_simulation_location(location):
         (-24 * u.deg, SiteID.CTAO_SOUTH),
     ],
 )
-def test_site_id_from_simulation_location(latitude, expected_site):
+def test_site_id_from_observation_location(latitude, expected_site):
     location = EarthLocation.from_geodetic(
         lon=10 * u.deg,
         lat=latitude,
@@ -497,8 +500,16 @@ def test_site_id_from_simulation_location(latitude, expected_site):
     writer = DataWriter.__new__(DataWriter)
     writer._subarray = SimpleNamespace(reference_location=location)
 
-    assert writer._get_simulation_location() is location
-    assert writer._get_site_id(input_product=None) is expected_site
+    observation = writer._get_observation_metadata(input_product=None)
+    assert observation.location == dp.GeodeticEarthLocation(
+        longitude=location.lon,
+        latitude=location.lat,
+        height=location.height,
+    )
+    assert (
+        writer._get_site_id(input_product=None, location=observation.location)
+        is expected_site
+    )
 
 
 def test_site_id_prefers_input_metadata():

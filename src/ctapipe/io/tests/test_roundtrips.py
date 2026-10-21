@@ -8,7 +8,7 @@ from ctapipe.image import ImageExtractor
 
 
 @pytest.fixture(scope="session")
-def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
+def r1_file(tmp_path_factory, prod5_gamma_simtel_path, south_site_config):
     from ctapipe.io import DataWriter, EventSource
 
     outdir = tmp_path_factory.mktemp("r1_")
@@ -21,6 +21,7 @@ def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
             source,
             output_path=r1_path,
             write_r1_waveforms=True,
+            config=south_site_config,
         ) as writer:
             for event in source:
                 writer(event)

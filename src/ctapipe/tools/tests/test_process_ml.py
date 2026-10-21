@@ -2,6 +2,7 @@ import json
 
 import numpy as np
 
+from ctapipe.conftest import NORTH_SITE_METADATA
 from ctapipe.core import run_tool
 from ctapipe.io import read_table
 from ctapipe.io.hdf5dataformat import (
@@ -55,6 +56,7 @@ def test_process_apply_energy(
         f"--output={output}",
         "--write-images",
         "--write-showers",
+        NORTH_SITE_METADATA,
         f"--config={config_path}",
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
@@ -99,6 +101,7 @@ def test_process_apply_classification(
         f"--config={config_path}",
         "--write-images",
         "--write-showers",
+        NORTH_SITE_METADATA,
         "--reconstructor=HillasReconstructor",
         "--reconstructor=EnergyRegressor",
         "--reconstructor=ParticleClassifier",
@@ -165,6 +168,7 @@ def test_process_apply_disp(
         f"--output={output}",
         "--write-images",
         "--write-showers",
+        NORTH_SITE_METADATA,
         f"--config={config_path}",
         f"--EnergyRegressor.load_path={energy_regressor_path}",
         f"--DispReconstructor.load_path={disp_reconstructor_path}",

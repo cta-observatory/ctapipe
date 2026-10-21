@@ -420,8 +420,9 @@ class ProductMetadata(Configurable):
     """User-configurable fields of CTAO product metadata.
 
     ``description`` and ``disclaimer`` override the corresponding product fields.
-    ``instance`` accepts the ``category`` override, while ``activity`` accepts the
-    ``configuration_id`` override. Other product metadata is derived by the writer.
+    ``instance`` accepts ``category`` and ``site_id`` overrides, ``activity`` accepts
+    the ``configuration_id`` override, and ``observation`` accepts a ``location``
+    override. Other product metadata is derived by the writer.
     """
 
     description = Unicode(
@@ -441,13 +442,24 @@ class ProductMetadata(Configurable):
         default_value={},
     ).tag(config=True)
 
+    observation = Dict(
+        default_value={},
+    ).tag(config=True)
+
     simulation = Dict(
         default_value={},
     ).tag(config=True)
 
     _modified = False
 
-    @observe("description", "disclaimer", "instance", "activity")
+    @observe(
+        "description",
+        "disclaimer",
+        "instance",
+        "activity",
+        "observation",
+        "simulation",
+    )
     def _mark_modified(self, change):
         """Record that product configuration was changed."""
         self._modified = True
@@ -472,7 +484,7 @@ class ProductMetadata(Configurable):
         return _validate_model_overrides(
             dp.InstanceIdentifier,
             proposal["value"],
-            allowed_fields={"category"},
+            allowed_fields={"category", "site_id"},
         )
 
     @validate("activity")
@@ -482,6 +494,15 @@ class ProductMetadata(Configurable):
             dp.Activity,
             proposal["value"],
             allowed_fields={"configuration_id"},
+        )
+
+    @validate("observation")
+    def _validate_observation(self, proposal):
+        """Validate configurable observation overrides."""
+        return _validate_model_overrides(
+            dp.Observation,
+            proposal["value"],
+            allowed_fields={"location"},
         )
 
     @validate("simulation")
@@ -505,13 +526,18 @@ class ProductMetadata(Configurable):
         _validate_model_overrides(
             dp.InstanceIdentifier,
             self.instance,
-            allowed_fields={"category"},
+            allowed_fields={"category", "site_id"},
         )
 
         _validate_model_overrides(
             dp.Activity,
             self.activity,
             allowed_fields={"configuration_id"},
+        )
+        _validate_model_overrides(
+            dp.Observation,
+            self.observation,
+            allowed_fields={"location"},
         )
         _validate_simulation_overrides(self.simulation)
 
@@ -522,7 +548,7 @@ class ProductMetadata(Configurable):
         ----------
         **kwargs
             Values required to construct the product. Configured description,
-            disclaimer, instance, and activity values take precedence.
+            disclaimer, instance, activity, and observation values take precedence.
 
         Returns
         -------
@@ -554,6 +580,14 @@ class ProductMetadata(Configurable):
                 self.activity,
             )
 
+        if self.observation:
+            observation = values.get("observation") or dp.Observation()
+            values["observation"] = _apply_model_overrides(
+                dp.Observation,
+                observation,
+                self.observation,
+            )
+
         if values.get("simulation") is not None:
             values["simulation"] = _apply_simulation_overrides(
                 values["simulation"],
@@ -572,6 +606,7 @@ class ProductMetadata(Configurable):
             "disclaimer": self.disclaimer,
             "instance": dict(self.instance),
             "activity": dict(self.activity),
+            "observation": dict(self.observation),
             "simulation": dict(self.simulation),
         }
 

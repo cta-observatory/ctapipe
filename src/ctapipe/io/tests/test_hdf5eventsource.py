@@ -298,7 +298,7 @@ def test_pointing_old_file():
     assert n_read == 5
 
 
-def test_no_pointing_in_ob(tmp_path):
+def test_no_pointing_in_ob(tmp_path, south_site_config):
     from ctapipe.io import DataWriter
 
     test_file = "dataset://gamma_prod5.simtel.zst"
@@ -316,6 +316,7 @@ def test_no_pointing_in_ob(tmp_path):
             source,
             output_path=path,
             write_r1_waveforms=True,
+            config=south_site_config,
         ) as writer:
             for event in source:
                 writer(event)

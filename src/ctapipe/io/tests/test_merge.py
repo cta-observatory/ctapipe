@@ -288,7 +288,7 @@ def test_simulation_metadata_compatibility(tmp_path):
         merger._check_can_merge(other, other_metadata)
 
         other_metadata.simulation.production_name = "other-prod"
-        with pytest.raises(CannotMerge, match="different simulation metadata"):
+        with pytest.raises(CannotMerge, match="different simulation production"):
             merger._check_can_merge(other, other_metadata)
 
 

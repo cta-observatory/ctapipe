@@ -588,8 +588,15 @@ def test_configurable_product_metadata_validation(ctao_product):
     product_info = meta.ProductMetadata(
         description="Test product",
         disclaimer="Test disclaimer",
-        instance={"category": "A"},
+        instance={"category": "A", "site_id": "CTAO-North"},
         activity={"configuration_id": "configured"},
+        observation={
+            "location": {
+                "longitude": -17.892005 * u.deg,
+                "latitude": 28.762164 * u.deg,
+                "height": 2200 * u.m,
+            }
+        },
         simulation={
             "production_name": "PROD_TEST",
             "node": {
@@ -619,7 +626,11 @@ def test_configurable_product_metadata_validation(ctao_product):
     assert product.disclaimer == "Test disclaimer"
     assert product.instance.obs_id == ctao_product.instance.obs_id
     assert product.instance.category is dp.DataProcessingCategory.A
+    assert product.instance.site_id is SiteID.CTAO_NORTH
     assert product.activity.configuration_id == "configured"
+    assert product.observation.location.longitude == -17.892005 * u.deg
+    assert product.observation.location.latitude == 28.762164 * u.deg
+    assert product.observation.location.height == 2200 * u.m
     assert product.simulation.production_name == "PROD_TEST"
     assert product.simulation.node.zenith == 20 * u.deg
     assert product.simulation.node.azimuth == 180 * u.deg
@@ -627,8 +638,18 @@ def test_configurable_product_metadata_validation(ctao_product):
     assert product_info.to_dict() == {
         "description": "Test product",
         "disclaimer": "Test disclaimer",
-        "instance": {"category": dp.DataProcessingCategory.A},
+        "instance": {
+            "category": dp.DataProcessingCategory.A,
+            "site_id": SiteID.CTAO_NORTH,
+        },
         "activity": {"configuration_id": "configured"},
+        "observation": {
+            "location": dp.GeodeticEarthLocation(
+                longitude=-17.892005 * u.deg,
+                latitude=28.762164 * u.deg,
+                height=2200 * u.m,
+            )
+        },
         "simulation": {
             "production_name": "PROD_TEST",
             "node": {
@@ -642,6 +663,9 @@ def test_configurable_product_metadata_validation(ctao_product):
 
     with pytest.raises(TraitError, match="cannot be configured"):
         meta.ProductMetadata(activity={"name": "custom"})
+
+    with pytest.raises(TraitError, match="cannot be configured"):
+        meta.ProductMetadata(observation={"coverage": {}})
 
     with pytest.raises(TraitError, match="Unknown simulation fields"):
         meta.ProductMetadata(simulation={"product_name": "invalid"})

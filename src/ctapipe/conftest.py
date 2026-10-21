@@ -38,6 +38,9 @@ PYTEST_HEADER_MODULES["scipy"] = "scipy"
 PYTEST_HEADER_MODULES["astropy"] = "astropy"
 PYTEST_HEADER_MODULES["numba"] = "numba"
 
+NORTH_SITE_METADATA = "--ProductMetadata.instance={'site_id': 'CTAO-North'}"
+SOUTH_SITE_METADATA = "--ProductMetadata.instance={'site_id': 'CTAO-South'}"
+
 # names of camera geometries available on the data server
 camera_names = [
     "ASTRICam",
@@ -283,6 +286,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
             "--write-showers",
         ]
@@ -307,6 +311,7 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
         argv = [
             f"--input={prod5_gamma_lapalma_simtel_path}",
             f"--output={output}",
+            NORTH_SITE_METADATA,
             "--write-images",
             "--write-showers",
         ]
@@ -331,6 +336,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
         argv = [
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
             "--write-showers",
             "--max-events=20",
@@ -379,6 +385,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
             "--max-events=20",
         ]
@@ -401,6 +408,7 @@ def dl1_divergent_file(dl1_tmp_path):
         argv = [
             f"--input={path}",
             f"--output={output}",
+            NORTH_SITE_METADATA,
             "--EventSource.focal_length_choice=EQUIVALENT",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -424,6 +432,7 @@ def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-showers",
             "--no-write-images",
             "--no-write-parameters",
@@ -452,6 +461,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-images",
             "--DataWriter.write_dl1_parameters=False",
+            SOUTH_SITE_METADATA,
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -475,6 +485,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-parameters",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -523,6 +534,7 @@ def dl1_muon_file(dl1_tmp_path):
         argv = [
             f"--input={infile}",
             f"--output={output}",
+            NORTH_SITE_METADATA,
             "--write-images",
             "--no-write-parameters",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
@@ -576,6 +588,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
         argv = [
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0

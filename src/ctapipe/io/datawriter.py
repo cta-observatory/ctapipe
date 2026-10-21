@@ -10,7 +10,7 @@ import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
-from astropy.coordinates import EarthLocation, Longitude
+from astropy.coordinates import Longitude
 from astropy.stats import circmean
 from astropy.time import Time
 from ctao_datamodel.models.common import SiteID
@@ -790,6 +790,7 @@ class DataWriter(Component):
     def _get_site_id(
         self,
         input_product: dp.Product | None,
+        location: dp.GeodeticEarthLocation | None = None,
     ) -> SiteID | None:
         """Return the site identifier without inferring it from a dummy location."""
         if input_product is not None:
@@ -797,22 +798,17 @@ class DataWriter(Component):
             if site_id is not None:
                 return site_id
 
-        location = self._get_simulation_location()
-
         if location is None:
-            self.log.warning(
-                "Cannot determine site_id: no input site identifier "
-                "or valid reference location is available."
-            )
             return None
 
         # This inference assumes the data belongs to one of the two CTAO sites.
-        latitude = location.lat.to_value(u.deg)
+        latitude = location.latitude.to_value(u.deg)
         return SiteID.CTAO_NORTH if latitude > 0 else SiteID.CTAO_SOUTH
 
     def _get_instance_identifier(
         self,
         input_product: dp.Product | None,
+        location: dp.GeodeticEarthLocation | None = None,
     ) -> dp.InstanceIdentifier:
         """Create the instance identifier for the output product."""
         obs_ids = self.event_source.obs_ids
@@ -822,31 +818,50 @@ class DataWriter(Component):
             obs_id=obs_id,
             facility_name=self._get_facility_name(input_product),
             sublevel_id=self._get_processing_sublevel(),
-            site_id=self._get_site_id(input_product),
+            site_id=self._get_site_id(input_product, location),
         )
 
-    def _get_simulation_location(self) -> EarthLocation | None:
-        """Return the subarray location, excluding missing and legacy dummy values."""
+    def _get_observation_metadata(
+        self,
+        input_product: dp.Product | None,
+    ) -> dp.Observation | None:
+        """Return observation metadata, adding a valid subarray location if needed."""
+        observation = None
+        if input_product is not None and input_product.observation is not None:
+            observation = input_product.observation.model_copy(deep=True)
+
+            if observation.location is not None:
+                return observation
+
         location = self._subarray.reference_location
 
         if location is None:
-            return None
+            return observation
 
-        lon = location.lon.to_value(u.deg)
-        lat = location.lat.to_value(u.deg)
-        height = location.height.to_value(u.m)
+        lon = location.lon.to(u.deg)
+        lat = location.lat.to(u.deg)
+        height = location.height.to(u.m)
 
-        if not np.all(np.isfinite([lon, lat, height])):
-            return None
+        if not np.all(np.isfinite([lon.value, lat.value, height.value])):
+            return observation
 
         # Older SimTel and HDF5 inputs use a dummy (lon, lat) = (0, 0)
         # when the actual reference location is unavailable.
-        if np.isclose(lon, 0.0, rtol=0.0, atol=1e-10) and np.isclose(
-            lat, 0.0, rtol=0.0, atol=1e-10
+        if np.isclose(lon.value, 0.0, rtol=0.0, atol=1e-10) and np.isclose(
+            lat.value, 0.0, rtol=0.0, atol=1e-10
         ):
-            return None
+            return observation
 
-        return location
+        geodetic_location = dp.GeodeticEarthLocation(
+            longitude=lon,
+            latitude=lat,
+            height=height,
+        )
+
+        if observation is None:
+            return dp.Observation(location=geodetic_location)
+
+        return observation.model_copy(update={"location": geodetic_location})
 
     def _get_simulation_metadata(
         self,
@@ -894,11 +909,6 @@ class DataWriter(Component):
                 node=node,
             )
 
-        if simulation.node is not None:
-            location = self._get_simulation_location()
-            if location is not None:
-                simulation.node.validate_coordinates(location)
-
         return simulation
 
     def _get_processing_sublevel(self) -> dp.ProcessingSublevel | None:
@@ -917,11 +927,16 @@ class DataWriter(Component):
         """Write CTAO product metadata to the output file."""
         prov_activity = self._get_provenance_activity()
         input_product = self._get_input_product(prov_activity)
+        simulation = self._get_simulation_metadata(input_product)
+        observation = self._get_observation_metadata(input_product)
 
         product = self.product_info.to_model(
             creation_time=Time.now(),
             data=self._get_product_type(input_product),
-            instance=self._get_instance_identifier(input_product),
+            instance=self._get_instance_identifier(
+                input_product=input_product,
+                location=observation.location if observation is not None else None,
+            ),
             curation=self.curation_info.to_model(),
             model=dp.DataModel(
                 name="ctapipe",
@@ -934,7 +949,8 @@ class DataWriter(Component):
                 if prov_activity is not None
                 else None
             ),
-            simulation=self._get_simulation_metadata(input_product),
+            simulation=simulation,
+            observation=observation,
         )
 
         meta.write_product_metadata_hdf5(product, self._writer.h5file)

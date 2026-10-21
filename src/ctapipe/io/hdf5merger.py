@@ -451,17 +451,33 @@ class HDF5Merger(Component):
                 f" {other_data_category}, expected {self.data_category}"
             )
 
-        if self.meta.simulation != other_meta.simulation:
-            raise CannotMerge(
-                f"Input file {other.filename!r} has different simulation metadata:"
-                f" {other_meta.simulation}, expected {self.meta.simulation}"
-            )
+        if not self.attach_monitoring:
+            self._check_simulation_metadata(other, other_meta)
 
         for node_path in self.required_nodes:
             if node_path not in other.root:
                 raise CannotMerge(
                     f"Required node {node_path} not found in {other.filename}"
                 )
+
+    def _check_simulation_metadata(self, other, other_meta):
+        simulation = self.meta.simulation
+        other_simulation = other_meta.simulation
+
+        if simulation is None and other_simulation is None:
+            return
+
+        if simulation is None or other_simulation is None:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has incompatible simulation metadata"
+            )
+
+        if simulation.production_name != other_simulation.production_name:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation production:"
+                f" {other_simulation.production_name!r},"
+                f" expected {simulation.production_name!r}"
+            )
 
     def _check_data_model_version(self, other, other_version):
         """Check data-model-version compatibility for the merge strategy."""
