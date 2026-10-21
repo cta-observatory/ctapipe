@@ -201,7 +201,12 @@ def prod5_proton_simtel_path():
 
 @pytest.fixture(scope="session")
 def proton_dl2_train_small_h5():
-    return get_dataset_path("proton_dl2_train_small.dl2.h5")
+    return get_dataset_path("proton_train_0.23.1.dl2.h5")
+
+
+@pytest.fixture(scope="session")
+def gamma_dl2_train_small_h5():
+    return get_dataset_path("gamma_diffuse_train_0.23.1.dl2.h5")
 
 
 @pytest.fixture(scope="session")
@@ -587,7 +592,7 @@ def model_tmp_path(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def energy_regressor_path(model_tmp_path):
+def energy_regressor_path(model_tmp_path, gamma_dl2_train_small_h5):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
 
     out_file = model_tmp_path / "energy.pkl"
@@ -601,7 +606,7 @@ def energy_regressor_path(model_tmp_path):
         ret = run_tool(
             tool,
             argv=[
-                "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+                f"--input={gamma_dl2_train_small_h5}",
                 f"--output={out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
@@ -613,15 +618,14 @@ def energy_regressor_path(model_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def gamma_train_clf(model_tmp_path, energy_regressor_path):
+def gamma_train_clf(model_tmp_path, energy_regressor_path, gamma_dl2_train_small_h5):
     from ctapipe.tools.apply_models import ApplyModels
 
-    inpath = "dataset://gamma_diffuse_dl2_train_small.dl2.h5"
     outpath = model_tmp_path / "gamma_train_clf.dl2.h5"
     run_tool(
         ApplyModels(),
         argv=[
-            f"--input={inpath}",
+            f"--input={gamma_dl2_train_small_h5}",
             f"--output={outpath}",
             f"--reconstructor={energy_regressor_path}",
         ],
@@ -631,15 +635,14 @@ def gamma_train_clf(model_tmp_path, energy_regressor_path):
 
 
 @pytest.fixture(scope="session")
-def proton_train_clf(model_tmp_path, energy_regressor_path):
+def proton_train_clf(model_tmp_path, energy_regressor_path, proton_dl2_train_small_h5):
     from ctapipe.tools.apply_models import ApplyModels
 
-    inpath = "dataset://proton_dl2_train_small.dl2.h5"
     outpath = model_tmp_path / "proton_train_clf.dl2.h5"
     run_tool(
         ApplyModels(),
         argv=[
-            f"--input={inpath}",
+            f"--input={proton_dl2_train_small_h5}",
             f"--output={outpath}",
             f"--reconstructor={energy_regressor_path}",
         ],
