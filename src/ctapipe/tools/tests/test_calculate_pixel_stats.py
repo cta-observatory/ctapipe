@@ -380,3 +380,65 @@ def test_calculate_pixel_stats_tool_time_chunking(
     stats = read_table(output, f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_003")
     assert len(stats) > 0
     assert np.all(~stats["is_valid"])
+
+
+@pytest.mark.parametrize("overlap_enabled", [False, True])
+@pytest.mark.parametrize("faulty", [False, True])
+def test_tool_uses_abstract_chunking_api(
+    example_subarray, monkeypatch, overlap_enabled, faulty
+):
+    """Neither the tool nor calculator may depend on a chunk_shift trait."""
+    from types import SimpleNamespace
+
+    from astropy.time import Time
+
+    from ctapipe.containers import EventType
+    from ctapipe.monitoring.aggregator import BaseChunking
+
+    class CustomChunking(BaseChunking):
+        @property
+        def has_overlap(self):
+            return overlap_enabled
+
+        def _generate_chunks(self, table, *, overlap=True):
+            step = 10 if overlap and self.has_overlap else 20
+            for start in range(0, len(table) - 19, step):
+                yield table[start : start + 20]
+
+    table = Table(
+        {
+            "time": Time("2020-01-01") + np.arange(60) * u.s,
+            "event_id": np.arange(60),
+            "event_type": np.full(60, EventType.SUBARRAY.value),
+            "image": np.ones((60, 1, 2)),
+        }
+    )
+    tool = PixelStatisticsCalculatorTool(
+        config=Config(
+            {
+                "PixelStatisticsCalculator": {
+                    "stats_aggregator_type": "PlainAggregator",
+                    "faulty_pixels_fraction": 0 if faulty else 0.1,
+                },
+            }
+        )
+    )
+    tool.subarray = example_subarray.select_subarray([1])
+    tool.input_data = SimpleNamespace(
+        read_telescope_events=lambda telescopes: table.copy()
+    )
+    tool.stats_calculator = PixelStatisticsCalculator(
+        parent=tool, subarray=tool.subarray
+    )
+    tool.stats_calculator.stats_aggregators[
+        "PlainAggregator"
+    ].chunking = CustomChunking()
+    written = []
+    monkeypatch.setattr(
+        "ctapipe.tools.calculate_pixel_stats.write_table",
+        lambda stats, *args, **kwargs: written.append(stats),
+    )
+    tool.start()
+    assert len(written) == 1
+    expected_starts = [0, 10, 20, 30, 40] if overlap_enabled and faulty else [0, 20, 40]
+    np.testing.assert_array_equal(written[0]["event_id_start"], expected_starts)

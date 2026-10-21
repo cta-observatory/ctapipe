@@ -5,7 +5,6 @@ Perform statistics calculation from pixel-wise image data
 import pathlib
 
 import numpy as np
-from astropy.table import vstack
 
 from ctapipe.containers import EventType, PixelStatus
 from ctapipe.core import Tool
@@ -166,7 +165,11 @@ class PixelStatisticsCalculatorTool(Tool):
 
             # 2. Reshape and calculate stats
             self._reshape_dl1_dimensions(dl1_table, tel_id)
-            aggregated_stats = self._process_telescope_stats(dl1_table, tel_id)
+            aggregated_stats = self.stats_calculator(
+                table=dl1_table,
+                tel_id=tel_id,
+                col_name=self.input_column_name,
+            )
 
             # 3. Determine output paths and write out results
             event_type_name = EventType(dl1_table["event_type"][0]).name.lower()
@@ -263,44 +266,6 @@ class PixelStatisticsCalculatorTool(Tool):
             ]
             dl1_table[col] = per_channel_data
             dl1_table[col].unit = unit
-
-    def _process_telescope_stats(self, dl1_table, tel_id):
-        """Perform first and (if necessary) second pass statistics calculation."""
-        # First pass
-        stats = self.stats_calculator.first_pass(
-            table=dl1_table,
-            tel_id=tel_id,
-            col_name=self.input_column_name,
-        )
-
-        # Check if 'chunk_shift' is configured for overlapping chunks
-        agg_type = self.stats_calculator.stats_aggregator_type.tel[tel_id]
-        aggregator = self.stats_calculator.stats_aggregators[agg_type]
-        chunk_shift = aggregator.chunking.chunk_shift
-        has_chunk_shift = chunk_shift is not None and chunk_shift > 0
-
-        if not has_chunk_shift:
-            return stats
-
-        # Guard clause: Skip second pass if no faulty chunks exist
-        if not np.any(~stats["is_valid"].data):
-            self.log.info(
-                "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
-                tel_id,
-            )
-            return stats
-
-        # Second pass execution and combining results
-        stats_secondpass = self.stats_calculator.second_pass(
-            table=dl1_table,
-            valid_chunks=stats["is_valid"].data,
-            tel_id=tel_id,
-            col_name=self.input_column_name,
-        )
-
-        combined_stats = vstack([stats, stats_secondpass])
-        combined_stats.sort(["time_start"])
-        return combined_stats
 
     def finish(self):
         self.log.info("Tool is shutting down")

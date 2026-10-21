@@ -268,12 +268,15 @@ def test_second_pass_chunk_boundaries(
         ),
     )
     aggregator = calculator.stats_aggregators["PlainAggregator"]
+    shift_changes = []
+    aggregator.chunking.observe(shift_changes.append, names="chunk_shift")
     first = calculator.first_pass(table, tel_id=1)
     assert first["is_valid"].shape == (len(first),)
     assert aggregator.chunking.chunk_shift == settings["chunk_shift"]
     valid = np.ones(len(first), dtype=bool)
     valid[faulty_index] = False
     second = calculator.second_pass(table, valid, tel_id=1)
+    assert not shift_changes
     assert len(second) > 0
     assert second["mean"].unit == u.V
     np.testing.assert_allclose(second["mean"], 1)

@@ -81,7 +81,12 @@ class BaseChunking(Component, metaclass=ABCMeta):
         ),
     ).tag(config=True)
 
-    def __call__(self, table) -> Generator[Table, None, None]:
+    @property
+    @abstractmethod
+    def has_overlap(self) -> bool:
+        """Whether the configured windows overlap and can refine a first pass."""
+
+    def __call__(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """
         Generate chunks from the input table.
 
@@ -89,6 +94,10 @@ class BaseChunking(Component, metaclass=ABCMeta):
         ----------
         table : astropy.table.Table
             Input table with 'time' column.
+        overlap : bool
+            Use the configured overlap. If False, use unshifted windows without
+            changing the component configuration. The final-chunk policy still
+            applies and may introduce an overlapping final window.
 
         Yields
         ------
@@ -104,10 +113,10 @@ class BaseChunking(Component, metaclass=ABCMeta):
             raise ValueError(
                 "Table must have a 'time' column or both 'time_start' and 'time_end' columns for chunking."
             )
-        yield from self._generate_chunks(table)
+        yield from self._generate_chunks(table, overlap=overlap)
 
     @abstractmethod
-    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+    def _generate_chunks(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """Generate chunks from table. Implemented by subclasses."""
         pass
 
@@ -130,6 +139,14 @@ class SizeChunking(BaseChunking):
         ),
     ).tag(config=True)
 
+    @property
+    def has_overlap(self):
+        return (
+            self.chunk_size is not None
+            and self.chunk_shift is not None
+            and 0 < self.chunk_shift < self.chunk_size
+        )
+
     def _generate_final_chunk(self, table, last_chunk_start):
         """Generate the final chunk according to last_chunk_policy."""
         remaining_rows = len(table) - last_chunk_start
@@ -150,7 +167,7 @@ class SizeChunking(BaseChunking):
 
         return None
 
-    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+    def _generate_chunks(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """Generate row-count based chunks."""
         # Handle case where chunk_size is None (entire table)
         if self.chunk_size is None:
@@ -169,7 +186,11 @@ class SizeChunking(BaseChunking):
                 )
 
         # Calculate step size
-        step = self.chunk_shift if self.chunk_shift is not None else self.chunk_size
+        step = (
+            self.chunk_shift
+            if overlap and self.chunk_shift is not None
+            else self.chunk_size
+        )
 
         # Calculate all main chunk start indices (not extending beyond table)
         n_chunks = (len(table) - self.chunk_size) // step + 1
@@ -208,6 +229,13 @@ class TimeChunking(BaseChunking):
         help=("Time shift between consecutive chunks. If 0, chunks do not overlap."),
     ).tag(config=True)
 
+    @property
+    def has_overlap(self):
+        return (
+            self.chunk_shift is not None
+            and 0 * u.s < self.chunk_shift < self.chunk_duration
+        )
+
     def _validate_inputs(self, total_duration):
         """Validate chunk_duration and table duration."""
         chunk_duration = self.chunk_duration.to_value(u.s)
@@ -242,7 +270,7 @@ class TimeChunking(BaseChunking):
             # Skip the last partial chunk
             return None
 
-    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+    def _generate_chunks(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """Generate time-based chunks."""
         # Handle case where chunk_duration is None (entire table)
         if self.chunk_duration is None:
@@ -261,7 +289,7 @@ class TimeChunking(BaseChunking):
         # Calculate time step
         time_step = (
             self.chunk_shift
-            if self.chunk_shift is not None and self.chunk_shift > 0 * u.s
+            if overlap and self.chunk_shift is not None and self.chunk_shift > 0 * u.s
             else self.chunk_duration
         ).to_value(u.s)
 

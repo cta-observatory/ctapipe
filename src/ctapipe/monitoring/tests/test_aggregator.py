@@ -2,6 +2,8 @@
 Tests for aggregators and related functions
 """
 
+from itertools import pairwise
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -1322,3 +1324,29 @@ def test_time_chunking_empty_windows():
     stats = aggregator(table)
     assert len(stats) > 0
     assert np.all(stats["n_events"] > 0)
+
+
+@pytest.mark.parametrize("chunking_type", ["SizeChunking", "TimeChunking"])
+@pytest.mark.parametrize("shift", [None, 0, 2, 4, 6])
+def test_chunking_overlap_api(chunking_type, shift):
+    """The strategy reports overlap and can disable it without mutation."""
+    from ctapipe.monitoring.aggregator import BaseChunking
+
+    times = Time("2020-01-01") + np.arange(100) * u.s
+    table = Table({"time": times})
+    if chunking_type == "SizeChunking":
+        settings = {"chunk_size": 4, "chunk_shift": shift}
+    else:
+        settings = {
+            "chunk_duration": 4 * u.s,
+            "chunk_shift": shift * u.s if shift is not None else None,
+        }
+    chunking = BaseChunking.from_name(chunking_type, **settings)
+    assert chunking.has_overlap == (shift is not None and 0 < shift < 4)
+    changes = []
+    chunking.observe(changes.append, names="chunk_shift")
+    chunks = list(chunking(table, overlap=False))
+    assert len(chunks) > 1
+    assert not changes
+    for first, second in pairwise(chunks[:-1]):
+        assert second["time"][0] >= first["time"][-1]

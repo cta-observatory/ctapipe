@@ -4,7 +4,7 @@ calculate the monitoring data for the camera calibration.
 """
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.time import Time
 
 from ..core import TelescopeComponent
@@ -116,6 +116,40 @@ class PixelStatisticsCalculator(TelescopeComponent):
                     )
                 )
 
+    def __call__(
+        self, table, tel_id, masked_pixels_of_sample=None, col_name="image"
+    ) -> Table:
+        """Calculate statistics and refine faulty periods if overlap is configured.
+
+        Parameters are the same as for :meth:`first_pass`.
+        """
+        stats = self.first_pass(
+            table=table,
+            tel_id=tel_id,
+            masked_pixels_of_sample=masked_pixels_of_sample,
+            col_name=col_name,
+        )
+        aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
+        if not aggregator.chunking.has_overlap:
+            return stats
+        if np.all(stats["is_valid"]):
+            self.log.info(
+                "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
+                tel_id,
+            )
+            return stats
+
+        refined = self.second_pass(
+            table=table,
+            valid_chunks=stats["is_valid"].data,
+            tel_id=tel_id,
+            masked_elements_of_sample=masked_pixels_of_sample,
+            col_name=col_name,
+        )
+        combined = vstack([stats, refined])
+        combined.sort("time_start")
+        return combined
+
     def first_pass(
         self,
         table,
@@ -128,7 +162,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
 
         This method performs the first pass over the provided data table to calculate
         various statistics for calibration purposes. The statistics are aggregated with
-        non-overlapping chunks (``chunk_shift`` set to None), and faulty pixels are detected
+        unshifted chunks, and faulty pixels are detected
         using a list of outlier detectors.
 
 
@@ -152,20 +186,12 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Get the aggregator
         aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
 
-        # Temporarily disable chunk_shift for first pass to ensure non-overlapping chunks
-        original_chunk_shift = aggregator.chunking.chunk_shift
-        aggregator.chunking.chunk_shift = None
-
-        try:
-            # Pass through the whole provided dl1 table
-            aggregated_stats = aggregator(
-                table=table,
-                masked_elements_of_sample=masked_pixels_of_sample,
-                col_name=col_name,
-            )
-        finally:
-            # Restore original chunk_shift
-            aggregator.chunking.chunk_shift = original_chunk_shift
+        aggregated_stats = aggregator(
+            table=table,
+            chunks=aggregator.chunking(table, overlap=False),
+            masked_elements_of_sample=masked_pixels_of_sample,
+            col_name=col_name,
+        )
 
         # Detect faulty pixels with multiple instances of ``OutlierDetector``
         # and append the outlier masks to the aggregated statistics
@@ -221,20 +247,13 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Get the aggregator
         aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
 
-        chunk_shift = aggregator.chunking.chunk_shift
-        if chunk_shift is None or chunk_shift <= 0:
+        if not aggregator.chunking.has_overlap:
             raise ValueError(
-                "Aggregator's chunking component must have chunk_shift > 0 configured for second pass. "
-                f"Current chunk_shift: {chunk_shift}"
+                "Second pass requires overlapping chunks to be configured."
             )
 
-        # Recreate the actual first-pass boundaries, including the final-chunk policy.
-        # Chunk indices cannot be converted to row offsets for time-based chunks.
-        aggregator.chunking.chunk_shift = None
-        try:
-            first_pass_chunks = list(aggregator.chunking(table))
-        finally:
-            aggregator.chunking.chunk_shift = chunk_shift
+        # Recreate actual first-pass boundaries without changing configuration.
+        first_pass_chunks = list(aggregator.chunking(table, overlap=False))
 
         valid_chunks = np.asarray(valid_chunks, dtype=bool)
         if valid_chunks.shape != (len(first_pass_chunks),):
