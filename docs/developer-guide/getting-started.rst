@@ -364,6 +364,14 @@ Then, update a local branch using:
 For differences between rebasing and merging and when to use which, see `this tutorial <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>`_.
 
 
+And then push your changes. Note that when rebasing, ``--force`` is needed.
+
+.. code-block:: console
+
+   $ git push                     # when using merge
+   $ git push --force-with-lease  # when rebasing
+
+
 Create a *Pull Request*
 -----------------------
 
