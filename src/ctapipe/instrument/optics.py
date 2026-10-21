@@ -128,7 +128,7 @@ class MirrorDescription:
     A `MirrorDescription` is written as the rows of the table returned by
     `OpticsDescription.to_table` and can be read back from such a table
     (or a FITS or ECSV file containing it) using
-    `OpticsDescription.from_mirror_description_table`.
+    `OpticsDescription.from_table`.
 
     Parameters
     ----------
@@ -344,7 +344,7 @@ class OpticsDescription:
         total reflective surface area of the optical system (in m^2)
     n_mirror_tiles : int
         number of mirror facets
-    mirrors_description : MirrorDescription or None
+    mirror_description : MirrorDescription or None
         Optional description of the individual mirror facets of the reflector
 
     Raises
@@ -523,14 +523,14 @@ class OpticsDescription:
         """
         Convert this OpticsDescription to an astropy Table for writing to files.
 
-        If ``mirrors_description`` is set, the table has one row per mirror
+        If ``mirror_description`` is set, the table has one row per mirror
         facet, with columns ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``,
-        ``nz``, ``surface`` and ``shape``. Otherwise the table has no rows and
+        ``nz``, ``surface_area`` and ``shape``. Otherwise the table has no rows and
         only the metadata describes the optics.
 
         See `OpticsDescription.from_table` for the opposite operation.
         """
-        mirrors = self.mirrors_description
+        mirrors = self.mirror_description
         if mirrors is None:
             table = Table()
         else:
@@ -566,7 +566,7 @@ class OpticsDescription:
         Create an OpticsDescription instance from an astropy Table.
 
         If the table contains mirror facet rows, they are read into
-        ``mirrors_description``, otherwise it is set to None.
+        ``mirror_description``, otherwise it is set to None.
 
         See `OpticsDescription.to_table` for the opposite operation.
         """
@@ -577,9 +577,9 @@ class OpticsDescription:
         if version not in cls.COMPATIBLE_TEL_TAB_VERSIONS:
             raise OSError(f"Unsupported telescope optics table version: {version}")
 
-        mirrors_description = None
+        mirror_description = None
         if "mirror_id" in table.colnames:
-            mirrors_description = cls._mirror_description_from_table(table)
+            mirror_description = cls._mirror_description_from_table(table)
 
         return cls(
             name=table.meta["optics_name"],
@@ -598,7 +598,7 @@ class OpticsDescription:
         )
 
     @staticmethod
-    def from_mirror_description_table(table: Table | str | Path, **kwargs):
+    def _mirror_description_from_table(table: Table | str | Path, **kwargs):
         """
         Create a `MirrorDescription` from an astropy Table, or from a
         FITS or ECSV file containing such a table.
@@ -608,7 +608,8 @@ class OpticsDescription:
         table : astropy.table.Table or str or pathlib.Path
             Table describing the mirror facets, with columns
             ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
-            ``surface`` and ``shape``, or the path to a FITS or ECSV file
+            ``surface_area`` (or ``surface`` for older files) and ``shape``,
+            or the path to a FITS or ECSV file
             containing such a table.
         **kwargs
             Additional keyword arguments passed to `astropy.table.Table.read`
@@ -637,7 +638,9 @@ class OpticsDescription:
             nx=np.asarray(table["nx"]),
             ny=np.asarray(table["ny"]),
             nz=np.asarray(table["nz"]),
-            surface_area=table["surface"],
+            surface_area=table[
+                "surface_area" if "surface_area" in table.colnames else "surface"
+            ],
             mirror_shape=mirror_shape,
         )
 
