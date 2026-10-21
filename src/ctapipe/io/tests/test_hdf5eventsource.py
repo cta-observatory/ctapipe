@@ -298,7 +298,7 @@ def test_pointing_old_file():
     assert n_read == 5
 
 
-def test_no_pointing_in_ob(tmp_path, south_site_config):
+def test_no_pointing_in_ob(tmp_path, south_site_config, provenance):
     from ctapipe.io import DataWriter
 
     test_file = "dataset://gamma_prod5.simtel.zst"

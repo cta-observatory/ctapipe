@@ -72,7 +72,7 @@ def generate_dummy_dl2(event):
         )
 
 
-def test_write(tmpdir: Path, south_site_config):
+def test_write(tmpdir: Path, south_site_config, provenance):
     """
     Check that we can write and read data from R0-DL2 to files
     """
@@ -177,7 +177,7 @@ def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):
     assert input_path.exists()
 
 
-def test_roundtrip(tmpdir: Path, south_site_config):
+def test_roundtrip(tmpdir: Path, south_site_config, provenance):
     """
     Check that we can write DL1+DL2 info to files and read them back
 
@@ -250,7 +250,7 @@ def test_roundtrip(tmpdir: Path, south_site_config):
                 assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
 
-def test_dl1writer_no_events(tmpdir: Path, south_site_config):
+def test_dl1writer_no_events(tmpdir: Path, south_site_config, provenance):
     """
     Check that we can write DL1 files even when no events are given
 

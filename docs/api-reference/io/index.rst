@@ -176,6 +176,7 @@ It can be used in an event loop like:
 
 .. code-block:: python
 
+    import astropy.units as u
     from traitlets.config import Config
 
     writer_config = Config(
@@ -189,8 +190,18 @@ It can be used in an event loop like:
                 "Curation": {"release": "example"},
                 "ProductMetadata": {
                     "description": "Example ctapipe data product",
-                    "instance": {"category": "A"},
+                    "instance": {
+                        "category": "A",
+                        "site_id": "CTAO-North",
+                    },
                     "activity": {"configuration_id": "example-configuration"},
+                    "observation": {
+                        "location": {
+                            "longitude": -17.892005 * u.deg,
+                            "latitude": 28.762164 * u.deg,
+                            "height": 2200 * u.m,
+                        }
+                    },
                 },
             }
         }
@@ -210,6 +221,10 @@ time, and processing sublevels from the input and selected output. Contact, cura
 and the supported product overrides are configured using
 `~ctapipe.io.metadata.Contact`, `~ctapipe.io.metadata.Curation`, and
 `~ctapipe.io.metadata.ProductMetadata`, respectively.
+The supported product overrides include ``instance.site_id`` and
+``observation.location``. If simulation node metadata is present, the CTAO data model
+requires either a site identifier or an observatory location so that the simulated
+direction can be validated.
 
 
 Reading Output Tables

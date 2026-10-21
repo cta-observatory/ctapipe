@@ -8,3 +8,11 @@ Read current and legacy metadata from HDF5, FITS, ECSV, and JSON files. Legacy
 metadata is converted to the current model when read, and ``ctapipe-merge``
 migrates legacy HDF5 metadata in its output while updating product identity,
 creation time, observation identifiers, data level, and product type.
+
+Allow configuring ``instance.site_id`` and ``observation.location`` in
+:class:`~ctapipe.io.metadata.ProductMetadata`. The
+:class:`~ctapipe.io.DataWriter` now derives observation locations and site identifiers
+from valid subarray locations and writes them so that simulation-node coordinates can
+be validated. Simulation compatibility checks in ``ctapipe-merge`` compare the
+production name and simulated zenith and azimuth with a small numerical tolerance;
+when no simulation node is available, available site identifiers are compared instead.

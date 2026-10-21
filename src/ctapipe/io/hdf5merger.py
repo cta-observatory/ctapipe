@@ -6,6 +6,8 @@ from pathlib import Path
 
 import ctao_datamodel.models.dataproducts as dp
 import tables
+from astropy import units as u
+from astropy.coordinates import Angle
 from astropy.time import Time
 from traitlets import Instance
 
@@ -451,6 +453,18 @@ class HDF5Merger(Component):
                 f" {other_data_category}, expected {self.data_category}"
             )
 
+        site_id = self.meta.instance.site_id
+        other_site_id = other_meta.instance.site_id
+        if (
+            site_id is not None
+            and other_site_id is not None
+            and site_id != other_site_id
+        ):
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different site ID:"
+                f" {other_site_id!r}, expected {site_id!r}"
+            )
+
         if not self.attach_monitoring:
             self._check_simulation_metadata(other, other_meta)
 
@@ -477,6 +491,41 @@ class HDF5Merger(Component):
                 f"Input file {other.filename!r} has different simulation production:"
                 f" {other_simulation.production_name!r},"
                 f" expected {simulation.production_name!r}"
+            )
+
+        node = simulation.node
+        other_node = other_simulation.node
+        # Direction cannot be compared unless both nodes are available.
+        # Site compatibility is checked separately in _check_can_merge().
+        if node is None or other_node is None:
+            return
+
+        direction_tolerance = 1e-5 * u.deg
+
+        if not u.isclose(
+            node.zenith,
+            other_node.zenith,
+            atol=direction_tolerance,
+            rtol=0,
+        ):
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation zenith:"
+                f" {other_node.zenith}, expected {node.zenith}"
+            )
+
+        azimuth_difference = Angle(other_node.azimuth - node.azimuth).wrap_at(
+            180 * u.deg
+        )
+
+        if not u.isclose(
+            azimuth_difference,
+            0 * u.deg,
+            atol=direction_tolerance,
+            rtol=0,
+        ):
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation azimuth:"
+                f" {other_node.azimuth}, expected {node.azimuth}"
             )
 
     def _check_data_model_version(self, other, other_version):
