@@ -422,7 +422,10 @@ class ProductMetadata(Configurable):
     ``description`` and ``disclaimer`` override the corresponding product fields.
     ``instance`` accepts ``category`` and ``site_id`` overrides, ``activity`` accepts
     the ``configuration_id`` override, and ``observation`` accepts a ``location``
-    override. Other product metadata is derived by the writer.
+    override. ``simulation`` accepts ``production_name`` and a nested ``node``
+    override containing only ``nsb_factor``. The node override requires simulation
+    node metadata to be available from the input. Other product metadata is derived
+    by the writer.
     """
 
     description = Unicode(

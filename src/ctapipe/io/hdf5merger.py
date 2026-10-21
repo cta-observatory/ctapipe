@@ -475,6 +475,7 @@ class HDF5Merger(Component):
                 )
 
     def _check_simulation_metadata(self, other, other_meta):
+        """Check simulation-production and pointing compatibility."""
         simulation = self.meta.simulation
         other_simulation = other_meta.simulation
 

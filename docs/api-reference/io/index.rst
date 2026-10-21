@@ -221,10 +221,14 @@ time, and processing sublevels from the input and selected output. Contact, cura
 and the supported product overrides are configured using
 `~ctapipe.io.metadata.Contact`, `~ctapipe.io.metadata.Curation`, and
 `~ctapipe.io.metadata.ProductMetadata`, respectively.
-The supported product overrides include ``instance.site_id`` and
-``observation.location``. If simulation node metadata is present, the CTAO data model
-requires either a site identifier or an observatory location so that the simulated
-direction can be validated.
+The supported product overrides are ``instance.category``, ``instance.site_id``,
+``activity.configuration_id``, ``observation.location``,
+``simulation.production_name``, and ``simulation.node.nsb_factor``. No other fields
+inside these nested sections can be configured. Overriding
+``simulation.node.nsb_factor`` requires simulation node metadata to be available from
+the input. If simulation node metadata is present, the CTAO data model requires either
+a site identifier or an observatory location so that the simulated direction can be
+validated.
 
 
 Reading Output Tables
