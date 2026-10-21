@@ -198,15 +198,12 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             cwd=tmp_path,
             raises=True,
         )
-    # Check if ToolConfigurationError is raised
-    # when the chunk size is larger than the number of events in the input file
+    # SizeChunking validates that the chunk size does not exceed the input length.
     monitoring_failure_chunk_size_file = (
         tmp_path / "monitoring_failure_chunk_size.dl1.h5"
     )
 
-    with pytest.raises(
-        ToolConfigurationError, match="Change --SizeChunking.chunk_size"
-    ):
+    with pytest.raises(ValueError, match="Table length .* is less than chunk_size"):
         run_tool(
             PixelStatisticsCalculatorTool(),
             argv=[
@@ -343,3 +340,43 @@ def test_per_channel_missing_selected_gain_channel(dl1_image_file):
 
     with pytest.raises(ToolConfigurationError, match="'pixel_status' not found"):
         tool._is_valid_table(dl1_table, tel_id)
+
+
+@pytest.mark.parametrize("chunk_shift", [None, 0 * u.s, 0.5 * u.s])
+def test_calculate_pixel_stats_tool_time_chunking(
+    tmp_path, dl1_image_file, chunk_shift
+):
+    output = tmp_path / "time_statistics.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {"allowed_tels": [3]},
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {
+                "chunk_duration": 1 * u.s,
+                "chunk_shift": chunk_shift,
+                "allow_undersized_tables": True,
+            },
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": "PlainAggregator",
+                "outlier_detector_list": [
+                    {
+                        "name": "RangeOutlierDetector",
+                        "apply_to": "mean",
+                        "config": {"validity_range": [1e20, 1e21]},
+                    }
+                ],
+            },
+        }
+    )
+    assert (
+        run_tool(
+            PixelStatisticsCalculatorTool(config=config),
+            argv=[f"--input_url={dl1_image_file}", f"--output_path={output}"],
+            cwd=tmp_path,
+            raises=True,
+        )
+        == 0
+    )
+    stats = read_table(output, f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_003")
+    assert len(stats) > 0
+    assert np.all(~stats["is_valid"])

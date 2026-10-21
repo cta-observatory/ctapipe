@@ -1288,3 +1288,37 @@ def test_last_chunk_policy_time_chunking():
 
     # Should have 2 chunks: [0:2s], [2:4s] (last partial chunk skipped)
     assert len(result_skip) == 2
+
+
+@pytest.mark.parametrize("chunk_shift", [None, 0 * u.s])
+def test_time_chunking_without_overlap(chunk_shift):
+    """None and zero both disable overlap, including exactly one full window."""
+    from ctapipe.monitoring.aggregator import TimeChunking
+
+    times = Time("2020-01-01") + np.arange(9) * u.s
+    table = Table({"time": times})
+    # Calculate the duration from Time to avoid floating-point rounding of seconds.
+    duration = (times[-1] - times[0]).to(u.s)
+    chunking = TimeChunking(chunk_duration=duration, chunk_shift=chunk_shift)
+    chunks = list(chunking(table))
+    assert len(chunks) == 1
+    assert len(chunks[0]) == len(table)
+    chunking.chunk_duration = duration / 2
+    assert len(list(chunking(table))) >= 2
+
+
+def test_time_chunking_empty_windows():
+    """Gaps between events must not produce empty aggregation windows."""
+    times = Time("2020-01-01") + np.array([0, 0.1, 9, 9.1]) * u.s
+    table = Table({"time": times, "image": np.ones((4, 1, 2))})
+    aggregator = PlainAggregator(
+        config=Config(
+            {
+                "PlainAggregator": {"chunking_type": "TimeChunking"},
+                "TimeChunking": {"chunk_duration": 1 * u.s},
+            }
+        )
+    )
+    stats = aggregator(table)
+    assert len(stats) > 0
+    assert np.all(stats["n_events"] > 0)

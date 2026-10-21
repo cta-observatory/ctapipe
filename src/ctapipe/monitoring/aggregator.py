@@ -254,13 +254,15 @@ class TimeChunking(BaseChunking):
 
         # Validate inputs and handle undersized tables
         use_entire_table = self._validate_inputs(relative_times[-1])
-        if use_entire_table:
+        if use_entire_table or relative_times[-1] == self.chunk_duration.to_value(u.s):
             yield table  # Yield entire table as single chunk
             return
 
         # Calculate time step
         time_step = (
-            self.chunk_shift if self.chunk_shift > 0 * u.s else self.chunk_duration
+            self.chunk_shift
+            if self.chunk_shift is not None and self.chunk_shift > 0 * u.s
+            else self.chunk_duration
         ).to_value(u.s)
 
         chunk_start_time = np.arange(
@@ -276,7 +278,7 @@ class TimeChunking(BaseChunking):
         # Generate chunks for each main chunk start time
         for i, j in zip(chunk_start_idx, chunk_end_idx):
             chunk = table[i:j]
-            if chunk is not None:
+            if len(chunk) > 0:
                 yield chunk
 
         # Handle final chunk according to policy
@@ -284,7 +286,7 @@ class TimeChunking(BaseChunking):
             relative_times, chunk_start_time[-1] + time_step
         )
         final_chunk = self._generate_final_chunk(table, last_chunk_idx)
-        if final_chunk is not None:
+        if final_chunk is not None and len(final_chunk) > 0:
             yield final_chunk
 
 
@@ -321,6 +323,8 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         table,
         masked_elements_of_sample=None,
         col_name="image",
+        *,
+        chunks=None,
     ) -> Table:
         r"""
         Divide table into chunks and compute aggregated statistic values or histograms.
@@ -335,6 +339,9 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
+        chunks : iterable of astropy.table.Table, optional
+            Preselected chunks of the input table. If omitted, use the configured
+            chunking strategy.
 
         Returns
         -------
@@ -343,7 +350,8 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             as well as the aggregated statistic values or histograms for each chunk
         """
         # Get chunks using the chunking strategy
-        chunks = self.chunking(table)
+        if chunks is None:
+            chunks = self.chunking(table)
 
         # Initialize result storage
         results = defaultdict(list)
