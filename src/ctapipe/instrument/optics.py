@@ -598,30 +598,21 @@ class OpticsDescription:
         )
 
     @staticmethod
-    def _mirror_description_from_table(table: Table | str | Path, **kwargs):
+    def _mirror_description_from_table(table: Table):
         """
-        Create a `MirrorDescription` from an astropy Table, or from a
-        FITS or ECSV file containing such a table.
+        Create a `MirrorDescription` from an astropy Table.
 
         Parameters
         ----------
-        table : astropy.table.Table or str or pathlib.Path
+        table : astropy.table.Table
             Table describing the mirror facets, with columns
             ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
-            ``surface_area`` (or ``surface`` for older files) and ``shape``,
-            or the path to a FITS or ECSV file
-            containing such a table.
-        **kwargs
-            Additional keyword arguments passed to `astropy.table.Table.read`
-            when ``table`` is a path.
+            ``surface_area`` (or ``surface`` for older files) and ``shape``.
 
         Returns
         -------
         MirrorDescription
         """
-        if not isinstance(table, Table):
-            table = Table.read(table, **kwargs)
-
         table = QTable(table)
 
         # FITS tables are read back with byte strings by default, while
