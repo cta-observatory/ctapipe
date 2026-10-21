@@ -66,10 +66,8 @@ def json_config_handler(obj):
     from ctapipe.io.metadata import (
         Contact,
         Curation,
-        Instrument,
         ProductMetadata,
         Reference,
-        _to_dict,
     )
 
     if isinstance(obj, (set, UserList)):
@@ -94,9 +92,6 @@ def json_config_handler(obj):
             "value": obj.value.tolist(),
             "unit": obj.unit.to_string("vounit"),
         }
-
-    if isinstance(obj, Instrument):
-        return _to_dict(obj)
 
     if isinstance(obj, BaseModel):
         return obj.model_dump(mode="json")
