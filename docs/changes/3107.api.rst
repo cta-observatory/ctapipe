@@ -1,5 +1,4 @@
 Require the output file to exist when using ``ctapipe-merge --append``.
-Raise the minimum supported Astropy version from 6.1 to 7.2.
 Update :class:`~ctapipe.io.DataWriter` to validate the configurable
 ``contact_info``, ``curation_info``, and ``product_info`` against the CTAO data
 model. Remove the old ``instrument_info`` trait. Add configurable contact and
