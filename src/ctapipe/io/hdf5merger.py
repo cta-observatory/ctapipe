@@ -529,6 +529,12 @@ class HDF5Merger(Component):
                 f" {other_node.azimuth}, expected {node.azimuth}"
             )
 
+        if node.nsb_factor != other_node.nsb_factor:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation NSB factor :"
+                f" {other_node.nsb_factor}, expected {node.nsb_factor}"
+            )
+
     def _check_data_model_version(self, other, other_version):
         """Check data-model-version compatibility for the merge strategy."""
         if self.attach_monitoring:
