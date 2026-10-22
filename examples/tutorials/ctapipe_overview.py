@@ -357,6 +357,23 @@ image_processor_config = Config(
     }
 )
 
+writer_config = Config(
+    {
+        "DataWriter": {
+            "Contact": {
+                "name": "Example User",
+                "organization": "Example Organization",
+                "email": "user@example.org",
+            },
+            "ProductMetadata": {
+                "instance": {
+                    "site_id": "CTAO-South",
+                },
+            },
+        }
+    }
+)
+
 input_url = get_dataset_path("gamma_prod5.simtel.zst")
 source = EventSource(input_url)
 
@@ -374,6 +391,7 @@ with DataWriter(
     output_path=f.name,
     overwrite=True,
     write_dl2=True,
+    config=writer_config,
 ) as writer:
     for event in source:
         energy = event.simulation.shower.energy
