@@ -309,7 +309,7 @@ def test_disp_fixed_icrs_pointing(disp_reconstructor_path, gamma_dl2_train_small
     disp_model = DispReconstructor.read(disp_reconstructor_path)
 
     # this should work using the telescope pointing
-    disp_model.predict_table(disp_model.subarray.tel[1], events)
+    disp_model.predict_table(str(disp_model.subarray.tel[1]), events)
 
     # this should fail as now the subarray pointing cannot be used
     events["subarray_pointing_frame"] = CoordinateFrameType.ICRS.value
