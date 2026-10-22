@@ -356,16 +356,18 @@ def test_dl1_charge_calib(example_subarray):
         )
 
 
-def test_shift_waveforms():
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_shift_waveforms(dtype):
     from ctapipe.calib.camera.calibrator import shift_waveforms
 
     # 1 channel, 5 pixels, 40 samples
-    waveforms = np.zeros((1, 5, 40))
+    waveforms = np.zeros((1, 5, 40), dtype=dtype)
     waveforms[:, :, 10] = 1
     shifts = np.array([1.4, 2.1, -1.8, 3.1, -4.4])
 
     shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
 
+    assert shifted_waveforms.dtype == waveforms.dtype
     assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
 
     assert shifted_waveforms[0, 0, 9] == 1
@@ -375,12 +377,13 @@ def test_shift_waveforms():
     assert shifted_waveforms[0, 4, 14] == 1
 
     # 2 channel, 5 pixels, 40 samples
-    waveforms = np.zeros((2, 5, 40))
+    waveforms = np.zeros((2, 5, 40), dtype=dtype)
     waveforms[:, :, 10] = 1
     shifts = np.array([[1.4, 2.1, -1.8, 3.1, -4.4], [1.4, 2.1, -1.8, 3.1, -4.4]])
 
     shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
 
+    assert shifted_waveforms.dtype == waveforms.dtype
     assert np.allclose(
         remaining_shift, [[0.4, 0.1, 0.2, 0.1, -0.4], [0.4, 0.1, 0.2, 0.1, -0.4]]
     )

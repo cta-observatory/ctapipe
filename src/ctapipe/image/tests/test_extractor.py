@@ -186,6 +186,22 @@ def toymodel_mst_fc_time(subarray_1_mst_fc: object) -> object:
     return get_test_toymodel_gradient(subarray_1_mst_fc)
 
 
+@pytest.mark.parametrize(
+    ("extractor", "input_dtypes"),
+    [
+        (extract_around_peak, ("int32", "int64", "int64", "float64")),
+        (extract_sliding_window, ("int32", "float64")),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_extractor_input_dtype(extractor, input_dtypes, dtype):
+    # An integer argument needing promotion must not also promote the waveforms.
+    # Both loops return float32, so checking the output dtype cannot detect this.
+    dtypes = tuple(np.dtype(t) for t in (dtype, *input_dtypes)) + (None, None)
+    resolved = extractor.ufunc.resolve_dtypes(dtypes)
+    assert resolved[0] == np.dtype(dtype)
+
+
 def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
     _, n_pixels, n_samples = waveforms.shape
