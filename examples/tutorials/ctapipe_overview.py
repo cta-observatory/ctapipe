@@ -36,6 +36,7 @@ from ctapipe.image import (
 )
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.io import DataWriter, EventSource, TableLoader
+from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.reco import ShowerProcessor
 from ctapipe.utils.datasets import get_dataset_path
 from ctapipe.visualization import ArrayDisplay, CameraDisplay
@@ -333,6 +334,21 @@ print(conc)
 # A command line tool doing these steps and writing out data in HDF5
 # format is available as ``ctapipe-process``
 #
+# In addition to the event data, ``DataWriter`` stores metadata describing the
+# resulting CTAO data product. Most of this metadata, such as the data level and
+# observation identifier, is derived automatically. Information that cannot be
+# inferred from the input can be supplied using a configuration. The ``Contact``
+# section identifies the person or organization responsible for the generated
+# data product, while ``ProductMetadata`` provides overrides for fields in the
+# CTAO data-product model.
+#
+# Simulation node metadata requires a site identifier or observatory location.
+# The example Prod5 file does not contain a valid observatory location, so we
+# explicitly identify it as a CTAO-South simulation. See the
+# `ctao-datamodel DataProducts documentation
+# <https://cta-computing.gitlab-pages.cta-observatory.org/common/ctao-datamodel/latest/dataproducts.html>`__
+# for the definitions of the data-product metadata fields.
+#
 
 
 image_processor_config = Config(
@@ -417,6 +433,16 @@ with DataWriter(
             plotting_event = deepcopy(event)
 
         writer(event)
+
+
+######################################################################
+# The validated CTAO data-product metadata can be read directly from the file.
+# You can equivalenty inspect it with ``ctapipe-fileinfo``.
+
+metadata = read_ctao_metadata(f.name)
+
+print("Data product metadata:")
+print(metadata.model_dump_json(indent=2))
 
 
 ######################################################################
