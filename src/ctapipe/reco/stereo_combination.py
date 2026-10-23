@@ -953,27 +953,27 @@ class StereoDispCombiner(StereoCombiner):
             copy=COPY_IF_NEEDED,
         )
 
-        obs_ids, event_ids, _, tel_to_array_indices = get_subarray_index(
-            mono_predictions
-        )
-        n_array_events = len(obs_ids)
+        idx = get_subarray_index(mono_predictions)
+        n_array_events = len(idx.obs_id)
 
         valid = self._apply_min_ang_diff_cut(
             valid=valid,
-            tel_to_array_indices=tel_to_array_indices,
+            tel_to_array_indices=idx.subarray_event_index,
             hillas_psis=hillas_psis,
         )
         valid = self._apply_n_best_tels_cut(
             mono_predictions=mono_predictions,
             valid=valid,
-            tel_to_array_indices=tel_to_array_indices,
+            tel_to_array_indices=idx.subarray_event_index,
         )
 
-        stereo_table = self._init_stereo_table(mono_predictions, obs_ids, event_ids)
+        stereo_table = self._init_stereo_table(
+            mono_predictions, idx.obs_id, idx.event_id
+        )
         alt, az = self._compute_altaz_for_valid(
             mono_predictions=mono_predictions,
             valid=valid,
-            tel_to_array_indices=tel_to_array_indices,
+            tel_to_array_indices=idx.subarray_event_index,
             n_array_events=n_array_events,
             prefix_tel=prefix_tel,
             fov_lon_values=fov_lon_values[valid],
@@ -993,7 +993,7 @@ class StereoDispCombiner(StereoCombiner):
         stereo_table[f"{self.prefix}_telescopes"] = self._collect_telescopes_per_event(
             mono_predictions=mono_predictions,
             valid=valid,
-            tel_to_array_indices=tel_to_array_indices,
+            tel_to_array_indices=idx.subarray_event_index,
             n_array_events=n_array_events,
         )
 
@@ -1110,7 +1110,8 @@ class StereoDispCombiner(StereoCombiner):
             return nan, nan
 
         weights = self._calculate_weights(mono_predictions[valid])
-        _, _, valid_multiplicity, _ = get_subarray_index(mono_predictions[valid])
+        valid_idx = get_subarray_index(mono_predictions[valid])
+        valid_multiplicity = valid_idx.multiplicity
 
         combs_array, combs_to_multi_indices = create_combs_array(
             valid_multiplicity.max(), self.n_tel_combinations
