@@ -10,6 +10,7 @@ from pathlib import Path
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import Angle
 from astropy.table import QTable, Table
 from numpy.fft import fft2, fftshift
 from scipy.ndimage import gaussian_filter, map_coordinates
@@ -43,6 +44,8 @@ __all__ = [
     "PSFModel",
     "ComaPSFModel",
     "ZernikePSFModel",
+    "MirrorDescription",
+    "MirrorFacetShape",
 ]
 
 
@@ -97,6 +100,220 @@ class ReflectorShape(Enum):
     SCHWARZSCHILD_COUDER = "SCHWARZSCHILD_COUDER"
 
 
+@unique
+class MirrorFacetShape(Enum):
+    """
+    Enumeration of the different mirror facet shapes
+    """
+
+    #: Unknown
+    UNKNOWN = "UNKNOWN"
+    #: Individual mirror facets of circular shape.
+    CIRCLE = "CIRCLE"
+    #: Individual mirror facets of square shape.
+    SQUARE = "SQUARE"
+    #: Individual mirror facets of hexagonal shape.
+    HEXAGON = "HEXAGON"
+
+
+class MirrorDescription:
+    """
+    Description of the individual mirror facets of a telescope reflector
+
+    Stores, for each mirror facet, its ID, the position of its centre, the
+    unit vector normal to its surface, its reflective surface area and its
+    shape. All per-facet inputs must be one-dimensional arrays of the same
+    length (one entry per facet).
+
+    A `MirrorDescription` is written as the rows of the table returned by
+    `OpticsDescription.to_table` and can be read back from such a table
+    (or a FITS or ECSV file containing it) using
+    `OpticsDescription.from_table`.
+
+    Parameters
+    ----------
+    id : array_like of int
+        Unique ID of each mirror facet
+    x : astropy.units.Quantity[length]
+        x coordinate of the centre of each mirror facet
+    y : astropy.units.Quantity[length]
+        y coordinate of the centre of each mirror facet
+    z : astropy.units.Quantity[length]
+        z coordinate of the centre of each mirror facet
+    nx : array_like of float
+        x component of the unit vector normal to each mirror facet
+    ny : array_like of float
+        y component of the unit vector normal to each mirror facet
+    nz : array_like of float
+        z component of the unit vector normal to each mirror facet
+    surface_area : astropy.units.Quantity[area]
+        Reflective surface area of each mirror facet
+    mirror_shape : array_like of str or MirrorFacetShape
+        Shape of each mirror facet, either a `MirrorFacetShape` or its
+        string value (e.g. ``"HEXAGON"``)
+
+    Attributes
+    ----------
+    id : array_like of int
+        Unique ID of each mirror facet
+    x, y, z : astropy.units.Quantity[length]
+        Coordinates of the centre of each mirror facet
+    nx, ny, nz : array_like of float
+        Components of the unit vector normal to each mirror facet
+    surface_area : astropy.units.Quantity[area]
+        Reflective surface area of each mirror facet
+    shape : numpy.ndarray of MirrorFacetShape
+        Shape of each mirror facet
+
+    Raises
+    ------
+    TypeError, astropy.units.UnitsError:
+        if the units of ``x``, ``y``, ``z`` or ``surface_area`` are missing
+        or incompatible (length for ``x``, ``y``, ``z`` and area for
+        ``surface_area``)
+    ValueError:
+        if one of the ``mirror_shape`` values is not a valid
+        `MirrorFacetShape`
+    """
+
+    @u.quantity_input(
+        x=u.physical.length,
+        y=u.physical.length,
+        z=u.physical.length,
+        surface_area=u.physical.area,
+    )
+    def __init__(
+        self,
+        id,
+        x,
+        y,
+        z,
+        nx,
+        ny,
+        nz,
+        surface_area,
+        mirror_shape,
+    ):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.z = z
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+        self.surface_area = surface_area
+        self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
+
+    def __hash__(self):
+        """Make this hashable, so it can be used as dict keys or in sets"""
+        return hash(
+            (
+                np.asarray(self.id, dtype=np.int64).tobytes(),
+                tuple(np.round(self.x.to_value(u.m), 4).tolist()),
+                tuple(np.round(self.y.to_value(u.m), 4).tolist()),
+                tuple(np.round(self.z.to_value(u.m), 4).tolist()),
+                tuple(np.round(self.nx, 6).tolist()),
+                tuple(np.round(self.ny, 6).tolist()),
+                tuple(np.round(self.nz, 6).tolist()),
+                tuple(np.round(self.surface_area.to_value(u.m**2), 4).tolist()),
+                tuple(shape.value for shape in self.shape),
+            )
+        )
+
+    def __eq__(self, other):
+        """For eq, we just compare equal hash"""
+        return hash(self) == hash(other)
+
+    def __str__(self, n_str=3):
+        """
+        Summary of the mirror facets: a header with the total number of
+        facets, followed by one line per facet for the first ``n_str``
+        facets (or all facets, if there are fewer than ``n_str``).
+
+        Parameters
+        ----------
+        n_str : int
+            Maximum number of facets to list. ``str()`` and ``print()``
+            always use the default value.
+        """
+        header = f"{self.__class__.__name__}({len(self.id)} mirror facets)"
+        rows = [
+            f"  id={self.id[i]}, x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
+            f"nx={self.nx[i]:.4f}, ny={self.ny[i]:.4f}, nz={self.nz[i]:.4f}, "
+            f"surface_area={self.surface_area[i]}, shape={self.shape[i].value}"
+            for i in range(min(n_str, len(self.id)))
+        ]
+        return "\n".join([header, *rows])
+
+    def get_facet_size(self):
+        """
+        Compute a characteristic linear size of each mirror facet from its
+        reflective surface area and shape:
+
+        - `MirrorFacetShape.CIRCLE`: radius
+        - `MirrorFacetShape.SQUARE`: side length
+        - `MirrorFacetShape.HEXAGON`: flat-to-flat distance (the distance
+          between two opposite parallel sides of a regular hexagon)
+
+        Facets with `MirrorFacetShape.UNKNOWN` shape are set to ``nan``.
+
+        Returns
+        -------
+        size : astropy.units.Quantity or numpy.ndarray
+            Characteristic size of each facet, in the same length unit as
+            the square root of ``surface_area`` (e.g. m if ``surface_area``
+            is in m**2).
+        """
+        radius = np.sqrt(self.surface_area / np.pi)
+        side = np.sqrt(self.surface_area)
+        flat_to_flat = np.sqrt(2 * self.surface_area / np.sqrt(3))
+
+        size = radius.copy()
+        size[self.shape == MirrorFacetShape.SQUARE] = side[
+            self.shape == MirrorFacetShape.SQUARE
+        ]
+        size[self.shape == MirrorFacetShape.HEXAGON] = flat_to_flat[
+            self.shape == MirrorFacetShape.HEXAGON
+        ]
+        size[self.shape == MirrorFacetShape.UNKNOWN] = np.nan
+
+        return size
+
+    @classmethod
+    def get_facet_rotation(cls, shape):
+        """
+        Rotation angle of a mirror facet of the given shape:
+
+        - `MirrorFacetShape.UNKNOWN`: 0 deg
+        - `MirrorFacetShape.CIRCLE`: 0 deg
+        - `MirrorFacetShape.SQUARE`: 45 deg
+        - `MirrorFacetShape.HEXAGON`: 30 deg
+
+        Parameters
+        ----------
+        shape : MirrorFacetShape or str or array_like of these
+            Facet shape(s), either `MirrorFacetShape` members or their
+            string values (e.g. ``"HEXAGON"``)
+
+        Returns
+        -------
+        rotation : astropy.coordinates.Angle
+            Rotation angle for each shape, scalar if ``shape`` is a single
+            shape
+        """
+        rotations = {
+            MirrorFacetShape.UNKNOWN: 0.0,
+            MirrorFacetShape.CIRCLE: 0.0,
+            MirrorFacetShape.SQUARE: 45.0,
+            MirrorFacetShape.HEXAGON: 30.0,
+        }
+
+        if isinstance(shape, MirrorFacetShape | str):
+            return Angle(rotations[MirrorFacetShape(shape)], u.deg)
+
+        return Angle([rotations[MirrorFacetShape(s)] for s in shape], u.deg)
+
+
 class OpticsDescription:
     """
     Describes the optics of a Cherenkov Telescope mirror
@@ -127,6 +344,8 @@ class OpticsDescription:
         total reflective surface area of the optical system (in m^2)
     n_mirror_tiles : int
         number of mirror facets
+    mirror_description : MirrorDescription or None
+        Optional description of the individual mirror facets of the reflector
 
     Raises
     ------
@@ -142,8 +361,8 @@ class OpticsDescription:
 
     #: Version for the new, per-telescope table that will allow describing
     #: mirror facets in the future
-    CURRENT_TEL_TAB_VERSION = "1.0"
-    COMPATIBLE_TEL_TAB_VERSIONS = {"1.0"}
+    CURRENT_TEL_TAB_VERSION = "2.0"
+    COMPATIBLE_TEL_TAB_VERSIONS = {"1.0", "2.0"}
 
     __slots__ = (
         "name",
@@ -154,6 +373,7 @@ class OpticsDescription:
         "n_mirrors",
         "n_mirror_tiles",
         "reflector_shape",
+        "mirror_description",
     )
 
     @u.quantity_input(
@@ -171,6 +391,7 @@ class OpticsDescription:
         mirror_area,
         n_mirror_tiles,
         reflector_shape,
+        mirror_description=None,
     ):
         self.name = name
         self.size_type = SizeType(size_type)
@@ -180,6 +401,7 @@ class OpticsDescription:
         self.mirror_area = mirror_area
         self.n_mirrors = n_mirrors
         self.n_mirror_tiles = n_mirror_tiles
+        self.mirror_description = mirror_description
 
     def __hash__(self):
         """Make this hashable, so it can be used as dict keys or in sets"""
@@ -200,6 +422,7 @@ class OpticsDescription:
                 self.reflector_shape.value,
                 self.n_mirrors,
                 self.n_mirror_tiles,
+                self.mirror_description,
             )
         )
 
@@ -300,9 +523,30 @@ class OpticsDescription:
         """
         Convert this OpticsDescription to an astropy Table for writing to files.
 
+        If ``mirror_description`` is set, the table has one row per mirror
+        facet, with columns ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``,
+        ``nz``, ``surface_area`` and ``shape``. Otherwise the table has no rows and
+        only the metadata describes the optics.
+
         See `OpticsDescription.from_table` for the opposite operation.
         """
-        table = Table()
+        mirrors = self.mirror_description
+        if mirrors is None:
+            table = Table()
+        else:
+            table = Table(
+                {
+                    "mirror_id": mirrors.id,
+                    "x": mirrors.x,
+                    "y": mirrors.y,
+                    "z": mirrors.z,
+                    "nx": mirrors.nx,
+                    "ny": mirrors.ny,
+                    "nz": mirrors.nz,
+                    "surface_area": mirrors.surface_area,
+                    "shape": np.array([shape.value for shape in mirrors.shape]),
+                },
+            )
         table.meta["TAB_VER"] = self.CURRENT_TEL_TAB_VERSION
         table.meta["optics_name"] = self.name
         table.meta["size_type"] = self.size_type.value
@@ -321,6 +565,9 @@ class OpticsDescription:
         """
         Create an OpticsDescription instance from an astropy Table.
 
+        If the table contains mirror facet rows, they are read into
+        ``mirror_description``, otherwise it is set to None.
+
         See `OpticsDescription.to_table` for the opposite operation.
         """
         if not isinstance(table, Table):
@@ -329,6 +576,10 @@ class OpticsDescription:
         version = table.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_TEL_TAB_VERSIONS:
             raise OSError(f"Unsupported telescope optics table version: {version}")
+
+        mirror_description = None
+        if "mirror_id" in table.colnames:
+            mirror_description = cls._mirror_description_from_table(table)
 
         return cls(
             name=table.meta["optics_name"],
@@ -343,6 +594,45 @@ class OpticsDescription:
             n_mirror_tiles=table.meta["n_mirror_tiles"],
             reflector_shape=ReflectorShape(table.meta["reflector_shape"]),
             mirror_area=u.Quantity(table.meta["mirror_area"], u.m**2),
+            mirror_description=mirror_description,
+        )
+
+    @staticmethod
+    def _mirror_description_from_table(table: Table):
+        """
+        Create a `MirrorDescription` from an astropy Table.
+
+        Parameters
+        ----------
+        table : astropy.table.Table
+            Table describing the mirror facets, with columns
+            ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
+            ``surface_area`` (or ``surface`` for older files) and ``shape``.
+
+        Returns
+        -------
+        MirrorDescription
+        """
+        table = QTable(table, copy=False)
+
+        # FITS tables are read back with byte strings by default, while
+        # ECSV tables are read back as unicode strings.
+        mirror_shape = np.asarray(table["shape"])
+        if mirror_shape.dtype.kind == "S":
+            mirror_shape = mirror_shape.astype(str)
+
+        return MirrorDescription(
+            id=np.asarray(table["mirror_id"]),
+            x=table["x"],
+            y=table["y"],
+            z=table["z"],
+            nx=np.asarray(table["nx"]),
+            ny=np.asarray(table["ny"]),
+            nz=np.asarray(table["nz"]),
+            surface_area=table[
+                "surface_area" if "surface_area" in table.colnames else "surface"
+            ],
+            mirror_shape=mirror_shape,
         )
 
     def get_focal_length(self, focal_length_choice=FocalLengthKind.EFFECTIVE):
