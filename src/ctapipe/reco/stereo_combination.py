@@ -1057,16 +1057,27 @@ class StereoDispCombiner(StereoCombiner):
         if valid_tel_to_array_indices.size == 0:
             return valid
 
+        # Group telescopes by subarray event and, within each event, order them
+        # from highest to lowest weight. np.lexsort uses the last key as the
+        # primary key, hence the array-event index comes last. For example,
+        # event indices [0, 0, 1] with weights [3, 8, 5] produce order [1, 0, 2].
         order = np.lexsort((-np.asarray(weights), valid_tel_to_array_indices))
 
+        # Locate the start of each array event in the grouped telescope rows.
         starts = np.empty(valid_tel_to_array_indices.size, dtype=bool)
         starts[0] = True
         starts[1:] = valid_tel_to_array_indices[1:] != valid_tel_to_array_indices[:-1]
 
+        # Expand each group start to all rows in that group. Subtracting it from
+        # the row positions yields ranks 0, 1, 2, ... independently per event.
+        # Since ``order`` only reorders rows within these event groups, the ranks
+        # refer to telescopes sorted by decreasing weight.
         start_pos = np.where(starts, np.arange(valid_tel_to_array_indices.size), 0)
         group_start = np.maximum.accumulate(start_pos)
         rank = np.arange(valid_tel_to_array_indices.size) - group_start
 
+        # Map telescopes outside the requested rank back to the original table
+        # positions and invalidate them.
         drop_n = rank >= self.n_best_tels
         if not np.any(drop_n):
             return valid
