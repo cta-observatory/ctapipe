@@ -171,6 +171,23 @@ def test_predict_mean_energy(weights, mono_table):
     assert_array_equal(stereo["dummy_telescopes"][3], np.array([1, 3, 4, 5]))
 
 
+def test_calculate_weights_without_dl1_parameters():
+    combine = StereoMeanCombiner(
+        prefix="dummy",
+        property=ReconstructionProperty.ENERGY,
+        weights="none",
+    )
+    assert combine._calculate_weights(ImageParametersContainer()) == 1
+    assert_array_equal(combine._calculate_weights(Table({"a": [1, 2]})), [1, 1])
+
+    combine.weights = "intensity"
+    with pytest.raises(ValueError, match="finite DL1 parameter 'hillas_intensity'"):
+        combine._calculate_weights(ImageParametersContainer())
+
+    with pytest.raises(KeyError, match="DL1 parameter 'hillas_intensity'"):
+        combine._calculate_weights(Table({"a": [1, 2]}))
+
+
 def test_predict_mean_classification(mono_table):
     combine = StereoMeanCombiner(
         prefix="classifier",

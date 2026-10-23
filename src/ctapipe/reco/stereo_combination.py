@@ -132,7 +132,41 @@ class StereoCombiner(Component):
         self.quality_query = StereoQualityQuery(parent=self)
 
     def _calculate_weights(self, data):
+        if self.weights == "none":
+            if isinstance(data, ImageParametersContainer):
+                return 1
+            if isinstance(data, Table):
+                return np.ones(len(data))
+
+        required_parameters = {
+            "intensity": ("hillas_intensity",),
+            "aspect-weighted-intensity": (
+                "hillas_intensity",
+                "hillas_length",
+                "hillas_width",
+            ),
+            "containment-weighted-intensity": (
+                "hillas_intensity",
+                "hillas_length",
+                "hillas_width",
+                "leakage_intensity_width_2",
+            ),
+        }[self.weights]
+
         if isinstance(data, ImageParametersContainer):
+            parameters = {
+                "hillas_intensity": data.hillas.intensity,
+                "hillas_length": data.hillas.length,
+                "hillas_width": data.hillas.width,
+                "leakage_intensity_width_2": data.leakage.intensity_width_2,
+            }
+            for name in required_parameters:
+                if not np.all(np.isfinite(parameters[name])):
+                    raise ValueError(
+                        f"Weighting scheme '{self.weights}' requires finite DL1 "
+                        f"parameter '{name}'."
+                    )
+
             if self.weights == "intensity":
                 return data.hillas.intensity
 
@@ -144,9 +178,19 @@ class StereoCombiner(Component):
                 containment = 1 - data.leakage.intensity_width_2
                 return (data.hillas.intensity * elongation) ** 2 * containment**4
 
-            return 1
-
         if isinstance(data, Table):
+            for name in required_parameters:
+                if name not in data.colnames:
+                    raise KeyError(
+                        f"Weighting scheme '{self.weights}' requires DL1 parameter "
+                        f"'{name}', but the corresponding column is missing."
+                    )
+                if not np.all(np.isfinite(data[name])):
+                    raise ValueError(
+                        f"Weighting scheme '{self.weights}' requires finite DL1 "
+                        f"parameter '{name}'."
+                    )
+
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
@@ -161,8 +205,6 @@ class StereoCombiner(Component):
                 elongation = 1 - data["hillas_width"] / data["hillas_length"]
                 containment = 1 - data["leakage_intensity_width_2"]
                 return (data["hillas_intensity"] * elongation) ** 2 * containment**4
-
-            return np.ones(len(data))
 
         raise TypeError(
             "Dl1 data needs to be provided in the form of an ImageParametersContainer "
@@ -245,18 +287,23 @@ class StereoMeanCombiner(StereoCombiner):
         weights = []
 
         for tel_id, dl2 in event.dl2.tel.items():
+            dl1_params = None
+            if tel_id in event.dl1.tel:
+                dl1_params = event.dl1.tel[tel_id].parameters
+            elif self.weights != "none":
+                raise ValueError("No parameters for weighting available")
+            weight = self._calculate_weights(dl1_params)
+
             mono = dl2.energy[self.prefix]
-            dl1_params = event.dl1.tel[tel_id].parameters
-            quality_checks = self.quality_query(parameters=dl1_params)
             if not mono.is_valid:
                 continue
-            if not all(quality_checks):
+            if dl1_params is not None and not all(
+                self.quality_query(parameters=dl1_params)
+            ):
                 continue
 
             values.append(mono.energy.to_value(u.TeV))
-            if tel_id not in event.dl1.tel:
-                raise ValueError("No parameters for weighting available")
-            weights.append(self._calculate_weights(event.dl1.tel[tel_id].parameters))
+            weights.append(weight)
             ids.append(tel_id)
 
         if len(values) > 0:
@@ -292,17 +339,23 @@ class StereoMeanCombiner(StereoCombiner):
         weights = []
 
         for tel_id, dl2 in event.dl2.tel.items():
+            dl1_params = None
+            if tel_id in event.dl1.tel:
+                dl1_params = event.dl1.tel[tel_id].parameters
+            elif self.weights != "none":
+                raise ValueError("No parameters for weighting available")
+            weight = self._calculate_weights(dl1_params)
+
             mono = dl2.particle_type[self.prefix]
-            dl1_params = event.dl1.tel[tel_id].parameters
-            quality_checks = self.quality_query(parameters=dl1_params)
             if not mono.is_valid:
                 continue
-            if not all(quality_checks):
+            if dl1_params is not None and not all(
+                self.quality_query(parameters=dl1_params)
+            ):
                 continue
 
             values.append(mono.prediction)
-            dl1 = event.dl1.tel[tel_id].parameters
-            weights.append(self._calculate_weights(dl1) if dl1 else 1)
+            weights.append(weight)
             ids.append(tel_id)
 
         if len(values) > 0:
@@ -324,18 +377,24 @@ class StereoMeanCombiner(StereoCombiner):
         weights = []
 
         for tel_id, dl2 in event.dl2.tel.items():
+            dl1_params = None
+            if tel_id in event.dl1.tel:
+                dl1_params = event.dl1.tel[tel_id].parameters
+            elif self.weights != "none":
+                raise ValueError("No parameters for weighting available")
+            weight = self._calculate_weights(dl1_params)
+
             mono = dl2.geometry[self.prefix]
-            dl1_params = event.dl1.tel[tel_id].parameters
-            quality_checks = self.quality_query(parameters=dl1_params)
             if not mono.is_valid:
                 continue
-            if not all(quality_checks):
+            if dl1_params is not None and not all(
+                self.quality_query(parameters=dl1_params)
+            ):
                 continue
 
             alt_values.append(mono.alt)
             az_values.append(mono.az)
-            dl1 = event.dl1.tel[tel_id].parameters
-            weights.append(self._calculate_weights(dl1) if dl1 else 1)
+            weights.append(weight)
             ids.append(tel_id)
 
         if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
@@ -716,6 +775,9 @@ class StereoDispCombiner(StereoCombiner):
             if not dl2.geometry[self.prefix].is_valid:
                 continue
 
+            if tel_id not in event.dl1.tel:
+                raise ValueError("No dl1 parameters available")
+
             disp_reco = dl2.disp.get(self.prefix)
             if disp_reco is None:
                 raise RuntimeError(
@@ -726,6 +788,7 @@ class StereoDispCombiner(StereoCombiner):
                 )
 
             dl1 = event.dl1.tel[tel_id].parameters
+            weight = self._calculate_weights(dl1)
             if not all(self.quality_query(parameters=dl1)):
                 continue
 
@@ -757,7 +820,7 @@ class StereoDispCombiner(StereoCombiner):
 
             fov_lon_values.append(fov_lons)
             fov_lat_values.append(fov_lats)
-            weights.append(self._calculate_weights(dl1) if dl1 else 1)
+            weights.append(weight)
             ids.append(tel_id)
             hillas_psis.append(hillas_psi)
 
