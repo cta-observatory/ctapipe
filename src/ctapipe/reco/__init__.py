@@ -17,7 +17,7 @@ from .sklearn import (
     EnergyRegressor,
     ParticleClassifier,
 )
-from .stereo_combination import StereoCombiner, StereoMeanCombiner
+from .stereo_combination import StereoCombiner, StereoDispCombiner, StereoMeanCombiner
 
 __all__ = [
     "Reconstructor",
@@ -32,5 +32,6 @@ __all__ = [
     "DispReconstructor",
     "StereoCombiner",
     "StereoMeanCombiner",
+    "StereoDispCombiner",
     "CrossValidator",
 ]
