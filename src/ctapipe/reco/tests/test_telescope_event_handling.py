@@ -124,17 +124,12 @@ def test_calc_combs_min_distances_multiple_events():
 def test_calc_fov_lon_lat():
     from ctapipe.reco.telescope_event_handling import calc_fov_lon_lat
 
-    prefix = "disp"
-    tel_table = Table(
-        {
-            "hillas_fov_lon": [1, 2, 3] * u.deg,
-            "hillas_fov_lat": [4, 5, 6] * u.deg,
-            "hillas_psi": [0, 45, 90] * u.deg,
-            f"{prefix}_parameter": [1, 2.5, 3] * u.deg,
-        }
+    lon, lat = calc_fov_lon_lat(
+        hillas_fov_lon=np.array([1, 2, 3]),
+        hillas_fov_lat=np.array([4, 5, 6]),
+        hillas_psi=np.deg2rad([0, 45, 90]),
+        disp=np.array([-1, 2.5, 3]),
     )
-
-    lon, lat = calc_fov_lon_lat(tel_table, prefix)
 
     exp_lon = np.array([[0.0, 2.0], [0.23223305, 3.76776695], [3.0, 3.0]])
     exp_lat = np.array([[4.0, 4.0], [3.23223305, 6.76776695], [3.0, 9.0]])

@@ -499,7 +499,7 @@ def fill_lower_multiplicities(
         fov_lat_combs_mean[multi_mask] = lats
 
 
-def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
+def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, hillas_psi, disp):
     """
     Compute the two possible FoV longitude/latitude coordinates per telescope event.
 
@@ -510,16 +510,14 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
 
     Parameters
     ----------
-    tel_table : astropy.table.Table
-        Table containing Hillas parameters and DISP reconstruction results.
-        Must include:
-        - ``hillas_fov_lon`` : Hillas centroid longitude (Quantity)
-        - ``hillas_fov_lat`` : Hillas centroid latitude (Quantity)
-        - ``hillas_psi`` : Hillas orientation angle (Quantity)
-        - ``<prefix>_parameter`` : DISP distance from the centroid (float)
-    prefix : str, optional
-        Prefix used to access the DISP parameter column
-        (default: "DispReconstructor_tel").
+    hillas_fov_lon : np.ndarray
+        Hillas centroid longitudes in degrees.
+    hillas_fov_lat : np.ndarray
+        Hillas centroid latitudes in degrees.
+    hillas_psi : np.ndarray
+        Hillas orientation angles in radians.
+    disp : np.ndarray
+        DISP distances in degrees.
 
     Returns
     -------
@@ -530,10 +528,6 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
         Array of shape ``(n_tel_events, 2)`` containing the candidate FoV
         latitudes (in degrees) for each telescope event (DISP signs −1 and +1).
     """
-    hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
-    hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
-    hillas_psi = tel_table["hillas_psi"].quantity.to_value(u.rad)
-    disp = tel_table[f"{prefix}_parameter"]
     signs = np.array([-1, 1])
 
     cos_psi = np.cos(hillas_psi)

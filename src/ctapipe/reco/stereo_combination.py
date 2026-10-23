@@ -829,12 +829,11 @@ class StereoDispCombiner(StereoCombiner):
                 weights,
             )
 
-        signs = np.array([-1, 1])
-        fov_lon_values = hillas_fov_lons[:, None] + signs * disps[:, None] * np.cos(
-            hillas_psis[:, None]
-        )
-        fov_lat_values = hillas_fov_lats[:, None] + signs * disps[:, None] * np.sin(
-            hillas_psis[:, None]
+        fov_lon_values, fov_lat_values = calc_fov_lon_lat(
+            hillas_fov_lons,
+            hillas_fov_lats,
+            hillas_psis,
+            disps,
         )
 
         fov_lon_values, fov_lat_values = self._transform_to_nominal(
@@ -917,7 +916,12 @@ class StereoDispCombiner(StereoCombiner):
         self._require_disp_column(mono_predictions, prefix_tel)
 
         # Returns the FoV coordinates in deg as a ndarray
-        fov_lon_values, fov_lat_values = calc_fov_lon_lat(mono_predictions, prefix_tel)
+        fov_lon_values, fov_lat_values = calc_fov_lon_lat(
+            mono_predictions["hillas_fov_lon"].quantity.to_value(u.deg),
+            mono_predictions["hillas_fov_lat"].quantity.to_value(u.deg),
+            mono_predictions["hillas_psi"].quantity.to_value(u.rad),
+            mono_predictions[f"{prefix_tel}_parameter"].quantity.to_value(u.deg),
+        )
 
         tel_pointing_alt = mono_predictions["telescope_pointing_altitude"].quantity[
             :, None
