@@ -786,14 +786,6 @@ class StereoDispCombiner(StereoCombiner):
                 raise ValueError("No dl1 parameters available")
 
             disp_reco = dl2.disp.get(self.prefix)
-            if disp_reco is None:
-                raise RuntimeError(
-                    "No valid DISP reconstruction parameter found for "
-                    f"prefix='{self.prefix}'). "
-                    "Make sure to apply the DispReconstructor before using the "
-                    "StereoDispCombiner or adapt the prefix accordingly."
-                )
-
             dl1 = event.dl1.tel[tel_id].parameters
             weight = self._calculate_weights(dl1)
             if not all(self.quality_query(parameters=dl1)):
