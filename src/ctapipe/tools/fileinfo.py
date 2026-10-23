@@ -4,25 +4,55 @@ Display information about ctapipe output files (DL1 or DL2)
 
 from pathlib import Path
 
+import ctao_datamodel as dm
 import tables
 import yaml
 from astropy.table import Table
 
+from ctapipe.io.metadata import read_ctao_metadata
 from ctapipe.tools.utils import get_parser
 
 
-def unflatten(dictionary, separator=" "):
-    """turn flattened dict keys into nested"""
-    hierarch_dict = dict()
-    for key, value in dictionary.items():
-        parts = key.split(separator)
-        tmp_dict = hierarch_dict
-        for part in parts[:-1]:
-            if part not in tmp_dict:
-                tmp_dict[part] = dict()
-            tmp_dict = tmp_dict[part]
-        tmp_dict[parts[-1]] = value
-    return hierarch_dict
+def _read_file_info(filename, flat):
+    """Read and format product metadata for one input file."""
+    if not Path(filename).is_file():
+        return "not a file", None
+
+    if not tables.is_hdf5_file(filename):
+        return "unknown file type", None
+
+    try:
+        with tables.open_file(filename, mode="r") as infile:
+            product = read_ctao_metadata(infile)
+            flat_metadata = dm.flatten_model_instance(product)
+    except (tables.exceptions.HDF5ExtError, ValueError) as err:
+        return f"ERROR {err}", None
+
+    display_metadata = (
+        flat_metadata
+        if flat
+        else product.model_dump(
+            mode="json",
+            exclude_none=True,
+        )
+    )
+    table_row = {**flat_metadata, "PATH": filename}
+    return display_metadata, table_row
+
+
+def _write_index_table(files, output_path, table_format):
+    """Write accumulated flattened metadata to an index table."""
+    if output_path.endswith((".fits", ".fits.gz")):
+        files = [
+            {
+                key: value.encode("utf-8") if isinstance(value, str) else value
+                for key, value in row.items()
+            }
+            for row in files
+        ]
+
+    table = Table(files)
+    table.write(output_path, format=table_format, overwrite=True)
 
 
 def fileinfo(args):
@@ -34,44 +64,14 @@ def fileinfo(args):
     files = []  # accumulated info for table output
 
     for filename in args.files:
-        info = {}
+        info, table_row = _read_file_info(filename, args.flat)
+        print(yaml.dump({filename: info}, indent=4, sort_keys=False))
 
-        # prevent failure if a non-file is given (e.g. a directory)
-        if Path(filename).is_file() is False:
-            info[filename] = "not a file"
-
-        elif tables.is_hdf5_file(filename) is not True:
-            info[filename] = "unknown file type"
-        else:
-            try:
-                with tables.open_file(filename, mode="r") as infile:
-                    # pylint: disable=W0212,E1101
-                    attrs = {
-                        name: str(infile.root._v_attrs[name])
-                        for name in infile.root._v_attrs._f_list()
-                    }
-                    if args.flat:
-                        info[filename] = attrs.copy()
-                    else:
-                        info[filename] = unflatten(attrs)
-
-                    if args.output_table:
-                        attrs["PATH"] = filename
-                        files.append(attrs)
-
-            except tables.exceptions.HDF5ExtError as err:
-                info[filename] = f"ERROR {err}"
-
-        print(yaml.dump(info, indent=4))
+        if args.output_table and table_row is not None:
+            files.append(table_row)
 
     if args.output_table:
-        if args.output_table.endswith(".fits") or args.output_table.endswith(
-            ".fits.gz"
-        ):
-            files = [{k: v.encode("utf-8") for k, v in info.items()} for info in files]
-
-        table = Table(files)
-        table.write(args.output_table, format=args.table_format, overwrite=True)
+        _write_index_table(files, args.output_table, args.table_format)
 
 
 def main():

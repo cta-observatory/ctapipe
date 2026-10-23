@@ -176,10 +176,59 @@ It can be used in an event loop like:
 
 .. code-block:: python
 
-    with DataWriter(event_source=source, output_path="events.dl1.h5") as write_data:
+    import astropy.units as u
+    from traitlets.config import Config
+
+    writer_config = Config(
+        {
+            "DataWriter": {
+                "Contact": {
+                    "name": "Example User",
+                    "organization": "Example Organization",
+                    "email": "user@example.org",
+                },
+                "Curation": {"release": "example"},
+                "ProductMetadata": {
+                    "description": "Example ctapipe data product",
+                    "instance": {
+                        "category": "A",
+                        "site_id": "CTAO-North",
+                    },
+                    "activity": {"configuration_id": "example-configuration"},
+                    "observation": {
+                        "location": {
+                            "longitude": -17.892005 * u.deg,
+                            "latitude": 28.762164 * u.deg,
+                            "height": 2200 * u.m,
+                        }
+                    },
+                },
+            }
+        }
+    )
+
+    with DataWriter(
+        event_source=source,
+        output_path="events.dl1.h5",
+        config=writer_config,
+    ) as write_data:
         for event in source:
             calibrate(event)
             write_data(event)
+
+The writer derives the data level, data type, site, observation identifier, creation
+time, and processing sublevels from the input and selected output. Contact, curation,
+and the supported product overrides are configured using
+`~ctapipe.io.metadata.Contact`, `~ctapipe.io.metadata.Curation`, and
+`~ctapipe.io.metadata.ProductMetadata`, respectively.
+The supported product overrides are ``instance.category``, ``instance.site_id``,
+``activity.configuration_id``, ``observation.location``,
+``simulation.production_name``, and ``simulation.node.nsb_factor``. No other fields
+inside these nested sections can be configured. Overriding
+``simulation.node.nsb_factor`` requires simulation node metadata to be available from
+the input. If simulation node metadata is present, the CTAO data model requires either
+a site identifier or an observatory location so that the simulated direction can be
+validated.
 
 
 Reading Output Tables
@@ -256,11 +305,19 @@ as long as the table does not contain any vector columns.
    mctable.write("output.fits")
 
 
-Standard Metadata Headers
-=========================
+CTAO Product Metadata
+=====================
 
-The `ctapipe.io.metadata` package provides functions for generating standard CTA
-metadata headers and attaching them to output files.
+The `ctapipe.io.metadata` package reads, writes, and migrates CTAO data-product
+metadata defined by ``ctao-datamodel``. `~ctapipe.io.metadata.read_ctao_metadata`
+reads current metadata from HDF5, FITS, ECSV, and JSON files into a validated
+`ctao_datamodel.models.dataproducts.Product`. It also converts legacy ctapipe
+reference metadata and emits `~ctapipe.io.metadata.LegacyMetadataWarning`.
+
+Use `~ctapipe.io.metadata.write_product_metadata_hdf5` or
+`~ctapipe.io.metadata.write_product_metadata_fits_header` to serialize a CTAO
+product. `~ctapipe.io.metadata.read_reference_metadata` and the legacy metadata
+classes remain available for reading the old ctapipe representation.
 
 
 Reference/API

@@ -13,6 +13,7 @@ import pytest
 import tables
 from numpy.testing import assert_allclose, assert_array_equal
 
+from ctapipe.conftest import NORTH_SITE_METADATA, SOUTH_SITE_METADATA
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import EventSource, TableLoader, read_table
@@ -43,7 +44,7 @@ FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
         ("stage1_config.json",),
     ],
 )
-def test_read_yaml_toml_json_config(dl1_image_file, config_files):
+def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files):
     """check that we can read multiple formats of config file"""
     tool = ProcessorTool()
 
@@ -52,15 +53,16 @@ def test_read_yaml_toml_json_config(dl1_image_file, config_files):
         tool.load_config_file(config)
 
     tool.config.EventSource.input_url = dl1_image_file
+    tool.config.DataWriter.output_path = tmp_path / "events.dl1.h5"
     tool.config.DataWriter.overwrite = True
 
     with tool:
         tool.setup()
 
-    assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_info"].name
-        == "YOUR-NAME-HERE"
-    )
+    assert tool.write.contact_info.name == "YOUR-NAME-HERE"
+    assert tool.write.curation_info.release == "YOUR-DATA-RELEASE"
+    assert tool.write.curation_info.license == "YOUR-LICENSE"
+    assert tool.write.curation_info.copyright == "YOUR-COPYRIGHT"
 
 
 def test_multiple_configs(dl1_image_file):
@@ -189,6 +191,7 @@ def test_stage_2_from_simtel(tmp_path, provenance):
             f"--input={input_path}",
             f"--output={output}",
             f"--provenance-log={provenance_log}",
+            SOUTH_SITE_METADATA,
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -320,6 +323,7 @@ def test_ml_preprocessing_from_simtel(tmp_path):
             f"--input={GAMMA_TEST_LARGE}",
             f"--output={output}",
             "--max-events=5",
+            NORTH_SITE_METADATA,
             "--overwrite",
             FOCAL_LENGTH_CHOICE,
         ],
@@ -431,6 +435,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--write-parameters",
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
+        SOUTH_SITE_METADATA,
     ] + few_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
 
@@ -443,6 +448,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--write-parameters",
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
+        SOUTH_SITE_METADATA,
     ] + many_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
 
@@ -493,6 +499,7 @@ def test_muon_reconstruction_simtel(tmp_path):
             f"--input={LST_MUONS}",
             f"--output={muon_simtel_output_file}",
             FOCAL_LENGTH_CHOICE,
+            NORTH_SITE_METADATA,
             "--overwrite",
             "--write-muon-parameters",
         ],
@@ -545,6 +552,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
                 f"--output={output}",
                 "--allowed-tels=1",
                 "--max-events=1",
+                NORTH_SITE_METADATA,
                 "--overwrite",
                 FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
@@ -606,6 +614,7 @@ def test_only_trigger_and_simulation(tmp_path):
             "--input=dataset://gamma_prod5.simtel.zst",
             f"--output={output}",
             "--no-write-parameters",
+            SOUTH_SITE_METADATA,
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -651,6 +660,7 @@ def test_on_old_file(input_url, args, tmp_path):
             f"--input={input_url}",
             f"--output={output_path}",
             "--write-showers",
+            NORTH_SITE_METADATA,
             "--overwrite",
             *args,
         ],
