@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import scipy.stats
 
 
@@ -82,3 +83,13 @@ def test_arg_n_largest():
 
     largest_3 = arg_n_largest(3, image)
     assert (largest_3 == [1854, 1853, 1852]).all()
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_arg_n_largest_gu_input_dtype(dtype):
+    from ctapipe.image.statistics import arg_n_largest_gu
+
+    # Promoting the dummy array must not also promote the input values.
+    dtypes = (np.dtype("int32"), np.dtype(dtype), None)
+    resolved = arg_n_largest_gu.ufunc.resolve_dtypes(dtypes)
+    assert resolved[1] == np.dtype(dtype)
