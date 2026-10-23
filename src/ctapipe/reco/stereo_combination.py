@@ -690,7 +690,6 @@ class StereoDispCombiner(StereoCombiner):
     min_ang_diff = AstroQuantity(
         physical_type=u.deg,
         default_value=None,
-        min=0.0 * u.deg,
         allow_none=True,
         help=(
             "Minimum angular separation (in degrees) between the reconstructed main "
