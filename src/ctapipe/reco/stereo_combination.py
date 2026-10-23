@@ -732,7 +732,6 @@ class StereoDispCombiner(StereoCombiner):
         )
 
         multiplicity = len(ids)
-        alt = az = u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED)
 
         stereo_fov_lon, stereo_fov_lat, valid = self._compute_stereo_fov(
             multiplicity=multiplicity,
@@ -749,6 +748,8 @@ class StereoDispCombiner(StereoCombiner):
                 pointing_alt=event.monitoring.pointing.array_altitude,
                 pointing_az=event.monitoring.pointing.array_azimuth,
             )
+        else:
+            alt = az = u.Quantity(np.nan, u.deg)
 
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
