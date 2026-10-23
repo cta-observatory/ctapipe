@@ -760,13 +760,19 @@ class StereoDispCombiner(StereoCombiner):
         )
 
     def _collect_valid_tel_data(self, event: ArrayEventContainer):
-        ids = []
-        hillas_psis = []
-        fov_lon_values = []
-        fov_lat_values = []
-        weights = []
-
-        signs = np.array([-1, 1])
+        # Create arrays of length n_telescopes before the loop, fill them with the
+        # required values and vectorize the computations after the loop, similar
+        # to HillasReconstructor.initialize_arrays().
+        n_telescopes = len(event.dl2.tel)
+        ids = np.empty(n_telescopes, dtype=np.int64)
+        hillas_fov_lons = np.empty(n_telescopes)
+        hillas_fov_lats = np.empty(n_telescopes)
+        hillas_psis = np.empty(n_telescopes)
+        disps = np.empty(n_telescopes)
+        weights = np.empty(n_telescopes)
+        tel_pointing_alts = np.empty(n_telescopes)
+        tel_pointing_azs = np.empty(n_telescopes)
+        n_valid = 0
 
         # Gather the subarray pointing information for the transformation to the nominal frame
         subarray_pointing_alt = event.monitoring.pointing.array_altitude
@@ -793,37 +799,60 @@ class StereoDispCombiner(StereoCombiner):
             if not all(self.quality_query(parameters=dl1)):
                 continue
 
-            hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
-            hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
-            hillas_psi = dl1.hillas.psi.to_value(u.rad)
-            disp = disp_reco.parameter.to_value(u.deg)
+            ids[n_valid] = tel_id
+            hillas_fov_lons[n_valid] = dl1.hillas.fov_lon.to_value(u.deg)
+            hillas_fov_lats[n_valid] = dl1.hillas.fov_lat.to_value(u.deg)
+            hillas_psis[n_valid] = dl1.hillas.psi.to_value(u.rad)
+            disps[n_valid] = disp_reco.parameter.to_value(u.deg)
+            weights[n_valid] = weight
 
-            fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
-            fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+            pointing = event.monitoring.tel[tel_id].pointing
+            tel_pointing_alts[n_valid] = pointing.altitude.to_value(u.rad)
+            tel_pointing_azs[n_valid] = pointing.azimuth.to_value(u.rad)
+            n_valid += 1
 
-            # Gather the telescope pointing information for the transformation to the nominal frame
-            tel_pointing_alt = event.monitoring.tel[tel_id].pointing.altitude
-            tel_pointing_az = event.monitoring.tel[tel_id].pointing.azimuth
+        valid = slice(0, n_valid)
+        ids = ids[valid]
+        hillas_fov_lons = hillas_fov_lons[valid]
+        hillas_fov_lats = hillas_fov_lats[valid]
+        hillas_psis = hillas_psis[valid]
+        disps = disps[valid]
+        weights = weights[valid]
 
-            fov_lons, fov_lats = self._transform_to_nominal(
-                tel_pointing_alt,
-                tel_pointing_az,
-                subarray_pointing_alt,
-                subarray_pointing_az,
-                fov_lons,
-                fov_lats,
+        if n_valid == 0:
+            empty_candidates = np.empty((0, 2))
+            return (
+                ids,
+                hillas_psis * u.rad,
+                empty_candidates,
+                empty_candidates,
+                weights,
             )
-            hillas_psi = u.Quantity(
-                np.arctan2(np.diff(fov_lats), np.diff(fov_lons))[0],
-                u.rad,
-                copy=COPY_IF_NEEDED,
-            )
 
-            fov_lon_values.append(fov_lons)
-            fov_lat_values.append(fov_lats)
-            weights.append(weight)
-            ids.append(tel_id)
-            hillas_psis.append(hillas_psi)
+        signs = np.array([-1, 1])
+        fov_lon_values = hillas_fov_lons[:, None] + signs * disps[:, None] * np.cos(
+            hillas_psis[:, None]
+        )
+        fov_lat_values = hillas_fov_lats[:, None] + signs * disps[:, None] * np.sin(
+            hillas_psis[:, None]
+        )
+
+        fov_lon_values, fov_lat_values = self._transform_to_nominal(
+            u.Quantity(tel_pointing_alts[valid, None], u.rad, copy=COPY_IF_NEEDED),
+            u.Quantity(tel_pointing_azs[valid, None], u.rad, copy=COPY_IF_NEEDED),
+            subarray_pointing_alt,
+            subarray_pointing_az,
+            fov_lon_values,
+            fov_lat_values,
+        )
+        hillas_psis = u.Quantity(
+            np.arctan2(
+                np.diff(fov_lat_values, axis=1),
+                np.diff(fov_lon_values, axis=1),
+            )[:, 0],
+            u.rad,
+            copy=COPY_IF_NEEDED,
+        )
 
         return ids, hillas_psis, fov_lon_values, fov_lat_values, weights
 
