@@ -1,8 +1,10 @@
 """Module containing classes related to event loading and preprocessing"""
 
+from enum import Enum, auto
+
 from astropy.coordinates import angular_separation
 
-from ..coordinates import altaz_to_nominal
+from ..coordinates import altaz_to_icrs, altaz_to_nominal
 from ..core import (
     Component,
     FeatureGenerator,
@@ -123,6 +125,68 @@ def _dl2_irf_config(preprocessor):
     }
 
 
+@FeatureSetRegistry.register("dl2_to_dl3")
+def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
+    """Creates a DL3/Event table that conforms to GADF/VODF column naming."""
+    return {
+        "features_to_generate": [
+            ("EVENT_ID", "event_id"),
+            ("TIME", "time"),
+            ("ALT", f"{preprocessor.geometry_reconstructor}_alt"),
+            ("AZ", f"{preprocessor.geometry_reconstructor}_az"),
+            (
+                "_reco_fov_coord",
+                "altaz_to_nominal(AZ, ALT, subarray_pointing_lon, subarray_pointing_lat)",
+            ),
+            ("FOV_LON", "_reco_fov_coord[:,0]"),
+            ("FOV_LAT", "_reco_fov_coord[:,1]"),
+            (
+                "_reco_icrs_coord",
+                "altaz_to_icrs(AZ, ALT, TIME, subarray.reference_location)",
+            ),
+            ("RA", "_reco_icrs_coord[:,0]"),
+            ("DEC", "_reco_icrs_coord[:,1]"),
+            ("ENERGY", f"{preprocessor.energy_reconstructor}_energy"),
+            ("GAMMANESS", f"{preprocessor.gammaness_reconstructor}_prediction"),
+            (
+                "MULTIP",
+                f"subarray.multiplicity({preprocessor.geometry_reconstructor}_telescopes)",
+            ),
+            ("HMAX", f"{preprocessor.geometry_reconstructor}_h_max"),
+            ("_passed_gh", "gammaness_cut_function(GAMMANESS, ENERGY)"),
+            ("_passed_multip", "multiplicity_cut_function(MULTIP, ENERGY)"),
+        ],
+        "quality_criteria": [
+            ("VALID_RECO", f"{preprocessor.geometry_reconstructor}_is_valid"),
+            ("VALID_ENERGY", f"{preprocessor.energy_reconstructor}_is_valid"),
+            ("VALID_GAMMANESS", f"{preprocessor.gammaness_reconstructor}_is_valid"),
+            ("PASSED_GH", "_passed_gh"),
+            ("PASSED_MULTIP", "_passed_multip"),
+        ],
+        "output_features": [
+            "EVENT_ID",
+            "TIME",
+            "RA",
+            "DEC",
+            "ENERGY",
+            "ALT",
+            "AZ",
+            "FOV_LON",
+            "FOV_LAT",
+            "GAMMANESS",
+            "MULTIP",
+            "HMAX",
+        ],
+    }
+
+
+class EventPreprocessorMode(Enum):
+    """Mode of output of EventPreprocessor."""
+
+    DROP = auto()  #: drop events that do not pass
+    MARK = auto()  #: only mark evens as not passing, adding boolean columns
+
+
 class EventPreprocessor(Component):
     """
     Selects or generates features and filters tables of events.
@@ -139,6 +203,16 @@ class EventPreprocessor(Component):
     - `~astropy.coordinates.angular_separation`
     - `~ctapipe.coordinates.altaz_to_nominal`
     """
+
+    mode = traits.UseEnum(
+        EventPreprocessorMode,
+        default_value=EventPreprocessorMode.DROP,
+        help=(
+            "If 'DROP', removes events that do not pass quality cuts. "
+            "If 'MARK', generates a new boolean column for each quality criteria, "
+            "but keeps all events."
+        ),
+    ).tag(config=True)
 
     energy_reconstructor = traits.Unicode(
         default_value="RandomForestRegressor",
@@ -176,8 +250,9 @@ class EventPreprocessor(Component):
         ),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
+        self.subarray = subarray
         if self.feature_set == "custom":
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = QualityQuery(parent=self)
@@ -198,20 +273,38 @@ class EventPreprocessor(Component):
                 "of features in the configuration (DL2EventPreprocessor.features)."
             )
 
-    def __call__(self, table):
-        """Return new table with only the columns in features."""
+    def __call__(self, table, **other_attributes):
+        """
+        Return new table with only the columns in features.
+
+        Parameters
+        ----------
+        table: Table
+           Table to process
+        **other_attributes: Any
+           Other functions or objects that the FeatureGenerator should have
+           access to, in addition to the default ones.
+        """
 
         # generate new features, which includes renaming columns:
         generated = self.feature_generator(
             table,
             angular_separation=angular_separation,
             altaz_to_nominal=altaz_to_nominal,
+            altaz_to_icrs=altaz_to_icrs,
+            subarray=self.subarray,
+            **other_attributes,
         )
 
         # apply event selection on the resulting table
 
-        selected_mask = self.quality_query.get_table_mask(generated)
-
-        # return only the columns specified in `self.features`, and rows in
-        # `selected_mask`
-        return generated[self.features][selected_mask]
+        if self.mode == EventPreprocessorMode.DROP:
+            # return only the columns specified in `self.features`, and rows in
+            # `selected_mask`
+            selected_mask = self.quality_query.get_table_mask(generated)
+            return generated[self.features][selected_mask]
+        elif self.mode == EventPreprocessorMode.MARK:
+            generated = self.quality_query.add_table_mask_columns(generated)
+            return generated[self.features + self.quality_query.criteria_names]
+        else:
+            raise ValueError("Unsupported mode: {self.mode}")
