@@ -5,7 +5,8 @@ from ctapipe.core.provenance import _ActivityProvenance, json_config_handler
 from ctapipe.io.metadata import CTAO_METADATA_VERSION_KEY
 
 
-def test_provenance_activity_names(provenance):
+def test_provenance_activity_names():
+    provenance = Provenance()
     provenance.start_activity("test1")
     provenance.add_input_file("input.txt")
     provenance.add_output_file("output.txt")
@@ -37,7 +38,8 @@ def test_provenence_contextmanager():
     assert "myactivity" not in prov.active_activity_names
 
 
-def test_provenance_json(provenance: Provenance):
+def test_provenance_json():
+    provenance = Provenance()
     provenance.start_activity("test1")
     provenance.finish_activity("test1")
     data = json.loads(provenance.as_json())
@@ -81,9 +83,10 @@ def test_json_config_handler_metadata_models():
     assert serialized["pydantic"]["email"] == "model@example.org"
 
 
-def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
+def test_provenance_input_reference_meta(dl1_file):
     import ctao_datamodel.models.dataproducts as dp
 
+    provenance = Provenance()
     provenance.start_activity("test1")
     provenance.add_input_file(dl1_file, "events")
     provenance.finish_activity("test1")

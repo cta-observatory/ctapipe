@@ -15,6 +15,7 @@ from traitlets.config import Config
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.containers import EventType, PixelStatus
+from ctapipe.core import Provenance
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
 from ctapipe.io import DataLevel
@@ -817,7 +818,8 @@ def test_shower_distribution(prod5_gamma_simtel_path):
         assert distribution.n_entries == 1000
 
 
-def test_provenance(provenance, prod5_gamma_simtel_path):
+def test_provenance(prod5_gamma_simtel_path):
+    provenance = Provenance()
     provenance.start_activity("test_simteleventsource")
 
     with SimTelEventSource(prod5_gamma_simtel_path):

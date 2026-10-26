@@ -177,7 +177,7 @@ def test_stage1_datalevels(tmp_path):
     assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_stage_2_from_simtel(tmp_path, provenance):
+def test_stage_2_from_simtel(tmp_path):
     """check we can go to DL2 geometry from simtel file"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
