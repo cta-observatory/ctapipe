@@ -22,7 +22,7 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     SimulationConfigContainer,
 )
-from ctapipe.core import Provenance, ToolConfigurationError
+from ctapipe.core import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
@@ -99,7 +99,7 @@ def test_dl2_telescope_events_update_processing_sublevels():
     )
 
 
-def test_write(tmpdir: Path, south_site_config, provenance):
+def test_write(tmpdir: Path, south_site_config):
     """
     Check that we can write and read data from R0-DL2 to files
     """
@@ -184,27 +184,21 @@ def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):
     input_path = tmp_path / "input.h5"
     shutil.copy(dl1_image_file, input_path)
 
-    provenance = Provenance()
-    provenance.start_activity("test_cannot_overwrite_input")
-
-    try:
-        with EventSource(input_path) as source:
-            with pytest.raises(
-                ToolConfigurationError,
-                match="Input and output files must not be the same",
-            ):
-                DataWriter(
-                    event_source=source,
-                    output_path=input_path,
-                    overwrite=overwrite,
-                )
-    finally:
-        provenance.finish_activity(activity_name="test_cannot_overwrite_input")
+    with EventSource(input_path) as source:
+        with pytest.raises(
+            ToolConfigurationError,
+            match="Input and output files must not be the same",
+        ):
+            DataWriter(
+                event_source=source,
+                output_path=input_path,
+                overwrite=overwrite,
+            )
 
     assert input_path.exists()
 
 
-def test_roundtrip(tmpdir: Path, south_site_config, provenance):
+def test_roundtrip(tmpdir: Path, south_site_config):
     """
     Check that we can write DL1+DL2 info to files and read them back
 
@@ -277,7 +271,7 @@ def test_roundtrip(tmpdir: Path, south_site_config, provenance):
                 assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
 
-def test_dl1writer_no_events(tmpdir: Path, south_site_config, provenance):
+def test_dl1writer_no_events(tmpdir: Path, south_site_config):
     """
     Check that we can write DL1 files even when no events are given
 
@@ -318,7 +312,7 @@ def test_dl1writer_no_events(tmpdir: Path, south_site_config, provenance):
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
 
 
-def test_metadata(tmpdir: Path, prod6_gamma_simtel_path, provenance):
+def test_metadata(tmpdir: Path, prod6_gamma_simtel_path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
 
     config = Config(
@@ -414,7 +408,7 @@ def test_metadata(tmpdir: Path, prod6_gamma_simtel_path, provenance):
         assert product.simulation.node.declination is not None
 
 
-def test_simulation_metadata_from_simtel(tmp_path, prod6_gamma_simtel_path, provenance):
+def test_simulation_metadata_from_simtel(tmp_path, prod6_gamma_simtel_path):
     from astropy.coordinates import Longitude
     from astropy.stats import circmean
 

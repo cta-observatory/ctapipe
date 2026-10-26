@@ -8,6 +8,7 @@ import pytest
 from packaging.version import Version
 
 from ctapipe.containers import ObservationBlockContainer
+from ctapipe.core import Provenance
 from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.metadata import CTAO_METADATA_VERSION_KEY
 
@@ -269,10 +270,11 @@ def test_simulated_events_distribution(dl1_file):
         assert dist["histogram"].sum() == 1000.0
 
 
-def test_provenance(dl1_file, provenance):
+def test_provenance(dl1_file):
     """Make sure that HDF5EventSource reads reference metadata and adds to provenance"""
     from ctapipe.io.metadata import read_ctao_metadata
 
+    provenance = Provenance()
     provenance.start_activity("test_hdf5eventsource")
     with HDF5EventSource(input_url=dl1_file):
         pass
@@ -298,7 +300,7 @@ def test_pointing_old_file():
     assert n_read == 5
 
 
-def test_no_pointing_in_ob(tmp_path, south_site_config, provenance):
+def test_no_pointing_in_ob(tmp_path, south_site_config):
     from ctapipe.io import DataWriter
 
     test_file = "dataset://gamma_prod5.simtel.zst"
