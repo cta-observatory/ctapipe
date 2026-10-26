@@ -81,7 +81,12 @@ class BaseChunking(Component, metaclass=ABCMeta):
         ),
     ).tag(config=True)
 
-    def __call__(self, table) -> Generator[Table, None, None]:
+    @property
+    @abstractmethod
+    def has_overlap(self) -> bool:
+        """Whether the configured windows overlap and can refine a first pass."""
+
+    def __call__(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """
         Generate chunks from the input table.
 
@@ -89,6 +94,10 @@ class BaseChunking(Component, metaclass=ABCMeta):
         ----------
         table : astropy.table.Table
             Input table with 'time' column.
+        overlap : bool
+            Use the configured overlap. If False, use unshifted windows without
+            changing the component configuration. The final-chunk policy still
+            applies and may introduce an overlapping final window.
 
         Yields
         ------
@@ -104,10 +113,10 @@ class BaseChunking(Component, metaclass=ABCMeta):
             raise ValueError(
                 "Table must have a 'time' column or both 'time_start' and 'time_end' columns for chunking."
             )
-        yield from self._generate_chunks(table)
+        yield from self._generate_chunks(table, overlap=overlap)
 
     @abstractmethod
-    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+    def _generate_chunks(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """Generate chunks from table. Implemented by subclasses."""
         pass
 
@@ -130,6 +139,14 @@ class SizeChunking(BaseChunking):
         ),
     ).tag(config=True)
 
+    @property
+    def has_overlap(self):
+        return (
+            self.chunk_size is not None
+            and self.chunk_shift is not None
+            and 0 < self.chunk_shift < self.chunk_size
+        )
+
     def _generate_final_chunk(self, table, last_chunk_start):
         """Generate the final chunk according to last_chunk_policy."""
         remaining_rows = len(table) - last_chunk_start
@@ -150,7 +167,7 @@ class SizeChunking(BaseChunking):
 
         return None
 
-    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+    def _generate_chunks(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """Generate row-count based chunks."""
         # Handle case where chunk_size is None (entire table)
         if self.chunk_size is None:
@@ -169,7 +186,11 @@ class SizeChunking(BaseChunking):
                 )
 
         # Calculate step size
-        step = self.chunk_shift if self.chunk_shift is not None else self.chunk_size
+        step = (
+            self.chunk_shift
+            if overlap and self.chunk_shift is not None
+            else self.chunk_size
+        )
 
         # Calculate all main chunk start indices (not extending beyond table)
         n_chunks = (len(table) - self.chunk_size) // step + 1
@@ -208,6 +229,13 @@ class TimeChunking(BaseChunking):
         help=("Time shift between consecutive chunks. If 0, chunks do not overlap."),
     ).tag(config=True)
 
+    @property
+    def has_overlap(self):
+        return (
+            self.chunk_shift is not None
+            and 0 * u.s < self.chunk_shift < self.chunk_duration
+        )
+
     def _validate_inputs(self, total_duration):
         """Validate chunk_duration and table duration."""
         chunk_duration = self.chunk_duration.to_value(u.s)
@@ -242,7 +270,7 @@ class TimeChunking(BaseChunking):
             # Skip the last partial chunk
             return None
 
-    def _generate_chunks(self, table) -> Generator[Table, None, None]:
+    def _generate_chunks(self, table, *, overlap=True) -> Generator[Table, None, None]:
         """Generate time-based chunks."""
         # Handle case where chunk_duration is None (entire table)
         if self.chunk_duration is None:
@@ -254,13 +282,15 @@ class TimeChunking(BaseChunking):
 
         # Validate inputs and handle undersized tables
         use_entire_table = self._validate_inputs(relative_times[-1])
-        if use_entire_table:
+        if use_entire_table or relative_times[-1] == self.chunk_duration.to_value(u.s):
             yield table  # Yield entire table as single chunk
             return
 
         # Calculate time step
         time_step = (
-            self.chunk_shift if self.chunk_shift > 0 * u.s else self.chunk_duration
+            self.chunk_shift
+            if overlap and self.chunk_shift is not None and self.chunk_shift > 0 * u.s
+            else self.chunk_duration
         ).to_value(u.s)
 
         chunk_start_time = np.arange(
@@ -276,7 +306,7 @@ class TimeChunking(BaseChunking):
         # Generate chunks for each main chunk start time
         for i, j in zip(chunk_start_idx, chunk_end_idx):
             chunk = table[i:j]
-            if chunk is not None:
+            if len(chunk) > 0:
                 yield chunk
 
         # Handle final chunk according to policy
@@ -284,7 +314,7 @@ class TimeChunking(BaseChunking):
             relative_times, chunk_start_time[-1] + time_step
         )
         final_chunk = self._generate_final_chunk(table, last_chunk_idx)
-        if final_chunk is not None:
+        if final_chunk is not None and len(final_chunk) > 0:
             yield final_chunk
 
 
@@ -321,6 +351,8 @@ class BaseAggregator(Component, metaclass=ABCMeta):
         table,
         masked_elements_of_sample=None,
         col_name="image",
+        *,
+        chunks=None,
     ) -> Table:
         r"""
         Divide table into chunks and compute aggregated statistic values or histograms.
@@ -335,6 +367,9 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             that are not available for processing
         col_name : string
             column name in the table containing the event-wise data to aggregate
+        chunks : iterable of astropy.table.Table, optional
+            Preselected chunks of the input table. If omitted, use the configured
+            chunking strategy.
 
         Returns
         -------
@@ -343,7 +378,8 @@ class BaseAggregator(Component, metaclass=ABCMeta):
             as well as the aggregated statistic values or histograms for each chunk
         """
         # Get chunks using the chunking strategy
-        chunks = self.chunking(table)
+        if chunks is None:
+            chunks = self.chunking(table)
 
         # Initialize result storage
         results = defaultdict(list)

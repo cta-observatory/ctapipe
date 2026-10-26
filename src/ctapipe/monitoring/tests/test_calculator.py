@@ -2,6 +2,7 @@
 Tests for CalibrationCalculator and related functions
 """
 
+import astropy.units as u
 import numpy as np
 import pytest
 from astropy.table import Table, vstack
@@ -78,13 +79,13 @@ def test_statistics_calculator(example_subarray):
     # overlapping chunk at the end.
     expected_len_firstpass = n_images // chunk_size + 1
     assert len(stats) == expected_len_firstpass
-    # In the second pass, the number of chunks is 8.
-    # This is because we set all chunks to be faulty.
-    # In case of two last main chunks being faulty, they would be discarded,
-    # making effective table length to be 4000 events in this case.
-    # Thus, we would have (4000 / 500) = 8 chunks in the second pass.
-    expected_len_secondpass = 8
+    # Only new windows are added: starts at rows 500, 1500, 2500 and 3500.
+    # Aligned windows and the final overlap already exist in the first pass.
+    expected_len_secondpass = 4
     assert len(stats_chunk_shift) == expected_len_secondpass
+    np.testing.assert_array_equal(
+        stats_chunk_shift["event_id_start"], event_ids[[500, 1500, 2500, 3500]]
+    )
     # The total number of aggregated chunks is the sum of the
     # number of chunks in the first and second pass.
     assert len(stats_stacked) == expected_len_firstpass + expected_len_secondpass
@@ -231,3 +232,96 @@ def test_outlier_detector(example_subarray):
     np.testing.assert_allclose(stats_stacked[0]["mean"], 2.0, atol=2.5)
     np.testing.assert_allclose(stats_stacked[1]["median"], 2.0, atol=2.5)
     np.testing.assert_allclose(stats_stacked[0]["std"], 5.0, atol=2.5)
+
+
+@pytest.mark.parametrize("chunking_type", ["SizeChunking", "TimeChunking"])
+@pytest.mark.parametrize("last_chunk_policy", ["overlap", "truncate", "skip"])
+@pytest.mark.parametrize("faulty_index", [0, 2, -1])
+def test_second_pass_chunk_boundaries(
+    example_subarray, chunking_type, last_chunk_policy, faulty_index
+):
+    """Refinement follows actual chunks, including irregular event spacing."""
+    # Use a varying event rate so time windows contain different numbers of rows.
+    offsets = np.cumsum(np.tile([0.1, 0.15, 0.35, 0.4], 30))
+    table = Table(
+        {
+            "time": Time("2020-01-01") + offsets * u.s,
+            "event_id": np.arange(len(offsets)),
+            "image": np.ones((len(offsets), 1, 2)) * u.V,
+        }
+    )
+    settings = (
+        {"chunk_size": 20, "chunk_shift": 10}
+        if chunking_type == "SizeChunking"
+        else {"chunk_duration": 5 * u.s, "chunk_shift": 2 * u.s}
+    )
+    calculator = PixelStatisticsCalculator(
+        subarray=example_subarray,
+        config=Config(
+            {
+                "PixelStatisticsCalculator": {
+                    "stats_aggregator_type": "PlainAggregator"
+                },
+                "PlainAggregator": {"chunking_type": chunking_type},
+                chunking_type: {**settings, "last_chunk_policy": last_chunk_policy},
+            }
+        ),
+    )
+    aggregator = calculator.stats_aggregators["PlainAggregator"]
+    shift_changes = []
+    aggregator.chunking.observe(shift_changes.append, names="chunk_shift")
+    first = calculator.first_pass(table, tel_id=1)
+    assert first["is_valid"].shape == (len(first),)
+    assert aggregator.chunking.chunk_shift == settings["chunk_shift"]
+    valid = np.ones(len(first), dtype=bool)
+    valid[faulty_index] = False
+    second = calculator.second_pass(table, valid, tel_id=1)
+    assert not shift_changes
+    assert len(second) > 0
+    assert second["mean"].unit == u.V
+    np.testing.assert_allclose(second["mean"], 1)
+
+    faulty = first[~valid][0]
+    assert np.all(second["time_start"] <= faulty["time_end"])
+    assert np.all(second["time_end"] >= faulty["time_start"])
+    for row in second:
+        assert not np.any(
+            (row["time_start"] == first["time_start"])
+            & (row["time_end"] == first["time_end"])
+        )
+        events = table[
+            (table["time"] >= row["time_start"]) & (table["time"] <= row["time_end"])
+        ]
+        assert np.all(row["n_events"] == len(events))
+
+
+@pytest.mark.parametrize("chunking_type", ["SizeChunking", "TimeChunking"])
+def test_second_pass_no_additional_chunks(example_subarray, chunking_type):
+    """A single undersized faulty chunk has no new refinement windows."""
+    table = Table(
+        {
+            "time": Time("2020-01-01") + np.arange(3) * u.s,
+            "image": np.ones((3, 1, 2)),
+        }
+    )
+    settings = (
+        {"chunk_size": 10, "chunk_shift": 5}
+        if chunking_type == "SizeChunking"
+        else {"chunk_duration": 10 * u.s, "chunk_shift": 5 * u.s}
+    )
+    calculator = PixelStatisticsCalculator(
+        subarray=example_subarray,
+        config=Config(
+            {
+                "PixelStatisticsCalculator": {
+                    "stats_aggregator_type": "PlainAggregator"
+                },
+                "PlainAggregator": {"chunking_type": chunking_type},
+                chunking_type: {**settings, "allow_undersized_tables": True},
+            }
+        ),
+    )
+    first = calculator.first_pass(table, tel_id=1)
+    second = calculator.second_pass(table, np.zeros(len(first), dtype=bool), tel_id=1)
+    assert len(second) == 0
+    assert second.colnames == first.colnames

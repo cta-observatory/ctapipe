@@ -198,15 +198,12 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             cwd=tmp_path,
             raises=True,
         )
-    # Check if ToolConfigurationError is raised
-    # when the chunk size is larger than the number of events in the input file
+    # SizeChunking validates that the chunk size does not exceed the input length.
     monitoring_failure_chunk_size_file = (
         tmp_path / "monitoring_failure_chunk_size.dl1.h5"
     )
 
-    with pytest.raises(
-        ToolConfigurationError, match="Change --SizeChunking.chunk_size"
-    ):
+    with pytest.raises(ValueError, match="Table length .* is less than chunk_size"):
         run_tool(
             PixelStatisticsCalculatorTool(),
             argv=[
@@ -343,3 +340,105 @@ def test_per_channel_missing_selected_gain_channel(dl1_image_file):
 
     with pytest.raises(ToolConfigurationError, match="'pixel_status' not found"):
         tool._is_valid_table(dl1_table, tel_id)
+
+
+@pytest.mark.parametrize("chunk_shift", [None, 0 * u.s, 0.5 * u.s])
+def test_calculate_pixel_stats_tool_time_chunking(
+    tmp_path, dl1_image_file, chunk_shift
+):
+    output = tmp_path / "time_statistics.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {"allowed_tels": [3]},
+            "PlainAggregator": {"chunking_type": "TimeChunking"},
+            "TimeChunking": {
+                "chunk_duration": 1 * u.s,
+                "chunk_shift": chunk_shift,
+                "allow_undersized_tables": True,
+            },
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": "PlainAggregator",
+                "outlier_detector_list": [
+                    {
+                        "name": "RangeOutlierDetector",
+                        "apply_to": "mean",
+                        "config": {"validity_range": [1e20, 1e21]},
+                    }
+                ],
+            },
+        }
+    )
+    assert (
+        run_tool(
+            PixelStatisticsCalculatorTool(config=config),
+            argv=[f"--input_url={dl1_image_file}", f"--output_path={output}"],
+            cwd=tmp_path,
+            raises=True,
+        )
+        == 0
+    )
+    stats = read_table(output, f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_003")
+    assert len(stats) > 0
+    assert np.all(~stats["is_valid"])
+
+
+@pytest.mark.parametrize("overlap_enabled", [False, True])
+@pytest.mark.parametrize("faulty", [False, True])
+def test_tool_uses_abstract_chunking_api(
+    example_subarray, monkeypatch, overlap_enabled, faulty
+):
+    """Neither the tool nor calculator may depend on a chunk_shift trait."""
+    from types import SimpleNamespace
+
+    from astropy.time import Time
+
+    from ctapipe.containers import EventType
+    from ctapipe.monitoring.aggregator import BaseChunking
+
+    class CustomChunking(BaseChunking):
+        @property
+        def has_overlap(self):
+            return overlap_enabled
+
+        def _generate_chunks(self, table, *, overlap=True):
+            step = 10 if overlap and self.has_overlap else 20
+            for start in range(0, len(table) - 19, step):
+                yield table[start : start + 20]
+
+    table = Table(
+        {
+            "time": Time("2020-01-01") + np.arange(60) * u.s,
+            "event_id": np.arange(60),
+            "event_type": np.full(60, EventType.SUBARRAY.value),
+            "image": np.ones((60, 1, 2)),
+        }
+    )
+    tool = PixelStatisticsCalculatorTool(
+        config=Config(
+            {
+                "PixelStatisticsCalculator": {
+                    "stats_aggregator_type": "PlainAggregator",
+                    "faulty_pixels_fraction": 0 if faulty else 0.1,
+                },
+            }
+        )
+    )
+    tool.subarray = example_subarray.select_subarray([1])
+    tool.input_data = SimpleNamespace(
+        read_telescope_events=lambda telescopes: table.copy()
+    )
+    tool.stats_calculator = PixelStatisticsCalculator(
+        parent=tool, subarray=tool.subarray
+    )
+    tool.stats_calculator.stats_aggregators[
+        "PlainAggregator"
+    ].chunking = CustomChunking()
+    written = []
+    monkeypatch.setattr(
+        "ctapipe.tools.calculate_pixel_stats.write_table",
+        lambda stats, *args, **kwargs: written.append(stats),
+    )
+    tool.start()
+    assert len(written) == 1
+    expected_starts = [0, 10, 20, 30, 40] if overlap_enabled and faulty else [0, 20, 40]
+    np.testing.assert_array_equal(written[0]["event_id_start"], expected_starts)
