@@ -112,8 +112,8 @@ def n_largest(n, array):
 
 @guvectorize(
     [
-        (int64[:], float64[:], int64[:]),
         (int64[:], float32[:], int64[:]),
+        (int64[:], float64[:], int64[:]),
     ],
     "(n),(p)->(n)",
     nopython=True,

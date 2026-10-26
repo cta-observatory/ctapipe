@@ -1,0 +1,2 @@
+Fix several type promition errors in numba signatures that
+upcasted float32 values needlessly to float64.

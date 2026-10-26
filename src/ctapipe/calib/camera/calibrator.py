@@ -410,7 +410,7 @@ def shift_waveforms(waveforms, time_shift_samples):
 
 
 @guvectorize(
-    [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
+    [(float32[:], int64, float32[:]), (float64[:], int64, float64[:])],
     "(s),()->(s)",
     nopython=True,
     cache=not CTAPIPE_DISABLE_NUMBA_CACHE,

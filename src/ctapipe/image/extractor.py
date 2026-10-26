@@ -59,8 +59,8 @@ from .timing import timing_parameters
 
 @guvectorize(
     [
-        (float64[:], int64, int64, int64, float64, float32[:], float32[:]),
         (float32[:], int64, int64, int64, float64, float32[:], float32[:]),
+        (float64[:], int64, int64, int64, float64, float32[:], float32[:]),
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
@@ -144,8 +144,8 @@ def extract_around_peak(
 
 @guvectorize(
     [
-        (float64[:], int64, float64, float32[:], float32[:]),
         (float32[:], int64, float64, float32[:], float32[:]),
+        (float64[:], int64, float64, float32[:], float32[:]),
     ],
     "(s),(),()->(),()",
     nopython=True,
