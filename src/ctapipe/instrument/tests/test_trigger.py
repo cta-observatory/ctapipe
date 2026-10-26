@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
+from ctapipe.conftest import NORTH_SITE_METADATA
 from ctapipe.containers import ArrayEventContainer, EventType, TelescopeTriggerContainer
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
@@ -203,7 +204,12 @@ def test_software_trigger_simtel_process(tmp_path):
 
     run_tool(
         ProcessorTool(),
-        [f"--input={path}", f"--output={output_path}", f"--config={config_path}"],
+        [
+            f"--input={path}",
+            f"--output={output_path}",
+            f"--config={config_path}",
+            NORTH_SITE_METADATA,
+        ],
     )
 
     del config["ProcessorTool"]["SoftwareTrigger"]
@@ -217,6 +223,7 @@ def test_software_trigger_simtel_process(tmp_path):
             f"--input={path}",
             f"--output={output_path_no_software_trigger}",
             f"--config={config_path}",
+            NORTH_SITE_METADATA,
         ],
     )
 

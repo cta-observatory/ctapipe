@@ -1,10 +1,19 @@
+from types import SimpleNamespace
+
 import pytest
 import tables
+from astropy import units as u
 from astropy.table import vstack
 from astropy.utils.data import shutil
+from ctao_datamodel.models import dataproducts as dp
+from ctao_datamodel.models.common import SiteID
+from traitlets import TraitError
+from traitlets.config import Config
 
 from ctapipe.instrument.subarray import SubarrayDescription
+from ctapipe.io import metadata
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.io.datawriter import DATA_MODEL_VERSION
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 
 
@@ -111,6 +120,21 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
         for table in statistics_tables:
             compare_stats_table(in1, in2, merged, table)
 
+    product = metadata.read_ctao_metadata(output)
+    assert product.data.level is dp.DataLevel.DL2
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.PARAMETERS
+        | dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+    )
+
+
+def test_append_requires_existing_output(tmp_path):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    with pytest.raises(TraitError, match="file does not exist"):
+        HDF5Merger(output_path=tmp_path / "missing.h5", append=True)
+
 
 def test_append(tmp_path, gamma_train_clf, proton_train_clf, gamma_dl2_train_small_h5):
     from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
@@ -127,6 +151,261 @@ def test_append(tmp_path, gamma_train_clf, proton_train_clf, gamma_dl2_train_sma
             CannotMerge, match="Required node .*/energy/ExtraTreesRegressor"
         ):
             merger(gamma_dl2_train_small_h5)
+
+
+def test_contact_override(tmp_path, dl1_file):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    output = tmp_path / "contact.h5"
+    config = Config(
+        {
+            "HDF5Merger": {
+                "Contact": {
+                    "name": "Merge Contact",
+                    "organization": "CTAO",
+                    "email": "merge@example.org",
+                }
+            }
+        }
+    )
+
+    with HDF5Merger(output_path=output, config=config) as merger:
+        merger(dl1_file)
+
+    product = metadata.read_ctao_metadata(output)
+    assert product.contact == dp.Contact(
+        name="Merge Contact",
+        organization="CTAO",
+        email="merge@example.org",
+    )
+
+
+@pytest.mark.parametrize(
+    ("merge_strategy", "first_type", "second_type", "compatible"),
+    [
+        ("events-multiple-obs", dp.DataType.OBSERVATION, dp.DataType.OBSERVATION, True),
+        (
+            "events-multiple-obs",
+            dp.DataType.OBSERVATION,
+            dp.DataType.CALIBRATION,
+            False,
+        ),
+        ("monitoring-only", dp.DataType.OBSERVATION, dp.DataType.CALIBRATION, True),
+        (
+            "monitoring-only",
+            dp.DataType.OBSERVATION_SIM,
+            dp.DataType.CALIBRATION_SIM,
+            True,
+        ),
+        (
+            "monitoring-only",
+            dp.DataType.OBSERVATION,
+            dp.DataType.OBSERVATION_SIM,
+            False,
+        ),
+    ],
+)
+def test_data_type_compatibility(
+    tmp_path, merge_strategy, first_type, second_type, compatible
+):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    with HDF5Merger(tmp_path / "merged.h5", merge_strategy=merge_strategy) as merger:
+        merger.data_type = first_type
+
+        if compatible:
+            merger._check_data_type(other, second_type)
+        else:
+            with pytest.raises(CannotMerge, match="incompatible data type"):
+                merger._check_data_type(other, second_type)
+
+
+@pytest.mark.parametrize(
+    ("merge_strategy", "second_version", "compatible"),
+    [
+        ("events-multiple-obs", DATA_MODEL_VERSION, True),
+        ("events-multiple-obs", "unsupported-version", False),
+        ("monitoring-only", DATA_MODEL_VERSION, True),
+        ("monitoring-only", "unsupported-version", False),
+    ],
+)
+def test_data_model_version_compatibility(
+    tmp_path, merge_strategy, second_version, compatible
+):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    with HDF5Merger(tmp_path / "merged.h5", merge_strategy=merge_strategy) as merger:
+        merger.data_model_version = DATA_MODEL_VERSION
+
+        if compatible:
+            merger._check_data_model_version(other, second_version)
+        else:
+            with pytest.raises(CannotMerge, match="data model version"):
+                merger._check_data_model_version(other, second_version)
+
+
+def test_data_category_compatibility(tmp_path):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    other_metadata = SimpleNamespace(
+        model=SimpleNamespace(version="v7.6.0"),
+        data=SimpleNamespace(type=dp.DataType.OBSERVATION_SIM),
+        instance=SimpleNamespace(category=dp.DataProcessingCategory.A),
+        simulation=None,
+    )
+
+    with HDF5Merger(tmp_path / "merged.h5") as merger:
+        merger.data_model_version = "v7.6.0"
+        merger.data_type = dp.DataType.OBSERVATION_SIM
+        merger.data_category = dp.DataProcessingCategory.B
+        merger.meta = SimpleNamespace(simulation=None)
+        merger.required_nodes = set()
+
+        with pytest.raises(CannotMerge, match="different data category"):
+            merger._check_can_merge(other, other_metadata)
+
+
+def _simulation_metadata(node=True, zenith=20 * u.deg, azimuth=180 * u.deg):
+    simulation_node = None
+    if node:
+        simulation_node = dp.SimulationGridNode(
+            zenith=zenith,
+            azimuth=azimuth,
+            hour_angle=None,
+            declination=None,
+            nsb_factor=1,
+        )
+
+    return dp.Simulation(production_name="prod", node=simulation_node)
+
+
+def _simulation_metadata_merger(tmp_path, simulation, site_id=SiteID.CTAO_NORTH):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    merger = HDF5Merger(tmp_path / "merged.h5")
+    merger.meta = SimpleNamespace(
+        simulation=simulation,
+        instance=SimpleNamespace(site_id=site_id),
+    )
+    return merger
+
+
+def test_simulation_metadata_compatibility(tmp_path):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    simulation = _simulation_metadata()
+    instance = SimpleNamespace(
+        category=dp.DataProcessingCategory.A,
+        site_id=SiteID.CTAO_NORTH,
+    )
+    other_metadata = SimpleNamespace(
+        model=SimpleNamespace(version="v7.6.0"),
+        data=SimpleNamespace(type=dp.DataType.OBSERVATION_SIM),
+        instance=instance,
+        simulation=simulation.model_copy(deep=True),
+    )
+
+    with HDF5Merger(tmp_path / "merged.h5") as merger:
+        merger.data_model_version = "v7.6.0"
+        merger.data_type = dp.DataType.OBSERVATION_SIM
+        merger.data_category = dp.DataProcessingCategory.A
+        merger.meta = SimpleNamespace(instance=instance, simulation=simulation)
+        merger.required_nodes = set()
+
+        merger._check_can_merge(other, other_metadata)
+
+        other_metadata.simulation.production_name = "other-prod"
+        with pytest.raises(CannotMerge, match="different simulation production"):
+            merger._check_can_merge(other, other_metadata)
+
+
+def test_missing_simulation_metadata_compatibility(tmp_path):
+    from ctapipe.io.hdf5merger import CannotMerge
+
+    other = SimpleNamespace(filename="input.h5")
+
+    with _simulation_metadata_merger(tmp_path, simulation=None) as merger:
+        merger._check_simulation_metadata(
+            other,
+            SimpleNamespace(
+                simulation=None,
+                instance=SimpleNamespace(site_id=None),
+            ),
+        )
+
+        with pytest.raises(CannotMerge, match="incompatible simulation metadata"):
+            merger._check_simulation_metadata(
+                other,
+                SimpleNamespace(
+                    simulation=_simulation_metadata(),
+                    instance=SimpleNamespace(site_id=SiteID.CTAO_NORTH),
+                ),
+            )
+
+
+@pytest.mark.parametrize(
+    ("node", "other_node"),
+    [
+        (False, False),
+        (False, True),
+        (True, False),
+    ],
+)
+def test_simulation_metadata_compatibility_without_node(tmp_path, node, other_node):
+    other = SimpleNamespace(filename="input.h5")
+    with _simulation_metadata_merger(
+        tmp_path,
+        _simulation_metadata(node=node),
+    ) as merger:
+        merger._check_simulation_metadata(
+            other,
+            SimpleNamespace(simulation=_simulation_metadata(node=other_node)),
+        )
+
+
+@pytest.mark.parametrize(
+    ("site_id", "other_site_id", "compatible"),
+    [
+        (SiteID.CTAO_NORTH, SiteID.CTAO_NORTH, True),
+        (SiteID.CTAO_NORTH, SiteID.CTAO_SOUTH, False),
+        (SiteID.CTAO_NORTH, None, True),
+        (None, SiteID.CTAO_SOUTH, True),
+        (None, None, True),
+    ],
+)
+def test_site_id_compatibility(tmp_path, site_id, other_site_id, compatible):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    other = SimpleNamespace(filename="input.h5")
+    other_metadata = SimpleNamespace(
+        model=SimpleNamespace(version=DATA_MODEL_VERSION),
+        data=SimpleNamespace(type=dp.DataType.OBSERVATION_SIM),
+        instance=SimpleNamespace(
+            category=dp.DataProcessingCategory.A,
+            site_id=other_site_id,
+        ),
+        simulation=None,
+    )
+
+    with HDF5Merger(tmp_path / "merged.h5") as merger:
+        merger.data_model_version = DATA_MODEL_VERSION
+        merger.data_type = dp.DataType.OBSERVATION_SIM
+        merger.data_category = dp.DataProcessingCategory.A
+        merger.meta = SimpleNamespace(
+            instance=SimpleNamespace(site_id=site_id),
+            simulation=None,
+        )
+        merger.required_nodes = set()
+
+        if compatible:
+            merger._check_can_merge(other, other_metadata)
+        else:
+            with pytest.raises(CannotMerge, match="different site ID"):
+                merger._check_can_merge(other, other_metadata)
 
 
 def test_filter_column(tmp_path, dl2_shower_geometry_file):
@@ -161,6 +440,10 @@ def test_muon(tmp_path, dl1_muon_output_file):
     n_input = len(input_table)
     assert len(table) == n_input
     assert_table_equal(table, input_table)
+
+    product = metadata.read_ctao_metadata(output)
+    assert product.data.level is dp.DataLevel.DL1
+    assert product.instance.sublevel_id is None
 
 
 def test_duplicated_obs_ids(tmp_path, dl2_shower_geometry_file):

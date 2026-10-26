@@ -133,8 +133,6 @@ disp.highlight_pixels(mask, color="white", alpha=0.3, linewidth=2)
 
 plt.xlim(params.fov_lon.to_value(u.deg) - 2, params.fov_lon.to_value(u.deg) + 2)
 plt.ylim(params.fov_lat.to_value(u.deg) - 2, params.fov_lat.to_value(u.deg) + 2)
-######################################################################
-source.metadata
 
 
 ######################################################################

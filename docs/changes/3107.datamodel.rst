@@ -1,0 +1,13 @@
+Adopt ``ctao-datamodel`` as the metadata model for ctapipe data products.
+:class:`~ctapipe.io.DataWriter` now writes validated CTAO product metadata,
+including instance identifiers, data type and division, data level and
+processing sublevels, observation or simulation information, contact, curation,
+and provenance activity. Site identifiers and observation locations are derived
+from the input subarray when available. ``ctapipe-dump-instrument`` uses the
+same metadata model for service-data products.
+
+Support reading current CTAO and legacy ctapipe reference metadata from HDF5,
+FITS, ECSV, and JSON files. Legacy metadata is converted to the current CTAO
+product model when read. ``ctapipe-merge`` migrates legacy HDF5 metadata in its
+output, updates the metadata to describe the merged product, and validates
+merge compatibility using the available observation and simulation metadata.

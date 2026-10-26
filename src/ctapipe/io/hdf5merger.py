@@ -4,8 +4,12 @@ import warnings
 from contextlib import ExitStack
 from pathlib import Path
 
+import ctao_datamodel.models.dataproducts as dp
 import tables
+from astropy import units as u
+from astropy.coordinates import Angle
 from astropy.time import Time
+from traitlets import Instance
 
 from ..containers import EventType
 from ..core import Component, Provenance, traits
@@ -38,9 +42,15 @@ from .hdf5dataformat import (
     DL1_TEL_TRIGGER_TABLE,
     DL2_EVENT_STATISTICS_GROUP,
     DL2_SUBARRAY_CROSS_CALIBRATION_GROUP,
+    DL2_SUBARRAY_ENERGY_GROUP,
+    DL2_SUBARRAY_GEOMETRY_GROUP,
     DL2_SUBARRAY_GROUP,
     DL2_SUBARRAY_INTER_CALIBRATION_GROUP,
+    DL2_SUBARRAY_PARTICLETYPE_GROUP,
+    DL2_TEL_ENERGY_GROUP,
+    DL2_TEL_GEOMETRY_GROUP,
     DL2_TEL_GROUP,
+    DL2_TEL_PARTICLETYPE_GROUP,
     FIXED_POINTING_GROUP,
     OBSERVATION_BLOCK_TABLE,
     R0_TEL_GROUP,
@@ -118,6 +128,12 @@ class HDF5Merger(Component):
     """
     Class to copy / append / merge ctapipe hdf5 files
     """
+
+    contact_info = Instance(
+        metadata.Contact,
+        kw={},
+        help="Contact information for the output data product.",
+    ).tag(config=True)
 
     output_path = traits.Path(directory_ok=False).tag(config=True)
 
@@ -210,6 +226,9 @@ class HDF5Merger(Component):
 
         super().__init__(**kwargs)
 
+        self.contact_info = metadata.Contact(parent=self)
+        self.contact_info.to_model()
+
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
 
@@ -225,23 +244,25 @@ class HDF5Merger(Component):
             )
 
         output_exists = self.output_path.exists()
-        appending = False
+
+        if self.append and not output_exists:
+            raise traits.TraitError(
+                f"Cannot append to '{self.output_path}': file does not exist"
+            )
         if output_exists and not (self.append or self.overwrite):
             raise traits.TraitError(
                 f"output_path '{self.output_path}' exists but neither append nor overwrite allowed"
             )
 
-        if output_exists and self.append:
-            appending = True
-
         self.h5file = tables.open_file(
             self.output_path,
-            mode="a" if appending else "w",
+            mode="a" if self.append else "w",
             filters=DEFAULT_FILTERS,
         )
 
         self.required_nodes = None
         self.data_model_version = None
+        self.data_type = None
         self.data_category = None
         self.subarray = None
         self.meta = None
@@ -250,10 +271,11 @@ class HDF5Merger(Component):
 
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
-        if appending:
+        if self.append:
             self.meta = self._read_meta(self.h5file)
-            self.data_model_version = self.meta.product.data_model_version
-            self.data_category = self.meta.product.data_category
+            self.data_model_version = self.meta.model.version
+            self.data_type = self.meta.data.type
+            self.data_category = self.meta.instance.category
 
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
@@ -278,16 +300,21 @@ class HDF5Merger(Component):
             other = exit_stack.enter_context(tables.open_file(other, mode="r"))
 
         with exit_stack:
+            other_meta = self._read_meta(other)
             # first file to be merged
             if self._n_merged == 0:
-                self.meta = self._read_meta(other)
-                self.data_model_version = self.meta.product.data_model_version
-                self.data_category = self.meta.product.data_category
-                metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
+                self.meta = other_meta
+                self.data_model_version = self.meta.model.version
+                self.data_type = self.meta.data.type
+                self.data_category = self.meta.instance.category
             else:
-                self._check_can_merge(other)
+                self._check_can_merge(other, other_meta)
 
-            Provenance().add_input_file(other.filename, "data product to merge")
+            Provenance().add_input_file(
+                other.filename,
+                role="data product to merge",
+                reference_meta=other_meta.model_dump(mode="json"),
+            )
             try:
                 self._append(other)
                 # if first file, update required nodes
@@ -298,29 +325,218 @@ class HDF5Merger(Component):
                 self._update_meta()
 
     def _update_meta(self):
-        # update creation date and id
-        time = Time.now()
-        id_ = str(uuid.uuid4())
-        self.meta.product.id_ = id_
-        self.meta.product.creation_time = time
+        """Update and write product metadata after merging an input file."""
+        self.meta.instance.id = uuid.uuid4()
+        self.meta.creation_time = Time.now()
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", tables.NaturalNameWarning)
-            self.h5file.root._v_attrs["CTA PRODUCT CREATION TIME"] = time.iso
-            self.h5file.root._v_attrs["CTA PRODUCT ID"] = id_
+        self._update_product_type()
+        self._update_datalevel()
+        self._update_processing_sublevel()
+
+        if self.contact_info._modified:
+            self.meta.contact = self.contact_info.to_model()
+
+        if len(self._merged_obs_ids) > 1:
+            self.meta.instance.obs_id = None
+
+        metadata.write_product_metadata_hdf5(self.meta, self.h5file, remove_legacy=True)
+
         self.h5file.flush()
 
+    def _update_product_type(self):
+        """Adapt product division and type for monitoring-only output."""
+        if self.attach_monitoring and not self.append:
+            self.meta.data.division = dp.DataDivision.MONITORING
+
+            if self.meta.data.type == dp.DataType.OBSERVATION_SIM:
+                self.meta.data.type = dp.DataType.CALIBRATION_SIM
+            elif self.meta.data.type == dp.DataType.OBSERVATION:
+                self.meta.data.type = dp.DataType.CALIBRATION
+
+    def _update_datalevel(self):
+        """Update the data level based on data included in the merged output."""
+        if self.attach_monitoring:
+            return
+
+        if (self.dl2_subarray and DL2_SUBARRAY_GROUP in self.h5file.root) or (
+            self.telescope_events
+            and self.dl2_telescope
+            and DL2_TEL_GROUP in self.h5file.root
+        ):
+            data_level = dp.DataLevel.DL2
+
+        elif (
+            (self.dl1_images and DL1_TEL_IMAGES_GROUP in self.h5file.root)
+            or (self.dl1_parameters and DL1_TEL_PARAMETERS_GROUP in self.h5file.root)
+            or (self.dl1_muon and DL1_TEL_MUON_GROUP in self.h5file.root)
+        ):
+            data_level = dp.DataLevel.DL1
+
+        elif self.r1_waveforms and R1_TEL_GROUP in self.h5file.root:
+            data_level = dp.DataLevel.R1
+
+        elif self.r0_waveforms and R0_TEL_GROUP in self.h5file.root:
+            data_level = dp.DataLevel.R0
+
+        else:
+            return
+
+        self.meta.data.level = data_level
+
+    def _update_processing_sublevel(self):
+        """Update processing sublevels based on data included in the output."""
+        if self.attach_monitoring:
+            return
+
+        sublevel = dp.ProcessingSublevel(0)
+
+        if self.dl1_images and DL1_TEL_IMAGES_GROUP in self.h5file.root:
+            sublevel |= dp.ProcessingSublevel.IMAGES
+
+        if self.dl1_parameters and DL1_TEL_PARAMETERS_GROUP in self.h5file.root:
+            sublevel |= dp.ProcessingSublevel.PARAMETERS
+
+        dl2_sublevels = (
+            (
+                dp.ProcessingSublevel.GEOMETRY,
+                DL2_SUBARRAY_GEOMETRY_GROUP,
+                DL2_TEL_GEOMETRY_GROUP,
+            ),
+            (
+                dp.ProcessingSublevel.ENERGY,
+                DL2_SUBARRAY_ENERGY_GROUP,
+                DL2_TEL_ENERGY_GROUP,
+            ),
+            (
+                dp.ProcessingSublevel.GAMMANESS,
+                DL2_SUBARRAY_PARTICLETYPE_GROUP,
+                DL2_TEL_PARTICLETYPE_GROUP,
+            ),
+        )
+
+        for flag, subarray_group, telescope_group in dl2_sublevels:
+            has_subarray_data = self.dl2_subarray and subarray_group in self.h5file.root
+            has_telescope_data = (
+                self.telescope_events
+                and self.dl2_telescope
+                and telescope_group in self.h5file.root
+            )
+            if has_subarray_data or has_telescope_data:
+                sublevel |= flag
+
+        self.meta.instance.sublevel_id = sublevel or None
+
     def _read_meta(self, h5file):
+        """Read product metadata and translate errors into CannotMerge."""
         try:
-            return metadata._read_reference_metadata_hdf5(h5file)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=r"Legacy ctapipe metadata detected\.",
+                    category=metadata.LegacyMetadataWarning,
+                )
+                return metadata.read_ctao_metadata(h5file)
         except Exception:
             raise CannotMerge(
                 f"CTAO Reference meta not found in input file: {h5file.filename}"
             )
 
-    def _check_can_merge(self, other):
-        other_meta = self._read_meta(other)
-        other_version = other_meta.product.data_model_version
+    def _check_can_merge(self, other, other_meta):
+        """Validate metadata and required nodes before merging a file."""
+        self._check_data_model_version(other, other_meta.model.version)
+        self._check_data_type(other, other_meta.data.type)
+
+        other_data_category = other_meta.instance.category
+        if self.data_category != other_data_category:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different data category:"
+                f" {other_data_category}, expected {self.data_category}"
+            )
+
+        site_id = self.meta.instance.site_id
+        other_site_id = other_meta.instance.site_id
+        if (
+            site_id is not None
+            and other_site_id is not None
+            and site_id != other_site_id
+        ):
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different site ID:"
+                f" {other_site_id!r}, expected {site_id!r}"
+            )
+
+        if not self.attach_monitoring:
+            self._check_simulation_metadata(other, other_meta)
+
+        for node_path in self.required_nodes:
+            if node_path not in other.root:
+                raise CannotMerge(
+                    f"Required node {node_path} not found in {other.filename}"
+                )
+
+    def _check_simulation_metadata(self, other, other_meta):
+        """Check simulation-production and pointing compatibility."""
+        simulation = self.meta.simulation
+        other_simulation = other_meta.simulation
+
+        if simulation is None and other_simulation is None:
+            return
+
+        if simulation is None or other_simulation is None:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has incompatible simulation metadata"
+            )
+
+        if simulation.production_name != other_simulation.production_name:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation production:"
+                f" {other_simulation.production_name!r},"
+                f" expected {simulation.production_name!r}"
+            )
+
+        node = simulation.node
+        other_node = other_simulation.node
+        # Direction cannot be compared unless both nodes are available.
+        # Site compatibility is checked separately in _check_can_merge().
+        if node is None or other_node is None:
+            return
+
+        direction_tolerance = 1e-5 * u.deg
+
+        if not u.isclose(
+            node.zenith,
+            other_node.zenith,
+            atol=direction_tolerance,
+            rtol=0,
+        ):
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation zenith:"
+                f" {other_node.zenith}, expected {node.zenith}"
+            )
+
+        azimuth_difference = Angle(other_node.azimuth - node.azimuth).wrap_at(
+            180 * u.deg
+        )
+
+        if not u.isclose(
+            azimuth_difference,
+            0 * u.deg,
+            atol=direction_tolerance,
+            rtol=0,
+        ):
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation azimuth:"
+                f" {other_node.azimuth}, expected {node.azimuth}"
+            )
+
+        if node.nsb_factor != other_node.nsb_factor:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has different simulation NSB factor :"
+                f" {other_node.nsb_factor}, expected {node.nsb_factor}"
+            )
+
+    def _check_data_model_version(self, other, other_version):
+        """Check data-model-version compatibility for the merge strategy."""
         if self.attach_monitoring:
             if other_version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 raise CannotMerge(
@@ -328,24 +544,39 @@ class HDF5Merger(Component):
                     f" for attaching monitoring data: {other_version}, expected one of"
                     f" {COMPATIBLE_DATA_MODEL_VERSIONS}"
                 )
-        else:
-            if self.data_model_version != other_version:
-                raise CannotMerge(
-                    f"Input file {other.filename!r} has different data model version:"
-                    f" {other_version}, expected {self.data_model_version}"
-                )
-        other_category = other_meta.product.data_category
-        if self.data_category != other_category:
+        elif self.data_model_version != other_version:
             raise CannotMerge(
-                f"Input file {other.filename!r} has different data category:"
-                f" {other_category}, expected {self.data_category}"
+                f"Input file {other.filename!r} has different data model version:"
+                f" {other_version}, expected {self.data_model_version}"
             )
 
-        for node_path in self.required_nodes:
-            if node_path not in other.root:
-                raise CannotMerge(
-                    f"Required node {node_path} not found in {other.filename}"
-                )
+    def _check_data_type(self, other, other_data_type):
+        """Check CTAO product-type compatibility for the merge strategy."""
+        if self.attach_monitoring:
+            observation_types = {
+                dp.DataType.OBSERVATION,
+                dp.DataType.CALIBRATION,
+            }
+            simulation_types = {
+                dp.DataType.OBSERVATION_SIM,
+                dp.DataType.CALIBRATION_SIM,
+            }
+
+            compatible = (
+                self.data_type in observation_types
+                and other_data_type in observation_types
+            ) or (
+                self.data_type in simulation_types
+                and other_data_type in simulation_types
+            )
+        else:
+            compatible = self.data_type == other_data_type
+
+        if not compatible:
+            raise CannotMerge(
+                f"Input file {other.filename!r} has incompatible data type:"
+                f" {other_data_type}, expected a type compatible with {self.data_type}"
+            )
 
     def _check_obs_ids(self, other):
         keys = [OBSERVATION_BLOCK_TABLE, DL1_SUBARRAY_TRIGGER_TABLE]
@@ -363,7 +594,11 @@ class HDF5Merger(Component):
             different = self._merged_obs_ids.symmetric_difference(obs_ids)
             # If monitoring data from the same observation block is being attached,
             # obs_ids can be different in case of MC simulations.
-            if len(different) > 0 and self.data_category != "Sim":
+            is_simulation = self.data_type in {
+                dp.DataType.OBSERVATION_SIM,
+                dp.DataType.CALIBRATION_SIM,
+            }
+            if len(different) > 0 and not is_simulation:
                 msg = (
                     f"Merge strategy '{self.merge_strategy}' selected, but input file {other.filename} contains "
                     f"different obs_ids than already merged ({self._merged_obs_ids}): {different}"

@@ -1,6 +1,21 @@
 import pytest
+from ctao_datamodel.models.common import SiteID
+from traitlets.config import Config
 
 from ctapipe.io import DataWriter, EventSource
+
+
+@pytest.fixture(scope="session")
+def south_site_config():
+    return Config(
+        {
+            "DataWriter": {
+                "ProductMetadata": {
+                    "instance": {"site_id": SiteID.CTAO_SOUTH},
+                }
+            }
+        }
+    )
 
 
 @pytest.fixture(scope="session")
@@ -9,7 +24,7 @@ def r1_path(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def r1_hdf5_file(prod5_proton_simtel_path, r1_path):
+def r1_hdf5_file(prod5_proton_simtel_path, r1_path, south_site_config):
     source = EventSource(
         prod5_proton_simtel_path,
         max_events=5,
@@ -25,6 +40,7 @@ def r1_hdf5_file(prod5_proton_simtel_path, r1_path):
         write_dl2=False,
         write_r0_waveforms=False,
         write_r1_waveforms=True,
+        config=south_site_config,
     )
 
     for e in source:
