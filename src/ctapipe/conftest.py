@@ -839,14 +839,14 @@ def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
     return path
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def provenance(monkeypatch):
     from ctapipe.core import Provenance
 
-    # the singleton nature of Provenance messes with
-    # the order-independence of the tests asserting
-    # the provenance contains the correct information
-    # so we monkeypatch back to an empty state here
+    # Provenance is a process-global singleton that is modified by many tests and
+    # fixtures, including session-scoped fixtures creating test data with tools.
+    # Give every test independent activity lists so test results do not depend on
+    # collection order. Tests inspecting provenance can still request this fixture.
     prov = Provenance()
     monkeypatch.setattr(prov, "_activities", [])
     monkeypatch.setattr(prov, "_finished_activities", [])
