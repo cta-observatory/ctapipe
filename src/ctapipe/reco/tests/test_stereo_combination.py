@@ -112,6 +112,20 @@ def test_predict_mean_energy(weights, mono_table):
     assert_array_equal(stereo["dummy_telescopes"][1], 5)
 
 
+@pytest.mark.parametrize("weights, expected", [("none", 5), ("intensity", 7)])
+def test_predict_mean_energy_without_unused_parameters(mono_table, weights, expected):
+    table = mono_table.copy()
+    table.remove_columns(["hillas_width", "hillas_length", "leakage_intensity_width_2"])
+    if weights == "none":
+        table.remove_column("hillas_intensity")
+
+    combine = StereoMeanCombiner(
+        prefix="dummy", property=ReconstructionProperty.ENERGY, weights=weights
+    )
+    stereo = combine.predict_table(table)
+    assert_allclose(stereo["dummy_energy"].quantity, [expected, 0.5, np.nan] * u.TeV)
+
+
 def test_predict_mean_classification(mono_table):
     combine = StereoMeanCombiner(
         prefix="classifier",

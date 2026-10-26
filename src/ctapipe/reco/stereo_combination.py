@@ -103,46 +103,38 @@ class StereoMeanCombiner(StereoCombiner):
             )
 
     def _calculate_weights(self, data):
-        if data is None:
-            if self.weights == "none":
-                return 1
+        if data is None and self.weights != "none":
             raise ValueError("No parameters for weighting available")
 
-        if isinstance(data, Container):
-            if self.weights == "intensity":
-                return data.hillas.intensity
+        if data is not None and not isinstance(data, (Container, Table)):
+            raise TypeError(
+                "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+            )
 
-            if self.weights == "aspect-weighted-intensity":
-                return data.hillas.intensity * data.hillas.length / data.hillas.width
-
-            if self.weights == "containment-weighted-intensity":
-                elongation = 1 - data.hillas.width / data.hillas.length
-                containment = 1 - data.leakage.intensity_width_2
-                return (data.hillas.intensity * elongation) ** 2 * containment**4
-
-            return 1
+        if self.weights == "none":
+            return np.ones(len(data)) if isinstance(data, Table) else 1
 
         if isinstance(data, Table):
-            if self.weights == "intensity":
-                return data["hillas_intensity"]
+            intensity = data["hillas_intensity"]
+            # Intensity weighting does not require shape or leakage columns.
+            length = data.columns.get("hillas_length")
+            width = data.columns.get("hillas_width")
+            leakage = data.columns.get("leakage_intensity_width_2")
+        else:
+            intensity = data.hillas.intensity
+            length = data.hillas.length
+            width = data.hillas.width
+            leakage = data.leakage.intensity_width_2
 
-            if self.weights == "aspect-weighted-intensity":
-                return (
-                    data["hillas_intensity"]
-                    * data["hillas_length"]
-                    / data["hillas_width"]
-                )
+        if self.weights == "intensity":
+            return intensity
 
-            if self.weights == "containment-weighted-intensity":
-                elongation = 1 - data["hillas_width"] / data["hillas_length"]
-                containment = 1 - data["leakage_intensity_width_2"]
-                return (data["hillas_intensity"] * elongation) ** 2 * containment**4
+        if self.weights == "aspect-weighted-intensity":
+            return intensity * length / width
 
-            return np.ones(len(data))
-
-        raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
-        )
+        elongation = 1 - width / length
+        containment = 1 - leakage
+        return (intensity * elongation) ** 2 * containment**4
 
     def _combine_energy(self, event):
         ids = []
