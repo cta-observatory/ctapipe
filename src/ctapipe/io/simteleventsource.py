@@ -333,9 +333,7 @@ def _telescope_from_meta(telescope_meta, mirror_area):
     )
 
 
-def apply_simtel_r1_calibration(
-    r0_waveforms, pedestal, factor, calib_scale=1.0, calib_shift=0.0
-):
+def apply_simtel_r1_calibration(r0_waveforms, pedestal, factor, calib_shift=0.0):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
         - Pedestal subtraction
@@ -356,11 +354,6 @@ def apply_simtel_r1_calibration(
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
-    calib_scale : float
-        Extra global scale factor for calibration.
-        Conversion factor to transform the integrated charges
-        (in ADC counts) into number of photoelectrons on top of dc_to_pe.
-        Defaults to no scaling.
     calib_shift: float
         Shift the resulting R1 output in p.e. for simulating miscalibration.
         Defaults to no shift.
@@ -373,9 +366,8 @@ def apply_simtel_r1_calibration(
     """
     ped = pedestal[..., np.newaxis]
     factor = factor[..., np.newaxis]
-    gain = factor * calib_scale
 
-    r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
+    r1_waveforms = (r0_waveforms - ped) * factor + calib_shift
 
     return r1_waveforms
 
@@ -586,14 +578,6 @@ class SimTelEventSource(EventSource):
         help=(
             "Whether to perform gain selection. The default (None) means only"
             " select gain of physics events, not of calibration events."
-        ),
-    ).tag(config=True)
-
-    calib_scale = Float(
-        default_value=1.0,
-        help=(
-            "Factor to transform ADC counts into number of photoelectrons."
-            " Corrects the DC_to_PHE factor."
         ),
     ).tag(config=True)
 
@@ -1089,8 +1073,7 @@ class SimTelEventSource(EventSource):
                         adc_samples,
                         pedestal,
                         factor,
-                        self.calib_scale,
-                        self.calib_shift,
+                        calib_shift=self.calib_shift,
                     )
                 # Perform the gain selection if requested.
                 # By default, the cosmic events will be gain-selected, not for calibration events.

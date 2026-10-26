@@ -1,0 +1,3 @@
+Removed the ``calib_scale`` option from ``SimTelEventSource`` and
+``apply_simtel_r1_calibration``. Use ``CameraCalibrator.calibration_scales``
+to apply calibration scale factors.

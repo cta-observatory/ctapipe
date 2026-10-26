@@ -527,26 +527,12 @@ def test_only_config():
     assert s.input_url == Path(prod5b_path).absolute()
 
 
-def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
+def test_calibshift(prod5_gamma_simtel_path):
     with SimTelEventSource(input_url=prod5_gamma_simtel_path, max_events=1) as source:
         event = next(iter(source))
 
     # make sure we actually have data
     assert len(event.r1.tel) > 0
-
-    calib_scale = 2.0
-
-    with SimTelEventSource(
-        input_url=prod5_gamma_simtel_path, max_events=1, calib_scale=calib_scale
-    ) as source:
-        event_scaled = next(iter(source))
-
-    for tel_id, r1 in event.r1.tel.items():
-        np.testing.assert_allclose(
-            r1.waveform[0],
-            event_scaled.r1.tel[tel_id].waveform[0] / calib_scale,
-            rtol=0.1,
-        )
 
     calib_shift = 2.0  # p.e.
 
