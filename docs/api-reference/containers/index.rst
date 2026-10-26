@@ -14,7 +14,8 @@ The `ctapipe.containers` module contains the data model definition of all
 ctapipe `~ctapipe.core.Container` classes, which provide the container definitions for all
 ctapipe data.
 
-The base Container for an event is in `ctapipe.containers.ArrayEventContainer`.
+The main data structure is the Container for a subarray event: `~ctapipe.containers.SubarrayEventContainer`
+which contains the subarray-level information and a collection of `TelescopeEventContainers <ctapipe.containers.TelescopeEventContainer>`.
 
 
 Reference/API

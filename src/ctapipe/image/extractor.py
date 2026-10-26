@@ -34,10 +34,7 @@ from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from traitlets import Bool, Int
 
-from ctapipe.containers import (
-    DL1CameraContainer,
-    VarianceType,
-)
+from ctapipe.containers import DL1TelescopeContainer, VarianceType
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -432,7 +429,7 @@ class ImageExtractor(TelescopeComponent):
     @abstractmethod
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -457,7 +454,7 @@ class ImageExtractor(TelescopeComponent):
 
         Returns
         -------
-        DL1CameraContainer:
+        DL1TelescopeContainer:
             extracted images and validity flags
         """
 
@@ -469,7 +466,7 @@ class FullWaveformSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         charge, peak_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[tel_id]
         )
@@ -479,7 +476,7 @@ class FullWaveformSum(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class FixedWindowSum(ImageExtractor):
@@ -516,7 +513,7 @@ class FixedWindowSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         charge, peak_time = extract_around_peak(
             waveforms,
             self.peak_index.tel[tel_id],
@@ -533,7 +530,7 @@ class FixedWindowSum(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class GlobalPeakWindowSum(ImageExtractor):
@@ -584,7 +581,7 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
             peak_index = waveforms.mean(
@@ -620,7 +617,7 @@ class GlobalPeakWindowSum(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class LocalPeakWindowSum(ImageExtractor):
@@ -656,7 +653,7 @@ class LocalPeakWindowSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         peak_index = waveforms.argmax(axis=-1).astype(np.int64)
         charge, peak_time = extract_around_peak(
             waveforms,
@@ -674,7 +671,7 @@ class LocalPeakWindowSum(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class SlidingWindowMaxSum(ImageExtractor):
@@ -722,7 +719,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         charge, peak_time = extract_sliding_window(
             waveforms, self.window_width.tel[tel_id], self.sampling_rate_ghz[tel_id]
         )
@@ -736,7 +733,7 @@ class SlidingWindowMaxSum(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class NeighborPeakWindowSum(ImageExtractor):
@@ -778,7 +775,7 @@ class NeighborPeakWindowSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
 
         peak_index = neighbor_average_maximum(
@@ -805,7 +802,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
@@ -821,7 +818,7 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         baseline_corrected = subtract_baseline(
             waveforms, self.baseline_start, self.baseline_end
         )
@@ -974,7 +971,7 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 1
 
         # Starting from DL0, the channel is already selected (if more than one)
-        # event.dl0.tel[tel_id].waveform object has shape (N_pixels, N_samples)
+        # event.tel[tel_id].dl0.waveform object has shape (N_pixels, N_samples)
 
         # For each pixel, we slide a 3-samples window through the
         # waveform summing each time the ADC counts contained within it.
@@ -1283,18 +1280,17 @@ class TwoPassWindowSum(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         if waveforms.shape[-3] != 1:
             raise AttributeError(
                 "The data needs to be gain selected to use the TwoPassWindowSum."
             )
         waveforms = waveforms[0, :, :]
-
         charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, tel_id)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
-            return DL1CameraContainer(
+            return DL1TelescopeContainer(
                 image=(charge1 * correction1[selected_gain_channel]).astype("float32"),
                 peak_time=pulse_time1.astype("float32"),
                 is_valid=True,
@@ -1310,7 +1306,7 @@ class TwoPassWindowSum(ImageExtractor):
             broken_pixels,
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
-        return DL1CameraContainer(
+        return DL1TelescopeContainer(
             image=charge2.astype("float32"),
             peak_time=pulse_time2.astype("float32"),
             is_valid=is_valid,
@@ -1322,9 +1318,9 @@ class VarianceExtractor(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         image = np.nanvar(waveforms, dtype="float32", axis=2)
-        container = DL1CameraContainer(
+        container = DL1TelescopeContainer(
             image=image,
             is_valid=np.any(np.isfinite(image)),
         )
@@ -1682,7 +1678,7 @@ class FlashCamExtractor(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
-    ) -> DL1CameraContainer:
+    ) -> DL1TelescopeContainer:
         upsampling = self.upsampling.tel[tel_id]
         integration_window_width = self.window_width.tel[tel_id]
         integration_window_shift = self.window_shift.tel[tel_id]
@@ -1740,4 +1736,4 @@ class FlashCamExtractor(ImageExtractor):
             charge = charge[0]
             peak_time = peak_time[0]
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1TelescopeContainer(image=charge, peak_time=peak_time, is_valid=True)

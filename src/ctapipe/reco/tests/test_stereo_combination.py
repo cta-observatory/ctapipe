@@ -5,14 +5,15 @@ from astropy.table import Table
 from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.containers import (
-    ArrayEventContainer,
+    DL2TelescopeContainer,
     HillasParametersContainer,
     ImageParametersContainer,
     LeakageContainer,
     ParticleClassificationContainer,
-    ReconstructedContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    ReconstructedShowerContainer,
+    SubarrayEventContainer,
 )
 from ctapipe.reco.reconstructor import ReconstructionProperty
 from ctapipe.reco.stereo_combination import StereoMeanCombiner
@@ -111,6 +112,20 @@ def test_predict_mean_energy(weights, mono_table):
     assert_array_equal(stereo["dummy_telescopes"][1], 5)
 
 
+@pytest.mark.parametrize("weights, expected", [("none", 5), ("intensity", 7)])
+def test_predict_mean_energy_without_unused_parameters(mono_table, weights, expected):
+    table = mono_table.copy()
+    table.remove_columns(["hillas_width", "hillas_length", "leakage_intensity_width_2"])
+    if weights == "none":
+        table.remove_column("hillas_intensity")
+
+    combine = StereoMeanCombiner(
+        prefix="dummy", property=ReconstructionProperty.ENERGY, weights=weights
+    )
+    stereo = combine.predict_table(table)
+    assert_allclose(stereo["dummy_energy"].quantity, [expected, 0.5, np.nan] * u.TeV)
+
+
 def test_predict_mean_classification(mono_table):
     combine = StereoMeanCombiner(
         prefix="classifier",
@@ -195,12 +210,12 @@ def _containment_particle_expected():
     ],
 )
 def test_mean_prediction_single_event(weights, expected_particle_prediction):
-    event = ArrayEventContainer()
+    event = SubarrayEventContainer()
 
     for tel_id, intensity, leakage in zip(
         (25, 125, 130), (100, 200, 400), (0.0, 0.1, 0.2)
     ):
-        event.dl1.tel[tel_id].parameters = ImageParametersContainer(
+        event.tel[tel_id].dl1.parameters = ImageParametersContainer(
             hillas=HillasParametersContainer(
                 intensity=intensity,
                 width=0.1 * u.deg,
@@ -209,7 +224,7 @@ def test_mean_prediction_single_event(weights, expected_particle_prediction):
             leakage=LeakageContainer(intensity_width_2=leakage),
         )
 
-    event.dl2.tel[25] = ReconstructedContainer(
+    event.tel[25].dl2 = DL2TelescopeContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=10 * u.GeV, is_valid=True)
         },
@@ -222,7 +237,7 @@ def test_mean_prediction_single_event(weights, expected_particle_prediction):
             )
         },
     )
-    event.dl2.tel[125] = ReconstructedContainer(
+    event.tel[125].dl2 = DL2TelescopeContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=20 * u.GeV, is_valid=True)
         },
@@ -235,7 +250,7 @@ def test_mean_prediction_single_event(weights, expected_particle_prediction):
             )
         },
     )
-    event.dl2.tel[130] = ReconstructedContainer(
+    event.tel[130].dl2 = DL2TelescopeContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=0.04 * u.TeV, is_valid=True)
         },
@@ -268,31 +283,72 @@ def test_mean_prediction_single_event(weights, expected_particle_prediction):
     combine_classification(event)
     combine_geometry(event)
     if weights == "none":
-        assert u.isclose(event.dl2.stereo.energy["dummy"].energy, (70 / 3) * u.GeV)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 63.0738383 * u.deg)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 348.0716693 * u.deg)
+        assert u.isclose(event.dl2.energy["dummy"].energy, (70 / 3) * u.GeV)
+        assert u.isclose(event.dl2.geometry["dummy"].alt, 63.0738383 * u.deg)
+        assert u.isclose(event.dl2.geometry["dummy"].az, 348.0716693 * u.deg)
     elif weights == "intensity":
-        assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
+        assert u.isclose(event.dl2.energy["dummy"].energy, 30 * u.GeV)
+        assert u.isclose(event.dl2.geometry["dummy"].alt, 60.9748605 * u.deg)
+        assert u.isclose(event.dl2.geometry["dummy"].az, 316.0365515 * u.deg)
     # For none/intensity/aspect the weighted mean of [1.0, 0.0, 0.8] coincidentally
     # equals 0.6 because the test intensities (100, 200, 400) and equal aspect ratios
     # cancel out.  containment-weighted-intensity breaks that coincidence because
     # (1 - leakage)**4 differs per telescope (leakage = 0.0, 0.1, 0.2), so the
     # containment weight is a general image-quality weight affecting all prediction
     # types, not just geometry.
-    assert event.dl2.stereo.particle_type["dummy"].prediction == pytest.approx(
+    assert event.dl2.particle_type["dummy"].prediction == pytest.approx(
         expected_particle_prediction
     )
+
+
+@pytest.mark.parametrize("weights", StereoMeanCombiner.weights.values)
+@pytest.mark.parametrize(
+    "property",
+    [
+        ReconstructionProperty.ENERGY,
+        ReconstructionProperty.PARTICLE_TYPE,
+        ReconstructionProperty.GEOMETRY,
+    ],
+)
+def test_mean_prediction_without_dl1(property, weights):
+    """Mono DL2 data only needs image parameters when using image-based weights."""
+    event = SubarrayEventContainer()
+    for tel_id in (1, 2):
+        tel_event = event.tel[tel_id]
+        tel_event.dl1.parameters = None
+        tel_event.dl2.energy["dummy"] = ReconstructedEnergyContainer(
+            energy=tel_id * 10 * u.GeV, is_valid=True
+        )
+        tel_event.dl2.particle_type["dummy"] = ParticleClassificationContainer(
+            prediction=0.2 if tel_id == 1 else 0.8, is_valid=True
+        )
+        tel_event.dl2.geometry["dummy"] = ReconstructedGeometryContainer(
+            alt=(40 + tel_id * 10) * u.deg, az=0 * u.deg, is_valid=True
+        )
+
+    combine = StereoMeanCombiner(prefix="dummy", property=property, weights=weights)
+    if weights != "none":
+        with pytest.raises(ValueError, match="No parameters for weighting available"):
+            combine(event)
+        return
+
+    combine(event)
+    result = getattr(event.dl2, str(property))["dummy"]
+    assert result.is_valid
+    assert result.telescopes == [1, 2]
+    if property is ReconstructionProperty.ENERGY:
+        assert u.isclose(result.energy, 15 * u.GeV)
+    elif property is ReconstructionProperty.PARTICLE_TYPE:
+        assert result.prediction == pytest.approx(0.5)
+    else:
+        assert u.isclose(result.alt, 55 * u.deg)
+        assert u.isclose(result.az, 0 * u.deg)
 
 
 def test_reconstructed_container_warning():
     from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
-    container = ReconstructedContainer()
+    container = ReconstructedShowerContainer()
 
     with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
         _ = container.classification
-
-    with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
-        container.classification = ParticleClassificationContainer()

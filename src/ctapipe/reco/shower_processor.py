@@ -2,7 +2,7 @@
 High level processing of showers.
 """
 
-from ..containers import ArrayEventContainer
+from ..containers import SubarrayEventContainer
 from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .reconstructor import Reconstructor
@@ -85,13 +85,13 @@ class ShowerProcessor(Component):
                 "reconstructors requires an atmosphere profile."
             )
 
-    def __call__(self, event: ArrayEventContainer):
+    def __call__(self, event: SubarrayEventContainer):
         """
         Apply all configured stereo reconstructors to the given event.
 
         Parameters
         ----------
-        event : ctapipe.containers.ArrayEventContainer
+        event : ctapipe.containers.SubarrayEventContainer
             Top-level container for all event information.
         """
         for reconstructor in self.reconstructors:
