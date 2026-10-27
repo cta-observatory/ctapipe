@@ -6,7 +6,7 @@ import pathlib
 
 import numpy as np
 import yaml
-from scipy.stats import median_abs_deviation
+from scipy.stats import median_abs_deviation, mode
 from traitlets import Float, Int, List, Path, TraitError
 
 from ctapipe.calib.camera.gainselection import GainChannel
@@ -19,25 +19,34 @@ from ctapipe.io import EventSource
 
 class EstimateNSBlevelTool(Tool):
     """
-    Tool to estimate the level of NSB required to match the diffuse
-    NSB from a NSB-only simulation file to a target observation.
+    Tool to estimate the level of NSB required to match the diffuse NSB from an
+    NSB-only simulation file (nsb_file) to a target observation (shower_file).
+
+    The NSB level is defined as the multiplicative factor (natural number)
+    that NSB-only waveforms must be used to match the diffuse NSB of the target
+    observation. For example, an NSB-only simulation produced with 25% of dark NSB,
+    the required NSB level to match the dark NSB is 4.
 
     The NSB-only file must be produced with the same telescope
     array configuration and simulation settings to the MC files
-    to add the NSB.
+    to add the NSB (simulation_file).
 
-    This tool estimates the NSB as follows:
-    1) Exclude faulty pixels (broken and outliers) from real observations
-    from the median of the waveform variance per pixel.
-    2) From the median pixel charge variance of NSB-only file and the median
-    variance of (sky) pedestals, the approximate NSB level can be computed.
-    3) Compute the 90% quantile for the real data (excluding outliers) and
-    NSB-only MC 90% quantile for different NSB levels.
-    4) Fit the MC 90% quantile for different NSB levels with a parabola and
-    find the closest node to the real 90% quantile.
+    This tool estimates the NSB level as follows:
+    1) Exclude faulty pixels (broken and outliers) from the target observation
+    using the median of the waveform variance per pixel.
+    2) Compute the 90% quantile of the pixel charge for the target data (excluding
+    faulty pixels) and NSB-only MC target. This quantity is estimated for different
+    NSB levels for NSB-only simulations.
+    3) Fit the NSB-only 90% quantile at different NSB levels with a parabola and
+    find the closest NSB level to the target 90% quantile.
+
+    The ratio between median pixel charge variance of the NSB-only file and target
+    observation can be used to obtain an approximate NSB level to probe a limited
+    NSB-level parameter space and reduce the computation time (variance method).
+    Alternatively, a specific NSB range can be introduced.
 
     Note that if the simulation is not entirely realistic, the result may depend
-    on the integrator and/or its parameters
+    on the integrator and/or its parameters.
     """
 
     name = "ctapipe-estimate-nsb"
@@ -54,9 +63,12 @@ class EstimateNSBlevelTool(Tool):
         help="Path to a dedicated NSB-only file (requires r1 waveforms)",
     ).tag(config=True)
 
+    simulation_file = Path(
+        help="Path to a cosmics MC simulation simulated with the same settings as nsb_file (requires r1 waveforms)",
+    ).tag(config=True)
+
     shower_file = Path(
-        help="Path to shower file to estimate the NSB level (requires dl0 "
-        "for real data, r1 for simulations)",
+        help="Path to target observation (cosmics) to estimate the NSB level",
     ).tag(config=True)
 
     # Optional parameters:
@@ -80,7 +92,7 @@ class EstimateNSBlevelTool(Tool):
         help="Minimum number of pedestal events needed to estimate the pedestal statistics per pixel.",
     ).tag(config=True)
 
-    # Other parameters
+    # Other parameters (noise realisations and fit)
     nevents = Int(
         default_value=20,
         help="Number of noise realisations in WaveformModifier",
@@ -114,6 +126,13 @@ class EstimateNSBlevelTool(Tool):
         ("n", "nsb-file"): "EstimateNSBlevelTool.nsb_file",
     }
 
+    # flags = {
+    #     "overwrite": (
+    #         {"overwrite": True},
+    #         "Overwrite existing output file",
+    #     ),
+    # }
+
     classes = [
         ImageExtractor,
         WaveformModifier,
@@ -144,25 +163,40 @@ class EstimateNSBlevelTool(Tool):
 
         self.event_type_filter = PedestalEventTypeFilter(parent=self)
 
-    def _extract_images_per_pixel_and_event(self, extractor):
+    def _extract_images_per_pixel_and_event(self, file, extractor):
         """
         Function to extract images (gain selected) per pixel and event for a certain extractor.
 
-        Output dimensions of pixel_data: (n_events, n_pixels), broken_pixels (n_pixels)
+        The pixel charge is computed for each telescope, event, and pixel.
+
+        Parameters
+        ----------
+        file: Path
+            Path to file with waveform data.
+        extractor: ImageExtractor
+            Extractor to apply to waveforms.
+
+        Returns
+        -------
+        pixel_data: dict with item's shape (n_events, n_pixels)
+            Pixel-wise image information.
+        broken_pixels: dict
+            Information about broken pixels.
         """
 
         pixel_data = {}
         broken_pixels = {}
 
-        with EventSource(self.shower_file) as shower_source:
+        with EventSource(file) as shower_source:
             for event in shower_source:
+                # Simulation file
                 if shower_source.is_simulation:
                     for tel_id in event.trigger.tels_with_trigger:
                         true_pe = event.simulation.tel[tel_id].true_image
-                        nwf = event.r1.tel[tel_id].waveform
+                        wf = event.r1.tel[tel_id].waveform
 
                         # select noise-only waveforms
-                        nwf[:, true_pe > 0, :] = np.nan
+                        wf[:, true_pe > 0, :] = np.nan
 
                         # use high gain for pedestals
                         selected_gain_channel = np.broadcast_to(
@@ -173,7 +207,7 @@ class EstimateNSBlevelTool(Tool):
                             tel_id
                         ].camera.coefficients.outlier_mask[GainChannel.HIGH]
                         q_ev = self.image_extractor(
-                            waveforms=nwf,
+                            waveforms=wf,
                             tel_id=tel_id,
                             selected_gain_channel=selected_gain_channel,
                             broken_pixels=broken_pixels[tel_id],
@@ -207,30 +241,48 @@ class EstimateNSBlevelTool(Tool):
         return pixel_data, broken_pixels
 
     def calculate_pixel_charge_ped(self):
+        """
+        Compute the pixel charge of the target observation.
 
+        The pixel charge is computed for each telescope, event, and pixel.
+        """
         self.ped_pixel_charge, self.bool_broken_pixels = (
-            self._extract_images_per_pixel_and_event(self.image_extractor)
+            self._extract_images_per_pixel_and_event(
+                self.shower_file, self.image_extractor
+            )
         )
         self.tel_id_list = list(self.ped_pixel_charge.keys())
 
+    def calculate_pixel_charge_sim(self):
+        """
+        Compute the pixel charge of the MC simulation (cosmics file) associated to
+        the NSB-only file.
+
+        The pixel charge is computed for each telescope, event, and pixel.
+        """
+        self.sim_pixel_charge, _ = self._extract_images_per_pixel_and_event(
+            self.simulation_file, self.image_extractor
+        )
+
     def identify_faulty_pixels(self):
         """
-        Identify outlier pixels using the median variance of the waveform per pixel.
-        Outliers are defined as pixels with modified Z-score statistics beyond the
-        threshold mod_zscore_th.
+        Identify outlier pixels of the target observation using the median variance of the waveform per pixel.
+        Outliers are defined as pixels with modified Z-score statistics beyond the threshold mod_zscore_th.
 
         Faulty pixels = outlier pixels + broken pixels
         """
 
         variance_extractor = VarianceExtractor(subarray=self.subarray)
+        # Compute the median variance per pixel
         shower_pixel_variance, broken_pixels = self._extract_images_per_pixel_and_event(
-            variance_extractor
+            self.shower_file, variance_extractor
         )
 
         self.faulty_pixels = {}
         self.pixel_var = {}
         for tel_id in np.sort(self.tel_id_list):
-            # compute the median variance per pixel
+            # Make sure we only select the high-gain channel in case more than one channel
+            # is available
             if broken_pixels[tel_id].ndim == 2:
                 mask_broken = broken_pixels[tel_id][GainChannel.HIGH]
                 self.pixel_var[tel_id] = np.nanmedian(
@@ -243,7 +295,7 @@ class EstimateNSBlevelTool(Tool):
                     np.array(shower_pixel_variance[tel_id]), axis=0
                 )
 
-            # compute modified Z-score
+            # Compute modified Z-score
             mad_pix = median_abs_deviation(self.pixel_var[tel_id])
             median_pix = np.median(self.pixel_var[tel_id])
             abs_mod_zscore = np.abs(
@@ -252,7 +304,7 @@ class EstimateNSBlevelTool(Tool):
 
             # Obtain outliers pixels
             mask_outliers = abs_mod_zscore > self.mod_zscore_th
-            # faulty pixels = outlier pixels + broken pixels
+            # Faulty pixels = outlier pixels + broken pixels
             self.faulty_pixels[tel_id] = mask_outliers | mask_broken
 
             # Checks
@@ -271,7 +323,7 @@ class EstimateNSBlevelTool(Tool):
 
     def calculate_pixel_charge_nsb_only_grid(self, nsb_levels, nevents):
         """
-        Compute the charge NSB-only waveforms for 'nevents' events
+        Compute the charge from NSB-only waveforms for 'nevents' events
         for different NSB levels.
         The pixel charge is computed for each telescope, event, pixel and NSB.
 
@@ -286,7 +338,7 @@ class EstimateNSBlevelTool(Tool):
 
         Returns
         -------
-        nsb_pixel_charge: dict
+        nsb_pixel_charge: dict with item's shape (n_nsb_levels, n_events, n_pixels)
             Charges per telescope, NSB, event, and pixel.
         """
 
@@ -339,16 +391,19 @@ class EstimateNSBlevelTool(Tool):
 
     def nsb_from_variance(self, nsb_lvl1_pixel_charge):
         """
-        Estimate the nsb from the ratio between variances of the pixel charge
-        between the NSB-only simulation and the observation.
+        Estimate the NSB from the ratio between variances of the pixel charge
+        between the NSB-only simulation and the target observation.
+
+        The NSB level is estimated wrt the first element in the NSB level dimension of
+        nsb_lvl1_pixel_charge.
 
         Note: the obtained results may yield wrong estimated for biased extractors
         and small extractor windows.
 
         Parameters
         ----------
-        nsb_lvl1_pixel_charge: dict with (n_nsb_levels, n_events, n_pixels)
-            Pixel charges.
+        nsb_lvl1_pixel_charge: dict with item's shape (n_nsb_levels, n_events, n_pixels).
+            Pixel charges from NSB-only waveforms.
 
         Returns
         -------
@@ -384,10 +439,62 @@ class EstimateNSBlevelTool(Tool):
 
         return nsb_grid, nsb_lvl
 
-    def quantile_curve_fit(self):
+    def compute_quantile(self, pixel_charge):
         """
-        Compute the quantile at quantile_threshold. Fit a parabola to the quantile curve
-        vs NSB and find the NSB level that matches the real data.
+        Compute the self.quantile_threshold quantile of the charge images
+        using all usable pixels and events.
+
+        Parameters
+        ----------
+        pixel_charge: dict
+            Pixel charge information
+
+        Returns
+        -------
+        charge_q: dict
+            Quantile value of the pixel charge.
+
+        """
+        charge_q = {}
+        for tel_id in self.tel_id_list:
+            tel_pixel_charge = np.array(pixel_charge[tel_id])
+
+            # Mask faulty pixels
+            tel_pixel_charge = tel_pixel_charge[..., ~self.faulty_pixels[tel_id]]
+
+            # Reshape the NSB-only pixel charge to (n_nsb_levels, n_events * n_pixels)
+            if tel_pixel_charge.ndim == 3:
+                shape_pixel_charge = np.shape(tel_pixel_charge)
+
+                all_nsb_pixel_charge = np.reshape(
+                    tel_pixel_charge,
+                    (
+                        shape_pixel_charge[0],
+                        shape_pixel_charge[1] * shape_pixel_charge[2],
+                    ),
+                )
+                # Compute quantile
+                charge_q[tel_id] = np.nanquantile(
+                    all_nsb_pixel_charge, self.quantile_threshold, axis=1
+                )
+            # Flatten the full array for cosmics pixel charge
+            else:
+                charge_q[tel_id] = np.nanquantile(
+                    tel_pixel_charge.flatten(),
+                    self.quantile_threshold,
+                    axis=0,
+                )
+        return charge_q
+
+    def quantile_curve_fit(self, charge_q):
+        """
+        Fit a parabola to the quantile vs NSB curve for NSB-only data and
+        find the NSB level that matches the charge_q values.
+
+        Parameters
+        ----------
+        charge_q: dict
+            Charge quantile to estimate the NSB level.
 
         Returns
         -------
@@ -397,58 +504,36 @@ class EstimateNSBlevelTool(Tool):
             Exact NSB levels per telescope.
         """
 
-        self.qsim_q = {}
-        self.qped_q = {}
-        for tel_id in self.tel_id_list:
-            shape_ped = np.shape(self.nsb_pixel_charge[tel_id])
-            all_nsb_pixel_charge = np.reshape(
-                self.nsb_pixel_charge[tel_id],
-                (shape_ped[0], shape_ped[1] * shape_ped[2]),
-            )
-            self.qsim_q[tel_id] = np.nanquantile(
-                all_nsb_pixel_charge, self.quantile_threshold, axis=1
-            )
-
-            self.qped_q[tel_id] = np.nanquantile(
-                np.array(self.ped_pixel_charge[tel_id])[
-                    :, ~self.faulty_pixels[tel_id]
-                ].flatten(),
-                self.quantile_threshold,
-                axis=0,
-            )
-
         required_nsb_level = {}
         exact_nsb_level = {}
-        self.models = {}
 
         for tel_id in self.tel_id_list:
             # Fits a parabola
-            coeffs = np.polyfit(self.qsim_q[tel_id], self.nsb_levels, deg=2)
+            coeffs = np.polyfit(self.qnsb_q[tel_id], self.nsb_levels, deg=2)
             model_fit = np.poly1d(coeffs)
 
-            max_qsim_q = np.max(self.qsim_q[tel_id])
-            min_qsim_q = np.min(self.qsim_q[tel_id])
+            max_qnsb_q = np.max(self.qnsb_q[tel_id])
+            min_qnsb_q = np.min(self.qnsb_q[tel_id])
 
-            if self.qped_q[tel_id] > max_qsim_q or self.qped_q[tel_id] < min_qsim_q:
+            if charge_q[tel_id] > max_qnsb_q or charge_q[tel_id] < min_qnsb_q:
                 self.log.info(
-                    f"Warning: 90% quantile for pedestals ({self.qped_q[tel_id]:1.3f}) is outside the range"
-                    + f" of the MC files [{min_qsim_q:1.3f}, {max_qsim_q:1.3f}]"
+                    f"Warning: 90% quantile ({charge_q[tel_id]:1.3f}) is outside the range"
+                    + f" of the MC files [{min_qnsb_q:1.3f}, {max_qnsb_q:1.3f}]"
                     + f"for tel_id={tel_id}."
                 )
                 self.log.info(
                     "The NSB level is extrapolated from the fitted parabola between"
                     + f" NSB levels [{self.nsb_levels[0]}, {self.nsb_levels[-1]}]."
                 )
-                required_nsb_level[tel_id] = round(model_fit(self.qped_q[tel_id]))
+                required_nsb_level[tel_id] = round(model_fit(charge_q[tel_id]))
 
             else:
                 arg_min = np.argmin(
-                    np.abs(model_fit(self.qped_q[tel_id]) - self.nsb_levels)
+                    np.abs(model_fit(charge_q[tel_id]) - self.nsb_levels)
                 )
                 required_nsb_level[tel_id] = self.nsb_levels[arg_min]
 
-            exact_nsb_level[tel_id] = model_fit(self.qped_q[tel_id])
-            self.models[tel_id] = model_fit
+            exact_nsb_level[tel_id] = model_fit(charge_q[tel_id])
 
         return required_nsb_level, exact_nsb_level
 
@@ -474,7 +559,25 @@ class EstimateNSBlevelTool(Tool):
         self.calculate_pixel_charge_nsb_only_grid(
             nsb_levels=nsb_grid, nevents=self.nevents
         )
-        self.nsb_level, self.exact_nsb_level = self.quantile_curve_fit()
+
+        self.calculate_pixel_charge_sim()
+
+        qped_q = self.compute_quantile(self.ped_pixel_charge)
+        self.qnsb_q = self.compute_quantile(self.nsb_pixel_charge)
+        qsim_q = self.compute_quantile(self.sim_pixel_charge)
+
+        self.nsb_level, self.exact_nsb_level = self.quantile_curve_fit(qped_q)
+        self.nsb_level_sim, self.exact_nsb_level_sim = self.quantile_curve_fit(qsim_q)
+
+        self.nsb_level_wrt_sim = {}
+        self.exact_nsb_level_wrt_sim = {}
+        for tel_id in self.tel_id_list:
+            self.exact_nsb_level_wrt_sim[tel_id] = (
+                self.exact_nsb_level[tel_id] - self.exact_nsb_level_sim[tel_id]
+            )
+            self.nsb_level_wrt_sim[tel_id] = round(self.exact_nsb_level_wrt_sim[tel_id])
+            if self.nsb_level_wrt_sim[tel_id] < 0:
+                self.log.info("The level of NSB wrt the simulation is lower than 0.")
 
     def finish(self):
         """
@@ -482,6 +585,7 @@ class EstimateNSBlevelTool(Tool):
         """
         output_info = {
             "nsb-only-file": str(self.nsb_file),
+            "simulation-file": str(self.simulation_file),
             "shower-file": str(self.shower_file),
             "exact_nsb_level": {
                 int(tel_id): float(val)
@@ -490,7 +594,20 @@ class EstimateNSBlevelTool(Tool):
             "nsb_level": {
                 int(tel_id): int(val) for tel_id, val in sorted(self.nsb_level.items())
             },
+            "mode_nsb_level": int(mode(list(self.nsb_level.values())).mode),
+            "exact_nsb_level_wrt_sim": {
+                int(tel_id): float(val)
+                for tel_id, val in sorted(self.exact_nsb_level_wrt_sim.items())
+            },
+            "nsb_level_wrt_sim": {
+                int(tel_id): int(val)
+                for tel_id, val in sorted(self.nsb_level_wrt_sim.items())
+            },
+            "mode_nsb_level_wrt_sim": int(
+                mode(list(self.nsb_level_wrt_sim.values())).mode
+            ),
         }
+
         with open(self.output_path, "w") as yaml_file:
             yaml.dump(output_info, yaml_file, sort_keys=False)
 
