@@ -191,8 +191,8 @@ def test_binary_combinations(k, expected):
 @pytest.mark.parametrize(
     ("min_ang_diff", "psi1", "psi2", "expected"),
     [
-        (20.0, 10.0 * u.deg, 50.0 * u.deg, True),
-        (10.0, 0.0 * u.deg, 180.0 * u.deg, False),
+        (20.0 * u.deg, 10.0 * u.deg, 50.0 * u.deg, True),
+        (10.0 * u.deg, 0.0 * u.deg, 180.0 * u.deg, False),
     ],
 )
 def test_check_ang_diff(min_ang_diff, psi1, psi2, expected):
@@ -206,7 +206,7 @@ def test_check_ang_diff(min_ang_diff, psi1, psi2, expected):
 def test_check_ang_diff_array():
     from ctapipe.reco.telescope_event_handling import check_ang_diff
 
-    min_ang_diff = 20.0
+    min_ang_diff = 20.0 * u.deg
     psi1 = np.array([0.0, 10.0, 0.0]) * u.deg
     psi2 = np.array([30.0, 25.0, 180.0]) * u.deg
 

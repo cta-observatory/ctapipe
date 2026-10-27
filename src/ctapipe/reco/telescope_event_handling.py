@@ -277,8 +277,8 @@ def check_ang_diff(min_ang_diff, psi1, psi2):
 
     Parameters
     ----------
-    min_ang_diff : float
-        Minimum required angular separation in degrees.
+    min_ang_diff : astropy.units.Quantity
+        Minimum required angular separation.
     psi1, psi2 : astropy.units.Quantity
         Orientation angles of the Hillas main axes. Scalars or array-like objects
         of identical shape with angular units (e.g. degrees).
@@ -293,7 +293,7 @@ def check_ang_diff(min_ang_diff, psi1, psi2):
     """
     ang_diff = np.abs(psi1 - psi2) % (180 * u.deg)
     ang_diff = np.minimum(ang_diff, 180 * u.deg - ang_diff)
-    return ang_diff >= (min_ang_diff * u.deg)
+    return ang_diff >= min_ang_diff
 
 
 def calc_combs_min_distances(index_tel_combs, fov_lon_values, fov_lat_values, weights):

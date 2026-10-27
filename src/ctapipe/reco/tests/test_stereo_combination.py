@@ -603,7 +603,7 @@ def test_disp_combiner_single_event_min_ang_diff():
 
     disp_combiner = StereoDispCombiner(
         prefix="dummy",
-        min_ang_diff=10,
+        min_ang_diff=10 * u.deg,
     )
     disp_combiner(event)
 
@@ -611,6 +611,11 @@ def test_disp_combiner_single_event_min_ang_diff():
     assert not geometry.is_valid
     assert np.isnan(geometry.alt.to_value(u.deg))
     assert np.isnan(geometry.az.to_value(u.deg))
+
+
+def test_disp_combiner_negative_min_ang_diff():
+    with pytest.raises(TraitError, match="min_ang_diff must be non-negative"):
+        StereoDispCombiner(min_ang_diff=-1 * u.deg)
 
 
 def test_disp_combiner_n_best_tels_event():
@@ -752,7 +757,7 @@ def test_predict_disp_combiner_n_best_tels(mono_table):
 def test_predict_disp_combiner_min_ang_diff(mono_table):
     disp_combiner = StereoDispCombiner(
         prefix="disp",
-        min_ang_diff=85,
+        min_ang_diff=85 * u.deg,
     )
     stereo = disp_combiner.predict_table(mono_table)
 
@@ -763,7 +768,7 @@ def test_predict_disp_combiner_min_ang_diff(mono_table):
 
     disp_combiner = StereoDispCombiner(
         prefix="disp",
-        min_ang_diff=75,
+        min_ang_diff=75 * u.deg,
     )
     stereo = disp_combiner.predict_table(mono_table)
 

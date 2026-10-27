@@ -9,7 +9,7 @@ from astropy.coordinates import (
     SphericalRepresentation,
 )
 from astropy.table import Table
-from traitlets import UseEnum
+from traitlets import UseEnum, validate
 
 from ctapipe.containers import ImageParametersContainer
 from ctapipe.coordinates import NominalFrame, TelescopeFrame
@@ -702,6 +702,13 @@ class StereoDispCombiner(StereoCombiner):
     ).tag(config=True)
 
     property = ReconstructionProperty.GEOMETRY
+
+    @validate("min_ang_diff")
+    def _validate_min_ang_diff(self, proposal):
+        min_ang_diff = proposal["value"]
+        if min_ang_diff is not None and min_ang_diff < 0 * u.deg:
+            raise TraitError("min_ang_diff must be non-negative")
+        return min_ang_diff
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
