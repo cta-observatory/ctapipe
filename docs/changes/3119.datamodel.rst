@@ -1,0 +1,2 @@
+Add ``true_source_fov_lon`` and ``true_source_fov_lat`` to the DL2 data model,
+containing the true source position in the fov frame relative to the array pointing.
