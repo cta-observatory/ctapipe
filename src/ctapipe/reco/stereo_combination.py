@@ -1110,40 +1110,45 @@ class StereoDispCombiner(StereoCombiner):
         weights = self._calculate_weights(mono_predictions[valid])
         valid_idx = get_subarray_index(mono_predictions[valid])
         valid_multiplicity = valid_idx.multiplicity
+        fov_lon_combs_mean = np.full(len(valid_multiplicity), np.nan)
+        fov_lat_combs_mean = np.full(len(valid_multiplicity), np.nan)
 
-        combs_array, combs_to_multi_indices = create_combs_array(
-            valid_multiplicity.max(), self.n_tel_combinations
-        )
-        index_tel_combs, n_combs = get_index_combs(
-            valid_multiplicity,
-            combs_array,
-            combs_to_multi_indices,
-            self.n_tel_combinations,
-        )
-        combs_to_array_indices = np.repeat(np.arange(len(valid_multiplicity)), n_combs)
+        if valid_multiplicity.max() >= self.n_tel_combinations:
+            combs_array, combs_to_multi_indices = create_combs_array(
+                valid_multiplicity.max(), self.n_tel_combinations
+            )
+            index_tel_combs, n_combs = get_index_combs(
+                valid_multiplicity,
+                combs_array,
+                combs_to_multi_indices,
+                self.n_tel_combinations,
+            )
+            combs_to_array_indices = np.repeat(
+                np.arange(len(valid_multiplicity)), n_combs
+            )
 
-        comb_fov_lons, comb_fov_lats, comb_weights = calc_combs_min_distances(
-            index_tel_combs,
-            fov_lon_values,
-            fov_lat_values,
-            weights,
-        )
+            comb_fov_lons, comb_fov_lats, comb_weights = calc_combs_min_distances(
+                index_tel_combs,
+                fov_lon_values,
+                fov_lat_values,
+                weights,
+            )
 
-        all_valid = np.ones(len(comb_weights), dtype=bool)
-        fov_lon_combs_mean, _ = weighted_mean_std_ufunc(
-            comb_fov_lons,
-            all_valid,
-            combs_to_array_indices,
-            n_combs,
-            weights=comb_weights,
-        )
-        fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
-            comb_fov_lats,
-            all_valid,
-            combs_to_array_indices,
-            n_combs,
-            weights=comb_weights,
-        )
+            all_valid = np.ones(len(comb_weights), dtype=bool)
+            fov_lon_combs_mean, _ = weighted_mean_std_ufunc(
+                comb_fov_lons,
+                all_valid,
+                combs_to_array_indices,
+                n_combs,
+                weights=comb_weights,
+            )
+            fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
+                comb_fov_lats,
+                all_valid,
+                combs_to_array_indices,
+                n_combs,
+                weights=comb_weights,
+            )
 
         valid_tel_to_array_indices = tel_to_array_indices[valid]
         valid_array_indices = np.unique(valid_tel_to_array_indices)

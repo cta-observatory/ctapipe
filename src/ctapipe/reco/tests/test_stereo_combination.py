@@ -802,6 +802,31 @@ def test_predict_disp_combiner_n_tel_combinations(mono_table):
     assert_array_equal(tel_ids[3], [1, 3, 4, 5])
 
 
+def test_predict_disp_combiner_only_lower_multiplicities(mono_table):
+    disp_combiner = StereoDispCombiner(
+        prefix="disp",
+        n_tel_combinations=3,
+    )
+    stereo = disp_combiner.predict_table(mono_table[:6])
+
+    assert_allclose(
+        stereo["disp_alt"].quantity,
+        [70.7338725, np.nan, 81] * u.deg,
+        atol=1e-7,
+    )
+    assert_allclose(
+        stereo["disp_az"].quantity,
+        [359.9419634, np.nan, 14.5] * u.deg,
+        atol=1e-7,
+    )
+
+    disp_combiner = StereoDispCombiner(prefix="disp")
+    stereo = disp_combiner.predict_table(mono_table[5:6])
+
+    assert_allclose(stereo["disp_alt"].quantity, [81] * u.deg)
+    assert_allclose(stereo["disp_az"].quantity, [14.5] * u.deg)
+
+
 def test_predict_disp_combiner_empty_table(mono_table):
     disp_combiner = StereoDispCombiner(
         prefix="disp",
