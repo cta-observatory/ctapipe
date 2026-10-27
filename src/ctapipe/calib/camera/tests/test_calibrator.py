@@ -604,3 +604,46 @@ def test_dl1_pixel_status(example_subarray):
     np.testing.assert_array_equal(
         PixelStatus.get_channel_info(dl1_pixel_status), selected_gain_channel + 1
     )
+
+
+def test_gain_selected_monitoring_coefficients(example_subarray):
+    """Calibration accepts selected monitoring without selecting its channels twice."""
+    tel_id = next(iter(example_subarray.tel))
+    camera = example_subarray.tel[tel_id].camera
+    n_pixels = camera.geometry.n_pixels
+    n_channels = camera.readout.n_channels
+    selected = np.arange(n_pixels) % n_channels
+    pixels = np.arange(n_pixels)
+    event = ArrayEventContainer()
+    dl0 = event.dl0.tel[tel_id]
+    dl0.waveform = np.zeros((1, n_pixels, 10), dtype=np.float32)
+    dl0.waveform[:, :, 4] = 20.0
+    dl0.selected_gain_channel = selected
+    dl0.pixel_status = _valid_pixel_status(n_pixels, n_channels, selected)
+    dl0.pixel_time_shift = np.full((1, n_pixels), 0.1)
+    coefficients = event.monitoring.tel[tel_id].camera.coefficients
+    values = np.arange(n_channels * n_pixels).reshape(n_channels, n_pixels)
+    coefficients.factor = 1 + values / values.size
+    coefficients.pedestal_offset = values / values.size
+    coefficients.time_shift = 0.2 * values / values.size
+    coefficients.outlier_mask = np.zeros((n_channels, n_pixels), dtype=bool)
+    coefficients.outlier_mask[:, 0] = True
+    selected_event = deepcopy(event)
+    for name in ("factor", "pedestal_offset", "time_shift", "outlier_mask"):
+        selected_event.monitoring.tel[tel_id].camera.coefficients[name] = coefficients[
+            name
+        ][selected, pixels][np.newaxis]
+    selected_event.monitoring.tel[tel_id].camera.validate()
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray),
+    )
+    calibrator._calibrate_dl1(event, tel_id)
+    calibrator._calibrate_dl1(selected_event, tel_id)
+    for name in ("image", "peak_time", "pixel_status"):
+        np.testing.assert_array_equal(
+            selected_event.dl1.tel[tel_id][name], event.dl1.tel[tel_id][name]
+        )
+    np.testing.assert_array_equal(
+        selected_event.dl1.tel[tel_id].pixel_status, dl0.pixel_status
+    )
