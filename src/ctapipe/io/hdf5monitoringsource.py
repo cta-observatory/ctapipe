@@ -571,11 +571,29 @@ class HDF5MonitoringSource(MonitoringSource):
             The event to fill the monitoring container for.
         """
         # Fill the monitoring container for the event
+        time = None if self.is_simulation else event.trigger.time
+
         for tel_id in self.subarray.tel_ids:
-            time = None if self.is_simulation else event.trigger.time
-            event.monitoring.tel[tel_id].camera = self.get_camera_monitoring_container(
-                tel_id, time
-            )
+            has_camera_coefficients = tel_id in self._camera_coefficients
+            pixel_statistics = self._pixel_statistics.get(tel_id, {})
+
+            if has_camera_coefficients or pixel_statistics:
+                source_camera = self.get_camera_monitoring_container(tel_id, time)
+                event_camera = event.monitoring.tel[tel_id].camera
+
+                if has_camera_coefficients:
+                    event_camera.coefficients = source_camera.coefficients
+
+                for statistics_name in pixel_statistics:
+                    # All pedestal statistics subtypes share one container field.
+                    container_field = (
+                        "pedestal_image"
+                        if "pedestal_image" in statistics_name
+                        else statistics_name
+                    )
+                    event_camera.pixel_statistics[container_field] = (
+                        source_camera.pixel_statistics[container_field]
+                    )
 
             # Only overwrite the telescope pointings for observation data
             if tel_id in self._telescope_pointings and not self.is_simulation:
