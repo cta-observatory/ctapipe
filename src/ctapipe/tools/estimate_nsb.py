@@ -20,7 +20,7 @@ from ctapipe.io import EventSource
 class EstimateNSBlevelTool(Tool):
     """
     Tool to estimate the level of NSB required to match the diffuse NSB from an
-    NSB-only simulation file (nsb_file) to a target observation (shower_file).
+    NSB-only simulation file (nsb_file) to a target observation (input_file).
 
     The NSB level is defined as the multiplicative factor (natural number)
     that NSB-only waveforms must be used to match the diffuse NSB of the target
@@ -67,7 +67,7 @@ class EstimateNSBlevelTool(Tool):
         help="Path to a cosmics MC simulation simulated with the same settings as nsb_file (requires r1 waveforms)",
     ).tag(config=True)
 
-    shower_file = Path(
+    input_file = Path(
         help="Path to target observation (cosmics) to estimate the NSB level",
     ).tag(config=True)
 
@@ -122,8 +122,10 @@ class EstimateNSBlevelTool(Tool):
     ).tag(config=True)
 
     aliases = {
-        ("s", "shower-file"): "EstimateNSBlevelTool.shower_file",
+        ("i", "input-file"): "EstimateNSBlevelTool.input_file",
         ("n", "nsb-file"): "EstimateNSBlevelTool.nsb_file",
+        ("s", "sim-file"): "EstimateNSBlevelTool.simulation_file",
+        "output": "EstimateNSBlevelTool.output_path",
     }
 
     # flags = {
@@ -139,8 +141,8 @@ class EstimateNSBlevelTool(Tool):
     ] + classes_with_traits(ImageExtractor)
 
     def setup(self):
-        if self.shower_file is None:
-            self.log.critical("Specifying 'shower_file' is required.")
+        if self.input_file is None:
+            self.log.critical("Specifying 'input_file' is required.")
             self.exit(1)
         if self.nsb_file is None:
             self.log.critical("Specifying 'nsb_file' is required.")
@@ -148,7 +150,7 @@ class EstimateNSBlevelTool(Tool):
 
         self.check_output(self.output_path)
 
-        with EventSource(self.shower_file) as source:
+        with EventSource(self.input_file) as source:
             self.subarray = source.subarray
 
         self.image_extractor = ImageExtractor.from_name(
@@ -248,7 +250,7 @@ class EstimateNSBlevelTool(Tool):
         """
         self.ped_pixel_charge, self.bool_broken_pixels = (
             self._extract_images_per_pixel_and_event(
-                self.shower_file, self.image_extractor
+                self.input_file, self.image_extractor
             )
         )
         self.tel_id_list = list(self.ped_pixel_charge.keys())
@@ -275,7 +277,7 @@ class EstimateNSBlevelTool(Tool):
         variance_extractor = VarianceExtractor(subarray=self.subarray)
         # Compute the median variance per pixel
         shower_pixel_variance, broken_pixels = self._extract_images_per_pixel_and_event(
-            self.shower_file, variance_extractor
+            self.input_file, variance_extractor
         )
 
         self.faulty_pixels = {}
@@ -539,7 +541,7 @@ class EstimateNSBlevelTool(Tool):
 
     def start(self):
         """
-        Calculate the pixel charge statistics and the NSB level
+        Calculate the pixel charge statistics and the NSB level.
         """
         # executed first to create tel_id_list
         self.calculate_pixel_charge_ped()
@@ -586,7 +588,7 @@ class EstimateNSBlevelTool(Tool):
         output_info = {
             "nsb-only-file": str(self.nsb_file),
             "simulation-file": str(self.simulation_file),
-            "shower-file": str(self.shower_file),
+            "input-file": str(self.input_file),
             "exact_nsb_level": {
                 int(tel_id): float(val)
                 for tel_id, val in sorted(self.exact_nsb_level.items())
