@@ -639,6 +639,37 @@ def test_disp_combiner_single_event_min_ang_diff():
     assert np.isnan(geometry.az.to_value(u.deg))
 
 
+def test_disp_combiner_min_ang_diff_filters_combinations_event():
+    event_dict = {
+        "tel_id": [1, 2, 3],
+        "hillas_intensity": [150, 300, 100],
+        "hillas_width": [0.1, 0.2, 0.1] * u.deg,
+        "hillas_length": [0.3, 0.4, 0.2] * u.deg,
+        "hillas_fov_lon": [-0.5, 0.1, 0.3] * u.deg,
+        "hillas_fov_lat": [0.3, -0.2, 0.1] * u.deg,
+        "hillas_psi": [40, 85, -40] * u.deg,
+        "leakage_intensity_width_2": [0.1, 0.05, 0.2],
+        "disp_tel_alt": [58.5, 58, 62.5] * u.deg,
+        "disp_tel_az": [12.5, 15, 13] * u.deg,
+        "disp_tel_parameter": [0.65, 1.1, 0.7] * u.deg,
+        "disp_tel_sign_score": [0.95, 0.98, 0.66],
+        "disp_tel_is_valid": [True, True, True],
+    }
+    event = _make_disp_event(event_dict)
+    expected_event = _make_disp_event(event_dict)
+    expected_event.dl2.tel[2].geometry["dummy"].is_valid = False
+
+    StereoDispCombiner(prefix="dummy", min_ang_diff=60 * u.deg)(event)
+    StereoDispCombiner(prefix="dummy")(expected_event)
+
+    geometry = event.dl2.stereo.geometry["dummy"]
+    expected = expected_event.dl2.stereo.geometry["dummy"]
+    assert geometry.is_valid
+    assert u.isclose(geometry.alt, expected.alt)
+    assert u.isclose(geometry.az, expected.az)
+    assert_array_equal(geometry.telescopes, [1, 3])
+
+
 def test_disp_combiner_negative_min_ang_diff():
     with pytest.raises(TraitError, match="min_ang_diff must be non-negative"):
         StereoDispCombiner(min_ang_diff=-1 * u.deg)
@@ -790,7 +821,7 @@ def test_predict_disp_combiner_min_ang_diff(mono_table):
     assert np.isnan(stereo["disp_alt"][0])
     assert np.isnan(stereo["disp_az"][0])
     assert not stereo["disp_is_valid"][0]
-    assert stereo["disp_telescopes"][0] == []
+    assert len(stereo["disp_telescopes"][0]) == 0
 
     disp_combiner = StereoDispCombiner(
         prefix="disp",
@@ -802,6 +833,35 @@ def test_predict_disp_combiner_min_ang_diff(mono_table):
     assert np.isfinite(stereo["disp_az"][0])
     assert stereo["disp_is_valid"][0]
     assert stereo["disp_telescopes"][0] == [1, 3]
+
+
+def test_predict_disp_combiner_min_ang_diff_filters_combinations(mono_table):
+    mono_predictions = mono_table[:3].copy()
+    mono_predictions["disp_tel_is_valid"] = True
+
+    stereo = StereoDispCombiner(
+        prefix="disp",
+        min_ang_diff=60 * u.deg,
+    ).predict_table(mono_predictions)
+    expected = StereoDispCombiner(prefix="disp").predict_table(mono_predictions[[0, 2]])
+
+    assert stereo["disp_is_valid"][0]
+    assert u.isclose(stereo["disp_alt"][0], expected["disp_alt"][0])
+    assert u.isclose(stereo["disp_az"][0], expected["disp_az"][0])
+    assert_array_equal(stereo["disp_telescopes"][0], [1, 3])
+
+
+def test_predict_disp_combiner_min_ang_diff_lower_multiplicity(mono_table):
+    stereo = StereoDispCombiner(
+        prefix="disp",
+        n_tel_combinations=3,
+        min_ang_diff=85 * u.deg,
+    ).predict_table(mono_table[:3])
+
+    assert not stereo["disp_is_valid"][0]
+    assert np.isnan(stereo["disp_alt"][0])
+    assert np.isnan(stereo["disp_az"][0])
+    assert len(stereo["disp_telescopes"][0]) == 0
 
 
 def test_predict_disp_combiner_n_tel_combinations(mono_table):

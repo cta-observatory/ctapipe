@@ -434,6 +434,8 @@ def fill_lower_multiplicities(
     fov_lon_values,
     fov_lat_values,
     weights,
+    hillas_psis=None,
+    min_ang_diff=None,
 ):
     """
     Fill stereo FoV estimates for events with multiplicity < ``n_tel_combinations``.
@@ -473,12 +475,25 @@ def fill_lower_multiplicities(
     weights : np.ndarray
         Array of shape ``(n_valid_tel_events,)`` with the weight per valid
         telescope event.
+    hillas_psis : astropy.units.Quantity, optional
+        Orientation angles of the Hillas main axes. Required if
+        ``min_ang_diff`` is set.
+    min_ang_diff : astropy.units.Quantity, optional
+        Minimum angular separation for lower-multiplicity two-telescope
+        combinations. Pairs below this threshold are excluded.
 
     Returns
     -------
-    None
-        Operates in-place and does not return a value.
+    contributing_tel_mask : np.ndarray
+        Boolean mask indicating which valid telescope events contribute to a
+        lower-multiplicity reconstruction. Telescopes from rejected pairs are
+        marked as unused.
     """
+    if min_ang_diff is not None and hillas_psis is None:
+        raise ValueError("hillas_psis is required when min_ang_diff is set")
+
+    contributing_tel_mask = np.ones(len(valid_tel_to_array_indices), dtype=bool)
+
     for multi in range(n_tel_combinations - 1, 1, -1):
         multi_mask = valid_multiplicity == multi
         if not np.any(multi_mask):
@@ -488,6 +503,20 @@ def fill_lower_multiplicities(
         index_tel_combs = np.arange(len(valid_tel_to_array_indices))[mask].reshape(
             -1, multi
         )
+        target_events = np.flatnonzero(multi_mask)
+
+        if multi == 2 and min_ang_diff is not None:
+            keep = check_ang_diff(
+                min_ang_diff,
+                hillas_psis[index_tel_combs[:, 0]],
+                hillas_psis[index_tel_combs[:, 1]],
+            )
+            contributing_tel_mask[index_tel_combs[~keep].ravel()] = False
+            index_tel_combs = index_tel_combs[keep]
+            target_events = target_events[keep]
+
+        if len(index_tel_combs) == 0:
+            continue
 
         lons, lats, _ = calc_combs_min_distances(
             index_tel_combs,
@@ -495,8 +524,10 @@ def fill_lower_multiplicities(
             fov_lat_values,
             weights,
         )
-        fov_lon_combs_mean[multi_mask] = lons
-        fov_lat_combs_mean[multi_mask] = lats
+        fov_lon_combs_mean[target_events] = lons
+        fov_lat_combs_mean[target_events] = lats
+
+    return contributing_tel_mask
 
 
 def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, hillas_psi, disp):

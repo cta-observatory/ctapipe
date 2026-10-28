@@ -307,3 +307,40 @@ def test_fill_lower_multiplicities_noop():
 
     assert np.allclose(fov_lon_combs_mean, np.array([10.0, 20.0]))
     assert np.allclose(fov_lat_combs_mean, np.array([0.0, 1.0]))
+
+
+def test_fill_lower_multiplicities_min_ang_diff():
+    from ctapipe.reco.telescope_event_handling import fill_lower_multiplicities
+
+    fov_lon_combs_mean = np.array([10.0, np.nan, np.nan, 30.0])
+    fov_lat_combs_mean = np.array([0.0, np.nan, np.nan, 1.0])
+    valid_tel_to_array_indices = np.array([0, 0, 0, 1, 1, 2, 2, 3])
+    valid_multiplicity = np.array([3, 2, 2, 1])
+    fov_lon_values = np.column_stack(
+        [np.arange(8, dtype=float), np.arange(8, dtype=float) + 1]
+    )
+    fov_lat_values = np.zeros_like(fov_lon_values)
+    weights = np.ones(8)
+    hillas_psis = np.array([0, 30, 60, 0, 5, 0, 30, 0]) * u.deg
+
+    contributing_tel_mask = fill_lower_multiplicities(
+        fov_lon_combs_mean,
+        fov_lat_combs_mean,
+        3,
+        valid_tel_to_array_indices,
+        valid_multiplicity,
+        fov_lon_values,
+        fov_lat_values,
+        weights,
+        hillas_psis=hillas_psis,
+        min_ang_diff=10 * u.deg,
+    )
+
+    assert np.isnan(fov_lon_combs_mean[1])
+    assert np.isnan(fov_lat_combs_mean[1])
+    assert np.isfinite(fov_lon_combs_mean[2])
+    assert np.isfinite(fov_lat_combs_mean[2])
+    assert np.array_equal(
+        contributing_tel_mask,
+        [True, True, True, False, False, True, True, True],
+    )

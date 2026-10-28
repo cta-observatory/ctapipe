@@ -622,9 +622,11 @@ class StereoDispCombiner(StereoCombiner):
        - If ``n_best_tels`` is set, only the ``n_best_tels`` telescopes with
          the highest weights are kept per subarray event; all other telescopes
          are excluded from further processing.
-       - If ``min_ang_diff`` is set, subarray events of multiplicity = 2 that
-         have a nearly parallel main shower axis (angular difference below
-         ``min_ang_diff``) are rejected entirely.
+       - If ``min_ang_diff`` is set, combinations with an effective size of two
+         telescopes and nearly parallel main shower axes are excluded. Events
+         without any remaining combination are rejected. Combinations of three
+         or more telescopes are not filtered based on their pairwise angular
+         separations.
 
        These selections reduce the effective telescope multiplicity used in
        the subsequent steps.
@@ -693,11 +695,12 @@ class StereoDispCombiner(StereoCombiner):
         allow_none=True,
         help=(
             "Minimum angular separation (in degrees) between the reconstructed main "
-            "shower axes of two telescopes. This cut is applied only to subarray events "
-            "with exactly two participating telescopes (multiplicity = 2). Events for "
-            "which the angular difference between the two shower axes is smaller than "
-            "this value are rejected, as nearly parallel axes lead to problems solving "
-            "the head-tail ambiguity. Set to None to disable this cut."
+            "shower axes of two telescopes. The cut is applied whenever the effective "
+            "telescope-combination size is two. Two-telescope combinations below this "
+            "threshold are excluded, as nearly parallel axes lead to problems solving "
+            "the head-tail ambiguity. Combinations of three or more telescopes are not "
+            "filtered based on their pairwise angular separations. Events without a "
+            "remaining combination are rejected. Set to None to disable this cut."
         ),
     ).tag(config=True)
 
@@ -748,13 +751,16 @@ class StereoDispCombiner(StereoCombiner):
             az = mono_geometry.az
             valid = True
         else:
-            stereo_fov_lon, stereo_fov_lat, valid = self._compute_stereo_fov(
-                multiplicity=multiplicity,
-                hillas_psis=hillas_psis,
-                fov_lon_values=fov_lon_values,
-                fov_lat_values=fov_lat_values,
-                weights=weights,
+            stereo_fov_lon, stereo_fov_lat, valid, contributing_tel_indices = (
+                self._compute_stereo_fov(
+                    multiplicity=multiplicity,
+                    hillas_psis=hillas_psis,
+                    fov_lon_values=fov_lon_values,
+                    fov_lat_values=fov_lat_values,
+                    weights=weights,
+                )
             )
+            ids = ids[contributing_tel_indices]
 
             if valid:
                 alt, az = telescope_to_horizontal(
@@ -872,13 +878,6 @@ class StereoDispCombiner(StereoCombiner):
     ):
         """Combine FoV candidates from at least two valid telescopes."""
 
-        if (
-            multiplicity == 2
-            and self.min_ang_diff is not None
-            and not check_ang_diff(self.min_ang_diff, hillas_psis[0], hillas_psis[1])
-        ):
-            return np.nan, np.nan, False
-
         n_tel_combs = min(self.n_tel_combinations, multiplicity)
 
         best_tels_idx = np.arange(multiplicity)
@@ -886,6 +885,19 @@ class StereoDispCombiner(StereoCombiner):
             best_tels_idx = arg_n_largest(self.n_best_tels, np.array(weights))
 
         index_tel_combs = get_combinations(len(best_tels_idx), n_tel_combs)
+
+        if self.min_ang_diff is not None and n_tel_combs == 2:
+            selected_psis = hillas_psis[best_tels_idx]
+            keep = check_ang_diff(
+                self.min_ang_diff,
+                selected_psis[index_tel_combs[:, 0]],
+                selected_psis[index_tel_combs[:, 1]],
+            )
+            index_tel_combs = index_tel_combs[keep]
+
+            if len(index_tel_combs) == 0:
+                return np.nan, np.nan, False, np.array([], dtype=np.int64)
+
         fov_lons, fov_lats, comb_weights = calc_combs_min_distances(
             index_tel_combs,
             np.array(fov_lon_values)[best_tels_idx],
@@ -895,7 +907,8 @@ class StereoDispCombiner(StereoCombiner):
 
         stereo_fov_lon = np.average(fov_lons, weights=comb_weights)
         stereo_fov_lat = np.average(fov_lats, weights=comb_weights)
-        return stereo_fov_lon, stereo_fov_lat, True
+        contributing_tel_indices = best_tels_idx[np.unique(index_tel_combs)]
+        return stereo_fov_lon, stereo_fov_lat, True, contributing_tel_indices
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
@@ -957,11 +970,6 @@ class StereoDispCombiner(StereoCombiner):
         idx = get_subarray_index(mono_predictions)
         n_array_events = len(idx.obs_id)
 
-        valid = self._apply_min_ang_diff_cut(
-            valid=valid,
-            tel_to_array_indices=idx.subarray_event_index,
-            hillas_psis=hillas_psis,
-        )
         valid = self._apply_n_best_tels_cut(
             mono_predictions=mono_predictions,
             valid=valid,
@@ -971,7 +979,7 @@ class StereoDispCombiner(StereoCombiner):
         stereo_table = self._init_stereo_table(
             mono_predictions, idx.obs_id, idx.event_id
         )
-        alt, az = self._compute_altaz_for_valid(
+        alt, az, contributing_tel_mask = self._compute_altaz_for_valid(
             mono_predictions=mono_predictions,
             valid=valid,
             tel_to_array_indices=idx.subarray_event_index,
@@ -979,6 +987,7 @@ class StereoDispCombiner(StereoCombiner):
             prefix_tel=prefix_tel,
             fov_lon_values=fov_lon_values[valid],
             fov_lat_values=fov_lat_values[valid],
+            hillas_psis=hillas_psis[valid],
         )
 
         stereo_table[f"{self.prefix}_alt"] = alt
@@ -993,7 +1002,7 @@ class StereoDispCombiner(StereoCombiner):
 
         stereo_table[f"{self.prefix}_telescopes"] = self._collect_telescopes_per_event(
             mono_predictions=mono_predictions,
-            valid=valid,
+            valid=contributing_tel_mask,
             tel_to_array_indices=idx.subarray_event_index,
             n_array_events=n_array_events,
         )
@@ -1010,36 +1019,6 @@ class StereoDispCombiner(StereoCombiner):
                 f"DispReconstructor (prefix='{self.prefix}') before running "
                 f"StereoDispCombiner."
             )
-
-    def _apply_min_ang_diff_cut(
-        self,
-        valid: np.ndarray,
-        tel_to_array_indices: np.ndarray,
-        hillas_psis: u.Quantity,
-    ) -> np.ndarray:
-        if self.min_ang_diff is None:
-            return valid
-
-        # Reject events with multiplicity 2 and nearly parallel main shower axes
-        mask_multi2_tels = valid_tels_of_multi(2, tel_to_array_indices[valid])
-        if not np.any(mask_multi2_tels):
-            return valid
-
-        valid_idx = np.flatnonzero(valid)
-        pairs_in_valid = np.flatnonzero(mask_multi2_tels).reshape(-1, 2)
-        valid_psis = hillas_psis[valid]
-
-        keep_pairs = check_ang_diff(
-            self.min_ang_diff,
-            valid_psis[pairs_in_valid[:, 0]],
-            valid_psis[pairs_in_valid[:, 1]],
-        )
-        if np.all(keep_pairs):
-            return valid
-
-        tels_to_invalidate = valid_idx[pairs_in_valid[~keep_pairs].ravel()]
-        valid[tels_to_invalidate] = False
-        return valid
 
     def _apply_n_best_tels_cut(
         self,
@@ -1103,12 +1082,13 @@ class StereoDispCombiner(StereoCombiner):
         prefix_tel: str,
         fov_lon_values: np.ndarray,
         fov_lat_values: np.ndarray,
+        hillas_psis: u.Quantity,
     ):
         if np.count_nonzero(valid) == 0:
             nan = u.Quantity(
                 np.full(n_array_events, np.nan), u.deg, copy=COPY_IF_NEEDED
             )
-            return nan, nan
+            return nan, nan, valid.copy()
 
         weights = self._calculate_weights(mono_predictions[valid])
         valid_idx = get_subarray_index(mono_predictions[valid])
@@ -1130,34 +1110,59 @@ class StereoDispCombiner(StereoCombiner):
                 np.arange(len(valid_multiplicity)), n_combs
             )
 
-            comb_fov_lons, comb_fov_lats, comb_weights = calc_combs_min_distances(
-                index_tel_combs,
-                fov_lon_values,
-                fov_lat_values,
-                weights,
-            )
+            contributing_tel_mask = valid.copy()
+            if self.min_ang_diff is not None and self.n_tel_combinations == 2:
+                keep = check_ang_diff(
+                    self.min_ang_diff,
+                    hillas_psis[index_tel_combs[:, 0]],
+                    hillas_psis[index_tel_combs[:, 1]],
+                )
+                index_tel_combs = index_tel_combs[keep]
+                combs_to_array_indices = combs_to_array_indices[keep]
+                n_combs = np.bincount(
+                    combs_to_array_indices, minlength=len(valid_multiplicity)
+                )
 
-            all_valid = np.ones(len(comb_weights), dtype=bool)
-            fov_lon_combs_mean, _ = weighted_mean_std_ufunc(
-                comb_fov_lons,
-                all_valid,
-                combs_to_array_indices,
-                n_combs,
-                weights=comb_weights,
-            )
-            fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
-                comb_fov_lats,
-                all_valid,
-                combs_to_array_indices,
-                n_combs,
-                weights=comb_weights,
-            )
+                contributing_valid_tel_mask = (
+                    valid_multiplicity[valid_idx.subarray_event_index] == 1
+                )
+                contributing_valid_tel_mask[index_tel_combs.ravel()] = True
+                contributing_tel_mask[np.flatnonzero(valid)] = (
+                    contributing_valid_tel_mask
+                )
+
+            if len(index_tel_combs) > 0:
+                comb_fov_lons, comb_fov_lats, comb_weights = calc_combs_min_distances(
+                    index_tel_combs,
+                    fov_lon_values,
+                    fov_lat_values,
+                    weights,
+                )
+
+                all_valid = np.ones(len(comb_weights), dtype=bool)
+                fov_lon_combs_mean, _ = weighted_mean_std_ufunc(
+                    comb_fov_lons,
+                    all_valid,
+                    combs_to_array_indices,
+                    n_combs,
+                    weights=comb_weights,
+                )
+                fov_lat_combs_mean, _ = weighted_mean_std_ufunc(
+                    comb_fov_lats,
+                    all_valid,
+                    combs_to_array_indices,
+                    n_combs,
+                    weights=comb_weights,
+                )
+
+        else:
+            contributing_tel_mask = valid.copy()
 
         valid_tel_to_array_indices = tel_to_array_indices[valid]
         valid_array_indices = np.unique(valid_tel_to_array_indices)
 
         if self.n_tel_combinations >= 3:
-            fill_lower_multiplicities(
+            contributing_valid_tel_mask = fill_lower_multiplicities(
                 fov_lon_combs_mean,
                 fov_lat_combs_mean,
                 self.n_tel_combinations,
@@ -1166,7 +1171,10 @@ class StereoDispCombiner(StereoCombiner):
                 fov_lon_values,
                 fov_lat_values,
                 weights,
+                hillas_psis=hillas_psis,
+                min_ang_diff=self.min_ang_diff,
             )
+            contributing_tel_mask[np.flatnonzero(valid)] &= contributing_valid_tel_mask
 
         fov_lon_mean = np.full(n_array_events, np.nan)
         fov_lat_mean = np.full(n_array_events, np.nan)
@@ -1202,7 +1210,7 @@ class StereoDispCombiner(StereoCombiner):
                 mask_single_tel_events
             ]
 
-        return alt, az
+        return alt, az, contributing_tel_mask
 
     @staticmethod
     def _transform_to_nominal(
