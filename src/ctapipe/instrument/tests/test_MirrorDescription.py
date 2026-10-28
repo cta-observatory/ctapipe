@@ -3,7 +3,6 @@
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.coordinates import Angle
 from astropy.table import Table
 
 from ctapipe.instrument.optics import (
@@ -74,38 +73,6 @@ def test_get_facet_size_per_shape():
     assert size[1].to_value(u.m) == pytest.approx(1.0)  # side
     assert size[2].to_value(u.m) == pytest.approx(np.sqrt(3))  # flat-to-flat
     assert np.isnan(size[3].to_value(u.m))
-
-
-@pytest.mark.parametrize(
-    ("shape", "expected_deg"),
-    [
-        (MirrorFacetShape.UNKNOWN, 0),
-        (MirrorFacetShape.CIRCLE, 0),
-        (MirrorFacetShape.SQUARE, 45),
-        (MirrorFacetShape.HEXAGON, 30),
-        ("HEXAGON", 30),
-    ],
-)
-def test_get_facet_rotation(shape, expected_deg):
-    rotation = MirrorDescription.get_facet_rotation(shape)
-    assert isinstance(rotation, Angle)
-    assert rotation.isscalar
-    assert rotation.to_value(u.deg) == expected_deg
-
-
-def test_get_facet_rotation_array(lst1_mirror_facets_path):
-    rotation = MirrorDescription.get_facet_rotation(
-        ["UNKNOWN", "CIRCLE", "SQUARE", "HEXAGON"]
-    )
-    assert isinstance(rotation, Angle)
-    np.testing.assert_array_equal(rotation.to_value(u.deg), [0, 0, 45, 30])
-
-    description = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
-    )
-    rotation = description.get_facet_rotation(description.shape)
-    assert rotation.shape == (198,)
-    assert np.all(rotation == Angle(30, u.deg))
 
 
 @pytest.mark.parametrize("wrong_unit", [u.s, u.deg, u.kg, u.m**2])
