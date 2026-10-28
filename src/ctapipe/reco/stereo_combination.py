@@ -739,23 +739,32 @@ class StereoDispCombiner(StereoCombiner):
 
         multiplicity = len(ids)
 
-        stereo_fov_lon, stereo_fov_lat, valid = self._compute_stereo_fov(
-            multiplicity=multiplicity,
-            hillas_psis=hillas_psis,
-            fov_lon_values=fov_lon_values,
-            fov_lat_values=fov_lat_values,
-            weights=weights,
-        )
-
-        if valid:
-            alt, az = telescope_to_horizontal(
-                lon=u.Quantity(stereo_fov_lon, u.deg, copy=COPY_IF_NEEDED),
-                lat=u.Quantity(stereo_fov_lat, u.deg, copy=COPY_IF_NEEDED),
-                pointing_alt=event.monitoring.pointing.array_altitude,
-                pointing_az=event.monitoring.pointing.array_azimuth,
-            )
-        else:
+        if multiplicity == 0:
             alt = az = u.Quantity(np.nan, u.deg)
+            valid = False
+        elif multiplicity == 1:
+            mono_geometry = event.dl2.tel[ids[0]].geometry[self.prefix]
+            alt = mono_geometry.alt
+            az = mono_geometry.az
+            valid = True
+        else:
+            stereo_fov_lon, stereo_fov_lat, valid = self._compute_stereo_fov(
+                multiplicity=multiplicity,
+                hillas_psis=hillas_psis,
+                fov_lon_values=fov_lon_values,
+                fov_lat_values=fov_lat_values,
+                weights=weights,
+            )
+
+            if valid:
+                alt, az = telescope_to_horizontal(
+                    lon=u.Quantity(stereo_fov_lon, u.deg, copy=COPY_IF_NEEDED),
+                    lat=u.Quantity(stereo_fov_lat, u.deg, copy=COPY_IF_NEEDED),
+                    pointing_alt=event.monitoring.pointing.array_altitude,
+                    pointing_az=event.monitoring.pointing.array_azimuth,
+                )
+            else:
+                alt = az = u.Quantity(np.nan, u.deg)
 
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
@@ -861,13 +870,7 @@ class StereoDispCombiner(StereoCombiner):
         fov_lat_values,
         weights,
     ):
-        if multiplicity == 0:
-            return np.nan, np.nan, False
-
-        if multiplicity == 1:
-            stereo_fov_lon = fov_lon_values[0][1]
-            stereo_fov_lat = fov_lat_values[0][1]
-            return stereo_fov_lon, stereo_fov_lat, True
+        """Combine FoV candidates from at least two valid telescopes."""
 
         if (
             multiplicity == 2

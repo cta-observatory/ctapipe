@@ -481,6 +481,32 @@ def test_disp_combiner_single_event(weights):
         assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.05821327 * u.deg)
 
 
+def test_disp_combiner_single_telescope_uses_mono_geometry():
+    event_dict = {
+        "tel_id": [1],
+        "hillas_intensity": [100],
+        "hillas_width": [0.1] * u.deg,
+        "hillas_length": [0.3] * u.deg,
+        "hillas_fov_lon": [0.5] * u.deg,
+        "hillas_fov_lat": [0.3] * u.deg,
+        "hillas_psi": [40] * u.deg,
+        "leakage_intensity_width_2": [0.1],
+        "disp_tel_alt": [58.5] * u.deg,
+        "disp_tel_az": [12.5] * u.deg,
+        "disp_tel_parameter": [-0.65] * u.deg,
+        "disp_tel_sign_score": [0.95],
+        "disp_tel_is_valid": [True],
+    }
+    event = _make_disp_event(event_dict)
+
+    StereoDispCombiner(prefix="dummy")(event)
+
+    geometry = event.dl2.stereo.geometry["dummy"]
+    assert geometry.is_valid
+    assert geometry.alt == event.dl2.tel[1].geometry["dummy"].alt
+    assert geometry.az == event.dl2.tel[1].geometry["dummy"].az
+
+
 def _make_divergent_disp_data():
     source_position = SkyCoord(alt=70.2 * u.deg, az=0.1 * u.deg, frame=AltAz())
     telescope_pointings = [
