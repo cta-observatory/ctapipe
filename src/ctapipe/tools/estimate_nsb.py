@@ -128,13 +128,6 @@ class EstimateNSBlevelTool(Tool):
         "output": "EstimateNSBlevelTool.output_path",
     }
 
-    # flags = {
-    #     "overwrite": (
-    #         {"overwrite": True},
-    #         "Overwrite existing output file",
-    #     ),
-    # }
-
     classes = [
         ImageExtractor,
         WaveformModifier,
@@ -152,6 +145,8 @@ class EstimateNSBlevelTool(Tool):
 
         with EventSource(self.input_file) as source:
             self.subarray = source.subarray
+            # Only consider tel_ids in the input file
+            self.tel_id_list = self.subarray.tel_ids
 
         self.image_extractor = ImageExtractor.from_name(
             self.image_extractor_type,
@@ -189,58 +184,76 @@ class EstimateNSBlevelTool(Tool):
         pixel_data = {}
         broken_pixels = {}
 
-        with EventSource(file) as shower_source:
-            for event in shower_source:
+        with EventSource(file) as source:
+            for event in source:
                 # Simulation file
-                if shower_source.is_simulation:
-                    for tel_id in event.trigger.tels_with_trigger:
-                        true_pe = event.simulation.tel[tel_id].true_image
-                        wf = event.r1.tel[tel_id].waveform
-
-                        # select noise-only waveforms
-                        wf[:, true_pe > 0, :] = np.nan
-
-                        # use high gain for pedestals
-                        selected_gain_channel = np.broadcast_to(
-                            GainChannel.HIGH,
-                            shower_source.subarray.tel[tel_id].camera.geometry.n_pixels,
-                        )
-                        broken_pixels[tel_id] = event.monitoring.tel[
-                            tel_id
-                        ].camera.coefficients.outlier_mask[GainChannel.HIGH]
-                        q_ev = self.image_extractor(
-                            waveforms=wf,
-                            tel_id=tel_id,
-                            selected_gain_channel=selected_gain_channel,
-                            broken_pixels=broken_pixels[tel_id],
-                        )
-
-                        if tel_id in pixel_data:
-                            pixel_data[tel_id].append(q_ev.image)
-                        else:
-                            pixel_data[tel_id] = [q_ev.image]
-
+                if source.is_simulation:
+                    self._process_sim_events(
+                        source, event, extractor, pixel_data, broken_pixels
+                    )
                 else:
-                    if not self.event_type_filter(event):
-                        continue
-
-                    for tel_id, dl0 in event.dl0.tel.items():
-                        broken_pixels[tel_id] = event.monitoring.tel[
-                            tel_id
-                        ].camera.coefficients.outlier_mask
-                        q_ev = extractor(
-                            waveforms=dl0.waveform,
-                            tel_id=tel_id,
-                            selected_gain_channel=dl0.selected_gain_channel,
-                            broken_pixels=broken_pixels[tel_id],
-                        )
-
-                        if tel_id in pixel_data:
-                            pixel_data[tel_id].append(q_ev.image)
-                        else:
-                            pixel_data[tel_id] = [q_ev.image]
-
+                    self._process_pedestal_events(
+                        event, extractor, pixel_data, broken_pixels
+                    )
         return pixel_data, broken_pixels
+
+    def _process_sim_events(self, source, event, extractor, pixel_data, broken_pixels):
+        """
+        Auxiliary function to perform waveform integration for simulated events
+        in noise-only pixels for the high gain channel.
+        """
+        for tel_id in event.trigger.tels_with_trigger:
+            if tel_id not in self.tel_id_list:
+                return
+
+            true_pe = event.simulation.tel[tel_id].true_image
+            wf = event.r1.tel[tel_id].waveform
+
+            # select noise-only waveforms
+            wf[:, true_pe > 0, :] = np.nan
+
+            # use high gain for pedestals
+            selected_gain_channel = np.broadcast_to(
+                GainChannel.HIGH,
+                source.subarray.tel[tel_id].camera.geometry.n_pixels,
+            )
+            broken_pixels[tel_id] = event.monitoring.tel[
+                tel_id
+            ].camera.coefficients.outlier_mask[GainChannel.HIGH]
+            q_ev = extractor(
+                waveforms=wf,
+                tel_id=tel_id,
+                selected_gain_channel=selected_gain_channel,
+                broken_pixels=broken_pixels[tel_id],
+            )
+
+            if tel_id in pixel_data:
+                pixel_data[tel_id].append(q_ev.image)
+            else:
+                pixel_data[tel_id] = [q_ev.image]
+
+    def _process_pedestal_events(self, event, extractor, pixel_data, broken_pixels):
+        """
+        Auxiliary function to perform waveform integration for pedestal events.
+        """
+        if not self.event_type_filter(event):
+            return
+
+        for tel_id, dl0 in event.dl0.tel.items():
+            broken_pixels[tel_id] = event.monitoring.tel[
+                tel_id
+            ].camera.coefficients.outlier_mask
+            q_ev = extractor(
+                waveforms=dl0.waveform,
+                tel_id=tel_id,
+                selected_gain_channel=dl0.selected_gain_channel,
+                broken_pixels=broken_pixels[tel_id],
+            )
+
+            if tel_id in pixel_data:
+                pixel_data[tel_id].append(q_ev.image)
+            else:
+                pixel_data[tel_id] = [q_ev.image]
 
     def calculate_pixel_charge_ped(self):
         """
@@ -253,7 +266,6 @@ class EstimateNSBlevelTool(Tool):
                 self.input_file, self.image_extractor
             )
         )
-        self.tel_id_list = list(self.ped_pixel_charge.keys())
 
     def calculate_pixel_charge_sim(self):
         """
@@ -283,23 +295,24 @@ class EstimateNSBlevelTool(Tool):
         self.faulty_pixels = {}
         self.pixel_var = {}
         for tel_id in np.sort(self.tel_id_list):
+            tel_pixel_variance = np.array(shower_pixel_variance[tel_id])
             # Make sure we only select the high-gain channel in case more than one channel
             # is available
-            if broken_pixels[tel_id].ndim == 2:
-                mask_broken = broken_pixels[tel_id][GainChannel.HIGH]
+            if tel_pixel_variance.ndim == 3:
                 self.pixel_var[tel_id] = np.nanmedian(
-                    np.array(shower_pixel_variance[tel_id])[:, GainChannel.HIGH, :],
+                    tel_pixel_variance[:, GainChannel.HIGH, :],
                     axis=0,
                 )
             else:
+                self.pixel_var[tel_id] = np.nanmedian(tel_pixel_variance, axis=0)
+            if broken_pixels[tel_id].ndim == 2:
+                mask_broken = broken_pixels[tel_id][GainChannel.HIGH]
+            else:
                 mask_broken = broken_pixels[tel_id]
-                self.pixel_var[tel_id] = np.nanmedian(
-                    np.array(shower_pixel_variance[tel_id]), axis=0
-                )
 
             # Compute modified Z-score
-            mad_pix = median_abs_deviation(self.pixel_var[tel_id])
-            median_pix = np.median(self.pixel_var[tel_id])
+            mad_pix = median_abs_deviation(self.pixel_var[tel_id], axis=-1)
+            median_pix = np.nanmedian(self.pixel_var[tel_id])
             abs_mod_zscore = np.abs(
                 (self.pixel_var[tel_id] - median_pix) / (1.486 * mad_pix)
             )
@@ -438,7 +451,6 @@ class EstimateNSBlevelTool(Tool):
             nsb_lvl[max(nsb_lvl, key=nsb_lvl.get)] + self.n_grid_points + 1
         ).astype(int)
         nsb_grid = np.arange(nsb_min, nsb_max)
-
         return nsb_grid, nsb_lvl
 
     def compute_quantile(self, pixel_charge):
@@ -543,7 +555,6 @@ class EstimateNSBlevelTool(Tool):
         """
         Calculate the pixel charge statistics and the NSB level.
         """
-        # executed first to create tel_id_list
         self.calculate_pixel_charge_ped()
 
         self.identify_faulty_pixels()

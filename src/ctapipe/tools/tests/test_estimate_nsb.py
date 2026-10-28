@@ -71,7 +71,7 @@ def test_estimate_nsb_tool_simulation(tmp_path):
         7: 4,
         8: 4,
         9: 4,
-        10: 5,
+        10: 4,
         11: 4,
         12: 4,
         13: 4,
