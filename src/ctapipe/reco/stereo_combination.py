@@ -685,7 +685,8 @@ class StereoDispCombiner(StereoCombiner):
         allow_none=True,
         help=(
             "Select the best n_best_tels telescopes by weight for the combination. "
-            "Set to None to use all valid telescopes."
+            "Set to None to use all valid telescopes. Requires a weighting scheme "
+            "other than 'none'."
         ),
     ).tag(config=True)
 
@@ -720,6 +721,9 @@ class StereoDispCombiner(StereoCombiner):
             raise TraitError(
                 "n_tel_combinations must be less than or equal to n_best_tels."
             )
+        if self.n_best_tels is not None and self.weights == "none":
+            raise TraitError("weights must not be 'none' when n_best_tels is set.")
+
         self.supported = ReconstructionProperty.GEOMETRY
         if self.property not in self.supported:
             raise NotImplementedError(

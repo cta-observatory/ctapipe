@@ -436,6 +436,11 @@ def test_disp_combiner_trait_validation():
     with pytest.raises(TraitError):
         StereoDispCombiner(n_tel_combinations=3, n_best_tels=2)
 
+    with pytest.raises(
+        TraitError, match="weights must not be 'none' when n_best_tels is set"
+    ):
+        StereoDispCombiner(n_best_tels=2)
+
 
 @pytest.mark.parametrize(
     "weights",
@@ -678,7 +683,7 @@ def test_disp_combiner_negative_min_ang_diff():
 def test_disp_combiner_n_best_tels_event():
     event_dict = {
         "tel_id": [1, 2, 3],
-        "hillas_intensity": [150, 300, 50],
+        "hillas_intensity": [150, 300, 100],
         "hillas_width": [0.1, 0.2, 0.1] * u.deg,
         "hillas_length": [0.3, 0.4, 0.2] * u.deg,
         "hillas_fov_lon": [-0.5, 0.1, 0.3] * u.deg,
@@ -713,6 +718,7 @@ def test_disp_combiner_n_best_tels_event():
     expected_geometry = expected_event.dl2.stereo.geometry["dummy"]
     assert u.isclose(geometry.alt, expected_geometry.alt)
     assert u.isclose(geometry.az, expected_geometry.az)
+    assert_array_equal(np.sort(geometry.telescopes), [1, 2])
 
 
 def test_disp_combiner_n_tel_combinations_event():
