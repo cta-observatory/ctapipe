@@ -18,7 +18,6 @@ def test_estimate_nsb_tool_simulation(tmp_path):
     config = Config(
         {
             "EstimateNSBlevelTool": {
-                "nevents": 20,
                 "quantile_threshold": 0.9,
                 "mod_zscore_th": 3.5,
                 "min_npixels_valid": 1000,
@@ -53,30 +52,10 @@ def test_estimate_nsb_tool_simulation(tmp_path):
     assert "exact_nsb_level" in data
     assert "nsb_level" in data
     assert "mode_nsb_level" in data
-    assert "exact_nsb_level_wrt_sim" in data
-    assert "nsb_level_wrt_sim" in data
-    assert "mode_nsb_level_wrt_sim" in data
     assert len(data["exact_nsb_level"]) > 0
     assert len(data["nsb_level"]) > 0
-    assert len(data["exact_nsb_level_wrt_sim"]) > 0
-    assert len(data["nsb_level_wrt_sim"]) > 0
 
     expected_nsb_level = {
-        1: 4,
-        2: 4,
-        3: 5,
-        4: 4,
-        5: 4,
-        6: 4,
-        7: 4,
-        8: 4,
-        9: 4,
-        10: 4,
-        11: 4,
-        12: 4,
-        13: 4,
-    }
-    expected_nsb_level_wrt_sim = {
         1: 0,
         2: 0,
         3: 0,
@@ -88,12 +67,10 @@ def test_estimate_nsb_tool_simulation(tmp_path):
         9: 0,
         10: 0,
         11: 0,
-        12: 0,
+        12: 1,
         13: 0,
     }
     for key in expected_nsb_level.keys():
         assert data["nsb_level"][key] == expected_nsb_level[key]
-        assert data["nsb_level_wrt_sim"][key] == expected_nsb_level_wrt_sim[key]
 
-    assert data["mode_nsb_level"] == 4
-    assert data["mode_nsb_level_wrt_sim"] == 0
+    assert data["mode_nsb_level"] == 0
