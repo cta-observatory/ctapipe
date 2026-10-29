@@ -63,6 +63,34 @@ if importlib.util.find_spec("pyirf") is None:
     collect_ignore.append("irf")
 
 
+@pytest.fixture(scope="session")
+def lst1_mirror_facets_path():
+    """Path to the LST-1 mirror facet file from the test data server."""
+
+    return get_dataset_path("LSTN.optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def MST_FlashCam_mirror_facets_path():
+    """Path to the MST_FlashCam mirror facet file from the test data server."""
+
+    return get_dataset_path("MSTx-FlashCam.optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def MSTN_NectarCam_mirror_facets_path():
+    """Path to the MSTN_NectarCam mirror facet file from the test data server."""
+
+    return get_dataset_path("MSTN-NectarCam.optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def SST_mirror_facets_path():
+    """Path to the SST mirror facet file from the test data server."""
+
+    return get_dataset_path("SSTS.optics.ecsv")
+
+
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
     with pytest.warns(FromNameWarning):
