@@ -67,6 +67,48 @@ def test_optics_from_ecsv_all_telescopes(request, path_fixture, n_facets):
     assert mirrors == OpticsDescription.from_table(optics.to_table()).mirror_description
 
 
+@pytest.mark.parametrize(
+    "path_fixture, header, first_row",
+    [
+        (
+            "lst1_mirror_facets_path",
+            "MirrorDescription(198 mirror facets)",
+            "  mirror_id=1, facet_id=1, x=-3.08 m, y=-11.114 m,",
+        ),
+        (
+            "MST_FlashCam_mirror_facets_path",
+            "MirrorDescription(86 mirror facets)",
+            "  mirror_id=1, facet_id=0, x=-0.0 m,",
+        ),
+        (
+            "MSTN_NectarCam_mirror_facets_path",
+            "MirrorDescription(86 mirror facets)",
+            "  mirror_id=1, facet_id=0, x=-0.0 m,",
+        ),
+        (
+            "SST_mirror_facets_path",
+            "MirrorDescription(19 mirror facets)",
+            "  mirror_id=1, facet_id=1, x=-0.0 m, y=-0.856 m,",
+        ),
+    ],
+)
+def test_mirror_description_str(request, path_fixture, header, first_row):
+    """Header with the facet count, followed by the first three facets."""
+    mirrors = OpticsDescription.from_table(
+        request.getfixturevalue(path_fixture)
+    ).mirror_description
+    lines = str(mirrors).splitlines()
+
+    # print(OpticsDescription.from_table(
+    #    request.getfixturevalue(path_fixture)
+    # ).mirror_description)
+
+    assert len(lines) == 4
+    assert lines[0] == header
+    assert lines[1].startswith(first_row)
+    assert "shape=HEXAGON" in lines[1]
+
+
 def test_sst_two_mirrors(SST_mirror_facets_path):
     """Hexagonal primary facets and a circular secondary, aspheric (nan focal length)."""
     mirrors = OpticsDescription.from_table(SST_mirror_facets_path).mirror_description
