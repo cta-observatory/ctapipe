@@ -119,9 +119,10 @@ class MirrorDescription:
     """
     Description of the individual mirror facets of a telescope reflector
 
-    Stores, for each mirror facet, its ID, the position of its centre, the
-    unit vector normal to its surface, its reflective surface area and its
-    shape. All per-facet inputs must be one-dimensional arrays of the same
+    Stores, for each mirror facet, the ID of the mirror it belongs to and its
+    ID within that mirror, the position of its centre, the unit vector normal
+    to its surface, its rotation angle, its size, its shape and its focal
+    length. All per-facet inputs must be one-dimensional arrays of the same
     length (one entry per facet).
 
     A `MirrorDescription` is written as the rows of the table returned by
@@ -131,8 +132,11 @@ class MirrorDescription:
 
     Parameters
     ----------
-    id : array_like of int
-        Unique ID of each mirror facet
+    mirror_id : array_like of int
+        ID of the mirror each facet belongs to (e.g. 1 for the primary and
+        2 for the secondary mirror of a dual-mirror telescope)
+    facet_id : array_like of int
+        ID of each facet, unique within its mirror
     x : astropy.units.Quantity[length]
         x coordinate of the centre of each mirror facet
     y : astropy.units.Quantity[length]
@@ -145,31 +149,44 @@ class MirrorDescription:
         y component of the unit vector normal to each mirror facet
     nz : array_like of float
         z component of the unit vector normal to each mirror facet
-    surface_area : astropy.units.Quantity[area]
-        Reflective surface area of each mirror facet
+    rotation_angle : astropy.units.Quantity[angle]
+        Roll of each facet about its front normal; zero for a pointy-top
+        hexagon or an axis-parallel square
+    diameter : astropy.units.Quantity[length]
+        Size of each facet: flat-to-flat distance for a hexagon, side length
+        for a square, full diameter for a circle
     mirror_shape : array_like of str or MirrorFacetShape
         Shape of each mirror facet, either a `MirrorFacetShape` or its
-        string value (e.g. ``"HEXAGON"``)
+        string value, case-insensitive (e.g. ``"HEXAGON"`` or ``"hexagon"``)
+    focal_length : astropy.units.Quantity[length]
+        Nominal spherical focal length of each facet; ``nan`` for aspheric
+        surfaces
 
     Attributes
     ----------
-    id : array_like of int
-        Unique ID of each mirror facet
+    mirror_id : array_like of int
+        ID of the mirror each facet belongs to
+    facet_id : array_like of int
+        ID of each facet, unique within its mirror
     x, y, z : astropy.units.Quantity[length]
         Coordinates of the centre of each mirror facet
     nx, ny, nz : array_like of float
         Components of the unit vector normal to each mirror facet
-    surface_area : astropy.units.Quantity[area]
-        Reflective surface area of each mirror facet
+    rotation_angle : astropy.units.Quantity[angle]
+        Roll of each facet about its front normal
+    diameter : astropy.units.Quantity[length]
+        Size of each facet
     shape : numpy.ndarray of MirrorFacetShape
         Shape of each mirror facet
+    focal_length : astropy.units.Quantity[length]
+        Nominal spherical focal length of each facet
 
     Raises
     ------
     TypeError, astropy.units.UnitsError:
-        if the units of ``x``, ``y``, ``z`` or ``surface_area`` are missing
-        or incompatible (length for ``x``, ``y``, ``z`` and area for
-        ``surface_area``)
+        if the units of ``x``, ``y``, ``z``, ``rotation_angle``, ``diameter``
+        or ``focal_length`` are missing or incompatible (angle for
+        ``rotation_angle``, length for the others)
     ValueError:
         if one of the ``mirror_shape`` values is not a valid
         `MirrorFacetShape`
@@ -179,43 +196,64 @@ class MirrorDescription:
         x=u.physical.length,
         y=u.physical.length,
         z=u.physical.length,
-        surface_area=u.physical.area,
+        rotation_angle=u.physical.angle,
+        diameter=u.physical.length,
+        focal_length=u.physical.length,
     )
     def __init__(
         self,
-        id,
+        mirror_id,
+        facet_id,
         x,
         y,
         z,
         nx,
         ny,
         nz,
-        surface_area,
+        rotation_angle,
+        diameter,
         mirror_shape,
+        focal_length,
     ):
-        self.id = id
+        self.mirror_id = mirror_id
+        self.facet_id = facet_id
         self.x = x
         self.y = y
         self.z = z
         self.nx = nx
         self.ny = ny
         self.nz = nz
-        self.surface_area = surface_area
-        self.shape = np.array([MirrorFacetShape(shape) for shape in mirror_shape])
+        self.rotation_angle = rotation_angle
+        self.diameter = diameter
+        self.shape = np.array(
+            [
+                shape
+                if isinstance(shape, MirrorFacetShape)
+                else MirrorFacetShape(shape.upper())
+                for shape in mirror_shape
+            ]
+        )
+        self.focal_length = focal_length
 
     def __hash__(self):
         """Make this hashable, so it can be used as dict keys or in sets"""
         return hash(
             (
-                np.asarray(self.id, dtype=np.int64).tobytes(),
+                np.asarray(self.mirror_id, dtype=np.int64).tobytes(),
+                np.asarray(self.facet_id, dtype=np.int64).tobytes(),
                 tuple(np.round(self.x.to_value(u.m), 4).tolist()),
                 tuple(np.round(self.y.to_value(u.m), 4).tolist()),
                 tuple(np.round(self.z.to_value(u.m), 4).tolist()),
                 tuple(np.round(self.nx, 6).tolist()),
                 tuple(np.round(self.ny, 6).tolist()),
                 tuple(np.round(self.nz, 6).tolist()),
-                tuple(np.round(self.surface_area.to_value(u.m**2), 4).tolist()),
+                tuple(np.round(self.rotation_angle.to_value(u.deg), 4).tolist()),
+                tuple(np.round(self.diameter.to_value(u.m), 4).tolist()),
                 tuple(shape.value for shape in self.shape),
+                # NaN (aspheric facets) hashes by identity, so hash the bytes
+                np.asarray(
+                    np.round(self.focal_length.to_value(u.m), 4), dtype=np.float64
+                ).tobytes(),
             )
         )
 
@@ -235,12 +273,14 @@ class MirrorDescription:
             Maximum number of facets to list. ``str()`` and ``print()``
             always use the default value.
         """
-        header = f"{self.__class__.__name__}({len(self.id)} mirror facets)"
+        header = f"{self.__class__.__name__}({len(self.facet_id)} mirror facets)"
         rows = [
-            f"  id={self.id[i]}, x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
+            f"  mirror_id={self.mirror_id[i]}, facet_id={self.facet_id[i]}, "
+            f"x={self.x[i]}, y={self.y[i]}, z={self.z[i]}, "
             f"nx={self.nx[i]:.4f}, ny={self.ny[i]:.4f}, nz={self.nz[i]:.4f}, "
-            f"surface_area={self.surface_area[i]}, shape={self.shape[i].value}"
-            for i in range(min(n_str, len(self.id)))
+            f"rotation_angle={self.rotation_angle[i]}, diameter={self.diameter[i]}, "
+            f"shape={self.shape[i].value}, focal_length={self.focal_length[i]}"
+            for i in range(min(n_str, len(self.facet_id)))
         ]
         return "\n".join([header, *rows])
 
@@ -455,9 +495,10 @@ class OpticsDescription:
         Convert this OpticsDescription to an astropy Table for writing to files.
 
         If ``mirror_description`` is set, the table has one row per mirror
-        facet, with columns ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``,
-        ``nz``, ``surface_area`` and ``shape``. Otherwise the table has no rows and
-        only the metadata describes the optics.
+        facet, with columns ``mirror_id``, ``facet_id``, ``x``, ``y``, ``z``,
+        ``nx``, ``ny``, ``nz``, ``rotation_angle``, ``diameter``, ``shape`` and
+        ``focal_length``. Otherwise the table has no rows and only the metadata
+        describes the optics.
 
         See `OpticsDescription.from_table` for the opposite operation.
         """
@@ -467,15 +508,18 @@ class OpticsDescription:
         else:
             table = Table(
                 {
-                    "mirror_id": mirrors.id,
+                    "mirror_id": mirrors.mirror_id,
+                    "facet_id": mirrors.facet_id,
                     "x": mirrors.x,
                     "y": mirrors.y,
                     "z": mirrors.z,
                     "nx": mirrors.nx,
                     "ny": mirrors.ny,
                     "nz": mirrors.nz,
-                    "surface_area": mirrors.surface_area,
-                    "shape": np.array([shape.value for shape in mirrors.shape]),
+                    "rotation_angle": mirrors.rotation_angle,
+                    "diameter": mirrors.diameter,
+                    "shape": np.array([shape.value.lower() for shape in mirrors.shape]),
+                    "focal_length": mirrors.focal_length,
                 },
             )
         table.meta["TAB_VER"] = self.CURRENT_TEL_TAB_VERSION
@@ -537,8 +581,9 @@ class OpticsDescription:
         ----------
         table : astropy.table.Table
             Table describing the mirror facets, with columns
-            ``mirror_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``, ``nz``,
-            ``surface_area`` (or ``surface`` for older files) and ``shape``.
+            ``mirror_id``, ``facet_id``, ``x``, ``y``, ``z``, ``nx``, ``ny``,
+            ``nz``, ``rotation_angle``, ``diameter``, ``shape`` and
+            ``focal_length``.
 
         Returns
         -------
@@ -553,17 +598,18 @@ class OpticsDescription:
             mirror_shape = mirror_shape.astype(str)
 
         return MirrorDescription(
-            id=np.asarray(table["mirror_id"]),
+            mirror_id=np.asarray(table["mirror_id"]),
+            facet_id=np.asarray(table["facet_id"]),
             x=table["x"],
             y=table["y"],
             z=table["z"],
             nx=np.asarray(table["nx"]),
             ny=np.asarray(table["ny"]),
             nz=np.asarray(table["nz"]),
-            surface_area=table[
-                "surface_area" if "surface_area" in table.colnames else "surface"
-            ],
+            rotation_angle=table["rotation_angle"],
+            diameter=table["diameter"],
             mirror_shape=mirror_shape,
+            focal_length=table["focal_length"],
         )
 
     def get_focal_length(self, focal_length_choice=FocalLengthKind.EFFECTIVE):
