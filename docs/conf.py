@@ -428,7 +428,7 @@ intersphinx_mapping = {
     "bokeh": ("https://docs.bokeh.org/en/latest", None),
     "ctao-datamodel": (
         "https://cta-computing.gitlab-pages.cta-observatory.org/common/ctao-datamodel/latest/",
-        str(DOCS_DIR / "_intersphinx" / "ctao-datamodel.objects.inv"),
+        None,
     ),
     "iminuit": ("https://scikit-hep.org/iminuit", None),
     "ipywidgets": ("https://ipywidgets.readthedocs.io/en/stable", None),

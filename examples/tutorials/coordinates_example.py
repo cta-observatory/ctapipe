@@ -147,7 +147,10 @@ plt.axis("square")
 location = EarthLocation.of_site("Roque de los Muchachos")
 obstime = Time("2018-11-01T04:00")
 
-crab = SkyCoord.from_name("crab nebula")
+# usually we would do this for convenience, but currently web services providing
+# catalog data are down due to php2shell
+# crab = SkyCoord.from_name("crab nebula")
+crab = SkyCoord(ra=83.6324 * u.deg, dec=22.0174 * u.deg)
 
 altaz = AltAz(location=location, obstime=obstime)
 
@@ -170,8 +173,13 @@ ax.set_title(
     f"La Palma, {obstime}, az={pointing.az.deg:.1f}°, zenith={pointing.zen.deg:.1f}°, camera={geometry.name}"
 )
 
-for i, name in enumerate(["crab nebula", "o tau", "zet tau"]):
-    star = SkyCoord.from_name(name)
+stars = {
+    "Crab": crab,
+    "o tau": SkyCoord(81.90868401 * u.deg, 21.93696808 * u.deg),
+    "zet tau": SkyCoord(84.41118926 * u.deg, 21.14254411 * u.deg),
+}
+
+for i, (name, star) in enumerate(stars.items()):
     star_cam = star.transform_to(camera_frame)
 
     x = star_cam.x.to_value(u.m)
@@ -223,8 +231,7 @@ plt.scatter(
 )
 
 
-for i, name in enumerate(["crab nebula", "o tau", "zet tau"]):
-    star = SkyCoord.from_name(name)
+for i, (name, star) in enumerate(stars.items()):
     star_tel = star.transform_to(telescope_frame)
 
     plt.plot(star_tel.fov_lon.deg, star_tel.fov_lat.deg, "*", ms=10)
@@ -262,8 +269,6 @@ plt.ylabel("fov_lat / {}".format(telescope_coords.altaz.alt.unit))
 location = EarthLocation.of_site("Roque de los Muchachos")
 obstime = Time("2018-11-01T02:00")
 altaz = AltAz(location=location, obstime=obstime)
-
-crab = SkyCoord.from_name("crab nebula")
 
 # let's observe crab
 array_pointing = crab.transform_to(altaz)
@@ -306,9 +311,8 @@ for i in range(3):
     )
 
 
-for i, name in enumerate(["Crab", "o tau", "zet tau"]):
-    s = SkyCoord.from_name(name)
-    s_nom = s.transform_to(nom_frame)
+for i, (name, star) in enumerate(stars.items()):
+    s_nom = star.transform_to(nom_frame)
     ax.plot(
         s_nom.fov_lon.deg,
         s_nom.fov_lat.deg,
