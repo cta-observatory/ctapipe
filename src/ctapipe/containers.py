@@ -73,6 +73,7 @@ __all__ = [
     "ObservingMode",
     "ObservationBlockState",
     "WeatherMonitoringContainer",
+    "FRAMMonitoringContainer",
 ]
 
 
@@ -1676,3 +1677,27 @@ class ObservationBlockContainer(Container):
         NAN_TIME, "true start time", time_resolution=TimeResolution.LOW
     )
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)
+
+
+# ACE calibration instruments containers
+class FRAMMonitoringContainer(Container):
+    """
+    Aerosol optical depth measured by the FRAM telescope.
+
+    One entry per FRAM image, fields are 1D arrays over the Voronoi
+    cells of that image.
+    """
+
+    default_prefix = "fram"
+    ra = Field(None, "Right ascension of the Voronoi cell", unit=u.rad, ndim=1)
+    dec = Field(None, "Declination of the Voronoi cell", unit=u.rad, ndim=1)
+    aerosol_optical_depth = Field(
+        None, "Slant aerosol optical depth per Voronoi cell", ndim=1
+    )
+    aerosol_optical_depth_uncertainty = Field(
+        None, "Uncertainty on the slant aerosol optical depth per Voronoi cell", ndim=1
+    )
+    zero_point = Field(nan, "Photometric zero point magnitude of the image")
+    peak_wavelength = Field(nan * u.nm, "Peak wavelength of the filter used", unit=u.nm)
+    image_id = Field(-1, "FRAM image identifier")
+    observation_id = Field(-1, "FRAM internal observation identifier")
