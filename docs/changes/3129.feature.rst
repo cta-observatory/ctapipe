@@ -1,0 +1,2 @@
+Add a ``calibration_scales`` option to ``CameraCalibrator`` which allows
+scaling the DL0 waveform by a factor per gain channel before image extraction.

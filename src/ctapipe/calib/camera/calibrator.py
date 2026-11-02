@@ -13,7 +13,10 @@ from ctapipe.core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
+    Float,
+    List,
     TelescopeParameter,
+    TraitError,
 )
 from ctapipe.image.extractor import ImageExtractor, VarianceExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
@@ -116,6 +119,13 @@ class CameraCalibrator(TelescopeComponent):
         ),
     ).tag(config=True)
 
+    calibration_scales = TelescopeParameter(
+        List(Float()),
+        allow_none=True,
+        default_value=None,
+        help="Calibration scale. Will be used to scale the waveforms before pulse extraction. One value per channel.",
+    ).tag(config=True)
+
     def __init__(
         self,
         subarray,
@@ -179,6 +189,24 @@ class CameraCalibrator(TelescopeComponent):
                 subarray=self.subarray,
                 parent=self,
             )
+
+        self._calibration_scales = {}
+        for tel_id, tel in self.subarray.tel.items():
+            scales = self.calibration_scales.tel[tel_id]
+            if scales is None:
+                continue
+
+            n_channels = tel.camera.readout.n_channels
+            n_pixels = tel.camera.readout.n_pixels
+            if len(scales) != n_channels:
+                msg = f"calibration_scales must have length {n_channels}, got {len(scales)} for tel_id={tel_id}"
+                raise TraitError(msg)
+
+            self._calibration_scales[tel_id] = np.empty(
+                (n_channels, n_pixels), dtype=np.float32
+            )
+            for channel, factor in enumerate(scales):
+                self._calibration_scales[tel_id][channel] = factor
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
@@ -261,6 +289,24 @@ class CameraCalibrator(TelescopeComponent):
         # this intentionally makes a copy to not mutate the calib.time_shift array
         return calib_time_shift + pixel_time_shift
 
+    def _get_factor(self, tel_id, calib, selected_gain_channel):
+        calib_factor = calib.factor
+        calib_scale = self._calibration_scales.get(tel_id)
+
+        if calib_factor is None and calib_scale is None:
+            return None
+        elif calib_scale is None:
+            factor = calib_factor
+        elif calib_factor is None:
+            factor = calib_scale
+        else:
+            factor = calib_factor * calib_scale
+
+        if selected_gain_channel is not None:
+            factor = _select_channel(factor, selected_gain_channel, keep_dims=False)
+
+        return factor
+
     def _calibrate_dl1(self, event, tel_id):
         dl0 = event.dl0.tel[tel_id]
 
@@ -273,9 +319,7 @@ class CameraCalibrator(TelescopeComponent):
         calib = event.monitoring.tel[tel_id].camera.coefficients
         selected_gain_channel = dl0.selected_gain_channel
 
-        factor = calib.factor
-        if factor is not None and selected_gain_channel is not None:
-            factor = _select_channel(factor, selected_gain_channel, keep_dims=False)
+        factor = self._get_factor(tel_id, calib, selected_gain_channel)
 
         # subtract any remaining pedestal before extraction
         pedestal = calib.pedestal_offset

@@ -11,7 +11,7 @@ from scipy.stats import norm
 from traitlets.config import Config
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator, _get_invalid_pixels
-from ctapipe.containers import ArrayEventContainer, PixelStatus
+from ctapipe.containers import ArrayEventContainer, DL0CameraContainer, PixelStatus
 from ctapipe.image.extractor import (
     FullWaveformSum,
     GlobalPeakWindowSum,
@@ -604,3 +604,69 @@ def test_dl1_pixel_status(example_subarray):
     np.testing.assert_array_equal(
         PixelStatus.get_channel_info(dl1_pixel_status), selected_gain_channel + 1
     )
+
+
+@pytest.mark.parametrize(
+    ("n_channels", "select_gain"),
+    [
+        pytest.param(1, True, id="single_gain"),
+        pytest.param(2, False, id="both-gains"),
+        pytest.param(2, True, id="gain-selected"),
+    ],
+)
+def test_calibration_scale(n_channels, select_gain, subarray_prod5_paranal):
+    subarray = subarray_prod5_paranal
+
+    for tel_id, tel in subarray.tel.items():
+        if tel.camera.readout.n_channels == n_channels:
+            break
+
+    camera = tel.camera
+    n_pixels = camera.geometry.n_pixels
+    n_samples = camera.readout.n_samples
+    mid = n_samples // 2
+
+    event = ArrayEventContainer()
+    rng = np.random.default_rng(0)
+
+    selected_gain_channel = None
+    if select_gain:
+        waveform = np.zeros((1, n_pixels, n_samples))
+
+        if n_channels == 2:
+            selected_gain_channel = rng.binomial(1, 0.5, n_pixels)
+        else:
+            selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
+    else:
+        waveform = np.zeros((n_channels, n_pixels, n_samples))
+
+    waveform[:, :, mid] = 10.0
+
+    pixel_status = _valid_pixel_status(n_pixels, n_channels, selected_gain_channel)
+    event.dl0.tel[tel_id] = DL0CameraContainer(
+        waveform=waveform,
+        pixel_status=pixel_status,
+        selected_gain_channel=selected_gain_channel,
+    )
+
+    if n_channels == 1:
+        scales = [1.5]
+    else:
+        scales = [1.5, 2.0]
+
+    # Test default
+    calibrator = CameraCalibrator(
+        subarray=subarray,
+        image_extractor_type="FullWaveformSum",
+        calibration_scales=[("type", "*", None), ("id", tel_id, scales)],
+    )
+    calibrator(event)
+
+    if n_channels == 1:
+        expected = np.full(n_pixels, 15.0)
+    elif select_gain:
+        expected = np.where(selected_gain_channel == 0, 15.0, 20.0)
+    else:
+        expected = np.full((2, n_pixels), np.array([15.0, 20.0])[:, np.newaxis])
+
+    np.testing.assert_array_equal(event.dl1.tel[tel_id].image, expected)
