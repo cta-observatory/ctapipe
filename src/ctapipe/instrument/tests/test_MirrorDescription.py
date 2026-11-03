@@ -32,16 +32,16 @@ def _check_description(description):
     assert np.all(description.shape == MirrorFacetShape.HEXAGON)
 
 
-def test_mirror_facets_description_from_ecsv(lst1_mirror_facets_path):
+def test_mirror_facets_description_from_ecsv(lstn_01_mirror_facets_path):
     description = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
+        Table.read(lstn_01_mirror_facets_path)
     )
     _check_description(description)
 
 
-def test_optics_from_ecsv(lst1_mirror_facets_path):
+def test_optics_from_ecsv(lstn_01_mirror_facets_path):
     """The optics file can be read directly with OpticsDescription.from_table."""
-    optics = OpticsDescription.from_table(lst1_mirror_facets_path)
+    optics = OpticsDescription.from_table(lstn_01_mirror_facets_path)
 
     assert optics.name == "LSTN-01"
     assert optics.n_mirror_tiles == 198
@@ -51,10 +51,12 @@ def test_optics_from_ecsv(lst1_mirror_facets_path):
 @pytest.mark.parametrize(
     "path_fixture, n_facets",
     [
-        ("lst1_mirror_facets_path", 198),
-        ("MST_FlashCam_mirror_facets_path", 86),
-        ("MSTN_NectarCam_mirror_facets_path", 86),
-        ("SST_mirror_facets_path", 19),
+        ("lstn_01_mirror_facets_path", 198),
+        ("lstn_02_mirror_facets_path", 198),
+        ("lsts_01_mirror_facets_path", 198),
+        ("mstn_01_mirror_facets_path", 86),
+        ("msts_01_mirror_facets_path", 86),
+        ("ssts_01_mirror_facets_path", 19),
     ],
 )
 def test_optics_from_ecsv_all_telescopes(request, path_fixture, n_facets):
@@ -71,22 +73,32 @@ def test_optics_from_ecsv_all_telescopes(request, path_fixture, n_facets):
     "path_fixture, header, first_row",
     [
         (
-            "lst1_mirror_facets_path",
+            "lstn_01_mirror_facets_path",
             "MirrorDescription(198 mirror facets)",
             "  mirror_id=1, facet_id=1, x=-3.08 m, y=-11.114 m,",
         ),
         (
-            "MST_FlashCam_mirror_facets_path",
+            "lstn_02_mirror_facets_path",
+            "MirrorDescription(198 mirror facets)",
+            "  mirror_id=1, facet_id=1, x=-3.08 m, y=-11.114 m,",
+        ),
+        (
+            "lsts_01_mirror_facets_path",
+            "MirrorDescription(198 mirror facets)",
+            "  mirror_id=1, facet_id=1, x=-3.08 m, y=-11.114 m,",
+        ),
+        (
+            "mstn_01_mirror_facets_path",
             "MirrorDescription(86 mirror facets)",
             "  mirror_id=1, facet_id=0, x=-0.0 m,",
         ),
         (
-            "MSTN_NectarCam_mirror_facets_path",
+            "msts_01_mirror_facets_path",
             "MirrorDescription(86 mirror facets)",
             "  mirror_id=1, facet_id=0, x=-0.0 m,",
         ),
         (
-            "SST_mirror_facets_path",
+            "ssts_01_mirror_facets_path",
             "MirrorDescription(19 mirror facets)",
             "  mirror_id=1, facet_id=1, x=-0.0 m, y=-0.856 m,",
         ),
@@ -109,9 +121,11 @@ def test_mirror_description_str(request, path_fixture, header, first_row):
     assert "shape=HEXAGON" in lines[1]
 
 
-def test_sst_two_mirrors(SST_mirror_facets_path):
+def test_sst_two_mirrors(ssts_01_mirror_facets_path):
     """Hexagonal primary facets and a circular secondary, aspheric (nan focal length)."""
-    mirrors = OpticsDescription.from_table(SST_mirror_facets_path).mirror_description
+    mirrors = OpticsDescription.from_table(
+        ssts_01_mirror_facets_path
+    ).mirror_description
 
     primary = mirrors.mirror_id == 1
     secondary = mirrors.mirror_id == 2
@@ -194,10 +208,10 @@ def _mirrors_to_table(mirrors):
     return OpticsDescription(**_optics_kwargs(), mirror_description=mirrors).to_table()
 
 
-def test_optics_to_table_roundtrip(lst1_mirror_facets_path):
+def test_optics_to_table_roundtrip(lstn_01_mirror_facets_path):
     """The facets are written as the rows of the optics table."""
     mirrors = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
+        Table.read(lstn_01_mirror_facets_path)
     )
     optics = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     table = optics.to_table()
@@ -240,9 +254,9 @@ def test_optics_to_table_without_mirrors():
 
 # optics metadata keys are longer than 8 characters -> FITS HIERARCH cards
 @pytest.mark.filterwarnings("ignore::astropy.io.fits.verify.VerifyWarning")
-def test_optics_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
+def test_optics_to_table_roundtrip_via_file(tmp_path, lstn_01_mirror_facets_path):
     mirrors = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
+        Table.read(lstn_01_mirror_facets_path)
     )
     optics = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     table = optics.to_table()
@@ -258,23 +272,23 @@ def test_optics_to_table_roundtrip_via_file(tmp_path, lst1_mirror_facets_path):
         _check_description(roundtripped.mirror_description)
 
 
-def test_optics_mirror_description_attribute(lst1_mirror_facets_path):
+def test_optics_mirror_description_attribute(lstn_01_mirror_facets_path):
     """OpticsDescription stores an optional MirrorDescription."""
     optics = OpticsDescription(**_optics_kwargs())
     assert optics.mirror_description is None
 
     mirrors = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
+        Table.read(lstn_01_mirror_facets_path)
     )
     optics = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
     assert optics.mirror_description is mirrors
     _check_description(optics.mirror_description)
 
 
-def test_mirror_description_hash_eq(lst1_mirror_facets_path):
+def test_mirror_description_hash_eq(lstn_01_mirror_facets_path):
     """Equal facets give equal hashes, also across units and table roundtrips."""
     description = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
+        Table.read(lstn_01_mirror_facets_path)
     )
     roundtripped = OpticsDescription._mirror_description_from_table(
         _mirrors_to_table(description)
@@ -316,9 +330,9 @@ def test_mirror_description_hash_eq(lst1_mirror_facets_path):
     assert len({description, roundtripped, in_cm, shifted}) == 2
 
 
-def test_optics_hash_eq_includes_mirror_description(lst1_mirror_facets_path):
+def test_optics_hash_eq_includes_mirror_description(lstn_01_mirror_facets_path):
     mirrors = OpticsDescription._mirror_description_from_table(
-        Table.read(lst1_mirror_facets_path)
+        Table.read(lstn_01_mirror_facets_path)
     )
     without = OpticsDescription(**_optics_kwargs())
     with_mirrors = OpticsDescription(**_optics_kwargs(), mirror_description=mirrors)
