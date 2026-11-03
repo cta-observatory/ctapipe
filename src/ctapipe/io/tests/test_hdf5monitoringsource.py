@@ -7,6 +7,7 @@ import pytest
 import tables
 from astropy.time import Time
 
+from ctapipe.containers import ArrayEventContainer
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import (
     EventSource,
@@ -789,3 +790,40 @@ def test_unavailable_telescope(dl1_merged_monitoring_file):
             source.get_telescope_values(
                 tel_id, None, TelescopeMonitoringType.CAMERA_COEFFICIENTS
             )
+
+
+def test_pointing_source_preserves_camera_monitoring(dl1_mon_pointing_file_obs):
+    event = ArrayEventContainer()
+    telescope = event.monitoring.tel[1]
+
+    with HDF5MonitoringSource(input_files=[dl1_mon_pointing_file_obs]) as source:
+        assert not source.has_camera_coefficients
+        assert not source.has_pixel_statistics
+        pointing = source.get_telescope_table(
+            1, TelescopeMonitoringType.TELESCOPE_POINTINGS
+        )
+        start, stop = pointing["time"][:2]
+        event.trigger.time = start + (stop - start) / 2
+
+        # Existing camera monitoring must survive application of pointing-only data.
+        n_pixels = source.subarray.tel[1].camera.geometry.n_pixels
+        n_channels = source.subarray.tel[1].camera.readout.n_channels
+        telescope.camera.coefficients.factor = np.full((n_channels, n_pixels), 11.0)
+        statistics = telescope.camera.pixel_statistics
+        statistics.pedestal_image.std = np.full(n_pixels, 40.0)
+        statistics.flatfield_image.std = np.full(n_pixels, 41.0)
+        statistics.flatfield_peak_time.std = np.full(n_pixels, 42.0)
+        telescope.pointing.altitude = 41 * u.deg
+        telescope.pointing.azimuth = 81 * u.deg
+
+        expected = source.get_telescope_pointing_container(1, event.trigger.time)
+        source.fill_monitoring_container(event)
+
+    telescope = event.monitoring.tel[1]
+    assert telescope.pointing.altitude == expected.altitude
+    assert telescope.pointing.azimuth == expected.azimuth
+    np.testing.assert_array_equal(telescope.camera.coefficients.factor, 11.0)
+    statistics = telescope.camera.pixel_statistics
+    np.testing.assert_array_equal(statistics.pedestal_image.std, 40.0)
+    np.testing.assert_array_equal(statistics.flatfield_image.std, 41.0)
+    np.testing.assert_array_equal(statistics.flatfield_peak_time.std, 42.0)

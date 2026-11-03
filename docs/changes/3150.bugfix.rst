@@ -1,0 +1,2 @@
+Preserve existing camera calibration coefficients and pixel statistics when applying
+a pointing-only ``HDF5MonitoringSource``.
