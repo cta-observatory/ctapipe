@@ -64,31 +64,45 @@ if importlib.util.find_spec("pyirf") is None:
 
 
 @pytest.fixture(scope="session")
-def lst1_mirror_facets_path():
-    """Path to the LST-1 mirror facet file from the test data server."""
+def lstn_01_mirror_facets_path():
+    """Path to the LST-1 (north) mirror facet file from the test data server."""
 
-    return get_dataset_path("LSTN.optics.ecsv")
-
-
-@pytest.fixture(scope="session")
-def MST_FlashCam_mirror_facets_path():
-    """Path to the MST_FlashCam mirror facet file from the test data server."""
-
-    return get_dataset_path("MSTx-FlashCam.optics.ecsv")
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTN-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
-def MSTN_NectarCam_mirror_facets_path():
-    """Path to the MSTN_NectarCam mirror facet file from the test data server."""
+def lstn_02_mirror_facets_path():
+    """Path to the LST-2 (north) mirror facet file from the test data server."""
 
-    return get_dataset_path("MSTN-NectarCam.optics.ecsv")
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTN-02.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
-def SST_mirror_facets_path():
-    """Path to the SST mirror facet file from the test data server."""
+def lsts_01_mirror_facets_path():
+    """Path to the LST-2 (south) mirror facet file from the test data server."""
 
-    return get_dataset_path("SSTS.optics.ecsv")
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTS-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def mstn_01_mirror_facets_path():
+    """Path to the MST-1 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/MSTN-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def msts_01_mirror_facets_path():
+    """Path to the MST-1 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/MSTS-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def ssts_01_mirror_facets_path():
+    """Path to the SST-1 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/SSTS-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="function", params=camera_names)
