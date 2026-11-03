@@ -1,0 +1,1 @@
+Replacing the muon optical efficiency with the muon optical bandwidth, expressed in eV.
