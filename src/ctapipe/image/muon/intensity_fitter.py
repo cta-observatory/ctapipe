@@ -410,7 +410,7 @@ def build_negative_log_likelihood(
         center_y,
         radius,
         ring_width,
-        optical_efficiency_muon,
+        optical_bandwidth_muon,
     ):
         """
         Likelihood function to be called by minimizer
@@ -427,8 +427,8 @@ def build_negative_log_likelihood(
             Radius of muon ring
         ring_width: float
             Gaussian width of muon ring
-        optical_efficiency_muon: float
-            Efficiency of the optical system
+        optical_bandwidth_muon: float
+            Optical efficiency integrated over photon energy (in eV)
 
         Returns
         -------
@@ -455,7 +455,7 @@ def build_negative_log_likelihood(
         )
 
         # scale prediction by optical efficiency of the telescope
-        prediction *= optical_efficiency_muon
+        prediction *= optical_bandwidth_muon
 
         return neg_log_likelihood_approx(image, prediction, spe_width, pedestal).sum()
 
@@ -479,7 +479,7 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     initial_guess["center_x"] = center_x.to_value(u.rad)
     initial_guess["center_y"] = center_y.to_value(u.rad)
     initial_guess["ring_width"] = 3 * pixel_radius
-    initial_guess["optical_efficiency_muon"] = 0.1
+    initial_guess["optical_bandwidth_muon"] = 0.1
 
     return initial_guess
 
@@ -589,12 +589,12 @@ class MuonIntensityFitter(TelescopeComponent):
         minuit.errors["impact_parameter"] = 0.5
         minuit.errors["phi"] = np.deg2rad(0.5)
         minuit.errors["ring_width"] = 0.001 * radius.to_value(u.rad)
-        minuit.errors["optical_efficiency_muon"] = 0.05
+        minuit.errors["optical_bandwidth_muon"] = 0.05
 
         minuit.limits["impact_parameter"] = (0, None)
         minuit.limits["phi"] = (-np.pi, np.pi)
         minuit.limits["ring_width"] = (0.0, None)
-        minuit.limits["optical_efficiency_muon"] = (0.0, None)
+        minuit.limits["optical_bandwidth_muon"] = (0.0, None)
 
         minuit.fixed["radius"] = True
         minuit.fixed["center_x"] = True
@@ -611,7 +611,7 @@ class MuonIntensityFitter(TelescopeComponent):
             impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
             impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
             width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
-            optical_efficiency=result["optical_efficiency_muon"] * u.eV,
+            optical_efficiency=result["optical_bandwidth_muon"] * u.eV,
             is_valid=minuit.valid,
             parameters_at_limit=minuit.fmin.has_parameters_at_limit,
             likelihood_value=minuit.fval,
