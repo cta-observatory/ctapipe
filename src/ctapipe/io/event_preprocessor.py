@@ -80,18 +80,18 @@ def _dl2_irf_config(preprocessor):
             ),
             (
                 "reco_fov_lon",
-                "reco_fov_coord[:,0]",
+                "reco_fov_coord.fov_lon",
             ),  # note: GADF IRFs use the negative of this
-            ("reco_fov_lat", "reco_fov_coord[:,1]"),
+            ("reco_fov_lat", "reco_fov_coord.fov_lat"),
             (
                 "true_fov_coord",
                 "altaz_to_nominal(true_az, true_alt, subarray_pointing_lon, subarray_pointing_lat)",
             ),
             (
                 "true_fov_lon",
-                "true_fov_coord[:,0]",
+                "true_fov_coord.fov_lon",
             ),  # note: GADF IRFs use the negative of this
-            ("true_fov_lat", "true_fov_coord[:,1]"),
+            ("true_fov_lat", "true_fov_coord.fov_lat"),
             (
                 "true_fov_offset",
                 "angular_separation(true_fov_lon, true_fov_lat, 0*u.deg, 0*u.deg)",
@@ -160,14 +160,14 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
             ),
             # GADF defines (DETX, DETY) as (FOV_ALTAZ_LON, FOV_ALTAZ_LAT), where the
             # longitude increases with decreasing azimuth, the opposite of fov_lon
-            ("DETX", "(-_reco_fov_coord[:,0]).astype(np.float32)"),
-            ("DETY", "_reco_fov_coord[:,1].astype(np.float32)"),
+            ("DETX", "(-_reco_fov_coord.fov_lon).astype(np.float32)"),
+            ("DETY", "_reco_fov_coord.fov_lat.astype(np.float32)"),
             (
                 "_reco_icrs_coord",
                 f"altaz_to_icrs({geometry}_az, {geometry}_alt, TIME, subarray.reference_location)",
             ),
-            ("RA", "_reco_icrs_coord[:,0].astype(np.float32)"),
-            ("DEC", "_reco_icrs_coord[:,1].astype(np.float32)"),
+            ("RA", "_reco_icrs_coord.ra.astype(np.float32)"),
+            ("DEC", "_reco_icrs_coord.dec.astype(np.float32)"),
             ("ENERGY", f"{energy}.astype(np.float32)"),
             ("GAMMANESS", f"{gammaness}.astype(np.float32)"),
             (
