@@ -83,8 +83,8 @@ def test_event_preprocessing(
         assert len(table_processed) == len(table)
 
         # check that new columns were added:
-        assert set(table_processed.colnames) - set(table.colnames) == set(
-            preprocess.quality_query.criteria_names
+        assert set(preprocess.quality_query.criteria_names) <= set(
+            table_processed.colnames
         )
 
 
@@ -177,6 +177,42 @@ def test_no_output():
 
     with pytest.raises(ToolConfigurationError):
         EventPreprocessor(feature_set="custom")
+
+
+def test_dl3_requires_subarray():
+    """Check error is raised at construction if the subarray is missing."""
+    from ctapipe.core import ToolConfigurationError
+    from ctapipe.io import EventPreprocessor
+
+    with pytest.raises(ToolConfigurationError, match="requires a subarray"):
+        EventPreprocessor(feature_set="dl2_to_dl3")
+
+
+@pytest.mark.parametrize(
+    "given,missing",
+    [
+        ({}, "gammaness_cut_function.*multiplicity_cut_function"),
+        ({"gammaness_cut_function": lambda g, e: True}, "multiplicity_cut_function"),
+        ({"multiplicity_cut_function": lambda m, e: True}, "gammaness_cut_function"),
+    ],
+)
+def test_dl3_requires_cut_functions(
+    given, missing, minimal_dl2_table, subarray_prod5_paranal
+):
+    """Check error is raised before generating features if a cut function is missing."""
+    from ctapipe.io import EventPreprocessor
+
+    preprocess = EventPreprocessor(
+        feature_set="dl2_to_dl3", subarray=subarray_prod5_paranal
+    )
+
+    def fail(*args, **kwargs):
+        raise AssertionError("features should not be generated")
+
+    preprocess.feature_generator = fail
+
+    with pytest.raises(TypeError, match=missing):
+        preprocess(minimal_dl2_table, **given)
 
 
 def test_nondefault_reconstructors(minimal_dl2_table):

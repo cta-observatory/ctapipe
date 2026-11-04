@@ -39,6 +39,12 @@ class FeatureSetRegistry:
         ...         "quality_criteria": [("cut", "custom > 0.5")],
         ...         "output_features": ["event_id", "custom"]
         ...     }
+
+        A configuration can also declare what its expressions need, which is
+        checked before any features are generated: ``"requires_subarray": True``
+        if the preprocessor must be given a subarray, and
+        ``"required_attributes"``, the names of objects that must be passed when
+        calling the preprocessor.
         """
 
         def decorator(func: Callable):
@@ -141,6 +147,8 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
 
     # derived values use the input columns, so only the output is reduced to float32
     return {
+        "requires_subarray": True,
+        "required_attributes": ["gammaness_cut_function", "multiplicity_cut_function"],
         "features_to_generate": [
             ("EVENT_ID", "event_id"),
             ("TIME", "time"),
@@ -277,6 +285,7 @@ class EventPreprocessor(Component):
     def __init__(self, config=None, parent=None, subarray=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
+        self.required_attributes = []
 
         self.altaz_to_icrs = partial(
             altaz_to_icrs, resolution=self.interpolation_time_resolution
@@ -287,6 +296,12 @@ class EventPreprocessor(Component):
             self.quality_query = QualityQuery(parent=self)
         else:  # use a pre-registered feature set
             feature_set = FeatureSetRegistry.get(self.feature_set)(self)
+            if feature_set.get("requires_subarray") and subarray is None:
+                raise ToolConfigurationError(
+                    f"EventPreprocessor with feature_set={self.feature_set} "
+                    "requires a subarray, but none was given."
+                )
+            self.required_attributes = feature_set.get("required_attributes", [])
             self.feature_generator = FeatureGenerator(
                 parent=self, features=feature_set["features_to_generate"]
             )
@@ -322,7 +337,18 @@ class EventPreprocessor(Component):
         applied, so these cut functions also receive events with failed
         reconstructions. They must accept NaN gammaness and energy values and
         should return ``False`` for those events.
+
+        Raises
+        ------
+        TypeError
+            If an object required by the feature set is not given.
         """
+        missing = [n for n in self.required_attributes if n not in other_attributes]
+        if missing:
+            raise TypeError(
+                f"EventPreprocessor with feature_set={self.feature_set} requires "
+                f"these keyword arguments, but they were not given: {missing}"
+            )
 
         # generate new features, which includes renaming columns:
         generated = self.feature_generator(
