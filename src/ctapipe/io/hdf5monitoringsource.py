@@ -701,9 +701,10 @@ class HDF5MonitoringSource(MonitoringSource):
                 # Map any pedestal name to the container field name (unique for pedestal)
                 container_name = "pedestal_image" if "pedestal_image" in name else name
                 pixel_stats_container[container_name] = StatisticsContainer(
-                    mean=select_channel(stats_data["mean"]),
-                    median=select_channel(stats_data["median"]),
-                    std=select_channel(stats_data["std"]),
+                    **{
+                        k: select_channel(stats_data[k])
+                        for k in (StatisticsContainer.fields.keys() & stats_data.keys())
+                    }
                 )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if tel_id in self._camera_coefficients:
