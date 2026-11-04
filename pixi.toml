@@ -39,7 +39,7 @@ bokeh = ">=3,<4"
 hist = "*"
 iminuit = ">=2"
 matplotlib = ">=3,<4"
-pyirf = ">=0.14,<0.15"
+pyirf = ">=0.15,<0.16"
 h5py = "*"
 zernike = "*"
 
