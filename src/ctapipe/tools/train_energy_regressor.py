@@ -148,7 +148,6 @@ class TrainEnergyRegressor(Tool):
         """
         Write-out trained models and cross-validation results.
         """
-        self.regressor.n_jobs = None
         self.writer.write_reconstructor(self.regressor)
         self.loader.close()
         self.cross_validate.close()

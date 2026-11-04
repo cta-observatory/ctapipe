@@ -173,7 +173,6 @@ class TrainDispReconstructor(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        self.reconstructor.n_jobs = None
         self.writer.write_reconstructor(self.reconstructor)
         self.loader.close()
         self.cross_validate.close()
