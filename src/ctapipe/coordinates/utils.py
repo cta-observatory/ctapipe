@@ -1,6 +1,8 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.coordinates.erfa_astrom import ErfaAstromInterpolator, erfa_astrom
+from astropy.time import Time
 from erfa.ufunc import p2s as cartesian_to_spherical
 from erfa.ufunc import s2p as spherical_to_cartesian
 
@@ -106,12 +108,30 @@ def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> u.Quantity:
     )
 
 
-def altaz_to_icrs(az, alt, obstime, location) -> u.Quantity:
+def altaz_to_icrs(
+    az: u.Quantity,
+    alt: u.Quantity,
+    obstime: Time,
+    location: EarthLocation,
+    resolution: u.Quantity = 5 * u.min,
+) -> u.Quantity:
     """
     Compute nominal (FOV) coordinates from alt/az coordinates.
 
     This can be used in a FeatureGenerator or ExpressionEngine to get a single
     column with fov_lon, fov_lat coordinates.
+
+    Parameters
+    ----------
+    az: u.Quantity
+        Horizontal azimuth
+    alt: u.Quantity
+        Horizontal altitude
+    location: EarthLocation
+        Observatory location
+    resolution: u.Quantity[time]
+        Time resolution for the interpolation of obs_times. Higher values speed
+        up the computation significantly for a large number of events.
 
     Returns
     -------
@@ -121,6 +141,8 @@ def altaz_to_icrs(az, alt, obstime, location) -> u.Quantity:
     event_coord = SkyCoord(
         az=az, alt=alt, frame="altaz", obstime=obstime, location=location
     )
-    icrs_coord = event_coord.transform_to("icrs")
+
+    with erfa_astrom.set(ErfaAstromInterpolator(resolution)):
+        icrs_coord = event_coord.transform_to("icrs")
 
     return u.Quantity(np.column_stack((icrs_coord.ra.deg, icrs_coord.dec.deg)), u.deg)
