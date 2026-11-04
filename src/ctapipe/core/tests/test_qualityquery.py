@@ -170,6 +170,44 @@ def test_add_columns():
 @pytest.mark.parametrize(
     "criteria",
     [
+        pytest.param([("cut", "True")], id="python_scalar"),
+        pytest.param([("cut", "np.True_")], id="numpy_scalar"),
+        pytest.param([("cut", "np.asarray(x) > 0")], id="ndarray"),
+        pytest.param([("cut", "x > 0")], id="column"),
+    ],
+)
+def test_add_columns_matches_table_mask(criteria):
+    """Test that adding columns accepts the same results as get_table_mask."""
+
+    table = Table({"x": [-10, 1, 11]})
+
+    query = QualityQuery(quality_criteria=criteria)
+    expected = query.get_table_mask(table)
+    expected_counts = query.to_table()["counts"]
+
+    query = QualityQuery(quality_criteria=criteria)
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert table_with_cols["cut"].dtype == bool
+    assert np.all(table_with_cols["cut"] == expected)
+    assert np.all(query.to_table()["counts"] == expected_counts)
+
+
+def test_add_columns_criteria_are_independent():
+    """Test that a criterion cannot use the result of an earlier criterion."""
+
+    query = QualityQuery(
+        quality_criteria=[("low", "x > 0"), ("both", "low & (x < 10)")]
+    )
+    table = Table({"x": [-10, 1, 11]})
+
+    with pytest.raises(ExpressionError):
+        query.add_table_mask_columns(table)
+
+
+@pytest.mark.parametrize(
+    "criteria",
+    [
         pytest.param([("x", "x > 0"), ("high", "x < 10")], id="existing_column"),
         pytest.param([("cut", "x > 0"), ("cut", "x < 10")], id="repeated_criterion"),
     ],
