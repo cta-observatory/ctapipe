@@ -206,7 +206,7 @@ class EventPreprocessorMode(Enum):
     """Mode of output of EventPreprocessor."""
 
     DROP = auto()  #: drop events that do not pass
-    MARK = auto()  #: only mark evens as not passing, adding boolean columns
+    MARK = auto()  #: only mark events as not passing, adding boolean columns
 
 
 class EventPreprocessor(Component):
@@ -231,7 +231,8 @@ class EventPreprocessor(Component):
         default_value=EventPreprocessorMode.DROP,
         help=(
             "If 'DROP', removes events that do not pass quality cuts. "
-            "If 'MARK', generates a new boolean column for each quality criteria, "
+            "If 'MARK', generates a new boolean column for each quality criteria "
+            "and one for their combination (see QualityQuery.passed_all_column), "
             "but keeps all events."
         ),
     ).tag(config=True)
@@ -368,7 +369,10 @@ class EventPreprocessor(Component):
             selected_mask = self.quality_query.get_table_mask(generated)
             return generated[self.features][selected_mask]
         elif self.mode == EventPreprocessorMode.MARK:
-            generated = self.quality_query.add_table_mask_columns(generated)
-            return generated[self.features + self.quality_query.criteria_names]
+            query = self.quality_query
+            generated = query.add_table_mask_columns(generated)
+            return generated[
+                self.features + query.criteria_names + [query.passed_all_column]
+            ]
         else:
             raise ValueError("Unsupported mode: {self.mode}")
