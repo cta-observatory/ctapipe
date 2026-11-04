@@ -152,7 +152,26 @@ class QualityQuery(Component):
         -------
         Table :
             Original table plus new columns per criterion.
+
+        Raises
+        ------
+        QualityCriteriaError
+            If a criterion name is already a column of the table or is used by
+            more than one criterion.
         """
+        names = self.criteria_names
+        collisions = [
+            name
+            for i, name in enumerate(names)
+            if name in table.colnames or name in names[:i]
+        ]
+        if collisions:
+            raise QualityCriteriaError(
+                f"Cannot add mask columns, criteria names are not unique: {collisions}."
+                " Rename these criteria so they differ from each other and from the"
+                " columns of the table."
+            )
+
         table = table.copy()
         n_criteria = len(self.quality_criteria) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)

@@ -7,4 +7,7 @@ Also added a ``mode=MARK`` option that keeps all events, but adds boolean
 columns per ``QualityCriterion`` showing which ones pass. This is useful for
 debugging. The default mode is still ``DROP``, which filters events. A
 corresponding API function `~ctapipe.core.QualityQuery.add_table_mask_columns`
-was also added to support this.
+was also added to support this. It raises a
+`~ctapipe.core.QualityCriteriaError` if a criterion name is already a column of
+the table or is used by more than one criterion, so ``MARK`` mode rejects such
+configurations.
