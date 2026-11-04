@@ -175,7 +175,7 @@ class TrainParticleClassifier(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.classifier.fit(tel_type, table)
             self.log.info("Writing model for %s using key %s", tel_type, tel_type)
-            self.writer.write_joblib(tel_type, self.classifier._models[tel_type])
+            self.writer.write_joblib(tel_type, self.classifier._models.pop(tel_type))
             self.log.info("done")
 
     def _read_input_data(self, tel_type):
