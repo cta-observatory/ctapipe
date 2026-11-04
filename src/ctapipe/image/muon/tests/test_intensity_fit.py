@@ -146,7 +146,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
 
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
     assert u.isclose(result.width, ring_width, rtol=0.1)
-    assert u.isclose(result.optical_efficiency, efficiency * u.eV, rtol=0.05)
+    assert u.isclose(result.optical_bandwidth, efficiency * u.eV, rtol=0.05)
     assert result.is_valid
     assert not result.parameters_at_limit
     assert np.isfinite(result.likelihood_value)
