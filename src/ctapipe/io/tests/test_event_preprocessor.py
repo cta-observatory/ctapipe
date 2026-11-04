@@ -83,7 +83,7 @@ def test_event_preprocessing(
         assert len(table_processed) == len(table)
 
         # check that new columns were added:
-        set(table_processed.colnames) - set(table.colnames) == set(
+        assert set(table_processed.colnames) - set(table.colnames) == set(
             preprocess.quality_query.criteria_names
         )
 
