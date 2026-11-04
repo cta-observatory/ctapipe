@@ -1,7 +1,9 @@
 """Module containing classes related to event loading and preprocessing"""
 
 from enum import Enum, auto
+from functools import partial
 
+from astropy import units as u
 from astropy.coordinates import angular_separation
 
 from ..coordinates import altaz_to_icrs, altaz_to_nominal
@@ -250,9 +252,24 @@ class EventPreprocessor(Component):
         ),
     ).tag(config=True)
 
+    interpolation_time_resolution = traits.AstroQuantity(
+        help=(
+            "Time resolution to use for interpolation observation times when converting from "
+            "altaz to ICRS. At around 5 minutes, the performance increase is significant for "
+            "large numbers of events and within the needed precision."
+        ),
+        default_value=u.Quantity(5 * u.s),
+        physical_type=u.physical.time,
+    ).tag(config=True)
+
     def __init__(self, config=None, parent=None, subarray=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
+
+        self.altaz_to_icrs = partial(
+            altaz_to_icrs, resolution=self.interpolation_time_resolution
+        )
+
         if self.feature_set == "custom":
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = QualityQuery(parent=self)
@@ -291,7 +308,7 @@ class EventPreprocessor(Component):
             table,
             angular_separation=angular_separation,
             altaz_to_nominal=altaz_to_nominal,
-            altaz_to_icrs=altaz_to_icrs,
+            altaz_to_icrs=self.altaz_to_icrs,
             subarray=self.subarray,
             **other_attributes,
         )
