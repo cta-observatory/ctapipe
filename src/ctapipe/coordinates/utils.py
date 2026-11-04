@@ -87,25 +87,22 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     return AltAz(alt=lat, az=-lon, copy=False)
 
 
-def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> u.Quantity:
+def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> SkyCoord:
     """
     Compute nominal (FOV) coordinates from alt/az coordinates.
 
     This can be used in a FeatureGenerator or ExpressionEngine to get a single
-    column with fov_lon, fov_lat coordinates.
+    column of coordinates, from which further expressions can use ``.fov_lon``
+    and ``.fov_lat``.
 
     Returns
     -------
-    u.Quantity:
-       2D array of coordinates with 2 columns: fov_lon, fov_lat
+    SkyCoord:
+       Coordinates in the `~ctapipe.coordinates.NominalFrame`
     """
     pointing_coord = SkyCoord(az=pointing_az, alt=pointing_alt, frame="altaz")
     event_coord = SkyCoord(az=az, alt=alt, frame="altaz", origin=pointing_coord)
-    nominal_coord = event_coord.transform_to(NominalFrame)
-
-    return u.Quantity(
-        np.column_stack((nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
-    )
+    return event_coord.transform_to(NominalFrame)
 
 
 def altaz_to_icrs(
@@ -114,13 +111,14 @@ def altaz_to_icrs(
     obstime: Time,
     location: EarthLocation,
     resolution: u.Quantity = 5 * u.min,
-) -> u.Quantity:
+) -> SkyCoord:
     """
     Compute ICRS coordinates from alt/az coordinates.
 
     This can be used in a FeatureGenerator or ExpressionEngine to get a single
-    column with ra, dec coordinates. Events with non-finite az or alt, such as
-    failed reconstructions, are not transformed and have NaN in the output.
+    column of coordinates, from which further expressions can use ``.ra`` and
+    ``.dec``. Events with non-finite az or alt, such as failed reconstructions,
+    are not transformed and have NaN in the output.
 
     Parameters
     ----------
@@ -138,17 +136,18 @@ def altaz_to_icrs(
 
     Returns
     -------
-    u.Quantity:
-       2D array of coordinates with 2 columns: ra, dec. Scalar inputs are
-       broadcast against each other, and all-scalar inputs give a single row.
+    SkyCoord:
+       Coordinates in the ICRS frame. Inputs are broadcast against each other, and
+       all-scalar inputs give a scalar coordinate.
     """
-    shape = np.broadcast_shapes(np.shape(az), np.shape(alt), obstime.shape, (1,))
-    az = np.broadcast_to(az, shape, subok=True)
-    alt = np.broadcast_to(alt, shape, subok=True)
-    obstime = np.broadcast_to(obstime, shape, subok=True)
+    shape = np.broadcast_shapes(np.shape(az), np.shape(alt), obstime.shape)
+    az = np.broadcast_to(az, shape, subok=True).ravel()
+    alt = np.broadcast_to(alt, shape, subok=True).ravel()
+    obstime = np.broadcast_to(obstime, shape, subok=True).ravel()
 
     valid = np.isfinite(az) & np.isfinite(alt)
-    ra_dec = np.full((*shape, 2), np.nan)
+    ra = np.full(az.shape, np.nan)
+    dec = np.full(az.shape, np.nan)
 
     if np.any(valid):
         event_coord = SkyCoord(
@@ -162,7 +161,11 @@ def altaz_to_icrs(
         with erfa_astrom.set(ErfaAstromInterpolator(resolution)):
             icrs_coord = event_coord.transform_to("icrs")
 
-        ra_dec[valid, 0] = icrs_coord.ra.deg
-        ra_dec[valid, 1] = icrs_coord.dec.deg
+        ra[valid] = icrs_coord.ra.deg
+        dec[valid] = icrs_coord.dec.deg
 
-    return u.Quantity(ra_dec, u.deg)
+    return SkyCoord(
+        ra=u.Quantity(ra.reshape(shape), u.deg),
+        dec=u.Quantity(dec.reshape(shape), u.deg),
+        frame="icrs",
+    )

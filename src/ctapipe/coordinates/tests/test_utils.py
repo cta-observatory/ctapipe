@@ -58,18 +58,18 @@ def test_single_telescope(subarray_prod5_paranal):
 
 
 def test_altaz_to_nominal():
-    from ctapipe.coordinates import altaz_to_nominal
+    from ctapipe.coordinates import NominalFrame, altaz_to_nominal
 
-    column = altaz_to_nominal(
+    coord = altaz_to_nominal(
         az=[220.0, 220.2] * u.deg,
         alt=[80.0, 79.2] * u.deg,
         pointing_az=[220.0, 220.0] * u.deg,
         pointing_alt=[80.0, 80.0] * u.deg,
     )
 
-    assert column.unit == u.deg
-    assert np.allclose(column[0].value, 0)
-    assert np.allclose(column[1].value, [0.03747984, -0.79993558])
+    assert isinstance(coord.frame, NominalFrame)
+    assert u.allclose(coord.fov_lon, [0, 0.03747984] * u.deg, atol=1e-8 * u.deg)
+    assert u.allclose(coord.fov_lat, [0, -0.79993558] * u.deg, atol=1e-8 * u.deg)
 
 
 @pytest.fixture
@@ -88,7 +88,7 @@ def altaz_to_icrs_inputs():
 
 def test_altaz_to_icrs(altaz_to_icrs_inputs):
     """Check the result against an exact astropy transformation."""
-    from astropy.coordinates import SkyCoord
+    from astropy.coordinates import ICRS, SkyCoord
 
     from ctapipe.coordinates import altaz_to_icrs
 
@@ -96,9 +96,10 @@ def test_altaz_to_icrs(altaz_to_icrs_inputs):
 
     result = altaz_to_icrs(**altaz_to_icrs_inputs)
 
-    assert result.shape == (3, 2)
-    assert u.allclose(result[:, 0], expected.ra, atol=1 * u.arcsec)
-    assert u.allclose(result[:, 1], expected.dec, atol=1 * u.arcsec)
+    assert isinstance(result.frame, ICRS)
+    assert result.shape == (3,)
+    assert u.allclose(result.ra, expected.ra, atol=1 * u.arcsec)
+    assert u.allclose(result.dec, expected.dec, atol=1 * u.arcsec)
 
 
 def test_altaz_to_icrs_non_finite(altaz_to_icrs_inputs):
@@ -117,14 +118,17 @@ def test_altaz_to_icrs_non_finite(altaz_to_icrs_inputs):
         warnings.simplefilter("error", RuntimeWarning)
         result = altaz_to_icrs(**inputs)
 
-    assert u.allclose(result[0], expected[0])
-    assert np.all(np.isnan(result[1:]))
+    assert u.isclose(result[0].ra, expected[0].ra)
+    assert u.isclose(result[0].dec, expected[0].dec)
+    assert np.all(np.isnan(result[1:].ra))
+    assert np.all(np.isnan(result[1:].dec))
 
     # nothing valid: no transformation should be attempted
     inputs = altaz_to_icrs_inputs | dict(az=np.full(3, np.nan) * u.deg)
     result = altaz_to_icrs(**inputs)
-    assert result.shape == (3, 2)
-    assert np.all(np.isnan(result))
+    assert result.shape == (3,)
+    assert np.all(np.isnan(result.ra))
+    assert np.all(np.isnan(result.dec))
 
 
 def test_altaz_to_icrs_scalars(altaz_to_icrs_inputs):
@@ -135,17 +139,25 @@ def test_altaz_to_icrs_scalars(altaz_to_icrs_inputs):
     az, alt, obstime = inputs["az"], inputs["alt"], inputs["obstime"]
     location = inputs["location"]
 
-    # all scalars give one row, including a scalar non-finite event
+    def assert_same_coord(result, expected):
+        assert result.shape == expected.shape
+        assert u.allclose(result.ra, expected.ra)
+        assert u.allclose(result.dec, expected.dec)
+
+    # all scalars give a scalar coordinate, including a non-finite event
     expected = altaz_to_icrs(az, alt, obstime, location)
     result = altaz_to_icrs(az[0], alt[0], obstime[0], location)
-    assert result.shape == (1, 2)
-    assert u.allclose(result[0], expected[0])
-    assert np.all(np.isnan(altaz_to_icrs(np.nan * u.deg, alt[0], obstime[0], location)))
+    assert result.isscalar
+    assert_same_coord(result, expected[0])
+
+    result = altaz_to_icrs(np.nan * u.deg, alt[0], obstime[0], location)
+    assert result.isscalar
+    assert np.isnan(result.ra) and np.isnan(result.dec)
 
     # a scalar time with array coordinates
     expected = altaz_to_icrs(az, alt, obstime[[0, 0, 0]], location)
-    assert u.allclose(altaz_to_icrs(az, alt, obstime[0], location), expected)
+    assert_same_coord(altaz_to_icrs(az, alt, obstime[0], location), expected)
 
     # scalar coordinates with an array of times
     expected = altaz_to_icrs(az[[0, 0, 0]], alt[[0, 0, 0]], obstime, location)
-    assert u.allclose(altaz_to_icrs(az[0], alt[0], obstime, location), expected)
+    assert_same_coord(altaz_to_icrs(az[0], alt[0], obstime, location), expected)
