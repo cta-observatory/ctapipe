@@ -1364,7 +1364,11 @@ class MuonEfficiencyContainer(Container):
     impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
     impact_x = Field(nan * u.m, "impact parameter x position")
     impact_y = Field(nan * u.m, "impact parameter y position")
-    optical_efficiency = Field(nan, "optical efficiency muon")
+    optical_efficiency = Field(
+        nan * u.eV,
+        "optical efficiency muon, integrated over photon energy",
+        unit=u.eV,
+    )
     is_valid = Field(False, "True if the fit converged successfully")
     parameters_at_limit = Field(
         False, "True if any bounded parameter was fitted close to a bound"
