@@ -8,7 +8,7 @@ from math import erf
 import numpy as np
 from astropy import units as u
 from numba import double, vectorize
-from scipy.constants import alpha
+from scipy.constants import alpha, c, e, h
 from scipy.ndimage import correlate1d
 
 from ...containers import MuonEfficiencyContainer
@@ -328,7 +328,7 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha * (min_lambda_m**-1 - max_lambda_m**-1)
+    pred *= alpha / h / c * e
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
@@ -611,7 +611,7 @@ class MuonIntensityFitter(TelescopeComponent):
             impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
             impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
             width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
-            optical_efficiency=result["optical_efficiency_muon"],
+            optical_efficiency=result["optical_efficiency_muon"] * u.eV,
             is_valid=minuit.valid,
             parameters_at_limit=minuit.fmin.has_parameters_at_limit,
             likelihood_value=minuit.fval,
