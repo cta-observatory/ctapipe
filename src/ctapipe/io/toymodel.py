@@ -14,6 +14,8 @@ from ..containers import (
     SubarrayEventContainer,
     SubarrayEventIndexContainer,
     TelescopeDL1Container,
+    TelescopeEventContainer,
+    TelescopeEventIndexContainer,
 )
 from ..core import TelescopeComponent, traits
 from .datalevels import DataLevel
@@ -54,6 +56,8 @@ class ToyEventSource(TelescopeComponent, EventSource):
     def __init__(self, subarray, config=None, parent=None, rng=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self._camera_radii = {}
+        self._obs_id = 1
+        self._sb_id = 1
 
         if rng is None:
             self.rng = np.random.default_rng(self.seed)
@@ -74,16 +78,17 @@ class ToyEventSource(TelescopeComponent, EventSource):
 
     @property
     def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
-        sb = SchedulingBlockContainer(producer_id="ctapipe toymodel")
+        sb = SchedulingBlockContainer(sb_id=self._sb_id)
         return {sb.sb_id: sb}
 
     @property
     def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
-        ob = ObservationBlockContainer(producer_id="ctapipe toymodel")
-        return {ob.ob_id: ob}
+        ob = ObservationBlockContainer(obs_id=self._obs_id, sb_id=self._sb_id)
+        return {ob.obs_id: ob}
 
     @staticmethod
     def is_compatible(file_path):
+        del file_path
         return False
 
     def _generator(self):
@@ -100,7 +105,9 @@ class ToyEventSource(TelescopeComponent, EventSource):
 
         event = SubarrayEventContainer(
             count=self.event_id,
-            index=SubarrayEventIndexContainer(obs_id=1, event_id=self.event_id),
+            index=SubarrayEventIndexContainer(
+                obs_id=self._obs_id, event_id=self.event_id
+            ),
             dl0=None,
             dl2=None,
             simulation=None,
@@ -148,6 +155,11 @@ class ToyEventSource(TelescopeComponent, EventSource):
             )
             image, _, _ = model.generate_image(cam, intensity)
 
-            event.tel[tel_id].dl1 = TelescopeDL1Container(image=image)
+            event.tel[tel_id] = TelescopeEventContainer(
+                index=TelescopeEventIndexContainer(
+                    obs_id=self._obs_id, event_id=self.event_id, tel_id=tel_id
+                ),
+                dl1=TelescopeDL1Container(image=image),
+            )
 
         return event
