@@ -1,3 +1,5 @@
+import warnings
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -68,3 +70,82 @@ def test_altaz_to_nominal():
     assert column.unit == u.deg
     assert np.allclose(column[0].value, 0)
     assert np.allclose(column[1].value, [0.03747984, -0.79993558])
+
+
+@pytest.fixture
+def altaz_to_icrs_inputs():
+    """Three events at different times, seen from the CTAO southern site."""
+    from astropy.coordinates import EarthLocation
+    from astropy.time import Time
+
+    return dict(
+        az=[271.0, 268.5, 270.5] * u.deg,
+        alt=[70.1, 69.5, 70.8] * u.deg,
+        obstime=Time("2020-06-20T00:00:00") + [0, 10, 20] * u.s,
+        location=EarthLocation(lon=-70.3 * u.deg, lat=-24.6 * u.deg, height=2150 * u.m),
+    )
+
+
+def test_altaz_to_icrs(altaz_to_icrs_inputs):
+    """Check the result against an exact astropy transformation."""
+    from astropy.coordinates import SkyCoord
+
+    from ctapipe.coordinates import altaz_to_icrs
+
+    expected = SkyCoord(frame="altaz", **altaz_to_icrs_inputs).icrs
+
+    result = altaz_to_icrs(**altaz_to_icrs_inputs)
+
+    assert result.shape == (3, 2)
+    assert u.allclose(result[:, 0], expected.ra, atol=1 * u.arcsec)
+    assert u.allclose(result[:, 1], expected.dec, atol=1 * u.arcsec)
+
+
+def test_altaz_to_icrs_non_finite(altaz_to_icrs_inputs):
+    """Check non-finite events give NaN, without affecting or warning about others."""
+    from ctapipe.coordinates import altaz_to_icrs
+
+    expected = altaz_to_icrs(**altaz_to_icrs_inputs)
+
+    az = altaz_to_icrs_inputs["az"].copy()
+    alt = altaz_to_icrs_inputs["alt"].copy()
+    az[1] = np.nan
+    alt[2] = np.inf
+    inputs = altaz_to_icrs_inputs | dict(az=az, alt=alt)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = altaz_to_icrs(**inputs)
+
+    assert u.allclose(result[0], expected[0])
+    assert np.all(np.isnan(result[1:]))
+
+    # nothing valid: no transformation should be attempted
+    inputs = altaz_to_icrs_inputs | dict(az=np.full(3, np.nan) * u.deg)
+    result = altaz_to_icrs(**inputs)
+    assert result.shape == (3, 2)
+    assert np.all(np.isnan(result))
+
+
+def test_altaz_to_icrs_scalars(altaz_to_icrs_inputs):
+    """Check scalar inputs are broadcast and give the same result as arrays."""
+    from ctapipe.coordinates import altaz_to_icrs
+
+    inputs = altaz_to_icrs_inputs
+    az, alt, obstime = inputs["az"], inputs["alt"], inputs["obstime"]
+    location = inputs["location"]
+
+    # all scalars give one row, including a scalar non-finite event
+    expected = altaz_to_icrs(az, alt, obstime, location)
+    result = altaz_to_icrs(az[0], alt[0], obstime[0], location)
+    assert result.shape == (1, 2)
+    assert u.allclose(result[0], expected[0])
+    assert np.all(np.isnan(altaz_to_icrs(np.nan * u.deg, alt[0], obstime[0], location)))
+
+    # a scalar time with array coordinates
+    expected = altaz_to_icrs(az, alt, obstime[[0, 0, 0]], location)
+    assert u.allclose(altaz_to_icrs(az, alt, obstime[0], location), expected)
+
+    # scalar coordinates with an array of times
+    expected = altaz_to_icrs(az[[0, 0, 0]], alt[[0, 0, 0]], obstime, location)
+    assert u.allclose(altaz_to_icrs(az[0], alt[0], obstime, location), expected)

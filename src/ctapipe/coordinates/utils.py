@@ -116,17 +116,20 @@ def altaz_to_icrs(
     resolution: u.Quantity = 5 * u.min,
 ) -> u.Quantity:
     """
-    Compute nominal (FOV) coordinates from alt/az coordinates.
+    Compute ICRS coordinates from alt/az coordinates.
 
     This can be used in a FeatureGenerator or ExpressionEngine to get a single
-    column with fov_lon, fov_lat coordinates.
+    column with ra, dec coordinates. Events with non-finite az or alt, such as
+    failed reconstructions, are not transformed and have NaN in the output.
 
     Parameters
     ----------
     az: u.Quantity
-        Horizontal azimuth
+        Horizontal azimuth, scalar or array
     alt: u.Quantity
-        Horizontal altitude
+        Horizontal altitude, scalar or array
+    obstime: Time
+        Observation time, scalar or array
     location: EarthLocation
         Observatory location
     resolution: u.Quantity[time]
@@ -136,13 +139,30 @@ def altaz_to_icrs(
     Returns
     -------
     u.Quantity:
-       2D array of coordinates with 2 columns: ra, dec
+       2D array of coordinates with 2 columns: ra, dec. Scalar inputs are
+       broadcast against each other, and all-scalar inputs give a single row.
     """
-    event_coord = SkyCoord(
-        az=az, alt=alt, frame="altaz", obstime=obstime, location=location
-    )
+    shape = np.broadcast_shapes(np.shape(az), np.shape(alt), obstime.shape, (1,))
+    az = np.broadcast_to(az, shape, subok=True)
+    alt = np.broadcast_to(alt, shape, subok=True)
+    obstime = np.broadcast_to(obstime, shape, subok=True)
 
-    with erfa_astrom.set(ErfaAstromInterpolator(resolution)):
-        icrs_coord = event_coord.transform_to("icrs")
+    valid = np.isfinite(az) & np.isfinite(alt)
+    ra_dec = np.full((*shape, 2), np.nan)
 
-    return u.Quantity(np.column_stack((icrs_coord.ra.deg, icrs_coord.dec.deg)), u.deg)
+    if np.any(valid):
+        event_coord = SkyCoord(
+            az=az[valid],
+            alt=alt[valid],
+            frame="altaz",
+            obstime=obstime[valid],
+            location=location,
+        )
+
+        with erfa_astrom.set(ErfaAstromInterpolator(resolution)):
+            icrs_coord = event_coord.transform_to("icrs")
+
+        ra_dec[valid, 0] = icrs_coord.ra.deg
+        ra_dec[valid, 1] = icrs_coord.dec.deg
+
+    return u.Quantity(ra_dec, u.deg)
