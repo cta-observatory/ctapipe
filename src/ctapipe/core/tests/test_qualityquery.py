@@ -5,7 +5,7 @@ import pytest
 from astropy.table import Table
 
 from ctapipe.core.expression_engine import ExpressionError
-from ctapipe.core.qualityquery import QualityQuery
+from ctapipe.core.qualityquery import QualityCriteriaError, QualityQuery
 from ctapipe.core.traits import List
 
 
@@ -165,3 +165,25 @@ def test_add_columns():
     assert "low" in table_with_cols.colnames
     assert "high" in table_with_cols.colnames
     assert table_with_cols["low"].sum() == 6
+
+
+@pytest.mark.parametrize(
+    "criteria",
+    [
+        pytest.param([("x", "x > 0"), ("high", "x < 10")], id="existing_column"),
+        pytest.param([("cut", "x > 0"), ("cut", "x < 10")], id="repeated_criterion"),
+    ],
+)
+def test_add_columns_name_collision(criteria):
+    """Test that criteria names may not collide when adding columns."""
+
+    query = QualityQuery(quality_criteria=criteria)
+    table = Table({"x": [-10, 1, 11]})
+
+    with pytest.raises(QualityCriteriaError, match="not unique"):
+        query.add_table_mask_columns(table)
+
+    # the input and the statistics are unchanged
+    assert table.colnames == ["x"]
+    assert list(table["x"]) == [-10, 1, 11]
+    assert np.all(query.to_table()["counts"] == 0)
