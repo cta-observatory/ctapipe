@@ -270,7 +270,7 @@ class EventPreprocessor(Component):
             "altaz to ICRS. At around 5 minutes, the performance increase is significant for "
             "large numbers of events and within the needed precision."
         ),
-        default_value=u.Quantity(5 * u.s),
+        default_value=u.Quantity(5 * u.minute),
         physical_type=u.physical.time,
     ).tag(config=True)
 
