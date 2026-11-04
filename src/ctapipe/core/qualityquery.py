@@ -176,10 +176,11 @@ class QualityQuery(Component):
         n_criteria = len(self.quality_criteria) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
-        for i, res in enumerate(self.engine(table)):
-            name = self.criteria_names[i]
-            table[name] = res.data
-            result[i + 1] = res.data
+        for i, res in enumerate(self.engine(table), start=1):
+            result[i] = res
+
+        for name, mask in zip(names, result[1:]):
+            table[name] = mask
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
