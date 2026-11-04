@@ -35,7 +35,11 @@ from astropy.stats import sigma_clip
 from astropy.table import Row, Table
 from traitlets import TraitError
 
-from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
+from ..containers import (
+    ChunkHistogramContainer,
+    ChunkStatisticsContainer,
+    StatisticsContainer,
+)
 from ..core import Component
 from ..core.traits import (
     AstroQuantity,
@@ -660,11 +664,18 @@ class StatisticsAggregator(BaseAggregator):
         results_dict,
         axis_names=None,
     ):
-        stats = self._compute_stats(data, masked_elements_of_sample)
+        stats = self._compute_stats(data, masked_elements_of_sample).stats
         results_dict["n_events"].append(stats.n_events)
         results_dict["mean"].append(stats.mean)
         results_dict["median"].append(stats.median)
         results_dict["std"].append(stats.std)
+        results_dict["q05"].append(stats.q05)
+        results_dict["q10"].append(stats.q10)
+        results_dict["q25"].append(stats.q25)
+        results_dict["q75"].append(stats.q75)
+        results_dict["q90"].append(stats.q90)
+        results_dict["q95"].append(stats.q95)
+        results_dict["iqr"].append(stats.iqr)
 
     def _set_result_units(self, table, unit):
         """
@@ -716,20 +727,43 @@ class PlainAggregator(StatisticsAggregator):
         element_median = np.ma.median(masked_data, axis=0)
         element_std = np.ma.std(masked_data, axis=0)
 
+        # Convert the masked array to a NaN-filled array for nanquantile
+        nan_filled_data = np.ma.filled(masked_data, np.nan)
+
+        # Calculate all required quantiles at once along axis=0
+        quantiles = [0.05, 0.10, 0.25, 0.75, 0.90, 0.95]
+        q_results = np.nanquantile(nan_filled_data, quantiles, axis=0)
+
         # For 1D data, these operations return scalars (not MaskedArrays)
         # Convert to array and fill masked values with NaN
         element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
         element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
         element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
+        element_q05 = np.ma.filled(np.ma.asarray(q_results[0]), np.nan)
+        element_q10 = np.ma.filled(np.ma.asarray(q_results[1]), np.nan)
+        element_q25 = np.ma.filled(np.ma.asarray(q_results[2]), np.nan)
+        element_q75 = np.ma.filled(np.ma.asarray(q_results[3]), np.nan)
+        element_q90 = np.ma.filled(np.ma.asarray(q_results[4]), np.nan)
+        element_q95 = np.ma.filled(np.ma.asarray(q_results[5]), np.nan)
+        element_iqr = np.ma.filled(np.ma.asarray(q_results[3] - q_results[2]), np.nan)
 
         # Count non-masked events per element (excludes both masked and NaN/inf values)
         n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
 
         return ChunkStatisticsContainer(
-            n_events=n_events_per_element,
-            mean=element_mean,
-            median=element_median,
-            std=element_std,
+            stats=StatisticsContainer(
+                n_events=n_events_per_element,
+                mean=element_mean,
+                median=element_median,
+                std=element_std,
+                q05=element_q05,
+                q10=element_q10,
+                q25=element_q25,
+                q75=element_q75,
+                q90=element_q90,
+                q95=element_q95,
+                iqr=element_iqr,
+            )
         )
 
 
@@ -776,15 +810,38 @@ class SigmaClippingAggregator(StatisticsAggregator):
         element_median = np.ma.median(filtered_data, axis=0)
         element_std = np.ma.std(filtered_data, axis=0)
 
+        # Convert the filtered masked array to a NaN-filled array for nanquantile
+        nan_filled_data = np.ma.filled(filtered_data, np.nan)
+
+        # Calculate all required quantiles at once along axis=0
+        quantiles = [0.05, 0.10, 0.25, 0.75, 0.90, 0.95]
+        q_results = np.nanquantile(nan_filled_data, quantiles, axis=0)
+
         # For 1D data, these operations return scalars (not MaskedArrays)
         # Convert to array and fill masked values with NaN
         element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
         element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
         element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
+        element_q05 = np.ma.filled(np.ma.asarray(q_results[0]), np.nan)
+        element_q10 = np.ma.filled(np.ma.asarray(q_results[1]), np.nan)
+        element_q25 = np.ma.filled(np.ma.asarray(q_results[2]), np.nan)
+        element_q75 = np.ma.filled(np.ma.asarray(q_results[3]), np.nan)
+        element_q90 = np.ma.filled(np.ma.asarray(q_results[4]), np.nan)
+        element_q95 = np.ma.filled(np.ma.asarray(q_results[5]), np.nan)
+        element_iqr = np.ma.filled(np.ma.asarray(q_results[3] - q_results[2]), np.nan)
 
         return ChunkStatisticsContainer(
-            n_events=n_events_after_clipping,
-            mean=element_mean,
-            median=element_median,
-            std=element_std,
+            stats=StatisticsContainer(
+                n_events=n_events_after_clipping,
+                mean=element_mean,
+                median=element_median,
+                std=element_std,
+                q05=element_q05,
+                q10=element_q10,
+                q25=element_q25,
+                q75=element_q75,
+                q90=element_q90,
+                q95=element_q95,
+                iqr=element_iqr,
+            )
         )

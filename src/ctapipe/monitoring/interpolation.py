@@ -38,6 +38,9 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
         An open hdf5 file with read access.
     """
 
+    #: Columns that are used if present, but may be absent (e.g. older files).
+    optional_columns = frozenset()
+
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -85,6 +88,8 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
         if len(missing) > 0:
             raise ValueError(f"Table is missing required column(s): {missing}")
         for col in self.expected_units:
+            if col not in input_table.colnames:
+                continue  # optional column not present
             unit = input_table[col].unit
             if unit is None:
                 if self.expected_units[col] is not None:
@@ -230,16 +235,18 @@ class PointingInterpolator(LinearInterpolator):
 class ChunkInterpolator(MonitoringInterpolator):
     """
     Simple interpolator for overlapping chunks of data.
+
+    The data columns are all ``required_columns`` and those of
+    ``optional_columns`` present in the table, except ``time_start`` and
+    ``time_end``. All tables of one file are assumed to share the same columns.
     """
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+        super().__init__(h5file, **kwargs)
         self.time_start = {}
         self.time_end = {}
         self.values = {}
-        self.columns = list(self.required_columns)  # these will be the data columns
-        self.columns.remove("time_start")
-        self.columns.remove("time_end")
+        self.columns = []  # data columns present in the tables, set by add_table
 
     def __call__(
         self, tel_id: int, time: Time, timestamp_tolerance: u.Quantity = 0.0 * u.s
@@ -259,7 +266,8 @@ class ChunkInterpolator(MonitoringInterpolator):
         Returns
         -------
         interpolated : float or dict
-            Interpolated data for the specified column(s).
+            Interpolated data for the specified column(s). Optional columns
+            absent from the table are not included.
         """
 
         if tel_id not in self.values:
@@ -287,7 +295,8 @@ class ChunkInterpolator(MonitoringInterpolator):
             Table of values to be interpolated, expected columns
             are ``time_start`` as ``validity start Time`` column,
             ``time_end`` as ``validity end Time`` and the specified columns
-            for the data of the chunks.
+            for the data of the chunks. Columns in ``optional_columns``
+            are used if present.
         """
 
         self._check_tables(input_table)
@@ -299,6 +308,11 @@ class ChunkInterpolator(MonitoringInterpolator):
         self.time_start[tel_id] = input_table["time_start"].to_value("mjd")
         self.time_end[tel_id] = input_table["time_end"].to_value("mjd")
 
+        data_columns = (self.required_columns | self.optional_columns) - {
+            "time_start",
+            "time_end",
+        }
+        self.columns = sorted(c for c in data_columns if c in input_table.colnames)
         for column in self.columns:
             self.values[tel_id][column] = input_table[column]
 
@@ -377,8 +391,40 @@ class ChunkInterpolator(MonitoringInterpolator):
 class StatisticsInterpolator(ChunkInterpolator):
     """Interpolator for statistics tables."""
 
-    required_columns = frozenset(["time_start", "time_end", "mean", "median", "std"])
-    expected_units = {"mean": None, "median": None, "std": None}
+    required_columns = frozenset(
+        [
+            "time_start",
+            "time_end",
+            "mean",
+            "median",
+            "std",
+            "n_events",
+        ]
+    )
+    optional_columns = frozenset(
+        [
+            "q05",
+            "q10",
+            "q25",
+            "q75",
+            "q90",
+            "q95",
+            "iqr",
+        ]
+    )
+    expected_units = {
+        "mean": None,
+        "median": None,
+        "std": None,
+        "q05": None,
+        "q10": None,
+        "q25": None,
+        "q75": None,
+        "q90": None,
+        "q95": None,
+        "iqr": None,
+        "n_events": None,
+    }
 
 
 class PedestalImageInterpolator(StatisticsInterpolator):

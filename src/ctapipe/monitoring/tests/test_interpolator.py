@@ -15,15 +15,30 @@ from ctapipe.monitoring.interpolation import (
 
 t0 = Time("2022-01-01T00:00:00")
 
+STAT_KEYS = [
+    "mean",
+    "median",
+    "std",
+    "q05",
+    "q10",
+    "q25",
+    "q75",
+    "q90",
+    "q95",
+    "iqr",
+]
+
 
 def test_chunk_selection(camera_geometry):
     table_ff = Table(
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
             "time_end": t0 + [2, 3, 4, 8] * u.s,
-            "mean": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
-            "median": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
-            "std": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "n_events": [100] * 4,
+            **{
+                k: [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]]
+                for k in STAT_KEYS
+            },
         },
     )
     interpolator_ff = FlatfieldImageInterpolator()
@@ -33,7 +48,7 @@ def test_chunk_selection(camera_geometry):
     val2 = interpolator_ff(tel_id=1, time=t0 + 1.7 * u.s)
     val3 = interpolator_ff(tel_id=1, time=t0 + 2.2 * u.s)
 
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.all(np.isclose(val1[key], np.full((2, len(camera_geometry)), 2)))
         assert np.all(np.isclose(val2[key], np.full((2, len(camera_geometry)), 2)))
         assert np.all(np.isclose(val3[key], np.full((2, len(camera_geometry)), 3)))
@@ -42,9 +57,11 @@ def test_chunk_selection(camera_geometry):
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
             "time_end": t0 + [2, 3, 4, 8] * u.s,
-            "mean": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
-            "median": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
-            "std": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+            "n_events": [100] * 4,
+            **{
+                k: [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]]
+                for k in STAT_KEYS
+            },
         },
     )
     interpolator_ped = PedestalImageInterpolator()
@@ -53,7 +70,7 @@ def test_chunk_selection(camera_geometry):
     unique_timestamps = Time([t0 + 1.2 * u.s, t0 + 1.7 * u.s, t0 + 2.2 * u.s])
     vals = interpolator_ped(tel_id=1, time=unique_timestamps)
 
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.all(np.isclose(vals[key][0], np.full((2, len(camera_geometry)), 2)))
         assert np.all(np.isclose(vals[key][1], np.full((2, len(camera_geometry)), 2)))
         assert np.all(np.isclose(vals[key][2], np.full((2, len(camera_geometry)), 3)))
@@ -70,9 +87,8 @@ def test_nan_switch(camera_geometry):
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
             "time_end": t0 + [2, 3, 4, 8] * u.s,
-            "mean": data,
-            "median": data,
-            "std": data,
+            "n_events": [100] * 4,
+            **{k: data for k in STAT_KEYS},
         },
     )
     interpolator_ff = FlatfieldImageInterpolator()
@@ -85,16 +101,15 @@ def test_nan_switch(camera_geometry):
         1  # where the nan was introduced before we should now have the value from the earlier chunk
     )
 
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.all(np.isclose(val[key], res))
 
     table_ped = Table(
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
             "time_end": t0 + [2, 3, 4, 8] * u.s,
-            "mean": data,
-            "median": data,
-            "std": data,
+            "n_events": [100] * 4,
+            **{k: data for k in STAT_KEYS},
         },
     )
     interpolator_ped = PedestalImageInterpolator()
@@ -102,7 +117,7 @@ def test_nan_switch(camera_geometry):
 
     val = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
 
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.all(np.isclose(val[key], res))
 
 
@@ -111,16 +126,15 @@ def test_no_valid_chunk():
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
             "time_end": t0 + [2, 3, 4, 8] * u.s,
-            "mean": [1, 2, 3, 4],
-            "median": [1, 2, 3, 4],
-            "std": [1, 2, 3, 4],
+            "n_events": [100] * 4,
+            **{k: [1, 2, 3, 4] for k in STAT_KEYS},
         },
     )
     interpolator_ff = FlatfieldPeakTimeInterpolator()
     interpolator_ff.add_table(1, table_ff)
 
     val = interpolator_ff(tel_id=1, time=t0 + 5.2 * u.s)
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.isnan(val[key])
 
 
@@ -129,9 +143,8 @@ def test_before_first_chunk():
         {
             "time_start": t0 + [0, 1, 2, 6] * u.s,
             "time_end": t0 + [2, 3, 4, 8] * u.s,
-            "mean": [1, 2, 3, 4],
-            "median": [1, 2, 3, 4],
-            "std": [1, 2, 3, 4],
+            "n_events": [100] * 4,
+            **{k: [1, 2, 3, 4] for k in STAT_KEYS},
         },
     )
     interpolator_ped = PedestalImageInterpolator()
@@ -140,19 +153,19 @@ def test_before_first_chunk():
     values_invalid = interpolator_ped(
         tel_id=1, time=t0 - 5.2 * u.s, timestamp_tolerance=0.25 * u.s
     )
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.isnan(values_invalid[key])
 
     values_valid = interpolator_ped(
         tel_id=1, time=t0 - 0.15 * u.s, timestamp_tolerance=0.25 * u.s
     )
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert values_valid[key] == table_ped[key][0]
 
     values_invalid = interpolator_ped(
         tel_id=1, time=t0 - 0.15 * u.s, timestamp_tolerance=0.04 * u.s
     )
-    for key in ["mean", "median", "std"]:
+    for key in STAT_KEYS:
         assert np.isnan(values_invalid[key])
 
 
