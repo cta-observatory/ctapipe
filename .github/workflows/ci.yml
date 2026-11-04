@@ -67,7 +67,6 @@ jobs:
             install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
-            pytest-markers: "-m 'not vizier'"
 
           - name: Linux (3.13, pixi)
             os: ubuntu-24.04
