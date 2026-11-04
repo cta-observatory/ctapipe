@@ -312,7 +312,16 @@ class EventPreprocessor(Component):
            Table to process
         **other_attributes: Any
            Other functions or objects that the FeatureGenerator should have
-           access to, in addition to the default ones.
+           access to, in addition to the default ones. The ``dl2_to_dl3`` feature
+           set requires ``gammaness_cut_function(gammaness, energy)`` and
+           ``multiplicity_cut_function(multiplicity, energy)``.
+
+        Notes
+        -----
+        Features are generated for all events before any quality criteria are
+        applied, so these cut functions also receive events with failed
+        reconstructions. They must accept NaN gammaness and energy values and
+        should return ``False`` for those events.
         """
 
         # generate new features, which includes renaming columns:
