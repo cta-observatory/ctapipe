@@ -1364,7 +1364,7 @@ class MuonEfficiencyContainer(Container):
     impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
     impact_x = Field(nan * u.m, "impact parameter x position")
     impact_y = Field(nan * u.m, "impact parameter y position")
-    optical_efficiency = Field(
+    optical_bandwidth = Field(
         nan * u.eV,
         "optical efficiency muon, integrated over photon energy",
         unit=u.eV,
