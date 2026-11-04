@@ -86,6 +86,40 @@ def test_event_preprocessing(
         assert set(preprocess.quality_query.criteria_names) <= set(
             table_processed.colnames
         )
+        assert "PASSED_ALL" in table_processed.colnames
+
+
+def test_mark_passed_all(minimal_dl2_table, subarray_prod5_paranal):
+    """Check the combined column in MARK mode selects the same events as DROP mode."""
+    from traitlets.config import Config
+
+    from ctapipe.io import EventPreprocessor
+
+    cuts = dict(
+        gammaness_cut_function=lambda g, e: g > 0.2,
+        multiplicity_cut_function=lambda m, e: m >= 4,
+    )
+
+    def process(mode, config=None):
+        preprocess = EventPreprocessor(
+            config=config,
+            feature_set="dl2_to_dl3",
+            subarray=subarray_prod5_paranal,
+            mode=mode,
+        )
+        return preprocess(minimal_dl2_table, **cuts)
+
+    dropped = process(EventPreprocessorMode.DROP)
+    marked = process(EventPreprocessorMode.MARK)
+    assert np.all(marked["EVENT_ID"][marked["PASSED_ALL"]] == dropped["EVENT_ID"])
+    assert 0 < len(dropped) < len(marked)
+
+    # the name can be configured
+    config = Config()
+    config.EventPreprocessor.QualityQuery.passed_all_column = "SELECTED"
+    marked = process(EventPreprocessorMode.MARK, config=config)
+    assert "SELECTED" in marked.colnames
+    assert "PASSED_ALL" not in marked.colnames
 
 
 def test_dl3_fov_coordinates(minimal_dl2_table, subarray_prod5_paranal):

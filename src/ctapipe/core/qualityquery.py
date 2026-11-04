@@ -35,6 +35,14 @@ class QualityQuery(Component):
         ),
     ).tag(config=True)
 
+    passed_all_column = Unicode(
+        default_value="PASSED_ALL",
+        help=(
+            "Name of the column that `add_table_mask_columns` adds with the combination"
+            " of all criteria. Change it if several queries mark the same table."
+        ),
+    ).tag(config=True)
+
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -143,8 +151,9 @@ class QualityQuery(Component):
         """
         Return a shallow copy of the table with boolean columns for each criterion.
 
-        The input table does not gain any columns, but the returned table shares the
-        data of its existing columns.
+        A final column, named by `QualityQuery.passed_all_column`, is true for the
+        entries that pass all criteria. The input table does not gain any columns,
+        but the returned table shares the data of its existing columns.
 
         Parameters
         ----------
@@ -155,15 +164,16 @@ class QualityQuery(Component):
         Returns
         -------
         Table :
-            Shallow copy of the table plus new columns per criterion.
+            Shallow copy of the table plus new columns per criterion and the
+            combination of all criteria.
 
         Raises
         ------
         QualityCriteriaError
-            If a criterion name is already a column of the table or is used by
-            more than one criterion.
+            If the name of a criterion or of the combined column is already a column
+            of the table or is used more than once.
         """
-        names = self.criteria_names
+        names = [*self.criteria_names, self.passed_all_column]
         collisions = [
             name
             for i, name in enumerate(names)
@@ -172,8 +182,8 @@ class QualityQuery(Component):
         if collisions:
             raise QualityCriteriaError(
                 f"Cannot add mask columns, criteria names are not unique: {collisions}."
-                " Rename these criteria so they differ from each other and from the"
-                " columns of the table."
+                " Rename them so they differ from each other and from the columns of"
+                " the table."
             )
 
         table = shallow_copy_table(table)
@@ -183,8 +193,10 @@ class QualityQuery(Component):
         for i, res in enumerate(self.engine(table), start=1):
             result[i] = res
 
-        for name, mask in zip(names, result[1:]):
+        for name, mask in zip(self.criteria_names, result[1:]):
             table[name] = mask
+
+        table[self.passed_all_column] = np.all(result, axis=0)
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)

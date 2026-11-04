@@ -211,6 +211,7 @@ def test_add_columns_criteria_are_independent():
     [
         pytest.param([("x", "x > 0"), ("high", "x < 10")], id="existing_column"),
         pytest.param([("cut", "x > 0"), ("cut", "x < 10")], id="repeated_criterion"),
+        pytest.param([("PASSED_ALL", "x > 0")], id="combined_column"),
     ],
 )
 def test_add_columns_name_collision(criteria):
@@ -245,7 +246,49 @@ def test_add_columns_shallow_copy(table_cls):
 
     assert type(table_with_cols) is table_cls
     assert table.colnames == ["x", "time"]
-    assert table_with_cols.colnames == ["x", "time", "low"]
+    assert table_with_cols.colnames == ["x", "time", "low", "PASSED_ALL"]
     assert table_with_cols.meta == table.meta
     assert np.shares_memory(table["x"], table_with_cols["x"])
     assert np.shares_memory(table["time"].jd1, table_with_cols["time"].jd1)
+
+
+def test_add_columns_passed_all():
+    """Test the column with the combination of all criteria."""
+
+    query = QualityQuery(quality_criteria=[("low", "x > 0"), ("high", "x < 10")])
+    table = Table({"x": [-10, 1, 5, 11]})
+
+    expected = query.get_table_mask(table)
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert list(table_with_cols["PASSED_ALL"]) == [False, True, True, False]
+    assert np.all(table_with_cols["PASSED_ALL"] == expected)
+
+    # the combined column is not a criterion, so it does not appear in the statistics
+    assert query.criteria_names == ["low", "high"]
+    assert len(query.to_table()) == 3
+
+
+def test_add_columns_passed_all_configurable():
+    """Test that two queries can mark the same table with different column names."""
+
+    table = Table({"x": [-10, 1, 11]})
+
+    low = QualityQuery(
+        quality_criteria=[("low", "x > 0")], passed_all_column="PASSED_LOW"
+    )
+    high = QualityQuery(
+        quality_criteria=[("high", "x < 10")], passed_all_column="PASSED_HIGH"
+    )
+
+    table_with_cols = high.add_table_mask_columns(low.add_table_mask_columns(table))
+
+    assert list(table_with_cols["PASSED_LOW"]) == [False, True, True]
+    assert list(table_with_cols["PASSED_HIGH"]) == [True, True, False]
+
+    # with the same name, the second query is rejected instead of overwriting the first
+    other = QualityQuery(quality_criteria=[("cut", "x != 1")])
+    marked = other.add_table_mask_columns(table)
+    same_name = QualityQuery(quality_criteria=[("cut2", "x != 2")])
+    with pytest.raises(QualityCriteriaError, match="PASSED_ALL"):
+        same_name.add_table_mask_columns(marked)
