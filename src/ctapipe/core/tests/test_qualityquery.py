@@ -2,7 +2,8 @@
 
 import numpy as np
 import pytest
-from astropy.table import Table
+from astropy.table import QTable, Table
+from astropy.time import Time
 
 from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.qualityquery import QualityCriteriaError, QualityQuery
@@ -225,3 +226,26 @@ def test_add_columns_name_collision(criteria):
     assert table.colnames == ["x"]
     assert list(table["x"]) == [-10, 1, 11]
     assert np.all(query.to_table()["counts"] == 0)
+
+
+@pytest.mark.parametrize("table_cls", [Table, QTable])
+def test_add_columns_shallow_copy(table_cls):
+    """Test that adding columns shares the data and leaves the input unchanged."""
+
+    query = QualityQuery(quality_criteria=[("low", "x > 0")])
+    table = table_cls(
+        {
+            "x": np.array([-10.0, 1.0, 11.0]),
+            "time": Time([1, 2, 3], format="unix"),
+        }
+    )
+    table.meta["key"] = "value"
+
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert type(table_with_cols) is table_cls
+    assert table.colnames == ["x", "time"]
+    assert table_with_cols.colnames == ["x", "time", "low"]
+    assert table_with_cols.meta == table.meta
+    assert np.shares_memory(table["x"], table_with_cols["x"])
+    assert np.shares_memory(table["time"].jd1, table_with_cols["time"].jd1)

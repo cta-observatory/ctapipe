@@ -8,6 +8,7 @@ import numpy as np  # for use in selection functions
 
 from .component import Component
 from .expression_engine import ExpressionEngine
+from .feature_generator import shallow_copy_table
 from .traits import List, Tuple, Unicode
 
 
@@ -140,7 +141,10 @@ class QualityQuery(Component):
 
     def add_table_mask_columns(self, table):
         """
-        Return original table with boolean columns for each criterion.
+        Return a shallow copy of the table with boolean columns for each criterion.
+
+        The input table does not gain any columns, but the returned table shares the
+        data of its existing columns.
 
         Parameters
         ----------
@@ -151,7 +155,7 @@ class QualityQuery(Component):
         Returns
         -------
         Table :
-            Original table plus new columns per criterion.
+            Shallow copy of the table plus new columns per criterion.
 
         Raises
         ------
@@ -172,7 +176,7 @@ class QualityQuery(Component):
                 " columns of the table."
             )
 
-        table = table.copy()
+        table = shallow_copy_table(table)
         n_criteria = len(self.quality_criteria) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
