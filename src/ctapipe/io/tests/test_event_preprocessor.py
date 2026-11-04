@@ -109,6 +109,67 @@ def test_dl3_fov_coordinates(minimal_dl2_table, subarray_prod5_paranal):
     assert np.all(np.sign(table["DETY"]) == [1, -1, -1, 1])
 
 
+def test_dl3_multiplicity(minimal_dl2_table, subarray_prod5_paranal):
+    """Check that MULTIP has the dtype and values of the telescope multiplicity."""
+    from ctapipe.io import EventPreprocessor
+
+    preprocess = EventPreprocessor(
+        feature_set="dl2_to_dl3",
+        subarray=subarray_prod5_paranal,
+        mode=EventPreprocessorMode.MARK,
+    )
+    table = preprocess(
+        minimal_dl2_table,
+        gammaness_cut_function=lambda g, e: True,
+        multiplicity_cut_function=lambda m, e: True,
+    )
+
+    expected = subarray_prod5_paranal.multiplicity(
+        minimal_dl2_table["HillasReconstructor_telescopes"]
+    )
+    assert table["MULTIP"].dtype == np.int16
+    assert np.all(table["MULTIP"] == expected)
+
+
+def test_dl3_matches_datamodel(minimal_dl2_table, subarray_prod5_paranal):
+    """Check that the output conforms to the GADF events table of the datamodel."""
+    from ctao_datamodel import model_validate_astropy_table
+    from ctao_datamodel.models.dl3.ctao_gadf import GADFEventsTable
+
+    from ctapipe.io import EventPreprocessor
+
+    cut_inputs = {}
+
+    def gammaness_cut(gammaness, energy):
+        cut_inputs["gammaness"] = gammaness
+        cut_inputs["energy"] = energy
+        return True
+
+    preprocess = EventPreprocessor(
+        feature_set="dl2_to_dl3",
+        subarray=subarray_prod5_paranal,
+        mode=EventPreprocessorMode.MARK,
+    )
+    table = preprocess(
+        minimal_dl2_table,
+        gammaness_cut_function=gammaness_cut,
+        multiplicity_cut_function=lambda m, e: True,
+    )
+
+    # TIME stays a Time column until the file is written
+    assert isinstance(table["TIME"], Time)
+    table["TIME"] = table["TIME"].unix * u.s
+    model_validate_astropy_table(table, GADFEventsTable)
+
+    # not (yet) covered by the datamodel
+    assert table["DETY"].dtype == np.float32
+    assert table["HMAX"].dtype == np.float32
+
+    # the cuts see the values before they are reduced to float32
+    assert cut_inputs["gammaness"].dtype == np.float64
+    assert cut_inputs["energy"].dtype == np.float64
+
+
 def test_no_output():
     """Check error is raised if no columns are specified for output."""
     from ctapipe.core import ToolConfigurationError

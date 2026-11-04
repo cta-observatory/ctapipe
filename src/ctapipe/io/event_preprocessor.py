@@ -129,36 +129,46 @@ def _dl2_irf_config(preprocessor):
 
 @FeatureSetRegistry.register("dl2_to_dl3")
 def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
-    """Creates a DL3/Event table that conforms to GADF/VODF column naming."""
+    """
+    Creates a DL3/Event table that conforms to GADF/VODF column naming and dtypes.
+
+    TIME is the exception: it stays a `~astropy.time.Time` column, to be converted
+    when writing the file, along with the corresponding time headers.
+    """
+    geometry = preprocessor.geometry_reconstructor
+    energy = f"{preprocessor.energy_reconstructor}_energy"
+    gammaness = f"{preprocessor.gammaness_reconstructor}_prediction"
+
+    # derived values use the input columns, so only the output is reduced to float32
     return {
         "features_to_generate": [
             ("EVENT_ID", "event_id"),
             ("TIME", "time"),
-            ("ALT", f"{preprocessor.geometry_reconstructor}_alt"),
-            ("AZ", f"{preprocessor.geometry_reconstructor}_az"),
+            ("ALT", f"{geometry}_alt.astype(np.float32)"),
+            ("AZ", f"{geometry}_az.astype(np.float32)"),
             (
                 "_reco_fov_coord",
-                "altaz_to_nominal(AZ, ALT, subarray_pointing_lon, subarray_pointing_lat)",
+                f"altaz_to_nominal({geometry}_az, {geometry}_alt, subarray_pointing_lon, subarray_pointing_lat)",
             ),
             # GADF defines (DETX, DETY) as (FOV_ALTAZ_LON, FOV_ALTAZ_LAT), where the
             # longitude increases with decreasing azimuth, the opposite of fov_lon
-            ("DETX", "-_reco_fov_coord[:,0]"),
-            ("DETY", "_reco_fov_coord[:,1]"),
+            ("DETX", "(-_reco_fov_coord[:,0]).astype(np.float32)"),
+            ("DETY", "_reco_fov_coord[:,1].astype(np.float32)"),
             (
                 "_reco_icrs_coord",
-                "altaz_to_icrs(AZ, ALT, TIME, subarray.reference_location)",
+                f"altaz_to_icrs({geometry}_az, {geometry}_alt, TIME, subarray.reference_location)",
             ),
-            ("RA", "_reco_icrs_coord[:,0]"),
-            ("DEC", "_reco_icrs_coord[:,1]"),
-            ("ENERGY", f"{preprocessor.energy_reconstructor}_energy"),
-            ("GAMMANESS", f"{preprocessor.gammaness_reconstructor}_prediction"),
+            ("RA", "_reco_icrs_coord[:,0].astype(np.float32)"),
+            ("DEC", "_reco_icrs_coord[:,1].astype(np.float32)"),
+            ("ENERGY", f"{energy}.astype(np.float32)"),
+            ("GAMMANESS", f"{gammaness}.astype(np.float32)"),
             (
                 "MULTIP",
-                f"subarray.multiplicity({preprocessor.geometry_reconstructor}_telescopes)",
+                f"subarray.multiplicity({geometry}_telescopes).astype(np.int16)",
             ),
-            ("HMAX", f"{preprocessor.geometry_reconstructor}_h_max"),
-            ("_passed_gh", "gammaness_cut_function(GAMMANESS, ENERGY)"),
-            ("_passed_multip", "multiplicity_cut_function(MULTIP, ENERGY)"),
+            ("HMAX", f"{geometry}_h_max.astype(np.float32)"),
+            ("_passed_gh", f"gammaness_cut_function({gammaness}, {energy})"),
+            ("_passed_multip", f"multiplicity_cut_function(MULTIP, {energy})"),
         ],
         "quality_criteria": [
             ("VALID_RECO", f"{preprocessor.geometry_reconstructor}_is_valid"),
