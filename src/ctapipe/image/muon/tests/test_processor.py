@@ -2,6 +2,7 @@
 Tests for MuonProcessor functionality
 """
 
+import astropy.units as u
 import numpy as np
 import pytest
 
@@ -27,6 +28,7 @@ def test_processor(dl1_muon_file):
             for tel_id, tel_event in event.tel.items():
                 efficiencies.append(tel_event.muon.efficiency.optical_efficiency)
 
+        efficiencies = u.Quantity(efficiencies)
         assert len(efficiencies) > 0  # Assert there were events analyzed
         assert np.any(
             np.isfinite(efficiencies)
