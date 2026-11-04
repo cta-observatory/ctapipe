@@ -140,8 +140,10 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
                 "_reco_fov_coord",
                 "altaz_to_nominal(AZ, ALT, subarray_pointing_lon, subarray_pointing_lat)",
             ),
-            ("FOV_LON", "_reco_fov_coord[:,0]"),
-            ("FOV_LAT", "_reco_fov_coord[:,1]"),
+            # GADF defines (DETX, DETY) as (FOV_ALTAZ_LON, FOV_ALTAZ_LAT), where the
+            # longitude increases with decreasing azimuth, the opposite of fov_lon
+            ("DETX", "-_reco_fov_coord[:,0]"),
+            ("DETY", "_reco_fov_coord[:,1]"),
             (
                 "_reco_icrs_coord",
                 "altaz_to_icrs(AZ, ALT, TIME, subarray.reference_location)",
@@ -173,8 +175,8 @@ def _dl2_to_dl3_config(preprocessor: "EventPreprocessor"):
             "ENERGY",
             "ALT",
             "AZ",
-            "FOV_LON",
-            "FOV_LAT",
+            "DETX",
+            "DETY",
             "GAMMANESS",
             "MULTIP",
             "HMAX",
