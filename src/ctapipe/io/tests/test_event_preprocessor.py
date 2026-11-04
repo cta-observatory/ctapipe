@@ -88,6 +88,27 @@ def test_event_preprocessing(
         )
 
 
+def test_dl3_fov_coordinates(minimal_dl2_table, subarray_prod5_paranal):
+    """Check that DETX and DETY follow the GADF sign convention."""
+    from ctapipe.io import EventPreprocessor
+
+    preprocess = EventPreprocessor(
+        feature_set="dl2_to_dl3",
+        subarray=subarray_prod5_paranal,
+        mode=EventPreprocessorMode.MARK,
+    )
+    table = preprocess(
+        minimal_dl2_table,
+        gammaness_cut_function=lambda g, e: True,
+        multiplicity_cut_function=lambda m, e: True,
+    )
+
+    # the pointing is at az=270 deg, alt=70 deg: DETX increases with decreasing
+    # azimuth, and DETY with increasing altitude
+    assert np.all(np.sign(table["DETX"]) == [-1, -1, -1, 1])
+    assert np.all(np.sign(table["DETY"]) == [1, -1, -1, 1])
+
+
 def test_no_output():
     """Check error is raised if no columns are specified for output."""
     from ctapipe.core import ToolConfigurationError
