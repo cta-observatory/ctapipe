@@ -108,6 +108,8 @@ def test_normalise_column_names(dummy_table):
 
 
 def test_true_source_fov_from_nominal_frame(dummy_table, tmp_path):
+    pytest.importorskip("pyirf", reason="pyirf is an optional dependency")
+
     from astropy.coordinates import AltAz, SkyCoord
     from traitlets.config import Config
 
