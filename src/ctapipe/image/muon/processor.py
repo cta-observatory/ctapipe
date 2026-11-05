@@ -213,7 +213,7 @@ class MuonProcessor(TelescopeComponent):
         self.log.debug(
             f"Muon fit: r={ring.radius:.2f}"
             f", width={efficiency.width:.4f}"
-            f", efficiency={efficiency.optical_efficiency:.2%}"
+            f", optical_bandwidth={efficiency.optical_bandwidth:.3f}"
         )
 
         event.muon.tel[tel_id] = MuonTelescopeContainer(

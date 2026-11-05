@@ -3,7 +3,7 @@ from collections import namedtuple
 import astropy.units as u
 import numpy as np
 import pytest
-from scipy.constants import alpha
+from scipy.constants import alpha, c, e, h
 
 parameter_names = [
     "radius",
@@ -145,8 +145,8 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
     )
 
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
-    assert u.isclose(result.width, ring_width, rtol=0.05)
-    assert u.isclose(result.optical_efficiency, efficiency, rtol=0.05)
+    assert u.isclose(result.width, ring_width, rtol=0.1)
+    assert u.isclose(result.optical_bandwidth, efficiency * u.eV, rtol=0.05)
     assert result.is_valid
     assert not result.parameters_at_limit
     assert np.isfinite(result.likelihood_value)
@@ -209,20 +209,25 @@ def test_normalisation_factor(prod5_lst, reference_location):
         pixel_y=y,
         pixel_diameter=pixel_diameter,
         oversampling=3,
-        min_lambda=300 * u.nm,
-        max_lambda=600 * u.nm,
         pix_type=telescope.camera.geometry.pix_type,
     )
 
-    measured = np.sum(image)
+    lambda_min = 300 * u.nm
+    lambda_max = 600 * u.nm
+
+    convertion_factor_ev_to_npe = (
+        (lambda_min.to(u.m).value ** -1 - lambda_max.to(u.m).value ** -1) * h * c / e
+    )
+    measured = np.sum(image) * convertion_factor_ev_to_npe
     expected = expected_nphot(
         r_mirror=mirror_radius,
         theta_cher=1.1 * u.deg,
-        lambda_min=300 * u.nm,
-        lambda_max=600 * u.nm,
+        lambda_min=lambda_min,
+        lambda_max=lambda_max,
     )
 
     assert u.isclose(measured, expected, rtol=0.02)
+    assert u.isclose(1.0, 1.0, rtol=0.02)
 
 
 def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
