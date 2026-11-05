@@ -241,6 +241,9 @@ class ChunkInterpolator(MonitoringInterpolator):
     ``time_end``. All tables of one file are assumed to share the same columns.
     """
 
+    #: Columns holding integer counts: 0 instead of NaN where no chunk is valid.
+    integer_columns = frozenset()
+
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(h5file, **kwargs)
         self.time_start = {}
@@ -338,7 +341,7 @@ class ChunkInterpolator(MonitoringInterpolator):
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         # Integer columns (e.g. ``n_events``) cannot hold NaN: they are 0 where no
         # chunk is valid and take the most recent valid chunk as it is.
-        is_float = np.issubdtype(values.dtype, np.floating)
+        is_float = column not in self.integer_columns
         missing = np.nan if is_float else 0
         # Convert timestamp tolerance to MJD days
         tolerance_mjd = timestamp_tolerance.to_value("day")
@@ -409,6 +412,7 @@ class StatisticsInterpolator(ChunkInterpolator):
             "n_events",
         ]
     )
+    integer_columns = frozenset(["n_events"])
     optional_columns = frozenset(
         [
             "q05",
