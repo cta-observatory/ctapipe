@@ -245,7 +245,9 @@ class ChunkInterpolator(MonitoringInterpolator):
     integer_columns = frozenset()
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
-        super().__init__(h5file, **kwargs)
+        if h5file is not None:
+            kwargs["h5file"] = h5file
+        super().__init__(**kwargs)
         self.time_start = {}
         self.time_end = {}
         self.values = {}
