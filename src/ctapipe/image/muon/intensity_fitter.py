@@ -479,7 +479,7 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     initial_guess["center_x"] = center_x.to_value(u.rad)
     initial_guess["center_y"] = center_y.to_value(u.rad)
     initial_guess["ring_width"] = 3 * pixel_radius
-    initial_guess["optical_bandwidth_muon"] = 0.1
+    initial_guess["optical_bandwidth_muon"] = 0.3
 
     return initial_guess
 
