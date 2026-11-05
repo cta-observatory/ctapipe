@@ -1122,13 +1122,21 @@ class ChunkContainer(Container):
     is_valid = Field(False, "true if chunk values are valid")
 
 
-class ChunkStatisticsContainer(ChunkContainer):
-    """Container for descriptive statistics of the chunk distribution"""
-
-    stats = Field(
-        default_factory=StatisticsContainer,
-        description="Descriptive statistics of the chunk distribution",
-    )
+# Containers cannot inherit from two field-defining Containers (ContainerMeta
+# allocates __slots__ per class, giving an instance lay-out conflict). Subclass
+# ChunkContainer and merge the StatisticsContainer fields instead; note that
+# isinstance(..., StatisticsContainer) is therefore False.
+# Warning: fields with the same name in both containers are overwritten silently
+# by the StatisticsContainer definition, so keep the field names disjoint.
+ChunkStatisticsContainer = type(
+    "ChunkStatisticsContainer",
+    (ChunkContainer,),
+    {
+        **StatisticsContainer.fields,
+        "__module__": __name__,
+        +"__doc__": "Container for descriptive statistics of the chunk distribution",
+    },
+)
 
 
 class ChunkHistogramContainer(ChunkContainer):

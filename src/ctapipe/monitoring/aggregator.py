@@ -38,7 +38,6 @@ from traitlets import TraitError
 from ..containers import (
     ChunkHistogramContainer,
     ChunkStatisticsContainer,
-    StatisticsContainer,
 )
 from ..core import Component
 from ..core.traits import (
@@ -676,7 +675,7 @@ class StatisticsAggregator(BaseAggregator):
         results_dict,
         axis_names=None,
     ):
-        stats = self._compute_stats(data, masked_elements_of_sample).stats
+        stats = self._compute_stats(data, masked_elements_of_sample)
         for name in ("n_events", *self._UNIT_COLUMNS):
             results_dict[name].append(getattr(stats, name))
 
@@ -719,9 +718,7 @@ class StatisticsAggregator(BaseAggregator):
         }
         # Count unmasked events per element (excludes masked, non-finite and clipped)
         n_events = np.count_nonzero(~np.ma.getmaskarray(masked_data), axis=0)
-        return ChunkStatisticsContainer(
-            stats=StatisticsContainer(n_events=n_events, **stats)
-        )
+        return ChunkStatisticsContainer(n_events=n_events, **stats)
 
     @abstractmethod
     def _compute_stats(

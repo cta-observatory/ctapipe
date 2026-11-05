@@ -1,2 +1,1 @@
-- Update the ChunkStatisticsContainer to composition pattern
-- Allow optional tables in the ChunkInterpolator for backwards compatibility
+- Allow optional columns in the ChunkInterpolator for backwards compatibility
