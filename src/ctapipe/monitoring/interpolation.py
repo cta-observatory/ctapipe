@@ -336,6 +336,10 @@ class ChunkInterpolator(MonitoringInterpolator):
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]
         mjd_times = np.atleast_1d(time.to_value("mjd"))
+        # Integer columns (e.g. ``n_events``) cannot hold NaN: they are 0 where no
+        # chunk is valid and take the most recent valid chunk as it is.
+        is_float = np.issubdtype(values.dtype, np.floating)
+        missing = np.nan if is_float else 0
         # Convert timestamp tolerance to MJD days
         tolerance_mjd = timestamp_tolerance.to_value("day")
         # Find the index of the closest preceding start time
@@ -343,9 +347,9 @@ class ChunkInterpolator(MonitoringInterpolator):
 
         interpolated_values = []
         for mjd, preceding_index in zip(mjd_times, preceding_indices):
-            # Default value is NaN or array of NaNs
+            # Default value is the missing value, scalar or array
             value = (
-                np.nan if np.isscalar(values[0]) else np.full_like(values[0], np.nan)
+                missing if np.isscalar(values[0]) else np.full_like(values[0], missing)
             )
             # Check if the requested time is before the first chunk
             if preceding_index < 0:
@@ -376,8 +380,12 @@ class ChunkInterpolator(MonitoringInterpolator):
                     <= mjd
                     <= (time_end[i] + tolerance_mjd)
                 ):
-                    # Only fill NaN values
-                    value = np.where(np.isnan(value), values[i], value)
+                    # Only fill NaN values; integer columns are taken as they are
+                    value = (
+                        np.where(np.isnan(value), values[i], value)
+                        if is_float
+                        else values[i]
+                    )
                     # If no NaN values left, we can stop
                     if np.all(~np.isnan(value)):
                         break
