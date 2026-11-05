@@ -69,3 +69,27 @@ def test_r1_simtel_broken_pixels(r1_file, extractor):
                 assert event.tel[tel_id].dl1.image is not None
 
         assert n_checked > 0
+
+
+def test_write_r1_no_waveforms(tmp_path):
+    from ctapipe.io import DataWriter, HDF5EventSource
+
+    path = "dataset://gamma_diffuse_train_0.23.1.dl2.h5"
+    output = tmp_path / "test.r1.h5"
+
+    with HDF5EventSource(
+        path,
+        max_events=20,
+    ) as source:
+        with DataWriter(
+            source,
+            output_path=output,
+            overwrite=True,
+            write_dl1_parameters=True,
+            write_r1_waveforms=True,
+        ) as writer:
+            event = next(iter(source))
+            writer(event)
+
+    with HDF5EventSource(output) as roundtrip_source:
+        next(iter(roundtrip_source))

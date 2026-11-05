@@ -1004,6 +1004,9 @@ class HDF5EventSource(EventSource):
         tel_event.r1 = next(waveform_readers[key])
 
         r1_waveform = tel_event.r1.waveform
+        if r1_waveform is None:
+            return
+
         if r1_waveform.ndim == 2:
             warnings.warn(
                 "Support for datamodel version <6.0.0 will be removed in a future release.",
