@@ -675,7 +675,6 @@ class StatisticsAggregator(BaseAggregator):
         results_dict["q75"].append(stats.q75)
         results_dict["q90"].append(stats.q90)
         results_dict["q95"].append(stats.q95)
-        results_dict["iqr"].append(stats.iqr)
 
     def _set_result_units(self, table, unit):
         """
@@ -745,7 +744,6 @@ class PlainAggregator(StatisticsAggregator):
         element_q75 = np.ma.filled(np.ma.asarray(q_results[3]), np.nan)
         element_q90 = np.ma.filled(np.ma.asarray(q_results[4]), np.nan)
         element_q95 = np.ma.filled(np.ma.asarray(q_results[5]), np.nan)
-        element_iqr = np.ma.filled(np.ma.asarray(q_results[3] - q_results[2]), np.nan)
 
         # Count non-masked events per element (excludes both masked and NaN/inf values)
         n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
@@ -762,7 +760,6 @@ class PlainAggregator(StatisticsAggregator):
                 q75=element_q75,
                 q90=element_q90,
                 q95=element_q95,
-                iqr=element_iqr,
             )
         )
 
@@ -828,7 +825,6 @@ class SigmaClippingAggregator(StatisticsAggregator):
         element_q75 = np.ma.filled(np.ma.asarray(q_results[3]), np.nan)
         element_q90 = np.ma.filled(np.ma.asarray(q_results[4]), np.nan)
         element_q95 = np.ma.filled(np.ma.asarray(q_results[5]), np.nan)
-        element_iqr = np.ma.filled(np.ma.asarray(q_results[3] - q_results[2]), np.nan)
 
         return ChunkStatisticsContainer(
             stats=StatisticsContainer(
@@ -842,6 +838,5 @@ class SigmaClippingAggregator(StatisticsAggregator):
                 q75=element_q75,
                 q90=element_q90,
                 q95=element_q95,
-                iqr=element_iqr,
             )
         )

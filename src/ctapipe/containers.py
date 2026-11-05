@@ -1098,7 +1098,6 @@ class StatisticsContainer(Container):
     q75 = Field(None, description="0.75 quantile")
     q90 = Field(None, description="0.90 quantile")
     q95 = Field(None, description="0.95 quantile")
-    iqr = Field(None, description="Interquartile range")
     n_events = Field(
         None, description="Sample size used for the statistics calculation, if known."
     )

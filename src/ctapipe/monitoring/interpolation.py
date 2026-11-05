@@ -409,7 +409,6 @@ class StatisticsInterpolator(ChunkInterpolator):
             "q75",
             "q90",
             "q95",
-            "iqr",
         ]
     )
     expected_units = {
@@ -422,7 +421,6 @@ class StatisticsInterpolator(ChunkInterpolator):
         "q75": None,
         "q90": None,
         "q95": None,
-        "iqr": None,
         "n_events": None,
     }
 
