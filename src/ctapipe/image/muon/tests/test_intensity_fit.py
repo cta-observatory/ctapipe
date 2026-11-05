@@ -209,8 +209,6 @@ def test_normalisation_factor(prod5_lst, reference_location):
         pixel_y=y,
         pixel_diameter=pixel_diameter,
         oversampling=3,
-        min_lambda=300 * u.nm,
-        max_lambda=600 * u.nm,
         pix_type=telescope.camera.geometry.pix_type,
     )
 
