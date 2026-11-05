@@ -1134,7 +1134,7 @@ ChunkStatisticsContainer = type(
     {
         **StatisticsContainer.fields,
         "__module__": __name__,
-        +"__doc__": "Container for descriptive statistics of the chunk distribution",
+        "__doc__": "Container for descriptive statistics of the chunk distribution",
     },
 )
 
