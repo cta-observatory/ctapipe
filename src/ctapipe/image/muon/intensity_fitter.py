@@ -202,8 +202,6 @@ def image_prediction(
     pixel_y,
     pixel_diameter,
     oversampling=3,
-    min_lambda=300 * u.nm,
-    max_lambda=600 * u.nm,
     pix_type=PixelShape.HEXAGON,
 ):
     """
@@ -244,8 +242,6 @@ def image_prediction(
         pixel_y.to_value(u.rad),
         pixel_diameter.to_value(u.rad),
         oversampling=oversampling,
-        min_lambda_m=min_lambda.to_value(u.m),
-        max_lambda_m=max_lambda.to_value(u.m),
         pix_type=pix_type,
     )
 
@@ -285,8 +281,6 @@ def image_prediction_no_units(
     pixel_y_rad,
     pixel_diameter_rad,
     oversampling=3,
-    min_lambda_m=300e-9,
-    max_lambda_m=600e-9,
     pix_type=PixelShape.HEXAGON,
 ):
     """
@@ -364,8 +358,6 @@ def build_negative_log_likelihood(
     geometry_tel_frame,
     mask,
     oversampling,
-    min_lambda,
-    max_lambda,
     spe_width,
     pedestal,
     hole_radius=0 * u.m,
@@ -397,9 +389,6 @@ def build_negative_log_likelihood(
         pedestal = pedestal[mask]
 
     pixel_diameter = geometry_tel_frame.pixel_width[0].to_value(u.rad)
-
-    min_lambda = min_lambda.to_value(u.m)
-    max_lambda = max_lambda.to_value(u.m)
 
     hole_radius_m = hole_radius.to_value(u.m)
 
@@ -449,8 +438,6 @@ def build_negative_log_likelihood(
             pixel_y_rad=pixel_y,
             pixel_diameter_rad=pixel_diameter,
             oversampling=oversampling,
-            min_lambda_m=min_lambda,
-            max_lambda_m=max_lambda,
             pix_type=pix_type,
         )
 
@@ -495,14 +482,6 @@ class MuonIntensityFitter(TelescopeComponent):
 
     spe_width = FloatTelescopeParameter(
         help="Width of a single photo electron distribution", default_value=0.5
-    ).tag(config=True)
-
-    min_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
-    ).tag(config=True)
-
-    max_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
@@ -568,8 +547,6 @@ class MuonIntensityFitter(TelescopeComponent):
             geometry_tel_frame=self._geometries_tel_frame[tel_id],
             mask=mask,
             oversampling=self.oversampling.tel[tel_id],
-            min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
-            max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
             spe_width=self.spe_width.tel[tel_id],
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
