@@ -1089,9 +1089,18 @@ class CameraCalibrationContainer(Container):
 class StatisticsContainer(Container):
     """Container for descriptive statistics"""
 
-    mean = Field(None, "mean value")
-    median = Field(None, "median value")
-    std = Field(None, "standard deviation")
+    mean = Field(None, description="mean value")
+    median = Field(None, description="median value")
+    std = Field(None, description="standard deviation")
+    q05 = Field(None, description="0.05 quantile")
+    q10 = Field(None, description="0.10 quantile")
+    q25 = Field(None, description="0.25 quantile")
+    q75 = Field(None, description="0.75 quantile")
+    q90 = Field(None, description="0.90 quantile")
+    q95 = Field(None, description="0.95 quantile")
+    n_events = Field(
+        None, description="Sample size used for the statistics calculation, if known."
+    )
 
 
 class ChunkContainer(Container):
@@ -1109,25 +1118,32 @@ class ChunkContainer(Container):
     )
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
-    n_events = Field(
-        -1, "number of events used for the calculation of the chunk values"
-    )
     outlier_mask = Field(None, "boolean mask indicating outliers in the chunk")
     is_valid = Field(False, "true if chunk values are valid")
 
 
-class ChunkStatisticsContainer(ChunkContainer):
-    """Container for descriptive statistics of the chunk distribution"""
-
-    mean = Field(None, "mean value of the chunk distribution")
-    median = Field(None, "median value of the chunk distribution")
-    std = Field(None, "standard deviation of the chunk distribution")
+# Containers cannot inherit from two field-defining Containers (ContainerMeta
+# allocates __slots__ per class, giving an instance lay-out conflict). Subclass
+# ChunkContainer and merge the StatisticsContainer fields instead; note that
+# isinstance(..., StatisticsContainer) is therefore False.
+# Warning: fields with the same name in both containers are overwritten silently
+# by the StatisticsContainer definition, so keep the field names disjoint.
+ChunkStatisticsContainer = type(
+    "ChunkStatisticsContainer",
+    (ChunkContainer,),
+    {
+        **StatisticsContainer.fields,
+        "__module__": __name__,
+        "__doc__": "Container for descriptive statistics of the chunk distribution",
+    },
+)
 
 
 class ChunkHistogramContainer(ChunkContainer):
     """Container for histograms of the chunk distribution"""
 
     histogram = Field(None, "histogram of the chunk distribution")
+    n_events = Field(None, description="Sample size used to fill the histogram.")
 
 
 class PixelStatisticsContainer(Container):
