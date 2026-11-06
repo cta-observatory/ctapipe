@@ -25,6 +25,7 @@ __all__ = [
     "CoreParametersContainer",
     "DispContainer",
     "EventType",
+    "FRAMMonitoringContainer",
     "HillasParametersContainer",
     "ImageParametersContainer",
     "ImageStatisticsContainer",
@@ -61,6 +62,7 @@ __all__ = [
     "SubarraySimulationContainer",
     "SubarrayTriggerContainer",
     "TelescopeConfigurationIndexContainer",
+    "TelescopeCorrectedPointingContainer",
     "TelescopeDL0Container",
     "TelescopeDL1Container",
     "TelescopeDL2Container",
@@ -69,11 +71,6 @@ __all__ = [
     "TelescopeImpactParameterContainer",
     "TelescopeMonitoringContainer",
     "TelescopePointingContainer",
-    "TelescopeStructurePointingContainer",
-    "TelescopeStructureDisplacementContainer",
-    "CameraDisplacementContainer",
-    "AuxiliaryPointingCorrectionContainer",
-    "TelescopeCorrectedPointingContainer",
     "TelescopeStructureDisplacementContainer",
     "TelescopeStructurePointingContainer",
     "TelescopeR0Container",
@@ -82,7 +79,6 @@ __all__ = [
     "TelescopeTriggerContainer",
     "TimingParametersContainer",
     "WeatherMonitoringContainer",
-    "FRAMMonitoringContainer",
 ]
 
 
@@ -1075,18 +1071,6 @@ class CameraDisplacementContainer(Container):
     rotation_z = Field(
         nan * u.rad, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
     )
-
-
-class AuxiliaryPointingCorrectionContainer(Container):
-    """
-    Pointing correction in celestial coordinates derived using auxiliary hardware, such as e.g. StarGuider camera.
-    """
-
-    default_prefix = "aux_pointing_correction"
-    delta_ra = Field(
-        nan * u.rad, "Residual Right Ascension offset correction", unit=u.rad
-    )
-    delta_dec = Field(nan * u.rad, "Residual Declination offset correction", unit=u.rad)
 
 
 class TelescopeCorrectedPointingContainer(Container):
