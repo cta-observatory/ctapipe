@@ -8,7 +8,11 @@ import pytest
 import tables
 from packaging.version import Version
 
-from ctapipe.containers import ObservationBlockContainer
+from ctapipe.containers import (
+    ObservationBlockContainer,
+    SubarrayEventContainer,
+    SubarrayTriggerContainer,
+)
 from ctapipe.core import Provenance
 from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.hdf5dataformat import (
@@ -121,6 +125,36 @@ def test_allowed_tels(dl1_file):
         for event in source:
             assert set(event.dl0.trigger.tels_with_trigger).issubset(allowed_tels)
             assert set(event.tel).issubset(allowed_tels)
+            assert set(event.dl0.trigger.tels_with_data) == set(event.tel)
+
+
+@pytest.mark.parametrize("allowed_tels", [set(), {1, 2}])
+@pytest.mark.parametrize("tels_with_data", [None, [], [2, 3]])
+def test_update_telescope_lists(subarray_prod5_paranal, allowed_tels, tels_with_data):
+    source = HDF5EventSource.__new__(HDF5EventSource)
+    source._full_subarray = subarray_prod5_paranal
+    source.allowed_tels = allowed_tels
+    trigger = SubarrayTriggerContainer(
+        tels_with_trigger=subarray_prod5_paranal.tel_ids_to_mask([1, 2, 3]),
+        tels_with_data=(
+            None
+            if tels_with_data is None
+            else subarray_prod5_paranal.tel_ids_to_mask(tels_with_data)
+        ),
+    )
+    event = SubarrayEventContainer()
+    event.dl0.trigger = trigger
+
+    full_tels_with_data = source._update_telescope_lists(event)
+
+    expected_data = {1, 2, 3} if tels_with_data is None else set(tels_with_data)
+    assert set(full_tels_with_data) == expected_data
+    expected_trigger = {1, 2, 3}
+    if allowed_tels:
+        expected_data &= allowed_tels
+        expected_trigger &= allowed_tels
+    assert set(trigger.tels_with_data) == expected_data
+    assert set(trigger.tels_with_trigger) == expected_trigger
 
 
 def test_simulation_info(dl1_file):

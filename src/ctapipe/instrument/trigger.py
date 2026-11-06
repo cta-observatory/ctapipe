@@ -159,6 +159,8 @@ class SoftwareTrigger(TelescopeComponent):
         # completely remove array event if it wouldn't have triggered the stereo trigger
         if len(event.dl0.trigger.tels_with_trigger) < self.min_telescopes:
             event.dl0.trigger.tels_with_trigger = []
+            event.dl0.trigger.tels_with_data = []
             event.tel.clear()
             return False
+        event.dl0.trigger.tels_with_data = np.array(list(event.tel), dtype=np.uint16)
         return True

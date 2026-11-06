@@ -555,11 +555,11 @@ class HDF5EventSource(EventSource):
         counter = 0
         for trigger, index in events:
             event = self._create_array_event_container(trigger, index, counter)
-            full_tels_with_trigger = self._update_tels_with_trigger(event)
+            full_tels_with_data = self._update_telescope_lists(event)
 
             self._fill_telescope_triggers(
                 event,
-                full_tels_with_trigger,
+                full_tels_with_data,
                 telescope_trigger_reader,
             )
 
@@ -911,29 +911,32 @@ class HDF5EventSource(EventSource):
         event.meta["max_events"] = self.max_events
         return event
 
-    def _update_tels_with_trigger(self, event: SubarrayEventContainer):
+    def _update_telescope_lists(self, event: SubarrayEventContainer):
         trigger = event.dl0.trigger
-        full_tels_with_trigger = self._full_subarray.tel_mask_to_tel_ids(
-            trigger.tels_with_trigger
-        )
+        # Older files only stored the trigger mask, assuming that all triggered
+        # telescopes provided data.
+        if trigger.tels_with_data is None:
+            trigger.tels_with_data = trigger.tels_with_trigger
 
-        if self.allowed_tels:
-            trigger.tels_with_trigger = np.intersect1d(
-                full_tels_with_trigger,
-                np.array(list(self.allowed_tels)),
-            )
-        else:
-            trigger.tels_with_trigger = full_tels_with_trigger
+        full_tels_with_data = None
+        for field in ("tels_with_trigger", "tels_with_data"):
+            tel_ids = self._full_subarray.tel_mask_to_tel_ids(getattr(trigger, field))
+            if field == "tels_with_data":
+                full_tels_with_data = tel_ids
 
-        return full_tels_with_trigger
+            if self.allowed_tels:
+                tel_ids = np.intersect1d(tel_ids, list(self.allowed_tels))
+            setattr(trigger, field, tel_ids)
+
+        return full_tels_with_data
 
     def _fill_telescope_triggers(
-        self, event, full_tels_with_trigger, telescope_trigger_reader
+        self, event, full_tels_with_data, telescope_trigger_reader
     ):
         # the telescope trigger table contains triggers for all telescopes
         # that participated in the event, so we need to read a row for each
         # of them, ignoring the ones not in allowed_tels after reading
-        for tel_id in full_tels_with_trigger:
+        for tel_id in full_tels_with_data:
             tel_index, tel_trigger = next(telescope_trigger_reader)
 
             if self.allowed_tels and tel_id not in self.allowed_tels:

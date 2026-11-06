@@ -558,11 +558,12 @@ class DataWriter(Component):
 
         tr_tel_list_to_mask = TelListToMaskTransform(self._subarray)
 
-        writer.add_column_transform(
-            table_name="dl0/event/subarray/trigger",
-            col_name="tels_with_trigger",
-            transform=tr_tel_list_to_mask,
-        )
+        for col in ("tels_with_trigger", "tels_with_data"):
+            writer.add_column_transform(
+                table_name="dl0/event/subarray/trigger",
+                col_name=col,
+                transform=tr_tel_list_to_mask,
+            )
 
         writer.exclude("/dl0/event/telescope/trigger", "trigger_pixels")
         writer.exclude("/dl1/event/telescope/images/.*", "parameters")
