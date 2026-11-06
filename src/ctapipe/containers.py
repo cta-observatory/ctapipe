@@ -357,7 +357,16 @@ class SubarrayTriggerContainer(Container):
         time_resolution=TimeResolution.HIGH,
     )
     tels_with_trigger = Field(
-        None, description="List of telescope ids that triggered the array event"
+        None,
+        description=(
+            "List of telescope ids that triggered the array event."
+            " This may contain telescopes that triggered, but could not read out"
+            " data due to being in dead time (busy triggers)."
+        ),
+    )
+    tels_with_data = Field(
+        None,
+        description="List of telescope ids that provided DL0 data for the array event",
     )
     event_type = Field(EventType.SUBARRAY, description="Event type")
 

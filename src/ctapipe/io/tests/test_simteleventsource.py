@@ -215,6 +215,7 @@ def test_allowed_telescopes():
         for event in reader:
             assert set(event.tel).issubset(allowed_tels)
             assert set(event.dl0.trigger.tels_with_trigger).issubset(allowed_tels)
+            assert set(event.dl0.trigger.tels_with_data) == set(event.tel)
 
 
 def test_calibration_events():
@@ -846,6 +847,7 @@ def test_prod6_issues():
     with SimTelEventSource(input_url) as source:
         for e in source:
             event_id = e.index.event_id
+            assert set(e.dl0.trigger.tels_with_data) == set(e.tel)
             if event_id in strange_trigger_events:
                 expected_tel_id = strange_trigger_events[event_id]
                 np.testing.assert_equal(

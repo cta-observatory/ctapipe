@@ -24,6 +24,7 @@ def dummy_event(tel_ids):
         dl0=SubarrayDL0Container(
             trigger=SubarrayTriggerContainer(
                 tels_with_trigger=tel_ids,
+                tels_with_data=tel_ids,
             )
         ),
         tel={
@@ -52,6 +53,7 @@ def test_software_trigger(subarray_prod5_paranal, data_type):
     event = dummy_event(data_type([5]))
     assert not trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, data_type([]))
+    assert_equal(event.dl0.trigger.tels_with_data, data_type([]))
 
     # 1 LST + 1 MST, 1 LST would not have triggered LST hardware trigger
     # and after LST is removed, we only have 1 telescope, so no SWAT either
@@ -63,6 +65,7 @@ def test_software_trigger(subarray_prod5_paranal, data_type):
     event = dummy_event(data_type([1, 5, 6]))
     assert trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, data_type([5, 6]))
+    assert_equal(event.dl0.trigger.tels_with_data, data_type([5, 6]))
 
     # two MSTs, nothing to change
     event = dummy_event(data_type([5, 6]))

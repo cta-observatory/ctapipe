@@ -1129,6 +1129,7 @@ class SimTelEventSource(EventSource):
                     ),
                 )
 
+            subarray_trigger.tels_with_data = np.array(list(event.tel), dtype=np.uint16)
             yield event
 
     def _get_r1_pixel_status(self, tel_id, selected_gain_channel):
