@@ -7,8 +7,9 @@ from math import erf
 
 import numpy as np
 from astropy import units as u
+from astropy.constants import c, h
 from numba import double, vectorize
-from scipy.constants import alpha, c, e, h
+from scipy.constants import alpha, e
 from scipy.ndimage import correlate1d
 
 from ...containers import MuonEfficiencyContainer
@@ -40,7 +41,7 @@ SQRT2 = np.sqrt(2)
 
 
 def bandwidth_to_efficiency_factor(lambda_min, lambda_max):
-    return (lambda_min.to(u.m) ** -1 - lambda_max.to(u.m) ** -1) * h * c / e
+    return ((lambda_min.to(u.m) ** -1 - lambda_max.to(u.m) ** -1) * h * c).to(u.eV)
 
 
 def chord_length(radius, rho, phi, phi0=0):
@@ -326,7 +327,7 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha / h / c * e
+    pred *= alpha / h.value / c.value * e
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
