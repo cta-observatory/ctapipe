@@ -71,6 +71,7 @@ tests = [
     # at the moment, essentially all tests rely on test data from simtel
     # it doesn't make sense to skip all of these.
     "ctapipe[eventio]",
+    "bagit",
     "h5py",
     "pandas",
     "pytest >=9.0",
@@ -191,6 +192,10 @@ filterwarnings = [
     "ignore:Setting the dtype on a NumPy array",
     "once:llvmlite.binding.initialize:DeprecationWarning",
     "ignore::ctapipe.io.metadata.LegacyMetadataWarning",
+    # bagit 1.9 uses APIs deprecated in recent Python versions.
+    'ignore:codecs\.open\(\) is deprecated:DeprecationWarning',
+    "ignore:'count' is passed as positional argument:DeprecationWarning:bagit",
+    'ignore:os\.path\.commonprefix\(\) is deprecated:DeprecationWarning:bagit',
 ]
 norecursedirs = [
     ".git",

@@ -258,13 +258,15 @@ def test_classifier(model_cls, example_table, example_subarray):
     assert_array_equal((score[valid] < 0.5).astype(int), prediction[valid])
 
 
-def test_io_with_parent(example_table, tmp_path, example_subarray):
+def test_io_with_parent(example_table, tmp_path, subarray_prod5_paranal):
+    subarray = subarray_prod5_paranal
+
     class Parent(Component):
         def __init__(self, config):
             super().__init__(config=config)
             self.classifier = ParticleClassifier(
                 parent=self,
-                subarray=example_subarray,
+                subarray=subarray,
             )
 
     config = Config(

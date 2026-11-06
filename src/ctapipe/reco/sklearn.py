@@ -9,7 +9,6 @@ from collections import defaultdict
 from copy import deepcopy
 
 import astropy.units as u
-import joblib
 import numpy as np
 from astropy.coordinates import AltAz
 from astropy.table import QTable, Table, hstack
@@ -20,6 +19,8 @@ from sklearn.utils import all_estimators
 from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
+
+from ctapipe.io.models import BagItWriter
 
 from ..containers import (
     DispContainer,
@@ -171,6 +172,7 @@ class SKLearnReconstructor(Reconstructor):
             # to verify settings
             self._new_model()
 
+            self.reader = None
             self._models = {} if models is None else models
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
@@ -181,6 +183,7 @@ class SKLearnReconstructor(Reconstructor):
             )
         else:
             loaded = self.read(self.load_path)
+
             if (
                 subarray is not None
                 and loaded.subarray.telescope_types != subarray.telescope_types
@@ -205,6 +208,14 @@ class SKLearnReconstructor(Reconstructor):
         event: SubarrayEventContainer
         """
 
+    def __getstate__(self):
+        d = super().__getstate__()
+        # remove models from state, stored separately in zip
+        d["_models"] = {}
+        # subarray stored also separately in zip
+        d["subarray"] = None
+        return d
+
     @abstractmethod
     def predict_table(self, key, table: Table) -> Table:
         """
@@ -228,12 +239,10 @@ class SKLearnReconstructor(Reconstructor):
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
 
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            joblib.dump(self, f, compress=True)
-            Provenance().add_output_file(path, role=f"{self.__class__.__name__}-model")
+        with BagItWriter(path, parent=self, overwrite=overwrite) as writer:
+            writer.write_reconstructor(self)
+            for key, model in self._models.items():
+                writer.write_joblib(key, model)
 
     @classmethod
     def read(cls, path, parent=None, subarray=None, **kwargs):
@@ -640,6 +649,14 @@ class DispReconstructor(Reconstructor):
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
 
+    def __getstate__(self):
+        d = super().__getstate__()
+        # remove models from state, stored separately in zip
+        d["_models"] = {}
+        # subarray stored also separately in zip
+        d["subarray"] = None
+        return d
+
     def _new_models(self):
         norm_cfg = self.norm_config
         sign_cfg = self.sign_config
@@ -683,12 +700,10 @@ class DispReconstructor(Reconstructor):
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
 
-        if path.exists() and not overwrite:
-            raise OSError(f"Path {path} exists and overwrite=False")
-
-        with path.open("wb") as f:
-            joblib.dump(self, f, compress=True)
-            Provenance().add_output_file(path, role="DispReconstructor-model")
+        with BagItWriter(path, parent=self, overwrite=overwrite) as writer:
+            writer.write_reconstructor(self)
+            for key, model in self._models.items():
+                writer.write_joblib(key, model)
 
     @classmethod
     def read(cls, path, parent=None, subarray=None, **kwargs):

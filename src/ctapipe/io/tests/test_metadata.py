@@ -5,6 +5,7 @@ Test CTA Reference metadata functionality
 import json
 import uuid
 import warnings
+import zipfile
 
 import ctao_datamodel.models.dataproducts as dp
 import pytest
@@ -199,6 +200,17 @@ def _write_current_metadata(path, product, file_format):
     elif file_format == "json":
         metadata = dm.flatten_model_instance(product)
         path.write_text(json.dumps(metadata))
+    elif file_format == "zip":
+        metadata = dm.flatten_model_instance(product)
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr(
+                "bagit.txt",
+                "BagIt-Version: 1.0\nTag-File-Character-Encoding: UTF-8\n",
+            )
+            archive.writestr(
+                "bag-info.txt",
+                "".join(f"{key}: {value}\n" for key, value in metadata.items()),
+            )
 
 
 def _write_legacy_metadata(path, reference, file_format):
@@ -217,7 +229,9 @@ def _write_legacy_metadata(path, reference, file_format):
         path.write_text(json.dumps({"metadata": metadata}))
 
 
-@pytest.mark.parametrize("file_format", ["hdf5", "fits", "fits.gz", "ecsv", "json"])
+@pytest.mark.parametrize(
+    "file_format", ["hdf5", "fits", "fits.gz", "ecsv", "json", "zip"]
+)
 def test_read_current_metadata_supported_formats(tmp_path, ctao_product, file_format):
     path = tmp_path / f"product.{file_format}"
     with warnings.catch_warnings():
@@ -241,7 +255,7 @@ def test_read_legacy_metadata_supported_formats(tmp_path, reference, file_format
     assert product.contact.email == reference.contact.email
 
 
-@pytest.mark.parametrize("file_format", ["hdf5", "fits", "ecsv", "json"])
+@pytest.mark.parametrize("file_format", ["hdf5", "fits", "ecsv", "json", "zip"])
 def test_read_current_metadata_rejects_unsupported_version(
     tmp_path, ctao_product, file_format
 ):
@@ -255,6 +269,35 @@ def test_read_current_metadata_rejects_unsupported_version(
 
     with pytest.raises(ValueError, match="Unsupported CTAO metadata version: 999.0.0"):
         meta.read_ctao_metadata(path)
+
+
+def test_read_bagit_metadata_without_extension_and_from_open_zip(
+    tmp_path, ctao_product
+):
+    path = tmp_path / "product"
+    _write_current_metadata(path, ctao_product, "zip")
+
+    assert meta.read_ctao_metadata(path) == ctao_product
+    with zipfile.ZipFile(path) as archive:
+        assert meta.read_ctao_metadata(archive) == ctao_product
+        assert archive.fp is not None
+
+
+@pytest.mark.parametrize("missing", ["bagit.txt", "bag-info.txt"])
+def test_read_bagit_metadata_missing_tag_file(tmp_path, ctao_product, missing):
+    path = tmp_path / "product.zip"
+    _write_current_metadata(path, ctao_product, "zip")
+    incomplete_path = tmp_path / "incomplete.zip"
+    with (
+        zipfile.ZipFile(path) as original,
+        zipfile.ZipFile(incomplete_path, "w") as incomplete,
+    ):
+        for name in original.namelist():
+            if name != missing:
+                incomplete.writestr(name, original.read(name))
+
+    with pytest.raises(ValueError, match="Missing required BagIt metadata"):
+        meta.read_ctao_metadata(incomplete_path)
 
 
 def test_read_current_metadata_from_open_hdf5(tmp_path, ctao_product):

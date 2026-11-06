@@ -48,6 +48,7 @@ zernike = "*"
 
 [feature.test.dependencies]
 astroquery = "*"
+bagit = "*"
 pandas = "*"
 pytest = ">=9"
 pytest-cov = "*"
