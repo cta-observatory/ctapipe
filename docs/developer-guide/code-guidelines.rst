@@ -297,14 +297,14 @@ help when writing algorithms:
     # initialize any algorithms
 
     source = EventSource(filename)
-    geom = source.subarray.tel[tel_id].camera.geometry
+    geom = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
     ImageMangler = mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
 
     # simple loop over events, calling each algorithm and directly
     # passing data
 
     for event in source:
-        image = event.dl1.tel[tel_id].image
+        image = event.tel[tel_id].dl1.image
         mangled_image = mangler.mangle(image)
         image_parameters = parameterize_image(mangled_image)
 
