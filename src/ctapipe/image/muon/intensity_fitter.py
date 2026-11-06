@@ -39,6 +39,10 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
+def bandwidth_to_efficiency_factor(lambda_min, lambda_max):
+    return (lambda_min.to(u.m) ** -1 - lambda_max.to(u.m) ** -1) * h * c / e
+
+
 def chord_length(radius, rho, phi, phi0=0):
     """
     Function for integrating the length of a chord across a circle (effective chord length).
