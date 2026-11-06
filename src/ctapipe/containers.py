@@ -73,7 +73,7 @@ __all__ = [
     "TelescopeStructureDisplacementContainer",
     "CameraDisplacementContainer",
     "AuxiliaryPointingCorrectionContainer",
-    "TelescopePointingCorrectionContainer",
+    "TelescopeCorrectedPointingContainer",
     "TelescopeStructureDisplacementContainer",
     "TelescopeStructurePointingContainer",
     "TelescopeR0Container",
@@ -1089,28 +1089,22 @@ class AuxiliaryPointingCorrectionContainer(Container):
     delta_dec = Field(nan * u.rad, "Residual Declination offset correction", unit=u.rad)
 
 
-class TelescopePointingCorrectionContainer(Container):
+class TelescopeCorrectedPointingContainer(Container):
     """
-    Residual sky-pointing corrections in local coordinates (Alt/Az).
+    Corrected for residual sky-pointing offsets pointing in local coordinates (Alt/Az).
 
-    This container holds pointing offsets in local coordinates regardless of how they were
+    This container holds corrected pointing in local coordinates regardless of how they were
     derived (e.g. analytical StarTracker, auxiliary hardware devices,
     or a combination/fusion model).
     """
 
-    default_prefix = "pointing_correction"
-    delta_altitude = Field(
-        nan * u.rad, "Residual Altitude offset correction", unit=u.rad
-    )
-    delta_azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
+    default_prefix = "corrected_pointing"
+    altitude = Field(nan * u.rad, "Residual Altitude offset correction", unit=u.rad)
+    azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
 
     # Optional uncertainty tracking
-    altitude_uncertainty = Field(
-        nan * u.rad, "Uncertainty on Altitude offset correction", unit=u.rad
-    )
-    azimuth_uncertainty = Field(
-        nan * u.rad, "Uncertainty on Azimuth offset correction", unit=u.rad
-    )
+    altitude_uncertainty = Field(nan * u.rad, "Uncertainty on Altitude", unit=u.rad)
+    azimuth_uncertainty = Field(nan * u.rad, "Uncertainty on Azimuth", unit=u.rad)
 
 
 class TelescopePointingContainer(Container):
