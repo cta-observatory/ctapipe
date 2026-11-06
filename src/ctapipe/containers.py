@@ -1272,6 +1272,12 @@ class CameraMonitoringContainer(Container):
         description="Camera calibration coefficients calculated from the monitoring data",
     )
 
+    camera_displacement = Field(
+        default=None,
+        type=CameraDisplacementContainer,
+        description="Displacement and tilt of the camera w.r.t. its nominal position in the telescope structure.",
+    )
+
 
 class TelescopeMonitoringContainer(Container):
     """
@@ -1282,12 +1288,6 @@ class TelescopeMonitoringContainer(Container):
     camera = Field(
         default_factory=CameraMonitoringContainer,
         description="Container for monitoring data for camera",
-    )
-
-    camera_displacement = Field(
-        default=None,
-        type=CameraDisplacementContainer,
-        description="Displacement and tilt of the camera w.r.t. its nominal position in the telescope structure.",
     )
 
     pointing = Field(
