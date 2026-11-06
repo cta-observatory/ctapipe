@@ -151,6 +151,15 @@ class MuonProcessor(TelescopeComponent):
         tel_id = index.tel_id
         event_id = index.event_id
 
+        if (
+            tel_event.dl1 is None
+            or tel_event.dl1.image is None
+            or tel_event.dl1.parameters is None
+        ):
+            raise ValueError(
+                f"Muon processing requires DL1 images and parameters for telescope {tel_id}"
+            )
+
         if self.subarray.tel[tel_id].optics.n_mirrors != 1:
             self.log.warning(
                 f"Skipping non-single mirror telescope {tel_id},"

@@ -9,7 +9,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool
+from ..core import QualityQuery, Tool, ToolConfigurationError
 from ..core.traits import Bool, ComponentName, List, classes_with_traits, flag
 from ..exceptions import InputMissing
 from ..image import ImageCleaner, ImageModifier, ImageProcessor, WaveformModifier
@@ -87,7 +87,10 @@ class ProcessorTool(Tool):
     ).tag(config=True)
 
     force_recompute_dl1 = Bool(
-        help="Enforce dl1 recomputation even if already present in the input file",
+        help=(
+            "Recompute DL1 from R1 or DL0 waveforms even if DL1 is already present. "
+            "By default, existing DL1 images and parameters are reused."
+        ),
         default_value=False,
     ).tag(config=True)
 
@@ -229,12 +232,24 @@ class ProcessorTool(Tool):
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)
         )
+        self._validate_processing_inputs()
 
         self.process_muons = None
         if self.should_compute_muon_parameters:
             self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)
+
+    def _validate_processing_inputs(self):
+        """Reject calibration requests that cannot be fulfilled by the input."""
+        if self.should_calibrate and not self.event_source.has_any_datalevel(
+            (DataLevel.R1, DataLevel.DL0)
+        ):
+            raise ToolConfigurationError(
+                "DL1 image extraction requires R1 or DL0 waveform input. "
+                "The input provides neither. Provide waveform input, or reuse "
+                "existing DL1 images without forcing recomputation."
+            )
 
     def _setup_monitoring_sources(self, subarray):
         # Setup the monitoring sources

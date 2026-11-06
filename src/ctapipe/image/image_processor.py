@@ -198,6 +198,10 @@ class ImageProcessor(TelescopeComponent):
         """
         tel_id = tel_event.index.tel_id
         dl1 = tel_event.dl1
+        if dl1 is None or dl1.image is None:
+            raise ValueError(
+                f"Image processing requires a DL1 image for telescope {tel_id}"
+            )
 
         if self.apply_image_modifier.tel[tel_id]:
             dl1.image = self.modify(tel_id=tel_id, image=dl1.image)

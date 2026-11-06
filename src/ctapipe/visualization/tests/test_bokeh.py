@@ -11,16 +11,17 @@ output_file = bokeh_io.output_file
 save = bokeh_io.save
 
 
-def test_create_display_without_geometry(example_event, example_subarray):
+def test_create_display_without_geometry():
     """Test we can create a display without giving the geometry to init"""
+    from ctapipe.instrument import CameraGeometry
     from ctapipe.visualization.bokeh import CameraDisplay
 
     # test we can create it without geometry, and then set all the stuff
     display = CameraDisplay()
 
-    tel_id, tel_event = next(iter(example_event.tel.items()))
-    display.geometry = example_subarray.tel[tel_id].camera.geometry
-    display.image = tel_event.dl1.image
+    display.geometry = CameraGeometry.make_rectangular()
+    display.image = np.ones(display.geometry.n_pixels)
+    assert np.all(display.image == 1)
 
 
 def test_camera_display_creation(example_event, example_subarray):

@@ -1,5 +1,6 @@
 import warnings
 from itertools import zip_longest
+from types import SimpleNamespace
 
 import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
@@ -8,7 +9,13 @@ import pytest
 import tables
 from packaging.version import Version
 
-from ctapipe.containers import ObservationBlockContainer
+from ctapipe.containers import (
+    ImageParametersContainer,
+    ObservationBlockContainer,
+    ReconstructedEnergyContainer,
+    SubarrayEventContainer,
+    TelescopeEventContainer,
+)
 from ctapipe.core import Provenance
 from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.hdf5dataformat import (
@@ -18,6 +25,39 @@ from ctapipe.io.hdf5dataformat import (
     DL1_TEL_TRIGGER_TABLE,
 )
 from ctapipe.io.metadata import CTAO_METADATA_VERSION_KEY
+
+
+def test_parameters_without_images_create_dl1():
+    source = SimpleNamespace(
+        datalevels=(DataLevel.DL1_PARAMETERS,), has_simulated_dl1=False
+    )
+    tel_event = TelescopeEventContainer()
+    parameters = ImageParametersContainer()
+    readers = {"tel_001": iter([list(parameters.values())[:7]])}
+    HDF5EventSource._fill_parameters_for_tel(source, tel_event, "tel_001", readers, {})
+    assert tel_event.dl1 is not None
+    assert tel_event.dl1.image is None
+    assert tel_event.dl1.parameters.hillas is parameters.hillas
+
+
+def test_read_dl2_creates_only_present_levels():
+    event = SubarrayEventContainer()
+    tel_event = TelescopeEventContainer()
+    HDF5EventSource._fill_dl2_subarray(None, event, {})
+    HDF5EventSource._fill_dl2_for_tel(None, tel_event, 1, {})
+    assert event.dl2 is None
+    assert tel_event.dl2 is None
+
+    energy = ReconstructedEnergyContainer()
+    HDF5EventSource._fill_dl2_subarray(
+        None, event, {"energy": {"test": iter([energy])}}
+    )
+    readers = {"energy": {"test": {"tel_001": iter([energy])}}}
+    HDF5EventSource._fill_dl2_for_tel(None, tel_event, 2, readers)
+    assert tel_event.dl2 is None
+    HDF5EventSource._fill_dl2_for_tel(None, tel_event, 1, readers)
+    assert event.dl2.energy["test"] is energy
+    assert tel_event.dl2.energy["test"] is energy
 
 
 def test_is_not_compatible(prod5_gamma_simtel_path):
@@ -342,6 +382,7 @@ def test_no_pointing_in_ob(tmp_path, south_site_config):
             source,
             output_path=path,
             write_r1_waveforms=True,
+            write_dl1_parameters=False,
             config=south_site_config,
         ) as writer:
             for event in source:

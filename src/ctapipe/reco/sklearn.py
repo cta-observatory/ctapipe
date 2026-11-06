@@ -429,6 +429,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
     property = ReconstructionProperty.ENERGY
 
     def __call__(self, event: SubarrayEventContainer) -> None:
+        self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
@@ -494,6 +495,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: SubarrayEventContainer) -> None:
+        self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
@@ -755,6 +757,7 @@ class DispReconstructor(Reconstructor):
         ----------
         event: SubarrayEventContainer
         """
+        self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)

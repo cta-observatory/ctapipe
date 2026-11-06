@@ -971,7 +971,7 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 1
 
         # Starting from DL0, the channel is already selected (if more than one)
-        # event.tel[tel_id].dl0.waveform object has shape (N_pixels, N_samples)
+        # event.tel[tel_id].dl0.camera.waveform object has shape (N_pixels, N_samples)
 
         # For each pixel, we slide a 3-samples window through the
         # waveform summing each time the ADC counts contained within it.
