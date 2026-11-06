@@ -3,7 +3,7 @@ from collections import namedtuple
 import astropy.units as u
 import numpy as np
 import pytest
-from scipy.constants import alpha, c, e, h
+from scipy.constants import alpha
 
 parameter_names = [
     "radius",
@@ -182,6 +182,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
     """Test of the absolute normalization factor."""
     from ctapipe.coordinates import TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
+        bandwidth_to_efficiency_factor,
         image_prediction,
     )
 
@@ -215,10 +216,9 @@ def test_normalisation_factor(prod5_lst, reference_location):
     lambda_min = 300 * u.nm
     lambda_max = 600 * u.nm
 
-    convertion_factor_ev_to_npe = (
-        (lambda_min.to(u.m).value ** -1 - lambda_max.to(u.m).value ** -1) * h * c / e
+    measured = (
+        np.sum(image) / u.eV / bandwidth_to_efficiency_factor(lambda_min, lambda_max)
     )
-    measured = np.sum(image) * convertion_factor_ev_to_npe
     expected = expected_nphot(
         r_mirror=mirror_radius,
         theta_cher=1.1 * u.deg,
