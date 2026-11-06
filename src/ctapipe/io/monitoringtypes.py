@@ -24,3 +24,5 @@ class MonitoringType(Enum):
 
     #: Weather station data
     WEATHER = "site/weather"
+    #: FRAM aerosol optical depth measurements
+    FRAM = "site/fram"
