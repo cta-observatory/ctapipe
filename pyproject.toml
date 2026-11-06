@@ -125,6 +125,7 @@ ctapipe-train-particle-classifier = "ctapipe.tools.train_particle_classifier:mai
 ctapipe-train-disp-reconstructor = "ctapipe.tools.train_disp_reconstructor:main"
 ctapipe-apply-models = "ctapipe.tools.apply_models:main"
 ctapipe-store-astropy-cache = "ctapipe.tools.store_astropy_cache:main"
+ctapipe-estimate-nsb = "ctapipe.tools.estimate_nsb:main"
 
 [project.entry-points.ctapipe_io]
 HDF5EventSource = "ctapipe.io.hdf5eventsource:HDF5EventSource"
