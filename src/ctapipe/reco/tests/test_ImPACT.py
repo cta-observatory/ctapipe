@@ -8,6 +8,7 @@ from ctapipe.containers import (
     HillasParametersContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SubarrayDL2Container,
 )
 from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.reco.impact_utilities import (
@@ -212,6 +213,7 @@ def test_selected_subarray(
     energy_test.energy = 500 * u.GeV
     energy_test.is_valid = True
 
+    event.dl2 = SubarrayDL2Container()
     event.dl2.geometry["test"] = shower_test
     event.dl2.energy["test_energy"] = energy_test
     reconstructor = ImPACTReconstructor(subarray, table_profile)

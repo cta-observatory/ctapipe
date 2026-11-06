@@ -32,12 +32,14 @@ from ..containers import (
     SimulatedShowerDistribution,
     SimulationConfigContainer,
     SubarrayDL0Container,
+    SubarrayDL2Container,
     SubarrayEventContainer,
     SubarrayEventIndexContainer,
     SubarraySimulationContainer,
     SubarrayTriggerContainer,
     TelescopeDL0Container,
     TelescopeDL1Container,
+    TelescopeDL2Container,
     TelescopeEventContainer,
     TelescopeEventIndexContainer,
     TelescopeImpactParameterContainer,
@@ -951,6 +953,8 @@ class HDF5EventSource(EventSource):
     # -------------------------------------------------------------------------
 
     def _fill_dl2_subarray(self, data, dl2_readers):
+        if dl2_readers:
+            data.dl2 = SubarrayDL2Container()
         for kind, readers in dl2_readers.items():
             c = getattr(data.dl2, kind)
             for algorithm, reader in readers.items():
@@ -1001,6 +1005,8 @@ class HDF5EventSource(EventSource):
         if DataLevel.R1 not in self.datalevels:
             return
 
+        if key not in waveform_readers:
+            raise ValueError(f"Input provides R1 data but no waveforms for {key}")
         tel_event.r1 = next(waveform_readers[key])
 
         r1_waveform = tel_event.r1.waveform
@@ -1024,6 +1030,8 @@ class HDF5EventSource(EventSource):
         if DataLevel.DL1_IMAGES not in self.datalevels:
             return
 
+        if key not in image_readers:
+            raise ValueError(f"Input provides DL1 images but no image table for {key}")
         tel_event.dl1 = next(image_readers[key])
 
         if not self.has_simulated_dl1:
@@ -1043,7 +1051,13 @@ class HDF5EventSource(EventSource):
         if DataLevel.DL1_PARAMETERS not in self.datalevels:
             return
 
+        if key not in param_readers:
+            raise ValueError(
+                f"Input provides DL1 parameters but no parameter table for {key}"
+            )
         params = next(param_readers[key])
+        if tel_event.dl1 is None:
+            tel_event.dl1 = TelescopeDL1Container()
         tel_event.dl1.parameters = ImageParametersContainer(
             hillas=params[0],
             timing=params[1],
@@ -1070,6 +1084,8 @@ class HDF5EventSource(EventSource):
         if not self.has_muon_parameters:
             return
 
+        if key not in muon_readers:
+            raise ValueError(f"Input provides muon results but no muon table for {key}")
         ring, parameters, efficiency = next(muon_readers[key])
         tel_event.muon = MuonContainer(
             ring=ring,
@@ -1079,12 +1095,14 @@ class HDF5EventSource(EventSource):
 
     def _fill_dl2_for_tel(self, tel_event, tel_id, dl2_tel_readers):
         for kind, algorithms in dl2_tel_readers.items():
-            c = getattr(tel_event.dl2, kind)
             for algorithm, readers in algorithms.items():
                 key = f"tel_{tel_id:03d}"
                 if key not in readers:
                     continue
 
+                if tel_event.dl2 is None:
+                    tel_event.dl2 = TelescopeDL2Container()
+                c = getattr(tel_event.dl2, kind)
                 c[algorithm] = next(readers[key])
 
                 # change prefix to new data model

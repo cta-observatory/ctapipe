@@ -21,6 +21,7 @@ def r1_file(tmp_path_factory, prod5_gamma_simtel_path, south_site_config):
             source,
             output_path=r1_path,
             write_r1_waveforms=True,
+            write_dl1_parameters=False,
             config=south_site_config,
         ) as writer:
             for event in source:
@@ -71,8 +72,9 @@ def test_r1_simtel_broken_pixels(r1_file, extractor):
         assert n_checked > 0
 
 
-def test_write_r1_no_waveforms(tmp_path):
-    from ctapipe.io import DataWriter, HDF5EventSource
+def test_write_r1_requires_r1_input(tmp_path):
+    from ctapipe.core import ToolConfigurationError
+    from ctapipe.io import DataLevel, DataWriter, HDF5EventSource
 
     path = "dataset://gamma_diffuse_train_0.23.1.dl2.h5"
     output = tmp_path / "test.r1.h5"
@@ -81,15 +83,11 @@ def test_write_r1_no_waveforms(tmp_path):
         path,
         max_events=20,
     ) as source:
-        with DataWriter(
-            source,
-            output_path=output,
-            overwrite=True,
-            write_dl1_parameters=True,
-            write_r1_waveforms=True,
-        ) as writer:
-            event = next(iter(source))
-            writer(event)
+        assert DataLevel.R1 not in source.datalevels
+        with pytest.raises(
+            ToolConfigurationError,
+            match="write_r1_waveforms.*input does not provide R1 data",
+        ):
+            DataWriter(source, output_path=output, write_r1_waveforms=True)
 
-    with HDF5EventSource(output) as roundtrip_source:
-        next(iter(roundtrip_source))
+    assert not output.exists()

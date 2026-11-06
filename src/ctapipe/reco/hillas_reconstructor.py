@@ -148,6 +148,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
         """
         warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
+        self._prepare_event(event)
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):

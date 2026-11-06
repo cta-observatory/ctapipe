@@ -1,7 +1,36 @@
 import astropy.units as u
 import numpy as np
+import pytest
 from astropy.table import Table
 from numpy.testing import assert_array_equal
+
+
+def test_collect_features_without_dl2():
+    from ctapipe.containers import (
+        ImageParametersContainer,
+        SubarrayEventContainer,
+        TelescopeDL1Container,
+    )
+    from ctapipe.reco.preprocessing import collect_features
+
+    event = SubarrayEventContainer()
+    event.tel[1].dl1 = TelescopeDL1Container(parameters=ImageParametersContainer())
+    features = collect_features(event, 1)
+    assert "hillas_intensity" in features.colnames
+    assert event.dl2 is None
+    assert event.tel[1].dl2 is None
+
+
+def test_reconstruction_requires_parameters_before_creating_outputs():
+    from ctapipe.containers import SubarrayEventContainer, TelescopeDL1Container
+    from ctapipe.reco.reconstructor import Reconstructor
+
+    event = SubarrayEventContainer()
+    event.tel[1].dl1 = TelescopeDL1Container()
+    with pytest.raises(ValueError, match="DL1 parameters for telescope 1"):
+        Reconstructor._prepare_event(event)
+    assert event.dl2 is None
+    assert event.tel[1].dl2 is None
 
 
 def test_table_to_float32():

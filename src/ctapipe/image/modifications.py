@@ -331,6 +331,10 @@ class WaveformModifier(TelescopeComponent):
                 if not self.event_type_filter(event):
                     continue
                 for tel_id, tel_event in event.tel.items():
+                    if tel_event.r1 is None or tel_event.r1.waveform is None:
+                        raise ValueError(
+                            f"NSB database requires R1 waveforms for telescope {tel_id}"
+                        )
                     nsb_database[tel_id].append(tel_event.r1.waveform)
 
         nsb_database = {
@@ -408,6 +412,10 @@ class WaveformModifier(TelescopeComponent):
 
         for tel_id, tel_event in event.tel.items():
             r1 = tel_event.r1
+            if r1 is None or r1.waveform is None:
+                raise ValueError(
+                    f"Waveform modification requires R1 waveforms for telescope {tel_id}"
+                )
             waveform = r1.waveform
             # Note: MC waveforms passed to this function should contain data in all
             # pixels (not DVR'ed - obviously DVR depends on noise level, it does not

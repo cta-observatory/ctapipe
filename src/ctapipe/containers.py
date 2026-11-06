@@ -23,6 +23,7 @@ __all__ = [
     "CoordinateFrameType",
     "CoreParametersContainer",
     "DispContainer",
+    "DL0CameraContainer",
     "EventType",
     "HillasParametersContainer",
     "ImageParametersContainer",
@@ -660,7 +661,7 @@ class TelescopeR1Container(Container):
     )
 
 
-class TelescopeDL0Container(Container):
+class DL0CameraContainer(Container):
     """
     Telescope-level DL0 information.
 
@@ -670,11 +671,6 @@ class TelescopeDL0Container(Container):
 
     event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
     event_time = Field(NAN_TIME, "event timestamp", time_resolution=TimeResolution.HIGH)
-
-    trigger = Field(
-        default_factory=TelescopeTriggerContainer,
-        description="telescope trigger information",
-    )
 
     waveform = Field(
         None,
@@ -725,6 +721,16 @@ class TelescopeDL0Container(Container):
         dtype=np.float32,
         ndim=2,
     )
+
+
+class TelescopeDL0Container(Container):
+    """Telescope trigger information and optional DL0 camera data."""
+
+    trigger = Field(
+        default_factory=TelescopeTriggerContainer,
+        description="telescope trigger information",
+    )
+    camera = Field(None, description="DL0 camera data", type=DL0CameraContainer)
 
 
 class SubarrayDL0Container(Container):
@@ -1274,7 +1280,7 @@ class MuonContainer(Container):
 
 
 class TelescopeEventContainer(Container):
-    """Container for single-telescope data"""
+    """Single-telescope data. Absent data levels are represented by ``None``."""
 
     index = Field(
         default_factory=TelescopeEventIndexContainer,
@@ -1287,17 +1293,19 @@ class TelescopeEventContainer(Container):
         type=TelescopeSimulationContainer,
     )
 
-    r0 = Field(default_factory=TelescopeR0Container, description="Raw Data")
-    r1 = Field(default_factory=TelescopeR1Container, description="R1 Calibrated Data")
+    r0 = Field(None, description="Raw Data", type=TelescopeR0Container)
+    r1 = Field(None, description="R1 Calibrated Data", type=TelescopeR1Container)
     dl0 = Field(
-        default_factory=TelescopeDL0Container,
+        None,
+        type=TelescopeDL0Container,
         description="DL0 Data Volume Reduced Data",
     )
     dl1 = Field(
-        default_factory=TelescopeDL1Container, description="DL1 images and parameters"
+        None, description="DL1 images and parameters", type=TelescopeDL1Container
     )
     dl2 = Field(
-        default_factory=TelescopeDL2Container,
+        None,
+        type=TelescopeDL2Container,
         description="DL2 reconstructed event properties",
     )
     count = Field(0, description="number of events processed")
@@ -1306,12 +1314,12 @@ class TelescopeEventContainer(Container):
         description="container for event-wise monitoring data (MON)",
     )
     muon = Field(
-        default_factory=MuonContainer, description="Container for muon analysis results"
+        None, description="Container for muon analysis results", type=MuonContainer
     )
 
 
 class SubarrayEventContainer(Container):
-    """Top-level container for all event information"""
+    """All event information, with ``None`` for absent data levels."""
 
     count = Field(0, description="number of events processed")
 
@@ -1327,12 +1335,14 @@ class SubarrayEventContainer(Container):
     )
 
     dl0 = Field(
-        default_factory=SubarrayDL0Container,
+        None,
+        type=SubarrayDL0Container,
         description="DL0 subarray wide information",
     )
 
     dl2 = Field(
-        default_factory=SubarrayDL2Container,
+        None,
+        type=SubarrayDL2Container,
         description="DL2 reconstructed event properties",
     )
 
@@ -1345,6 +1355,43 @@ class SubarrayEventContainer(Container):
         default_factory=partial(Map, TelescopeEventContainer),
         description="Telescope Events",
     )
+
+    def validate_data_levels(self):
+        """Require the same data levels and DL1 products for every telescope.
+
+        Missing information within a present data level is allowed. Images and
+        image parameters are checked separately to support either DL1 sublevel.
+        Subarray and telescope DL2 are independent.
+
+        Raises
+        ------
+        ValueError
+            If a data level or DL1 product is present for only some telescopes.
+        """
+        paths = (
+            "r0",
+            "r1",
+            "dl0",
+            "dl0.camera",
+            "dl1",
+            "dl1.image",
+            "dl1.parameters",
+            "dl2",
+            "muon",
+        )
+        for path in paths:
+            present = []
+            absent = []
+            for tel_id, tel_event in self.tel.items():
+                value = tel_event
+                for name in path.split("."):
+                    value = getattr(value, name) if value is not None else None
+                (present if value is not None else absent).append(tel_id)
+            if present and absent:
+                raise ValueError(
+                    f"Inconsistent telescope data: {path} is present for telescopes "
+                    f"{present} but missing for telescopes {absent}"
+                )
 
 
 class SchedulingBlockContainer(Container):

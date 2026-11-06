@@ -9,7 +9,12 @@ import joblib
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ..containers import SubarrayEventContainer, TelescopeImpactParameterContainer
+from ..containers import (
+    SubarrayDL2Container,
+    SubarrayEventContainer,
+    TelescopeDL2Container,
+    TelescopeImpactParameterContainer,
+)
 from ..coordinates import shower_impact_distance
 from ..core import Provenance, QualityQuery, TelescopeComponent
 from ..core.traits import Int, List
@@ -91,6 +96,19 @@ class Reconstructor(TelescopeComponent):
         super().__init__(subarray=subarray, **kwargs)
         self.quality_query = StereoQualityQuery(parent=self)
         self.atmosphere_profile = atmosphere_profile
+
+    @staticmethod
+    def _prepare_event(event):
+        """Require DL1 parameters and create destinations for reconstruction results."""
+        for tel_id, tel_event in event.tel.items():
+            if tel_event.dl1 is None or tel_event.dl1.parameters is None:
+                raise ValueError(
+                    f"Reconstruction requires DL1 parameters for telescope {tel_id}"
+                )
+            if tel_event.dl2 is None:
+                tel_event.dl2 = TelescopeDL2Container()
+        if event.dl2 is None:
+            event.dl2 = SubarrayDL2Container()
 
     @property
     @abstractmethod

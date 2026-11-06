@@ -88,9 +88,14 @@ def collect_features(
     """
     features = {}
 
-    features.update(event.dl0.trigger.as_dict(recursive=False, flatten=True))
+    if event.dl0 is not None:
+        features.update(event.dl0.trigger.as_dict(recursive=False, flatten=True))
 
     tel_event = event.tel[tel_id]
+    if tel_event.dl1 is None or tel_event.dl1.parameters is None:
+        raise ValueError(
+            f"Feature collection requires DL1 parameters for telescope {tel_id}"
+        )
     features.update(
         tel_event.dl1.parameters.as_dict(
             add_prefix=True,
@@ -99,23 +104,16 @@ def collect_features(
         )
     )
 
-    features.update(
-        tel_event.dl2.as_dict(
-            add_prefix=True,
-            recursive=True,
-            flatten=True,
-            add_key=False,  # prefix is already the map key for dl2 stuff
-        )
-    )
-
-    features.update(
-        event.dl2.as_dict(
-            add_prefix=True,
-            recursive=True,
-            flatten=True,
-            add_key=False,  # prefix is already the map key for dl2 stuff
-        )
-    )
+    for dl2 in (tel_event.dl2, event.dl2):
+        if dl2 is not None:
+            features.update(
+                dl2.as_dict(
+                    add_prefix=True,
+                    recursive=True,
+                    flatten=True,
+                    add_key=False,  # prefix is already the map key for dl2 stuff
+                )
+            )
 
     if subarray_table is not None:
         # to include units in features

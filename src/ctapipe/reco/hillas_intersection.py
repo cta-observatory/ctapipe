@@ -122,6 +122,7 @@ class HillasIntersection(HillasGeometryReconstructor):
             reconstructed stereo geometry and telescope-wise impact position.
         """
 
+        self._prepare_event(event)
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
