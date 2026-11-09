@@ -5,11 +5,11 @@ from types import SimpleNamespace
 import pytest
 from astropy.io import fits
 
+pytest.importorskip("pyirf")
+
 from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.irf import EffectiveArea2dMaker, EffectiveArea3DMaker
 from ctapipe.tools.compute_irf import IrfTool
-
-pytest.importorskip("pyirf")
 
 
 @pytest.fixture(scope="module")
