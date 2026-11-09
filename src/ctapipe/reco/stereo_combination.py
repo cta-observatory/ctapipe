@@ -707,13 +707,13 @@ class StereoDispCombiner(StereoCombiner):
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
-    def __call__(self, event: ArrayEventContainer) -> None:
+    def __call__(self, event: SubarrayEventContainer) -> None:
         """
         Perform DISP-based stereo direction reconstruction for a single subarray
         event.
 
         This is the entry point used for event-wise processing and stores the
-        resulting stereo geometry inside ``event.dl2.stereo`` under the
+        resulting stereo geometry inside ``event.dl2`` under the
         configured prefix.
         """
 
@@ -727,7 +727,7 @@ class StereoDispCombiner(StereoCombiner):
             alt = az = u.Quantity(np.nan, u.deg)
             valid = False
         elif multiplicity == 1:
-            mono_geometry = event.dl2.tel[ids[0]].geometry[self.prefix]
+            mono_geometry = event.tel[ids[0]].dl2.geometry[self.prefix]
             alt = mono_geometry.alt
             az = mono_geometry.az
             valid = True
@@ -747,13 +747,13 @@ class StereoDispCombiner(StereoCombiner):
                 alt, az = telescope_to_horizontal(
                     lon=u.Quantity(stereo_fov_lon, u.deg, copy=COPY_IF_NEEDED),
                     lat=u.Quantity(stereo_fov_lat, u.deg, copy=COPY_IF_NEEDED),
-                    pointing_alt=event.monitoring.pointing.array_altitude,
-                    pointing_az=event.monitoring.pointing.array_azimuth,
+                    pointing_alt=event.monitoring.pointing.altitude,
+                    pointing_az=event.monitoring.pointing.azimuth,
                 )
             else:
                 alt = az = u.Quantity(np.nan, u.deg)
 
-        event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
+        event.dl2.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
             az=az,
             telescopes=ids,
@@ -761,11 +761,11 @@ class StereoDispCombiner(StereoCombiner):
             prefix=self.prefix,
         )
 
-    def _collect_valid_tel_data(self, event: ArrayEventContainer):
+    def _collect_valid_tel_data(self, event: SubarrayEventContainer):
         # Create arrays of length n_telescopes before the loop, fill them with the
         # required values and vectorize the computations after the loop, similar
         # to HillasReconstructor.initialize_arrays().
-        n_telescopes = len(event.dl2.tel)
+        n_telescopes = len(event.tel)
         ids = np.empty(n_telescopes, dtype=np.int64)
         hillas_fov_lons = np.empty(n_telescopes)
         hillas_fov_lats = np.empty(n_telescopes)
@@ -777,18 +777,19 @@ class StereoDispCombiner(StereoCombiner):
         n_valid = 0
 
         # Gather the subarray pointing information for the transformation to the nominal frame
-        subarray_pointing_alt = event.monitoring.pointing.array_altitude
-        subarray_pointing_az = event.monitoring.pointing.array_azimuth
+        subarray_pointing_alt = event.monitoring.pointing.altitude
+        subarray_pointing_az = event.monitoring.pointing.azimuth
 
-        for tel_id, dl2 in event.dl2.tel.items():
+        for tel_id, tel_event in event.tel.items():
+            dl2 = tel_event.dl2
             if not dl2.geometry[self.prefix].is_valid:
                 continue
 
-            if tel_id not in event.dl1.tel:
+            if tel_event.dl1.parameters is None:
                 raise ValueError("No dl1 parameters available")
 
             disp_reco = dl2.disp.get(self.prefix)
-            dl1 = event.dl1.tel[tel_id].parameters
+            dl1 = tel_event.dl1.parameters
             weight = self._calculate_weights(dl1)
             if not all(self.quality_query(parameters=dl1)):
                 continue
@@ -800,7 +801,7 @@ class StereoDispCombiner(StereoCombiner):
             disps[n_valid] = disp_reco.parameter.to_value(u.deg)
             weights[n_valid] = weight
 
-            pointing = event.monitoring.tel[tel_id].pointing
+            pointing = tel_event.monitoring.pointing
             tel_pointing_alts[n_valid] = pointing.altitude.to_value(u.rad)
             tel_pointing_azs[n_valid] = pointing.azimuth.to_value(u.rad)
             n_valid += 1
