@@ -7,6 +7,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.table import Table
+from astropy.time import Time
 from traitlets.config.loader import Config
 
 from ctapipe.containers import ChunkHistogramContainer, PixelStatus
@@ -343,3 +344,102 @@ def test_per_channel_missing_selected_gain_channel(dl1_image_file):
 
     with pytest.raises(ToolConfigurationError, match="'pixel_status' not found"):
         tool._is_valid_table(dl1_table, tel_id)
+
+
+@pytest.mark.parametrize("per_channel_statistics", [True, False])
+def test_mask_invalid_pixels_gain_selected(dl1_image_file, per_channel_statistics):
+    """check that pixels without a stored gain channel are excluded from the stats"""
+
+    tel_id = 3
+    subarray = SubarrayDescription.from_hdf(dl1_image_file)
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
+    n_events = 5
+
+    rng = np.random.default_rng(0)
+    image = rng.normal(10.0, 1.0, size=(n_events, n_pixels)).astype(np.float32)
+    pixel_status = np.full(
+        (n_events, n_pixels),
+        PixelStatus.HIGH_GAIN_STORED | PixelStatus.DVR_0,
+        dtype=np.uint8,
+    )
+    # A missing module has no gain channel stored in any event
+    module = slice(0, 7)
+    pixel_status[:, module] = 0
+    dl1_table = Table(
+        {
+            "time": Time(60000.0 + np.arange(n_events) / 86400, format="mjd"),
+            "image": image * u.ct,
+            "peak_time": image * u.ns,
+            "pixel_status": pixel_status,
+        }
+    )
+
+    tool = PixelStatisticsCalculatorTool(
+        config=Config({"SizeChunking": {"chunk_size": n_events}}),
+        per_channel_statistics=per_channel_statistics,
+    )
+    tool.subarray = subarray
+    tool.stats_calculator = PixelStatisticsCalculator(parent=tool, subarray=subarray)
+    tool._reshape_dl1_dimensions(dl1_table, tel_id)
+    tool._mask_invalid_pixels(dl1_table)
+
+    values = np.asarray(dl1_table["image"][:, 0])
+    assert np.all(np.isnan(values[:, module]))
+    np.testing.assert_array_equal(values[:, 7:], image[:, 7:])
+    if per_channel_statistics:
+        assert np.all(np.isnan(dl1_table["image"][:, 1]))
+    else:
+        # only the input column is masked
+        np.testing.assert_array_equal(dl1_table["peak_time"][:, 0], image)
+
+    stats = tool.stats_calculator.first_pass(
+        table=dl1_table, tel_id=tel_id, col_name="image"
+    )
+    high_gain_median = np.asarray(stats["median"][0, 0])
+    assert np.all(np.isnan(high_gain_median[module]))
+    assert np.all(np.isfinite(high_gain_median[7:]))
+    np.testing.assert_array_equal(stats["n_events"][0, 0, module], 0)
+
+
+def test_mask_invalid_pixels_two_channels(dl1_image_file):
+    """check that each channel is masked by its own gain bit"""
+
+    tel_id = 3
+    subarray = SubarrayDescription.from_hdf(dl1_image_file)
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
+    n_events = 5
+
+    image = np.ones((n_events, 2, n_pixels), dtype=np.float32)
+    pixel_status = np.full(
+        (n_events, n_pixels),
+        PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED,
+        dtype=np.uint8,
+    )
+
+    pixel_status[:, 0] = PixelStatus.HIGH_GAIN_STORED
+    pixel_status[:, 1] = PixelStatus.LOW_GAIN_STORED
+    pixel_status[:, 2] = 0
+    dl1_table = Table({"image": image * u.ct, "pixel_status": pixel_status})
+
+    tool = PixelStatisticsCalculatorTool()
+    tool.subarray = subarray
+    tool._reshape_dl1_dimensions(dl1_table, tel_id)
+    tool._mask_invalid_pixels(dl1_table)
+
+    masked = np.isnan(np.asarray(dl1_table["image"]))
+    expected = np.zeros((n_events, 2, n_pixels), dtype=bool)
+    expected[:, 1, 0] = True
+    expected[:, 0, 1] = True
+    expected[:, :, 2] = True
+    np.testing.assert_array_equal(masked, expected)
+
+    # without pixel status, the data is left unchanged
+    dl1_table = Table({"image": image * u.ct})
+    tool._mask_invalid_pixels(dl1_table)
+    np.testing.assert_array_equal(dl1_table["image"], image)
+
+    # with masking disabled, the data is left unchanged
+    dl1_table = Table({"image": image * u.ct, "pixel_status": pixel_status})
+    tool = PixelStatisticsCalculatorTool(mask_invalid_pixels=False)
+    tool._mask_invalid_pixels(dl1_table)
+    np.testing.assert_array_equal(dl1_table["image"], image)
