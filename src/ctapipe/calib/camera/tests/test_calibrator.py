@@ -14,6 +14,7 @@ from ctapipe.calib.camera.calibrator import CameraCalibrator, _get_invalid_pixel
 from ctapipe.containers import (
     CameraCalibrationContainer,
     CameraMonitoringContainer,
+    DL0CameraContainer,
     PixelStatus,
     SubarrayEventContainer,
     TelescopeDL0Container,
@@ -175,13 +176,31 @@ def test_check_r1_empty(example_event, example_subarray):
     event.tel[tel_id] = TelescopeEventContainer(
         index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
         dl0=TelescopeDL0Container(
-            waveform=np.full((1, 2048, 128), 2),
-            pixel_status=_valid_pixel_status(2048, 1),
+            camera=DL0CameraContainer(
+                waveform=np.full((1, 2048, 128), 2),
+                pixel_status=_valid_pixel_status(2048, 1),
+            )
         ),
     )
     calibrator(event)
-    assert (event.tel[tel_id].dl0.waveform == 2).all()
+    assert (event.tel[tel_id].dl0.camera.waveform == 2).all()
     assert (event.tel[tel_id].dl1.image == 2 * 128).all()
+
+
+@pytest.mark.parametrize("has_trigger", [False, True])
+def test_r1_calibration_creates_camera_and_preserves_trigger(
+    example_event, example_subarray, has_trigger
+):
+    tel_event = next(iter(example_event.tel.values()))
+    calibrator = CameraCalibrator(subarray=example_subarray)
+    trigger = tel_event.dl0.trigger
+    if not has_trigger:
+        tel_event.dl0 = None
+    calibrator.calibrate_tel_event(tel_event)
+    assert tel_event.dl0.camera.waveform is not None
+    assert tel_event.dl1.image is not None
+    if has_trigger:
+        assert tel_event.dl0.trigger is trigger
 
 
 def test_check_dl0_empty(example_event, example_subarray):
@@ -189,12 +208,21 @@ def test_check_dl0_empty(example_event, example_subarray):
     tel_id, tel_event = next(iter(example_event.tel.items()))
 
     calibrator.r1_to_dl0(tel_event)
-    waveform = tel_event.dl0.waveform.copy()
+    waveform = tel_event.dl0.camera.waveform.copy()
 
     assert calibrator._check_dl0_empty(None) is True
-    assert calibrator._check_dl0_empty(TelescopeDL0Container(waveform=None)) is True
+    assert calibrator._check_dl0_empty(TelescopeDL0Container()) is True
     assert (
-        calibrator._check_dl0_empty(TelescopeDL0Container(waveform=waveform)) is False
+        calibrator._check_dl0_empty(
+            TelescopeDL0Container(camera=DL0CameraContainer(waveform=None))
+        )
+        is True
+    )
+    assert (
+        calibrator._check_dl0_empty(
+            TelescopeDL0Container(camera=DL0CameraContainer(waveform=waveform))
+        )
+        is False
     )
 
     event = SubarrayEventContainer()
@@ -203,7 +231,8 @@ def test_check_dl0_empty(example_event, example_subarray):
         dl1=TelescopeDL1Container(image=np.full(2048, 2)),
     )
     event.tel[tel_id] = tel_event
-    calibrator(event)
+    with pytest.raises(ValueError, match="requires R1 or DL0 waveforms"):
+        calibrator(event)
     assert (tel_event.dl1.image == 2).all()
 
 
@@ -236,9 +265,11 @@ def test_dl1_variance_calib(example_subarray):
         event.tel[tel_id] = TelescopeEventContainer(
             index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
             dl0=TelescopeDL0Container(
-                waveform=y,
-                pixel_status=_valid_pixel_status(n_pixels, n_channels),
-                selected_gain_channel=None,
+                camera=DL0CameraContainer(
+                    waveform=y,
+                    pixel_status=_valid_pixel_status(n_pixels, n_channels),
+                    selected_gain_channel=None,
+                )
             ),
             monitoring=TelescopeMonitoringContainer(
                 camera=CameraMonitoringContainer(
@@ -314,11 +345,13 @@ def test_dl1_charge_calib(example_subarray):
         event.tel[tel_id] = TelescopeEventContainer(
             index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
             dl0=TelescopeDL0Container(
-                waveform=y,
-                pixel_status=_valid_pixel_status(
-                    n_pixels, n_channels, selected_gain_channel
-                ),
-                selected_gain_channel=selected_gain_channel,
+                camera=DL0CameraContainer(
+                    waveform=y,
+                    pixel_status=_valid_pixel_status(
+                        n_pixels, n_channels, selected_gain_channel
+                    ),
+                    selected_gain_channel=selected_gain_channel,
+                )
             ),
         )
 
@@ -451,8 +484,9 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
 
     event = SubarrayEventContainer()
     event.tel[tel_id].index.tel_id = tel_id
-    event.tel[tel_id].dl0.waveform = np.zeros((n_channels, n_pixels, 5))
-    event.tel[tel_id].dl0.waveform[:, :, 3] = 1
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    event.tel[tel_id].dl0.camera.waveform = np.zeros((n_channels, n_pixels, 5))
+    event.tel[tel_id].dl0.camera.waveform[:, :, 3] = 1
 
     calibration_time_shift = np.stack(
         [
@@ -471,7 +505,9 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
     if gain_selected:
         selected_gain_channel = np.arange(n_pixels) % n_channels
         # The input data and its pixel time shift are already gain selected.
-        event.tel[tel_id].dl0.waveform = event.tel[tel_id].dl0.waveform[:1]
+        event.tel[tel_id].dl0.camera.waveform = event.tel[tel_id].dl0.camera.waveform[
+            :1
+        ]
         pixel_time_shift = pixel_time_shift[selected_gain_channel, np.arange(n_pixels)][
             np.newaxis
         ]
@@ -483,9 +519,9 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
         expected_time_shift = calibration_time_shift + pixel_time_shift
 
     event.tel[tel_id].monitoring.camera.coefficients.time_shift = calibration_time_shift
-    event.tel[tel_id].dl0.pixel_time_shift = pixel_time_shift
-    event.tel[tel_id].dl0.selected_gain_channel = selected_gain_channel
-    event.tel[tel_id].dl0.pixel_status = _valid_pixel_status(
+    event.tel[tel_id].dl0.camera.pixel_time_shift = pixel_time_shift
+    event.tel[tel_id].dl0.camera.selected_gain_channel = selected_gain_channel
+    event.tel[tel_id].dl0.camera.pixel_status = _valid_pixel_status(
         n_pixels, n_channels, selected_gain_channel
     )
 
@@ -513,7 +549,8 @@ def test_invalid_pixels_gain_selected(example_subarray, extractor_type):
 
     event = SubarrayEventContainer()
     event.tel[tel_id].index.tel_id = tel_id
-    dl0 = event.tel[tel_id].dl0
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    dl0 = event.tel[tel_id].dl0.camera
     dl0.selected_gain_channel = selected_gain_channel
     dl0.pixel_status = _valid_pixel_status(n_pixels, 2, selected_gain_channel)
     dl0.waveform = np.zeros((1, n_pixels, 40))
@@ -632,7 +669,8 @@ def test_dl1_pixel_status(example_subarray):
     selected_gain_channel = np.arange(n_pixels) % 2
 
     event = SubarrayEventContainer()
-    dl0 = event.tel[tel_id].dl0
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    dl0 = event.tel[tel_id].dl0.camera
     dl0.waveform = np.ones((1, n_pixels, 5))
     dl0.selected_gain_channel = selected_gain_channel
     dl0.pixel_status = _valid_pixel_status(n_pixels, 2, selected_gain_channel)
@@ -689,9 +727,11 @@ def test_calibration_scale(n_channels, select_gain, subarray_prod5_paranal):
 
     pixel_status = _valid_pixel_status(n_pixels, n_channels, selected_gain_channel)
     tel_event.dl0 = TelescopeDL0Container(
-        waveform=waveform,
-        pixel_status=pixel_status,
-        selected_gain_channel=selected_gain_channel,
+        camera=DL0CameraContainer(
+            waveform=waveform,
+            pixel_status=pixel_status,
+            selected_gain_channel=selected_gain_channel,
+        )
     )
 
     if n_channels == 1:
@@ -727,7 +767,8 @@ def test_gain_selected_monitoring_coefficients(example_subarray):
     pixels = np.arange(n_pixels)
     event = SubarrayEventContainer()
     event.tel[tel_id].index.tel_id = tel_id
-    dl0 = event.tel[tel_id].dl0
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    dl0 = event.tel[tel_id].dl0.camera
     dl0.waveform = np.zeros((1, n_pixels, 10), dtype=np.float32)
     dl0.waveform[:, :, 4] = 20.0
     dl0.selected_gain_channel = selected

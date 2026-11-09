@@ -11,6 +11,7 @@ from ctapipe.containers import (
     SubarrayDL0Container,
     SubarrayEventContainer,
     SubarrayTriggerContainer,
+    TelescopeDL0Container,
     TelescopeEventContainer,
     TelescopeTriggerContainer,
 )
@@ -25,7 +26,10 @@ def dummy_event(tel_ids):
                 tels_with_trigger=tel_ids,
             )
         ),
-        tel={tel_id: TelescopeEventContainer() for tel_id in tel_ids},
+        tel={
+            tel_id: TelescopeEventContainer(dl0=TelescopeDL0Container())
+            for tel_id in tel_ids
+        },
     )
     return event
 
@@ -246,10 +250,10 @@ def test_software_trigger_simtel_process(tmp_path):
 
 
 def _dummy_event(tel_ids):
-    event = SubarrayEventContainer()
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
     event.dl0.trigger.tels_with_trigger = tel_ids
     for tel_id in tel_ids:
-        event.tel[tel_id] = TelescopeEventContainer()
+        event.tel[tel_id] = TelescopeEventContainer(dl0=TelescopeDL0Container())
     return event
 
 
@@ -321,24 +325,30 @@ def test_software_trigger_tel_event_type_filter(subarray_prod5_paranal):
         allowed_telescope_event_types={EventType.RANDOM_MONO},
     )
 
-    event = SubarrayEventContainer()
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
     event.dl0.trigger.tels_with_trigger = np.array([1, 2, 3], dtype=np.uint16)
+    event.tel[1].dl0 = TelescopeDL0Container()
     event.tel[1].dl0.trigger = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+    event.tel[2].dl0 = TelescopeDL0Container()
     event.tel[2].dl0.trigger = TelescopeTriggerContainer(
         event_type=EventType.RANDOM_MONO
     )
+    event.tel[3].dl0 = TelescopeDL0Container()
     event.tel[3].dl0.trigger = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
 
     assert trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, np.array([2], dtype=np.uint16))
     assert event.tel.keys() == {2}
 
-    event = SubarrayEventContainer()
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
     event.dl0.trigger.tels_with_trigger = np.array([1, 2, 3], dtype=np.uint16)
+    event.tel[1].dl0 = TelescopeDL0Container()
     event.tel[1].dl0.trigger = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+    event.tel[2].dl0 = TelescopeDL0Container()
     event.tel[2].dl0.trigger = TelescopeTriggerContainer(
         event_type=EventType.RANDOM_MONO
     )
+    event.tel[3].dl0 = TelescopeDL0Container()
     event.tel[3].dl0.trigger = TelescopeTriggerContainer(
         event_type=EventType.RANDOM_MONO
     )

@@ -15,6 +15,7 @@ from ..containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SubarrayDL2Container,
     SubarrayEventContainer,
 )
 from .telescope_event_handling import get_subarray_index, weighted_mean_std_ufunc
@@ -146,7 +147,11 @@ class StereoMeanCombiner(StereoCombiner):
             mono = dl2.energy[self.prefix]
             if mono.is_valid:
                 values.append(mono.energy.to_value(u.TeV))
-                weights.append(self._calculate_weights(tel_event.dl1.parameters))
+                weights.append(
+                    self._calculate_weights(
+                        None if tel_event.dl1 is None else tel_event.dl1.parameters
+                    )
+                )
                 ids.append(tel_id)
 
         if len(values) > 0:
@@ -186,7 +191,11 @@ class StereoMeanCombiner(StereoCombiner):
             mono = dl2.particle_type[self.prefix]
             if mono.is_valid:
                 values.append(mono.prediction)
-                weights.append(self._calculate_weights(tel_event.dl1.parameters))
+                weights.append(
+                    self._calculate_weights(
+                        None if tel_event.dl1 is None else tel_event.dl1.parameters
+                    )
+                )
                 ids.append(tel_id)
 
         if len(values) > 0:
@@ -213,7 +222,11 @@ class StereoMeanCombiner(StereoCombiner):
             if mono.is_valid:
                 alt_values.append(mono.alt)
                 az_values.append(mono.az)
-                weights.append(self._calculate_weights(tel_event.dl1.parameters))
+                weights.append(
+                    self._calculate_weights(
+                        None if tel_event.dl1 is None else tel_event.dl1.parameters
+                    )
+                )
                 ids.append(tel_id)
 
         if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
@@ -254,6 +267,8 @@ class StereoMeanCombiner(StereoCombiner):
         """
         Calculate the mean prediction for a single array event.
         """
+        if event.dl2 is None:
+            event.dl2 = SubarrayDL2Container()
 
         properties = [
             self.property & itm

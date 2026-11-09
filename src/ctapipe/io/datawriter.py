@@ -147,11 +147,11 @@ class DataWriter(Component):
     ).tag(config=True)
 
     write_r0_waveforms = Bool(
-        help="Store R0 waveforms if available", default_value=False
+        help="Store R0 waveforms; requires R0 input", default_value=False
     ).tag(config=True)
 
     write_r1_waveforms = Bool(
-        help="Store R1 waveforms if available", default_value=False
+        help="Store R1 waveforms; requires R1 input", default_value=False
     ).tag(config=True)
 
     write_dl1_images = Bool(
@@ -216,6 +216,15 @@ class DataWriter(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
+        for option, level in (
+            ("write_r0_waveforms", DataLevel.R0),
+            ("write_r1_waveforms", DataLevel.R1),
+        ):
+            if getattr(self, option) and level not in event_source.datalevels:
+                raise ToolConfigurationError(
+                    f"DataWriter.{option} is True but the input does not provide {level.name} data"
+                )
+
         self.contact_info = meta.Contact(parent=self)
         self.curation_info = meta.Curation(parent=self)
         self.product_info = meta.ProductMetadata(parent=self)
@@ -260,6 +269,7 @@ class DataWriter(Component):
         """
         Write a single event to the output file.
         """
+        self._validate_event(event)
         self._at_least_one_event = True
         self.log.debug("WRITING EVENT %s", event.index)
 
@@ -270,6 +280,41 @@ class DataWriter(Component):
 
         for tel_event in event.tel.values():
             self._write_telescope_event(tel_event)
+
+    def _validate_event(self, event):
+        """Check requested outputs before writing any part of an event."""
+        if event.dl0 is None or event.dl0.trigger is None:
+            raise ValueError("DataWriter requires subarray DL0 trigger information")
+        for tel_id, tel_event in event.tel.items():
+            if tel_event.dl0 is None or tel_event.dl0.trigger is None:
+                raise ValueError(
+                    f"DataWriter requires DL0 trigger information for telescope {tel_id}"
+                )
+            for option, level, field in (
+                ("write_r0_waveforms", "r0", "waveform"),
+                ("write_r1_waveforms", "r1", "waveform"),
+                ("write_dl1_images", "dl1", "image"),
+                ("write_dl1_parameters", "dl1", "parameters"),
+                ("write_muon_parameters", "muon", None),
+            ):
+                if not getattr(self, option):
+                    continue
+                container = getattr(tel_event, level)
+                if container is None or (
+                    field is not None and getattr(container, field) is None
+                ):
+                    raise ValueError(
+                        f"DataWriter.{option} is True but telescope {tel_id} "
+                        f"does not contain {level.upper()} {field or 'results'}"
+                    )
+        if (
+            self.write_dl2
+            and event.dl2 is None
+            and not any(tel_event.dl2 is not None for tel_event in event.tel.values())
+        ):
+            raise ValueError(
+                "DataWriter.write_dl2 is True but the event contains no DL2 data"
+            )
 
     def _write_simulation_subarray(self, event):
         if event.simulation is not None and event.simulation.shower is not None:
@@ -404,6 +449,8 @@ class DataWriter(Component):
         reconstruction and per algorithm, with all telescopes combined.
         """
 
+        if tel_event.dl2 is None:
+            return
         table_name = self.table_name(tel_event.index.tel_id)
 
         for container_name, algorithm_map in tel_event.dl2.items():
@@ -423,6 +470,8 @@ class DataWriter(Component):
         write per-telescope DL2 shower information to e.g.
         `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
         """
+        if event.dl2 is None:
+            return
         for container_name, algorithm_map in event.dl2.items():
             if algorithm_map:
                 sublevel = DL2_SUBLEVELS.get(container_name)

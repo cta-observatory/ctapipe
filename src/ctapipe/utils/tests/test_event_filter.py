@@ -1,6 +1,6 @@
 from traitlets.config import Config
 
-from ctapipe.containers import EventType, SubarrayEventContainer
+from ctapipe.containers import EventType, SubarrayDL0Container, SubarrayEventContainer
 
 
 def test_event_filter():
@@ -10,7 +10,7 @@ def test_event_filter():
         allowed_types={EventType.SUBARRAY, EventType.FLATFIELD}
     )
 
-    e = SubarrayEventContainer()
+    e = SubarrayEventContainer(dl0=SubarrayDL0Container())
     e.dl0.trigger.event_type = EventType.SUBARRAY
     assert event_filter(e)
     e.dl0.trigger.event_type = EventType.FLATFIELD
@@ -25,7 +25,7 @@ def test_event_filter_none():
     event_filter = EventTypeFilter(allowed_types=None)
 
     # all event types should pass
-    e = SubarrayEventContainer()
+    e = SubarrayEventContainer(dl0=SubarrayDL0Container())
     for value in EventType:
         e.dl0.trigger.event_type = value
         assert event_filter(e)
@@ -53,7 +53,7 @@ def test_event_filter_config():
         EventType.SINGLE_PE,
     }
 
-    e = SubarrayEventContainer()
+    e = SubarrayEventContainer(dl0=SubarrayDL0Container())
     e.dl0.trigger.event_type = EventType.DARK_PEDESTAL
     assert not event_filter(e)
 

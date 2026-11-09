@@ -13,6 +13,7 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     ReconstructedShowerContainer,
     SubarrayEventContainer,
+    TelescopeDL1Container,
     TelescopeDL2Container,
 )
 from ctapipe.reco.reconstructor import ReconstructionProperty
@@ -215,6 +216,7 @@ def test_mean_prediction_single_event(weights, expected_particle_prediction):
     for tel_id, intensity, leakage in zip(
         (25, 125, 130), (100, 200, 400), (0.0, 0.1, 0.2)
     ):
+        event.tel[tel_id].dl1 = TelescopeDL1Container()
         event.tel[tel_id].dl1.parameters = ImageParametersContainer(
             hillas=HillasParametersContainer(
                 intensity=intensity,
@@ -315,7 +317,7 @@ def test_mean_prediction_without_dl1(property, weights):
     event = SubarrayEventContainer()
     for tel_id in (1, 2):
         tel_event = event.tel[tel_id]
-        tel_event.dl1.parameters = None
+        tel_event.dl2 = TelescopeDL2Container()
         tel_event.dl2.energy["dummy"] = ReconstructedEnergyContainer(
             energy=tel_id * 10 * u.GeV, is_valid=True
         )
