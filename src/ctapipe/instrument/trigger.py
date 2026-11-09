@@ -155,13 +155,16 @@ class SoftwareTrigger(TelescopeComponent):
 
                     # remove telescope event
                     tels_removed.add(tel_id)
-                    del event.tel[tel_id]
+                    event.tel.pop(tel_id, None)
 
         if len(tels_removed) > 0:
             # convert to array with correct dtype to have setdiff1d work correctly
             tels_removed = np.fromiter(tels_removed, np.uint16, len(tels_removed))
             event.dl0.trigger.tels_with_trigger = np.setdiff1d(
                 event.dl0.trigger.tels_with_trigger, tels_removed, assume_unique=True
+            )
+            event.dl0.trigger.tels_with_data = np.setdiff1d(
+                event.dl0.trigger.tels_with_data, tels_removed, assume_unique=True
             )
 
         # completely remove array event if it wouldn't have triggered the stereo trigger
