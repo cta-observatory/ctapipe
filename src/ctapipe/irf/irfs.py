@@ -31,6 +31,8 @@ from .binning import (
     DefaultTrueEnergyBins,
 )
 
+DEFAULT_AEFF_EXTNAME = "EFFECTIVE AREA"
+
 __all__ = [
     "BackgroundRateMakerBase",
     "BackgroundRate2dMaker",
@@ -175,7 +177,7 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
         spatial_selection_applied: bool,
         signal_is_point_like: bool,
         sim_info: SimulatedEventsInfo,
-        extname: str = "EFFECTIVE AREA",
+        extname: str = DEFAULT_AEFF_EXTNAME,
     ) -> BinTableHDU:
         """
         Calculate the effective area and create a fits binary table HDU
@@ -216,7 +218,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
         spatial_selection_applied: bool,
         signal_is_point_like: bool,
         sim_info: SimulatedEventsInfo,
-        extname: str = "EFFECTIVE AREA",
+        extname: str = DEFAULT_AEFF_EXTNAME,
     ) -> BinTableHDU:
         # For point-like gammas the effective area can only be calculated
         # at one point in the FoV.
@@ -270,7 +272,7 @@ class EffectiveArea3DMaker(EffectiveAreaMakerBase, DefaultFoVLonLatBins):
         spatial_selection_applied: bool,
         signal_is_point_like: bool,
         sim_info: SimulatedEventsInfo,
-        extname: str = "EFFECTIVE AREA",
+        extname: str = DEFAULT_AEFF_EXTNAME,
     ) -> BinTableHDU:
         selected_events = events[
             ["true_energy", "true_source_fov_lon", "true_source_fov_lat"]
