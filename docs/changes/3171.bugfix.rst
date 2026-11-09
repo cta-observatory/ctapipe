@@ -1,1 +1,1 @@
-ctapipe-calculate-pixel-statistics now sets the pixel values marked as invalid in pixel_status to NaN before the aggregation.
+ctapipe-calculate-pixel-statistics now sets the pixel values marked as invalid in pixel_status to NaN before the aggregation. This functionality is optional and enabled by default.

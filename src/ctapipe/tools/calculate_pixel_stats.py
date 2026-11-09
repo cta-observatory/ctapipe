@@ -17,6 +17,7 @@ from ctapipe.core.traits import (
     Set,
     Unicode,
     classes_with_traits,
+    flag,
 )
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
@@ -72,6 +73,15 @@ class PixelStatisticsCalculatorTool(Tool):
         ),
     ).tag(config=True)
 
+    mask_invalid_pixels = Bool(
+        default_value=True,
+        help=(
+            "Set the pixel values marked as invalid in 'pixel_status' to NaN, so that they are "
+            "ignored by the aggregation. Has no effect if the input data has no "
+            "column 'pixel_status'."
+        ),
+    ).tag(config=True)
+
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
@@ -93,6 +103,12 @@ class PixelStatisticsCalculatorTool(Tool):
         "per-channel": (
             {"PixelStatisticsCalculatorTool": {"per_channel_statistics": True}},
             "Calculate per-channel statistics for gain selected input data",
+        ),
+        **flag(
+            "mask-invalid-pixels",
+            "PixelStatisticsCalculatorTool.mask_invalid_pixels",
+            "Exclude pixels marked as invalid in pixel_status from the statistics",
+            "Include pixels marked as invalid in pixel_status in the statistics",
         ),
     }
 
@@ -280,8 +296,9 @@ class PixelStatisticsCalculatorTool(Tool):
 
         For a single channel, pixels without any stored gain channel are masked.
         For two channels, each channel is masked if its own gain channel is not stored.
+        Does nothing if ``mask_invalid_pixels`` is disabled.
         """
-        if "pixel_status" not in dl1_table.colnames:
+        if not self.mask_invalid_pixels or "pixel_status" not in dl1_table.colnames:
             return
         column = dl1_table[self.input_column_name]
         pixel_status = np.asarray(dl1_table["pixel_status"])

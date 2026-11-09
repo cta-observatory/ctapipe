@@ -437,3 +437,9 @@ def test_mask_invalid_pixels_two_channels(dl1_image_file):
     dl1_table = Table({"image": image * u.ct})
     tool._mask_invalid_pixels(dl1_table)
     np.testing.assert_array_equal(dl1_table["image"], image)
+
+    # with masking disabled, the data is left unchanged
+    dl1_table = Table({"image": image * u.ct, "pixel_status": pixel_status})
+    tool = PixelStatisticsCalculatorTool(mask_invalid_pixels=False)
+    tool._mask_invalid_pixels(dl1_table)
+    np.testing.assert_array_equal(dl1_table["image"], image)
