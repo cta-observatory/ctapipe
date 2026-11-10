@@ -1,7 +1,0 @@
-The defaults of the data level containers in ``SubarrayEventContainer``
-and ``TelescopeEventContainer`` are set to ``None``, to clearly indicate
-missing data levels vs. missing data in present data levels
-
-The ``TelescopeDL0Container`` is clearly split into two child containers,
-one for the trigger info from SWAT, one for the waveform data from the
-cameras (``TelescopeTriggerContainer``, ``DL0CameraContainer``).
