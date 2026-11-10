@@ -419,8 +419,11 @@ class StatisticsInterpolator(ChunkInterpolator):
         [
             "q05",
             "q10",
+            "q16",
             "q25",
+            "q68",
             "q75",
+            "q84",
             "q90",
             "q95",
         ]
@@ -431,8 +434,10 @@ class StatisticsInterpolator(ChunkInterpolator):
         "std": None,
         "q05": None,
         "q10": None,
+        "q16": None,
         "q25": None,
         "q75": None,
+        "q84": None,
         "q90": None,
         "q95": None,
         "n_events": None,
