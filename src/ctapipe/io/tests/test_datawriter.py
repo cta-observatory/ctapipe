@@ -31,7 +31,7 @@ from ctapipe.containers import (
 )
 from ctapipe.core import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import DataLevel, EventSource
+from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
 from ctapipe.io.metadata import ProductMetadata, read_ctao_metadata
@@ -261,6 +261,48 @@ def test_write(tmpdir: Path, south_site_config):
         | dp.ProcessingSublevel.ENERGY
         | dp.ProcessingSublevel.GAMMANESS
     )
+
+
+def test_tels_with_data_roundtrip(tmp_path, south_site_config, prod5_gamma_simtel_path):
+    output = tmp_path / "busy_triggers.h5"
+    expected = []
+    with EventSource(prod5_gamma_simtel_path, max_events=3) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output,
+            write_dl1_parameters=False,
+            write_r1_waveforms=True,
+            config=south_site_config,
+        ) as writer:
+            for event in source:
+                # Keep the trigger but remove its data to represent a busy telescope.
+                if len(event.tel) > 1:
+                    del event.tel[max(event.tel)]
+                event.dl0.trigger.tels_with_data = np.array(
+                    list(event.tel), dtype=np.uint16
+                )
+                expected.append(
+                    (set(event.dl0.trigger.tels_with_trigger), set(event.tel))
+                )
+                writer(event)
+
+        with tables.open_file(output) as h5file:
+            trigger = h5file.root.dl0.event.subarray.trigger
+            for field, index in (("tels_with_trigger", 0), ("tels_with_data", 1)):
+                masks = trigger.col(field)
+                assert masks.dtype == np.bool_
+                assert masks.shape == (len(expected), len(source.subarray))
+                for mask, ids in zip(masks, expected):
+                    assert set(source.subarray.tel_mask_to_tel_ids(mask)) == ids[index]
+
+    assert any(trigger != data for trigger, data in expected)
+    with HDF5EventSource(output) as source:
+        events = list(source)
+        assert len(events) == len(expected)
+        for event, (trigger, data) in zip(events, expected):
+            assert set(event.dl0.trigger.tels_with_trigger) == trigger
+            assert set(event.dl0.trigger.tels_with_data) == data
+            assert set(event.tel) == data
 
 
 @pytest.mark.parametrize("overwrite", [False, True])

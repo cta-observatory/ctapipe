@@ -51,6 +51,9 @@ DL2_SUBLEVELS = {
 DATA_MODEL_VERSION = "v8.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
 - v8.0.0: - Trigger information is moved from DL1 to DL0
+          - Added field tels_with_data to SubarrayTriggerContainer and thus
+            /dl0/event/subarray/trigger table to be compliant with CTAO DL0 data model
+            and allow better treatment of busy triggers.
 - v7.7.0: - Add pixel_status field to DL1CameraContainer.
           - Add field "nsb_scaling_factor" to the simulation configuration
 - v7.6.0: - Add new monitoring group for pixel histograms: DL1_PIXEL_HISTOGRAMS_GROUP.
@@ -607,11 +610,12 @@ class DataWriter(Component):
 
         tr_tel_list_to_mask = TelListToMaskTransform(self._subarray)
 
-        writer.add_column_transform(
-            table_name="dl0/event/subarray/trigger",
-            col_name="tels_with_trigger",
-            transform=tr_tel_list_to_mask,
-        )
+        for col in ("tels_with_trigger", "tels_with_data"):
+            writer.add_column_transform(
+                table_name="dl0/event/subarray/trigger",
+                col_name=col,
+                transform=tr_tel_list_to_mask,
+            )
 
         writer.exclude("/dl0/event/telescope/trigger", "trigger_pixels")
         writer.exclude("/dl1/event/telescope/images/.*", "parameters")
