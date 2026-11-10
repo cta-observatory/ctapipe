@@ -101,6 +101,13 @@ def test_altaz_to_icrs(altaz_to_icrs_inputs):
     assert u.allclose(result.ra, expected.ra, atol=1 * u.arcsec)
     assert u.allclose(result.dec, expected.dec, atol=1 * u.arcsec)
 
+    # extra frame attributes are kept, so the result can be transformed back
+    assert np.all(result.obstime == altaz_to_icrs_inputs["obstime"])
+    assert result.location == altaz_to_icrs_inputs["location"]
+    altaz = result.transform_to("altaz")
+    assert u.allclose(altaz.az, altaz_to_icrs_inputs["az"], atol=1 * u.arcsec)
+    assert u.allclose(altaz.alt, altaz_to_icrs_inputs["alt"], atol=1 * u.arcsec)
+
 
 def test_altaz_to_icrs_non_finite(altaz_to_icrs_inputs):
     """Check non-finite events give NaN, without affecting or warning about others."""
@@ -123,7 +130,7 @@ def test_altaz_to_icrs_non_finite(altaz_to_icrs_inputs):
     assert np.all(np.isnan(result[1:].ra))
     assert np.all(np.isnan(result[1:].dec))
 
-    # nothing valid: no transformation should be attempted
+    # nothing valid
     inputs = altaz_to_icrs_inputs | dict(az=np.full(3, np.nan) * u.deg)
     result = altaz_to_icrs(**inputs)
     assert result.shape == (3,)

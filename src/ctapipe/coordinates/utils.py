@@ -141,31 +141,24 @@ def altaz_to_icrs(
        all-scalar inputs give a scalar coordinate.
     """
     shape = np.broadcast_shapes(np.shape(az), np.shape(alt), obstime.shape)
-    az = np.broadcast_to(az, shape, subok=True).ravel()
-    alt = np.broadcast_to(alt, shape, subok=True).ravel()
-    obstime = np.broadcast_to(obstime, shape, subok=True).ravel()
+    az = np.broadcast_to(az, shape, subok=True)
+    alt = np.broadcast_to(alt, shape, subok=True)
+    obstime = np.broadcast_to(obstime, shape, subok=True)
 
+    # non-finite events become NaN, since Latitude rejects infinite values,
+    # and NaN propagates through the transformation
     valid = np.isfinite(az) & np.isfinite(alt)
-    ra = np.full(az.shape, np.nan)
-    dec = np.full(az.shape, np.nan)
-
-    if np.any(valid):
-        event_coord = SkyCoord(
-            az=az[valid],
-            alt=alt[valid],
-            frame="altaz",
-            obstime=obstime[valid],
-            location=location,
-        )
-
-        with erfa_astrom.set(ErfaAstromInterpolator(resolution)):
-            icrs_coord = event_coord.transform_to("icrs")
-
-        ra[valid] = icrs_coord.ra.deg
-        dec[valid] = icrs_coord.dec.deg
-
-    return SkyCoord(
-        ra=u.Quantity(ra.reshape(shape), u.deg),
-        dec=u.Quantity(dec.reshape(shape), u.deg),
-        frame="icrs",
+    event_coord = SkyCoord(
+        az=np.where(valid, az, np.nan * u.deg),
+        alt=np.where(valid, alt, np.nan * u.deg),
+        frame="altaz",
+        obstime=obstime,
+        location=location,
     )
+
+    # erfa warns about the NaN events, which are expected
+    with (
+        erfa_astrom.set(ErfaAstromInterpolator(resolution)),
+        np.errstate(invalid="ignore"),
+    ):
+        return event_coord.transform_to("icrs")
