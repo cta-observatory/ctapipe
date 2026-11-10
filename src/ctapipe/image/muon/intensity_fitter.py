@@ -6,6 +6,7 @@ from functools import lru_cache
 from math import erf
 
 import numpy as np
+from astropy import constants
 from astropy import units as u
 from astropy.constants import c, h
 from numba import double, vectorize
@@ -40,8 +41,23 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 SQRT2 = np.sqrt(2)
 
 
-def bandwidth_to_efficiency_factor(lambda_min, lambda_max):
-    return ((lambda_min.to(u.m) ** -1 - lambda_max.to(u.m) ** -1) * h * c).to(u.eV)
+@u.quantity_input(lambda_min=u.nm, lambda_max=u.nm)
+def _efficiency_to_bandwidth_factor(lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    return ((1 / lambda_min - 1 / lambda_max) * constants.h * constants.c).to(u.eV)
+
+
+@u.quantity_input(bandwidth=u.eV, lambda_min=u.nm, lambda_max=u.nm)
+def bandwidth_to_efficiency(bandwidth, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    return (
+        bandwidth / _efficiency_to_bandwidth_factor(lambda_min, lambda_max)
+    ).to_value(u.one)
+
+
+@u.quantity_input(efficiency=u.one, lambda_min=u.nm, lambda_max=u.nm)
+def efficiency_to_bandwith(efficiency, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    return (efficiency * _efficiency_to_bandwidth_factor(lambda_min, lambda_max)).to(
+        u.eV
+    )
 
 
 def chord_length(radius, rho, phi, phi0=0):
