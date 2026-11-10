@@ -436,6 +436,7 @@ class StatisticsInterpolator(ChunkInterpolator):
         "q10": None,
         "q16": None,
         "q25": None,
+        "q68": None,
         "q75": None,
         "q84": None,
         "q90": None,
