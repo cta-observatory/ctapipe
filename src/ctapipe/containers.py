@@ -14,59 +14,72 @@ from numpy import nan
 from .core.container import Container, Field, Map, TimeResolution
 
 __all__ = [
-    "ArrayEventContainer",
-    "ConcentrationContainer",
-    "DL0CameraContainer",
-    "DL0Container",
-    "DL1CameraContainer",
-    "DL1Container",
-    "DL2Container",
-    "EventIndexContainer",
-    "EventType",
-    "HillasParametersContainer",
-    "CoreParametersContainer",
-    "ImageParametersContainer",
-    "LeakageContainer",
     "CameraCalibrationContainer",
+    "CameraDisplacementContainer",
     "CameraMonitoringContainer",
-    "TelescopeMonitoringContainer",
-    "MonitoringContainer",
+    "ChunkContainer",
+    "ChunkHistogramContainer",
+    "ChunkStatisticsContainer",
+    "ConcentrationContainer",
+    "CoordinateFrameType",
+    "CoreParametersContainer",
+    "DispContainer",
+    "DL0CameraContainer",
+    "EventType",
+    "FRAMMonitoringContainer",
+    "HillasParametersContainer",
+    "ImageParametersContainer",
+    "ImageStatisticsContainer",
+    "IntensityStatisticsContainer",
+    "LeakageContainer",
     "MorphologyContainer",
-    "MuonRingContainer",
+    "MuonContainer",
     "MuonEfficiencyContainer",
     "MuonParametersContainer",
-    "MuonTelescopeContainer",
-    "MuonContainer",
+    "MuonRingContainer",
+    "ObservationBlockContainer",
+    "ObservationBlockState",
+    "ObservingMode",
     "ParticleClassificationContainer",
+    "PeakTimeStatisticsContainer",
     "PixelStatisticsContainer",
-    "R0CameraContainer",
-    "R0Container",
-    "R1CameraContainer",
-    "R1Container",
-    "ReconstructedContainer",
+    "PixelStatus",
+    "PointingMode",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
-    "DispContainer",
-    "SimulatedCameraContainer",
+    "ReconstructedShowerContainer",
+    "SchedulingBlockContainer",
+    "SchedulingBlockType",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
-    "TelEventIndexContainer",
-    "TimingParametersContainer",
-    "TriggerContainer",
-    "TelescopePointingContainer",
-    "ArrayPointingContainer",
     "StatisticsContainer",
-    "ChunkContainer",
-    "ChunkStatisticsContainer",
-    "ChunkHistogramContainer",
-    "ImageStatisticsContainer",
-    "IntensityStatisticsContainer",
-    "PeakTimeStatisticsContainer",
-    "SchedulingBlockContainer",
-    "ObservationBlockContainer",
-    "ObservingMode",
-    "ObservationBlockState",
+    "SubarrayDL0Container",
+    "SubarrayDL2Container",
+    "SubarrayEventContainer",
+    "SubarrayEventIndexContainer",
+    "SubarrayMonitoringContainer",
+    "SubarrayPointingContainer",
+    "SubarraySimulationContainer",
+    "SubarrayTriggerContainer",
+    "TelescopeConfigurationIndexContainer",
+    "TelescopeCorrectedPointingContainer",
+    "TelescopeDL0Container",
+    "TelescopeDL1Container",
+    "TelescopeDL2Container",
+    "TelescopeEventContainer",
+    "TelescopeEventIndexContainer",
+    "TelescopeImpactParameterContainer",
+    "TelescopeMonitoringContainer",
+    "TelescopePointingContainer",
+    "TelescopeStructureDisplacementContainer",
+    "TelescopeStructurePointingContainer",
+    "TelescopeR0Container",
+    "TelescopeR1Container",
+    "TelescopeSimulationContainer",
+    "TelescopeTriggerContainer",
+    "TimingParametersContainer",
+    "WeatherMonitoringContainer",
 ]
 
 
@@ -103,7 +116,7 @@ pedestal_intensity_field = partial(
 
 class SchedulingBlockType(enum.Enum):
     """
-    Types of Scheduling Block
+    Types of Scheduling Block.
     """
 
     UNKNOWN = -1
@@ -113,8 +126,10 @@ class SchedulingBlockType(enum.Enum):
 
 
 class ObservationBlockState(enum.Enum):
-    """Observation Block States. Part of the Observation Configuration data
-    model.
+    """
+    Observation Block States.
+
+    Part of the Observation Configuration data model.
     """
 
     UNKNOWN = -1
@@ -126,9 +141,10 @@ class ObservationBlockState(enum.Enum):
 
 
 class ObservingMode(enum.Enum):
-    """How a scheduling block is observed. Part of the Observation Configuration
-    data model.
+    """
+    SchedulingBlock observation mode.
 
+    Part of the Observation Configuration data model.
     """
 
     UNKNOWN = -1
@@ -139,9 +155,10 @@ class ObservingMode(enum.Enum):
 
 
 class PointingMode(enum.Enum):
-    """Describes how the telescopes move. Part of the Observation Configuration
-    data model.
+    """
+    Describes how the telescopes move.
 
+    Part of the Observation Configuration data model.
     """
 
     UNKNOWN = -1
@@ -152,9 +169,9 @@ class PointingMode(enum.Enum):
 
 
 class CoordinateFrameType(enum.Enum):
-    """types of coordinate frames used in ObservationBlockContainers. Part of
-    the Observation Configuration data model.
+    """Coordinate frame type used in ObservationBlockContainers.
 
+    Part of the Observation Configuration data model.
     """
 
     UNKNOWN = -1
@@ -164,7 +181,7 @@ class CoordinateFrameType(enum.Enum):
 
 
 class EventType(enum.Enum):
-    """R1/DL0 EventType
+    """R1/DL0 telescope event type.
 
     Defined in :cite:p:`ctao-r1-event-data-model`.
     """
@@ -221,7 +238,7 @@ class VarianceType(enum.Enum):
 
 class PixelStatus(enum.IntFlag):
     """
-    Pixel status information
+    Pixel status information.
 
     See DL0 Data Model specification:
     https://redmine.cta-observatory.org/dmsf/files/17552/view
@@ -295,10 +312,10 @@ class TelescopeConfigurationIndexContainer(Container):
     tel_id = tel_id_field()
 
 
-class EventIndexContainer(Container):
+class SubarrayEventIndexContainer(Container):
     """Index columns to include in event lists.
 
-    Common to all data levels
+    Common to all data levels.
     """
 
     default_prefix = ""
@@ -306,7 +323,7 @@ class EventIndexContainer(Container):
     event_id = event_id_field()
 
 
-class TelEventIndexContainer(Container):
+class TelescopeEventIndexContainer(Container):
     """
     index columns to include in telescope-wise event lists
 
@@ -317,6 +334,47 @@ class TelEventIndexContainer(Container):
     obs_id = obs_id_field()
     event_id = event_id_field()
     tel_id = tel_id_field()
+
+
+# Trigger containers
+class TelescopeTriggerContainer(Container):
+    """Telescope-level trigger information."""
+
+    default_prefix = ""
+    time = Field(
+        NAN_TIME,
+        description="Telescope trigger time",
+        time_resolution=TimeResolution.HIGH,
+    )
+    n_trigger_pixels = Field(
+        -1, description="Number of trigger groups (sectors) listed"
+    )
+    trigger_pixels = Field(None, description="pixels involved in the camera trigger")
+    event_type = Field(EventType.UNKNOWN, description="Event type")
+
+
+class SubarrayTriggerContainer(Container):
+    """Subarray-level trigger information."""
+
+    default_prefix = ""
+    time = Field(
+        NAN_TIME,
+        description="central average time stamp",
+        time_resolution=TimeResolution.HIGH,
+    )
+    tels_with_trigger = Field(
+        None,
+        description=(
+            "List of telescope ids that triggered the array event."
+            " This may contain telescopes that triggered, but could not read out"
+            " data due to being in dead time (busy triggers)."
+        ),
+    )
+    tels_with_data = Field(
+        None,
+        description="List of telescope ids that provided DL0 data for the array event",
+    )
+    event_type = Field(EventType.SUBARRAY, description="Event type")
 
 
 class HillasParametersContainer(Container):
@@ -365,6 +423,8 @@ class HillasParametersContainer(Container):
 
 class LeakageContainer(Container):
     """
+    Leakage image parameters.
+
     Fraction of signal in 1 or 2-pixel width border from the edge of the
     camera, measured in number of signal pixels or in intensity.
     """
@@ -391,6 +451,8 @@ class LeakageContainer(Container):
 
 class ConcentrationContainer(Container):
     """
+    Concentration image paraemters.
+
     Concentrations are ratios between light amount
     in certain areas of the image and the full image.
     """
@@ -403,9 +465,10 @@ class ConcentrationContainer(Container):
 
 class TimingParametersContainer(Container):
     """
+    Shower-axis time parameters computed in `~ctapipe.coordinates.TelescopeFrame`.
+
     Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis in a
-    spherical system centered on the pointing position (TelescopeFrame)
+    along the shower main axis.
     """
 
     default_prefix = "timing"
@@ -430,7 +493,7 @@ class MorphologyContainer(Container):
 
 
 class ImageStatisticsContainer(Container):
-    """Store descriptive image statistics"""
+    """Descriptive statistics of the image."""
 
     max = Field(np.float32(nan), "Value of pixel with maximum intensity")
     min = Field(np.float32(nan), "Value of pixel with minimum intensity")
@@ -448,10 +511,14 @@ class ImageStatisticsContainer(Container):
 
 
 class IntensityStatisticsContainer(ImageStatisticsContainer):
+    """Descriptive statistics of the dl1 image."""
+
     default_prefix = "intensity"
 
 
 class PeakTimeStatisticsContainer(ImageStatisticsContainer):
+    """Descriptive statistics of the dl1 peak_time."""
+
     default_prefix = "peak_time"
 
 
@@ -465,7 +532,7 @@ class CoreParametersContainer(Container):
 
 
 class ImageParametersContainer(Container):
-    """Collection of image parameters"""
+    """Collection of image parameters."""
 
     default_prefix = "params"
     hillas = Field(
@@ -502,11 +569,8 @@ class ImageParametersContainer(Container):
     )
 
 
-class DL1CameraContainer(Container):
-    """
-    Storage of output of camera calibration e.g the final calibrated
-    image in intensity units and the pulse time.
-    """
+class TelescopeDL1Container(Container):
+    """Telescope-level DL1 information."""
 
     image = Field(
         None,
@@ -542,40 +606,16 @@ class DL1CameraContainer(Container):
     )
 
 
-class DL1Container(Container):
-    """DL1 Calibrated Camera Images and associated data"""
-
-    tel = Field(
-        default_factory=partial(Map, DL1CameraContainer),
-        description="map of tel_id to DL1CameraContainer",
-    )
-
-
-class R0CameraContainer(Container):
-    """
-    Storage of raw data from a single telescope
-    """
+class TelescopeR0Container(Container):
+    """Telescope-level R0 information."""
 
     waveform = Field(
         None, ("numpy array containing ADC samples: (n_channels, n_pixels, n_samples)")
     )
 
 
-class R0Container(Container):
-    """
-    Storage of a Merged Raw Data Event
-    """
-
-    tel = Field(
-        default_factory=partial(Map, R0CameraContainer),
-        description="map of tel_id to R0CameraContainer",
-    )
-
-
-class R1CameraContainer(Container):
-    """
-    Storage of r1 calibrated data from a single telescope
-    """
+class TelescopeR1Container(Container):
+    """Telescope-level R1 information."""
 
     event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
     event_time = Field(NAN_TIME, "event timestamp", time_resolution=TimeResolution.HIGH)
@@ -636,20 +676,9 @@ class R1CameraContainer(Container):
     )
 
 
-class R1Container(Container):
-    """
-    Storage of a r1 calibrated Data Event
-    """
-
-    tel = Field(
-        default_factory=partial(Map, R1CameraContainer),
-        description="map of tel_id to R1CameraContainer",
-    )
-
-
 class DL0CameraContainer(Container):
     """
-    Storage of data volume reduced dl0 data from a single telescope.
+    Telescope-level DL0 information.
 
     See DL0 Data Model specification:
     https://redmine.cta-observatory.org/dmsf/files/17552/view
@@ -709,20 +738,30 @@ class DL0CameraContainer(Container):
     )
 
 
-class DL0Container(Container):
+class TelescopeDL0Container(Container):
+    """Telescope trigger information and optional DL0 camera data."""
+
+    trigger = Field(
+        default_factory=TelescopeTriggerContainer,
+        description="telescope trigger information",
+    )
+    camera = Field(None, description="DL0 camera data", type=DL0CameraContainer)
+
+
+class SubarrayDL0Container(Container):
     """
-    Storage of a data volume reduced Event
+    Subarray-level DL0 information.
     """
 
-    tel = Field(
-        default_factory=partial(Map, DL0CameraContainer),
-        description="map of tel_id to DL0CameraContainer",
+    trigger = Field(
+        default_factory=SubarrayTriggerContainer,
+        description="subarray trigger information",
     )
 
 
 class TelescopeImpactParameterContainer(Container):
     """
-    Impact Parameter computed from reconstructed shower geometry
+    Impact Parameter computed from reconstructed or true shower geometry
     """
 
     default_prefix = "impact"
@@ -756,10 +795,9 @@ class SimulatedShowerContainer(Container):
     )
 
 
-class SimulatedCameraContainer(Container):
+class TelescopeSimulationContainer(Container):
     """
-    True images and parameters derived from them, analogous to the `DL1CameraContainer`
-    but for simulated data.
+    Per-telescope simulations truths and derived parameters.
     """
 
     default_prefix = ""
@@ -787,158 +825,10 @@ class SimulatedCameraContainer(Container):
     )
 
 
-class SimulatedEventContainer(Container):
+class SubarraySimulationContainer(Container):
     shower = Field(
         default_factory=SimulatedShowerContainer,
         description="True event information",
-    )
-    tel = Field(default_factory=partial(Map, SimulatedCameraContainer))
-
-
-class SimulationConfigContainer(Container):
-    """
-    Configuration parameters of the simulation
-    """
-
-    run_number = Field(np.int32(-1), description="Original sim_telarray run number")
-    corsika_version = Field(nan, description="CORSIKA version * 1000")
-    simtel_version = Field(nan, description="sim_telarray version * 1000")
-    energy_range_min = Field(
-        nan * u.TeV,
-        description="Lower limit of energy range of primary particle",
-        unit=u.TeV,
-    )
-    energy_range_max = Field(
-        nan * u.TeV,
-        description="Upper limit of energy range of primary particle",
-        unit=u.TeV,
-    )
-    prod_site_B_total = Field(
-        nan * u.uT, description="total geomagnetic field", unit=u.uT
-    )
-    prod_site_B_declination = Field(
-        nan * u.rad, description="magnetic declination", unit=u.rad
-    )
-    prod_site_B_inclination = Field(
-        nan * u.rad, description="magnetic inclination", unit=u.rad
-    )
-    prod_site_alt = Field(
-        nan * u.m, description="height of observation level", unit=u.m
-    )
-    spectral_index = Field(nan, description="Power-law spectral index of spectrum")
-    shower_prog_start = Field(
-        nan, description="Time when shower simulation started, CORSIKA: only date"
-    )
-    shower_prog_id = Field(nan, description="CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
-    detector_prog_start = Field(
-        nan, description="Time when detector simulation started"
-    )
-    detector_prog_id = Field(nan, description="simtelarray=1")
-    n_showers = Field(nan, description="Number of showers simulated")
-    shower_reuse = Field(nan, description="Numbers of uses of each shower")
-    max_alt = Field(nan * u.rad, description="Maximum shower altitude", unit=u.rad)
-    min_alt = Field(nan * u.rad, description="Minimum shower altitude", unit=u.rad)
-    max_az = Field(nan * u.rad, description="Maximum shower azimuth", unit=u.rad)
-    min_az = Field(nan * u.rad, description="Minimum shower azimuth", unit=u.rad)
-    diffuse = Field(False, description="Diffuse Mode On/Off")
-    max_viewcone_radius = Field(
-        nan * u.deg, description="Maximum viewcone radius", unit=u.deg
-    )
-    min_viewcone_radius = Field(
-        nan * u.deg, description="Minimum viewcone radius", unit=u.deg
-    )
-    max_scatter_range = Field(nan * u.m, description="Maximum scatter range", unit=u.m)
-    min_scatter_range = Field(nan * u.m, description="Minimum scatter range", unit=u.m)
-    core_pos_mode = Field(
-        nan, description="Core Position Mode (0=Circular, 1=Rectangular)"
-    )
-    atmosphere = Field(nan * u.m, description="Atmospheric model number")
-    corsika_iact_options = Field(
-        nan, description="CORSIKA simulation options for IACTs"
-    )
-    corsika_low_E_model = Field(
-        nan, description="CORSIKA low-energy simulation physics model"
-    )
-    corsika_high_E_model = Field(
-        nan,
-        "CORSIKA physics model ID for high energies "
-        "(1=VENUS, 2=SIBYLL, 3=QGSJET, 4=DPMJET, 5=NeXus, 6=EPOS) ",
-    )
-    corsika_bunchsize = Field(nan, description="Number of Cherenkov photons per bunch")
-    corsika_wlen_min = Field(
-        nan * u.m, description="Minimum wavelength of cherenkov light", unit=u.nm
-    )
-    corsika_wlen_max = Field(
-        nan * u.m, description="Maximum wavelength of cherenkov light", unit=u.nm
-    )
-    corsika_low_E_detail = Field(
-        nan, description="More details on low E interaction model (version etc.)"
-    )
-    corsika_high_E_detail = Field(
-        nan, description="More details on high E interaction model (version etc.)"
-    )
-
-    nsb_scaling_factor = Field(
-        None, description="Simulated NSB as multiple of the nominal dark night NSB."
-    )
-
-
-class SimulatedShowerDistribution(Container):
-    """
-    2D histogram of simulated number of showers simulated as function of energy and
-    core distance.
-    """
-
-    default_prefix = ""
-
-    obs_id = obs_id_field()
-    hist_id = Field(-1, description="Histogram ID")
-    n_entries = Field(-1, description="Number of entries in the histogram")
-    bins_energy = Field(
-        None,
-        description="array of energy bin lower edges, as in np.histogram",
-        unit=u.TeV,
-    )
-    bins_core_dist = Field(
-        None,
-        description="array of core-distance bin lower edges, as in np.histogram",
-        unit=u.m,
-    )
-    histogram = Field(
-        None, description="array of histogram entries, size (n_bins_x, n_bins_y)"
-    )
-
-
-# Trigger containers
-class TelescopeTriggerContainer(Container):
-    default_prefix = ""
-    time = Field(
-        NAN_TIME,
-        description="Telescope trigger time",
-        time_resolution=TimeResolution.HIGH,
-    )
-    event_type = Field(EventType.UNKNOWN, description="Event type")
-
-    n_trigger_pixels = Field(
-        -1, description="Number of trigger groups (sectors) listed"
-    )
-    trigger_pixels = Field(None, description="pixels involved in the camera trigger")
-
-
-class TriggerContainer(Container):
-    default_prefix = ""
-    time = Field(
-        NAN_TIME,
-        description="central average time stamp",
-        time_resolution=TimeResolution.HIGH,
-    )
-    tels_with_trigger = Field(
-        None, description="List of telescope ids that triggered the array event"
-    )
-    event_type = Field(EventType.SUBARRAY, description="Event type")
-    tel = Field(
-        default_factory=partial(Map, TelescopeTriggerContainer),
-        description="telescope-wise trigger information",
     )
 
 
@@ -1070,16 +960,13 @@ class DispContainer(Container):
     )
 
 
-class ReconstructedContainer(Container):
-    """Reconstructed shower info from multiple algorithms"""
+class ReconstructedShowerContainer(Container):
+    """
+    Reconstructed shower information.
 
-    # Note: there is a reason why the hiererchy is
-    # `event.dl2.stereo.geometry[algorithm]` and not
-    # `event.dl2[algorithm].stereo.geometry` and that is because when writing
-    # the data, the former makes it easier to only write information that a
-    # particular reconstructor generates, e.g. only write the geometry in cases
-    # where energy is not yet computed. Some algorithms will compute all three,
-    # but most will compute only fill or two of these sub-Contaiers:
+    May contain reconstructions of multiple algorithms for
+    each property, mapping algorithm name to container.
+    """
 
     geometry = Field(
         default_factory=partial(Map, ReconstructedGeometryContainer),
@@ -1099,11 +986,13 @@ class ReconstructedContainer(Container):
         from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
         warnings.warn(
-            "The 'classification' field from 'ReconstructedContainer' was "
-            "renamed and will be deleted in future versions. Use "
+            "The 'classification' field was renamed and will be deleted "
+            "in future versions. Use "
             "'particle_type' instead. "
-            "E.g. switch from 'event.dl2.{tel,stereo}.classification' to "
-            "'event.dl2.{tel,stereo}.particle_type'.",
+            "E.g. switch from 'event.dl2.classification' to "
+            "'event.dl2.particle_type', or from "
+            "'event.tel[tel_id].dl2.classification' to "
+            "'event.tel[tel_id].dl2.particle_type'.",
             CTAPipeDeprecationWarning,
             stacklevel=3,
         )
@@ -1119,37 +1008,104 @@ class ReconstructedContainer(Container):
         self.particle_type = value
 
 
-class TelescopeReconstructedContainer(ReconstructedContainer):
-    """Telescope-wise reconstructed quantities"""
+class SubarrayDL2Container(ReconstructedShowerContainer):
+    """
+    DL2 subarray-wise information (reconstructed air shower properties)
+    """
+
+
+class TelescopeDL2Container(ReconstructedShowerContainer):
+    """DL2 telescope-wise quantities"""
 
     impact = Field(
         default_factory=partial(Map, TelescopeImpactParameterContainer),
         description="map of algorithm to impact parameter info",
     )
+
     disp = Field(
         default_factory=partial(Map, DispContainer),
         description="map of algorithm to reconstructed disp parameters",
     )
 
 
-class DL2Container(Container):
-    """Reconstructed Shower information for a given reconstruction algorithm,
-    including optionally both per-telescope mono reconstruction and per-shower
-    stereo reconstructions
+# Pointing-related containers
+class TelescopeStructurePointingContainer(Container):
+    """
+    Pointing of the telescope structure in local coordinates (Alt/Az)
+    as measured by the telescope hardware (e.g. drive encoders).
     """
 
-    tel = Field(
-        default_factory=partial(Map, TelescopeReconstructedContainer),
-        description="map of tel_id to single-telescope reconstruction (DL2a)",
+    default_prefix = "structure_pointing"
+    azimuth = Field(
+        nan * u.rad, "Raw azimuth measured by structure encoders", unit=u.rad
     )
-    stereo = Field(
-        default_factory=ReconstructedContainer,
-        description="Stereo Shower reconstruction results",
+    altitude = Field(
+        nan * u.rad, "Raw altitude measured by structure encoders", unit=u.rad
     )
 
 
-# Calibration containers
-# Pointing containers
+class TelescopeStructureDisplacementContainer(Container):
+    """
+    Difference between ideal and real direction of the telescope axis for
+    a given elevation in local coordinates (e.g. structural bending model).
+    """
+
+    default_prefix = "structure_displacement"
+    delta_azimuth = Field(
+        nan * u.rad,
+        "Azimuth offset due to structure bending/deformation",
+        unit=u.rad,
+    )
+    delta_altitude = Field(
+        nan * u.rad,
+        "Altitude offset due to structure bending/deformation",
+        unit=u.rad,
+    )
+
+
+class CameraDisplacementContainer(Container):
+    """
+    Displacement and tilt of the camera w.r.t. its nominal position in the
+    telescope structure.
+    """
+
+    default_prefix = "camera_displacement"
+    translation_x = Field(
+        nan * u.m, "Camera displacement along X axis (horizontal)", unit=u.m
+    )
+    translation_y = Field(
+        nan * u.m, "Camera displacement along Y axis (vertical)", unit=u.m
+    )
+    translation_z = Field(
+        nan * u.m, "Camera displacement along optical Z axis (focal offset)", unit=u.m
+    )
+    rotation_x = Field(
+        nan * u.rad, "Camera tilt angle around X axis (pitch)", unit=u.rad
+    )
+    rotation_y = Field(nan * u.rad, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
+    rotation_z = Field(
+        nan * u.rad, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
+    )
+
+
+class TelescopeCorrectedPointingContainer(Container):
+    """
+    Corrected for residual sky-pointing offsets pointing in local coordinates (Alt/Az).
+
+    This container holds corrected pointing in local coordinates regardless of how they were
+    derived (e.g. analytical StarTracker, auxiliary hardware devices,
+    or a combination/fusion model).
+    """
+
+    default_prefix = "corrected_pointing"
+    altitude = Field(nan * u.rad, "Residual Altitude offset correction", unit=u.rad)
+    azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
+
+    # Optional uncertainty tracking
+    altitude_uncertainty = Field(nan * u.rad, "Uncertainty on Altitude", unit=u.rad)
+    azimuth_uncertainty = Field(nan * u.rad, "Uncertainty on Azimuth", unit=u.rad)
+
+
 class TelescopePointingContainer(Container):
     """
     Container holding pointing information for a single telescope
@@ -1163,16 +1119,45 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
-class ArrayPointingContainer(Container):
+class SubarrayPointingContainer(Container):
+    """Subarray-level pointing information."""
+
+    azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
+    altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
+    ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
+    dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
+
+
+class SubarrayMonitoringContainer(Container):
+    """Subarray-level monitoring information."""
+
+    pointing = Field(
+        default_factory=SubarrayPointingContainer,
+        description="Subarray pointing position.",
+    )
+
+
+# Environmental Monitoring containers
+class WeatherMonitoringContainer(Container):
     """
-    Container holding pointing information for the combined array
-    after all necessary correction and calibration steps.
+    Environmental parameters at the observatory site.
+
+    Note: Astronomical refraction derived from weather measurements SHALL ONLY
+    be used when fitting star positions during offline optical pointing calibration.
+    It SHALL NOT be applied during Cherenkov atmospheric shower direction reconstruction.
     """
 
-    array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
-    array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
-    array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
-    array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
+    default_prefix = "weather"
+    temperature = Field(
+        nan * u.K, "Ambient air temperature at observatory site", unit=u.K
+    )
+    pressure = Field(
+        nan * u.hPa, "Atmospheric pressure at observatory site", unit=u.hPa
+    )
+    relative_humidity = Field(
+        nan,
+        "Relative humidity fraction (0.0 to 1.0)",
+    )
 
 
 # Camera containers
@@ -1227,9 +1212,21 @@ class CameraCalibrationContainer(Container):
 class StatisticsContainer(Container):
     """Container for descriptive statistics"""
 
-    mean = Field(None, "mean value")
-    median = Field(None, "median value")
-    std = Field(None, "standard deviation")
+    mean = Field(None, description="mean value")
+    median = Field(None, description="median value")
+    std = Field(None, description="standard deviation")
+    q05 = Field(None, description="0.05 quantile")
+    q10 = Field(None, description="0.10 quantile")
+    q16 = Field(None, description="0.1587 quantile")
+    q25 = Field(None, description="0.25 quantile")
+    q68 = Field(None, description="0.68 quantile")
+    q75 = Field(None, description="0.75 quantile")
+    q84 = Field(None, description="0.8413 quantile")
+    q90 = Field(None, description="0.90 quantile")
+    q95 = Field(None, description="0.95 quantile")
+    n_events = Field(
+        None, description="Sample size used for the statistics calculation, if known."
+    )
 
 
 class ChunkContainer(Container):
@@ -1247,25 +1244,32 @@ class ChunkContainer(Container):
     )
     event_id_start = Field(None, "event id of the first event of the chunk")
     event_id_end = Field(None, "event id of the last event of the chunk")
-    n_events = Field(
-        -1, "number of events used for the calculation of the chunk values"
-    )
     outlier_mask = Field(None, "boolean mask indicating outliers in the chunk")
     is_valid = Field(False, "true if chunk values are valid")
 
 
-class ChunkStatisticsContainer(ChunkContainer):
-    """Container for descriptive statistics of the chunk distribution"""
-
-    mean = Field(None, "mean value of the chunk distribution")
-    median = Field(None, "median value of the chunk distribution")
-    std = Field(None, "standard deviation of the chunk distribution")
+# Containers cannot inherit from two field-defining Containers (ContainerMeta
+# allocates __slots__ per class, giving an instance lay-out conflict). Subclass
+# ChunkContainer and merge the StatisticsContainer fields instead; note that
+# isinstance(..., StatisticsContainer) is therefore False.
+# Warning: fields with the same name in both containers are overwritten silently
+# by the StatisticsContainer definition, so keep the field names disjoint.
+ChunkStatisticsContainer = type(
+    "ChunkStatisticsContainer",
+    (ChunkContainer,),
+    {
+        **StatisticsContainer.fields,
+        "__module__": __name__,
+        "__doc__": "Container for descriptive statistics of the chunk distribution",
+    },
+)
 
 
 class ChunkHistogramContainer(ChunkContainer):
     """Container for histograms of the chunk distribution"""
 
     histogram = Field(None, "histogram of the chunk distribution")
+    n_events = Field(None, description="Sample size used to fill the histogram.")
 
 
 class PixelStatisticsContainer(Container):
@@ -1302,6 +1306,12 @@ class CameraMonitoringContainer(Container):
         description="Camera calibration coefficients calculated from the monitoring data",
     )
 
+    camera_displacement = Field(
+        default=None,
+        type=CameraDisplacementContainer,
+        description="Displacement and tilt of the camera w.r.t. its nominal position in the telescope structure.",
+    )
+
 
 class TelescopeMonitoringContainer(Container):
     """
@@ -1313,25 +1323,11 @@ class TelescopeMonitoringContainer(Container):
         default_factory=CameraMonitoringContainer,
         description="Container for monitoring data for camera",
     )
+
     pointing = Field(
-        default_factory=TelescopePointingContainer,
+        default=None,
+        type=TelescopePointingContainer,
         description="Telescope pointing positions",
-    )
-
-
-class MonitoringContainer(Container):
-    """
-    Root container for monitoring data (MON)
-    """
-
-    # create the camera container
-    tel = Field(
-        default_factory=partial(Map, TelescopeMonitoringContainer),
-        description="map of tel_id to TelescopeMonitoringContainer",
-    )
-    pointing = Field(
-        default_factory=ArrayPointingContainer,
-        description="Array pointing positions",
     )
 
 
@@ -1362,6 +1358,8 @@ class MuonRingContainer(Container):
 
 
 class MuonEfficiencyContainer(Container):
+    """Container for the result of the MuonIntensityFitter"""
+
     width = Field(nan * u.deg, "width of the muon ring in degrees")
     impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
     impact_x = Field(nan * u.m, "impact parameter x position")
@@ -1375,6 +1373,8 @@ class MuonEfficiencyContainer(Container):
 
 
 class MuonParametersContainer(Container):
+    """Container for muon-ring-related image parameters"""
+
     containment = Field(nan, "containment of the ring inside the camera")
     completeness = Field(
         nan,
@@ -1409,7 +1409,7 @@ class MuonParametersContainer(Container):
     )
 
 
-class MuonTelescopeContainer(Container):
+class MuonContainer(Container):
     """
     Container for muon analysis
     """
@@ -1423,43 +1423,119 @@ class MuonTelescopeContainer(Container):
     )
 
 
-class MuonContainer(Container):
-    """Root container for muon parameters"""
-
-    tel = Field(
-        default_factory=partial(Map, MuonTelescopeContainer),
-        description="map of tel_id to MuonTelescopeContainer",
-    )
-
-
-# Top-level array event container
-class ArrayEventContainer(Container):
-    """Top-level container for all event information"""
+class TelescopeEventContainer(Container):
+    """Single-telescope data. Absent data levels are represented by ``None``."""
 
     index = Field(
-        default_factory=EventIndexContainer, description="event indexing information"
+        default_factory=TelescopeEventIndexContainer,
+        description="event indexing information",
     )
-    r0 = Field(default_factory=R0Container, description="Raw Data")
-    r1 = Field(default_factory=R1Container, description="R1 Calibrated Data")
-    dl0 = Field(
-        default_factory=DL0Container, description="DL0 Data Volume Reduced Data"
-    )
-    dl1 = Field(default_factory=DL1Container, description="DL1 Calibrated image")
-    dl2 = Field(default_factory=DL2Container, description="DL2 reconstruction info")
+
     simulation = Field(
-        None, description="Simulated Event Information", type=SimulatedEventContainer
+        None,
+        description="Simulated Event Information",
+        type=TelescopeSimulationContainer,
     )
-    trigger = Field(
-        default_factory=TriggerContainer, description="central trigger information"
+
+    r0 = Field(None, description="Raw Data", type=TelescopeR0Container)
+    r1 = Field(None, description="R1 Calibrated Data", type=TelescopeR1Container)
+    dl0 = Field(
+        None,
+        type=TelescopeDL0Container,
+        description="DL0 Data Volume Reduced Data",
+    )
+    dl1 = Field(
+        None, description="DL1 images and parameters", type=TelescopeDL1Container
+    )
+    dl2 = Field(
+        None,
+        type=TelescopeDL2Container,
+        description="DL2 reconstructed event properties",
     )
     count = Field(0, description="number of events processed")
     monitoring = Field(
-        default_factory=MonitoringContainer,
+        default_factory=TelescopeMonitoringContainer,
         description="container for event-wise monitoring data (MON)",
     )
     muon = Field(
-        default_factory=MuonContainer, description="Container for muon analysis results"
+        None, description="Container for muon analysis results", type=MuonContainer
     )
+
+
+class SubarrayEventContainer(Container):
+    """All event information, with ``None`` for absent data levels."""
+
+    count = Field(0, description="number of events processed")
+
+    index = Field(
+        default_factory=SubarrayEventIndexContainer,
+        description="event indexing information",
+    )
+
+    simulation = Field(
+        None,
+        description="Simulated Event Information",
+        type=SubarraySimulationContainer,
+    )
+
+    dl0 = Field(
+        None,
+        type=SubarrayDL0Container,
+        description="DL0 subarray wide information",
+    )
+
+    dl2 = Field(
+        None,
+        type=SubarrayDL2Container,
+        description="DL2 reconstructed event properties",
+    )
+
+    monitoring = Field(
+        default_factory=SubarrayMonitoringContainer,
+        description="Subrray monitoring information",
+    )
+
+    tel = Field(
+        default_factory=partial(Map, TelescopeEventContainer),
+        description="Telescope Events",
+    )
+
+    def validate_data_levels(self):
+        """Require the same data levels and DL1 products for every telescope.
+
+        Missing information within a present data level is allowed. Images and
+        image parameters are checked separately to support either DL1 sublevel.
+        Subarray and telescope DL2 are independent.
+
+        Raises
+        ------
+        ValueError
+            If a data level or DL1 product is present for only some telescopes.
+        """
+        paths = (
+            "r0",
+            "r1",
+            "dl0",
+            "dl0.camera",
+            "dl1",
+            "dl1.image",
+            "dl1.parameters",
+            "dl2",
+            "muon",
+        )
+        for path in paths:
+            present = []
+            absent = []
+            for tel_id, tel_event in self.tel.items():
+                value = tel_event
+                for name in path.split("."):
+                    value = getattr(value, name) if value is not None else None
+                (present if value is not None else absent).append(tel_id)
+            if present and absent:
+                raise ValueError(
+                    f"Inconsistent telescope data: {path} is present for telescopes "
+                    f"{present} but missing for telescopes {absent}"
+                )
 
 
 class SchedulingBlockContainer(Container):
@@ -1542,3 +1618,141 @@ class ObservationBlockContainer(Container):
         NAN_TIME, "true start time", time_resolution=TimeResolution.LOW
     )
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)
+
+
+class SimulationConfigContainer(Container):
+    """
+    Configuration parameters of the simulation
+    """
+
+    run_number = Field(np.int32(-1), description="Original sim_telarray run number")
+    corsika_version = Field(nan, description="CORSIKA version * 1000")
+    simtel_version = Field(nan, description="sim_telarray version * 1000")
+    energy_range_min = Field(
+        nan * u.TeV,
+        description="Lower limit of energy range of primary particle",
+        unit=u.TeV,
+    )
+    energy_range_max = Field(
+        nan * u.TeV,
+        description="Upper limit of energy range of primary particle",
+        unit=u.TeV,
+    )
+    prod_site_B_total = Field(
+        nan * u.uT, description="total geomagnetic field", unit=u.uT
+    )
+    prod_site_B_declination = Field(
+        nan * u.rad, description="magnetic declination", unit=u.rad
+    )
+    prod_site_B_inclination = Field(
+        nan * u.rad, description="magnetic inclination", unit=u.rad
+    )
+    prod_site_alt = Field(
+        nan * u.m, description="height of observation level", unit=u.m
+    )
+    spectral_index = Field(nan, description="Power-law spectral index of spectrum")
+    shower_prog_start = Field(
+        nan, description="Time when shower simulation started, CORSIKA: only date"
+    )
+    shower_prog_id = Field(nan, description="CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
+    detector_prog_start = Field(
+        nan, description="Time when detector simulation started"
+    )
+    detector_prog_id = Field(nan, description="simtelarray=1")
+    n_showers = Field(nan, description="Number of showers simulated")
+    shower_reuse = Field(nan, description="Numbers of uses of each shower")
+    max_alt = Field(nan * u.rad, description="Maximum shower altitude", unit=u.rad)
+    min_alt = Field(nan * u.rad, description="Minimum shower altitude", unit=u.rad)
+    max_az = Field(nan * u.rad, description="Maximum shower azimuth", unit=u.rad)
+    min_az = Field(nan * u.rad, description="Minimum shower azimuth", unit=u.rad)
+    diffuse = Field(False, description="Diffuse Mode On/Off")
+    max_viewcone_radius = Field(
+        nan * u.deg, description="Maximum viewcone radius", unit=u.deg
+    )
+    min_viewcone_radius = Field(
+        nan * u.deg, description="Minimum viewcone radius", unit=u.deg
+    )
+    max_scatter_range = Field(nan * u.m, description="Maximum scatter range", unit=u.m)
+    min_scatter_range = Field(nan * u.m, description="Minimum scatter range", unit=u.m)
+    core_pos_mode = Field(
+        nan, description="Core Position Mode (0=Circular, 1=Rectangular)"
+    )
+    atmosphere = Field(nan * u.m, description="Atmospheric model number")
+    corsika_iact_options = Field(
+        nan, description="CORSIKA simulation options for IACTs"
+    )
+    corsika_low_E_model = Field(
+        nan, description="CORSIKA low-energy simulation physics model"
+    )
+    corsika_high_E_model = Field(
+        nan,
+        "CORSIKA physics model ID for high energies "
+        "(1=VENUS, 2=SIBYLL, 3=QGSJET, 4=DPMJET, 5=NeXus, 6=EPOS) ",
+    )
+    corsika_bunchsize = Field(nan, description="Number of Cherenkov photons per bunch")
+    corsika_wlen_min = Field(
+        nan * u.m, description="Minimum wavelength of cherenkov light", unit=u.nm
+    )
+    corsika_wlen_max = Field(
+        nan * u.m, description="Maximum wavelength of cherenkov light", unit=u.nm
+    )
+    corsika_low_E_detail = Field(
+        nan, description="More details on low E interaction model (version etc.)"
+    )
+    corsika_high_E_detail = Field(
+        nan, description="More details on high E interaction model (version etc.)"
+    )
+
+    nsb_scaling_factor = Field(
+        None, description="Simulated NSB as multiple of the nominal dark night NSB."
+    )
+
+
+class SimulatedShowerDistribution(Container):
+    """
+    2D histogram of simulated number of showers simulated as function of energy and
+    core distance.
+    """
+
+    default_prefix = ""
+
+    obs_id = obs_id_field()
+    hist_id = Field(-1, description="Histogram ID")
+    n_entries = Field(-1, description="Number of entries in the histogram")
+    bins_energy = Field(
+        None,
+        description="array of energy bin lower edges, as in np.histogram",
+        unit=u.TeV,
+    )
+    bins_core_dist = Field(
+        None,
+        description="array of core-distance bin lower edges, as in np.histogram",
+        unit=u.m,
+    )
+    histogram = Field(
+        None, description="array of histogram entries, size (n_bins_x, n_bins_y)"
+    )
+
+
+# ACE calibration instruments containers
+class FRAMMonitoringContainer(Container):
+    """
+    Aerosol optical depth measured by the FRAM telescope.
+
+    One entry per FRAM image, fields are 1D arrays over the Voronoi
+    cells of that image.
+    """
+
+    default_prefix = "fram"
+    ra = Field(None, "Right ascension of the Voronoi cell", unit=u.rad, ndim=1)
+    dec = Field(None, "Declination of the Voronoi cell", unit=u.rad, ndim=1)
+    aerosol_optical_depth = Field(
+        None, "Slant aerosol optical depth per Voronoi cell", ndim=1
+    )
+    aerosol_optical_depth_uncertainty = Field(
+        None, "Uncertainty on the slant aerosol optical depth per Voronoi cell", ndim=1
+    )
+    zero_point = Field(nan, "Photometric zero point magnitude of the image")
+    peak_wavelength = Field(nan * u.nm, "Peak wavelength of the filter used", unit=u.nm)
+    image_id = Field(-1, "FRAM image identifier")
+    observation_id = Field(-1, "FRAM internal observation identifier")

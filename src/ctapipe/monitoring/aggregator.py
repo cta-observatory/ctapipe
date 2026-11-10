@@ -33,9 +33,13 @@ import astropy.units as u
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Row, Table
+from scipy.stats import norm
 from traitlets import TraitError
 
-from ..containers import ChunkHistogramContainer, ChunkStatisticsContainer
+from ..containers import (
+    ChunkHistogramContainer,
+    ChunkStatisticsContainer,
+)
 from ..core import Component
 from ..core.traits import (
     AstroQuantity,
@@ -653,6 +657,21 @@ class StatisticsAggregator(BaseAggregator):
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """
 
+    # Statistics columns named after the quantile they hold
+    _QUANTILES = {
+        "q05": 0.05,
+        "q10": 0.10,
+        "q16": norm.cdf(-1),
+        "q25": 0.25,
+        "q68": norm.cdf(1) - norm.cdf(-1),
+        "q75": 0.75,
+        "q84": norm.cdf(1),
+        "q90": 0.90,
+        "q95": 0.95,
+    }
+    # Statistics columns that inherit the unit of the input data
+    _UNIT_COLUMNS = ("mean", "median", "std", *_QUANTILES)
+
     def _add_result_columns(
         self,
         data,
@@ -661,20 +680,49 @@ class StatisticsAggregator(BaseAggregator):
         axis_names=None,
     ):
         stats = self._compute_stats(data, masked_elements_of_sample)
-        results_dict["n_events"].append(stats.n_events)
-        results_dict["mean"].append(stats.mean)
-        results_dict["median"].append(stats.median)
-        results_dict["std"].append(stats.std)
+        for name in ("n_events", *self._UNIT_COLUMNS):
+            results_dict[name].append(getattr(stats, name))
 
     def _set_result_units(self, table, unit):
-        """
-        Set units for statistics columns that inherit from the input data.
-
-        For StatisticsAggregator, the mean, median, std, and histogram columns
-        should have the same units as the input data.
-        """
-        for col in ("mean", "median", "std"):
+        """Set the unit of the input data on the mean, median, std and quantile columns."""
+        for col in self._UNIT_COLUMNS:
             table[col].unit = unit
+
+    @staticmethod
+    def _mask_invalid(data, masked_elements_of_sample):
+        """
+        Return data as masked float array with excluded and non-finite elements masked.
+
+        Integer data is cast to float, since it cannot be filled with NaN.
+        """
+        data = np.ma.asanyarray(data)
+        if data.dtype.kind in "biu":
+            data = data.astype(float)
+        if masked_elements_of_sample is not None:
+            masked_elements_of_sample = np.broadcast_to(
+                masked_elements_of_sample, data.shape
+            )
+        return np.ma.masked_invalid(np.ma.array(data, mask=masked_elements_of_sample))
+
+    def _stats_from_masked(self, masked_data) -> ChunkStatisticsContainer:
+        """Compute the statistics along axis=0 of a masked array."""
+        quantiles = np.nanquantile(
+            np.ma.filled(masked_data, np.nan), list(self._QUANTILES.values()), axis=0
+        )
+        stats = {
+            "mean": np.ma.mean(masked_data, axis=0),
+            "median": np.ma.median(masked_data, axis=0),
+            "std": np.ma.std(masked_data, axis=0),
+            **dict(zip(self._QUANTILES, quantiles)),
+        }
+        # Reductions of 1D data return scalars, not MaskedArrays; fill masked with NaN
+        stats = {
+            name: np.ma.filled(np.ma.asarray(value), np.nan)
+            for name, value in stats.items()
+        }
+        # Count unmasked events per element (excludes masked, non-finite and clipped)
+        n_events = np.count_nonzero(~np.ma.getmaskarray(masked_data), axis=0)
+        return ChunkStatisticsContainer(n_events=n_events, **stats)
 
     @abstractmethod
     def _compute_stats(
@@ -707,30 +755,8 @@ class PlainAggregator(StatisticsAggregator):
     def _compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
-        # Mask excluded elements and NaN/inf values
-        masked_data = np.ma.array(data, mask=masked_elements_of_sample)
-        masked_data = np.ma.masked_invalid(masked_data)
-
-        # Compute the mean, median, and std over the event dimension (axis=0)
-        element_mean = np.ma.mean(masked_data, axis=0)
-        element_median = np.ma.median(masked_data, axis=0)
-        element_std = np.ma.std(masked_data, axis=0)
-
-        # For 1D data, these operations return scalars (not MaskedArrays)
-        # Convert to array and fill masked values with NaN
-        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
-        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
-        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
-
-        # Count non-masked events per element (excludes both masked and NaN/inf values)
-        n_events_per_element = np.count_nonzero(~masked_data.mask, axis=0)
-
-        return ChunkStatisticsContainer(
-            n_events=n_events_per_element,
-            mean=element_mean,
-            median=element_median,
-            std=element_std,
-        )
+        masked_data = self._mask_invalid(data, masked_elements_of_sample)
+        return self._stats_from_masked(masked_data)
 
 
 class SigmaClippingAggregator(StatisticsAggregator):
@@ -753,11 +779,8 @@ class SigmaClippingAggregator(StatisticsAggregator):
     def _compute_stats(
         self, data, masked_elements_of_sample
     ) -> ChunkStatisticsContainer:
-        # Mask excluded elements and NaN/inf values
-        masked_data = np.ma.array(data, mask=masked_elements_of_sample)
-        masked_data = np.ma.masked_invalid(masked_data)
+        masked_data = self._mask_invalid(data, masked_elements_of_sample)
 
-        # Use sigma_clip to get the clipped data, then compute stats from it
         # Clipping is performed along axis=0 (event dimension)
         filtered_data = sigma_clip(
             masked_data,
@@ -766,25 +789,4 @@ class SigmaClippingAggregator(StatisticsAggregator):
             cenfunc="mean",
             axis=0,
         )
-
-        # Count the number of events remaining after sigma clipping per element
-        # (excludes both masked, NaN/inf, and sigma-clipped values)
-        n_events_after_clipping = np.count_nonzero(~filtered_data.mask, axis=0)
-
-        # Compute statistics from the filtered data along the event dimension
-        element_mean = np.ma.mean(filtered_data, axis=0)
-        element_median = np.ma.median(filtered_data, axis=0)
-        element_std = np.ma.std(filtered_data, axis=0)
-
-        # For 1D data, these operations return scalars (not MaskedArrays)
-        # Convert to array and fill masked values with NaN
-        element_mean = np.ma.filled(np.ma.asarray(element_mean), np.nan)
-        element_median = np.ma.filled(np.ma.asarray(element_median), np.nan)
-        element_std = np.ma.filled(np.ma.asarray(element_std), np.nan)
-
-        return ChunkStatisticsContainer(
-            n_events=n_events_after_clipping,
-            mean=element_mean,
-            median=element_median,
-            std=element_std,
-        )
+        return self._stats_from_masked(filtered_data)

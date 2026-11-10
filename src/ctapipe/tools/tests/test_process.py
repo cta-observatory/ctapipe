@@ -5,6 +5,7 @@ Test ctapipe-process on a few different use cases
 
 import json
 from subprocess import CalledProcessError
+from types import SimpleNamespace
 
 import astropy.units as u
 import numpy as np
@@ -13,9 +14,10 @@ import pytest
 import tables
 from numpy.testing import assert_allclose, assert_array_equal
 
-from ctapipe.core import run_tool
+from ctapipe.conftest import NORTH_SITE_METADATA, SOUTH_SITE_METADATA
+from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io import EventSource, TableLoader, read_table
+from ctapipe.io import DataLevel, EventSource, TableLoader, read_table
 from ctapipe.io.hdf5dataformat import (
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
@@ -36,6 +38,136 @@ FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
 
 
 @pytest.mark.parametrize(
+    ("levels", "force", "calibrate", "parameterize"),
+    [
+        ((DataLevel.R1,), False, True, True),
+        ((DataLevel.DL0,), False, True, True),
+        ((DataLevel.DL1_IMAGES,), False, False, True),
+        ((DataLevel.DL1_PARAMETERS,), False, False, False),
+        ((DataLevel.R1, DataLevel.DL1_IMAGES), False, False, True),
+        ((DataLevel.R1, DataLevel.DL1_IMAGES), True, True, True),
+        ((DataLevel.DL0, DataLevel.DL1_IMAGES), True, True, True),
+    ],
+)
+def test_processing_starts_from_available_data(levels, force, calibrate, parameterize):
+    tool = ProcessorTool(force_recompute_dl1=force)
+    tool.event_source = SimpleNamespace(
+        datalevels=levels,
+        has_any_datalevel=lambda requested: any(level in levels for level in requested),
+    )
+    tool.write = SimpleNamespace(
+        write_dl1_parameters=True,
+        write_dl1_images=False,
+        write_dl2=False,
+        write_muon_parameters=False,
+    )
+    tool._validate_processing_inputs()
+    assert tool.should_calibrate is calibrate
+    assert tool.should_compute_dl1 is parameterize
+
+
+def test_recompute_dl1_requires_waveform_input():
+    tool = ProcessorTool(force_recompute_dl1=True)
+    tool.event_source = SimpleNamespace(
+        datalevels=(DataLevel.DL1_IMAGES,), has_any_datalevel=lambda requested: False
+    )
+    with pytest.raises(
+        ToolConfigurationError, match="requires R1 or DL0 waveform input"
+    ):
+        tool._validate_processing_inputs()
+
+
+def test_process_dl0_only_input(tmp_path, monkeypatch, prod5_gamma_simtel_path):
+    from ctapipe.calib import CameraCalibrator
+    from ctapipe.io import SimTelEventSource
+
+    generator = SimTelEventSource._generator
+
+    def dl0_events(source):
+        calibrator = CameraCalibrator(subarray=source.subarray)
+        for event in generator(source):
+            for tel_event in event.tel.values():
+                calibrator.r1_to_dl0(tel_event)
+                tel_event.r0 = None
+                tel_event.r1 = None
+            yield event
+
+    monkeypatch.setattr(SimTelEventSource, "_generator", dl0_events)
+    monkeypatch.setattr(
+        SimTelEventSource, "datalevels", property(lambda self: (DataLevel.DL0,))
+    )
+    output = tmp_path / "from_dl0.h5"
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            FOCAL_LENGTH_CHOICE,
+            SOUTH_SITE_METADATA,
+            "--max-events=2",
+            "--write-images",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+    with EventSource(output, focal_length_choice="EQUIVALENT") as source:
+        assert DataLevel.DL1_IMAGES in source.datalevels
+        assert DataLevel.R1 not in source.datalevels
+        for event in source:
+            for tel_event in event.tel.values():
+                assert tel_event.dl1.image is not None
+                assert tel_event.dl1.parameters is not None
+
+
+@pytest.mark.parametrize("recompute", [False, True])
+def test_process_r1_and_dl1_input(
+    tmp_path, monkeypatch, recompute, prod5_gamma_simtel_path
+):
+    from ctapipe.calib import CameraCalibrator
+
+    mixed_input = tmp_path / "r1_and_dl1.h5"
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={mixed_input}",
+            FOCAL_LENGTH_CHOICE,
+            SOUTH_SITE_METADATA,
+            "--max-events=2",
+            "--write-images",
+            "--no-write-parameters",
+            "--DataWriter.write_r1_waveforms=True",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+    calibrate = CameraCalibrator.__call__
+    calls = []
+
+    def record_calibration(self, event):
+        calls.append(event.index.event_id)
+        calibrate(self, event)
+
+    monkeypatch.setattr(CameraCalibrator, "__call__", record_calibration)
+    output = tmp_path / "processed.h5"
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={mixed_input}",
+            f"--output={output}",
+            SOUTH_SITE_METADATA,
+            "--EventSource.focal_length_choice=EQUIVALENT",
+            "--write-images",
+            "--no-write-parameters",
+            f"--ProcessorTool.force_recompute_dl1={recompute}",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+    assert len(calls) == (2 if recompute else 0)
+
+
+@pytest.mark.parametrize(
     "config_files",
     [
         ("base_config.yaml", "stage1_config.yaml"),
@@ -43,7 +175,7 @@ FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
         ("stage1_config.json",),
     ],
 )
-def test_read_yaml_toml_json_config(dl1_image_file, config_files):
+def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files, provenance):
     """check that we can read multiple formats of config file"""
     tool = ProcessorTool()
 
@@ -52,18 +184,19 @@ def test_read_yaml_toml_json_config(dl1_image_file, config_files):
         tool.load_config_file(config)
 
     tool.config.EventSource.input_url = dl1_image_file
+    tool.config.DataWriter.output_path = tmp_path / "events.dl1.h5"
     tool.config.DataWriter.overwrite = True
 
     with tool:
         tool.setup()
 
-    assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_info"].name
-        == "YOUR-NAME-HERE"
-    )
+    assert tool.write.contact_info.name == "YOUR-NAME-HERE"
+    assert tool.write.curation_info.release == "YOUR-DATA-RELEASE"
+    assert tool.write.curation_info.license == "YOUR-LICENSE"
+    assert tool.write.curation_info.copyright == "YOUR-COPYRIGHT"
 
 
-def test_multiple_configs(dl1_image_file):
+def test_multiple_configs(dl1_image_file, provenance):
     """ensure a config file loaded later overwrites keys from an earlier one"""
     tool = ProcessorTool()
 
@@ -101,9 +234,11 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # check tables were written
     with tables.open_file(dl1b_from_dl1a_file, mode="r") as testfile:
+        assert testfile.root.dl0
+        assert testfile.root.dl0.event.subarray
+        assert testfile.root.dl0.event.telescope
         assert testfile.root.dl1
         assert testfile.root.dl1.event.telescope
-        assert testfile.root.dl1.event.subarray
         assert testfile.root.configuration.instrument.subarray.layout
         assert testfile.root.configuration.instrument.telescope.optics
         assert testfile.root.configuration.instrument.telescope.camera.geometry_0
@@ -144,7 +279,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
         cwd=tmp_path,
         raises=False,
     )
-    assert ret == 1
+    assert ret == 2
 
 
 def test_stage1_datalevels(tmp_path):
@@ -175,7 +310,7 @@ def test_stage1_datalevels(tmp_path):
     assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_stage_2_from_simtel(tmp_path, provenance):
+def test_stage_2_from_simtel(tmp_path):
     """check we can go to DL2 geometry from simtel file"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
@@ -189,6 +324,7 @@ def test_stage_2_from_simtel(tmp_path, provenance):
             f"--input={input_path}",
             f"--output={output}",
             f"--provenance-log={provenance_log}",
+            SOUTH_SITE_METADATA,
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -320,6 +456,7 @@ def test_ml_preprocessing_from_simtel(tmp_path):
             f"--input={GAMMA_TEST_LARGE}",
             f"--output={output}",
             "--max-events=5",
+            NORTH_SITE_METADATA,
             "--overwrite",
             FOCAL_LENGTH_CHOICE,
         ],
@@ -431,6 +568,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--write-parameters",
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
+        SOUTH_SITE_METADATA,
     ] + few_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
 
@@ -443,6 +581,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         "--write-parameters",
         "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
+        SOUTH_SITE_METADATA,
     ] + many_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
 
@@ -493,6 +632,7 @@ def test_muon_reconstruction_simtel(tmp_path):
             f"--input={LST_MUONS}",
             f"--output={muon_simtel_output_file}",
             FOCAL_LENGTH_CHOICE,
+            NORTH_SITE_METADATA,
             "--overwrite",
             "--write-muon-parameters",
         ],
@@ -518,7 +658,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         completeness = table["muonparameters_completeness"]
 
         for event in source:
-            muon = event.muon.tel[1]
+            muon = event.tel[1].muon
             assert u.isclose(muon.ring.radius, radius[event.count], equal_nan=True)
             assert np.isclose(
                 muon.parameters.completeness, completeness[event.count], equal_nan=True
@@ -545,6 +685,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
                 f"--output={output}",
                 "--allowed-tels=1",
                 "--max-events=1",
+                NORTH_SITE_METADATA,
                 "--overwrite",
                 FOCAL_LENGTH_CHOICE,
                 "--monitoring-source=HDF5MonitoringSource",
@@ -606,6 +747,7 @@ def test_only_trigger_and_simulation(tmp_path):
             "--input=dataset://gamma_prod5.simtel.zst",
             f"--output={output}",
             "--no-write-parameters",
+            SOUTH_SITE_METADATA,
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -623,10 +765,10 @@ def test_only_trigger_and_simulation(tmp_path):
     # high resolution timestamps
     with EventSource(output) as source:
         for e in source:
-            it = iter(e.trigger.tel.values())
-            tel1 = next(it)
-            tel2 = next(it)
-            diff = (tel1.time - tel2.time).to_value(u.ns)
+            it = iter(e.tel.values())
+            tel1 = next(it).dl0.trigger.time
+            tel2 = next(it).dl0.trigger.time
+            diff = (tel1 - tel2).to_value(u.ns)
             assert diff != 0
 
 
@@ -651,6 +793,7 @@ def test_on_old_file(input_url, args, tmp_path):
             f"--input={input_url}",
             f"--output={output_path}",
             "--write-showers",
+            NORTH_SITE_METADATA,
             "--overwrite",
             *args,
         ],

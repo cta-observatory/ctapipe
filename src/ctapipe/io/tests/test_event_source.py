@@ -4,7 +4,7 @@ from astropy.coordinates import EarthLocation
 from traitlets import TraitError
 from traitlets.config.loader import Config
 
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import SubarrayEventContainer
 from ctapipe.core import Component
 from ctapipe.io import DataLevel, EventSource, SimTelEventSource
 from ctapipe.utils import get_dataset_path
@@ -25,7 +25,7 @@ class DummyEventSource(EventSource):
 
     def _generator(self):
         for i in range(5):
-            yield ArrayEventContainer(count=i)
+            yield SubarrayEventContainer(count=i)
 
     @staticmethod
     def is_compatible(file_path):

@@ -5,8 +5,14 @@ import tables
 from astropy.table import Table
 
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io.astropy_helpers import read_table
-from ctapipe.io.hdf5dataformat import DL1_SUBARRAY_TRIGGER_TABLE, DL1_TEL_TRIGGER_TABLE
+from ctapipe.io.astropy_helpers import read_table, write_table
+from ctapipe.io.hdf5dataformat import (
+    DL0_SUBARRAY_TRIGGER_TABLE,
+    DL0_TEL_TRIGGER_TABLE,
+    DL1_SUBARRAY_TRIGGER_TABLE,
+    DL1_TEL_PARAMETERS_GROUP,
+    DL1_TEL_TRIGGER_TABLE,
+)
 
 
 def check_equal_array_event_order(table1, table2):
@@ -177,7 +183,7 @@ def test_table_loader_keeps_original_order(dl2_merged_file):
     from ctapipe.io.tableloader import TableLoader
 
     # check that the order is the same as in the file itself
-    trigger = read_table(dl2_merged_file, DL1_SUBARRAY_TRIGGER_TABLE)
+    trigger = read_table(dl2_merged_file, DL0_SUBARRAY_TRIGGER_TABLE)
     # check we actually have unsorted input
     assert not np.all(np.diff(trigger["obs_id"]) >= 0)
 
@@ -262,7 +268,7 @@ def test_chunked(dl2_shower_geometry_file):
     """Test chunked reading"""
     from ctapipe.io.tableloader import TableLoader, read_table
 
-    trigger = read_table(dl2_shower_geometry_file, DL1_SUBARRAY_TRIGGER_TABLE)
+    trigger = read_table(dl2_shower_geometry_file, DL0_SUBARRAY_TRIGGER_TABLE)
     n_events = len(trigger)
     n_read = 0
 
@@ -348,6 +354,84 @@ def test_chunked(dl2_shower_geometry_file):
     assert n_read == n_events
 
 
+@pytest.mark.parametrize("suffix", ["", "_by_id", "_by_type"])
+def test_busy_events(tmp_path, subarray_prod5_paranal, suffix):
+    """Busy telescopes must not contribute to telescope table row offsets."""
+    from ctapipe.io import TableLoader
+
+    path = tmp_path / "busy_events.h5"
+    subarray = subarray_prod5_paranal.select_subarray([1, 2])
+    subarray.to_hdf(path)
+
+    # Both telescopes trigger, but alternate being busy, with normal events
+    # interspersed. Each chunk has a different number of telescope events.
+    tels_with_data = np.array(
+        [[True, False], [True, True], [False, True], [True, False], [True, True]]
+    )
+    trigger = Table(
+        {
+            "obs_id": np.ones(5, dtype=np.int32),
+            "event_id": np.arange(5, dtype=np.uint64),
+            "tels_with_trigger": np.ones((5, 2), dtype=bool),
+            "tels_with_data": tels_with_data,
+        }
+    )
+    write_table(trigger, path, DL0_SUBARRAY_TRIGGER_TABLE)
+
+    event_index, tel_index = np.nonzero(tels_with_data)
+    tel_trigger = trigger[["obs_id", "event_id"]][event_index]
+    tel_trigger["tel_id"] = subarray.tel_ids[tel_index]
+    write_table(tel_trigger, path, DL0_TEL_TRIGGER_TABLE)
+
+    expected = tel_trigger.copy()
+    expected["hillas_intensity"] = 100 * expected["event_id"] + expected["tel_id"]
+    for tel_id in subarray.tel_ids:
+        write_table(
+            expected[expected["tel_id"] == tel_id],
+            path,
+            f"{DL1_TEL_PARAMETERS_GROUP}/tel_{tel_id:03d}",
+        )
+
+    def check_events(result, start, stop):
+        selected = expected[
+            (expected["event_id"] >= start) & (expected["event_id"] < stop)
+        ]
+        if suffix == "_by_id":
+            expected_tables = {
+                tel_id: selected[selected["tel_id"] == tel_id]
+                for tel_id in np.unique(selected["tel_id"])
+            }
+        elif suffix == "_by_type":
+            expected_tables = {
+                str(tel_type): selected[
+                    np.isin(selected["tel_id"], subarray.get_tel_ids_for_type(tel_type))
+                ]
+                for tel_type in subarray.telescope_types
+            }
+            expected_tables = {k: v for k, v in expected_tables.items() if len(v)}
+        else:
+            result = {None: result}
+            expected_tables = {None: selected}
+
+        assert result.keys() == expected_tables.keys()
+        for key, table in expected_tables.items():
+            for column in table.colnames:
+                np.testing.assert_array_equal(result[key][column], table[column])
+
+    with TableLoader(path) as loader:
+        read = getattr(loader, f"read_telescope_events{suffix}")
+        check_events(read(), 0, 5)
+        check_events(read(start=1, stop=4), 1, 4)
+        check_events(read(start=2, stop=5), 2, 5)
+        check_events(read(stop=2), 0, 2)
+
+        read_chunked = getattr(loader, f"read_telescope_events{suffix}_chunked")
+        chunks = list(read_chunked(chunk_size=2))
+        assert len(chunks) == 3
+        for start, stop, events in chunks:
+            check_events(events, start, stop)
+
+
 @pytest.mark.parametrize(
     "loader_kwargs",
     [
@@ -365,7 +449,7 @@ def test_chunked_with_stop(dl2_shower_geometry_file, loader_kwargs):
     stop = loader_kwargs.get("stop")
     chunk_size = loader_kwargs["chunk_size"]
 
-    trigger = read_table(dl2_shower_geometry_file, DL1_SUBARRAY_TRIGGER_TABLE)[
+    trigger = read_table(dl2_shower_geometry_file, DL0_SUBARRAY_TRIGGER_TABLE)[
         start:stop
     ]
     n_events = len(trigger)
@@ -461,6 +545,7 @@ def test_order_merged(gamma_dl2_train_small_h5):
 
     path = gamma_dl2_train_small_h5
 
+    # FIXME: old file, change to dl0 when updating
     trigger = read_table(path, DL1_SUBARRAY_TRIGGER_TABLE)
     tel_trigger = read_table(path, DL1_TEL_TRIGGER_TABLE)
     with TableLoader(path) as loader:

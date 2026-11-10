@@ -1,3 +1,0 @@
-Add ``pedestal_intensity`` field to ``DL0CameraContainer``.
-This field is defined for both R1 and DL0 but was missing in the
-DL0 container.

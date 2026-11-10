@@ -4,11 +4,15 @@ import logging
 import shutil
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import tables
 from astropy import units as u
+from astropy.coordinates import EarthLocation
+from ctao_datamodel.models import dataproducts as dp
+from ctao_datamodel.models.common import SiteID
 from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
@@ -16,57 +20,170 @@ from ctapipe.containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SimulationConfigContainer,
+    SubarrayDL0Container,
+    SubarrayDL2Container,
+    SubarrayEventContainer,
+    TelescopeDL0Container,
+    TelescopeDL2Container,
+    TelescopeEventContainer,
+    TelescopeR1Container,
 )
-from ctapipe.core import Provenance, ToolConfigurationError
+from ctapipe.core import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import DataLevel, EventSource
+from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
+from ctapipe.io.metadata import ProductMetadata, read_ctao_metadata
 from ctapipe.utils import get_dataset_path
+
+
+@pytest.mark.parametrize("level", [DataLevel.R0, DataLevel.R1])
+def test_requested_waveforms_missing_from_input(level):
+    option = f"write_{level.name.lower()}_waveforms"
+    with pytest.raises(
+        ToolConfigurationError, match=f"{option}.*input does not provide {level.name}"
+    ):
+        DataWriter(event_source=SimpleNamespace(datalevels=()), **{option: True})
+
+
+@pytest.mark.parametrize(
+    "option",
+    [
+        "write_r0_waveforms",
+        "write_r1_waveforms",
+        "write_dl1_images",
+        "write_dl1_parameters",
+        "write_muon_parameters",
+        "write_dl2",
+    ],
+)
+def test_requested_output_missing_from_event(option):
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    setattr(writer, option, True)
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    with pytest.raises(ValueError, match=option):
+        writer._validate_event(event)
+
+
+def test_absent_dl2_is_not_written():
+    writer = DataWriter.__new__(DataWriter)
+    writer._writer = SimpleNamespace(
+        write=lambda **kwargs: pytest.fail("Unexpected write")
+    )
+    writer._write_dl2_subarray(SubarrayEventContainer())
+    writer._write_dl2_telescope(TelescopeEventContainer())
+
+
+def test_inconsistent_levels_rejected_before_writing():
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    writer.write_r1_waveforms = True
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(
+        dl0=TelescopeDL0Container(),
+        r1=TelescopeR1Container(waveform=np.ones((1, 1, 1))),
+    )
+    event.tel[2] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    with pytest.raises(ValueError, match="write_r1_waveforms.*telescope 2"):
+        writer(event)
+
+
+@pytest.mark.parametrize("scope", ["subarray", "telescope"])
+@pytest.mark.parametrize("missing_container", [False, True])
+def test_writer_requires_trigger_information(scope, missing_container):
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    target = event if scope == "subarray" else event.tel[1]
+    if missing_container:
+        target.dl0 = None
+    else:
+        target.dl0.trigger = None
+    with pytest.raises(ValueError, match="requires.*DL0 trigger information"):
+        writer._validate_event(event)
+
+
+def test_writer_accepts_trigger_only_dl0():
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    writer._validate_event(event)
+    assert event.tel[1].dl0.camera is None
 
 
 def generate_dummy_dl2(event):
     """generate some dummy DL2 info and see if we can write it"""
 
+    event.dl2 = SubarrayDL2Container()
+    for tel_event in event.tel.values():
+        tel_event.dl2 = TelescopeDL2Container()
+
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
     for algo in algos:
-        for tel_id in event.dl1.tel:
-            event.dl2.tel[tel_id].geometry[algo] = ReconstructedGeometryContainer(
+        for tel_id, tel_event in event.tel.items():
+            tel_event.dl2.geometry[algo] = ReconstructedGeometryContainer(
                 alt=70 * u.deg,
                 az=120 * u.deg,
                 prefix=f"{algo}_tel",
             )
 
-            event.dl2.tel[tel_id].energy[algo] = ReconstructedEnergyContainer(
+            tel_event.dl2.energy[algo] = ReconstructedEnergyContainer(
                 energy=10 * u.TeV,
                 prefix=f"{algo}_tel",
             )
-            event.dl2.tel[tel_id].particle_type[algo] = ParticleClassificationContainer(
+            tel_event.dl2.particle_type[algo] = ParticleClassificationContainer(
                 prediction=0.9,
                 prefix=f"{algo}_tel",
             )
 
-        event.dl2.stereo.geometry[algo] = ReconstructedGeometryContainer(
+        event.dl2.geometry[algo] = ReconstructedGeometryContainer(
             alt=72 * u.deg,
             az=121 * u.deg,
             telescopes=[1, 2, 4],
             prefix=algo,
         )
-
-        event.dl2.stereo.energy[algo] = ReconstructedEnergyContainer(
+        event.dl2.energy[algo] = ReconstructedEnergyContainer(
             energy=10 * u.TeV,
             telescopes=[1, 2, 4],
             prefix=algo,
         )
-        event.dl2.stereo.particle_type[algo] = ParticleClassificationContainer(
+        event.dl2.particle_type[algo] = ParticleClassificationContainer(
             prediction=0.9,
             telescopes=[1, 2, 4],
             prefix=algo,
         )
 
 
-def test_write(tmpdir: Path):
+def test_dl2_telescope_events_update_processing_sublevels():
+    writer = DataWriter.__new__(DataWriter)
+    writer._processing_sublevels = dp.ProcessingSublevel(0)
+    writer._writer = SimpleNamespace(write=lambda **kwargs: None)
+
+    tel_event = SimpleNamespace(
+        index=SimpleNamespace(obs_id=1, event_id=2, tel_id=1),
+        dl2={
+            "geometry": {"geometry": object()},
+            "energy": {"energy": object()},
+            "particle_type": {"particle_type": object()},
+        },
+    )
+
+    writer._write_dl2_telescope(tel_event)
+
+    assert writer._processing_sublevels == (
+        dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+        | dp.ProcessingSublevel.GAMMANESS
+    )
+
+
+def test_write(tmpdir: Path, south_site_config):
     """
     Check that we can write and read data from R0-DL2 to files
     """
@@ -83,6 +200,7 @@ def test_write(tmpdir: Path):
         write_dl2=True,
         write_r0_waveforms=True,
         write_r1_waveforms=True,
+        config=south_site_config,
     ) as writer:
         writer.log.level = logging.DEBUG
         for event in source:
@@ -114,7 +232,7 @@ def test_write(tmpdir: Path):
         images = h5file.get_node("/dl1/event/telescope/images/tel_004")
         assert images.col("image").max() > 0.0
         assert (
-            h5file.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]  # pylint: disable=protected-access
+            h5file.root._v_attrs["model.version"]  # pylint: disable=protected-access
             == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
@@ -135,33 +253,78 @@ def test_write(tmpdir: Path):
             assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
             assert "telescopes" not in dl2_tel_energy
 
+    product = read_ctao_metadata(output_path)
+    assert product.data.level is dp.DataLevel.DL2
+    assert product.instance.sublevel_id == (
+        dp.ProcessingSublevel.IMAGES
+        | dp.ProcessingSublevel.GEOMETRY
+        | dp.ProcessingSublevel.ENERGY
+        | dp.ProcessingSublevel.GAMMANESS
+    )
+
+
+def test_tels_with_data_roundtrip(tmp_path, south_site_config, prod5_gamma_simtel_path):
+    output = tmp_path / "busy_triggers.h5"
+    expected = []
+    with EventSource(prod5_gamma_simtel_path, max_events=3) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output,
+            write_dl1_parameters=False,
+            write_r1_waveforms=True,
+            config=south_site_config,
+        ) as writer:
+            for event in source:
+                # Keep the trigger but remove its data to represent a busy telescope.
+                if len(event.tel) > 1:
+                    del event.tel[max(event.tel)]
+                event.dl0.trigger.tels_with_data = np.array(
+                    list(event.tel), dtype=np.uint16
+                )
+                expected.append(
+                    (set(event.dl0.trigger.tels_with_trigger), set(event.tel))
+                )
+                writer(event)
+
+        with tables.open_file(output) as h5file:
+            trigger = h5file.root.dl0.event.subarray.trigger
+            for field, index in (("tels_with_trigger", 0), ("tels_with_data", 1)):
+                masks = trigger.col(field)
+                assert masks.dtype == np.bool_
+                assert masks.shape == (len(expected), len(source.subarray))
+                for mask, ids in zip(masks, expected):
+                    assert set(source.subarray.tel_mask_to_tel_ids(mask)) == ids[index]
+
+    assert any(trigger != data for trigger, data in expected)
+    with HDF5EventSource(output) as source:
+        events = list(source)
+        assert len(events) == len(expected)
+        for event, (trigger, data) in zip(events, expected):
+            assert set(event.dl0.trigger.tels_with_trigger) == trigger
+            assert set(event.dl0.trigger.tels_with_data) == data
+            assert set(event.tel) == data
+
 
 @pytest.mark.parametrize("overwrite", [False, True])
 def test_cannot_overwrite_input(tmp_path, dl1_image_file, overwrite):
     input_path = tmp_path / "input.h5"
     shutil.copy(dl1_image_file, input_path)
 
-    provenance = Provenance()
-    provenance.start_activity("test_cannot_overwrite_input")
-
-    try:
-        with EventSource(input_path) as source:
-            with pytest.raises(
-                ToolConfigurationError,
-                match="Input and output files must not be the same",
-            ):
-                DataWriter(
-                    event_source=source,
-                    output_path=input_path,
-                    overwrite=overwrite,
-                )
-    finally:
-        provenance.finish_activity(activity_name="test_cannot_overwrite_input")
+    with EventSource(input_path) as source:
+        with pytest.raises(
+            ToolConfigurationError,
+            match="Input and output files must not be the same",
+        ):
+            DataWriter(
+                event_source=source,
+                output_path=input_path,
+                overwrite=overwrite,
+            )
 
     assert input_path.exists()
 
 
-def test_roundtrip(tmpdir: Path):
+def test_roundtrip(tmpdir: Path, south_site_config):
     """
     Check that we can write DL1+DL2 info to files and read them back
 
@@ -189,6 +352,7 @@ def test_roundtrip(tmpdir: Path):
         peak_time_dtype="int16",
         peak_time_scale=100,
         write_dl2=True,
+        config=south_site_config,
     ) as write:
         write.log.level = logging.DEBUG
         for event in source:
@@ -223,17 +387,22 @@ def test_roundtrip(tmpdir: Path):
 
     with EventSource(output_path) as source:
         for event in source:
-            for tel_id, dl1 in event.dl1.tel.items():
-                original_image = events[event.count].dl1.tel[tel_id].image
-                read_image = dl1.image
+            for tel_id, tel_event in event.tel.items():
+                original_image = events[event.count].tel[tel_id].dl1.image
+                read_image = tel_event.dl1.image
                 assert np.allclose(original_image, read_image, atol=0.1)
 
-                original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
-                read_peaktime = dl1.peak_time
+                original_peaktime = events[event.count].tel[tel_id].dl1.peak_time
+                read_peaktime = tel_event.dl1.peak_time
                 assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
+                np.testing.assert_array_equal(
+                    tel_event.dl1.pixel_status,
+                    events[event.count].tel[tel_id].dl1.pixel_status,
+                )
 
-def test_dl1writer_no_events(tmpdir: Path):
+
+def test_dl1writer_no_events(tmpdir: Path, south_site_config):
     """
     Check that we can write DL1 files even when no events are given
 
@@ -256,6 +425,7 @@ def test_dl1writer_no_events(tmpdir: Path):
         output_path=output_path,
         write_dl1_parameters=True,
         write_dl1_images=True,
+        config=south_site_config,
     ) as writer:
         writer.log.level = logging.DEBUG
         writer.write_simulated_shower_distributions(
@@ -273,26 +443,44 @@ def test_dl1writer_no_events(tmpdir: Path):
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
 
 
-def test_metadata(tmpdir: Path):
+def test_metadata(tmpdir: Path, prod6_gamma_simtel_path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
-
-    dataset = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
     config = Config(
         {
             "DataWriter": {
                 "Contact": {
-                    "name": "Maximilian Nöthe",
-                    "email": "maximilian.noethe@tu-dortmund.de",
-                    "organization": "TU Dortmund",
+                    "name": "Maximilian Linhoff",
+                    "email": "maximilian.linhoff@cta-observatory.org",
+                    "organization": "CTAO",
                 },
-                "Instrument": {"site": "CTA-North", "id_": "alpha"},
+                "Curation": {
+                    "release": "test",
+                    "license": "CC-BY-SA-4.0",
+                    "copyright": "CTAO",
+                },
+                "ProductMetadata": {
+                    "description": "Test",
+                    "disclaimer": "Test disclaimer",
+                    "instance": {
+                        "category": "B",
+                    },
+                    "activity": {
+                        "configuration_id": "test_config",
+                    },
+                    "simulation": {
+                        "production_name": "PROD_TEST",
+                        "node": {
+                            "nsb_factor": 1.5,
+                        },
+                    },
+                },
                 "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
     )
 
-    with EventSource(get_dataset_path(dataset)) as source:
+    with EventSource(prod6_gamma_simtel_path) as source:
         with DataWriter(
             event_source=source,
             output_path=output_path,
@@ -306,12 +494,188 @@ def test_metadata(tmpdir: Path):
 
         with tables.open_file(output_path) as h5file:
             meta = h5file.root._v_attrs
-            assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
-            assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
-            assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
-            assert meta["CTA INSTRUMENT SITE"] == "CTA-North"
-            assert meta["CTA INSTRUMENT ID"] == "alpha"
+            assert meta["contact.name"] == "Maximilian Linhoff"
+            assert meta["contact.email"] == "maximilian.linhoff@cta-observatory.org"
+            assert meta["contact.organization"] == "CTAO"
+            assert meta["description"] == "Test"
+            assert meta["disclaimer"] == "Test disclaimer"
+            assert meta["instance.category"] == "B"
+            assert meta["activity.configuration_id"] == "test_config"
             assert meta["CONTEXT EXAMPLE"] == "test_value"
+
+        product = read_ctao_metadata(output_path)
+        assert product.data == dp.ProductType(
+            level=dp.DataLevel.DL1,
+            division=dp.DataDivision.EVENT,
+            association=dp.DataAssociation.SUBARRAY,
+            type=dp.DataType.OBSERVATION_SIM,
+        )
+        assert product.instance.obs_id == source.obs_id
+        assert product.instance.facility_name is dp.FacilityName.SIMULATED_CTAO
+        assert product.instance.site_id is SiteID.CTAO_SOUTH
+        assert (
+            product.instance.sublevel_id
+            is dp.ProcessingSublevel.IMAGES | dp.ProcessingSublevel.PARAMETERS
+        )
+        assert product.instance.category is dp.DataProcessingCategory.B
+        assert product.model.name == "ctapipe"
+        assert product.model.version == DATA_MODEL_VERSION
+        assert product.activity.process is dp.ObservatoryProcess.DATA_PROCESSING
+        assert product.simulation.production_name == "PROD_TEST"
+        assert product.simulation.node.nsb_factor == 1.5
+
+        simulation_config = source.simulation_config[source.obs_id]
+        altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
+        azimuth = (simulation_config.min_az + simulation_config.max_az) / 2
+        assert u.isclose(
+            product.simulation.node.zenith,
+            90 * u.deg - altitude,
+        )
+        assert u.isclose(
+            product.simulation.node.azimuth,
+            azimuth,
+        )
+        assert product.simulation.node.hour_angle is not None
+        assert product.simulation.node.declination is not None
+
+
+def test_simulation_metadata_from_simtel(tmp_path, prod6_gamma_simtel_path):
+    from astropy.coordinates import Longitude
+    from astropy.stats import circmean
+
+    output_path = tmp_path / "metadata.dl1.h5"
+
+    with EventSource(prod6_gamma_simtel_path) as source:
+        simulation_config = source.simulation_config[source.obs_id]
+
+        with DataWriter(
+            event_source=source,
+            output_path=output_path,
+        ):
+            pass
+
+    product = read_ctao_metadata(output_path)
+
+    assert product.simulation is not None
+    assert product.simulation.production_name == "unknown"
+
+    node = product.simulation.node
+    assert node is not None
+
+    altitude = (simulation_config.min_alt + simulation_config.max_alt) / 2
+    azimuth = Longitude(
+        circmean(
+            u.Quantity(
+                [
+                    simulation_config.min_az,
+                    simulation_config.max_az,
+                ]
+            )
+        )
+    )
+
+    assert u.isclose(node.zenith, 90 * u.deg - altitude)
+    assert u.isclose(node.azimuth, azimuth)
+    assert node.nsb_factor == simulation_config.nsb_scaling_factor
+
+    assert node.hour_angle is not None
+    assert node.declination is not None
+
+
+@pytest.mark.parametrize(
+    ("min_az", "max_az", "expected_az"),
+    [
+        (20 * u.deg, 40 * u.deg, 30 * u.deg),
+        (359 * u.deg, 1 * u.deg, 0 * u.deg),
+    ],
+)
+def test_simulation_metadata_direction_from_simulation_config(
+    min_az, max_az, expected_az
+):
+    obs_id = 1
+    simulation_config = SimulationConfigContainer(
+        min_alt=60 * u.deg,
+        max_alt=80 * u.deg,
+        min_az=min_az,
+        max_az=max_az,
+    )
+
+    writer = DataWriter.__new__(DataWriter)
+    writer._is_simulation = True
+    writer._subarray = SimpleNamespace(reference_location=None)
+    writer.event_source = SimpleNamespace(
+        obs_ids=[obs_id],
+        simulation_config={obs_id: simulation_config},
+    )
+    writer.product_info = ProductMetadata(
+        simulation={"production_name": "PROD_TEST", "node": {"nsb_factor": 1.5}},
+    )
+
+    simulation = writer._get_simulation_metadata(input_product=None)
+
+    assert u.isclose(simulation.node.zenith, 20 * u.deg)
+    assert u.isclose(simulation.node.azimuth, expected_az)
+
+
+@pytest.mark.parametrize(
+    "location",
+    [
+        None,
+        EarthLocation.from_geodetic(lon=0 * u.deg, lat=0 * u.deg, height=0 * u.m),
+        SimpleNamespace(
+            lon=1 * u.deg,
+            lat=1 * u.deg,
+            height=np.nan * u.m,
+        ),
+    ],
+)
+def test_invalid_observation_location(location):
+    writer = DataWriter.__new__(DataWriter)
+    writer._subarray = SimpleNamespace(reference_location=location)
+
+    assert writer._get_observation_metadata(input_product=None) is None
+
+
+@pytest.mark.parametrize(
+    ("latitude", "expected_site"),
+    [
+        (28 * u.deg, SiteID.CTAO_NORTH),
+        (-24 * u.deg, SiteID.CTAO_SOUTH),
+    ],
+)
+def test_site_id_from_observation_location(latitude, expected_site):
+    location = EarthLocation.from_geodetic(
+        lon=10 * u.deg,
+        lat=latitude,
+        height=2000 * u.m,
+    )
+    writer = DataWriter.__new__(DataWriter)
+    writer._subarray = SimpleNamespace(reference_location=location)
+
+    observation = writer._get_observation_metadata(input_product=None)
+    assert observation.location == dp.GeodeticEarthLocation(
+        longitude=location.lon,
+        latitude=location.lat,
+        height=location.height,
+    )
+    assert (
+        writer._get_site_id(input_product=None, location=observation.location)
+        is expected_site
+    )
+
+
+def test_site_id_prefers_input_metadata():
+    writer = DataWriter.__new__(DataWriter)
+    writer._subarray = SimpleNamespace(
+        reference_location=EarthLocation.from_geodetic(
+            lon=0 * u.deg,
+            lat=-24 * u.deg,
+            height=2000 * u.m,
+        )
+    )
+    input_product = SimpleNamespace(instance=SimpleNamespace(site_id=SiteID.CTAO_NORTH))
+
+    assert writer._get_site_id(input_product) is SiteID.CTAO_NORTH
 
 
 def test_write_only_r1(r1_hdf5_file):

@@ -5,6 +5,11 @@
             "email": "YOUREMAIL@EXAMPLE.ORG",
             "organization": "YOUR-ORGANIZATION"
         },
+        "Curation": {
+            "release": "YOUR-DATA-RELEASE",
+            "license": "YOUR-LICENSE",
+            "copyright": "YOUR-COPYRIGHT"
+        },
         "overwrite": false,
         "write_dl1_images": false,
         "write_dl1_parameters": false,

@@ -475,6 +475,7 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     tool = DumpInstrumentTool()
     tool.subarray = original_subarray
     tool.infile = input_file
+    tool.is_simulation = True
     tool.outdir = tmp_path
     tool.format = "service"
     tool.write_service_data(subarray_id=1, site="CTAO-South")

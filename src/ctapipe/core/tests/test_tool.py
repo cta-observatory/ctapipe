@@ -606,7 +606,7 @@ def test_activity(tmp_path, example_subarray):
         (2, "error"),
     ],
 )
-def test_exit_status(exit_code, expected_status, tmp_path, provenance):
+def test_exit_status(exit_code, expected_status, tmp_path):
     """check that the config is correctly in the provenance"""
 
     class MyTool(Tool):
@@ -652,7 +652,7 @@ class InterruptTestTool(Tool):
         signal.pause()
 
 
-def test_exit_status_interrupted(tmp_path, provenance):
+def test_exit_status_interrupted(tmp_path):
     """check that the config is correctly in the provenance"""
 
     # to make sure we only kill the process once it is running

@@ -4,7 +4,7 @@ import numpy as np
 from numba import njit
 from traitlets import default
 
-from ..containers import EventType
+from ..containers import EventType, SubarrayEventContainer
 from ..core import TelescopeComponent
 from ..core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ..core.traits import (
@@ -341,8 +341,12 @@ class WaveformModifier(TelescopeComponent):
             for event in source:
                 if not self.event_type_filter(event):
                     continue
-                for tel_id, r1 in event.r1.tel.items():
-                    nsb_database[tel_id].append(r1.waveform)
+                for tel_id, tel_event in event.tel.items():
+                    if tel_event.r1 is None or tel_event.r1.waveform is None:
+                        raise ValueError(
+                            f"NSB database requires R1 waveforms for telescope {tel_id}"
+                        )
+                    nsb_database[tel_id].append(tel_event.r1.waveform)
 
         nsb_database = {
             tel_id: np.stack(waveforms) for tel_id, waveforms in nsb_database.items()
@@ -409,15 +413,20 @@ class WaveformModifier(TelescopeComponent):
                 mean = np.mean(nsb_database[tel_id][:, channel, :, :])
                 nsb_database[tel_id][:, channel, :, :] -= mean
 
-    def __call__(self, event):
+    def __call__(self, event: SubarrayEventContainer):
         """
         Parameters
         ----------
         event: container
-            A `~ctapipe.containers.ArrayEventContainer` event container
+            A `~ctapipe.containers.SubarrayEventContainer` event container
         """
 
-        for tel_id, r1 in event.r1.tel.items():
+        for tel_id, tel_event in event.tel.items():
+            r1 = tel_event.r1
+            if r1 is None or r1.waveform is None:
+                raise ValueError(
+                    f"Waveform modification requires R1 waveforms for telescope {tel_id}"
+                )
             waveform = r1.waveform
             # Note: MC waveforms passed to this function should contain data in all
             # pixels (not DVR'ed - obviously DVR depends on noise level, it does not

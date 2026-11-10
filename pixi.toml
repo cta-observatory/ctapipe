@@ -3,6 +3,9 @@ name = "ctapipe"
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64"]
 
+[activation.env]
+PYTHONNOUSERSITE = "1"
+
 # numba rc is missing metadata in conda package for this mapping
 [workspace.conda-pypi-map]
 numba = { mapping = { numba = "numba", llvmlite = "llvmlite" } }
@@ -12,7 +15,8 @@ numba = { mapping = { numba = "numba", llvmlite = "llvmlite" } }
 [dependencies]
 python = ">=3.12,<3.16"
 # The astropy metapackage also installs Astropy's optional dependencies.
-astropy-base = ">=6.1,<9"
+astropy-base = ">=7.2,<9"
+ctao-datamodel = ">=1.4.0, <2.0.0"
 docutils = "*"
 joblib = "*"
 numba = ">=0.59"
@@ -44,6 +48,7 @@ zernike = "*"
 
 [feature.test.dependencies]
 astroquery = "*"
+bagit = "*"
 pandas = "*"
 pytest = ">=9"
 pytest-cov = "*"
@@ -119,7 +124,7 @@ numpy = "1.26.*"
 numba = "==0.59.0"
 llvmlite = "==0.42.0"
 scipy = "1.15.*"
-astropy-base = "6.1.*"
+astropy-base = "7.2.*"
 matplotlib = "3.8.*"
 eventio = "==1.11.6"
 

@@ -10,38 +10,44 @@ from astropy.utils.decorators import lazyproperty
 
 from ..atmosphere import AtmosphereDensityProfile
 from ..containers import (
-    ArrayEventContainer,
     ConcentrationContainer,
     CoordinateFrameType,
     DispContainer,
-    DL1CameraContainer,
-    EventIndexContainer,
     HillasParametersContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    MuonContainer,
     MuonEfficiencyContainer,
     MuonParametersContainer,
     MuonRingContainer,
-    MuonTelescopeContainer,
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
-    R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
     SchedulingBlockContainer,
-    SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulatedShowerDistribution,
     SimulationConfigContainer,
+    SubarrayDL0Container,
+    SubarrayDL2Container,
+    SubarrayEventContainer,
+    SubarrayEventIndexContainer,
+    SubarraySimulationContainer,
+    SubarrayTriggerContainer,
+    TelescopeDL0Container,
+    TelescopeDL1Container,
+    TelescopeDL2Container,
+    TelescopeEventContainer,
+    TelescopeEventIndexContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
+    TelescopeR1Container,
+    TelescopeSimulationContainer,
     TelescopeTriggerContainer,
-    TelEventIndexContainer,
     TimingParametersContainer,
-    TriggerContainer,
 )
 from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
@@ -55,7 +61,9 @@ from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5dataformat import (
     ATMOSPHERE_DENSITY_PROFILE_TABLE,
+    DL0_SUBARRAY_TRIGGER_TABLE,
     DL0_TEL_POINTING_GROUP,
+    DL0_TEL_TRIGGER_TABLE,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
@@ -78,7 +86,11 @@ from .hdf5dataformat import (
     SIMULATION_TEL_TABLE,
 )
 from .hdf5tableio import HDF5TableReader, get_column_attrs
-from .metadata import _read_reference_metadata_hdf5
+from .metadata import (
+    CTAO_METADATA_VERSION_KEY,
+    get_compatible_metadata_versions,
+    read_ctao_metadata,
+)
 
 __all__ = ["HDF5EventSource"]
 
@@ -108,6 +120,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.5.0",
     "v7.6.0",
     "v7.7.0",
+    "v8.0.0",
 ]
 
 
@@ -174,8 +187,8 @@ class HDF5EventSource(EventSource):
     specifying the file to be read.
 
     Looping over the EventSource yields events from the _generate_events
-    method. An event equals an ArrayEventContainer instance.
-    See ctapipe.containers.ArrayEventContainer for details.
+    method. An event equals an SubarrayEventContainer instance.
+    See ctapipe.containers.SubarrayEventContainer for details.
 
     Attributes
     ----------
@@ -183,6 +196,9 @@ class HDF5EventSource(EventSource):
         Path to the input event file.
     file: tables.File
         File object
+    metadata: ctao_datamodel.models.dataproducts.Product
+        Validated CTAO product metadata read from the file. Legacy ctapipe
+        metadata is converted to the current model.
     obs_ids: list
         Observation ids of the recorded runs. For unmerged files, this
         should only contain a single number.
@@ -241,9 +257,11 @@ class HDF5EventSource(EventSource):
             )
 
         self.file_ = tables.open_file(self.input_url)
-        meta = _read_reference_metadata_hdf5(self.file_)
+        self.metadata = read_ctao_metadata(self.file_)
         Provenance().add_input_file(
-            str(self.input_url), role="Event", reference_meta=meta
+            str(self.input_url),
+            role="Event",
+            reference_meta=self.metadata.model_dump(mode="json"),
         )
 
         self._full_subarray = SubarrayDescription.from_hdf(
@@ -261,7 +279,7 @@ class HDF5EventSource(EventSource):
             self._observation_block,
         ) = self._parse_sb_and_ob_configs()
 
-        version = self.file_.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
+        version = self.metadata.model.version
         self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
         self._obs_ids = tuple(
             self.file_.root.configuration.observation.observation_block.col("obs_id")
@@ -329,10 +347,31 @@ class HDF5EventSource(EventSource):
         with tables.open_file(path) as f:
             metadata = f.root._v_attrs
 
-            if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
+            # First check compatible metadata versions
+            compatible_versions = get_compatible_metadata_versions()
+
+            if (
+                CTAO_METADATA_VERSION_KEY in metadata._v_attrnames
+                and metadata[CTAO_METADATA_VERSION_KEY] not in compatible_versions
+            ):
+                metadata_version = metadata[CTAO_METADATA_VERSION_KEY]
+
+                logger.error(
+                    "File is a ctapipe HDF5 file but has unsupported CTAO metadata"
+                    f" version {metadata_version}, supported versions are {compatible_versions}."
+                    " The installed ctao-datamodel package cannot migrate this metadata"
+                    " version to the current version."
+                )
                 return False
 
-            version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            # data model version: current metadata first, then legacy fallback
+            if "model.version" in metadata._v_attrnames:
+                version = metadata["model.version"]
+            elif "CTA PRODUCT DATA MODEL VERSION" in metadata._v_attrnames:
+                version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            else:
+                return False
+
             if version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 logger.error(
                     "File is a ctapipe HDF5 file but has unsupported data model"
@@ -344,31 +383,27 @@ class HDF5EventSource(EventSource):
                 )
                 return False
 
-            if "CTA PRODUCT DATA LEVELS" not in metadata._v_attrnames:
-                return False
-
             # we can now read both R1 and DL1
-            has_muons = DL1_TEL_MUON_GROUP in f.root
             has_sim = SIMULATION_TEL_TABLE in f.root
-            has_trigger = (DL1_SUBARRAY_TRIGGER_TABLE in f) or (
-                DL1_TEL_TRIGGER_TABLE in f
+            has_trigger = any(
+                table in f
+                for table in (
+                    DL0_SUBARRAY_TRIGGER_TABLE,
+                    DL0_TEL_TRIGGER_TABLE,
+                    DL1_SUBARRAY_TRIGGER_TABLE,
+                    DL1_TEL_TRIGGER_TABLE,
+                )
             )
 
-            datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            datalevels = (
-                len(
-                    datalevels
-                    & {
-                        "R1",
-                        "DL1_IMAGES",
-                        "DL1_PARAMETERS",
-                        "DL2",
-                        "DL1_MUON",
-                    }
-                )
-                > 0
-            )
-            if not any([datalevels, has_sim, has_trigger, has_muons]):
+            datalevels = get_hdf5_datalevels(f)
+
+            if not any(
+                [
+                    datalevels,
+                    has_sim,
+                    has_trigger,
+                ]
+            ):
                 return False
 
         return True
@@ -430,7 +465,14 @@ class HDF5EventSource(EventSource):
         return self._simulation_configs
 
     def __len__(self):
-        n_events = len(self.file_.root.dl1.event.subarray.trigger)
+        trigger_table = DL0_SUBARRAY_TRIGGER_TABLE
+
+        # backwards compatibility with data format < 8
+        old = DL1_SUBARRAY_TRIGGER_TABLE
+        if old in self.file_.root:
+            trigger_table = old
+
+        n_events = len(self.file_.root[trigger_table])
         if self.max_events is not None:
             return min(n_events, self.max_events)
         return n_events
@@ -493,7 +535,7 @@ class HDF5EventSource(EventSource):
 
     def _generator(self):
         """
-        Yield ArrayEventContainer to iterate through events.
+        Yield SubarrayEventContainer to iterate through events.
         """
         self.reader = HDF5TableReader(self.file_)
 
@@ -514,31 +556,31 @@ class HDF5EventSource(EventSource):
 
         counter = 0
         for trigger, index in events:
-            data = self._create_array_event_container(trigger, index, counter)
-            full_tels_with_trigger = self._update_tels_with_trigger(data)
+            event = self._create_array_event_container(trigger, index, counter)
+            full_tels_with_data = self._update_telescope_lists(event)
 
             self._fill_telescope_triggers(
-                data,
-                full_tels_with_trigger,
+                event,
+                full_tels_with_data,
                 telescope_trigger_reader,
             )
 
             if self.is_simulation:
-                data.simulation.shower = next(mc_shower_reader)
+                event.simulation.shower = next(mc_shower_reader)
 
-            self._fill_dl2_stereo(data, dl2_readers)
+            self._fill_dl2_subarray(event, dl2_readers)
 
             # this needs to stay *after* reading the telescope trigger table
             # and after reading all subarray event information, so that we don't
             # go out of sync
-            if len(data.trigger.tels_with_trigger) == 0:
+            if len(event.tel) == 0:
                 continue
 
-            self._fill_array_pointing(data)
-            self._fill_telescope_pointing(data, pointing_interpolator)
+            self._fill_array_pointing(event)
+            self._fill_telescope_pointing(event, pointing_interpolator)
 
             self._fill_telescopes(
-                data=data,
+                event=event,
                 waveform_readers=waveform_readers,
                 image_readers=image_readers,
                 true_image_readers=true_image_readers,
@@ -549,7 +591,7 @@ class HDF5EventSource(EventSource):
                 true_impact_readers=true_impact_readers,
             )
 
-            yield data
+            yield event
             counter += 1
 
     # -------------------------------------------------------------------------
@@ -562,7 +604,7 @@ class HDF5EventSource(EventSource):
 
         return {
             table.name: self.reader.read(
-                f"{R1_TEL_GROUP}/{table.name}", R1CameraContainer
+                f"{R1_TEL_GROUP}/{table.name}", TelescopeR1Container
             )
             for table in self.file_.root.r1.event.telescope
         }
@@ -579,7 +621,7 @@ class HDF5EventSource(EventSource):
         image_readers = {
             table.name: self.reader.read(
                 f"{DL1_TEL_IMAGES_GROUP}/{table.name}",
-                DL1CameraContainer,
+                TelescopeDL1Container,
                 ignore_columns=ignore_columns,
             )
             for table in self.file_.root.dl1.event.telescope.images
@@ -813,18 +855,31 @@ class HDF5EventSource(EventSource):
         return true_impact_readers
 
     def _init_event_iterator(self):
+        trigger_table = DL0_SUBARRAY_TRIGGER_TABLE
+
+        # backwards compatibility with data format < 8
+        old = DL1_SUBARRAY_TRIGGER_TABLE
+        if old in self.file_.root:
+            trigger_table = old
+
         events = HDF5TableReader(self.file_).read(
-            DL1_SUBARRAY_TRIGGER_TABLE,
-            [TriggerContainer, EventIndexContainer],
-            ignore_columns={"tel"},
+            trigger_table,
+            [SubarrayTriggerContainer, SubarrayEventIndexContainer],
         )
 
         return events
 
     def _init_telescope_trigger_reader(self):
+        trigger_table = DL0_TEL_TRIGGER_TABLE
+
+        # backwards compatibility with data format < 8
+        old = DL1_TEL_TRIGGER_TABLE
+        if old in self.file_.root:
+            trigger_table = old
+
         telescope_trigger_reader = HDF5TableReader(self.file_).read(
-            DL1_TEL_TRIGGER_TABLE,
-            [TelEventIndexContainer, TelescopeTriggerContainer],
+            trigger_table,
+            [TelescopeEventIndexContainer, TelescopeTriggerContainer],
             ignore_columns={"trigger_pixels"},
         )
         return telescope_trigger_reader
@@ -845,60 +900,72 @@ class HDF5EventSource(EventSource):
     # -------------------------------------------------------------------------
 
     def _create_array_event_container(self, trigger, index, counter):
-        data = ArrayEventContainer(
-            trigger=trigger,
+        event = SubarrayEventContainer(
+            dl0=SubarrayDL0Container(trigger=trigger),
             count=counter,
             index=index,
-            simulation=SimulatedEventContainer() if self.is_simulation else None,
+            simulation=SubarraySimulationContainer() if self.is_simulation else None,
         )
         # Maybe take some other metadata, but there are still some 'unknown'
         # written out by the process tool
-        data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
-        data.meta["input_url"] = self.input_url
-        data.meta["max_events"] = self.max_events
-        return data
+        event.meta["origin"] = self.metadata.data.type
+        event.meta["input_url"] = self.input_url
+        event.meta["max_events"] = self.max_events
+        return event
 
-    def _update_tels_with_trigger(self, data):
-        data.trigger.tels_with_trigger = self._full_subarray.tel_mask_to_tel_ids(
-            data.trigger.tels_with_trigger
-        )
-        full_tels_with_trigger = data.trigger.tels_with_trigger.copy()
+    def _update_telescope_lists(self, event: SubarrayEventContainer):
+        trigger = event.dl0.trigger
+        # Older files only stored the trigger mask, assuming that all triggered
+        # telescopes provided data.
+        if trigger.tels_with_data is None:
+            trigger.tels_with_data = trigger.tels_with_trigger
 
-        if self.allowed_tels:
-            data.trigger.tels_with_trigger = np.intersect1d(
-                data.trigger.tels_with_trigger,
-                np.array(list(self.allowed_tels)),
-            )
+        full_tels_with_data = None
+        for field in ("tels_with_trigger", "tels_with_data"):
+            tel_ids = self._full_subarray.tel_mask_to_tel_ids(getattr(trigger, field))
+            if field == "tels_with_data":
+                full_tels_with_data = tel_ids
 
-        return full_tels_with_trigger
+            if self.allowed_tels:
+                tel_ids = np.intersect1d(tel_ids, list(self.allowed_tels))
+            setattr(trigger, field, tel_ids)
+
+        return full_tels_with_data
 
     def _fill_telescope_triggers(
-        self, data, full_tels_with_trigger, telescope_trigger_reader
+        self, event, full_tels_with_data, telescope_trigger_reader
     ):
         # the telescope trigger table contains triggers for all telescopes
         # that participated in the event, so we need to read a row for each
         # of them, ignoring the ones not in allowed_tels after reading
-        for tel_id in full_tels_with_trigger:
+        for tel_id in full_tels_with_data:
             tel_index, tel_trigger = next(telescope_trigger_reader)
 
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
-            data.trigger.tel[tel_index.tel_id] = tel_trigger
+            event.tel[tel_index.tel_id] = TelescopeEventContainer(
+                index=tel_index,
+                dl0=TelescopeDL0Container(
+                    trigger=tel_trigger,
+                ),
+            )
 
     # -------------------------------------------------------------------------
     # DL2 and Tel-wise
     # -------------------------------------------------------------------------
 
-    def _fill_dl2_stereo(self, data, dl2_readers):
+    def _fill_dl2_subarray(self, data, dl2_readers):
+        if dl2_readers:
+            data.dl2 = SubarrayDL2Container()
         for kind, readers in dl2_readers.items():
-            c = getattr(data.dl2.stereo, kind)
+            c = getattr(data.dl2, kind)
             for algorithm, reader in readers.items():
                 c[algorithm] = next(reader)
 
     def _fill_telescopes(
         self,
-        data,
+        event,
         waveform_readers,
         image_readers,
         true_image_readers,
@@ -908,80 +975,93 @@ class HDF5EventSource(EventSource):
         dl2_tel_readers,
         true_impact_readers,
     ):
-        for tel_id in data.trigger.tel.keys():
+        for tel_id, tel_event in event.tel.items():
             key = f"tel_{tel_id:03d}"
 
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
+            if self.is_simulation:
+                tel_event.simulation = TelescopeSimulationContainer()
+
             if key in true_impact_readers:
-                data.simulation.tel[tel_id].impact = next(true_impact_readers[key])
+                tel_event.simulation.impact = next(true_impact_readers[key])
 
-            self._fill_r1_for_tel(data, tel_id, key, waveform_readers)
-
-            simulated = None
-            if self.has_simulated_dl1:
-                simulated = data.simulation.tel[tel_id]
+            self._fill_r1_for_tel(tel_event, tel_id, key, waveform_readers)
 
             self._fill_images_for_tel(
-                data, tel_id, key, image_readers, true_image_readers, simulated
+                tel_event,
+                key,
+                image_readers,
+                true_image_readers,
             )
             self._fill_parameters_for_tel(
-                data, tel_id, key, param_readers, true_param_readers, simulated
+                tel_event,
+                key,
+                param_readers,
+                true_param_readers,
             )
-            self._fill_muons_for_tel(data, tel_id, key, muon_readers)
-            self._fill_dl2_for_tel(data, tel_id, dl2_tel_readers)
+            self._fill_muons_for_tel(tel_event, key, muon_readers)
+            self._fill_dl2_for_tel(tel_event, tel_id, dl2_tel_readers)
 
-    def _fill_r1_for_tel(self, data, tel_id, key, waveform_readers):
+    def _fill_r1_for_tel(self, tel_event, tel_id, key, waveform_readers):
         if DataLevel.R1 not in self.datalevels:
             return
 
-        r1 = next(waveform_readers[key])
+        if key not in waveform_readers:
+            raise ValueError(f"Input provides R1 data but no waveforms for {key}")
+        tel_event.r1 = next(waveform_readers[key])
 
-        if r1.waveform.ndim == 2:
+        r1_waveform = tel_event.r1.waveform
+        if r1_waveform is None:
+            return
+
+        if r1_waveform.ndim == 2:
             warnings.warn(
                 "Support for datamodel version <6.0.0 will be removed in a future release.",
                 CTAPipeDeprecationWarning,
             )
-            r1.waveform = r1.waveform[np.newaxis, ...]
-
-        data.r1.tel[tel_id] = r1
+            tel_event.r1.waveform = r1_waveform[np.newaxis, ...]
 
     def _fill_images_for_tel(
         self,
-        data,
-        tel_id,
+        tel_event,
         key,
         image_readers,
         true_image_readers,
-        simulated,
     ):
         if DataLevel.DL1_IMAGES not in self.datalevels:
             return
 
-        data.dl1.tel[tel_id] = next(image_readers[key])
+        if key not in image_readers:
+            raise ValueError(f"Input provides DL1 images but no image table for {key}")
+        tel_event.dl1 = next(image_readers[key])
 
-        if simulated is None:
+        if not self.has_simulated_dl1:
             return
 
         simulated_image_row = next(true_image_readers[key])
-        simulated.true_image = simulated_image_row["true_image"]
-        simulated.true_image_sum = simulated_image_row["true_image_sum"]
+        tel_event.simulation.true_image = simulated_image_row["true_image"]
+        tel_event.simulation.true_image_sum = simulated_image_row["true_image_sum"]
 
     def _fill_parameters_for_tel(
         self,
-        data,
-        tel_id,
+        tel_event,
         key,
         param_readers,
         true_param_readers,
-        simulated,
     ):
         if DataLevel.DL1_PARAMETERS not in self.datalevels:
             return
 
+        if key not in param_readers:
+            raise ValueError(
+                f"Input provides DL1 parameters but no parameter table for {key}"
+            )
         params = next(param_readers[key])
-        data.dl1.tel[tel_id].parameters = ImageParametersContainer(
+        if tel_event.dl1 is None:
+            tel_event.dl1 = TelescopeDL1Container()
+        tel_event.dl1.parameters = ImageParametersContainer(
             hillas=params[0],
             timing=params[1],
             leakage=params[2],
@@ -991,11 +1071,11 @@ class HDF5EventSource(EventSource):
             peak_time_statistics=params[6],
         )
 
-        if simulated is None:
+        if not self.has_simulated_dl1:
             return
 
         simulated_params = next(true_param_readers[key])
-        simulated.true_parameters = ImageParametersContainer(
+        tel_event.simulation.true_parameters = ImageParametersContainer(
             hillas=simulated_params[0],
             leakage=simulated_params[1],
             concentration=simulated_params[2],
@@ -1003,25 +1083,29 @@ class HDF5EventSource(EventSource):
             intensity_statistics=simulated_params[4],
         )
 
-    def _fill_muons_for_tel(self, data, tel_id, key, muon_readers):
+    def _fill_muons_for_tel(self, tel_event, key, muon_readers):
         if not self.has_muon_parameters:
             return
 
+        if key not in muon_readers:
+            raise ValueError(f"Input provides muon results but no muon table for {key}")
         ring, parameters, efficiency = next(muon_readers[key])
-        data.muon.tel[tel_id] = MuonTelescopeContainer(
+        tel_event.muon = MuonContainer(
             ring=ring,
             parameters=parameters,
             efficiency=efficiency,
         )
 
-    def _fill_dl2_for_tel(self, data, tel_id, dl2_tel_readers):
+    def _fill_dl2_for_tel(self, tel_event, tel_id, dl2_tel_readers):
         for kind, algorithms in dl2_tel_readers.items():
-            c = getattr(data.dl2.tel[tel_id], kind)
             for algorithm, readers in algorithms.items():
                 key = f"tel_{tel_id:03d}"
                 if key not in readers:
                     continue
 
+                if tel_event.dl2 is None:
+                    tel_event.dl2 = TelescopeDL2Container()
+                c = getattr(tel_event.dl2, kind)
                 c[algorithm] = next(readers[key])
 
                 # change prefix to new data model
@@ -1041,11 +1125,11 @@ class HDF5EventSource(EventSource):
             return
 
         if frame is CoordinateFrameType.ALTAZ:
-            event.monitoring.pointing.array_azimuth = ob.subarray_pointing_lon
-            event.monitoring.pointing.array_altitude = ob.subarray_pointing_lat
+            event.monitoring.pointing.azimuth = ob.subarray_pointing_lon
+            event.monitoring.pointing.altitude = ob.subarray_pointing_lat
         elif frame is CoordinateFrameType.ICRS:
-            event.monitoring.pointing.array_ra = ob.subarray_pointing_lon
-            event.monitoring.pointing.array_dec = ob.subarray_pointing_lat
+            event.monitoring.pointing.ra = ob.subarray_pointing_lon
+            event.monitoring.pointing.dec = ob.subarray_pointing_lat
         else:
             raise ValueError(f"Unsupported pointing frame: {frame}")
 
@@ -1054,27 +1138,28 @@ class HDF5EventSource(EventSource):
         Fill the telescope pointing information of a given event
         """
         if tel_pointing_interpolator is not None:
-            for tel_id, trigger in event.trigger.tel.items():
-                alt, az = tel_pointing_interpolator(tel_id, trigger.time)
-                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
+            for tel_id, tel_event in event.tel.items():
+                time = tel_event.dl0.trigger.time
+                alt, az = tel_pointing_interpolator(tel_id, time)
+                tel_event.monitoring.pointing = TelescopePointingContainer(
                     altitude=alt,
                     azimuth=az,
                 )
             return
 
-        for tel_id in event.trigger.tels_with_trigger:
+        for tel_id in event.tel:
             if (
                 tel_pointing := self._constant_telescope_pointing.get(tel_id)
             ) is not None:
                 current = tel_pointing.loc[event.index.obs_id]
-                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
+                event.tel[tel_id].monitoring.pointing = TelescopePointingContainer(
                     altitude=current["telescope_pointing_altitude"],
                     azimuth=current["telescope_pointing_azimuth"],
                 )
             elif (finder := self._legacy_tel_pointing_finders.get(tel_id)) is not None:
-                index = finder.closest(event.trigger.time.mjd)
+                index = finder.closest(event.dl0.trigger.time.mjd)
                 row = self._legacy_tel_pointing_tables[tel_id][index]
-                event.monitoring.tel[tel_id].pointing = TelescopePointingContainer(
+                event.tel[tel_id].monitoring.pointing = TelescopePointingContainer(
                     altitude=row["altitude"],
                     azimuth=row["azimuth"],
                 )

@@ -11,7 +11,19 @@ from scipy.stats import norm
 from traitlets.config import Config
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator, _get_invalid_pixels
-from ctapipe.containers import ArrayEventContainer, PixelStatus
+from ctapipe.containers import (
+    CameraCalibrationContainer,
+    CameraMonitoringContainer,
+    DL0CameraContainer,
+    PixelStatus,
+    SubarrayEventContainer,
+    TelescopeDL0Container,
+    TelescopeDL1Container,
+    TelescopeEventContainer,
+    TelescopeEventIndexContainer,
+    TelescopeMonitoringContainer,
+    TelescopeR1Container,
+)
 from ctapipe.image.extractor import (
     FullWaveformSum,
     GlobalPeakWindowSum,
@@ -72,11 +84,11 @@ def test_get_invalid_pixels(selected_gain_channel, expected):
 
 
 def test_camera_calibrator(example_event, example_subarray):
-    tel_id = list(example_event.r0.tel)[0]
+    tel_event = next(iter(example_event.tel.values()))
     calibrator = CameraCalibrator(subarray=example_subarray)
     calibrator(example_event)
-    image = example_event.dl1.tel[tel_id].image
-    peak_time = example_event.dl1.tel[tel_id].peak_time
+    image = tel_event.dl1.image
+    peak_time = tel_event.dl1.peak_time
     assert image is not None
     assert peak_time is not None
     assert image.shape == (1764,)
@@ -150,36 +162,78 @@ def test_config(example_subarray):
 
 def test_check_r1_empty(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
-    tel_id = list(example_event.r0.tel)[0]
-    waveform = example_event.r1.tel[tel_id].waveform.copy()
+    tel_id, tel_event = next(iter(example_event.tel.items()))
+    waveform = tel_event.r1.waveform.copy()
     assert calibrator._check_r1_empty(None) is True
-    assert calibrator._check_r1_empty(waveform) is False
+    assert calibrator._check_r1_empty(TelescopeR1Container(waveform=None)) is True
+    assert calibrator._check_r1_empty(TelescopeR1Container(waveform=waveform)) is False
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         image_extractor=FullWaveformSum(subarray=example_subarray),
     )
-    event = ArrayEventContainer()
-    event.dl0.tel[tel_id].waveform = np.full((1, 2048, 128), 2)
-    event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(2048, 1)
+    event = SubarrayEventContainer()
+    event.tel[tel_id] = TelescopeEventContainer(
+        index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
+        dl0=TelescopeDL0Container(
+            camera=DL0CameraContainer(
+                waveform=np.full((1, 2048, 128), 2),
+                pixel_status=_valid_pixel_status(2048, 1),
+            )
+        ),
+    )
     calibrator(event)
-    assert (event.dl0.tel[tel_id].waveform == 2).all()
-    assert (event.dl1.tel[tel_id].image == 2 * 128).all()
+    assert (event.tel[tel_id].dl0.camera.waveform == 2).all()
+    assert (event.tel[tel_id].dl1.image == 2 * 128).all()
+
+
+@pytest.mark.parametrize("has_trigger", [False, True])
+def test_r1_calibration_creates_camera_and_preserves_trigger(
+    example_event, example_subarray, has_trigger
+):
+    tel_event = next(iter(example_event.tel.values()))
+    calibrator = CameraCalibrator(subarray=example_subarray)
+    trigger = tel_event.dl0.trigger
+    if not has_trigger:
+        tel_event.dl0 = None
+    calibrator.calibrate_tel_event(tel_event)
+    assert tel_event.dl0.camera.waveform is not None
+    assert tel_event.dl1.image is not None
+    if has_trigger:
+        assert tel_event.dl0.trigger is trigger
 
 
 def test_check_dl0_empty(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
-    tel_id = list(example_event.r0.tel)[0]
-    calibrator._calibrate_dl0(example_event, tel_id)
-    waveform = example_event.dl0.tel[tel_id].waveform.copy()
-    assert calibrator._check_dl0_empty(None) is True
-    assert calibrator._check_dl0_empty(waveform) is False
+    tel_id, tel_event = next(iter(example_event.tel.items()))
 
-    calibrator = CameraCalibrator(subarray=example_subarray)
-    event = ArrayEventContainer()
-    event.dl1.tel[tel_id].image = np.full(2048, 2)
-    calibrator(event)
-    assert (event.dl1.tel[tel_id].image == 2).all()
+    calibrator.r1_to_dl0(tel_event)
+    waveform = tel_event.dl0.camera.waveform.copy()
+
+    assert calibrator._check_dl0_empty(None) is True
+    assert calibrator._check_dl0_empty(TelescopeDL0Container()) is True
+    assert (
+        calibrator._check_dl0_empty(
+            TelescopeDL0Container(camera=DL0CameraContainer(waveform=None))
+        )
+        is True
+    )
+    assert (
+        calibrator._check_dl0_empty(
+            TelescopeDL0Container(camera=DL0CameraContainer(waveform=waveform))
+        )
+        is False
+    )
+
+    event = SubarrayEventContainer()
+    tel_event = TelescopeEventContainer(
+        index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
+        dl1=TelescopeDL1Container(image=np.full(2048, 2)),
+    )
+    event.tel[tel_id] = tel_event
+    with pytest.raises(ValueError, match="requires R1 or DL0 waveforms"):
+        calibrator(event)
+    assert (tel_event.dl1.image == 2).all()
 
 
 def test_dl1_variance_calib(example_subarray):
@@ -190,7 +244,7 @@ def test_dl1_variance_calib(example_subarray):
     )
     n_samples = 100
 
-    event = ArrayEventContainer()
+    event = SubarrayEventContainer()
 
     for tel_type in example_subarray.telescope_types:
         tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
@@ -208,18 +262,30 @@ def test_dl1_variance_calib(example_subarray):
         pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
         y += pedestal[..., np.newaxis]
 
-        event.dl0.tel[tel_id].waveform = y
-        event.monitoring.tel[tel_id].camera.coefficients.pedestal_offset = pedestal
-        event.monitoring.tel[tel_id].camera.coefficients.factor = factor
-        event.dl0.tel[tel_id].selected_gain_channel = None
-        event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(n_pixels, n_channels)
-        event.r1.tel[tel_id].selected_gain_channel = None
+        event.tel[tel_id] = TelescopeEventContainer(
+            index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
+            dl0=TelescopeDL0Container(
+                camera=DL0CameraContainer(
+                    waveform=y,
+                    pixel_status=_valid_pixel_status(n_pixels, n_channels),
+                    selected_gain_channel=None,
+                )
+            ),
+            monitoring=TelescopeMonitoringContainer(
+                camera=CameraMonitoringContainer(
+                    coefficients=CameraCalibrationContainer(
+                        pedestal_offset=pedestal,
+                        factor=factor,
+                    )
+                ),
+            ),
+        )
 
     calibrator(event)
 
     for tel_type in example_subarray.telescope_types:
         tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
-        image = event.dl1.tel[tel_id].image
+        image = event.tel[tel_id].dl1.image
         camera = example_subarray.tel[tel_id].camera
         assert image is not None
         assert image.shape == (
@@ -229,9 +295,11 @@ def test_dl1_variance_calib(example_subarray):
 
 
 def test_dl1_charge_calib(example_subarray):
+    rng = np.random.default_rng(1)
+    tel_id = 1
     # copy because we mutate the camera, should not affect other tests
     subarray = deepcopy(example_subarray)
-    camera = subarray.tel[1].camera
+    camera = subarray.tel[tel_id].camera
     # test with a sampling_rate different than 1 to
     # test if we handle time vs. slices correctly
     sampling_rate = 2
@@ -241,7 +309,6 @@ def test_dl1_charge_calib(example_subarray):
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
-    random = np.random.default_rng(1)
     x = np.arange(n_samples)
 
     camera.readout.reference_pulse_shape = norm.pdf(x, mid, pulse_sigma)
@@ -254,31 +321,38 @@ def test_dl1_charge_calib(example_subarray):
     gain_channel = [1, 2]
     for n_channels in gain_channel:
         # Randomize times and create pulses
-        time_offset = random.uniform(-10, +10, (n_channels, n_pixels))
+        time_offset = rng.uniform(-10, +10, (n_channels, n_pixels))
         y = norm.pdf(x, mid + time_offset[..., np.newaxis], pulse_sigma).astype(
             "float32"
         )
 
         # Define multiplicative factor for calibration coefficients
-        factor = random.normal(1, 0.01, (n_channels, n_pixels)) / random.uniform(
-            100, 1000, (n_channels, n_pixels)
+        factor = (
+            rng.normal(1, 0.01, (n_channels, n_pixels))
+            / rng.uniform(100, 1000, (n_channels, n_pixels))
         ).astype("float32")
         y /= factor[..., np.newaxis]
 
         # Define pedestal
-        pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
+        pedestal = rng.uniform(-4, 4, (n_channels, n_pixels))
         y += pedestal[..., np.newaxis]
 
-        event = ArrayEventContainer()
-        tel_id = list(subarray.tel.keys())[0]
-        event.dl0.tel[tel_id].waveform = y
         selected_gain_channel = None
         if n_channels == 1:
             selected_gain_channel = np.zeros(n_pixels, dtype=int)
-        event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
-        event.r1.tel[tel_id].selected_gain_channel = selected_gain_channel
-        event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(
-            n_pixels, n_channels, selected_gain_channel
+
+        event = SubarrayEventContainer()
+        event.tel[tel_id] = TelescopeEventContainer(
+            index=TelescopeEventIndexContainer(obs_id=1, event_id=1, tel_id=tel_id),
+            dl0=TelescopeDL0Container(
+                camera=DL0CameraContainer(
+                    waveform=y,
+                    pixel_status=_valid_pixel_status(
+                        n_pixels, n_channels, selected_gain_channel
+                    ),
+                    selected_gain_channel=selected_gain_channel,
+                )
+            ),
         )
 
         # Test default
@@ -287,18 +361,18 @@ def test_dl1_charge_calib(example_subarray):
         )
         calibrator(event)
         np.testing.assert_allclose(
-            event.dl1.tel[tel_id].image, y.sum(-1).squeeze(), rtol=1e-4
+            event.tel[tel_id].dl1.image, y.sum(-1).squeeze(), rtol=1e-4
         )
 
-        event.monitoring.tel[tel_id].camera.coefficients.pedestal_offset = pedestal
-        event.monitoring.tel[tel_id].camera.coefficients.factor = factor
-        event.monitoring.tel[tel_id].camera.coefficients.outlier_mask = np.zeros(
+        event.tel[tel_id].monitoring.camera.coefficients.pedestal_offset = pedestal
+        event.tel[tel_id].monitoring.camera.coefficients.factor = factor
+        event.tel[tel_id].monitoring.camera.coefficients.outlier_mask = np.zeros(
             (n_channels, n_pixels), dtype=bool
         )
 
         # Test without timing corrections
         calibrator(event)
-        dl1 = event.dl1.tel[tel_id]
+        dl1 = event.tel[tel_id].dl1
         np.testing.assert_allclose(dl1.image, 1, rtol=1e-5)
 
         expected_peak_time = (mid + time_offset) / sampling_rate
@@ -307,15 +381,15 @@ def test_dl1_charge_calib(example_subarray):
         )
 
         # test with timing corrections
-        event.monitoring.tel[tel_id].camera.coefficients.time_shift = (
+        event.tel[tel_id].monitoring.camera.coefficients.time_shift = (
             time_offset / sampling_rate
         )
         calibrator(event)
 
         # more rtol since shifting might lead to reduced integral
-        np.testing.assert_allclose(event.dl1.tel[tel_id].image, 1, rtol=1e-5)
+        np.testing.assert_allclose(event.tel[tel_id].dl1.image, 1, rtol=1e-5)
         np.testing.assert_allclose(
-            event.dl1.tel[tel_id].peak_time, mid / sampling_rate, atol=1
+            event.tel[tel_id].dl1.peak_time, mid / sampling_rate, atol=1
         )
 
         # test not applying time shifts
@@ -324,9 +398,9 @@ def test_dl1_charge_calib(example_subarray):
         calibrator.apply_waveform_time_shift = False
         calibrator(event)
 
-        np.testing.assert_allclose(event.dl1.tel[tel_id].image, 1, rtol=1e-4)
+        np.testing.assert_allclose(event.tel[tel_id].dl1.image, 1, rtol=1e-4)
         np.testing.assert_allclose(
-            event.dl1.tel[tel_id].peak_time, expected_peak_time.squeeze(), atol=1
+            event.tel[tel_id].dl1.peak_time, expected_peak_time.squeeze(), atol=1
         )
 
         # We now use GlobalPeakWindowSum to see the effect of missing charge
@@ -339,9 +413,9 @@ def test_dl1_charge_calib(example_subarray):
         calibrator(event)
         # test with timing corrections, should work
         # higher rtol because we cannot shift perfectly
-        np.testing.assert_allclose(event.dl1.tel[tel_id].image, 1, rtol=0.01)
+        np.testing.assert_allclose(event.tel[tel_id].dl1.image, 1, rtol=0.01)
         np.testing.assert_allclose(
-            event.dl1.tel[tel_id].peak_time, mid / sampling_rate, atol=1
+            event.tel[tel_id].dl1.peak_time, mid / sampling_rate, atol=1
         )
 
         # test deactivating timing corrections
@@ -350,22 +424,24 @@ def test_dl1_charge_calib(example_subarray):
 
         # make sure we chose an example where the time shifts matter
         # charges should be quite off due to summing around global shift
-        assert not np.allclose(event.dl1.tel[tel_id].image, 1, rtol=0.1)
+        assert not np.allclose(event.tel[tel_id].dl1.image, 1, rtol=0.1)
         assert not np.allclose(
-            event.dl1.tel[tel_id].peak_time, mid / sampling_rate, atol=1
+            event.tel[tel_id].dl1.peak_time, mid / sampling_rate, atol=1
         )
 
 
-def test_shift_waveforms():
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_shift_waveforms(dtype):
     from ctapipe.calib.camera.calibrator import shift_waveforms
 
     # 1 channel, 5 pixels, 40 samples
-    waveforms = np.zeros((1, 5, 40))
+    waveforms = np.zeros((1, 5, 40), dtype=dtype)
     waveforms[:, :, 10] = 1
     shifts = np.array([1.4, 2.1, -1.8, 3.1, -4.4])
 
     shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
 
+    assert shifted_waveforms.dtype == waveforms.dtype
     assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
 
     assert shifted_waveforms[0, 0, 9] == 1
@@ -375,12 +451,13 @@ def test_shift_waveforms():
     assert shifted_waveforms[0, 4, 14] == 1
 
     # 2 channel, 5 pixels, 40 samples
-    waveforms = np.zeros((2, 5, 40))
+    waveforms = np.zeros((2, 5, 40), dtype=dtype)
     waveforms[:, :, 10] = 1
     shifts = np.array([[1.4, 2.1, -1.8, 3.1, -4.4], [1.4, 2.1, -1.8, 3.1, -4.4]])
 
     shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
 
+    assert shifted_waveforms.dtype == waveforms.dtype
     assert np.allclose(
         remaining_shift, [[0.4, 0.1, 0.2, 0.1, -0.4], [0.4, 0.1, 0.2, 0.1, -0.4]]
     )
@@ -405,9 +482,11 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
     readout = example_subarray.tel[tel_id].camera.readout
     n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
 
-    event = ArrayEventContainer()
-    event.dl0.tel[tel_id].waveform = np.zeros((n_channels, n_pixels, 5))
-    event.dl0.tel[tel_id].waveform[:, :, 3] = 1
+    event = SubarrayEventContainer()
+    event.tel[tel_id].index.tel_id = tel_id
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    event.tel[tel_id].dl0.camera.waveform = np.zeros((n_channels, n_pixels, 5))
+    event.tel[tel_id].dl0.camera.waveform[:, :, 3] = 1
 
     calibration_time_shift = np.stack(
         [
@@ -426,7 +505,9 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
     if gain_selected:
         selected_gain_channel = np.arange(n_pixels) % n_channels
         # The input data and its pixel time shift are already gain selected.
-        event.dl0.tel[tel_id].waveform = event.dl0.tel[tel_id].waveform[:1]
+        event.tel[tel_id].dl0.camera.waveform = event.tel[tel_id].dl0.camera.waveform[
+            :1
+        ]
         pixel_time_shift = pixel_time_shift[selected_gain_channel, np.arange(n_pixels)][
             np.newaxis
         ]
@@ -437,10 +518,10 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
     else:
         expected_time_shift = calibration_time_shift + pixel_time_shift
 
-    event.monitoring.tel[tel_id].camera.coefficients.time_shift = calibration_time_shift
-    event.dl0.tel[tel_id].pixel_time_shift = pixel_time_shift
-    event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
-    event.dl0.tel[tel_id].pixel_status = _valid_pixel_status(
+    event.tel[tel_id].monitoring.camera.coefficients.time_shift = calibration_time_shift
+    event.tel[tel_id].dl0.camera.pixel_time_shift = pixel_time_shift
+    event.tel[tel_id].dl0.camera.selected_gain_channel = selected_gain_channel
+    event.tel[tel_id].dl0.camera.pixel_status = _valid_pixel_status(
         n_pixels, n_channels, selected_gain_channel
     )
 
@@ -448,10 +529,10 @@ def test_combined_peak_time_shifts(example_subarray, n_channels, gain_selected):
         subarray=example_subarray,
         image_extractor=FullWaveformSum(subarray=example_subarray),
     )
-    calibrator._calibrate_dl1(event, tel_id)
+    calibrator.dl0_to_dl1(event.tel[tel_id])
 
     np.testing.assert_allclose(
-        event.dl1.tel[tel_id].peak_time,
+        event.tel[tel_id].dl1.peak_time,
         3 / readout.sampling_rate.to_value(u.GHz) - expected_time_shift,
     )
 
@@ -466,8 +547,10 @@ def test_invalid_pixels_gain_selected(example_subarray, extractor_type):
     selected_gain_channel = np.arange(n_pixels) % 2
     pixel_index = np.arange(n_pixels)
 
-    event = ArrayEventContainer()
-    dl0 = event.dl0.tel[tel_id]
+    event = SubarrayEventContainer()
+    event.tel[tel_id].index.tel_id = tel_id
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    dl0 = event.tel[tel_id].dl0.camera
     dl0.selected_gain_channel = selected_gain_channel
     dl0.pixel_status = _valid_pixel_status(n_pixels, 2, selected_gain_channel)
     dl0.waveform = np.zeros((1, n_pixels, 40))
@@ -480,19 +563,19 @@ def test_invalid_pixels_gain_selected(example_subarray, extractor_type):
     # Include calibration outliers in both gains and a pixel with no stored data.
     outlier_mask[selected_gain_channel[:2], pixel_index[:2]] = True
     dl0.pixel_status[2] = 0
-    event.monitoring.tel[tel_id].camera.coefficients.outlier_mask = outlier_mask
+    event.tel[tel_id].monitoring.camera.coefficients.outlier_mask = outlier_mask
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         image_extractor=extractor_type(subarray=example_subarray),
     )
-    calibrator._calibrate_dl1(event, tel_id)
+    calibrator.dl0_to_dl1(event.tel[tel_id])
 
     np.testing.assert_allclose(
-        event.dl1.tel[tel_id].peak_time,
+        event.tel[tel_id].dl1.peak_time,
         20 / camera.readout.sampling_rate.to_value(u.GHz),
     )
-    image = event.dl1.tel[tel_id].image
+    image = event.tel[tel_id].dl1.image
     assert image[-1] > 0
     np.testing.assert_allclose(image, image[-1])
 
@@ -513,23 +596,22 @@ def test_invalid_pixels(example_event, example_subarray):
     )
     # going to modify this
     event = deepcopy(example_event)
-    tel_id = list(event.r0.tel)[0]
+    tel_id, tel_event = next(iter(event.tel.items()))
     camera = example_subarray.tel[tel_id].camera
     sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
 
-    event.monitoring.tel[tel_id].camera.coefficients.outlier_mask[:, 0] = True
-    event.r1.tel[tel_id].waveform.fill(0.0)
-    event.r1.tel[tel_id].waveform[:, 1:, 20] = 1.0
-    event.r1.tel[tel_id].waveform[:, 0, 10] = 9999
+    tel_event.monitoring.camera.coefficients.outlier_mask[:, 0] = True
+    tel_event.r1.waveform.fill(0.0)
+    tel_event.r1.waveform[:, 1:, 20] = 1.0
+    tel_event.r1.waveform[:, 0, 10] = 9999
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         config=config,
     )
     calibrator(event)
-    dl1 = event.dl1.tel[tel_id]
-    np.testing.assert_array_equal(dl1.image, 1.0)
-    np.testing.assert_array_equal(dl1.peak_time, 20.0 / sampling_rate)
+    assert np.all(tel_event.dl1.image == 1.0)
+    assert np.all(tel_event.dl1.peak_time == 20.0 / sampling_rate)
 
     # test we can set the invalid pixel handler to None
     config.CameraCalibrator.invalid_pixel_handler_type = None
@@ -538,8 +620,8 @@ def test_invalid_pixels(example_event, example_subarray):
         config=config,
     )
     calibrator(event)
-    assert event.dl1.tel[tel_id].image[0] == 9999
-    assert event.dl1.tel[tel_id].peak_time[0] == pytest.approx(10.0 / sampling_rate)
+    assert event.tel[tel_id].dl1.image[0] == 9999
+    assert event.tel[tel_id].dl1.peak_time[0] == pytest.approx(10.0 / sampling_rate)
 
 
 def test_no_gain_selection(prod5_gamma_simtel_path):
@@ -550,15 +632,15 @@ def test_no_gain_selection(prod5_gamma_simtel_path):
 
     tested_n_channels = set()
 
-    for tel_id in event.r1.tel:
+    for tel_id, tel_event in event.tel.items():
         readout = source.subarray.tel[tel_id].camera.readout
         tested_n_channels.add(readout.n_channels)
 
         calibrator = CameraCalibrator(subarray=source.subarray)
         calibrator(event)
 
-        image = event.dl1.tel[tel_id].image
-        peak_time = event.dl1.tel[tel_id].peak_time
+        image = tel_event.dl1.image
+        peak_time = tel_event.dl1.peak_time
         assert image.ndim == 2
         assert peak_time.ndim == 2
         assert image.shape == (readout.n_channels, readout.n_pixels)
@@ -586,18 +668,135 @@ def test_dl1_pixel_status(example_subarray):
     n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
     selected_gain_channel = np.arange(n_pixels) % 2
 
-    event = ArrayEventContainer()
-    dl0 = event.dl0.tel[tel_id]
+    event = SubarrayEventContainer()
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    dl0 = event.tel[tel_id].dl0.camera
     dl0.waveform = np.ones((1, n_pixels, 5))
     dl0.selected_gain_channel = selected_gain_channel
     dl0.pixel_status = _valid_pixel_status(n_pixels, 2, selected_gain_channel)
 
     calibrator = CameraCalibrator(subarray=example_subarray)
-    calibrator._calibrate_dl1(event, tel_id)
+    event.tel[tel_id].index.tel_id = tel_id
+    calibrator.dl0_to_dl1(event.tel[tel_id])
 
-    dl1_pixel_status = event.dl1.tel[tel_id].pixel_status
+    dl1_pixel_status = event.tel[tel_id].dl1.pixel_status
     assert dl1_pixel_status.dtype == np.uint8
     np.testing.assert_array_equal(dl1_pixel_status, dl0.pixel_status)
     np.testing.assert_array_equal(
         PixelStatus.get_channel_info(dl1_pixel_status), selected_gain_channel + 1
+    )
+
+
+@pytest.mark.parametrize(
+    ("n_channels", "select_gain"),
+    [
+        pytest.param(1, True, id="single_gain"),
+        pytest.param(2, False, id="both-gains"),
+        pytest.param(2, True, id="gain-selected"),
+    ],
+)
+def test_calibration_scale(n_channels, select_gain, subarray_prod5_paranal):
+    subarray = subarray_prod5_paranal
+
+    for tel_id, tel in subarray.tel.items():
+        if tel.camera.readout.n_channels == n_channels:
+            break
+
+    camera = tel.camera
+    n_pixels = camera.geometry.n_pixels
+    n_samples = camera.readout.n_samples
+    mid = n_samples // 2
+
+    event = SubarrayEventContainer()
+    tel_event = event.tel[tel_id]
+    tel_event.index.tel_id = tel_id
+    rng = np.random.default_rng(0)
+
+    selected_gain_channel = None
+    if select_gain:
+        waveform = np.zeros((1, n_pixels, n_samples))
+
+        if n_channels == 2:
+            selected_gain_channel = rng.binomial(1, 0.5, n_pixels)
+        else:
+            selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
+    else:
+        waveform = np.zeros((n_channels, n_pixels, n_samples))
+
+    waveform[:, :, mid] = 10.0
+
+    pixel_status = _valid_pixel_status(n_pixels, n_channels, selected_gain_channel)
+    tel_event.dl0 = TelescopeDL0Container(
+        camera=DL0CameraContainer(
+            waveform=waveform,
+            pixel_status=pixel_status,
+            selected_gain_channel=selected_gain_channel,
+        )
+    )
+
+    if n_channels == 1:
+        scales = [1.5]
+    else:
+        scales = [1.5, 2.0]
+
+    # Test default
+    calibrator = CameraCalibrator(
+        subarray=subarray,
+        image_extractor_type="FullWaveformSum",
+        calibration_scales=[("type", "*", None), ("id", tel_id, scales)],
+    )
+    calibrator(event)
+
+    if n_channels == 1:
+        expected = np.full(n_pixels, 15.0)
+    elif select_gain:
+        expected = np.where(selected_gain_channel == 0, 15.0, 20.0)
+    else:
+        expected = np.full((2, n_pixels), np.array([15.0, 20.0])[:, np.newaxis])
+
+    np.testing.assert_array_equal(tel_event.dl1.image, expected)
+
+
+def test_gain_selected_monitoring_coefficients(example_subarray):
+    """Calibration accepts selected monitoring without selecting its channels twice."""
+    tel_id = next(iter(example_subarray.tel))
+    camera = example_subarray.tel[tel_id].camera
+    n_pixels = camera.geometry.n_pixels
+    n_channels = camera.readout.n_channels
+    selected = np.arange(n_pixels) % n_channels
+    pixels = np.arange(n_pixels)
+    event = SubarrayEventContainer()
+    event.tel[tel_id].index.tel_id = tel_id
+    event.tel[tel_id].dl0 = TelescopeDL0Container(camera=DL0CameraContainer())
+    dl0 = event.tel[tel_id].dl0.camera
+    dl0.waveform = np.zeros((1, n_pixels, 10), dtype=np.float32)
+    dl0.waveform[:, :, 4] = 20.0
+    dl0.selected_gain_channel = selected
+    dl0.pixel_status = _valid_pixel_status(n_pixels, n_channels, selected)
+    dl0.pixel_time_shift = np.full((1, n_pixels), 0.1)
+    coefficients = event.tel[tel_id].monitoring.camera.coefficients
+    values = np.arange(n_channels * n_pixels).reshape(n_channels, n_pixels)
+    coefficients.factor = 1 + values / values.size
+    coefficients.pedestal_offset = values / values.size
+    coefficients.time_shift = 0.2 * values / values.size
+    coefficients.outlier_mask = np.zeros((n_channels, n_pixels), dtype=bool)
+    coefficients.outlier_mask[:, 0] = True
+    selected_event = deepcopy(event)
+    for name in ("factor", "pedestal_offset", "time_shift", "outlier_mask"):
+        selected_event.tel[tel_id].monitoring.camera.coefficients[name] = coefficients[
+            name
+        ][selected, pixels][np.newaxis]
+    selected_event.tel[tel_id].monitoring.camera.validate()
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray),
+    )
+    calibrator.dl0_to_dl1(event.tel[tel_id])
+    calibrator.dl0_to_dl1(selected_event.tel[tel_id])
+    for name in ("image", "peak_time", "pixel_status"):
+        np.testing.assert_array_equal(
+            selected_event.tel[tel_id].dl1[name], event.tel[tel_id].dl1[name]
+        )
+    np.testing.assert_array_equal(
+        selected_event.tel[tel_id].dl1.pixel_status, dl0.pixel_status
     )

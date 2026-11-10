@@ -7,13 +7,22 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
+from ctapipe.containers import (
+    DL0CameraContainer,
+    PixelStatus,
+    TelescopeDL0Container,
+    TelescopeDL1Container,
+    TelescopeEventContainer,
+)
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
+    Float,
+    List,
     TelescopeParameter,
+    TraitError,
 )
 from ctapipe.image.extractor import ImageExtractor, VarianceExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
@@ -28,9 +37,14 @@ def _select_channel(array, selected_gain_channel, keep_dims=True):
 
     For an array of shape (n_channels, n_pixels, ...) return an array
     of shape (n_pixels, ...) for the selected gain give in selected_gain_channel.
+    Arrays with a singleton channel axis are treated as already selected.
     """
     pixel_index = cached_arange(len(selected_gain_channel))
-    selected = array[selected_gain_channel, pixel_index]
+
+    # Monitoring sources can already have applied the gain selection.
+    selected = (
+        array[0] if array.shape[0] == 1 else array[selected_gain_channel, pixel_index]
+    )
 
     if keep_dims:
         return selected[np.newaxis]
@@ -116,6 +130,13 @@ class CameraCalibrator(TelescopeComponent):
         ),
     ).tag(config=True)
 
+    calibration_scales = TelescopeParameter(
+        List(Float()),
+        allow_none=True,
+        default_value=None,
+        help="Calibration scale. Will be used to scale the waveforms before pulse extraction. One value per channel.",
+    ).tag(config=True)
+
     def __init__(
         self,
         subarray,
@@ -180,8 +201,26 @@ class CameraCalibrator(TelescopeComponent):
                 parent=self,
             )
 
-    def _check_r1_empty(self, waveforms):
-        if waveforms is None:
+        self._calibration_scales = {}
+        for tel_id, tel in self.subarray.tel.items():
+            scales = self.calibration_scales.tel[tel_id]
+            if scales is None:
+                continue
+
+            n_channels = tel.camera.readout.n_channels
+            n_pixels = tel.camera.readout.n_pixels
+            if len(scales) != n_channels:
+                msg = f"calibration_scales must have length {n_channels}, got {len(scales)} for tel_id={tel_id}"
+                raise TraitError(msg)
+
+            self._calibration_scales[tel_id] = np.empty(
+                (n_channels, n_pixels), dtype=np.float32
+            )
+            for channel, factor in enumerate(scales):
+                self._calibration_scales[tel_id][channel] = factor
+
+    def _check_r1_empty(self, r1):
+        if r1 is None or r1.waveform is None:
             if not self._r1_empty_warn:
                 self.log.debug(
                     "Encountered an event with no R1 data. "
@@ -192,8 +231,8 @@ class CameraCalibrator(TelescopeComponent):
         else:
             return False
 
-    def _check_dl0_empty(self, waveforms):
-        if waveforms is None:
+    def _check_dl0_empty(self, dl0):
+        if dl0 is None or dl0.camera is None or dl0.camera.waveform is None:
             if not self._dl0_empty_warn:
                 self.log.warning(
                     "Encountered an event with no DL0 data. "
@@ -204,11 +243,9 @@ class CameraCalibrator(TelescopeComponent):
         else:
             return False
 
-    def _calibrate_dl0(self, event, tel_id):
-        r1 = event.r1.tel[tel_id]
-
-        if self._check_r1_empty(r1.waveform):
-            return
+    def r1_to_dl0(self, tel_event: TelescopeEventContainer):
+        tel_id = tel_event.index.tel_id
+        r1 = tel_event.r1
 
         signal_pixels = self.data_volume_reducer(
             r1.waveform,
@@ -225,7 +262,10 @@ class CameraCalibrator(TelescopeComponent):
         # unset dvr bits for removed pixels
         dl0_pixel_status[~signal_pixels] &= ~np.uint8(PixelStatus.DVR_STATUS)
 
-        event.dl0.tel[tel_id] = DL0CameraContainer(
+        # take-over trigger from before, but override all the rest
+        if tel_event.dl0 is None:
+            tel_event.dl0 = TelescopeDL0Container()
+        tel_event.dl0.camera = DL0CameraContainer(
             event_type=r1.event_type,
             event_time=r1.event_time,
             waveform=dl0_waveform,
@@ -242,7 +282,7 @@ class CameraCalibrator(TelescopeComponent):
         calib_time_shift = calib.time_shift
         pixel_time_shift = dl0.pixel_time_shift
 
-        # calib time shifts should always come for both gain channels
+        # Calibration time shifts may already have been gain selected.
         if calib_time_shift is not None and dl0.selected_gain_channel is not None:
             calib_time_shift = _select_channel(
                 calib_time_shift, dl0.selected_gain_channel, keep_dims=False
@@ -261,21 +301,34 @@ class CameraCalibrator(TelescopeComponent):
         # this intentionally makes a copy to not mutate the calib.time_shift array
         return calib_time_shift + pixel_time_shift
 
-    def _calibrate_dl1(self, event, tel_id):
-        dl0 = event.dl0.tel[tel_id]
+    def _get_factor(self, tel_id, calib, selected_gain_channel):
+        calib_factor = calib.factor
+        calib_scale = self._calibration_scales.get(tel_id)
 
+        if calib_factor is None and calib_scale is None:
+            return None
+        elif calib_scale is None:
+            factor = calib_factor
+        elif calib_factor is None:
+            factor = calib_scale
+        else:
+            factor = calib_factor * calib_scale
+
+        if selected_gain_channel is not None:
+            factor = _select_channel(factor, selected_gain_channel, keep_dims=False)
+
+        return factor
+
+    def dl0_to_dl1(self, tel_event: TelescopeEventContainer):
+        tel_id = tel_event.index.tel_id
+        dl0 = tel_event.dl0.camera
         waveforms = dl0.waveform
-        if self._check_dl0_empty(waveforms):
-            return
+        _, n_pixels, n_samples = waveforms.shape
 
-        n_channels, n_pixels, n_samples = waveforms.shape
-
-        calib = event.monitoring.tel[tel_id].camera.coefficients
+        calib = tel_event.monitoring.camera.coefficients
         selected_gain_channel = dl0.selected_gain_channel
 
-        factor = calib.factor
-        if factor is not None and selected_gain_channel is not None:
-            factor = _select_channel(factor, selected_gain_channel, keep_dims=False)
+        factor = self._get_factor(tel_id, calib, selected_gain_channel)
 
         # subtract any remaining pedestal before extraction
         pedestal = calib.pedestal_offset
@@ -305,7 +358,7 @@ class CameraCalibrator(TelescopeComponent):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            dl1 = DL1CameraContainer(
+            dl1 = TelescopeDL1Container(
                 image=np.squeeze(waveforms).astype(np.float32),
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
                 is_valid=True,
@@ -356,10 +409,10 @@ class CameraCalibrator(TelescopeComponent):
                 invalid_pixels,
             )
 
+        # Preserve gain selection for monitoring when reprocessing DL1 images.
         dl1.pixel_status = dl0.pixel_status
-
         # store the results in the event structure
-        event.dl1.tel[tel_id] = dl1
+        tel_event.dl1 = dl1
 
     def __call__(self, event):
         """
@@ -370,13 +423,22 @@ class CameraCalibrator(TelescopeComponent):
         Parameters
         ----------
         event : container
-            A `~ctapipe.containers.ArrayEventContainer` event container
+            A `~ctapipe.containers.SubarrayEventContainer` event container
         """
-        # TODO: How to handle different calibrations depending on tel_id?
-        tel = event.r1.tel or event.dl0.tel or event.dl1.tel
-        for tel_id in tel.keys():
-            self._calibrate_dl0(event, tel_id)
-            self._calibrate_dl1(event, tel_id)
+        for tel_event in event.tel.values():
+            self.calibrate_tel_event(tel_event)
+
+    def calibrate_tel_event(self, tel_event):
+        """Calibrate from R1 or existing DL0 waveforms to DL1."""
+        if not self._check_r1_empty(tel_event.r1):
+            self.r1_to_dl0(tel_event)
+        elif self._check_dl0_empty(tel_event.dl0):
+            raise ValueError(
+                "Camera calibration requires R1 or DL0 waveforms for telescope "
+                f"{tel_event.index.tel_id}"
+            )
+
+        self.dl0_to_dl1(tel_event)
 
 
 def shift_waveforms(waveforms, time_shift_samples):
@@ -410,7 +472,7 @@ def shift_waveforms(waveforms, time_shift_samples):
 
 
 @guvectorize(
-    [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
+    [(float32[:], int64, float32[:]), (float64[:], int64, float64[:])],
     "(s),()->(s)",
     nopython=True,
     cache=not CTAPIPE_DISABLE_NUMBA_CACHE,

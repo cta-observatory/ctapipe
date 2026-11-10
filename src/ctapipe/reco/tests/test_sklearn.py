@@ -258,13 +258,15 @@ def test_classifier(model_cls, example_table, example_subarray):
     assert_array_equal((score[valid] < 0.5).astype(int), prediction[valid])
 
 
-def test_io_with_parent(example_table, tmp_path, example_subarray):
+def test_io_with_parent(example_table, tmp_path, subarray_prod5_paranal):
+    subarray = subarray_prod5_paranal
+
     class Parent(Component):
         def __init__(self, config):
             super().__init__(config=config)
             self.classifier = ParticleClassifier(
                 parent=self,
-                subarray=example_subarray,
+                subarray=subarray,
             )
 
     config = Config(
@@ -309,7 +311,7 @@ def test_disp_fixed_icrs_pointing(disp_reconstructor_path, gamma_dl2_train_small
     disp_model = DispReconstructor.read(disp_reconstructor_path)
 
     # this should work using the telescope pointing
-    disp_model.predict_table(disp_model.subarray.tel[1], events)
+    disp_model.predict_table(str(disp_model.subarray.tel[1]), events)
 
     # this should fail as now the subarray pointing cannot be used
     events["subarray_pointing_frame"] = CoordinateFrameType.ICRS.value

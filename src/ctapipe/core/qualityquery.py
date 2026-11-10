@@ -8,6 +8,7 @@ import numpy as np  # for use in selection functions
 
 from .component import Component
 from .expression_engine import ExpressionEngine
+from .feature_generator import shallow_copy_table
 from .traits import List, Tuple, Unicode
 
 
@@ -31,6 +32,14 @@ class QualityQuery(Component):
             "(select) a given data value.  E.g. ``[('mycut', 'x > 3'),]``. "
             "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``,"
             " but no other modules."
+        ),
+    ).tag(config=True)
+
+    passed_all_column_name = Unicode(
+        default_value="PASSED_ALL",
+        help=(
+            "Name of the column that `add_table_mask_columns` adds with the combination"
+            " of all criteria. Change it if several queries mark the same table."
         ),
     ).tag(config=True)
 
@@ -137,3 +146,59 @@ class QualityQuery(Component):
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
         return np.all(result, axis=0)
+
+    def add_table_mask_columns(self, table):
+        """
+        Return a shallow copy of the table with boolean columns for each criterion.
+
+        A final column, named by `QualityQuery.passed_all_column_name`, is true for the
+        entries that pass all criteria. The input table does not gain any columns,
+        but the returned table shares the data of its existing columns.
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table with columns matching the expressions used in the
+            `QualityQuery.quality_criteria`.
+
+        Returns
+        -------
+        Table :
+            Shallow copy of the table plus new columns per criterion and the
+            combination of all criteria.
+
+        Raises
+        ------
+        QualityCriteriaError
+            If the name of a criterion or of the combined column is already a column
+            of the table or is used more than once.
+        """
+        names = [*self.criteria_names, self.passed_all_column_name]
+        collisions = [
+            name
+            for i, name in enumerate(names)
+            if name in table.colnames or name in names[:i]
+        ]
+        if collisions:
+            raise QualityCriteriaError(
+                f"Cannot add mask columns, criteria names are not unique: {collisions}."
+                " Rename them so they differ from each other and from the columns of"
+                " the table."
+            )
+
+        table = shallow_copy_table(table)
+        n_criteria = len(self.quality_criteria) + 1
+        result = np.ones((n_criteria, len(table)), dtype=bool)
+
+        for i, res in enumerate(self.engine(table), start=1):
+            result[i] = res
+
+        for name, mask in zip(self.criteria_names, result[1:]):
+            table[name] = mask
+
+        table[self.passed_all_column_name] = np.all(result, axis=0)
+
+        self._counts += np.count_nonzero(result, axis=1)
+        self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
+
+        return table

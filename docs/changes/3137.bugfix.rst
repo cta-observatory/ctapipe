@@ -1,2 +1,0 @@
-Preserve the coordinate frame when slicing a
-``~ctapipe.instrument.CameraGeometry``.

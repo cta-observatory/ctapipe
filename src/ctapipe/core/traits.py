@@ -47,6 +47,7 @@ __all__ = [
     "flag",
     "observe",
     "Integer",
+    "NoneDefaultNotAllowedWarning",
 ]
 
 import logging

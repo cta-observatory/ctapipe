@@ -38,6 +38,9 @@ PYTEST_HEADER_MODULES["scipy"] = "scipy"
 PYTEST_HEADER_MODULES["astropy"] = "astropy"
 PYTEST_HEADER_MODULES["numba"] = "numba"
 
+NORTH_SITE_METADATA = "--ProductMetadata.instance={'site_id': 'CTAO-North'}"
+SOUTH_SITE_METADATA = "--ProductMetadata.instance={'site_id': 'CTAO-South'}"
+
 # names of camera geometries available on the data server
 camera_names = [
     "ASTRICam",
@@ -58,6 +61,48 @@ collect_ignore = []
 
 if importlib.util.find_spec("pyirf") is None:
     collect_ignore.append("irf")
+
+
+@pytest.fixture(scope="session")
+def lstn_01_mirror_facets_path():
+    """Path to the LST-1 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTN-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def lstn_02_mirror_facets_path():
+    """Path to the LST-2 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTN-02.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def lsts_01_mirror_facets_path():
+    """Path to the LST-2 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTS-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def mstn_01_mirror_facets_path():
+    """Path to the MST-1 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/MSTN-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def msts_01_mirror_facets_path():
+    """Path to the MST-1 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/MSTS-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def ssts_01_mirror_facets_path():
+    """Path to the SST-1 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/SSTS-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="function", params=camera_names)
@@ -118,7 +163,7 @@ def example_event(_global_example_event):
 
     .. code-block::
         def test_my_thing(example_event):
-            assert len(example_event.r0.tel) > 0
+            assert len(example_event.tel) > 0
 
     """
     return deepcopy(_global_example_event)
@@ -283,6 +328,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
             "--write-showers",
         ]
@@ -307,9 +353,12 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
         argv = [
             f"--input={prod5_gamma_lapalma_simtel_path}",
             f"--output={output}",
+            NORTH_SITE_METADATA,
             "--write-images",
             "--write-showers",
         ]
+        for tel_id in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 19]:
+            argv.append(f"--EventSource.allowed_tels={tel_id}")
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
 
@@ -331,6 +380,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
         argv = [
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
             "--write-showers",
             "--max-events=20",
@@ -379,9 +429,9 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
             "--max-events=20",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -402,6 +452,7 @@ def dl1_divergent_file(dl1_tmp_path):
         argv = [
             f"--input={path}",
             f"--output={output}",
+            NORTH_SITE_METADATA,
             "--EventSource.focal_length_choice=EQUIVALENT",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -425,6 +476,7 @@ def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-showers",
             "--no-write-images",
             "--no-write-parameters",
@@ -453,8 +505,8 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-images",
             "--DataWriter.write_dl1_parameters=False",
+            SOUTH_SITE_METADATA,
             "--max-events=20",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -477,8 +529,8 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-parameters",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -526,6 +578,7 @@ def dl1_muon_file(dl1_tmp_path):
         argv = [
             f"--input={infile}",
             f"--output={output}",
+            NORTH_SITE_METADATA,
             "--write-images",
             "--no-write-parameters",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
@@ -579,8 +632,8 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
         argv = [
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
+            SOUTH_SITE_METADATA,
             "--write-images",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -758,12 +811,20 @@ def dl1_mon_pointing_file_obs(dl1_mon_pointing_file, dl1_tmp_path):
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
         data_category = "CTA PRODUCT DATA CATEGORY"
+        data_process_type = "CTA PROCESS TYPE"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
         if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", tables.NaturalNameWarning)
                 f.root._v_attrs[data_category] = "Other"
+        if (
+            data_process_type in f.root._v_attrs
+            and f.root._v_attrs[data_process_type] == "Simulation"
+        ):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                f.root._v_attrs[data_process_type] = "Observation"
     return path
 
 
@@ -797,29 +858,39 @@ def dl1_merged_monitoring_file(
 
 @pytest.fixture(scope="session")
 def dl1_merged_monitoring_file_obs(dl1_merged_monitoring_file, dl1_tmp_path):
+    import ctao_datamodel.models.dataproducts as dp
+
     path = dl1_tmp_path / "dl1_merged_monitoring_file_obs.dl1.h5"
     shutil.copy(dl1_merged_monitoring_file, path)
 
+    simulation_to_observation = {
+        dp.DataType.CALIBRATION_SIM: dp.DataType.CALIBRATION,
+        dp.DataType.OBSERVATION_SIM: dp.DataType.OBSERVATION,
+    }
+
     # Remove the simulation to mimic a real observation file
     with tables.open_file(path, "r+") as f:
-        data_category = "CTA PRODUCT DATA CATEGORY"
+        data_type = "data.type"
         if SIMULATION_GROUP in f.root:
             f.remove_node(SIMULATION_GROUP, recursive=True)
-        if data_category in f.root._v_attrs and f.root._v_attrs[data_category] == "Sim":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                f.root._v_attrs[data_category] = "Other"
+        if data_type in f.root._v_attrs:
+            current_type = f.root._v_attrs[data_type]
+
+            if current_type in simulation_to_observation:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                    f.root._v_attrs[data_type] = simulation_to_observation[current_type]
     return path
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def provenance(monkeypatch):
     from ctapipe.core import Provenance
 
-    # the singleton nature of Provenance messes with
-    # the order-independence of the tests asserting
-    # the provenance contains the correct information
-    # so we monkeypatch back to an empty state here
+    # Provenance is a process-global singleton that is modified by many tests and
+    # fixtures, including session-scoped fixtures creating test data with tools.
+    # Give every test independent activity lists so test results do not depend on
+    # collection order. Tests inspecting provenance can still request this fixture.
     prov = Provenance()
     monkeypatch.setattr(prov, "_activities", [])
     monkeypatch.setattr(prov, "_finished_activities", [])

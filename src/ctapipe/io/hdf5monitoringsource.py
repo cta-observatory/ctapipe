@@ -7,6 +7,7 @@ import warnings
 from contextlib import ExitStack
 
 import astropy.units as u
+import ctao_datamodel.models.dataproducts as dp
 import numpy as np
 import tables
 from astropy.coordinates import AltAz, SkyCoord
@@ -16,11 +17,12 @@ from astropy.utils.decorators import lazyproperty
 
 from ..containers import (
     PEDESTAL_EVENT_TYPES,
-    ArrayEventContainer,
     CameraCalibrationContainer,
     CameraMonitoringContainer,
     PixelStatisticsContainer,
+    PixelStatus,
     StatisticsContainer,
+    SubarrayEventContainer,
     TelescopePointingContainer,
 )
 from ..core import Provenance
@@ -33,7 +35,7 @@ from .hdf5dataformat import (
     DL1_CAMERA_COEFFICIENTS_GROUP,
     DL1_PIXEL_STATISTICS_GROUP,
 )
-from .metadata import read_reference_metadata
+from .metadata import read_ctao_metadata
 from .monitoringsource import AvailableTypes, MonitoringSource
 from .monitoringtypes import MonitoringType, TelescopeMonitoringType
 
@@ -89,10 +91,12 @@ class HDF5MonitoringSource(MonitoringSource):
     Class for reading HDF5 monitoring data as a `~ctapipe.io.MonitoringSource`.
 
     This class provides a common interface for accessing HDF5 monitoring data
-    from different monitoring types. An event following the ArrayEventContainer
+    from different monitoring types. An event following the SubarrayEventContainer
     is passed to the `~ctapipe.io.HDF5MonitoringSource.fill_monitoring_container()`
-    method and the different monitoring types are filled into a MonitoringContainer
-    instance. See `~ctapipe.containers.MonitoringContainer` for details.
+    method and the different monitoring types are filled into SubarrayMonitoringContainer
+    and TelescopeMonitoringContainer instances.
+    instance. See `~ctapipe.containers.SubarrayMonitoringContainer` and
+    `~ctapipe.containers.TelescopeMonitoringContainer` for details.
 
     A basic example on how to use the `~ctapipe.io.HDF5MonitoringSource`:
 
@@ -113,26 +117,20 @@ class HDF5MonitoringSource(MonitoringSource):
     >>> for event in event_source:
     ...     # Fill the event data with the monitoring container
     ...     monitoring_source.fill_monitoring_container(event)
-    ...     # Print the monitoring information for the camera calibration
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["time"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["factor"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["pedestal_offset"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["time_shift"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["outlier_mask"])
-    ...     print(event.monitoring.tel[tel_id].camera.coefficients["is_valid"])
+    ...     # Calibration coefficients are gain selected but retain channel axis (like waveform).
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["time"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["factor"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["pedestal_offset"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["time_shift"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["outlier_mask"])
+    ...     print(event.tel[tel_id].monitoring.camera.coefficients["is_valid"])
     40587.000000011576
-    [[0.01539444 0.01501589 0.0158232  ... 0.01514254 0.01504862 0.01497081]
-     [0.25207437 0.24654945 0.25933876 ... 0.24859268 0.24722679 0.24587582]]
+    [[0.01539444 0.01501589 0.0158232  ... 0.01514254 0.01504862 0.01497081]]
     [[399.5        398.66666667 399.5        ... 399.25       398.41666667
-      399.        ]
-     [400.08333333 400.41666667 399.91666667 ... 400.25       399.5
-      399.66666667]]
+      399.        ]]
     [[ 0.01000023  0.1800003  -0.09000015 ... -0.12999916  0.1800003
-       0.07999992]
-     [ 0.2800007  -0.27000046  0.11000061 ...  0.04000092 -0.19000053
-      -0.4699993 ]]
-    [[False False False ... False False False]
-     [False False False ... False False False]]
+       0.07999992]]
+    [[False False False ... False False False]]
     True
 
     Attributes
@@ -223,38 +221,33 @@ class HDF5MonitoringSource(MonitoringSource):
 
     def _process_single_file(self, file):
         """Process a single monitoring file."""
-        # Add the file to the provenance
-        Provenance().add_input_file(
-            str(file),
-            role="Monitoring",
-            reference_meta=read_reference_metadata(file),
-        )
-
         with tables.open_file(file) as open_file:
-            # Validate simulation consistency
-            # Determine if the file is from simulation.
-            # First check for the presence of the simulation group.
-            file_is_simulation = False
-            if "simulation" in open_file.root:
-                file_is_simulation = True
-            else:
-                # Check for metadata attribute if simulation group is not present
-                if (
-                    "CTA PRODUCT DATA CATEGORY" in open_file.root._v_attrs
-                    and open_file.root._v_attrs["CTA PRODUCT DATA CATEGORY"] == "Sim"
-                ):
-                    file_is_simulation = True
+            meta_product = read_ctao_metadata(open_file)
+
+            Provenance().add_input_file(
+                str(file),
+                role="Monitoring",
+                reference_meta=meta_product.model_dump(mode="json"),
+            )
+
+            file_is_simulation = (
+                "simulation" in open_file.root
+                or meta_product.data.type
+                in {
+                    dp.DataType.OBSERVATION_SIM,
+                    dp.DataType.CALIBRATION_SIM,
+                }
+            )
 
             if self._is_simulation is None:
                 self._is_simulation = file_is_simulation
-            else:
-                if self._is_simulation != file_is_simulation:
-                    raise IOError(
-                        f"HDF5MonitoringSource: Inconsistent simulation flags found in "
-                        f"file '{file}'. Previously processed files have "
-                        f"simulation flag set to {self._is_simulation}, while "
-                        f"current file has it set to {file_is_simulation}."
-                    )
+            elif self._is_simulation != file_is_simulation:
+                raise IOError(
+                    "HDF5MonitoringSource: Inconsistent simulation flags found in "
+                    f"file '{file}'. Previously processed files have "
+                    f"simulation flag set to {self._is_simulation}, while "
+                    f"current file has it set to {file_is_simulation}."
+                )
 
             _, telescope_data = get_hdf5_monitoring_types(open_file)
             telescope_data = {
@@ -262,9 +255,11 @@ class HDF5MonitoringSource(MonitoringSource):
                 for tel_id, data in telescope_data.items()
                 if tel_id in self.subarray.tel
             }
+
             for tel_id, data in telescope_data.items():
                 available = self._available_telescope_data.get(tel_id, ())
                 overlapping = set(data).intersection(available)
+
                 if overlapping:
                     msg = (
                         f"File '{file}' contains monitoring data {overlapping} for "
@@ -274,6 +269,7 @@ class HDF5MonitoringSource(MonitoringSource):
                     )
                     self.log.warning(msg)
                     warnings.warn(msg, UserWarning)
+
                 self._available_telescope_data[tel_id] = tuple(
                     dict.fromkeys((*available, *data))
                 )
@@ -562,29 +558,61 @@ class HDF5MonitoringSource(MonitoringSource):
         elif monitoring_type == TelescopeMonitoringType.PIXEL_STATISTICS:
             return self._get_pixel_statistics_values(tel_id, time, subtype)
 
-    def fill_monitoring_container(self, event: ArrayEventContainer):
+    def fill_monitoring_container(self, event: SubarrayEventContainer):
         """
         Fill the monitoring container for a given event.
 
         Parameters
         ----------
-        event : ArrayEventContainer
-            The event to fill the monitoring container for.
+        event : SubarrayEventContainer
+            The event to fill the monitoring container for. Gain selection is
+            taken from R1 or DL0, or from pixel status for DL1-only input.
+            Gain-selected pixel statistics have shape (n_pixels,); calibration
+            coefficients retain shape (1, n_pixels).
         """
         # Fill the monitoring container for the event
-        for tel_id in self.subarray.tel_ids:
-            time = None if self.is_simulation else event.trigger.time
-            event.monitoring.tel[tel_id].camera = self.get_camera_monitoring_container(
-                tel_id, time
+        for tel_id, tel_event in event.tel.items():
+            if not self.is_simulation and tel_event.dl0 is None:
+                raise ValueError(
+                    f"Monitoring interpolation requires DL0 trigger information for telescope {tel_id}"
+                )
+            time = None if self.is_simulation else tel_event.dl0.trigger.time
+            selected_gain_channel = None
+            if tel_id in self._pixel_statistics or tel_id in self._camera_coefficients:
+                selected_gain_channel = self._get_selected_gain_channel(event, tel_id)
+            tel_event.monitoring.camera = self.get_camera_monitoring_container(
+                tel_id, time, selected_gain_channel=selected_gain_channel
             )
 
             # Only overwrite the telescope pointings for observation data
             if tel_id in self._telescope_pointings and not self.is_simulation:
-                event.monitoring.tel[
-                    tel_id
-                ].pointing = self.get_telescope_pointing_container(
-                    tel_id, event.trigger.time
+                tel_event.monitoring.pointing = self.get_telescope_pointing_container(
+                    tel_id,
+                    time,
                 )
+
+    def _get_selected_gain_channel(self, event, tel_id):
+        """Determine the gain selection without creating missing event containers."""
+        tel_event = event.tel.get(tel_id)
+        if tel_event is None:
+            return None
+        dl0_camera = None if tel_event.dl0 is None else tel_event.dl0.camera
+        for camera in (tel_event.r1, dl0_camera):
+            if camera is not None and camera.waveform is not None:
+                return camera.selected_gain_channel
+        camera = tel_event.dl1
+        if camera is not None and camera.image is not None and camera.image.ndim == 1:
+            if self.subarray.tel[tel_id].camera.readout.n_channels == 1:
+                return np.zeros(camera.image.size, dtype=np.intp)
+            if camera.pixel_status is None:
+                raise ValueError(
+                    "DL1 pixel_status is required to select monitoring gains "
+                    f"for telescope {tel_id}"
+                )
+            return (PixelStatus.get_channel_info(camera.pixel_status) == 2).astype(
+                np.intp
+            )
+        return None
 
     def get_telescope_pointing_container(
         self, tel_id: int, time: Time
@@ -613,6 +641,8 @@ class HDF5MonitoringSource(MonitoringSource):
         self,
         tel_id: int,
         time: Time = None,
+        *,
+        selected_gain_channel: np.ndarray | None = None,
     ) -> CameraMonitoringContainer:
         """
         Retrieve the camera monitoring container with interpolated data.
@@ -626,6 +656,11 @@ class HDF5MonitoringSource(MonitoringSource):
             timestamp(s) are required to interpolate the monitoring data of observation.
             For monitoring data of simulation, the first entry of the monitoring data is typically
             used if no timestamp is provided.
+
+        selected_gain_channel : np.ndarray or None
+            Optional channel index for each pixel. Select these channels in
+            pixel statistics and calibration coefficients. Statistics lose the
+            channel axis; coefficients retain a singleton channel axis.
 
         Returns
         -------
@@ -646,6 +681,17 @@ class HDF5MonitoringSource(MonitoringSource):
             self.log.warning(msg)
             warnings.warn(msg, UserWarning)
 
+        def select_channel(values, keep_dims=False):
+            if selected_gain_channel is None or values is None or values.ndim < 2:
+                return values
+            if values.shape[-2] == 1:
+                selected = values[..., 0, :].copy()
+            else:
+                selected = values[
+                    ..., selected_gain_channel, np.arange(len(selected_gain_channel))
+                ]
+            return np.expand_dims(selected, axis=-2) if keep_dims else selected
+
         cam_mon_container = CameraMonitoringContainer()
         if tel_id in self._pixel_statistics:
             # Fill the the camera monitoring container with the pixel statistics
@@ -660,9 +706,10 @@ class HDF5MonitoringSource(MonitoringSource):
                 # Map any pedestal name to the container field name (unique for pedestal)
                 container_name = "pedestal_image" if "pedestal_image" in name else name
                 pixel_stats_container[container_name] = StatisticsContainer(
-                    mean=stats_data["mean"],
-                    median=stats_data["median"],
-                    std=stats_data["std"],
+                    **{
+                        k: select_channel(stats_data[k])
+                        for k in (StatisticsContainer.fields.keys() & stats_data.keys())
+                    }
                 )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if tel_id in self._camera_coefficients:
@@ -673,10 +720,12 @@ class HDF5MonitoringSource(MonitoringSource):
             )
             cam_mon_container["coefficients"] = CameraCalibrationContainer(
                 time=table_rows["time"],
-                pedestal_offset=table_rows["pedestal_offset"],
-                factor=table_rows["factor"],
-                time_shift=table_rows["time_shift"],
-                outlier_mask=table_rows["outlier_mask"],
+                pedestal_offset=select_channel(
+                    table_rows["pedestal_offset"], keep_dims=True
+                ),
+                factor=select_channel(table_rows["factor"], keep_dims=True),
+                time_shift=select_channel(table_rows["time_shift"], keep_dims=True),
+                outlier_mask=select_channel(table_rows["outlier_mask"], keep_dims=True),
                 is_valid=table_rows["is_valid"],
             )
         return cam_mon_container

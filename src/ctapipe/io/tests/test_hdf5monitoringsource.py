@@ -1,9 +1,23 @@
+import shutil
+import warnings
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
+import tables
 from astropy.time import Time
 
+from ctapipe.containers import (
+    DL0CameraContainer,
+    PixelStatus,
+    SubarrayEventContainer,
+    TelescopeDL0Container,
+    TelescopeDL1Container,
+    TelescopeR1Container,
+)
 from ctapipe.exceptions import InputMissing
+from ctapipe.image import NSBImageCleaner
 from ctapipe.io import (
     EventSource,
     HDF5MonitoringSource,
@@ -21,6 +35,30 @@ from ctapipe.io.monitoringtypes import TelescopeMonitoringType
 from ctapipe.utils import get_dataset_path
 
 
+@pytest.fixture(scope="module")
+def calibpipe_camcalib_obslike_same_chunks_fixed_meta(
+    calibpipe_camcalib_obslike_same_chunks,
+    tmp_path_factory,
+):
+    path = (
+        tmp_path_factory.mktemp("obslike_monitoring")
+        / calibpipe_camcalib_obslike_same_chunks.name
+    )
+
+    shutil.copy2(calibpipe_camcalib_obslike_same_chunks, path)
+
+    # The metadata contains "CTA PROCESS TYPE = Simulation", so the file is
+    # classified as simulation data even though this test treats it as observation-like.
+    with (
+        tables.open_file(path, mode="a") as f,
+        warnings.catch_warnings(),
+    ):
+        warnings.simplefilter("ignore", tables.NaturalNameWarning)
+        f.root._v_attrs["CTA PROCESS TYPE"] = "Observation"
+
+    return path
+
+
 def test_hdf5_monitoring_source_subarray():
     """test a simple subarray"""
     file = get_dataset_path("calibpipe_camcalib_sims_single_chunk_i0.2.0.dl1.h5")
@@ -30,13 +68,13 @@ def test_hdf5_monitoring_source_subarray():
         assert source.subarray.optics_types
 
 
-def test_passing_subarray(dl1_file, calibpipe_camcalib_obslike_same_chunks):
+def test_passing_subarray(dl1_file, calibpipe_camcalib_obslike_same_chunks_fixed_meta):
     """test the functionality of passing a subarray from an EventSource"""
     allowed_tels = {1}
     with EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         monitoring_source = HDF5MonitoringSource(
             subarray=source.subarray,
-            input_files=[calibpipe_camcalib_obslike_same_chunks],
+            input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
         )
         assert monitoring_source.subarray.tel_ids == source.subarray.tel_ids
 
@@ -111,10 +149,15 @@ def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
             # Fill the monitoring container for the event
             monitoring_source.fill_monitoring_container(e)
             # Check that the values match after filling the container
+
+            tel_monitoring = e.tel[tel_id].monitoring
             for column in ["factor", "pedestal_offset", "time_shift", "outlier_mask"]:
                 np.testing.assert_array_equal(
-                    e.monitoring.tel[tel_id].camera.coefficients[column],
-                    camcalib_coefficients[column],
+                    tel_monitoring.camera.coefficients[column],
+                    camcalib_coefficients[column][
+                        e.tel[tel_id].r1.selected_gain_channel,
+                        np.arange(len(e.tel[tel_id].r1.selected_gain_channel)),
+                    ][np.newaxis],
                     err_msg=(
                         f"'{column}' do not match after reading the monitoring file "
                         "through the HDF5MonitoringSource."
@@ -188,22 +231,24 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_sims_single_chu
             monitoring_source.get_camera_monitoring_container(tel_id, unique_timestamps)
 
 
-def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chunks):
+def test_get_camera_monitoring_container_obs(
+    calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+):
     """test the get_camera_monitoring_container method with the monitoring source of observation"""
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     flatfield_peak_time = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_FLATFIELD_PEAK_TIME_GROUP}/tel_{tel_id:03d}",
     )
     with HDF5MonitoringSource(
         subarray=None,
-        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
         timestamp_tolerance=0.25 * u.s,
     ) as monitoring_source:
         with pytest.raises(
@@ -281,14 +326,14 @@ def test_get_camera_monitoring_container_obs(calibpipe_camcalib_obslike_same_chu
 
 
 def test_get_camera_monitoring_container_obs_invalid(
-    calibpipe_camcalib_obslike_same_chunks,
+    calibpipe_camcalib_obslike_same_chunks_fixed_meta,
 ):
     """test the get_camera_monitoring_container method with the monitoring source of observation"""
 
     tel_id = 1
     with HDF5MonitoringSource(
         subarray=None,
-        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
         timestamp_tolerance=0.1 * u.s,
     ) as monitoring_source:
         with pytest.raises(
@@ -336,26 +381,29 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
             with pytest.raises(ValueError, match="Out of bounds: Requested timestamp"):
                 monitoring_source.fill_monitoring_container(e)
             # Set the trigger time to the pointing time
-            e.trigger.time = pointing_time
+            e.dl0.trigger.time = pointing_time
+            e.tel[tel_id].dl0.trigger.time = pointing_time
             # Set pointing to different values to ensure they get overwritten
-            e.monitoring.tel[tel_id].pointing.azimuth = 90.0 * u.deg
-            e.monitoring.tel[tel_id].pointing.altitude = 45.0 * u.deg
-            old_az = e.monitoring.tel[tel_id].pointing.azimuth
-            old_alt = e.monitoring.tel[tel_id].pointing.altitude
+            old_az = 90.0 * u.deg
+            old_alt = 45.0 * u.deg
+            e.tel[tel_id].monitoring.pointing.azimuth = old_az
+            e.tel[tel_id].monitoring.pointing.altitude = old_alt
             # Fill the monitoring container for the event and overwrite the pointing
             monitoring_source.fill_monitoring_container(e)
             # Check that the values changed
-            assert not u.isclose(e.monitoring.tel[tel_id].pointing.azimuth, old_az)
-            assert not u.isclose(e.monitoring.tel[tel_id].pointing.altitude, old_alt)
+            assert not u.isclose(e.tel[tel_id].monitoring.pointing.azimuth, old_az)
+            assert not u.isclose(e.tel[tel_id].monitoring.pointing.altitude, old_alt)
 
 
-def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks):
+def test_camcalib_obs(
+    prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks_fixed_meta
+):
     """test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     # Define some usual trigger times
@@ -382,7 +430,7 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
 
     monitoring_source = HDF5MonitoringSource(
         subarray=source.subarray,
-        input_files=[calibpipe_camcalib_obslike_same_chunks],
+        input_files=[calibpipe_camcalib_obslike_same_chunks_fixed_meta],
     )
     assert not monitoring_source.is_simulation
     assert monitoring_source.pixel_statistics
@@ -392,16 +440,20 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
     # Check that the camcalib_coefficients match the event calibration data
     for trigger_time, expected_bin in expected_bins.items():
         # test with our three dummy times as event times
-        event.trigger.time = trigger_time
+        event.dl0.trigger.time = trigger_time
+        event.tel[tel_id].dl0.trigger.time = trigger_time
         monitoring_source.fill_monitoring_container(event)
-        coefficients = event.monitoring.tel[tel_id].camera.coefficients
+        coefficients = event.tel[tel_id].monitoring.camera.coefficients
 
         # Check that the values match after filling the container
         columns_to_check = ["factor", "pedestal_offset", "time_shift", "outlier_mask"]
         for column in columns_to_check:
             np.testing.assert_array_equal(
                 coefficients[column],
-                camcalib_coefficients[column][expected_bin],
+                camcalib_coefficients[column][expected_bin][
+                    event.tel[tel_id].r1.selected_gain_channel,
+                    np.arange(len(event.tel[tel_id].r1.selected_gain_channel)),
+                ][np.newaxis],
                 err_msg=(
                     f"'{column}' do not match after reading the monitoring file "
                     "through the HDF5MonitoringSource."
@@ -410,18 +462,21 @@ def test_camcalib_obs(prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_c
 
 
 def test_hdf5_monitoring_source_multi_files_loading(
-    dl1_mon_pointing_file_obs, calibpipe_camcalib_obslike_same_chunks
+    dl1_mon_pointing_file_obs, calibpipe_camcalib_obslike_same_chunks_fixed_meta
 ):
     """Test loading multiple HDF5 monitoring files in the HDF5MonitoringSource"""
 
     tel_id = 1
     # Read the camera monitoring data with the coefficients for the timestamp
     camcalib_coefficients = read_table(
-        calibpipe_camcalib_obslike_same_chunks,
+        calibpipe_camcalib_obslike_same_chunks_fixed_meta,
         f"{DL1_CAMERA_COEFFICIENTS_GROUP}/tel_{tel_id:03d}",
     )
     monitoring_source = HDF5MonitoringSource(
-        input_files=[calibpipe_camcalib_obslike_same_chunks, dl1_mon_pointing_file_obs],
+        input_files=[
+            calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+            dl1_mon_pointing_file_obs,
+        ],
     )
     assert not monitoring_source.is_simulation
     assert monitoring_source.pixel_statistics
@@ -459,7 +514,7 @@ def test_hdf5_monitoring_source_multi_files_loading(
 def test_hdf5_monitoring_source_exceptions_and_warnings(
     prod6_gamma_simtel_path,
     calibpipe_camcalib_sims_single_chunk,
-    calibpipe_camcalib_obslike_same_chunks,
+    calibpipe_camcalib_obslike_same_chunks_fixed_meta,
     dl1_mon_pointing_file,
 ):
     """test the common exceptions and warnings of the HDF5MonitoringSource"""
@@ -486,7 +541,10 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         IOError, match="HDF5MonitoringSource: Inconsistent simulation flags found in"
     ):
         HDF5MonitoringSource(
-            input_files=[dl1_mon_pointing_file, calibpipe_camcalib_obslike_same_chunks]
+            input_files=[
+                dl1_mon_pointing_file,
+                calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+            ]
         )
     # Test that we can open a file with pointing data (even for simulation)
     monitoring_source = HDF5MonitoringSource(
@@ -502,8 +560,8 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
         HDF5MonitoringSource(
             subarray=None,
             input_files=[
-                calibpipe_camcalib_obslike_same_chunks,
-                calibpipe_camcalib_obslike_same_chunks,
+                calibpipe_camcalib_obslike_same_chunks_fixed_meta,
+                calibpipe_camcalib_obslike_same_chunks_fixed_meta,
             ],
         )
 
@@ -751,3 +809,110 @@ def test_unavailable_telescope(dl1_merged_monitoring_file):
             source.get_telescope_values(
                 tel_id, None, TelescopeMonitoringType.CAMERA_COEFFICIENTS
             )
+
+
+@pytest.mark.parametrize("level", ["r1", "dl0", "dl1"])
+@pytest.mark.parametrize("gain_selected", [False, True])
+@pytest.mark.parametrize("n_channels", [1, 2])
+def test_fill_monitoring_gain_selection(
+    level, gain_selected, n_channels, monkeypatch, calibpipe_camcalib_sims_single_chunk
+):
+    with HDF5MonitoringSource(
+        input_files=[calibpipe_camcalib_sims_single_chunk]
+    ) as source:
+        tel_id = source.subarray.tel_ids[0]
+        if n_channels == 1:
+            monkeypatch.setattr(
+                source.subarray.tel[tel_id].camera.readout, "n_channels", 1
+            )
+            get_values = source.get_telescope_values
+
+            def single_channel_values(*args, **kwargs):
+                return {
+                    name: value[:1]
+                    if isinstance(value, np.ndarray) and value.ndim == 2
+                    else value
+                    for name, value in get_values(*args, **kwargs).items()
+                }
+
+            monkeypatch.setattr(source, "get_telescope_values", single_channel_values)
+        full = deepcopy(source.get_camera_monitoring_container(tel_id))
+        assert full.coefficients.factor.shape[0] == n_channels
+        n_pixels = full.coefficients.factor.shape[1]
+        pixels = np.arange(n_pixels)
+        event = SubarrayEventContainer()
+        camera = {
+            "r1": TelescopeR1Container,
+            "dl0": DL0CameraContainer,
+            "dl1": TelescopeDL1Container,
+        }[level]()
+        if level == "dl0":
+            event.tel[tel_id].dl0 = TelescopeDL0Container(camera=camera)
+        else:
+            setattr(event.tel[tel_id], level, camera)
+        if level == "dl1":
+            camera.image = np.zeros(
+                n_pixels if gain_selected else (n_channels, n_pixels)
+            )
+        else:
+            camera.waveform = np.zeros(
+                (1 if gain_selected else n_channels, n_pixels, 1)
+            )
+
+        # Reuse the event with different selections: cached monitoring must stay intact.
+        for offset in (0, 1):
+            selected = (pixels + offset) % n_channels
+            if level == "dl1":
+                camera.pixel_status = np.where(
+                    selected == 0,
+                    PixelStatus.HIGH_GAIN_STORED,
+                    PixelStatus.LOW_GAIN_STORED,
+                ).astype(np.uint8)
+                if not gain_selected and n_channels == 2:
+                    camera.pixel_status[:] = np.uint8(
+                        PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
+                    )
+            else:
+                camera.selected_gain_channel = selected if gain_selected else None
+            source.fill_monitoring_container(event)
+            actual = event.tel[tel_id].monitoring.camera
+            actual.validate()
+            for name in ("factor", "pedestal_offset", "time_shift", "outlier_mask"):
+                expected = full.coefficients[name]
+                if gain_selected:
+                    expected = expected[selected, pixels][np.newaxis]
+                np.testing.assert_array_equal(actual.coefficients[name], expected)
+            for name in ("pedestal_image", "flatfield_image", "flatfield_peak_time"):
+                for statistic in ("mean", "median", "std"):
+                    expected = full.pixel_statistics[name][statistic]
+                    if gain_selected:
+                        expected = expected[selected, pixels]
+                    np.testing.assert_array_equal(
+                        actual.pixel_statistics[name][statistic], expected
+                    )
+            if gain_selected:
+                cleaner = NSBImageCleaner(subarray=source.subarray)
+                mask = cleaner(
+                    tel_id,
+                    image=np.zeros(n_pixels),
+                    arrival_times=np.zeros(n_pixels),
+                    monitoring=actual,
+                )
+                assert mask.shape == (n_pixels,)
+                assert not mask.any()
+                # Event-local changes must not affect cached monitoring or later events.
+                actual.coefficients.factor[:] = -123.0
+                actual.pixel_statistics.pedestal_image.std[:] = -123.0
+            assert actual.coefficients.is_valid == full.coefficients.is_valid
+            assert actual.coefficients.time == full.coefficients.time
+            for other_level in {"r1", "dl0", "dl1"} - {level}:
+                assert getattr(event.tel[tel_id], other_level) is None
+
+        unselected = source.get_camera_monitoring_container(tel_id)
+        np.testing.assert_array_equal(
+            unselected.coefficients.factor, full.coefficients.factor
+        )
+        np.testing.assert_array_equal(
+            unselected.pixel_statistics.pedestal_image.std,
+            full.pixel_statistics.pedestal_image.std,
+        )

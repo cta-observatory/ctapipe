@@ -8,7 +8,7 @@ from ctapipe.image import ImageExtractor
 
 
 @pytest.fixture(scope="session")
-def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
+def r1_file(tmp_path_factory, prod5_gamma_simtel_path, south_site_config):
     from ctapipe.io import DataWriter, EventSource
 
     outdir = tmp_path_factory.mktemp("r1_")
@@ -17,7 +17,13 @@ def r1_file(tmp_path_factory, prod5_gamma_simtel_path):
     r1_path = outdir / "events.r1.h5"
 
     with EventSource(prod5_gamma_simtel_path) as source:
-        with DataWriter(source, output_path=r1_path, write_r1_waveforms=True) as writer:
+        with DataWriter(
+            source,
+            output_path=r1_path,
+            write_r1_waveforms=True,
+            write_dl1_parameters=False,
+            config=south_site_config,
+        ) as writer:
             for event in source:
                 writer(event)
 
@@ -35,7 +41,8 @@ def test_r1_simtel_broken_pixels(r1_file, extractor):
 
         n_checked = 0
         for event in source:
-            for tel_id, r1 in event.r1.tel.items():
+            for tel_id, tel_event in event.tel.items():
+                r1 = tel_event.r1
                 readout = source.subarray.tel[tel_id].camera.readout
 
                 assert r1.pixel_status is not None
@@ -60,6 +67,27 @@ def test_r1_simtel_broken_pixels(r1_file, extractor):
 
                 # check to dl1
                 calibrator(event)
-                assert event.dl1.tel[tel_id].image is not None
+                assert event.tel[tel_id].dl1.image is not None
 
         assert n_checked > 0
+
+
+def test_write_r1_requires_r1_input(tmp_path):
+    from ctapipe.core import ToolConfigurationError
+    from ctapipe.io import DataLevel, DataWriter, HDF5EventSource
+
+    path = "dataset://gamma_diffuse_train_0.23.1.dl2.h5"
+    output = tmp_path / "test.r1.h5"
+
+    with HDF5EventSource(
+        path,
+        max_events=20,
+    ) as source:
+        assert DataLevel.R1 not in source.datalevels
+        with pytest.raises(
+            ToolConfigurationError,
+            match="write_r1_waveforms.*input does not provide R1 data",
+        ):
+            DataWriter(source, output_path=output, write_r1_waveforms=True)
+
+    assert not output.exists()

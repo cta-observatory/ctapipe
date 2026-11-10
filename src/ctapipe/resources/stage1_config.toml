@@ -5,6 +5,11 @@ name = "YOUR-NAME-HERE"
 email = "YOUREMAIL@EXAMPLE.ORG"
 organization = "YOUR-ORGANIZATION"
 
+[DataWriter.Curation]
+release = "YOUR-DATA-RELEASE"
+license = "YOUR-LICENSE"
+copyright = "YOUR-COPYRIGHT"
+
 [DataWriter]
 # options that control what is stored in the output file
 overwrite = false

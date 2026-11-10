@@ -186,6 +186,22 @@ def toymodel_mst_fc_time(subarray_1_mst_fc: object) -> object:
     return get_test_toymodel_gradient(subarray_1_mst_fc)
 
 
+@pytest.mark.parametrize(
+    ("extractor", "input_dtypes"),
+    [
+        (extract_around_peak, ("int32", "int64", "int64", "float64")),
+        (extract_sliding_window, ("int32", "float64")),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_extractor_input_dtype(extractor, input_dtypes, dtype):
+    # An integer argument needing promotion must not also promote the waveforms.
+    # Both loops return float32, so checking the output dtype cannot detect this.
+    dtypes = tuple(np.dtype(t) for t in (dtype, *input_dtypes)) + (None, None)
+    resolved = extractor.ufunc.resolve_dtypes(dtypes)
+    assert resolved[0] == np.dtype(dtype)
+
+
 def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
     _, n_pixels, n_samples = waveforms.shape
@@ -922,18 +938,17 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
         subarray = source.subarray
         extractor = FlashCamExtractor(subarray)
 
-        def is_flashcam(tel_id):
+        def is_flashcam(kv):
+            tel_id = kv[0]
             return subarray.tel[tel_id].camera.name == "FlashCam"
 
         for event in source:
-            for tel_id in filter(is_flashcam, event.trigger.tels_with_trigger):
-                true_charge = event.simulation.tel[tel_id].true_image
+            for tel_id, tel_event in filter(is_flashcam, event.tel.items()):
+                true_charge = tel_event.simulation.true_image
 
-                waveforms = event.r1.tel[tel_id].waveform
-                selected_gain_channel = np.zeros(waveforms.shape[-2], dtype=np.int64)
-                broken_pixels = event.monitoring.tel[
-                    tel_id
-                ].camera.coefficients.outlier_mask
+                waveforms = tel_event.r1.waveform
+                selected_gain_channel = np.zeros(waveforms.shape[0], dtype=np.int64)
+                broken_pixels = tel_event.monitoring.camera.coefficients.outlier_mask
 
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid

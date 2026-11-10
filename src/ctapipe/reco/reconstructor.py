@@ -1,4 +1,6 @@
+import warnings
 import weakref
+import zipfile
 from abc import abstractmethod
 from enum import Flag, auto
 
@@ -7,11 +9,17 @@ import joblib
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import Int, List
-
+from ..containers import (
+    SubarrayDL2Container,
+    SubarrayEventContainer,
+    TelescopeDL2Container,
+    TelescopeImpactParameterContainer,
+)
 from ..coordinates import shower_impact_distance
+from ..core import Provenance, QualityQuery, TelescopeComponent
+from ..core.traits import Int, List
+from ..io.models import BagItReader
+from ..utils.deprecation import CTAPipeDeprecationWarning
 
 __all__ = [
     "Reconstructor",
@@ -42,7 +50,7 @@ class ReconstructionProperty(Flag):
     DISP = auto()
 
     def __str__(self):
-        return f"{self.name.lower()}"
+        return self.name.lower()
 
 
 class TooFewTelescopesException(Exception):
@@ -89,13 +97,26 @@ class Reconstructor(TelescopeComponent):
         self.quality_query = StereoQualityQuery(parent=self)
         self.atmosphere_profile = atmosphere_profile
 
+    @staticmethod
+    def _prepare_event(event):
+        """Require DL1 parameters and create destinations for reconstruction results."""
+        for tel_id, tel_event in event.tel.items():
+            if tel_event.dl1 is None or tel_event.dl1.parameters is None:
+                raise ValueError(
+                    f"Reconstruction requires DL1 parameters for telescope {tel_id}"
+                )
+            if tel_event.dl2 is None:
+                tel_event.dl2 = TelescopeDL2Container()
+        if event.dl2 is None:
+            event.dl2 = SubarrayDL2Container()
+
     @property
     @abstractmethod
     def needs_atmosphere_profile(self) -> bool:
         """Whether this reconstructor requires ``atmosphere_profile``."""
 
     @abstractmethod
-    def __call__(self, event: ArrayEventContainer):
+    def __call__(self, event: SubarrayEventContainer):
         """
         Perform stereo reconstruction on event.
 
@@ -104,7 +125,7 @@ class Reconstructor(TelescopeComponent):
 
         Parameters
         ----------
-        event : `ctapipe.containers.ArrayEventContainer`
+        event : `ctapipe.containers.SubarrayEventContainer`
             The event, needs to have dl1 parameters.
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
@@ -132,8 +153,23 @@ class Reconstructor(TelescopeComponent):
         -------
         Reconstructor instance loaded from file
         """
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
+        # new zip-based format
+        if zipfile.is_zipfile(path):
+            with BagItReader(path) as zip_reader:
+                instance = zip_reader.read_reconstructor()
+                instance.load_path = path
+                for key in zip_reader.keys:
+                    instance._models[key] = zip_reader.read_joblib(key)
+                meta = zip_reader.meta
+            Provenance().add_input_file(path, role="reconstructor", reference_meta=meta)
+        else:
+            warnings.warn(
+                "Storing reconstructors using pickle directly is deprecated, used ctapipe.io.BagItWriter instead.",
+                CTAPipeDeprecationWarning,
+            )
+            instance = joblib.load(path)
+            # no meta in joblib files
+            Provenance().add_input_file(path, role="reconstructor", add_meta=False)
 
         if not isinstance(instance, cls):
             raise TypeError(
@@ -155,8 +191,6 @@ class Reconstructor(TelescopeComponent):
         for attr, value in kwargs.items():
             setattr(instance, attr, value)
 
-        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
-        Provenance().add_input_file(path, role="reconstructor", add_meta=False)
         return instance
 
 
@@ -167,9 +201,9 @@ class HillasGeometryReconstructor(Reconstructor):
 
     def _create_hillas_dict(self, event):
         hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.quality_query(parameters=dl1.parameters))
+            tel_id: tel_event.dl1.parameters.hillas
+            for tel_id, tel_event in event.tel.items()
+            if all(self.quality_query(parameters=tel_event.dl1.parameters))
         }
 
         if len(hillas_dict) < 2:
@@ -192,16 +226,17 @@ class HillasGeometryReconstructor(Reconstructor):
     def _get_telescope_pointings(event):
         return {
             tel_id: SkyCoord(
-                alt=event.monitoring.tel[tel_id].pointing.altitude,
-                az=event.monitoring.tel[tel_id].pointing.azimuth,
+                alt=tel_event.monitoring.pointing.altitude,
+                az=tel_event.monitoring.pointing.azimuth,
                 frame=AltAz(),
             )
-            for tel_id in event.dl1.tel.keys()
+            for tel_id, tel_event in event.tel.items()
         }
 
     def _store_impact_parameter(self, event):
         """Compute and store the impact parameter for each reconstruction."""
-        geometry = event.dl2.stereo.geometry[self.__class__.__name__]
+        key = self.__class__.__name__
+        geometry = event.dl2.geometry[key]
 
         if geometry.is_valid:
             impact_distances = shower_impact_distance(
@@ -213,12 +248,10 @@ class HillasGeometryReconstructor(Reconstructor):
             impact_distances = u.Quantity(np.full(n_tels, np.nan), u.m)
 
         default_prefix = TelescopeImpactParameterContainer.default_prefix
-        prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
-        for tel_id in event.trigger.tels_with_trigger:
+        prefix = f"{key}_tel_{default_prefix}"
+        for tel_id, tel_event in event.tel.items():
             tel_index = self.subarray.tel_indices[tel_id]
-            event.dl2.tel[tel_id].impact[self.__class__.__name__] = (
-                TelescopeImpactParameterContainer(
-                    distance=impact_distances[tel_index],
-                    prefix=prefix,
-                )
+            tel_event.dl2.impact[key] = TelescopeImpactParameterContainer(
+                distance=impact_distances[tel_index],
+                prefix=prefix,
             )
