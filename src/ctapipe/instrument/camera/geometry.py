@@ -117,13 +117,13 @@ class CameraGeometry:
         position of each pixel (y-coordinate). Old-style alternative to
         ``pix_coord``.
     pix_area : u.Quantity
-        surface area of each pixel
+        surface area of each pixel. Required.
     grid_type : None | PixelGridType
         The grid type of the pixel grid. By default, square pixels
         are assumed to be on a regular square grid and circular and hexagonal
         pixels are assumed to be on a regular hex grid.
-    pix_type : PixelShape
-        either 'rectangular' or 'hexagonal'
+    pix_type : PixelShape | str
+        shape of the pixels, a `PixelShape` or its name (e.g. "hexagon"). Required.
     pix_rotation : u.Quantity[angle]
         rotation of the pixels, global value for all pixels
     cam_rotation : u.Quantity[angle]
@@ -160,7 +160,9 @@ class CameraGeometry:
         pix_x=None,
         pix_y=None,
         pix_area=None,
-        pix_type: PixelShape = None,
+        # pix_area and pix_type are required, None is only a default because
+        # pix_x and pix_y before them are optional
+        pix_type: PixelShape | str = None,
         grid_type: None | PixelGridType | str = None,
         pix_rotation=0 * u.deg,
         cam_rotation=0 * u.deg,
