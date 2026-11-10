@@ -6,7 +6,6 @@ from functools import lru_cache
 from math import erf
 
 import numpy as np
-from astropy import constants
 from astropy import units as u
 from astropy.constants import c, h
 from numba import double, vectorize
@@ -43,7 +42,7 @@ SQRT2 = np.sqrt(2)
 
 @u.quantity_input(lambda_min=u.nm, lambda_max=u.nm)
 def _efficiency_to_bandwidth_factor(lambda_min=300 * u.nm, lambda_max=600 * u.nm):
-    return ((1 / lambda_min - 1 / lambda_max) * constants.h * constants.c).to(u.eV)
+    return ((1 / lambda_min - 1 / lambda_max) * h * c).to(u.eV)
 
 
 @u.quantity_input(bandwidth=u.eV, lambda_min=u.nm, lambda_max=u.nm)
