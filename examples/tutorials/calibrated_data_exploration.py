@@ -77,7 +77,7 @@ for tel_id, tel_event in event.tel.items():
 #
 
 sub = source.subarray
-geometry = sub.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
+geometry = sub.tel[tel_id].camera.geometry.transform_to(TelescopeFrame)
 image = event.tel[tel_id].dl1.image
 
 ######################################################################
@@ -136,7 +136,7 @@ cam_ids
 cams_in_event = tels_in_event.intersection(cam_ids)
 first_tel_id = list(cams_in_event)[0]
 tel = sub.tel[first_tel_id]
-tel_geom = tel.camera.geometry.transform_to(TelescopeFrame())
+tel_geom = tel.camera.geometry.transform_to(TelescopeFrame)
 print("{}s in event: {}".format(tel, cams_in_event))
 
 ######################################################################
