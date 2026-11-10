@@ -33,6 +33,7 @@ import astropy.units as u
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Row, Table
+from scipy.stats import norm
 from traitlets import TraitError
 
 from ..containers import (
@@ -660,11 +661,11 @@ class StatisticsAggregator(BaseAggregator):
     _QUANTILES = {
         "q05": 0.05,
         "q10": 0.10,
-        "q16": 0.1587,
+        "q16": norm.cdf(-1),
         "q25": 0.25,
-        "q68": 0.68,
+        "q68": norm.cdf(1) - norm.cdf(-1),
         "q75": 0.75,
-        "q84": 0.8413,
+        "q84": norm.cdf(1),
         "q90": 0.90,
         "q95": 0.95,
     }
