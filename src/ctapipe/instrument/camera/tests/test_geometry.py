@@ -380,7 +380,16 @@ def test_pix_coord(camera_geometry):
     from ctapipe.coordinates import CameraFrame
 
     geom = deepcopy(camera_geometry)
+    # setting a frame class must cache a frame instance, not the class
+    geom.frame = CameraFrame
+    assert isinstance(geom.frame, CameraFrame)
+
+    geom.frame = CameraFrame(focal_length=10 * u.m)
+    assert geom.frame.focal_length == 10 * u.m
+    # setting a new frame must update the cached one
     geom.frame = CameraFrame(focal_length=28 * u.m)
+    assert geom.frame.focal_length == 28 * u.m
+    assert geom.frame is geom.frame
 
     assert isinstance(geom.pix_coord, SkyCoord)
     assert geom.pix_coord.shape == (geom.n_pixels,)

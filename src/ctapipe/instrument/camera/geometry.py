@@ -239,8 +239,8 @@ class CameraGeometry:
     @pix_coord.setter
     def pix_coord(self, pix_coord: SkyCoord):
         self._pix_coord = pix_coord
-        # reset the cached components, which are derived from pix_coord
-        for name in ("pix_x", "pix_y"):
+        # reset the cached components and frame, which are derived from pix_coord
+        for name in ("pix_x", "pix_y", "frame"):
             self.__dict__.pop(name, None)
 
     # pix_x and pix_y are cached, as they are accessed for every event and
@@ -262,7 +262,7 @@ class CameraGeometry:
         """Unit of the pixel coordinates"""
         return self.pix_x.unit
 
-    @property
+    @lazyproperty
     def frame(self) -> BaseCoordinateFrame:
         """Frame of the pixel coordinates (without data)"""
         return self.pix_coord.frame.replicate_without_data()
@@ -274,6 +274,9 @@ class CameraGeometry:
         them. Frame attributes of the previous ``pix_coord`` are not kept.
         """
         self.pix_coord = SkyCoord(self.pix_x, self.pix_y, frame=frame)
+        # returning the newly cached frame stops lazyproperty from caching the
+        # input instead, which could e.g. be a frame class
+        return self.frame
 
     def _validate(self):
         self.pix_id = np.array(self.pix_id)
