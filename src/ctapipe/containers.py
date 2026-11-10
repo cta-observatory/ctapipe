@@ -1364,16 +1364,22 @@ class MuonEfficiencyContainer(Container):
     impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
     impact_x = Field(nan * u.m, "impact parameter x position")
     impact_y = Field(nan * u.m, "impact parameter y position")
-    optical_bandwidth = Field(
-        nan * u.eV,
-        "optical efficiency muon, integrated over photon energy",
-        unit=u.eV,
-    )
+    optical_efficiency = Field(nan, "optical efficiency muon")
     is_valid = Field(False, "True if the fit converged successfully")
     parameters_at_limit = Field(
         False, "True if any bounded parameter was fitted close to a bound"
     )
     likelihood_value = Field(nan, "cost function value at the minimum")
+
+
+class MuonBandwidthContainer(Container):
+    """Container for the result of the MuonIntensityFitter"""
+
+    optical_bandwidth = Field(
+        nan * u.eV,
+        "optical efficiency muon, integrated over photon energy",
+        unit=u.eV,
+    )
 
 
 class MuonParametersContainer(Container):
@@ -1424,6 +1430,9 @@ class MuonContainer(Container):
     )
     efficiency = Field(
         default_factory=MuonEfficiencyContainer, description="muon efficiency"
+    )
+    bandwidth = Field(
+        default_factory=MuonBandwidthContainer, description="muon bandwidth"
     )
 
 
