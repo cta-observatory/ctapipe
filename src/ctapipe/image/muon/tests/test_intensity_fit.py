@@ -109,7 +109,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
     ring_width = 0.05 * u.deg
     impact_parameter = 5 * u.m
     phi = 0 * u.rad
-    efficiency = 0.5
+    efficiency = 1.0
 
     geom = telescope.camera.geometry.transform_to(TelescopeFrame())
     mirror_radius = np.sqrt(telescope.optics.mirror_area / np.pi)
@@ -145,7 +145,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
     )
 
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
-    assert u.isclose(result.width, ring_width, rtol=0.1)
+    assert u.isclose(result.width, ring_width, rtol=0.05)
     assert u.isclose(result.optical_bandwidth, efficiency * u.eV, rtol=0.05)
     assert result.is_valid
     assert not result.parameters_at_limit
