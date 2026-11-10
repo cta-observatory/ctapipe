@@ -15,6 +15,7 @@ from .core.container import Container, Field, Map, TimeResolution
 
 __all__ = [
     "CameraCalibrationContainer",
+    "CameraDisplacementContainer",
     "CameraMonitoringContainer",
     "ChunkContainer",
     "ChunkHistogramContainer",
@@ -25,6 +26,7 @@ __all__ = [
     "DispContainer",
     "DL0CameraContainer",
     "EventType",
+    "FRAMMonitoringContainer",
     "HillasParametersContainer",
     "ImageParametersContainer",
     "ImageStatisticsContainer",
@@ -61,6 +63,7 @@ __all__ = [
     "SubarraySimulationContainer",
     "SubarrayTriggerContainer",
     "TelescopeConfigurationIndexContainer",
+    "TelescopeCorrectedPointingContainer",
     "TelescopeDL0Container",
     "TelescopeDL1Container",
     "TelescopeDL2Container",
@@ -69,11 +72,14 @@ __all__ = [
     "TelescopeImpactParameterContainer",
     "TelescopeMonitoringContainer",
     "TelescopePointingContainer",
+    "TelescopeStructureDisplacementContainer",
+    "TelescopeStructurePointingContainer",
     "TelescopeR0Container",
     "TelescopeR1Container",
     "TelescopeSimulationContainer",
     "TelescopeTriggerContainer",
     "TimingParametersContainer",
+    "WeatherMonitoringContainer",
 ]
 
 
@@ -1022,6 +1028,84 @@ class TelescopeDL2Container(ReconstructedShowerContainer):
     )
 
 
+# Pointing-related containers
+class TelescopeStructurePointingContainer(Container):
+    """
+    Pointing of the telescope structure in local coordinates (Alt/Az)
+    as measured by the telescope hardware (e.g. drive encoders).
+    """
+
+    default_prefix = "structure_pointing"
+    azimuth = Field(
+        nan * u.rad, "Raw azimuth measured by structure encoders", unit=u.rad
+    )
+    altitude = Field(
+        nan * u.rad, "Raw altitude measured by structure encoders", unit=u.rad
+    )
+
+
+class TelescopeStructureDisplacementContainer(Container):
+    """
+    Difference between ideal and real direction of the telescope axis for
+    a given elevation in local coordinates (e.g. structural bending model).
+    """
+
+    default_prefix = "structure_displacement"
+    delta_azimuth = Field(
+        nan * u.rad,
+        "Azimuth offset due to structure bending/deformation",
+        unit=u.rad,
+    )
+    delta_altitude = Field(
+        nan * u.rad,
+        "Altitude offset due to structure bending/deformation",
+        unit=u.rad,
+    )
+
+
+class CameraDisplacementContainer(Container):
+    """
+    Displacement and tilt of the camera w.r.t. its nominal position in the
+    telescope structure.
+    """
+
+    default_prefix = "camera_displacement"
+    translation_x = Field(
+        nan * u.m, "Camera displacement along X axis (horizontal)", unit=u.m
+    )
+    translation_y = Field(
+        nan * u.m, "Camera displacement along Y axis (vertical)", unit=u.m
+    )
+    translation_z = Field(
+        nan * u.m, "Camera displacement along optical Z axis (focal offset)", unit=u.m
+    )
+    rotation_x = Field(
+        nan * u.rad, "Camera tilt angle around X axis (pitch)", unit=u.rad
+    )
+    rotation_y = Field(nan * u.rad, "Camera tilt angle around Y axis (yaw)", unit=u.rad)
+    rotation_z = Field(
+        nan * u.rad, "Camera rotation angle around optical Z axis (roll)", unit=u.rad
+    )
+
+
+class TelescopeCorrectedPointingContainer(Container):
+    """
+    Corrected for residual sky-pointing offsets pointing in local coordinates (Alt/Az).
+
+    This container holds corrected pointing in local coordinates regardless of how they were
+    derived (e.g. analytical StarTracker, auxiliary hardware devices,
+    or a combination/fusion model).
+    """
+
+    default_prefix = "corrected_pointing"
+    altitude = Field(nan * u.rad, "Residual Altitude offset correction", unit=u.rad)
+    azimuth = Field(nan * u.rad, "Residual Azimuth offset correction", unit=u.rad)
+
+    # Optional uncertainty tracking
+    altitude_uncertainty = Field(nan * u.rad, "Uncertainty on Altitude", unit=u.rad)
+    azimuth_uncertainty = Field(nan * u.rad, "Uncertainty on Azimuth", unit=u.rad)
+
+
 class TelescopePointingContainer(Container):
     """
     Container holding pointing information for a single telescope
@@ -1053,6 +1137,30 @@ class SubarrayMonitoringContainer(Container):
     )
 
 
+# Environmental Monitoring containers
+class WeatherMonitoringContainer(Container):
+    """
+    Environmental parameters at the observatory site.
+
+    Note: Astronomical refraction derived from weather measurements SHALL ONLY
+    be used when fitting star positions during offline optical pointing calibration.
+    It SHALL NOT be applied during Cherenkov atmospheric shower direction reconstruction.
+    """
+
+    default_prefix = "weather"
+    temperature = Field(
+        nan * u.K, "Ambient air temperature at observatory site", unit=u.K
+    )
+    pressure = Field(
+        nan * u.hPa, "Atmospheric pressure at observatory site", unit=u.hPa
+    )
+    relative_humidity = Field(
+        nan,
+        "Relative humidity fraction (0.0 to 1.0)",
+    )
+
+
+# Camera containers
 class CameraCalibrationContainer(Container):
     """
     Storage of camera calibration coefficients for a given time.
@@ -1198,6 +1306,12 @@ class CameraMonitoringContainer(Container):
         description="Camera calibration coefficients calculated from the monitoring data",
     )
 
+    camera_displacement = Field(
+        default=None,
+        type=CameraDisplacementContainer,
+        description="Displacement and tilt of the camera w.r.t. its nominal position in the telescope structure.",
+    )
+
 
 class TelescopeMonitoringContainer(Container):
     """
@@ -1209,8 +1323,10 @@ class TelescopeMonitoringContainer(Container):
         default_factory=CameraMonitoringContainer,
         description="Container for monitoring data for camera",
     )
+
     pointing = Field(
-        default_factory=TelescopePointingContainer,
+        default=None,
+        type=TelescopePointingContainer,
         description="Telescope pointing positions",
     )
 
@@ -1616,3 +1732,27 @@ class SimulatedShowerDistribution(Container):
     histogram = Field(
         None, description="array of histogram entries, size (n_bins_x, n_bins_y)"
     )
+
+
+# ACE calibration instruments containers
+class FRAMMonitoringContainer(Container):
+    """
+    Aerosol optical depth measured by the FRAM telescope.
+
+    One entry per FRAM image, fields are 1D arrays over the Voronoi
+    cells of that image.
+    """
+
+    default_prefix = "fram"
+    ra = Field(None, "Right ascension of the Voronoi cell", unit=u.rad, ndim=1)
+    dec = Field(None, "Declination of the Voronoi cell", unit=u.rad, ndim=1)
+    aerosol_optical_depth = Field(
+        None, "Slant aerosol optical depth per Voronoi cell", ndim=1
+    )
+    aerosol_optical_depth_uncertainty = Field(
+        None, "Uncertainty on the slant aerosol optical depth per Voronoi cell", ndim=1
+    )
+    zero_point = Field(nan, "Photometric zero point magnitude of the image")
+    peak_wavelength = Field(nan * u.nm, "Peak wavelength of the filter used", unit=u.nm)
+    image_id = Field(-1, "FRAM image identifier")
+    observation_id = Field(-1, "FRAM internal observation identifier")
