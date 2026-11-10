@@ -1,6 +1,8 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.coordinates.erfa_astrom import ErfaAstromInterpolator, erfa_astrom
+from astropy.time import Time
 from erfa.ufunc import p2s as cartesian_to_spherical
 from erfa.ufunc import s2p as spherical_to_cartesian
 
@@ -11,6 +13,7 @@ __all__ = [
     "altaz_to_righthanded_cartesian",
     "get_point_on_shower_axis",
     "altaz_to_nominal",
+    "altaz_to_icrs",
 ]
 
 
@@ -84,22 +87,78 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     return AltAz(alt=lat, az=-lon, copy=False)
 
 
-def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> u.Quantity:
+def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> SkyCoord:
     """
     Compute nominal (FOV) coordinates from alt/az coordinates.
 
     This can be used in a FeatureGenerator or ExpressionEngine to get a single
-    column with fov_lon, fov_lat coordinates.
+    column of coordinates, from which further expressions can use ``.fov_lon``
+    and ``.fov_lat``.
 
     Returns
     -------
-    u.Quantity:
-       2D array of coordinates with 2 columns: fov_lon, fov_lat
+    SkyCoord:
+       Coordinates in the `~ctapipe.coordinates.NominalFrame`
     """
     pointing_coord = SkyCoord(az=pointing_az, alt=pointing_alt, frame="altaz")
     event_coord = SkyCoord(az=az, alt=alt, frame="altaz", origin=pointing_coord)
-    nominal_coord = event_coord.transform_to(NominalFrame)
+    return event_coord.transform_to(NominalFrame)
 
-    return u.Quantity(
-        np.column_stack((nominal_coord.fov_lon.deg, nominal_coord.fov_lat.deg)), u.deg
+
+def altaz_to_icrs(
+    az: u.Quantity,
+    alt: u.Quantity,
+    obstime: Time,
+    location: EarthLocation,
+    resolution: u.Quantity = 5 * u.min,
+) -> SkyCoord:
+    """
+    Compute ICRS coordinates from alt/az coordinates.
+
+    This can be used in a FeatureGenerator or ExpressionEngine to get a single
+    column of coordinates, from which further expressions can use ``.ra`` and
+    ``.dec``. Events with non-finite az or alt, such as failed reconstructions,
+    are not transformed and have NaN in the output.
+
+    Parameters
+    ----------
+    az: u.Quantity
+        Horizontal azimuth, scalar or array
+    alt: u.Quantity
+        Horizontal altitude, scalar or array
+    obstime: Time
+        Observation time, scalar or array
+    location: EarthLocation
+        Observatory location
+    resolution: u.Quantity[time]
+        Time resolution for the interpolation of obs_times. Higher values speed
+        up the computation significantly for a large number of events.
+
+    Returns
+    -------
+    SkyCoord:
+       Coordinates in the ICRS frame. Inputs are broadcast against each other, and
+       all-scalar inputs give a scalar coordinate.
+    """
+    shape = np.broadcast_shapes(np.shape(az), np.shape(alt), obstime.shape)
+    az = np.broadcast_to(az, shape, subok=True)
+    alt = np.broadcast_to(alt, shape, subok=True)
+    obstime = np.broadcast_to(obstime, shape, subok=True)
+
+    # non-finite events become NaN, since Latitude rejects infinite values,
+    # and NaN propagates through the transformation
+    valid = np.isfinite(az) & np.isfinite(alt)
+    event_coord = SkyCoord(
+        az=np.where(valid, az, np.nan * u.deg),
+        alt=np.where(valid, alt, np.nan * u.deg),
+        frame="altaz",
+        obstime=obstime,
+        location=location,
     )
+
+    # erfa warns about the NaN events, which are expected
+    with (
+        erfa_astrom.set(ErfaAstromInterpolator(resolution)),
+        np.errstate(invalid="ignore"),
+    ):
+        return event_coord.transform_to("icrs")

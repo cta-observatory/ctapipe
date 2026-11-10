@@ -21,18 +21,107 @@ from ctapipe.containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
     SimulationConfigContainer,
+    SubarrayDL0Container,
+    SubarrayDL2Container,
+    SubarrayEventContainer,
+    TelescopeDL0Container,
+    TelescopeDL2Container,
+    TelescopeEventContainer,
+    TelescopeR1Container,
 )
 from ctapipe.core import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import DataLevel, EventSource
+from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
 from ctapipe.io.hdf5tableio import get_column_attrs
 from ctapipe.io.metadata import ProductMetadata, read_ctao_metadata
 from ctapipe.utils import get_dataset_path
 
 
+@pytest.mark.parametrize("level", [DataLevel.R0, DataLevel.R1])
+def test_requested_waveforms_missing_from_input(level):
+    option = f"write_{level.name.lower()}_waveforms"
+    with pytest.raises(
+        ToolConfigurationError, match=f"{option}.*input does not provide {level.name}"
+    ):
+        DataWriter(event_source=SimpleNamespace(datalevels=()), **{option: True})
+
+
+@pytest.mark.parametrize(
+    "option",
+    [
+        "write_r0_waveforms",
+        "write_r1_waveforms",
+        "write_dl1_images",
+        "write_dl1_parameters",
+        "write_muon_parameters",
+        "write_dl2",
+    ],
+)
+def test_requested_output_missing_from_event(option):
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    setattr(writer, option, True)
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    with pytest.raises(ValueError, match=option):
+        writer._validate_event(event)
+
+
+def test_absent_dl2_is_not_written():
+    writer = DataWriter.__new__(DataWriter)
+    writer._writer = SimpleNamespace(
+        write=lambda **kwargs: pytest.fail("Unexpected write")
+    )
+    writer._write_dl2_subarray(SubarrayEventContainer())
+    writer._write_dl2_telescope(TelescopeEventContainer())
+
+
+def test_inconsistent_levels_rejected_before_writing():
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    writer.write_r1_waveforms = True
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(
+        dl0=TelescopeDL0Container(),
+        r1=TelescopeR1Container(waveform=np.ones((1, 1, 1))),
+    )
+    event.tel[2] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    with pytest.raises(ValueError, match="write_r1_waveforms.*telescope 2"):
+        writer(event)
+
+
+@pytest.mark.parametrize("scope", ["subarray", "telescope"])
+@pytest.mark.parametrize("missing_container", [False, True])
+def test_writer_requires_trigger_information(scope, missing_container):
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    target = event if scope == "subarray" else event.tel[1]
+    if missing_container:
+        target.dl0 = None
+    else:
+        target.dl0.trigger = None
+    with pytest.raises(ValueError, match="requires.*DL0 trigger information"):
+        writer._validate_event(event)
+
+
+def test_writer_accepts_trigger_only_dl0():
+    writer = DataWriter.__new__(DataWriter)
+    writer.write_dl1_parameters = False
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
+    event.tel[1] = TelescopeEventContainer(dl0=TelescopeDL0Container())
+    writer._validate_event(event)
+    assert event.tel[1].dl0.camera is None
+
+
 def generate_dummy_dl2(event):
     """generate some dummy DL2 info and see if we can write it"""
+
+    event.dl2 = SubarrayDL2Container()
+    for tel_event in event.tel.values():
+        tel_event.dl2 = TelescopeDL2Container()
 
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
@@ -172,6 +261,48 @@ def test_write(tmpdir: Path, south_site_config):
         | dp.ProcessingSublevel.ENERGY
         | dp.ProcessingSublevel.GAMMANESS
     )
+
+
+def test_tels_with_data_roundtrip(tmp_path, south_site_config, prod5_gamma_simtel_path):
+    output = tmp_path / "busy_triggers.h5"
+    expected = []
+    with EventSource(prod5_gamma_simtel_path, max_events=3) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output,
+            write_dl1_parameters=False,
+            write_r1_waveforms=True,
+            config=south_site_config,
+        ) as writer:
+            for event in source:
+                # Keep the trigger but remove its data to represent a busy telescope.
+                if len(event.tel) > 1:
+                    del event.tel[max(event.tel)]
+                event.dl0.trigger.tels_with_data = np.array(
+                    list(event.tel), dtype=np.uint16
+                )
+                expected.append(
+                    (set(event.dl0.trigger.tels_with_trigger), set(event.tel))
+                )
+                writer(event)
+
+        with tables.open_file(output) as h5file:
+            trigger = h5file.root.dl0.event.subarray.trigger
+            for field, index in (("tels_with_trigger", 0), ("tels_with_data", 1)):
+                masks = trigger.col(field)
+                assert masks.dtype == np.bool_
+                assert masks.shape == (len(expected), len(source.subarray))
+                for mask, ids in zip(masks, expected):
+                    assert set(source.subarray.tel_mask_to_tel_ids(mask)) == ids[index]
+
+    assert any(trigger != data for trigger, data in expected)
+    with HDF5EventSource(output) as source:
+        events = list(source)
+        assert len(events) == len(expected)
+        for event, (trigger, data) in zip(events, expected):
+            assert set(event.dl0.trigger.tels_with_trigger) == trigger
+            assert set(event.dl0.trigger.tels_with_data) == data
+            assert set(event.tel) == data
 
 
 @pytest.mark.parametrize("overwrite", [False, True])

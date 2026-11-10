@@ -29,6 +29,8 @@ def test_toyeventsource(subarray):
 
     for i, e in enumerate(s):
         assert e.index.event_id == i
+        assert set(e.dl0.trigger.tels_with_data) == set(e.tel)
+        assert set(e.dl0.trigger.tels_with_trigger) == set(e.tel)
         for tel_id, tel_event in e.tel.items():
             dl1 = tel_event.dl1
             assert dl1.image.size == subarray.tel[tel_id].camera.geometry.n_pixels

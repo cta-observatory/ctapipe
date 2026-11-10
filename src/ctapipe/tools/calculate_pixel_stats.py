@@ -17,6 +17,7 @@ from ctapipe.core.traits import (
     Set,
     Unicode,
     classes_with_traits,
+    flag,
 )
 from ctapipe.exceptions import InputMissing
 from ctapipe.io import HDF5Merger, write_table
@@ -72,6 +73,15 @@ class PixelStatisticsCalculatorTool(Tool):
         ),
     ).tag(config=True)
 
+    mask_invalid_pixels = Bool(
+        default_value=True,
+        help=(
+            "Set the pixel values marked as invalid in 'pixel_status' to NaN, so that they are "
+            "ignored by the aggregation. Has no effect if the input data has no "
+            "column 'pixel_status'."
+        ),
+    ).tag(config=True)
+
     output_path = Path(
         help="Output filename", default_value=pathlib.Path("monitoring.h5")
     ).tag(config=True)
@@ -93,6 +103,12 @@ class PixelStatisticsCalculatorTool(Tool):
         "per-channel": (
             {"PixelStatisticsCalculatorTool": {"per_channel_statistics": True}},
             "Calculate per-channel statistics for gain selected input data",
+        ),
+        **flag(
+            "mask-invalid-pixels",
+            "PixelStatisticsCalculatorTool.mask_invalid_pixels",
+            "Exclude pixels marked as invalid in pixel_status from the statistics",
+            "Include pixels marked as invalid in pixel_status in the statistics",
         ),
     }
 
@@ -164,8 +180,9 @@ class PixelStatisticsCalculatorTool(Tool):
             if not self._is_valid_table(dl1_table, tel_id):
                 continue
 
-            # 2. Reshape and calculate stats
+            # 2. Reshape, mask invalid pixels and calculate stats
             self._reshape_dl1_dimensions(dl1_table, tel_id)
+            self._mask_invalid_pixels(dl1_table)
             aggregated_stats = self._process_telescope_stats(dl1_table, tel_id)
 
             # 3. Determine output paths and write out results
@@ -272,6 +289,30 @@ class PixelStatisticsCalculatorTool(Tool):
             ]
             dl1_table[col] = per_channel_data
             dl1_table[col].unit = unit
+
+    def _mask_invalid_pixels(self, dl1_table):
+        """
+        Set the values of the input column marked as invalid in pixel_status to NaN.
+
+        For a single channel, pixels without any stored gain channel are masked.
+        For two channels, each channel is masked if its own gain channel is not stored.
+        Does nothing if ``mask_invalid_pixels`` is disabled.
+        """
+        if not self.mask_invalid_pixels or "pixel_status" not in dl1_table.colnames:
+            return
+        column = dl1_table[self.input_column_name]
+        pixel_status = np.asarray(dl1_table["pixel_status"])
+        if column.shape[1] == 1:
+            invalid = PixelStatus.is_invalid(pixel_status)[:, np.newaxis]
+        else:
+            invalid = np.stack(
+                [
+                    (pixel_status & PixelStatus.HIGH_GAIN_STORED) == 0,
+                    (pixel_status & PixelStatus.LOW_GAIN_STORED) == 0,
+                ],
+                axis=1,
+            )
+        column[invalid] = np.nan
 
     def _process_telescope_stats(self, dl1_table, tel_id):
         """Perform first and (if necessary) second pass statistics calculation."""

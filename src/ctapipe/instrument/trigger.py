@@ -99,6 +99,10 @@ class SoftwareTrigger(TelescopeComponent):
         # cannot modify dict being looped over, so get tel_ids
         to_remove = set()
         for tel_id, tel_event in event.tel.items():
+            if tel_event.dl0 is None:
+                raise ValueError(
+                    f"Software trigger requires DL0 trigger information for telescope {tel_id}"
+                )
             event_type = tel_event.dl0.trigger.event_type
             if event_type not in self.allowed_telescope_event_types:
                 to_remove.add(tel_id)
@@ -121,6 +125,10 @@ class SoftwareTrigger(TelescopeComponent):
         triggered : bool
             Whether or not this event would have triggered the stereo trigger
         """
+        if event.dl0 is None:
+            raise ValueError(
+                "Software trigger requires subarray DL0 trigger information"
+            )
         tels_removed = set()
         tels_with_trigger = set(event.dl0.trigger.tels_with_trigger)
 
@@ -147,7 +155,7 @@ class SoftwareTrigger(TelescopeComponent):
 
                     # remove telescope event
                     tels_removed.add(tel_id)
-                    del event.tel[tel_id]
+                    event.tel.pop(tel_id, None)
 
         if len(tels_removed) > 0:
             # convert to array with correct dtype to have setdiff1d work correctly
@@ -155,10 +163,15 @@ class SoftwareTrigger(TelescopeComponent):
             event.dl0.trigger.tels_with_trigger = np.setdiff1d(
                 event.dl0.trigger.tels_with_trigger, tels_removed, assume_unique=True
             )
+            event.dl0.trigger.tels_with_data = np.setdiff1d(
+                event.dl0.trigger.tels_with_data, tels_removed, assume_unique=True
+            )
 
         # completely remove array event if it wouldn't have triggered the stereo trigger
         if len(event.dl0.trigger.tels_with_trigger) < self.min_telescopes:
             event.dl0.trigger.tels_with_trigger = []
+            event.dl0.trigger.tels_with_data = []
             event.tel.clear()
             return False
+        event.dl0.trigger.tels_with_data = np.array(list(event.tel), dtype=np.uint16)
         return True

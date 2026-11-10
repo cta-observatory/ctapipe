@@ -8,7 +8,14 @@ import pytest
 import tables
 from astropy.time import Time
 
-from ctapipe.containers import PixelStatus, SubarrayEventContainer
+from ctapipe.containers import (
+    DL0CameraContainer,
+    PixelStatus,
+    SubarrayEventContainer,
+    TelescopeDL0Container,
+    TelescopeDL1Container,
+    TelescopeR1Container,
+)
 from ctapipe.exceptions import InputMissing
 from ctapipe.image import NSBImageCleaner
 from ctapipe.io import (
@@ -834,7 +841,15 @@ def test_fill_monitoring_gain_selection(
         n_pixels = full.coefficients.factor.shape[1]
         pixels = np.arange(n_pixels)
         event = SubarrayEventContainer()
-        camera = getattr(event.tel[tel_id], level)
+        camera = {
+            "r1": TelescopeR1Container,
+            "dl0": DL0CameraContainer,
+            "dl1": TelescopeDL1Container,
+        }[level]()
+        if level == "dl0":
+            event.tel[tel_id].dl0 = TelescopeDL0Container(camera=camera)
+        else:
+            setattr(event.tel[tel_id], level, camera)
         if level == "dl1":
             camera.image = np.zeros(
                 n_pixels if gain_selected else (n_channels, n_pixels)
@@ -891,9 +906,7 @@ def test_fill_monitoring_gain_selection(
             assert actual.coefficients.is_valid == full.coefficients.is_valid
             assert actual.coefficients.time == full.coefficients.time
             for other_level in {"r1", "dl0", "dl1"} - {level}:
-                other_camera = getattr(event.tel[tel_id], other_level)
-                field = "image" if other_level == "dl1" else "waveform"
-                assert getattr(other_camera, field) is None
+                assert getattr(event.tel[tel_id], other_level) is None
 
         unselected = source.get_camera_monitoring_container(tel_id)
         np.testing.assert_array_equal(

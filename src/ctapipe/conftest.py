@@ -63,6 +63,48 @@ if importlib.util.find_spec("pyirf") is None:
     collect_ignore.append("irf")
 
 
+@pytest.fixture(scope="session")
+def lstn_01_mirror_facets_path():
+    """Path to the LST-1 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTN-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def lstn_02_mirror_facets_path():
+    """Path to the LST-2 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTN-02.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def lsts_01_mirror_facets_path():
+    """Path to the LST-2 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/LSTS-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def mstn_01_mirror_facets_path():
+    """Path to the MST-1 (north) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/MSTN-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def msts_01_mirror_facets_path():
+    """Path to the MST-1 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/MSTS-01.tel_optics.ecsv")
+
+
+@pytest.fixture(scope="session")
+def ssts_01_mirror_facets_path():
+    """Path to the SST-1 (south) mirror facet file from the test data server."""
+
+    return get_dataset_path("instrument/simulation/v7.0.0/SSTS-01.tel_optics.ecsv")
+
+
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
     with pytest.warns(FromNameWarning):

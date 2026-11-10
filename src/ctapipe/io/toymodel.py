@@ -11,6 +11,7 @@ import numpy as np
 from ..containers import (
     ObservationBlockContainer,
     SchedulingBlockContainer,
+    SubarrayDL0Container,
     SubarrayEventContainer,
     SubarrayEventIndexContainer,
     TelescopeDL1Container,
@@ -108,7 +109,7 @@ class ToyEventSource(TelescopeComponent, EventSource):
             index=SubarrayEventIndexContainer(
                 obs_id=self._obs_id, event_id=self.event_id
             ),
-            dl0=None,
+            dl0=SubarrayDL0Container(),
             dl2=None,
             simulation=None,
             monitoring=None,
@@ -162,4 +163,7 @@ class ToyEventSource(TelescopeComponent, EventSource):
                 dl1=TelescopeDL1Container(image=image),
             )
 
+        tel_ids = np.array(list(event.tel), dtype=np.uint16)
+        event.dl0.trigger.tels_with_trigger = tel_ids
+        event.dl0.trigger.tels_with_data = tel_ids.copy()
         return event

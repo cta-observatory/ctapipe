@@ -314,3 +314,43 @@ help when writing algorithms:
   :py:class:`ctapipe.core.Component` or :py:class:`ctapipe.core.Tool`
   so that it is usable with the configuration system or becomes a
   command-line program released with ctapipe.
+
+
+Data level containers
+=====================
+
+The data level fields of ``SubarrayEventContainer`` and
+``TelescopeEventContainer`` default to ``None``. This means that the data level
+is absent. A present container can still have missing information: for example,
+DL1 parameters can be available without a DL1 image, and a reconstruction can
+be present with ``is_valid=False``.
+
+Event sources and processing components must explicitly create the containers
+they produce. Consumers should report missing required inputs with a clear
+error when they access the data. All telescope events in one subarray event
+must agree on the presence of data levels, DL1 images, and DL1 parameters.
+``event.validate_data_levels()`` provides an explicit diagnostic check of this
+contract. It is not called automatically in event processing: required inputs
+are checked where consumed, and unused data levels are not scanned.
+Subarray DL2 and telescope DL2 can be present independently.
+
+Telescope DL0 keeps trigger metadata separate from optional camera data:
+``tel_event.dl0.trigger`` contains the trigger, while
+``tel_event.dl0.camera`` is either ``None`` or a ``DL0CameraContainer``.
+Waveforms, pixel status, gain selection, event type and time, and calibration
+references belong to the camera container. For example, access DL0 waveforms
+using ``tel_event.dl0.camera.waveform``.
+
+``DataWriter`` requires subarray and telescope DL0 trigger information to index
+events in HDF5 files. It rejects events missing either trigger before writing
+any event data; DL0 camera data remains optional.
+
+Monitoring and index containers retain their defaults. Map lookup behavior is
+unchanged; only the data level containers directly attached to event containers
+are optional by default.
+
+``CameraCalibrator`` requires R1 or DL0 waveforms. ``ctapipe-process`` reuses
+existing DL1 images by default, skipping calibration when it is not needed.
+Use ``--recompute-dl1`` to regenerate images and parameters from available R1
+or DL0 waveforms. Requesting this with DL1-only input raises a configuration
+error.

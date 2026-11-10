@@ -1,5 +1,0 @@
-Store machine learning models in zip files following the bagIt
-archive convention, containing separate file entries for reconstructor
-wrapper, its configurationa and the models themselves.
-
-Data products metadata is stored in the bagit info file.

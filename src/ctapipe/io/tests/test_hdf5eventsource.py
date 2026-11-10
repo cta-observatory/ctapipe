@@ -1,5 +1,6 @@
 import warnings
 from itertools import zip_longest
+from types import SimpleNamespace
 
 import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
@@ -8,7 +9,15 @@ import pytest
 import tables
 from packaging.version import Version
 
-from ctapipe.containers import ObservationBlockContainer
+from ctapipe.containers import (
+    ImageParametersContainer,
+    ObservationBlockContainer,
+    ReconstructedEnergyContainer,
+    SubarrayDL0Container,
+    SubarrayEventContainer,
+    SubarrayTriggerContainer,
+    TelescopeEventContainer,
+)
 from ctapipe.core import Provenance
 from ctapipe.io import DATA_MODEL_VERSION, DataLevel, EventSource, HDF5EventSource
 from ctapipe.io.hdf5dataformat import (
@@ -18,6 +27,39 @@ from ctapipe.io.hdf5dataformat import (
     DL1_TEL_TRIGGER_TABLE,
 )
 from ctapipe.io.metadata import CTAO_METADATA_VERSION_KEY
+
+
+def test_parameters_without_images_create_dl1():
+    source = SimpleNamespace(
+        datalevels=(DataLevel.DL1_PARAMETERS,), has_simulated_dl1=False
+    )
+    tel_event = TelescopeEventContainer()
+    parameters = ImageParametersContainer()
+    readers = {"tel_001": iter([list(parameters.values())[:7]])}
+    HDF5EventSource._fill_parameters_for_tel(source, tel_event, "tel_001", readers, {})
+    assert tel_event.dl1 is not None
+    assert tel_event.dl1.image is None
+    assert tel_event.dl1.parameters.hillas is parameters.hillas
+
+
+def test_read_dl2_creates_only_present_levels():
+    event = SubarrayEventContainer()
+    tel_event = TelescopeEventContainer()
+    HDF5EventSource._fill_dl2_subarray(None, event, {})
+    HDF5EventSource._fill_dl2_for_tel(None, tel_event, 1, {})
+    assert event.dl2 is None
+    assert tel_event.dl2 is None
+
+    energy = ReconstructedEnergyContainer()
+    HDF5EventSource._fill_dl2_subarray(
+        None, event, {"energy": {"test": iter([energy])}}
+    )
+    readers = {"energy": {"test": {"tel_001": iter([energy])}}}
+    HDF5EventSource._fill_dl2_for_tel(None, tel_event, 2, readers)
+    assert tel_event.dl2 is None
+    HDF5EventSource._fill_dl2_for_tel(None, tel_event, 1, readers)
+    assert event.dl2.energy["test"] is energy
+    assert tel_event.dl2.energy["test"] is energy
 
 
 def test_is_not_compatible(prod5_gamma_simtel_path):
@@ -121,6 +163,39 @@ def test_allowed_tels(dl1_file):
         for event in source:
             assert set(event.dl0.trigger.tels_with_trigger).issubset(allowed_tels)
             assert set(event.tel).issubset(allowed_tels)
+            assert set(event.dl0.trigger.tels_with_data) == set(event.tel)
+
+
+@pytest.mark.parametrize("allowed_tels", [set(), {1, 2}])
+@pytest.mark.parametrize("tels_with_data", [None, [], [2, 3]])
+def test_update_telescope_lists(subarray_prod5_paranal, allowed_tels, tels_with_data):
+    source = HDF5EventSource.__new__(HDF5EventSource)
+    source._full_subarray = subarray_prod5_paranal
+    source.allowed_tels = allowed_tels
+    trigger = SubarrayTriggerContainer(
+        tels_with_trigger=subarray_prod5_paranal.tel_ids_to_mask([1, 2, 3]),
+        tels_with_data=(
+            None
+            if tels_with_data is None
+            else subarray_prod5_paranal.tel_ids_to_mask(tels_with_data)
+        ),
+    )
+    event = SubarrayEventContainer(
+        dl0=SubarrayDL0Container(
+            trigger=trigger,
+        )
+    )
+
+    full_tels_with_data = source._update_telescope_lists(event)
+
+    expected_data = {1, 2, 3} if tels_with_data is None else set(tels_with_data)
+    assert set(full_tels_with_data) == expected_data
+    expected_trigger = {1, 2, 3}
+    if allowed_tels:
+        expected_data &= allowed_tels
+        expected_trigger &= allowed_tels
+    assert set(trigger.tels_with_data) == expected_data
+    assert set(trigger.tels_with_trigger) == expected_trigger
 
 
 def test_simulation_info(dl1_file):
@@ -342,6 +417,7 @@ def test_no_pointing_in_ob(tmp_path, south_site_config):
             source,
             output_path=path,
             write_r1_waveforms=True,
+            write_dl1_parameters=False,
             config=south_site_config,
         ) as writer:
             for event in source:

@@ -191,6 +191,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             `ctapipe.containers.SubarrayEventContainer`
         """
 
+        self._prepare_event(event)
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):

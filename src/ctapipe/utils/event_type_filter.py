@@ -31,4 +31,6 @@ class EventTypeFilter(Component):
         if self.allowed_types is None:
             return True
 
+        if event.dl0 is None:
+            raise ValueError("Event type filtering requires DL0 trigger information")
         return event.dl0.trigger.event_type in self.allowed_types

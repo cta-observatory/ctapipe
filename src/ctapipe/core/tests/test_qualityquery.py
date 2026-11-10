@@ -2,10 +2,11 @@
 
 import numpy as np
 import pytest
-from astropy.table import Table
+from astropy.table import QTable, Table
+from astropy.time import Time
 
 from ctapipe.core.expression_engine import ExpressionError
-from ctapipe.core.qualityquery import QualityQuery
+from ctapipe.core.qualityquery import QualityCriteriaError, QualityQuery
 from ctapipe.core.traits import List
 
 
@@ -146,3 +147,148 @@ def test_setup():
     # 3-tuple fails
     with pytest.raises(TraitError):
         QualityQuery(quality_criteria=[("1", "2", "3")])
+
+
+def test_add_columns():
+    """Test that we can add columns."""
+
+    query = QualityQuery(
+        quality_criteria=[
+            ("low", "x>0"),
+            ("high", "x < 10"),
+        ],
+    )
+
+    table = Table({"x": [-10, 1, 2, 3, 5, 11, 5]})
+
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert "low" in table_with_cols.colnames
+    assert "high" in table_with_cols.colnames
+    assert table_with_cols["low"].sum() == 6
+
+
+@pytest.mark.parametrize(
+    "criteria",
+    [
+        pytest.param([("cut", "True")], id="python_scalar"),
+        pytest.param([("cut", "np.True_")], id="numpy_scalar"),
+        pytest.param([("cut", "np.asarray(x) > 0")], id="ndarray"),
+        pytest.param([("cut", "x > 0")], id="column"),
+    ],
+)
+def test_add_columns_matches_table_mask(criteria):
+    """Test that adding columns accepts the same results as get_table_mask."""
+
+    table = Table({"x": [-10, 1, 11]})
+
+    query = QualityQuery(quality_criteria=criteria)
+    expected = query.get_table_mask(table)
+    expected_counts = query.to_table()["counts"]
+
+    query = QualityQuery(quality_criteria=criteria)
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert table_with_cols["cut"].dtype == bool
+    assert np.all(table_with_cols["cut"] == expected)
+    assert np.all(query.to_table()["counts"] == expected_counts)
+
+
+def test_add_columns_criteria_are_independent():
+    """Test that a criterion cannot use the result of an earlier criterion."""
+
+    query = QualityQuery(
+        quality_criteria=[("low", "x > 0"), ("both", "low & (x < 10)")]
+    )
+    table = Table({"x": [-10, 1, 11]})
+
+    with pytest.raises(ExpressionError):
+        query.add_table_mask_columns(table)
+
+
+@pytest.mark.parametrize(
+    "criteria",
+    [
+        pytest.param([("x", "x > 0"), ("high", "x < 10")], id="existing_column"),
+        pytest.param([("cut", "x > 0"), ("cut", "x < 10")], id="repeated_criterion"),
+        pytest.param([("PASSED_ALL", "x > 0")], id="combined_column"),
+    ],
+)
+def test_add_columns_name_collision(criteria):
+    """Test that criteria names may not collide when adding columns."""
+
+    query = QualityQuery(quality_criteria=criteria)
+    table = Table({"x": [-10, 1, 11]})
+
+    with pytest.raises(QualityCriteriaError, match="not unique"):
+        query.add_table_mask_columns(table)
+
+    # the input and the statistics are unchanged
+    assert table.colnames == ["x"]
+    assert list(table["x"]) == [-10, 1, 11]
+    assert np.all(query.to_table()["counts"] == 0)
+
+
+@pytest.mark.parametrize("table_cls", [Table, QTable])
+def test_add_columns_shallow_copy(table_cls):
+    """Test that adding columns shares the data and leaves the input unchanged."""
+
+    query = QualityQuery(quality_criteria=[("low", "x > 0")])
+    table = table_cls(
+        {
+            "x": np.array([-10.0, 1.0, 11.0]),
+            "time": Time([1, 2, 3], format="unix"),
+        }
+    )
+    table.meta["key"] = "value"
+
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert type(table_with_cols) is table_cls
+    assert table.colnames == ["x", "time"]
+    assert table_with_cols.colnames == ["x", "time", "low", "PASSED_ALL"]
+    assert table_with_cols.meta == table.meta
+    assert np.shares_memory(table["x"], table_with_cols["x"])
+    assert np.shares_memory(table["time"].jd1, table_with_cols["time"].jd1)
+
+
+def test_add_columns_passed_all():
+    """Test the column with the combination of all criteria."""
+
+    query = QualityQuery(quality_criteria=[("low", "x > 0"), ("high", "x < 10")])
+    table = Table({"x": [-10, 1, 5, 11]})
+
+    expected = query.get_table_mask(table)
+    table_with_cols = query.add_table_mask_columns(table)
+
+    assert list(table_with_cols["PASSED_ALL"]) == [False, True, True, False]
+    assert np.all(table_with_cols["PASSED_ALL"] == expected)
+
+    # the combined column is not a criterion, so it does not appear in the statistics
+    assert query.criteria_names == ["low", "high"]
+    assert len(query.to_table()) == 3
+
+
+def test_add_columns_passed_all_configurable():
+    """Test that two queries can mark the same table with different column names."""
+
+    table = Table({"x": [-10, 1, 11]})
+
+    low = QualityQuery(
+        quality_criteria=[("low", "x > 0")], passed_all_column_name="PASSED_LOW"
+    )
+    high = QualityQuery(
+        quality_criteria=[("high", "x < 10")], passed_all_column_name="PASSED_HIGH"
+    )
+
+    table_with_cols = high.add_table_mask_columns(low.add_table_mask_columns(table))
+
+    assert list(table_with_cols["PASSED_LOW"]) == [False, True, True]
+    assert list(table_with_cols["PASSED_HIGH"]) == [True, True, False]
+
+    # with the same name, the second query is rejected instead of overwriting the first
+    other = QualityQuery(quality_criteria=[("cut", "x != 1")])
+    marked = other.add_table_mask_columns(table)
+    same_name = QualityQuery(quality_criteria=[("cut2", "x != 2")])
+    with pytest.raises(QualityCriteriaError, match="PASSED_ALL"):
+        same_name.add_table_mask_columns(marked)

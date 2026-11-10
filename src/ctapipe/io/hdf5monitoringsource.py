@@ -572,6 +572,10 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         # Fill the monitoring container for the event
         for tel_id, tel_event in event.tel.items():
+            if not self.is_simulation and tel_event.dl0 is None:
+                raise ValueError(
+                    f"Monitoring interpolation requires DL0 trigger information for telescope {tel_id}"
+                )
             time = None if self.is_simulation else tel_event.dl0.trigger.time
             selected_gain_channel = None
             if tel_id in self._pixel_statistics or tel_id in self._camera_coefficients:
@@ -592,7 +596,8 @@ class HDF5MonitoringSource(MonitoringSource):
         tel_event = event.tel.get(tel_id)
         if tel_event is None:
             return None
-        for camera in (tel_event.r1, tel_event.dl0):
+        dl0_camera = None if tel_event.dl0 is None else tel_event.dl0.camera
+        for camera in (tel_event.r1, dl0_camera):
             if camera is not None and camera.waveform is not None:
                 return camera.selected_gain_channel
         camera = tel_event.dl1
@@ -701,9 +706,10 @@ class HDF5MonitoringSource(MonitoringSource):
                 # Map any pedestal name to the container field name (unique for pedestal)
                 container_name = "pedestal_image" if "pedestal_image" in name else name
                 pixel_stats_container[container_name] = StatisticsContainer(
-                    mean=select_channel(stats_data["mean"]),
-                    median=select_channel(stats_data["median"]),
-                    std=select_channel(stats_data["std"]),
+                    **{
+                        k: select_channel(stats_data[k])
+                        for k in (StatisticsContainer.fields.keys() & stats_data.keys())
+                    }
                 )
             cam_mon_container["pixel_statistics"] = pixel_stats_container
         if tel_id in self._camera_coefficients:

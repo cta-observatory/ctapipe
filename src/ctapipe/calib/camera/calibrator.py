@@ -8,6 +8,7 @@ import numpy as np
 from numba import float32, float64, guvectorize, int64
 
 from ctapipe.containers import (
+    DL0CameraContainer,
     PixelStatus,
     TelescopeDL0Container,
     TelescopeDL1Container,
@@ -231,7 +232,7 @@ class CameraCalibrator(TelescopeComponent):
             return False
 
     def _check_dl0_empty(self, dl0):
-        if dl0 is None or dl0.waveform is None:
+        if dl0 is None or dl0.camera is None or dl0.camera.waveform is None:
             if not self._dl0_empty_warn:
                 self.log.warning(
                     "Encountered an event with no DL0 data. "
@@ -243,9 +244,6 @@ class CameraCalibrator(TelescopeComponent):
             return False
 
     def r1_to_dl0(self, tel_event: TelescopeEventContainer):
-        if self._check_r1_empty(tel_event.r1):
-            return
-
         tel_id = tel_event.index.tel_id
         r1 = tel_event.r1
 
@@ -265,8 +263,9 @@ class CameraCalibrator(TelescopeComponent):
         dl0_pixel_status[~signal_pixels] &= ~np.uint8(PixelStatus.DVR_STATUS)
 
         # take-over trigger from before, but override all the rest
-        trigger = tel_event.dl0.trigger
-        tel_event.dl0 = TelescopeDL0Container(
+        if tel_event.dl0 is None:
+            tel_event.dl0 = TelescopeDL0Container()
+        tel_event.dl0.camera = DL0CameraContainer(
             event_type=r1.event_type,
             event_time=r1.event_time,
             waveform=dl0_waveform,
@@ -275,7 +274,6 @@ class CameraCalibrator(TelescopeComponent):
             first_cell_id=r1.first_cell_id,
             calibration_monitoring_id=r1.calibration_monitoring_id,
             pedestal_intensity=r1.pedestal_intensity,
-            trigger=trigger,
         )
 
     @staticmethod
@@ -322,11 +320,8 @@ class CameraCalibrator(TelescopeComponent):
         return factor
 
     def dl0_to_dl1(self, tel_event: TelescopeEventContainer):
-        if self._check_dl0_empty(tel_event.dl0):
-            return
-
         tel_id = tel_event.index.tel_id
-        dl0 = tel_event.dl0
+        dl0 = tel_event.dl0.camera
         waveforms = dl0.waveform
         _, n_pixels, n_samples = waveforms.shape
 
@@ -434,7 +429,15 @@ class CameraCalibrator(TelescopeComponent):
             self.calibrate_tel_event(tel_event)
 
     def calibrate_tel_event(self, tel_event):
-        self.r1_to_dl0(tel_event)
+        """Calibrate from R1 or existing DL0 waveforms to DL1."""
+        if not self._check_r1_empty(tel_event.r1):
+            self.r1_to_dl0(tel_event)
+        elif self._check_dl0_empty(tel_event.dl0):
+            raise ValueError(
+                "Camera calibration requires R1 or DL0 waveforms for telescope "
+                f"{tel_event.index.tel_id}"
+            )
+
         self.dl0_to_dl1(tel_event)
 
 

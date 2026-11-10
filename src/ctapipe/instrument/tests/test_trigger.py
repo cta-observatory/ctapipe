@@ -1,4 +1,5 @@
 import json
+from collections import namedtuple
 from copy import deepcopy
 
 import numpy as np
@@ -11,6 +12,7 @@ from ctapipe.containers import (
     SubarrayDL0Container,
     SubarrayEventContainer,
     SubarrayTriggerContainer,
+    TelescopeDL0Container,
     TelescopeEventContainer,
     TelescopeTriggerContainer,
 )
@@ -23,9 +25,13 @@ def dummy_event(tel_ids):
         dl0=SubarrayDL0Container(
             trigger=SubarrayTriggerContainer(
                 tels_with_trigger=tel_ids,
+                tels_with_data=tel_ids,
             )
         ),
-        tel={tel_id: TelescopeEventContainer() for tel_id in tel_ids},
+        tel={
+            tel_id: TelescopeEventContainer(dl0=TelescopeDL0Container())
+            for tel_id in tel_ids
+        },
     )
     return event
 
@@ -48,6 +54,7 @@ def test_software_trigger(subarray_prod5_paranal, data_type):
     event = dummy_event(data_type([5]))
     assert not trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, data_type([]))
+    assert_equal(event.dl0.trigger.tels_with_data, data_type([]))
 
     # 1 LST + 1 MST, 1 LST would not have triggered LST hardware trigger
     # and after LST is removed, we only have 1 telescope, so no SWAT either
@@ -59,6 +66,7 @@ def test_software_trigger(subarray_prod5_paranal, data_type):
     event = dummy_event(data_type([1, 5, 6]))
     assert trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, data_type([5, 6]))
+    assert_equal(event.dl0.trigger.tels_with_data, data_type([5, 6]))
 
     # two MSTs, nothing to change
     event = dummy_event(data_type([5, 6]))
@@ -246,10 +254,10 @@ def test_software_trigger_simtel_process(tmp_path):
 
 
 def _dummy_event(tel_ids):
-    event = SubarrayEventContainer()
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
     event.dl0.trigger.tels_with_trigger = tel_ids
     for tel_id in tel_ids:
-        event.tel[tel_id] = TelescopeEventContainer()
+        event.tel[tel_id] = TelescopeEventContainer(dl0=TelescopeDL0Container())
     return event
 
 
@@ -321,24 +329,30 @@ def test_software_trigger_tel_event_type_filter(subarray_prod5_paranal):
         allowed_telescope_event_types={EventType.RANDOM_MONO},
     )
 
-    event = SubarrayEventContainer()
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
     event.dl0.trigger.tels_with_trigger = np.array([1, 2, 3], dtype=np.uint16)
+    event.tel[1].dl0 = TelescopeDL0Container()
     event.tel[1].dl0.trigger = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+    event.tel[2].dl0 = TelescopeDL0Container()
     event.tel[2].dl0.trigger = TelescopeTriggerContainer(
         event_type=EventType.RANDOM_MONO
     )
+    event.tel[3].dl0 = TelescopeDL0Container()
     event.tel[3].dl0.trigger = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
 
     assert trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, np.array([2], dtype=np.uint16))
     assert event.tel.keys() == {2}
 
-    event = SubarrayEventContainer()
+    event = SubarrayEventContainer(dl0=SubarrayDL0Container())
     event.dl0.trigger.tels_with_trigger = np.array([1, 2, 3], dtype=np.uint16)
+    event.tel[1].dl0 = TelescopeDL0Container()
     event.tel[1].dl0.trigger = TelescopeTriggerContainer(event_type=EventType.SUBARRAY)
+    event.tel[2].dl0 = TelescopeDL0Container()
     event.tel[2].dl0.trigger = TelescopeTriggerContainer(
         event_type=EventType.RANDOM_MONO
     )
+    event.tel[3].dl0 = TelescopeDL0Container()
     event.tel[3].dl0.trigger = TelescopeTriggerContainer(
         event_type=EventType.RANDOM_MONO
     )
@@ -346,3 +360,71 @@ def test_software_trigger_tel_event_type_filter(subarray_prod5_paranal):
     assert trigger(event)
     assert_equal(event.dl0.trigger.tels_with_trigger, np.array([2, 3], dtype=np.uint16))
     assert event.tel.keys() == {2, 3}
+
+
+TriggerTestCase = namedtuple(
+    "TriggerTestCase",
+    [
+        "tels_with_trigger",
+        "tels_with_data",
+        "expected_tels_with_trigger",
+        "expected_tels_with_data",
+    ],
+)
+
+test_cases = [
+    TriggerTestCase(
+        [1, 5, 6],
+        [5, 6],
+        [5, 6],
+        [5, 6],
+    ),
+    TriggerTestCase(
+        [1, 2, 5, 6],
+        [2, 5, 6],
+        [1, 2, 5, 6],
+        [2, 5, 6],
+    ),
+    TriggerTestCase(
+        [5, 6],
+        [5],
+        [5, 6],
+        [5],
+    ),
+]
+
+
+@pytest.mark.parametrize("test_case", test_cases)
+def test_busy_triggers(subarray_prod5_paranal, test_case: TriggerTestCase):
+    """Test SoftwareTrigger behavior in case of busy triggers."""
+    from ctapipe.instrument.trigger import SoftwareTrigger
+
+    trigger = SoftwareTrigger(
+        subarray=subarray_prod5_paranal,
+        min_telescopes=2,
+        min_telescopes_of_type=[
+            ("type", "*", 0),
+            ("type", "LST*", 2),
+        ],
+    )
+
+    # tel-id 1 is busy, triggered but no data
+    event = SubarrayEventContainer(
+        dl0=SubarrayDL0Container(
+            trigger=SubarrayTriggerContainer(
+                tels_with_trigger=test_case.tels_with_trigger,
+                tels_with_data=test_case.tels_with_data,
+            )
+        )
+    )
+
+    for tel_id in test_case.tels_with_data:
+        event.tel[tel_id] = TelescopeEventContainer()
+
+    trigger(event)
+
+    assert_equal(
+        event.dl0.trigger.tels_with_trigger, test_case.expected_tels_with_trigger
+    )
+    assert_equal(event.dl0.trigger.tels_with_data, test_case.expected_tels_with_data)
+    assert event.tel.keys() == set(test_case.expected_tels_with_data)

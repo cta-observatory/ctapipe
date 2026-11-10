@@ -215,7 +215,8 @@ class DisplayDL1Calib(Tool):
 
     def start(self):
         for event in self.eventsource:
-            self.calibrator(event)
+            if self.eventsource.has_any_datalevel((DataLevel.R1, DataLevel.DL0)):
+                self.calibrator(event)
 
             tels = event.tel.keys()
             if self.telescope:
