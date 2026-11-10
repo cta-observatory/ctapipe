@@ -447,6 +447,12 @@ def test_construct_from_pix_coord():
     with pytest.raises(TypeError, match="must be given"):
         CameraGeometry(**kwargs)
 
+    # pix_area and pix_type are required, also with pix_coord
+    for missing in ("pix_area", "pix_type"):
+        incomplete = {k: v for k, v in kwargs.items() if k != missing}
+        with pytest.raises(TypeError, match="pix_area and pix_type must be given"):
+            CameraGeometry(pix_coord=coord, **incomplete)
+
     with pytest.raises(ValueError, match="pix_coord has wrong shape"):
         CameraGeometry(pix_coord=coord[:5], **kwargs)
 
