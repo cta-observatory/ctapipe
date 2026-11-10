@@ -1,0 +1,5 @@
+`~ctapipe.coordinates.altaz_to_nominal` now returns a
+`~astropy.coordinates.SkyCoord` in the `~ctapipe.coordinates.NominalFrame`
+instead of a 2D `~astropy.units.Quantity`. Expressions in a
+`~ctapipe.core.FeatureGenerator` should use ``coord.fov_lon`` and ``coord.fov_lat``
+instead of ``coord[:,0]`` and ``coord[:,1]``.
