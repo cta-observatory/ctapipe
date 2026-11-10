@@ -54,7 +54,7 @@ class MissingFrameAttributeWarning(Warning):
 
 
 def get_representation_component_names(
-    frame: Union[BaseCoordinateFrame, Type[BaseCoordinateFrame]]
+    frame: Union[BaseCoordinateFrame, Type[BaseCoordinateFrame]],
 ):
     """
     Return the component names of a Frame (or SkyCoord)
