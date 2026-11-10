@@ -115,22 +115,14 @@ class HillasReconstructor(HillasGeometryReconstructor):
         super().__init__(
             subarray=subarray, atmosphere_profile=atmosphere_profile, **kwargs
         )
-        _cam_radius_m = {
-            cam: cam.geometry.guess_radius().to_value(u.m)
+        _cam_radius_deg = {
+            cam: cam.geometry.transform_to(TelescopeFrame)
+            .guess_radius()
+            .to_value(u.deg)
             for cam in subarray.camera_types
         }
 
-        telframe = TelescopeFrame()
-        _cam_radius_deg = {}
-        for cam, radius_m in _cam_radius_m.items():
-            point_cam = SkyCoord(0, radius_m, unit=u.m, frame=cam.geometry.frame)
-            point_tel = point_cam.transform_to(telframe)
-            _cam_radius_deg[cam] = point_tel.fov_lon.to_value(u.deg)
-
         # store for each tel_id to avoid costly hash of camera
-        self._cam_radius_m = {
-            tel_id: _cam_radius_m[t.camera] for tel_id, t in subarray.tel.items()
-        }
         self._cam_radius_deg = {
             tel_id: _cam_radius_deg[t.camera] for tel_id, t in subarray.tel.items()
         }
