@@ -24,12 +24,12 @@ def main():
 
     CameraDisplay(cam, ax=axs[0], image=image)
     CameraDisplay(
-        cam.transform_to(EngineeringCameraFrame()),
+        cam.transform_to(EngineeringCameraFrame),
         ax=axs[1],
         image=image,
     )
     CameraDisplay(
-        cam.transform_to(TelescopeFrame()),
+        cam.transform_to(TelescopeFrame),
         ax=axs[2],
         image=image,
     )

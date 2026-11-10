@@ -20,7 +20,7 @@ from ctapipe.visualization import CameraDisplay
 
 # Load a camera from an example file
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-geom = subarray.tel[100].camera.geometry.transform_to(TelescopeFrame())
+geom = subarray.tel[100].camera.geometry.transform_to(TelescopeFrame)
 
 # Create a fake camera image to display:
 model = toymodel.Gaussian(
