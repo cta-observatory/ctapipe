@@ -1,9 +1,10 @@
-``CameraGeometry.transform_to()`` now correctly accepts astropy coordinate frame *classes*, not just instances.  When passing a *frame class* (any class that inherits from ``astropy.coordinates.baseframe.BaseCoordinateFrame``), all of the frame attributes that exist in ``CameraGeometry.frame`` attribute are correctly propagated to the transformed geometry.  For example:
+``CameraGeometry.transform_to()`` now keeps all frame attributes, also when passing
+a frame class, including those not used by the target frame. Previously, e.g. the
+``focal_length`` was lost when transforming to ``TelescopeFrame``, so transforming
+back to ``CameraFrame`` failed:
 
+.. code-block:: python
 
-.. code: python
-
-   geom2 = geom_in_camera_frame.transform_to(EngineeringCameraFrame)
-   geom2.focal_length == geom_in_camera_frame.focal_length
-
-   # True
+   geom_tel = geom.transform_to(TelescopeFrame)
+   geom_cam = geom_tel.transform_to(CameraFrame)  # previously failed: missing focal_length
+   geom_cam.frame.focal_length == geom.frame.focal_length  # True
