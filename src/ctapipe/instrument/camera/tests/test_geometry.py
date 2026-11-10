@@ -186,6 +186,26 @@ def test_to_and_from_table(prod5_lst):
     assert prod5_lst_cam.pix_type == prod5_lst_cam2.pix_type
 
 
+@pytest.mark.parametrize("frame_name", ["EngineeringCameraFrame", "TelescopeFrame"])
+def test_to_table_uses_camera_frame(prod5_lst, frame_name):
+    """Tables always store CameraFrame coordinates, whatever the geometry's frame"""
+    from ctapipe import coordinates
+    from ctapipe.coordinates import CameraFrame
+
+    geom = prod5_lst.camera.geometry
+    geom_other = geom.transform_to(getattr(coordinates, frame_name))
+
+    table = geom_other.to_table()
+    assert table["pix_x"].unit.physical_type == "length"
+
+    geom_read = CameraGeometry.from_table(table)
+    assert type(geom_read.frame) is CameraFrame
+    assert u.allclose(geom_read.pix_x, geom.pix_x)
+    assert u.allclose(geom_read.pix_y, geom.pix_y)
+    assert u.allclose(geom_read.pix_area, geom.pix_area)
+    assert u.isclose(geom_read.pix_rotation, geom.pix_rotation)
+
+
 def test_write_read(tmpdir, prod5_lst):
     """Check that serialization to disk doesn't lose info"""
     filename = str(tmpdir.join("testcamera.fits.gz"))
@@ -235,7 +255,7 @@ def test_slicing(prod5_mst_nectarcam):
     assert len(sliced1.pix_y) == 100
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
-    assert sliced1.frame is prod5_nectarcam.frame
+    assert sliced1.frame.is_equivalent_frame(prod5_nectarcam.frame)
 
     sliced2 = prod5_nectarcam[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
@@ -353,6 +373,135 @@ def test_camera_coordinate_transform(camera_geometry):
 
     geom_cam = geom_tel_frame.transform_to(CameraFrame(focal_length=focal_length))
     assert np.allclose(geom_cam.pix_x.to_value(unit), geom.pix_x.to_value(unit))
+
+
+def test_pix_coord(camera_geometry):
+    """pix_x / pix_y must be the components of pix_coord, frame has no data"""
+    from ctapipe.coordinates import CameraFrame
+
+    geom = deepcopy(camera_geometry)
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+
+    assert isinstance(geom.pix_coord, SkyCoord)
+    assert geom.pix_coord.shape == (geom.n_pixels,)
+    assert u.allclose(geom.pix_coord.x, geom.pix_x)
+    assert u.allclose(geom.pix_coord.y, geom.pix_y)
+    assert not geom.frame.has_data
+    assert geom.frame.focal_length == 28 * u.m
+
+    # slicing and rotating must keep the frame attributes
+    assert geom[:10].pix_coord.focal_length == 28 * u.m
+    x_before = geom.pix_x.copy()
+    geom.rotate(10 * u.deg)
+    assert geom.pix_coord.focal_length == 28 * u.m
+
+    # cached pix_x / pix_y must be updated when pix_coord changes
+    assert not u.allclose(geom.pix_x, x_before)
+    assert u.allclose(geom.pix_x, geom.pix_coord.x)
+    assert u.allclose(geom.pix_y, geom.pix_coord.y)
+
+
+def test_construct_from_pix_coord():
+    """Constructing from a SkyCoord is equivalent to pix_x, pix_y and frame"""
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    x = np.linspace(-1, 1, 10) * u.m
+    y = np.linspace(-2, 2, 10) * u.m
+    frame = CameraFrame(focal_length=28 * u.m)
+    kwargs = dict(
+        name="test",
+        pix_id=np.arange(10),
+        pix_area=np.full(10, 0.01) * u.m**2,
+        pix_type="hexagon",
+    )
+
+    geom = CameraGeometry(pix_coord=SkyCoord(x, y, frame=frame), **kwargs)
+    old_style = CameraGeometry(pix_x=x, pix_y=y, frame=frame, **kwargs)
+
+    assert geom == old_style
+    assert u.allclose(geom.pix_x, x)
+    assert u.allclose(geom.pix_y, y)
+    assert geom.frame.is_equivalent_frame(old_style.frame)
+
+    # spherical frames: pix_x / pix_y map to fov_lon / fov_lat
+    coord = SkyCoord(
+        fov_lon=x.value * u.deg, fov_lat=y.value * u.deg, frame=TelescopeFrame
+    )
+    kwargs["pix_area"] = np.full(10, 0.01) * u.deg**2
+    geom = CameraGeometry(pix_coord=coord, **kwargs)
+    assert u.allclose(geom.pix_x, coord.fov_lon)
+    assert u.allclose(geom.pix_y, coord.fov_lat)
+
+    with pytest.raises(TypeError, match="cannot be combined"):
+        CameraGeometry(pix_coord=coord, pix_x=x, **kwargs)
+
+    with pytest.raises(TypeError, match="must be given"):
+        CameraGeometry(**kwargs)
+
+    with pytest.raises(ValueError, match="pix_coord has wrong shape"):
+        CameraGeometry(pix_coord=coord[:5], **kwargs)
+
+    with pytest.raises(ValueError, match="different shapes"):
+        CameraGeometry(pix_x=x, pix_y=y[:1], **kwargs)
+
+
+def test_default_frame():
+    """Default frame depends on the unit of the pixel coordinates"""
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    kwargs = dict(name="test", pix_id=np.arange(3), pix_type="hexagon")
+    geom = CameraGeometry(
+        pix_x=np.arange(3) * u.m,
+        pix_y=np.zeros(3) * u.m,
+        pix_area=np.ones(3) * u.m**2,
+        **kwargs,
+    )
+    assert isinstance(geom.frame, CameraFrame)
+
+    geom = CameraGeometry(
+        pix_x=np.arange(3) * u.deg,
+        pix_y=np.zeros(3) * u.deg,
+        pix_area=np.ones(3) * u.deg**2,
+        **kwargs,
+    )
+    assert isinstance(geom.frame, TelescopeFrame)
+
+
+@pytest.mark.parametrize("as_class", [True, False])
+def test_transform_keeps_frame_attributes(camera_geometry, as_class):
+    """Frame attributes must be propagated when passing frame classes or instances"""
+    from ctapipe.coordinates import CameraFrame, EngineeringCameraFrame
+
+    geom = deepcopy(camera_geometry)
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+
+    target = EngineeringCameraFrame if as_class else EngineeringCameraFrame()
+    geom_eng = geom.transform_to(target)
+
+    assert isinstance(geom_eng.frame, EngineeringCameraFrame)
+    assert not geom_eng.frame.has_data
+    assert geom_eng.frame.focal_length == 28 * u.m
+
+
+def test_transform_roundtrip_through_telescope_frame(camera_geometry):
+    """
+    TelescopeFrame does not have a focal_length, but it must be kept in
+    pix_coord so the transformation back to CameraFrame works without
+    specifying it again.
+    """
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    geom = deepcopy(camera_geometry)
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+
+    geom_tel = geom.transform_to(TelescopeFrame)
+    assert geom_tel.pix_coord.focal_length == 28 * u.m
+
+    geom_cam = geom_tel.transform_to(CameraFrame)
+    assert geom_cam.frame.focal_length == 28 * u.m
+    assert u.allclose(geom_cam.pix_x, geom.pix_x)
+    assert u.allclose(geom_cam.pix_y, geom.pix_y)
+    assert u.allclose(geom_cam.pix_area, geom.pix_area)
 
 
 def test_guess_width():

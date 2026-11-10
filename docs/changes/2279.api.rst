@@ -1,0 +1,15 @@
+``CameraGeometry`` now stores its pixel positions in a ``SkyCoord``, accessible as
+``CameraGeometry.pix_coord``; ``pix_x`` and ``pix_y`` are its components and
+``CameraGeometry.frame`` is its frame (without data).
+
+The preferred way to construct a ``CameraGeometry`` is now to pass the pixel positions
+as a ``SkyCoord`` using the new ``pix_coord`` argument, e.g.
+``CameraGeometry(name="LSTCam", pix_id=pix_id, pix_coord=coord, pix_area=pix_area, pix_type=pix_type)``.
+Passing ``pix_x``, ``pix_y`` and ``frame`` is still supported.
+
+``CameraGeometry.to_table()`` now always stores the pixel positions in ``CameraFrame``,
+transforming geometries defined in other frames first, and ``from_table()`` returns
+a geometry in ``CameraFrame``.
+
+If no ``frame`` is given, ``CameraFrame`` is now assumed for pixel coordinates with
+length units and ``TelescopeFrame`` for angular units, instead of ``None``.
