@@ -1094,8 +1094,11 @@ class StatisticsContainer(Container):
     std = Field(None, description="standard deviation")
     q05 = Field(None, description="0.05 quantile")
     q10 = Field(None, description="0.10 quantile")
+    q16 = Field(None, description="0.1587 quantile")
     q25 = Field(None, description="0.25 quantile")
+    q68 = Field(None, description="0.68 quantile")
     q75 = Field(None, description="0.75 quantile")
+    q84 = Field(None, description="0.8413 quantile")
     q90 = Field(None, description="0.90 quantile")
     q95 = Field(None, description="0.95 quantile")
     n_events = Field(
