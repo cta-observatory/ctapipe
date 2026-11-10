@@ -1,3 +1,278 @@
+
+ctapipe v0.33.0 (2026-11-10)
+============================
+
+
+API Changes
+-----------
+
+- CEP-002 has been implemented. This is a major API breaking change,
+  as the whole event container structure of ctapipe has been updated.
+
+  The main change is the inversion of the hierarchy of telescopes
+  and data levels.
+
+  Before, the data level came first and then below that
+  were mappings for each telescope:
+
+  .. code:: python
+
+     event.dl1.tel[tel_id].parameters.hillas
+
+  Whereas now, the subarray event has a collection of telescope events,
+  which then contain the different data levels:
+
+  .. code:: python
+
+     event.tel[tel_id].dl1.parameters.hillas
+
+  Fore more details, see :ref:`cep-002`.
+
+  With this, also the container structure itself has been largely refactored.
+
+  To be more compliant with the CTAO data model, the trigger information has also
+  been moved from the top-level of the event to the dl0 data level.
+
+  To access subarray trigger information, replace e.g.
+
+  .. code:: python
+
+     event.trigger.time
+
+  with:
+
+  .. code:: python
+
+     event.dl0.trigger.time
+
+  And, keeping in mind also the change for the telescope event hierarchy, for telescope trigger, now access:
+
+  .. code:: python
+
+     event.tel[tel_id].dl0.trigger
+
+  This change is also reflected in the HDF5 data format, but the readers
+  backwards compatibility with older data formats. [`#2204 <https://github.com/cta-observatory/ctapipe/pull/2204>`__]
+
+  Correspondingly, the DL0 event data from the telescopes, is now stored under:
+
+  .. code:: python
+
+     event.tel[tel_id].dl0.camera
+
+- Drop support for computing image parameters in ``CameraFrame`` (meters on the camera plane).
+  Going forward, ctapipe only implements computing image parameters in telescope frame (degrees on the sky).
+
+  * ``ctapipe-process`` and ``ImageProcessor`` no longer have options to chose between ``CameraFrame`` and ``TelescopeFrame```
+  * All image parameter functions do not support inputs in length units anymore
+  * If using these low-level functions directly in your code, you will need to transform your camera geometries into ``TelescopeFrame``
+    using ``geometry.transform_to(TelescopeFrame)``. This requires a correctly set ``frame`` attribute with a ``focal_length`` on the ``CameraGeometry``. If reading files using the ``SimTelEventSource`` or ``HDF5EventSource``, this is already the case, io plugins might need to adapt. [`#2396 <https://github.com/cta-observatory/ctapipe/pull/2396>`__]
+
+- `~ctapipe.coordinates.altaz_to_nominal` now returns a
+  `~astropy.coordinates.SkyCoord` in the `~ctapipe.coordinates.NominalFrame`
+  instead of a 2D `~astropy.units.Quantity`. Expressions in a
+  `~ctapipe.core.FeatureGenerator` should use ``coord.fov_lon`` and ``coord.fov_lat``
+  instead of ``coord[:,0]`` and ``coord[:,1]``. [`#3004 <https://github.com/cta-observatory/ctapipe/pull/3004>`__]
+
+- Update the API of the ``MonitoringEventSource``, the abstract interface for monitoring event sources:
+
+  - Add separate methods for telescope-wise monitoring data, using ``tel_id`` as positional,
+    required argument.
+    For this, there are two enums now, one for each type of monitoring data.
+  - Remove ``**kwargs`` from the abstract interface of all methods as implementation-dependent ``**kwargs``
+    cannot be known by callers that rely on the abstract interface.
+  - Promote ``subtype`` from being such an implementation-dependent ``**kwargs`` to a keyword argument and
+    let the ``available_data`` property return tuples of ``(mon_type, subtype)``.
+
+  The ``HDF5MonitoringSource`` was adjusted to to implement this new API. [`#3096 <https://github.com/cta-observatory/ctapipe/pull/3096>`__]
+
+- Require the output file to exist when using ``ctapipe-merge --append``.
+  Update :class:`~ctapipe.io.DataWriter` to validate the configurable
+  ``contact_info``, ``curation_info``, and ``product_info`` against the CTAO data
+  model. Remove the old ``instrument_info`` trait. Add configurable contact and
+  curation metadata to ``ctapipe-dump-instrument`` service-data output.
+
+  Add :func:`ctapipe.io.metadata.read_ctao_metadata` for reading current or legacy
+  CTAO metadata from HDF5, FITS, ECSV, and JSON files.
+  The base :class:`~ctapipe.io.EventSource` no longer provides a ``metadata``
+  attribute.
+
+  Remove the public ``write_reference_metadata_headers`` function; its
+  functionality is now handled internally by :class:`~ctapipe.io.DataWriter`.
+  Rename ``read_hdf5_metadata`` to the private function ``_read_hdf5_metadata``;
+  use :func:`ctapipe.io.metadata.read_ctao_metadata` instead. [`#3107 <https://github.com/cta-observatory/ctapipe/pull/3107>`__]
+
+- Removed the ``calib_scale`` option from ``SimTelEventSource`` and
+  ``apply_simtel_r1_calibration``. Use ``CameraCalibrator.calibration_scales``
+  to apply calibration scale factors. [`#3129 <https://github.com/cta-observatory/ctapipe/pull/3129>`__]
+
+- Apply event gain selection when ``HDF5MonitoringSource`` fills camera monitoring
+  containers. Pixel statistics match the gain-selected image, fixing NSB cleaning
+  with dual-gain pedestal statistics. Calibration coefficients keep a singleton
+  channel axis, and ``CameraCalibrator`` accepts already-selected coefficients. [`#3136 <https://github.com/cta-observatory/ctapipe/pull/3136>`__]
+
+- Allow optional columns in the ChunkInterpolator for backwards compatibility [`#3162 <https://github.com/cta-observatory/ctapipe/pull/3162>`__]
+
+- The defaults of the data level containers in ``SubarrayEventContainer``
+  and ``TelescopeEventContainer`` are set to ``None``, to clearly indicate
+  missing data levels vs. missing data in present data levels
+
+  The ``TelescopeDL0Container`` is split into two child containers,
+  one for the trigger info from SWAT, one for the waveform data from the
+  cameras (``TelescopeTriggerContainer``, ``DL0CameraContainer``). [`#3169 <https://github.com/cta-observatory/ctapipe/pull/3169>`__]
+
+
+Bug Fixes
+---------
+
+- The ``pixel_status`` field of the R1 data container is now filled correctly
+  in the ``SimTelEventSource`` in case of ``select_gain=False``.
+  Before, all pixels were marked as invalid because the ``pixel_status``
+  was initialized to 0 for all pixels and not updated. [`#3102 <https://github.com/cta-observatory/ctapipe/pull/3102>`__]
+
+- Include ``OpticsDescription.name`` in its ``__hash__`` function. [`#3110 <https://github.com/cta-observatory/ctapipe/pull/3110>`__]
+
+- ``MedianOutlierDetector`` and ``StdOutlierDetector`` now ignore NaN values when
+  computing the camera median and standard deviation. Previously, a single NaN value
+  resulted in no outliers being detected for the whole camera. [`#3117 <https://github.com/cta-observatory/ctapipe/pull/3117>`__]
+
+- Prevent ``DataWriter`` from overwriting input files of the current ``Activity`` to prevent data loss, even
+  when the ``overwrite`` option is enabled. [`#3122 <https://github.com/cta-observatory/ctapipe/pull/3122>`__]
+
+- Add ``pedestal_intensity`` field to ``DL0CameraContainer``.
+  This field is defined for both R1 and DL0 but was missing in the
+  DL0 container. [`#3126 <https://github.com/cta-observatory/ctapipe/pull/3126>`__]
+
+- Preserve the coordinate frame when slicing a
+  ``~ctapipe.instrument.CameraGeometry``. [`#3137 <https://github.com/cta-observatory/ctapipe/pull/3137>`__]
+
+- ctapipe-calculate-pixel-statistics now sets the pixel values marked as invalid in pixel_status to NaN before the aggregation. This functionality is optional and enabled by default. [`#3171 <https://github.com/cta-observatory/ctapipe/pull/3171>`__]
+
+
+
+
+Data Model Changes
+------------------
+
+- Add monitoring containers for pointing-related data [`#3063 <https://github.com/cta-observatory/ctapipe/pull/3063>`__]
+
+- Adopt ``ctao-datamodel`` as the metadata model for ctapipe data products.
+  :class:`~ctapipe.io.DataWriter` now writes validated CTAO product metadata,
+  including instance identifiers, data type and division, data level and
+  processing sublevels, observation or simulation information, contact, curation,
+  and provenance activity. Site identifiers and observation locations are derived
+  from the input subarray when available. ``ctapipe-dump-instrument`` uses the
+  same metadata model for service-data products.
+
+  Support reading current CTAO and legacy ctapipe reference metadata from HDF5,
+  FITS, ECSV, and JSON files. Legacy metadata is converted to the current CTAO
+  product model when read. ``ctapipe-merge`` migrates legacy HDF5 metadata in its
+  output, updates the metadata to describe the merged product, and validates
+  merge compatibility using the available observation and simulation metadata. [`#3107 <https://github.com/cta-observatory/ctapipe/pull/3107>`__]
+
+- Add the field ``pixel_status`` to ``DL1CameraContainer``, which is filled
+  by the ``CameraCalibrator`` from the DL0 pixel status and written to the DL1 image tables.
+  The data model version is increased to v7.7.0. [`#3117 <https://github.com/cta-observatory/ctapipe/pull/3117>`__]
+
+- Add new field ``tels_with_data`` to ``SubarrayTriggerContainer``.
+  This brings the ctapipe data model in line with the CTAO DL0 data model
+  and allows differentiating busy triggers from regular triggers. [`#3170 <https://github.com/cta-observatory/ctapipe/pull/3170>`__]
+
+
+New Features
+------------
+
+- Adds a new ``FeatureSet`` to `~ctapipe.io.EventPreprocessor` for DL2 to DL3
+  processing to generate GADF-like event lists. This adds the ability to transform
+  coordinates from Alt/AZ to ICRS, and supports applying pre-optimized
+  gamma-hadron cuts.
+
+  Also added a ``mode=MARK`` option that keeps all events, but adds boolean
+  columns per ``QualityCriterion`` showing which ones pass, and a final column
+  with their combination, named by the new configuration option
+  ``QualityQuery.passed_all_column_name`` (``PASSED_ALL`` by default). This is useful for
+  debugging. The default mode is still ``DROP``, which filters events. A
+  corresponding API function `~ctapipe.core.QualityQuery.add_table_mask_columns`
+  was also added to support this. It raises a
+  `~ctapipe.core.QualityCriteriaError` if the name of a criterion or of the combined
+  column is already a column of the table or is used more than once, so ``MARK``
+  mode rejects such configurations. [`#3004 <https://github.com/cta-observatory/ctapipe/pull/3004>`__]
+
+- The ``CameraCalibrator`` now combines the monitoring ``outlier_mask`` and the
+  per-event ``pixel_status`` information to determine invalid pixels for the
+  ``InvalidPixelHandler``.
+
+  The channel handling of the invalid pixels has been moved to the ``CameraCalibrator``,
+  ``ImageExtractor`` and ``InvalidPixelHandler`` implementations get gain selected
+  invalid pixel masks for gain selected input data. [`#3102 <https://github.com/cta-observatory/ctapipe/pull/3102>`__]
+
+- Add an option for ``CrossValidator`` to keep telescope events of the
+  same subarray events in the same cross validation splits.
+  This option is used in the energy and particle type classifier and
+  will result in lower but more realistic scores due to less correlation
+  between training and validation datasets. [`#3112 <https://github.com/cta-observatory/ctapipe/pull/3112>`__]
+
+- Add the option ``per_channel_statistics`` (flag ``--per-channel``) to
+  ``ctapipe-calculate-pixel-statistics`` to calculate per-channel statistics from
+  gain selected input data. Each pixel value is filled into the gain channel given
+  by ``selected_gain_channel``, so that mixed-gain inputs result in statistics
+  for both gain channels. [`#3117 <https://github.com/cta-observatory/ctapipe/pull/3117>`__]
+
+- Store machine learning models in zip files following the bagIt
+  archive convention, containing separate file entries for reconstructor
+  wrapper, its configurationa and the models themselves.
+
+  Data products metadata is stored in the bagit info file. [`#3120 <https://github.com/cta-observatory/ctapipe/pull/3120>`__]
+
+- ctapipe now uses the str representation of the telescope description
+  for machine learning model training and application.
+  This allows training and then applying models on slightly different but compatible
+  telescope descriptions.
+
+  This will also change how many models are trained in case several telescopes
+  have different telescope descriptions with the same string representation.
+  A single model is now trained for all telescopes sharing the same string representation
+  in such cases. [`#3127 <https://github.com/cta-observatory/ctapipe/pull/3127>`__]
+
+- Add a ``calibration_scales`` option to ``CameraCalibrator`` which allows
+  scaling the DL0 waveform by a factor per gain channel before image extraction. [`#3129 <https://github.com/cta-observatory/ctapipe/pull/3129>`__]
+
+- Add ``nsb_scaling_factor`` field of the ``SimulationConfigurationContainer`` and
+  fill it in the ``SimTelEventSource`` if available. [`#3131 <https://github.com/cta-observatory/ctapipe/pull/3131>`__]
+
+- Allow disabling the exception handling in ``Tool`` by setting the environment
+  variable ``CTAPIPE_TOOL_DEBUG=1``. This is useful for debugging exceptions using
+  pdb using e.g.:
+
+  .. code-block:: shell
+
+     CTAPIPE_TOOL_DEBUG=1 python -m pdb -m ctapipe.tools.process -i ... -o ...
+
+  By default, tool catches exceptions and transforms them into log messages, preventing
+  the use of the debugger. [`#3132 <https://github.com/cta-observatory/ctapipe/pull/3132>`__]
+
+- Extend the statistics container with quantiles
+  [`#3162 <https://github.com/cta-observatory/ctapipe/pull/3162>`__, `#3175 <https://github.com/cta-observatory/ctapipe/pull/3175>`__]
+
+- Add a description of the mirror facets to the optical description of the instrument. [`#3085 <https://github.com/cta-observatory/ctapipe/pull/3085>`__]
+
+Maintenance
+-----------
+
+- Raise the minimum supported Astropy version from 6.1 to 7.2. [`#3107 <https://github.com/cta-observatory/ctapipe/pull/3107>`__]
+
+- Replace conda ``environment.yaml`` for local dev and CI with separate pixi
+  env definitions. [`#3109 <https://github.com/cta-observatory/ctapipe/pull/3109>`__]
+
+
+Refactoring and Optimization
+----------------------------
+
+- Fix several type promition errors in numba signatures that
+  upcasted float32 values needlessly to float64. [`#3144 <https://github.com/cta-observatory/ctapipe/pull/3144>`__]
+
+
+
 ctapipe v0.32.0 (2026-09-11)
 ============================
 
