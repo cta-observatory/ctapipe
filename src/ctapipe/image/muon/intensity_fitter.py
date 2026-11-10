@@ -527,7 +527,7 @@ class MuonIntensityFitter(TelescopeComponent):
 
         super().__init__(subarray=subarray, **kwargs)
         self._geometries_tel_frame = {
-            tel_id: tel.camera.geometry.transform_to(TelescopeFrame())
+            tel_id: tel.camera.geometry.transform_to(TelescopeFrame)
             for tel_id, tel in subarray.tel.items()
         }
 

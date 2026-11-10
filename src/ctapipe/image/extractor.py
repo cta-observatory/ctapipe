@@ -894,9 +894,8 @@ class TwoPassWindowSum(ImageExtractor):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
-        telescope_frame = TelescopeFrame()
         self.telescope_frame_geometries = {
-            tel_id: telescope.camera.geometry.transform_to(telescope_frame)
+            tel_id: telescope.camera.geometry.transform_to(TelescopeFrame)
             for tel_id, telescope in self.subarray.tel.items()
         }
 
