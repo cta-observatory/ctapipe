@@ -275,10 +275,10 @@ def test_add_columns_passed_all_configurable():
     table = Table({"x": [-10, 1, 11]})
 
     low = QualityQuery(
-        quality_criteria=[("low", "x > 0")], passed_all_column="PASSED_LOW"
+        quality_criteria=[("low", "x > 0")], passed_all_column_name="PASSED_LOW"
     )
     high = QualityQuery(
-        quality_criteria=[("high", "x < 10")], passed_all_column="PASSED_HIGH"
+        quality_criteria=[("high", "x < 10")], passed_all_column_name="PASSED_HIGH"
     )
 
     table_with_cols = high.add_table_mask_columns(low.add_table_mask_columns(table))

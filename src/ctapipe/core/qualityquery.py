@@ -35,7 +35,7 @@ class QualityQuery(Component):
         ),
     ).tag(config=True)
 
-    passed_all_column = Unicode(
+    passed_all_column_name = Unicode(
         default_value="PASSED_ALL",
         help=(
             "Name of the column that `add_table_mask_columns` adds with the combination"
@@ -151,7 +151,7 @@ class QualityQuery(Component):
         """
         Return a shallow copy of the table with boolean columns for each criterion.
 
-        A final column, named by `QualityQuery.passed_all_column`, is true for the
+        A final column, named by `QualityQuery.passed_all_column_name`, is true for the
         entries that pass all criteria. The input table does not gain any columns,
         but the returned table shares the data of its existing columns.
 
@@ -173,7 +173,7 @@ class QualityQuery(Component):
             If the name of a criterion or of the combined column is already a column
             of the table or is used more than once.
         """
-        names = [*self.criteria_names, self.passed_all_column]
+        names = [*self.criteria_names, self.passed_all_column_name]
         collisions = [
             name
             for i, name in enumerate(names)
@@ -196,7 +196,7 @@ class QualityQuery(Component):
         for name, mask in zip(self.criteria_names, result[1:]):
             table[name] = mask
 
-        table[self.passed_all_column] = np.all(result, axis=0)
+        table[self.passed_all_column_name] = np.all(result, axis=0)
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)

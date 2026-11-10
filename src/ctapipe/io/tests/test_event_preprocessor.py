@@ -116,7 +116,7 @@ def test_mark_passed_all(minimal_dl2_table, subarray_prod5_paranal):
 
     # the name can be configured
     config = Config()
-    config.EventPreprocessor.QualityQuery.passed_all_column = "SELECTED"
+    config.EventPreprocessor.QualityQuery.passed_all_column_name = "SELECTED"
     marked = process(EventPreprocessorMode.MARK, config=config)
     assert "SELECTED" in marked.colnames
     assert "PASSED_ALL" not in marked.colnames

@@ -232,7 +232,7 @@ class EventPreprocessor(Component):
         help=(
             "If 'DROP', removes events that do not pass quality cuts. "
             "If 'MARK', generates a new boolean column for each quality criteria "
-            "and one for their combination (see QualityQuery.passed_all_column), "
+            "and one for their combination (see QualityQuery.passed_all_column_name), "
             "but keeps all events."
         ),
     ).tag(config=True)
@@ -372,7 +372,7 @@ class EventPreprocessor(Component):
             query = self.quality_query
             generated = query.add_table_mask_columns(generated)
             return generated[
-                self.features + query.criteria_names + [query.passed_all_column]
+                self.features + query.criteria_names + [query.passed_all_column_name]
             ]
         else:
             raise ValueError("Unsupported mode: {self.mode}")
