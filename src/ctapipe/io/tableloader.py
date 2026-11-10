@@ -906,14 +906,20 @@ class TableLoader(Component):
         # know which telescopes participated in which events
         table = self.h5file.root[self._trigger_table]
         n_events = table.shape[0]
-        n_telescopes = table.coldescrs["tels_with_trigger"].shape[0]
 
-        tels_with_trigger = np.zeros((n_events + 1, n_telescopes), dtype=np.bool_)
-        table.read(field="tels_with_trigger", out=tels_with_trigger[1:])
-        tels_with_trigger = tels_with_trigger.astype(np.uint32)
+        # prefer tels_with_data but fallback to tels_with_trigger if not present
+        col = "tels_with_data"
+        if col not in table.coldescrs:
+            col = "tels_with_trigger"
 
-        np.cumsum(tels_with_trigger, out=tels_with_trigger, axis=0)
-        return tels_with_trigger
+        n_telescopes = table.coldescrs[col].shape[0]
+
+        tels_with_data = np.zeros((n_events + 1, n_telescopes), dtype=np.bool_)
+        table.read(field=col, out=tels_with_data[1:])
+        tels_with_data = tels_with_data.astype(np.uint32)
+
+        np.cumsum(tels_with_data, out=tels_with_data, axis=0)
+        return tels_with_data
 
     @lazyproperty
     def _n_total_telescope_events(self):
