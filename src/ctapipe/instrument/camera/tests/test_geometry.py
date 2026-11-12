@@ -267,6 +267,21 @@ def test_slicing(prod5_mst_nectarcam):
     assert len(sliced2.pix_x) == 5
 
 
+@pytest.mark.parametrize("frame", [CameraFrame, TelescopeFrame])
+def test_slicing_pix_coord(prod5_mst_nectarcam, frame):
+    """Sliced pix_x / pix_y (copied from the parent) must match the sliced pix_coord"""
+    geom = prod5_mst_nectarcam.camera.geometry.transform_to(frame)
+    mask = np.zeros(geom.n_pixels, dtype=bool)
+    mask[::7] = True
+
+    sliced = geom[mask]
+    x_name, y_name = sliced.frame.get_representation_component_names().keys()
+    assert sliced.pix_coord.shape == (mask.sum(),)
+    assert u.allclose(sliced.pix_x, getattr(sliced.pix_coord, x_name))
+    assert u.allclose(sliced.pix_y, getattr(sliced.pix_coord, y_name))
+    assert sliced.pix_area.unit == geom.pix_area.unit
+
+
 def test_slicing_rotation(camera_geometry):
     """Check that we can rotate and slice"""
     camera_geometry.rotate("25d")
