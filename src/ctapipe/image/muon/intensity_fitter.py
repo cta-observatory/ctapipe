@@ -12,7 +12,7 @@ from numba import double, vectorize
 from scipy.constants import alpha, e
 from scipy.ndimage import correlate1d
 
-from ...containers import MuonEfficiencyContainer
+from ...containers import MuonBandwidthContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
@@ -552,7 +552,7 @@ class MuonIntensityFitter(TelescopeComponent):
 
         Returns
         -------
-        MuonEfficiencyContainer
+        MuonBandwidthContainer
         """
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.n_mirrors != 1:
@@ -603,7 +603,7 @@ class MuonIntensityFitter(TelescopeComponent):
         # Get fitted values
         result = minuit.values
 
-        return MuonEfficiencyContainer(
+        return MuonBandwidthContainer(
             impact=result["impact_parameter"] * u.m,
             impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
             impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
