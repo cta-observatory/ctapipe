@@ -654,7 +654,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         muon_simtel_output_file, focal_length_choice="EQUIVALENT"
     ) as source:
         radius = table["muonring_radius"].quantity
-        efficiency = table["muonefficiency_optical_bandwidth"].quantity
+        efficiency = table["muonbandwidth_optical_bandwidth"].quantity
         completeness = table["muonparameters_completeness"]
 
         for event in source:
