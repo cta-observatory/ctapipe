@@ -160,7 +160,7 @@ class CameraGeometry:
         self.n_pixels = len(pix_id)
         self.pix_id = np.array(pix_id)
         self.pix_coord = pix_coord
-        self.pix_area = pix_area.to(self.unit**2)
+        self.pix_area = pix_area
         self.pix_type = pix_type
         self.grid_type = grid_type
         self.pix_rotation = pix_rotation
@@ -241,6 +241,8 @@ class CameraGeometry:
 
     def _validate(self):
         self.pix_id = np.array(self.pix_id)
+        # done here, as accessing the unit is slow for a new pix_coord
+        self.pix_area = self.pix_area.to(self.unit**2)
 
         if self.pix_id.ndim != 1:
             raise ValueError(
@@ -428,7 +430,7 @@ class CameraGeometry:
         return self.n_pixels
 
     def __getitem__(self, slice_):
-        return CameraGeometry(
+        geom = CameraGeometry(
             name=" ".join([self.name, " sliced"]),
             pix_id=self.pix_id[slice_],
             pix_coord=self.pix_coord[slice_],
@@ -441,6 +443,11 @@ class CameraGeometry:
             apply_derotation=False,
             _validate=False,
         )
+        # slicing happens for every event, so fill the cached components from
+        # this geometry, computing them from the sliced SkyCoord is slow (~100 µs)
+        geom.pix_x = self.pix_x[slice_]
+        geom.pix_y = self.pix_y[slice_]
+        return geom
 
     @lazyproperty
     def pixel_width(self):
