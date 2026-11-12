@@ -7,6 +7,7 @@ import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 
+from ctapipe.coordinates import CameraFrame, TelescopeFrame
 from ctapipe.instrument import CameraGeometry, PixelShape
 from ctapipe.instrument.warnings import FromNameWarning
 
@@ -18,8 +19,7 @@ def test_construct():
     geom = CameraGeometry(
         name="Unknown",
         pix_id=np.arange(100),
-        pix_x=x * u.m,
-        pix_y=y * u.m,
+        pix_coord=SkyCoord(x * u.m, y * u.m, frame=CameraFrame),
         pix_area=x * u.m**2,
         pix_type=PixelShape.SQUARE,
         pix_rotation="10d",
@@ -35,8 +35,7 @@ def test_construct():
         geom = CameraGeometry(
             name="Unknown",
             pix_id=np.arange(100),
-            pix_x=x * u.m,
-            pix_y=y * u.m,
+            pix_coord=SkyCoord(x * u.m, y * u.m, frame=CameraFrame),
             pix_area=x * u.m**2,
             pix_type="foo",
             pix_rotation="10d",
@@ -47,8 +46,7 @@ def test_construct():
     geom = CameraGeometry(
         name="Unknown",
         pix_id=np.arange(100),
-        pix_x=x * u.m,
-        pix_y=y * u.m,
+        pix_coord=SkyCoord(x * u.m, y * u.m, frame=CameraFrame),
         pix_area=x * u.m**2,
         pix_type="rectangular",
         pix_rotation="10d",
@@ -99,11 +97,10 @@ def test_find_neighbor_pixels():
     n_pixels = len(x)
 
     geom = CameraGeometry(
-        "test",
+        name="test",
         pix_id=np.arange(n_pixels),
         pix_area=u.Quantity(np.full(n_pixels, 4), u.cm**2),
-        pix_x=x.ravel(),
-        pix_y=y.ravel(),
+        pix_coord=SkyCoord(x.ravel(), y.ravel(), frame=CameraFrame),
         pix_type="rectangular",
     )
 
@@ -144,8 +141,11 @@ def test_calc_pixel_neighbors_square():
         name="test",
         pix_id=np.arange(400),
         pix_type="rectangular",
-        pix_x=u.Quantity(x.ravel(), u.cm),
-        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_coord=SkyCoord(
+            u.Quantity(x.ravel(), u.cm),
+            u.Quantity(y.ravel(), u.cm),
+            frame=CameraFrame,
+        ),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
     )
 
@@ -164,8 +164,11 @@ def test_calc_pixel_neighbors_square_diagonal():
         name="test",
         pix_id=np.arange(400),
         pix_type="rectangular",
-        pix_x=u.Quantity(x.ravel(), u.cm),
-        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_coord=SkyCoord(
+            u.Quantity(x.ravel(), u.cm),
+            u.Quantity(y.ravel(), u.cm),
+            frame=CameraFrame,
+        ),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
     )
 
@@ -229,8 +232,9 @@ def test_precal_neighbors():
     geom = CameraGeometry(
         name="TestCam",
         pix_id=np.arange(3),
-        pix_x=np.arange(3) * u.deg,
-        pix_y=np.arange(3) * u.deg,
+        pix_coord=SkyCoord(
+            np.arange(3) * u.deg, np.arange(3) * u.deg, frame=TelescopeFrame
+        ),
         pix_area=np.ones(3) * u.deg**2,
         neighbors=[[1], [0, 2], [1]],
         pix_type="rectangular",
@@ -280,8 +284,7 @@ def test_rectangle_patch_neighbors():
     cam = CameraGeometry(
         name="testcam",
         pix_id=np.arange(pix_x.size),
-        pix_x=pix_x,
-        pix_y=pix_y,
+        pix_coord=SkyCoord(pix_x, pix_y, frame=CameraFrame),
         pix_area=pix_area,
         pix_type="rectangular",
     )
@@ -411,12 +414,9 @@ def test_pix_coord(camera_geometry):
 
 
 def test_construct_from_pix_coord():
-    """Constructing from a SkyCoord is equivalent to pix_x, pix_y and frame"""
-    from ctapipe.coordinates import CameraFrame, TelescopeFrame
-
+    """pix_x / pix_y / frame are derived from the pix_coord SkyCoord"""
     x = np.linspace(-1, 1, 10) * u.m
     y = np.linspace(-2, 2, 10) * u.m
-    frame = CameraFrame(focal_length=28 * u.m)
     kwargs = dict(
         name="test",
         pix_id=np.arange(10),
@@ -424,13 +424,13 @@ def test_construct_from_pix_coord():
         pix_type="hexagon",
     )
 
-    geom = CameraGeometry(pix_coord=SkyCoord(x, y, frame=frame), **kwargs)
-    old_style = CameraGeometry(pix_x=x, pix_y=y, frame=frame, **kwargs)
-
-    assert geom == old_style
+    geom = CameraGeometry(
+        pix_coord=SkyCoord(x, y, frame=CameraFrame(focal_length=28 * u.m)), **kwargs
+    )
     assert u.allclose(geom.pix_x, x)
     assert u.allclose(geom.pix_y, y)
-    assert geom.frame.is_equivalent_frame(old_style.frame)
+    assert isinstance(geom.frame, CameraFrame)
+    assert geom.frame.focal_length == 28 * u.m
 
     # spherical frames: pix_x / pix_y map to fov_lon / fov_lat
     coord = SkyCoord(
@@ -440,46 +440,25 @@ def test_construct_from_pix_coord():
     geom = CameraGeometry(pix_coord=coord, **kwargs)
     assert u.allclose(geom.pix_x, coord.fov_lon)
     assert u.allclose(geom.pix_y, coord.fov_lat)
+    assert isinstance(geom.frame, TelescopeFrame)
 
-    with pytest.raises(TypeError, match="cannot be combined"):
-        CameraGeometry(pix_coord=coord, pix_x=x, **kwargs)
+    # all arguments are keyword-only, and pix_coord, pix_area, pix_type are required
+    with pytest.raises(TypeError, match="positional"):
+        CameraGeometry("test", np.arange(10), coord, kwargs["pix_area"], "hexagon")
 
-    with pytest.raises(TypeError, match="must be given"):
-        CameraGeometry(**kwargs)
-
-    # pix_area and pix_type are required, also with pix_coord
     for missing in ("pix_area", "pix_type"):
         incomplete = {k: v for k, v in kwargs.items() if k != missing}
-        with pytest.raises(TypeError, match="pix_area and pix_type must be given"):
+        with pytest.raises(TypeError, match=f"missing .*'{missing}'"):
             CameraGeometry(pix_coord=coord, **incomplete)
+
+    with pytest.raises(TypeError, match="missing .*'pix_coord'"):
+        CameraGeometry(**kwargs)
+
+    with pytest.raises(TypeError, match="pix_coord must be a SkyCoord"):
+        CameraGeometry(pix_coord=x, **kwargs)
 
     with pytest.raises(ValueError, match="pix_coord has wrong shape"):
         CameraGeometry(pix_coord=coord[:5], **kwargs)
-
-    with pytest.raises(ValueError, match="different shapes"):
-        CameraGeometry(pix_x=x, pix_y=y[:1], **kwargs)
-
-
-def test_default_frame():
-    """Default frame depends on the unit of the pixel coordinates"""
-    from ctapipe.coordinates import CameraFrame, TelescopeFrame
-
-    kwargs = dict(name="test", pix_id=np.arange(3), pix_type="hexagon")
-    geom = CameraGeometry(
-        pix_x=np.arange(3) * u.m,
-        pix_y=np.zeros(3) * u.m,
-        pix_area=np.ones(3) * u.m**2,
-        **kwargs,
-    )
-    assert isinstance(geom.frame, CameraFrame)
-
-    geom = CameraGeometry(
-        pix_x=np.arange(3) * u.deg,
-        pix_y=np.zeros(3) * u.deg,
-        pix_area=np.ones(3) * u.deg**2,
-        **kwargs,
-    )
-    assert isinstance(geom.frame, TelescopeFrame)
 
 
 @pytest.mark.parametrize("as_class", [True, False])
@@ -528,22 +507,20 @@ def test_guess_width():
 
 def test_pixel_width():
     geom = CameraGeometry(
-        "test",
+        name="test",
         pix_id=[1],
         pix_area=[2] * u.cm**2,
-        pix_x=[0] * u.m,
-        pix_y=[0] * u.m,
+        pix_coord=SkyCoord([0] * u.m, [0] * u.m, frame=CameraFrame),
         pix_type="hex",
     )
 
     assert np.isclose(geom.pixel_width.to_value(u.cm), [2 * np.sqrt(1 / np.sqrt(3))])
 
     geom = CameraGeometry(
-        "test",
+        name="test",
         pix_id=[1],
         pix_area=[2] * u.cm**2,
-        pix_x=[0] * u.m,
-        pix_y=[0] * u.m,
+        pix_coord=SkyCoord([0] * u.m, [0] * u.m, frame=CameraFrame),
         pix_type="rect",
     )
 

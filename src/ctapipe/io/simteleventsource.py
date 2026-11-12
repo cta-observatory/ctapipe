@@ -8,7 +8,7 @@ from io import BufferedReader
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, EarthLocation
+from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from astropy.table import Table
 from astropy.time import Time
 
@@ -266,17 +266,20 @@ def build_camera(simtel_telescope, telescope, frame):
         pix_type = "hexagon"
         pix_rotation = "0d"
 
+    pix_coord = SkyCoord(
+        u.Quantity(camera_settings["pixel_x"], u.m),
+        u.Quantity(camera_settings["pixel_y"], u.m),
+        frame=frame,
+    )
     geometry = CameraGeometry(
-        telescope.camera_name,
+        name=telescope.camera_name,
         pix_id=np.arange(camera_settings["n_pixels"]),
-        pix_x=u.Quantity(camera_settings["pixel_x"], u.m),
-        pix_y=u.Quantity(camera_settings["pixel_y"], u.m),
+        pix_coord=pix_coord,
         pix_area=u.Quantity(camera_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(camera_settings["cam_rot"], u.rad),
         apply_derotation=True,
-        frame=frame,
     )
     readout = CameraReadout(
         telescope.camera_name,
