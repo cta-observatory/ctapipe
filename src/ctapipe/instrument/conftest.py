@@ -9,6 +9,7 @@ import shutil
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.coordinates import SkyCoord
 from astropy.coordinates.earth import EarthLocation
 from astropy.table import QTable
 
@@ -448,12 +449,10 @@ def geometry_hexgrid_square_pixels():
 
     geom = CameraGeometry(
         pix_id=pix_id,
-        pix_x=pix_x,
-        pix_y=pix_y,
+        pix_coord=SkyCoord(pix_x, pix_y, frame=CameraFrame(focal_length=10 * u.m)),
         pix_area=pix_area,
         pix_type=PixelShape.SQUARE,
         grid_type=PixelGridType.REGULAR_HEX,
         name="HEXSQUARECAM",
-        frame=CameraFrame(focal_length=10 * u.m),
     )
     return geom

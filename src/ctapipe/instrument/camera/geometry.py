@@ -16,11 +16,7 @@ from astropy.utils import lazyproperty
 from scipy.sparse import csr_array, lil_array
 from scipy.spatial import KDTree
 
-from ctapipe.coordinates import (
-    CameraFrame,
-    TelescopeFrame,
-    get_representation_component_names,
-)
+from ctapipe.coordinates import CameraFrame, get_representation_component_names
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 
@@ -110,20 +106,21 @@ class CameraGeometry:
          Camera name (e.g. "NectarCam", "LSTCam", ...)
     pix_id : np.ndarray[int]
         pixels id numbers
-    pix_x : u.Quantity
-        position of each pixel (x-coordinate). Old-style alternative to
-        ``pix_coord``, to be given together with ``pix_y`` and ``frame``.
-    pix_y : u.Quantity
-        position of each pixel (y-coordinate). Old-style alternative to
-        ``pix_coord``.
+    pix_coord : astropy.coordinates.SkyCoord
+        Position of each pixel, in the frame the geometry is defined in (after
+        applying cam_rotation), e.g. `~ctapipe.coordinates.CameraFrame`. Besides
+        the attributes of its own frame, the SkyCoord also keeps any other frame
+        attributes (e.g. ``focal_length`` for a geometry in
+        `~ctapipe.coordinates.TelescopeFrame`), which are needed to transform to
+        other frames.
     pix_area : u.Quantity
-        surface area of each pixel. Required.
+        surface area of each pixel
+    pix_type : PixelShape | str
+        shape of the pixels, a `PixelShape` or its name (e.g. "hexagon")
     grid_type : None | PixelGridType
         The grid type of the pixel grid. By default, square pixels
         are assumed to be on a regular square grid and circular and hexagonal
         pixels are assumed to be on a regular hex grid.
-    pix_type : PixelShape | str
-        shape of the pixels, a `PixelShape` or its name (e.g. "hexagon"). Required.
     pix_rotation : u.Quantity[angle]
         rotation of the pixels, global value for all pixels
     cam_rotation : u.Quantity[angle]
@@ -136,18 +133,6 @@ class CameraGeometry:
         between pixels.
     apply_derotation : bool
         If true, rotate the pixel coordinates, so that cam_rotation is 0.
-    frame : BaseCoordinateFrame class or instance
-        Frame in which ``pix_x`` and ``pix_y`` are defined (after applying
-        cam_rotation). If None, `~ctapipe.coordinates.CameraFrame` is assumed for
-        pixel coordinates with length units and
-        `~ctapipe.coordinates.TelescopeFrame` for angular units.
-    pix_coord : astropy.coordinates.SkyCoord
-        Position of each pixel, in the frame the geometry is defined in (after
-        applying cam_rotation). This is the preferred way to pass pixel positions,
-        as the SkyCoord also keeps frame attributes not used by its own frame
-        (e.g. ``focal_length`` for a geometry in
-        `~ctapipe.coordinates.TelescopeFrame`), which are needed to transform to
-        other frames. Cannot be combined with ``pix_x``, ``pix_y`` and ``frame``.
     """
 
     CURRENT_TAB_VERSION = "2.1"
@@ -155,32 +140,21 @@ class CameraGeometry:
 
     def __init__(
         self,
+        *,
         name,
         pix_id,
-        pix_x=None,
-        pix_y=None,
-        pix_area=None,
-        # pix_area and pix_type are required, None is only a default because
-        # pix_x and pix_y before them are optional
-        pix_type: PixelShape | str = None,
+        pix_coord: SkyCoord,
+        pix_area,
+        pix_type: PixelShape | str,
         grid_type: None | PixelGridType | str = None,
         pix_rotation=0 * u.deg,
         cam_rotation=0 * u.deg,
         neighbors=None,
         apply_derotation=True,
-        frame=None,
-        pix_coord: SkyCoord = None,
         _validate=True,
     ):
-        if pix_coord is None:
-            if pix_x is None or pix_y is None:
-                raise TypeError("Either pix_coord or pix_x and pix_y must be given")
-            pix_coord = self._make_pix_coord(pix_x, pix_y, frame)
-        elif pix_x is not None or pix_y is not None or frame is not None:
-            raise TypeError("pix_x, pix_y and frame cannot be combined with pix_coord")
-
-        if pix_area is None or pix_type is None:
-            raise TypeError("pix_area and pix_type must be given")
+        if not isinstance(pix_coord, SkyCoord):
+            raise TypeError(f"pix_coord must be a SkyCoord, got {type(pix_coord)}")
 
         self.name = name
         self.n_pixels = len(pix_id)
@@ -210,21 +184,6 @@ class CameraGeometry:
 
             # cache border pixel mask per instance
         self._border_cache = {}
-
-    @staticmethod
-    def _make_pix_coord(pix_x, pix_y, frame):
-        """Build ``pix_coord`` from the old-style pix_x, pix_y and frame arguments"""
-        if pix_x.shape != pix_y.shape:
-            raise ValueError(
-                f"pix_x and pix_y have different shapes: {pix_x.shape} != {pix_y.shape}"
-            )
-
-        if frame is None:
-            frame = (
-                TelescopeFrame if pix_x.unit.physical_type == "angle" else CameraFrame
-            )
-
-        return SkyCoord(pix_x, pix_y.to(pix_x.unit), frame=frame)
 
     @property
     def pix_coord(self) -> SkyCoord:
@@ -1049,8 +1008,7 @@ class CameraGeometry:
         return cls(
             name="RectangularCamera",
             pix_id=ids,
-            pix_x=xx,
-            pix_y=yy,
+            pix_coord=SkyCoord(xx, yy, frame=CameraFrame),
             pix_area=(2 * rr) ** 2,
             neighbors=None,
             pix_type=PixelShape.SQUARE,
