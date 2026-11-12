@@ -182,7 +182,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
     """Test of the absolute normalization factor."""
     from ctapipe.coordinates import TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
-        bandwidth_to_efficiency_factor,
+        efficiency_to_bandwith,
         image_prediction,
     )
 
@@ -216,9 +216,11 @@ def test_normalisation_factor(prod5_lst, reference_location):
     lambda_min = 300 * u.nm
     lambda_max = 600 * u.nm
 
-    measured = (
-        np.sum(image) / u.eV / bandwidth_to_efficiency_factor(lambda_min, lambda_max)
-    )
+    # image_prediction gives photons per eV of optical bandwidth;
+    # multiply by the bandwidth corresponding to 100 % efficiency
+    measured = np.sum(image) * efficiency_to_bandwith(
+        1.0, lambda_min, lambda_max
+    ).to_value(u.eV)
     expected = expected_nphot(
         r_mirror=mirror_radius,
         theta_cher=1.1 * u.deg,
