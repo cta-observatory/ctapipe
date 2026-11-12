@@ -205,7 +205,7 @@ class SKLearnReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event: SubarrayEventContainer
+        event : SubarrayEventContainer
         """
 
     def __getstate__(self):
@@ -755,7 +755,7 @@ class DispReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event: SubarrayEventContainer
+        event : SubarrayEventContainer
         """
         self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():

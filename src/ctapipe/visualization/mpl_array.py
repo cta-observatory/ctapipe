@@ -30,17 +30,17 @@ class ArrayDisplay:
 
     Parameters
     ----------
-    subarray: ctapipe.instrument.SubarrayDescription
+    subarray : ctapipe.instrument.SubarrayDescription
         the array layout to display
-    axes: matplotlib.axes.Axes
+    axes : matplotlib.axes.Axes
         matplotlib axes to plot on, or None to use current one
-    title: str
+    title : str
         title of array plot
-    tel_scale: float
+    tel_scale : float
         scaling between telescope mirror radius in m to displayed size
-    autoupdate: bool
+    autoupdate : bool
         redraw when the input changes
-    radius: Union[float, list, None]
+    radius : Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
     """
@@ -164,7 +164,7 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        spacing: Quantity
+        spacing : Quantity
             spacing between rings
 
         """
@@ -203,13 +203,13 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        uu: array[n_tels]
+        uu : array[n_tels]
             x-component of direction vector
-        vv: array[n_tels]
+        vv : array[n_tels]
             y-component of direction vector
-        c: color or list of colors
+        c : color or list of colors
             vector color for each telescope (or one for all)
-        kwargs:
+        kwargs :
             extra args passed to plt.quiver(), ignored on subsequent updates
         """
         coords = self.tel_coords
@@ -249,11 +249,11 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        rho: float or array[float]
+        rho : float or array[float]
             vector magnitude for each telescope
-        phi: array[Angle]
+        phi : array[Angle]
             vector angle for each telescope
-        c: color or list of colors
+        c : color or list of colors
             vector color for each telescope (or one for all)
         """
         phi = Angle(phi).rad
@@ -276,15 +276,15 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        hillas_dict: Dict[int, HillasParametersContainer]
+        hillas_dict : Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
         core_dict : Dict[int, CoreParameters]
             mapping of tel_id to CoreParametersContainer
-        length: Float
+        length : Float
             length of the arrow (in meters)
-        time_gradient: Dict[int, value of time gradient (no units)]
+        time_gradient : Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
-        angle_offset: Float
+        angle_offset : Float
             This should be the ``event.monitoring.pointing.azimuth`` parameter
         """
 
@@ -317,11 +317,11 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        hillas_dict: Dict[int, HillasParametersContainer]
+        hillas_dict : Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
         core_dict : Dict[int, CoreParameters]
             mapping of tel_id to CoreParametersContainer
-        range: float
+        range : float
             half of the length of the segments to be plotted (in meters)
         """
 
@@ -390,13 +390,13 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        x: ndarray
+        x : ndarray
             array of image X coordinates
-        y: ndarray
+        y : ndarray
             array of image Y coordinates
-        background: ndarray
+        background : ndarray
             Array of image to use in background
-        kwargs: key=value
+        kwargs : key=value
             any style keywords to pass to matplotlib
         """
 

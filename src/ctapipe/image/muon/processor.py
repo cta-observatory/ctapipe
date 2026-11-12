@@ -235,13 +235,13 @@ class MuonProcessor(TelescopeComponent):
 
         Parameters
         ----------
-        tel_id: int
+        tel_id : int
             Telescope ID of the instrument that has measured the image
-        image: np.ndarray
+        image : np.ndarray
             Image to process
-        clean_mask: np.ndarray[bool]
+        clean_mask : np.ndarray[bool]
             DL1 Image cleaning mask
-        ring: MuonRingContainer
+        ring : MuonRingContainer
             Collection of the fitted rings parameters
 
         Returns

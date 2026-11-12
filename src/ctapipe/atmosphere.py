@@ -102,11 +102,11 @@ class AtmosphereDensityProfile(abc.ABC):
 
         Parameters
         ----------
-        height: u.Quantity["length"]
+        height : u.Quantity["length"]
            height a.s.l. at which to start integral
-        zenith_angle: u.Quantity["angle"]
+        zenith_angle : u.Quantity["angle"]
            zenith angle of observation
-        output_units: u.Unit
+        output_units : u.Unit
            unit to output (must be convertible to g/cm2)
 
         """
@@ -130,11 +130,11 @@ class AtmosphereDensityProfile(abc.ABC):
 
         Parameters
         ----------
-        slant_depth: u.Quantity["grammage"]
+        slant_depth : u.Quantity["grammage"]
            line-of-site distance from observer to point
-        zenith_angle: u.Quantity["angle"]
+        zenith_angle : u.Quantity["angle"]
            zenith angle of observation
-        output_units: u.Unit
+        output_units : u.Unit
            unit to output (must be convertible to m)
 
         """

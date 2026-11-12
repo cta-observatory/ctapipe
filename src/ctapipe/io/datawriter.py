@@ -1006,7 +1006,7 @@ class DataWriter(Component):
 
         Parameters
         ----------
-        path: str
+        path : str
             path in the HDF5 file where to place the profile
 
         """

@@ -92,11 +92,11 @@ def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
 
     Parameters
     ----------
-    input_file: str
+    input_file : str
         template file to read
-    output_file: str
+    output_file : str
         file to write
-    transformations: Dict[str, str]
+    transformations : Dict[str, str]
         dict of search and replacement strings
     """
 

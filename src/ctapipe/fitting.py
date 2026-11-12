@@ -41,9 +41,9 @@ def linear_regression(X, y):
 
     Parameters
     ----------
-    X: np.array
+    X : np.array
         Design matrix of shape (N, 2), as created by `~ctapipe.fitting.design_matrix`
-    y: np.array
+    y : np.array
         y values
     """
     mat = X.T @ X
@@ -59,11 +59,11 @@ def residual_sum_of_squares(X, y, beta):
 
     Parameters
     ----------
-    X: np.array
+    X : np.array
         Design matrix of shape (N, 2), as created by ``~ctapipe.fitting.design_matrix``
-    y: np.array
+    y : np.array
         y values
-    beta: np.array
+    beta : np.array
         Parameter vector of the linear regression
     """
     return np.sum(residuals(X, y, beta) ** 2)
@@ -75,11 +75,11 @@ def residuals(X, y, beta):
 
     Parameters
     ----------
-    X: np.array
+    X : np.array
         Design matrix of shape (N, 2), as created by ``~ctapipe.fitting.design_matrix``
-    y: np.array
+    y : np.array
         y values
-    beta: np.array
+    beta : np.array
         Parameter vector of the linear regression
     """
     return y - (X[:, 0] * beta[0] + beta[1])
@@ -171,22 +171,22 @@ def lts_linear_regression(
 
     Parameters
     ----------
-    x: np.array
+    x : np.array
         x values for the linear regression
-    y: np.array
+    y : np.array
         y values for the linear regression
-    samples: int
+    samples : int
         How many initial samples to generate.
         For each sample, the C-step optimization is performed and the result
         with the lowest sum of squares is returned.
-    relative_sample_size: float
+    relative_sample_size : float
         Portion of points to be used for the fit, should be > 0.5
-    max_iterations: int
+    max_iterations : int
         maximum number of C-Steps performed for each sample.
         The fit should converge much faster (normally after < 10 iterations)
-    eps: float
+    eps : float
         differences in residual sum of squares at which the iteration will be stopped
-    rng: numpy.random.Generator
+    rng : numpy.random.Generator
         Random generator for drawing fit samples
 
     Returns

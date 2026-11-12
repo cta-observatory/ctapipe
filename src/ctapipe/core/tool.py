@@ -271,7 +271,7 @@ class Tool(Application):
 
         Parameters
         ----------
-        path: Union[str, pathlib.Path]
+        path : Union[str, pathlib.Path]
             config file to load. [yaml, toml, json, py] formats are supported
         """
         path = pathlib.Path(path)
@@ -324,7 +324,7 @@ class Tool(Application):
 
         Parameters
         ----------
-        component_instance: Component
+        component_instance : Component
             constructed instance of a component
 
         Returns
@@ -356,7 +356,7 @@ class Tool(Application):
 
         Parameters
         ----------
-        output_paths: Path
+        output_paths : Path
             One or more output path to check.
 
         """
@@ -404,7 +404,7 @@ class Tool(Application):
         Parameters
         ----------
 
-        argv: list(str)
+        argv : list(str)
             command-line arguments, or None to get them
             from sys.argv automatically
 
@@ -578,9 +578,9 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
 
     Parameters
     ----------
-    tool_instance: Tool
+    tool_instance : Tool
         a constructed Tool instance
-    classes: list, optional
+    classes : list, optional
         The list of other classes in the config file.
         Used to reduce redundant information.
     """

@@ -158,9 +158,9 @@ def read_atmosphere_density_profile(
 
     Parameters
     ----------
-    h5file: tables.File
+    h5file : tables.File
         file handle of HDF5 file
-    path: str
+    path : str
         path in the file where the serialized model is stored as an
         astropy.table.Table
 

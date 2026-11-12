@@ -30,15 +30,15 @@ def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
 
     Parameters
     ----------
-    bins: u.Quantity
+    bins : u.Quantity
         The bins to be checked.
-    valid_range: ctapipe.irf.ResultValidRange
+    valid_range : ctapipe.irf.ResultValidRange
         Range for which bins are valid.
         E.g. the range in which G/H cuts are calculated.
-    source: str
+    source : str
         Description of which bins are being checked to give useful
         warnings/ error messages.
-    raise_error: bool
+    raise_error : bool
         Whether to raise an error (True) or give a warning (False) if
         ``bins`` exceed ``valid_range``.
     """
@@ -73,11 +73,11 @@ def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
 
     Parameters
     ----------
-    e_min: u.Quantity[energy]
+    e_min : u.Quantity[energy]
         Minimum energy, inclusive
-    e_max: u.Quantity[energy]
+    e_max : u.Quantity[energy]
         Maximum energy, inclusive
-    n_bins_per_decade: int
+    n_bins_per_decade : int
         Minimum number of bins per decade
 
     Returns

@@ -13,9 +13,9 @@ def intensity_to_rgb(array, minval=None, maxval=None):
     ----------
     array : ndarray
         1D numpy array containing intensity values for a z axis
-    minval: int
+    minval : int
         minimum value of the image
-    maxval: int
+    maxval : int
         maximum value of the image
 
     Returns
@@ -54,9 +54,9 @@ def intensity_to_hex(array, minval=None, maxval=None):
     ----------
     array : ndarray
         1D numpy array containing intensity values for a z axis
-    minval: int
+    minval : int
         minimum value of the image
-    maxval: int
+    maxval : int
         maximum value of the image
 
     Returns

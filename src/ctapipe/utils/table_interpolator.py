@@ -46,9 +46,9 @@ class TableInterpolator:
 
         Parameters
         ----------
-        filename: string
+        filename : string
             Location of Template file
-        verbose: int
+        verbose : int
             Verbosity level,
             0 = no logging
             1 = File + interpolation point information
@@ -81,7 +81,7 @@ class TableInterpolator:
 
         Parameters
         ----------
-        filename: str
+        filename : str
             Name of table file
 
         Returns
@@ -131,12 +131,12 @@ class TableInterpolator:
 
         Parameters
         ----------
-        params: ndarray
+        params : ndarray
             numpy array of interpolation parameters
             currently [energy, impact distance, xmax]
-        pixel_pos_x: ndarray
+        pixel_pos_x : ndarray
             pixel position in degrees
-        pixel_pos_y: ndarray
+        pixel_pos_y : ndarray
             pixel position in degrees
 
         Returns
@@ -157,7 +157,7 @@ class TableInterpolator:
 
         Parameters
         ----------
-        params: ndarray
+        params : ndarray
             numpy array of interpolation parameters
             currently [energy, impact distance, xmax]
 

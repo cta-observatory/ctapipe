@@ -202,11 +202,11 @@ class _ActivityProvenance:
 
         Parameters
         ----------
-        url: str
+        url : str
             filename or url of input file
-        role: str
+        role : str
             role name that this input satisfies
-        add_meta: bool
+        add_meta : bool
             If true, try to load reference metadata from input file
             and add to provenance.
         """
@@ -224,11 +224,11 @@ class _ActivityProvenance:
 
         Parameters
         ----------
-        url: str
+        url : str
             filename or url of output file
-        role: str
+        role : str
             role name that this output satisfies
-        add_meta: bool
+        add_meta : bool
             If true, try to load reference metadata from input file
             and add to provenance.
         """
@@ -329,9 +329,9 @@ class Provenance(metaclass=Singleton):
 
         Parameters
         ----------
-        filename: str
+        filename : str
             name or url of file
-        role: str
+        role : str
             role this input file satisfies (optional)
         """
         activity = self._get_current_or_start_activity()
@@ -353,9 +353,9 @@ class Provenance(metaclass=Singleton):
 
         Parameters
         ----------
-        filename: str
+        filename : str
             name or url of file
-        role: str
+        role : str
             role this output file satisfies (optional)
 
         """
@@ -373,7 +373,7 @@ class Provenance(metaclass=Singleton):
 
         Parameters
         ----------
-        config: dict
+        config : dict
             configuration parameters
         """
         activity = self._get_current_or_start_activity()

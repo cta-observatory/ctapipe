@@ -437,15 +437,15 @@ class TableLoader(Component):
         Parameters
         ----------
 
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        start: int
+        start : int
             First *subarray* event to read
-        stop: int
+        stop : int
             Last *subarray* event (non-inclusive)
 
         Returns
@@ -505,7 +505,7 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk
         """
         return ChunkIterator(
@@ -537,29 +537,29 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        tel_id: int
+        tel_id : int
             Telescope identification number.
-        start: int
+        start : int
             First *subarray* event to read
-        stop: int
+        stop : int
             Last *subarray* event (non-inclusive)
-        dl1_images: bool
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -782,32 +782,32 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: Optional[List[Union[int, str, TelescopeDescription]]]
+        telescopes : Optional[List[Union[int, str, TelescopeDescription]]]
             A list containing any combination of telescope IDs and/or
             telescope descriptions. If None, all available telescopes are read.
-        start: int
+        start : int
             First *subarray* event to read
-        stop: int
+        stop : int
             Last *subarray* event (non-inclusive)
-        dl1_images: bool
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -881,7 +881,7 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
@@ -949,27 +949,27 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
+        telescopes : List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
-        dl1_images: bool
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -1056,7 +1056,7 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
@@ -1091,27 +1091,27 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
+        telescopes : List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
-        dl1_images: bool
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -1196,7 +1196,7 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.

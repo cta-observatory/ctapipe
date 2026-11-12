@@ -121,17 +121,17 @@ def weighted_mean_std_ufunc(
 
     Parameters
     ----------
-    tel_values: np.ndarray
+    tel_values : np.ndarray
         values for each telescope event
-    valid_tel: array-like
+    valid_tel : array-like
         boolean mask giving the valid values of ``tel_values``
-    indices: np.ndarray
+    indices : np.ndarray
         index of the subarray event for each telescope event, returned as
         the fourth return value of ``get_subarray_index``
-    multiplicity: np.ndarray
+    multiplicity : np.ndarray
         multiplicity of the subarray events in the same order as the order of
         subarray events in ``indices``
-    weights: np.ndarray
+    weights : np.ndarray
         weights used for averaging (equal/no weights are used by default)
 
     Returns

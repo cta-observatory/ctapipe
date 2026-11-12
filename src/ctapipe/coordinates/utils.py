@@ -28,9 +28,9 @@ def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
 
     Parameters
     ----------
-    alt: u.Quantity
+    alt : u.Quantity
         altitude
-    az: u.Quantity
+    az : u.Quantity
         azimuth
     """
     # this is an optimization, shaves of ca. 50 % compared to handing over units
@@ -122,15 +122,15 @@ def altaz_to_icrs(
 
     Parameters
     ----------
-    az: u.Quantity
+    az : u.Quantity
         Horizontal azimuth, scalar or array
-    alt: u.Quantity
+    alt : u.Quantity
         Horizontal altitude, scalar or array
-    obstime: Time
+    obstime : Time
         Observation time, scalar or array
-    location: EarthLocation
+    location : EarthLocation
         Observatory location
-    resolution: u.Quantity[time]
+    resolution : u.Quantity[time]
         Time resolution for the interpolation of obs_times. Higher values speed
         up the computation significantly for a large number of events.
 

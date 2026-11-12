@@ -43,17 +43,17 @@ def read_table(
 
     Parameters
     ----------
-    h5file: Union[str, Path, tables.file.File]
+    h5file : Union[str, Path, tables.file.File]
         input filename or PyTables file handle
-    path: str
+    path : str
         path to table in the file
-    start: int or None
+    start : int or None
         if given, this is the first row to be loaded
-    stop: int or None
+    stop : int or None
         if given, this is the last row to be loaded (not inclusive)
-    step: int or None
+    step : int or None
         step between rows.
-    condition: str
+    condition : str
         A numexpr expression to only load rows fulfilling this condition.
         For example, use "hillas_length > 0" to only load rows where the
         hillas length is larger than 0 (so not nan and not 0).
@@ -143,22 +143,22 @@ def write_table(
 
     Parameters
     ----------
-    table: astropy.table.Table
+    table : astropy.table.Table
         The table to be written.
-    h5file: Union[str, Path, tables.file.File]
+    h5file : Union[str, Path, tables.file.File]
         input filename or PyTables file handle. If a PyTables file handle,
         must be opened writable.
-    path: str
+    path : str
         dataset path inside the ``h5file``
-    append: bool
+    append : bool
         Whether to try to append to or replace an existing table
-    overwrite: bool
+    overwrite : bool
         If table is already in file and overwrite and append are false,
         raise an error.
-    mode: str
+    mode : str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
-    time_format: str
+    time_format : str
         Format to use for storing time columns.
         Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
     """

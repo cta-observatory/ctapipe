@@ -48,13 +48,13 @@ def chord_length(radius, rho, phi, phi0=0):
 
     Parameters
     ----------
-    radius: float or ndarray
+    radius : float or ndarray
         radius of circle
-    rho: float or ndarray
+    rho : float or ndarray
         fractional distance of impact point from circle center
-    phi: float or ndarray in radians
+    phi : float or ndarray in radians
         rotation angles to calculate length
-    phi0: float
+    phi0 : float
         Phase corresponding to the azimuth of maximum
         intensity of the ring.
 
@@ -109,7 +109,7 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
 
     Parameters
     ----------
-    angle: ndarray
+    angle : ndarray
         Angle along which to integrate mirror
 
     Returns
@@ -154,20 +154,20 @@ def create_profile(
 
     Parameters
     ----------
-    mirror_radius: float
+    mirror_radius : float
         mirror radius
-    hole_radius: float
+    hole_radius : float
         hole or camera radius
-    impact_parameter: float
+    impact_parameter : float
         Impact distance from mirror center
-    radius: float
+    radius : float
         ring radius
-    phi: float
+    phi : float
         Phase corresponding to the azimuth of maximum
         intensity of the ring.
-    pixel_diameter: float
+    pixel_diameter : float
         pixel FoV
-    oversampling: int
+    oversampling : int
         Oversampling is used to define how much the phi binning is
         smaller than the single pixel FoV.
 
@@ -211,19 +211,19 @@ def image_prediction(
 
     Parameters
     ----------
-    impact_parameter: quantity[length]
+    impact_parameter : quantity[length]
         Impact distance of muon
-    center_x: quantity[angle]
+    center_x : quantity[angle]
         Muon ring center in telescope frame
-    center_y: quantity[angle]
+    center_y : quantity[angle]
         Muon ring center in telescope frame
-    radius: quantity[angle]
+    radius : quantity[angle]
         Radius of muon ring in telescope frame
-    ring_width: quantity[angle]
+    ring_width : quantity[angle]
         Gaussian width of muon ring
-    pixel_x: quantity[angle]
+    pixel_x : quantity[angle]
         Pixel x coordinate in telescope
-    pixel_y: quantity[angle]
+    pixel_y : quantity[angle]
         Pixel y coordinate in telescope
 
     Returns
@@ -258,11 +258,11 @@ def gaussian_cdf(x, mu, sig):
 
     Parameters
     ----------
-    x: float or ndarray
+    x : float or ndarray
         point, at which the cdf should be evaluated
-    mu: float or ndarray
+    mu : float or ndarray
         gaussian mean
-    sig: float or ndarray
+    sig : float or ndarray
         gaussian standard deviation
 
     Returns
@@ -417,17 +417,17 @@ def build_negative_log_likelihood(
 
         Parameters
         ----------
-        impact_parameter: float
+        impact_parameter : float
             Impact distance from telescope center
-        center_x: float
+        center_x : float
             center of muon ring in the telescope frame
-        center_y: float
+        center_y : float
             center of muon ring in the telescope frame
-        radius: float
+        radius : float
             Radius of muon ring
-        ring_width: float
+        ring_width : float
             Gaussian width of muon ring
-        optical_efficiency_muon: float
+        optical_efficiency_muon : float
             Efficiency of the optical system
 
         Returns
@@ -536,19 +536,19 @@ class MuonIntensityFitter(TelescopeComponent):
 
         Parameters
         ----------
-        tel_id: int
+        tel_id : int
             the telescope id
-        center_x: Angle quantity
+        center_x : Angle quantity
             Initial guess for muon ring center in telescope frame
-        center_y: Angle quantity
+        center_y : Angle quantity
             Initial guess for muon ring center in telescope frame
-        radius: Angle quantity
+        radius : Angle quantity
             Initial guess for muon ring radius in telescope frame
-        image: ndarray
+        image : ndarray
             Amplitude of image pixels
-        pedestal: ndarray
+        pedestal : ndarray
             Pedestal standard deviation in each pixel
-        mask: ndarray
+        mask : ndarray
             mask marking the pixels to be used in the likelihood fit
 
         Returns

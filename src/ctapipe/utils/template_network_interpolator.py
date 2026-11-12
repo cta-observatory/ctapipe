@@ -263,7 +263,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
         """
         Parameters
         ----------
-        template_file: str
+        template_file : str
             Location of pickle file containing ImPACT NN templates
         """
 
@@ -334,7 +334,7 @@ class TimeGradientInterpolator(BaseTemplate):
         """
         Parameters
         ----------
-        template_file: str
+        template_file : str
             Location of pickle file containing ImPACT NN templates
         """
 

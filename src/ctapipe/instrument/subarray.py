@@ -269,12 +269,12 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_mask: array-like
+        tel_mask : array-like
             Boolean array of length ``n_tels`` with indices of the
             telescopes in ``tel_ids`` set to True.
         Returns
         -------
-        np.array:
+        np.array :
             Array of selected tel_ids
         """
         return self.tel_ids[tel_mask]
@@ -292,7 +292,7 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        kind: str
+        kind : str
             which table to generate (subarray or optics)
         """
 
@@ -407,9 +407,9 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_ids: list(int)
+        tel_ids : list(int)
             list of telescope IDs to include in the new subarray
-        name: str
+        name : str
             name of new sub-selection
         Returns
         -------
@@ -508,7 +508,7 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_type: str or TelescopeDescription
+        tel_type : str or TelescopeDescription
            telescope type string (e.g. 'MST_MST_NectarCam')
         """
         if isinstance(tel_type, TelescopeDescription):
@@ -531,7 +531,7 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_type: str or TelescopeDescription
+        tel_type : str or TelescopeDescription
            telescope type string (e.g. 'MST_MST_NectarCam')
         """
         return self.tel_ids_to_indices(self.get_tel_ids_for_type(tel_type))
@@ -571,7 +571,7 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
+        telescopes : List[Union[int, str, TelescopeDescription]]
             List of Telescope IDs and descriptions.
             Supported inputs for telescope descriptions are instances of
             `~ctapipe.instrument.TelescopeDescription` as well as their

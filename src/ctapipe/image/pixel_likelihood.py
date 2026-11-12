@@ -78,13 +78,13 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. peak (:math:`σ_γ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
 
     Returns
@@ -107,15 +107,15 @@ def neg_log_likelihood_numeric(
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. peak (:math:`σ_γ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
-    confidence: float, 0 < x < 1
+    confidence : float, 0 < x < 1
         Upper end of Poisson confidence interval of maximum prediction.
         Determines upper end of poisson integration.
 
@@ -157,15 +157,15 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. peak (:math:`σ_γ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
-    prediction_safety: float
+    prediction_safety : float
         Decision point to choose between poissonian likelihood
         and gaussian approximation.
 
@@ -203,11 +203,11 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
 
     Parameters
     ----------
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. distribution
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal
 
     Returns
@@ -241,11 +241,11 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
 
     Parameters
     ----------
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. distribution
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal
 
     Returns
@@ -287,13 +287,13 @@ def chi_squared(image, prediction, pedestal, error_factor=2.9):
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
-    error_factor: float
+    error_factor : float
         Ad-hoc error factor
 
     Returns

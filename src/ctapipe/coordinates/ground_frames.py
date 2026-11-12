@@ -174,9 +174,9 @@ def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
 
     Parameters
     ----------
-    azimuth: float or ndarray
+    azimuth : float or ndarray
         Azimuth angle in radians of the tilted system used
-    altitude: float or ndarray
+    altitude : float or ndarray
         Altitude angle in radiuan of the tilted system used
 
     Returns
@@ -226,9 +226,9 @@ def ground_to_tilted(ground_coord, tilted_frame):
 
     Parameters
     ----------
-    ground_coord: `astropy.coordinates.SkyCoord`
+    ground_coord : `astropy.coordinates.SkyCoord`
         Coordinate in GroundFrame
-    tilted_frame: `ctapipe.coordinates.TiltedFrame`
+    tilted_frame : `ctapipe.coordinates.TiltedFrame`
         Frame to transform to
 
     Returns
@@ -257,9 +257,9 @@ def tilted_to_ground(tilted_coord, ground_frame):
 
     Parameters
     ----------
-    tilted_coord: `astropy.coordinates.SkyCoord`
+    tilted_coord : `astropy.coordinates.SkyCoord`
         TiltedGroundFrame system
-    ground_frame: `astropy.coordinates.SkyCoord`
+    ground_frame : `astropy.coordinates.SkyCoord`
         GroundFrame system
 
     Returns
@@ -291,7 +291,7 @@ def project_to_ground(tilt_system):
 
     Parameters
     ----------
-    tilt_system: `astropy.coordinates.SkyCoord`
+    tilt_system : `astropy.coordinates.SkyCoord`
         coordinate in the the tilted ground system
 
     Returns
