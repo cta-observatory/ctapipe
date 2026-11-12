@@ -76,7 +76,7 @@ class QualityQuery(Component):
 
         Parameters
         ----------
-        functions: bool:
+        functions : bool:
             include the function string as a column
 
         Returns

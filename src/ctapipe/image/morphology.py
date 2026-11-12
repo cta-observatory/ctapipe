@@ -90,7 +90,7 @@ def number_of_island_sizes(island_labels):
 
     Parameters
     ----------
-    island_labels: array[int]
+    island_labels : array[int]
         Array with island labels, (second return value of ``number_of_islands``)
 
     Returns
@@ -149,13 +149,13 @@ def brightest_island(n_islands, island_labels, image):
 
     Parameters
     ----------
-    n_islands: int
+    n_islands : int
         Total number of islands, first return value of `number_of_islands`
     island_labels : array
         Flattened array containing a list of labelled islands from a cleaned image.
         Second value returned by the function 'number_of_islands'.
 
-    image: array
+    image : array
         The image array
 
     Returns
@@ -187,9 +187,9 @@ def morphology_parameters(geom, image_mask) -> MorphologyContainer:
 
     Parameters
     ----------
-    geom: ctapipe.instrument.camera.CameraGeometry
+    geom : ctapipe.instrument.camera.CameraGeometry
         camera description
-    image_mask: np.ndarray(bool)
+    image_mask : np.ndarray(bool)
        image of pixels surviving cleaning (True=survives)
 
     Returns

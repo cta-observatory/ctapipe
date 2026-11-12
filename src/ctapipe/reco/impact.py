@@ -271,7 +271,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        tel_type: dictionary
+        tel_type : dictionary
             Dictionary of telescope types in event
 
         Returns
@@ -349,15 +349,15 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        source_x: float
+        source_x : float
             Event source position in nominal frame
-        source_y: float
+        source_y : float
             Event source position in nominal frame
-        core_x: float
+        core_x : float
             Event core position in telescope tilted frame
-        core_y: float
+        core_y : float
             Event core position in telescope tilted frame
-        zen: float
+        zen : float
             Zenith angle of event
 
         Returns
@@ -410,17 +410,17 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        tel_type: string
+        tel_type : string
             Telescope type specifier
-        energy: float
+        energy : float
             Event energy (TeV)
-        impact: float
+        impact : float
             Impact diance of shower (metres)
-        x_max: float
+        x_max : float
             Depth of shower maximum (num bins from expectation)
-        pix_x: ndarray
+        pix_x : ndarray
             X coordinate of pixels
-        pix_y: ndarray
+        pix_y : ndarray
             Y coordinate of pixels
 
         Returns
@@ -438,13 +438,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        tel_type: string
+        tel_type : string
             Telescope type specifier
-        energy: float
+        energy : float
             Event energy (TeV)
-        impact: float
+        impact : float
             Impact diance of shower (metres)
-        x_max: float
+        x_max : float
             Depth of shower maximum (num bins from expectation)
 
         Returns
@@ -470,23 +470,23 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        source_x: float
+        source_x : float
             Source position of shower in the nominal system (in deg)
-        source_y: float
+        source_y : float
             Source position of shower in the nominal system (in deg)
-        core_x: float
+        core_x : float
             Core position of shower in tilted telescope system (in m)
-        core_y: float
+        core_y : float
             Core position of shower in tilted telescope system (in m)
-        energy: float
+        energy : float
             Shower energy (in TeV)
-        x_max_scale: float
+        x_max_scale : float
             Scaling factor applied to geometrically calculated Xmax
-        goodness_of_fit: boolean
+        goodness_of_fit : boolean
             Determines whether expected likelihood should be subtracted from result
         Returns
         -------
-        float: Likelihood the model represents the camera image at this position
+        float : Likelihood the model represents the camera image at this position
 
         """
         if np.isnan(source_x) or np.isnan(source_y):
@@ -644,20 +644,20 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_dict: dict
+        hillas_dict : dict
             dictionary with telescope IDs as key and
             HillasParametersContainer instances as values
-        image_dict: dict
+        image_dict : dict
             Amplitude of pixels in camera images
-        time_dict: dict
+        time_dict : dict
             Time information per each pixel in camera images
-        mask_dict: dict
+        mask_dict : dict
             Event image masks
-        subarray: dict
+        subarray : dict
             Type of telescope
-        array_pointing: SkyCoord[AltAz]
+        array_pointing : SkyCoord[AltAz]
             Array pointing direction in the AltAz Frame
-        telescope_pointing: SkyCoord[AltAz]
+        telescope_pointing : SkyCoord[AltAz]
             Telescope pointing directions in the AltAz Frame
         Returns
         -------
@@ -786,9 +786,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        shower_seed: ReconstructedShowerContainer
+        shower_seed : ReconstructedShowerContainer
             Seed shower geometry to be used in the fit
-        energy_seed: ReconstructedEnergyContainer
+        energy_seed : ReconstructedEnergyContainer
             Seed energy to be used in fit
 
         Returns
@@ -965,15 +965,15 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        params: ndarray
+        params : ndarray
             Seed parameters for fit
-        step: ndarray
+        step : ndarray
             Initial step size in the fit
-        limits: ndarray
+        limits : ndarray
             Fit bounds
         Returns
         -------
-        tuple: best fit parameters and errors
+        tuple : best fit parameters and errors
         """
         limits = np.asarray(limits)
 

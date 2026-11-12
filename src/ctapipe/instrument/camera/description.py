@@ -18,11 +18,11 @@ class CameraDescription:
 
     Parameters
     ----------
-    name: str
+    name : str
         Camera name (e.g. NectarCam, LSTCam, ...)
-    geometry: CameraGeometry
+    geometry : CameraGeometry
        The pixel geometry of this camera
-    readout: CameraReadout
+    readout : CameraReadout
        The readout properties for this camera
     """
 
@@ -65,7 +65,7 @@ class CameraDescription:
 
         Parameters
         ----------
-        name: str
+        name : str
             Camera name (e.g. NectarCam, LSTCam, ...)
 
 

@@ -273,17 +273,17 @@ class CameraDisplay(BokehPlot):
 
     Parameters
     ----------
-    geometry: CameraGeometry
+    geometry : CameraGeometry
         CameraGeometry for the display
-    image: array
+    image : array
         Values to display for each pixel
-    cmap: str or bokeh.palette.Palette
+    cmap : str or bokeh.palette.Palette
         matplotlib colormap name or bokeh palette for color mapping values
-    norm: str or bokeh.
+    norm : str or bokeh.
         lin, log, symlog or a bokeh.models.ColorMapper instance
-    autoscale: bool
+    autoscale : bool
         Whether to automatically adjust color range after updating image
-    use_notebook: bool or None
+    use_notebook : bool or None
         Whether to use bokehs notebook output. If None, tries to autodetect
         running in a notebook.
 
@@ -400,11 +400,11 @@ class CameraDisplay(BokehPlot):
             The pixels to highlight.
             Can either be a list or array of integers or a
             boolean mask of length number of pixels
-        color: a matplotlib conform color
+        color : a matplotlib conform color
             the color for the pixel highlighting
-        linewidth: float
+        linewidth : float
             linewidth of the highlighting in points
-        alpha: 0 <= alpha <= 1
+        alpha : 0 <= alpha <= 1
             The transparency
         """
         n_pixels = self._geometry.n_pixels
@@ -459,17 +459,17 @@ class CameraDisplay(BokehPlot):
 
         Parameters
         ----------
-        centroid: (float, float)
+        centroid : (float, float)
             position of centroid
-        length: float
+        length : float
             major axis
-        width: float
+        width : float
             minor axis
-        angle: float
+        angle : float
             rotation angle wrt x-axis about the centroid, anticlockwise, in radians
-        asymmetry: float
+        asymmetry : float
             3rd-order moment for directionality if known
-        kwargs:
+        kwargs :
             any MatPlotLib style arguments to pass to the Ellipse patch
         """
         ellipse = Ellipse(
@@ -493,13 +493,13 @@ class CameraDisplay(BokehPlot):
 
         Parameters
         ----------
-        hillas_parameters: `HillasParametersContainer`
+        hillas_parameters : `~ctapipe.containers.HillasParametersContainer`
             structuring containing Hillas-style parameterization
-        with_label: bool
+        with_label : bool
             If True, show coordinates of centroid and width and length
-        keep_old: bool
+        keep_old : bool
             If True, to not remove old overlays
-        kwargs: key=value
+        kwargs : key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
@@ -556,28 +556,28 @@ class ArrayDisplay(BokehPlot):
 
     Parameters
     ----------
-    subarray: ctapipe.instrument.SubarrayDescription
+    subarray : ctapipe.instrument.SubarrayDescription
         the array layout to display
-    values: array
+    values : array
         Value to display for each telescope. If None, the telescope type will
         be used.
-    scale: float
+    scale : float
         scaling between telescope mirror radius in m to displayed size
-    title: str
+    title : str
         title of array plot
-    alpha: float
+    alpha : float
         Alpha value for telescopes
-    cmap: str or bokeh.palette.Palette
+    cmap : str or bokeh.palette.Palette
         matplotlib colormap name or bokeh palette for color mapping values
-    norm: str or bokeh.
+    norm : str or bokeh.
         lin, log, symlog or a bokeh.models.ColorMapper instance
-    radius: Union[float, list, None]
+    radius : Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
-    use_notebook: bool or None
+    use_notebook : bool or None
         Whether to use bokehs notebook output. If None, tries to autodetect
         running in a notebook.
-    frame: GroundFrame or TiltedGroundFrame
+    frame : GroundFrame or TiltedGroundFrame
         If given, transform telescope positions into this frame
 
     **figure_kwargs are passed to bokeh.plots.figure

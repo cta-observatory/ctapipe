@@ -35,7 +35,7 @@ class CameraDisplay:
     ----------
     geometry : `~ctapipe.instrument.CameraGeometry`
         Definition of the Camera/Image
-    image: array_like
+    image : array_like
         array of values corresponding to the pixels in the CameraGeometry.
     ax : `matplotlib.axes.Axes`
         A matplotlib axes object to plot on, or None to create a new one
@@ -258,11 +258,11 @@ class CameraDisplay:
             The pixels to highlight.
             Can either be a list or array of integers or a
             boolean mask of length number of pixels
-        color: a matplotlib conform color
+        color : a matplotlib conform color
             the color for the pixel highlighting
-        linewidth: float
+        linewidth : float
             linewidth of the highlighting in points
-        alpha: 0 <= alpha <= 1
+        alpha : 0 <= alpha <= 1
             The transparency
         """
 
@@ -363,7 +363,7 @@ class CameraDisplay:
 
         Parameters
         ----------
-        image: array_like
+        image : array_like
             array of values corresponding to the pixels in the CameraGeometry.
         """
         image = np.asanyarray(image)
@@ -419,17 +419,17 @@ class CameraDisplay:
 
         Parameters
         ----------
-        centroid: (float, float)
+        centroid : (float, float)
             position of centroid
-        length: float
+        length : float
             major axis
-        width: float
+        width : float
             minor axis
-        angle: float
+        angle : float
             rotation angle wrt x-axis about the centroid, anticlockwise, in radians
-        asymmetry: float
+        asymmetry : float
             3rd-order moment for directionality if known
-        kwargs:
+        kwargs :
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
@@ -494,19 +494,19 @@ class CameraDisplay:
 
         Parameters
         ----------
-        hillas_parameters: `HillasParametersContainer`
+        hillas_parameters : `~ctapipe.containers.HillasParametersContainer`
             structuring containing Hillas-style parameterization
-        with_label: bool
+        with_label : bool
             If True, show coordinates of centroid and width and length
-        keep_old: bool
+        keep_old : bool
             If True, to not remove old overlays
-        n_sigma: float
+        n_sigma : float
             How many sigmas to use for the ellipse
         psi_uncertainty : bool
             If true, add wedges that indicates the uncertainty on psi
         psi_uncertainty_length : float
             Length of the psi uncertainty wedges as multiple of the hillas_length
-        kwargs: key=value
+        kwargs : key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """

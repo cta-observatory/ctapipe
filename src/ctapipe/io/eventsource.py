@@ -86,7 +86,7 @@ class EventSource(Component):
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
-    allowed_tels: Set or None
+    allowed_tels : Set or None
         Ids of the telescopes to be included in the data.
         If given, only this subset of telescopes will be present in the
         generated events. If None, all available telescopes are used.
@@ -252,7 +252,7 @@ class EventSource(Component):
 
         Parameters
         ----------
-        datalevels: Iterable
+        datalevels : Iterable
             Iterable of datalevels
         """
         return any(dl in self.datalevels for dl in datalevels)

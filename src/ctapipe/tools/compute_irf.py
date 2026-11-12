@@ -340,7 +340,7 @@ class IrfTool(Tool):
 
         Parameters
         ----------
-        reduced_events: dict
+        reduced_events : dict
             dict containing the signal (``"gammas"``) and optionally background
             tables (``"protons"``, ``"electrons"``)
 

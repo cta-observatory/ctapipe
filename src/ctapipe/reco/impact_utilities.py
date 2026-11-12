@@ -26,7 +26,7 @@ def guess_shower_depth(energy):
 
     Parameters
     ----------
-    energy: float
+    energy : float
         Energy of the shower in TeV
 
     Returns
@@ -47,15 +47,15 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
 
     Parameters
     ----------
-    pixel_pos_x: ndarray
+    pixel_pos_x : ndarray
         Array of pixel x positions
-    pixel_pos_y: ndarray
+    pixel_pos_y : ndarray
         Array of pixel x positions
-    x_trans: float
+    x_trans : float
         Translation of position in x coordinates
-    y_trans: float
+    y_trans : float
         Translation of position in y coordinates
-    phi: float
+    phi : float
         Rotation angle of pixels
 
     Returns
@@ -87,15 +87,15 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 
     Parameters
     ----------
-    source_x: float
+    source_x : float
         Source X position in nominal system (radians)
-    source_y:float
+    source_y : float
         Source Y position in nominal system (radians)
-    tilt_x: float
+    tilt_x : float
         Core X position in tilited system (radians)
-    tilt_y: float
+    tilt_y : float
         Core Y position in tilited system (radians)
-    energy: float
+    energy : float
         Energy in TeV
 
     Returns

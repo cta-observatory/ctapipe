@@ -61,9 +61,9 @@ class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns
@@ -135,9 +135,9 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns
@@ -239,15 +239,15 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
 
         Parameters
         ----------
-        signal_events: astropy.table.QTable
+        signal_events : astropy.table.QTable
             Reconstructed signal events to be used.
-        background_events: astropy.table.QTable
+        background_events : astropy.table.QTable
             Reconstructed background events to be used.
-        spatial_selection_table: QTable
+        spatial_selection_table : QTable
             Direction cut that was applied on ``signal_events``.
-        gamma_spectrum: ctapipe.irf.Spectra
+        gamma_spectrum : ctapipe.irf.Spectra
             Spectra by which to scale the relative sensitivity to get the flux sensitivity.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns

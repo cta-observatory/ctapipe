@@ -373,7 +373,7 @@ class ImageExtractor(TelescopeComponent):
 
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             Description of the subarray. Provides information about the
             camera which are useful in charge extraction, such as reference
             pulse shape, sampling rate, neighboring pixels. Also required for
@@ -1034,14 +1034,14 @@ class TwoPassWindowSum(ImageExtractor):
             DL0-level waveforms of one event.
         tel_id : int
             Index of the telescope.
-        selected_gain_channel: array of shape (N_channels, N_pixels)
+        selected_gain_channel : array of shape (N_channels, N_pixels)
             Array containing the index of the selected gain channel for each
             pixel (0 for low gain, 1 for high gain).
         charge_1stpass_uncorrected : array of shape N_pixels
             Pixel charges reconstructed with the 1st pass, but not corrected.
         pulse_time_1stpass : array of shape N_pixels
             Pixel-wise pulse times reconstructed with the 1st pass.
-        correction: array of shape N_pixels
+        correction : array of shape N_pixels
             Charge correction from 1st pass.
 
         Returns

@@ -31,7 +31,7 @@ def shallow_copy_table(
 
     Parameters
     ----------
-    output_cls: type[Table] | type[QTable] | None
+    output_cls : type[Table] | type[QTable] | None
         type of the output table. If None, use the input table type
     """
     output_cls = output_cls or table.__class__
@@ -79,7 +79,7 @@ class FeatureGenerator(Component):
 
         Parameters
         ----------
-        table: QTable | Table
+        table : QTable | Table
             Input table. Internally a Table will be converted to a QTable so that
             unit propagation works, so expressions should only rely on properties of QTables.
         **kwargs:
