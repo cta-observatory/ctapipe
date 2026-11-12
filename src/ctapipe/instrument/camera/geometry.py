@@ -455,7 +455,9 @@ class CameraGeometry:
         geom.pix_x = self.pix_x[slice_]
         geom.pix_y = self.pix_y[slice_]
         # neighbors must come from this geometry, recomputing them from the
-        # remaining pixel positions is wrong. Sliced lazily, as this is slow (~100 µs)
+        # remaining pixel positions is wrong. Sliced lazily, as this is slow
+        # (~100 µs) Note the actual slicing here happens in
+        # neighbor_matrix_sparse, so is only costly if accessed..
         geom._sliced_from = (self, slice_)
         return geom
 
@@ -825,6 +827,7 @@ class CameraGeometry:
         if self._neighbors is not None:
             return self._neighbors
 
+        # The slicing of the neighbor matrix happens here, since then it is only on access.
         if self._sliced_from is not None:
             parent, slice_ = self._sliced_from
             return parent.neighbor_matrix_sparse[slice_][:, slice_]
