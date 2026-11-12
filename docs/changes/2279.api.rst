@@ -1,0 +1,26 @@
+``CameraGeometry`` now stores its pixel positions in a ``SkyCoord``, accessible as
+``CameraGeometry.pix_coord``; ``pix_x`` and ``pix_y`` are its components and
+``CameraGeometry.frame`` is its frame (without data).
+
+The constructor of ``CameraGeometry`` changed accordingly: the pixel positions are
+now passed as a ``SkyCoord`` in the ``pix_coord`` argument, which replaces the
+``pix_x``, ``pix_y`` and ``frame`` arguments, and all arguments are keyword-only:
+
+.. code-block:: python
+
+   # before
+   CameraGeometry("LSTCam", pix_id, pix_x=x, pix_y=y, frame=CameraFrame, ...)
+
+   # now
+   CameraGeometry(
+       name="LSTCam",
+       pix_id=pix_id,
+       pix_coord=SkyCoord(x, y, frame=CameraFrame),
+       pix_area=pix_area,
+       pix_type=pix_type,
+   )
+
+``CameraGeometry.to_table()`` now always stores the pixel positions in
+``CameraFrame``, transforming geometries defined in other frames first, and
+``from_table()`` returns a geometry in ``CameraFrame``. This was always an
+implicit assumption, but was never enforced.

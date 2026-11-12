@@ -106,18 +106,21 @@ class CameraGeometry:
          Camera name (e.g. "NectarCam", "LSTCam", ...)
     pix_id : np.ndarray[int]
         pixels id numbers
-    pix_x : u.Quantity
-        position of each pixel (x-coordinate)
-    pix_y : u.Quantity
-        position of each pixel (y-coordinate)
+    pix_coord : astropy.coordinates.SkyCoord
+        Position of each pixel, in the frame the geometry is defined in (after
+        applying cam_rotation), e.g. `~ctapipe.coordinates.CameraFrame`. Besides
+        the attributes of its own frame, the SkyCoord also keeps any other frame
+        attributes (e.g. ``focal_length`` for a geometry in
+        `~ctapipe.coordinates.TelescopeFrame`), which are needed to transform to
+        other frames.
     pix_area : u.Quantity
         surface area of each pixel
+    pix_type : PixelShape | str
+        shape of the pixels, a `PixelShape` or its name (e.g. "hexagon")
     grid_type : None | PixelGridType
         The grid type of the pixel grid. By default, square pixels
         are assumed to be on a regular square grid and circular and hexagonal
         pixels are assumed to be on a regular hex grid.
-    pix_type : PixelShape
-        either 'rectangular' or 'hexagonal'
     pix_rotation : u.Quantity[angle]
         rotation of the pixels, global value for all pixels
     cam_rotation : u.Quantity[angle]
@@ -130,8 +133,6 @@ class CameraGeometry:
         between pixels.
     apply_derotation : bool
         If true, rotate the pixel coordinates, so that cam_rotation is 0.
-    frame : coordinate frame
-        Frame in which the pixel coordinates are defined (after applying cam_rotation)
     """
 
     CURRENT_TAB_VERSION = "2.1"
@@ -139,33 +140,34 @@ class CameraGeometry:
 
     def __init__(
         self,
+        *,
         name,
         pix_id,
-        pix_x,
-        pix_y,
+        pix_coord: SkyCoord,
         pix_area,
-        pix_type: PixelShape,
+        pix_type: PixelShape | str,
         grid_type: None | PixelGridType | str = None,
         pix_rotation=0 * u.deg,
         cam_rotation=0 * u.deg,
         neighbors=None,
         apply_derotation=True,
-        frame=None,
         _validate=True,
     ):
+        if not isinstance(pix_coord, SkyCoord):
+            raise TypeError(f"pix_coord must be a SkyCoord, got {type(pix_coord)}")
+
         self.name = name
         self.n_pixels = len(pix_id)
-        self.unit = pix_x.unit
         self.pix_id = np.array(pix_id)
-        self.pix_x = pix_x
-        self.pix_y = pix_y.to(self.unit)
-        self.pix_area = pix_area.to(self.unit**2)
+        self.pix_coord = pix_coord
+        self.pix_area = pix_area
         self.pix_type = pix_type
         self.grid_type = grid_type
         self.pix_rotation = pix_rotation
         self.cam_rotation = cam_rotation
         self._neighbors = neighbors
-        self.frame = frame
+        # (parent geometry, slice) if created by slicing, see __getitem__
+        self._sliced_from = None
 
         if _validate:
             self._validate()
@@ -185,8 +187,64 @@ class CameraGeometry:
             # cache border pixel mask per instance
         self._border_cache = {}
 
+    @property
+    def pix_coord(self) -> SkyCoord:
+        """
+        Pixel positions as a `~astropy.coordinates.SkyCoord`.
+
+        Besides the attributes of ``frame``, this also keeps any other frame
+        attributes (e.g. ``focal_length`` for a geometry in
+        `~ctapipe.coordinates.TelescopeFrame`), which are used when
+        transforming to other frames.
+        """
+        return self._pix_coord
+
+    @pix_coord.setter
+    def pix_coord(self, pix_coord: SkyCoord):
+        self._pix_coord = pix_coord
+        # reset the cached components and frame, which are derived from pix_coord
+        for name in ("pix_x", "pix_y", "frame"):
+            self.__dict__.pop(name, None)
+
+    # pix_x and pix_y are cached, as they are accessed for every event and
+    # accessing SkyCoord components is slow (~10 µs)
+    @lazyproperty
+    def pix_x(self) -> u.Quantity:
+        """First component of the pixel positions in ``frame``, e.g. ``x`` or ``fov_lon``"""
+        x_name, _ = get_representation_component_names(self.pix_coord)
+        return getattr(self.pix_coord, x_name)
+
+    @lazyproperty
+    def pix_y(self) -> u.Quantity:
+        """Second component of the pixel positions in ``frame``, e.g. ``y`` or ``fov_lat``"""
+        _, y_name = get_representation_component_names(self.pix_coord)
+        return getattr(self.pix_coord, y_name)
+
+    @property
+    def unit(self) -> u.Unit:
+        """Unit of the pixel coordinates"""
+        return self.pix_x.unit
+
+    @lazyproperty
+    def frame(self) -> BaseCoordinateFrame:
+        """Frame of the pixel coordinates (without data)"""
+        return self.pix_coord.frame.replicate_without_data()
+
+    @frame.setter
+    def frame(self, frame):
+        """
+        Re-interpret the pixel coordinates in a new frame, without transforming
+        them. Frame attributes of the previous ``pix_coord`` are not kept.
+        """
+        self.pix_coord = SkyCoord(self.pix_x, self.pix_y, frame=frame)
+        # returning the newly cached frame stops lazyproperty from caching the
+        # input instead, which could e.g. be a frame class
+        return self.frame
+
     def _validate(self):
         self.pix_id = np.array(self.pix_id)
+        # done here, as accessing the unit is slow for a new pix_coord
+        self.pix_area = self.pix_area.to(self.unit**2)
 
         if self.pix_id.ndim != 1:
             raise ValueError(
@@ -195,13 +253,9 @@ class CameraGeometry:
 
         shape = (self.n_pixels,)
 
-        if self.pix_x.shape != shape:
+        if self.pix_coord.shape != shape:
             raise ValueError(
-                f"pix_x has wrong shape: {self.pix_x.shape}, expected {shape}"
-            )
-        if self.pix_y.shape != shape:
-            raise ValueError(
-                f"pix_y has wrong shape: {self.pix_y.shape}, expected {shape}"
+                f"pix_coord has wrong shape: {self.pix_coord.shape}, expected {shape}"
             )
         if self.pix_area.shape != shape:
             raise ValueError(
@@ -290,9 +344,6 @@ class CameraGeometry:
         CameraGeometry:
             new instance in the requested Frame
         """
-        if self.frame is None:
-            self.frame = CameraFrame()
-
         # we have to derotate, transformations only provide sensible
         # results after derotation from the camera coordinate system with
         # custom angle into a not-rotate frame
@@ -302,22 +353,23 @@ class CameraGeometry:
         else:
             cam = self
 
-        coord = SkyCoord(cam.pix_x, cam.pix_y, frame=cam.frame)
-        trans = coord.transform_to(frame)
+        # transforming the SkyCoord (rather than its frame) carries over all
+        # frame attributes, also those not used by the target frame
+        trans = cam.pix_coord.transform_to(frame)
 
         # also transform the origin and unit vectors,
         # needed to account for translation, rotation / mirroring, scale
         width = cam.pixel_width[0].to_value(cam.pix_x.unit)
         points = SkyCoord(
-            [0, width, 0], [0, 0, width], unit=cam.pix_x.unit, frame=cam.frame
+            [0, width, 0], [0, 0, width], unit=cam.pix_x.unit, frame=cam.pix_coord
         )
         points_trans = points.transform_to(frame)
 
-        x_name, y_name = get_representation_component_names(cam.frame)
+        x_name, y_name = get_representation_component_names(points)
         points_x = getattr(points, x_name)
         points_y = getattr(points, y_name)
 
-        trans_x_name, trans_y_name = get_representation_component_names(frame)
+        trans_x_name, trans_y_name = get_representation_component_names(trans)
         points_trans_x = getattr(points_trans, trans_x_name)
         points_trans_y = getattr(points_trans, trans_y_name)
 
@@ -349,23 +401,25 @@ class CameraGeometry:
         )
         scale = distance_after / distance_before
 
-        trans_x = getattr(trans, trans_x_name)
-        trans_y = getattr(trans, trans_y_name)
-        pix_area = (cam.pix_area * scale**2).to(trans_x.unit**2)
+        trans_unit = getattr(trans, trans_x_name).unit
+        pix_area = (cam.pix_area * scale**2).to(trans_unit**2)
+
+        # a sliced geometry cannot recompute its neighbors, see __getitem__
+        neighbors = cam._neighbors
+        if neighbors is None and cam._sliced_from is not None:
+            neighbors = cam.neighbor_matrix_sparse
 
         return CameraGeometry(
             name=cam.name,
             pix_id=cam.pix_id,
-            pix_x=trans_x,
-            pix_y=trans_y,
+            pix_coord=trans,
             pix_area=pix_area,
             pix_type=cam.pix_type,
             grid_type=cam.grid_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=cam._neighbors,
+            neighbors=neighbors,
             apply_derotation=False,
-            frame=frame,
         )
 
     def __hash__(self):
@@ -383,11 +437,10 @@ class CameraGeometry:
         return self.n_pixels
 
     def __getitem__(self, slice_):
-        return CameraGeometry(
+        geom = CameraGeometry(
             name=" ".join([self.name, " sliced"]),
             pix_id=self.pix_id[slice_],
-            pix_x=self.pix_x[slice_],
-            pix_y=self.pix_y[slice_],
+            pix_coord=self.pix_coord[slice_],
             pix_area=self.pix_area[slice_],
             pix_type=self.pix_type,
             grid_type=self.grid_type,
@@ -396,8 +449,17 @@ class CameraGeometry:
             neighbors=None,
             apply_derotation=False,
             _validate=False,
-            frame=self.frame,
         )
+        # slicing happens for every event, so fill the cached components from
+        # this geometry, computing them from the sliced SkyCoord is slow (~100 µs)
+        geom.pix_x = self.pix_x[slice_]
+        geom.pix_y = self.pix_y[slice_]
+        # neighbors must come from this geometry, recomputing them from the
+        # remaining pixel positions is wrong. Sliced lazily, as this is slow
+        # (~100 µs) Note the actual slicing here happens in
+        # neighbor_matrix_sparse, so is only costly if accessed..
+        geom._sliced_from = (self, slice_)
+        return geom
 
     @lazyproperty
     def pixel_width(self):
@@ -653,27 +715,39 @@ class CameraGeometry:
         return CameraGeometry.from_table(table)
 
     def to_table(self):
-        """convert this to an `astropy.table.Table`"""
+        """
+        convert this to an `astropy.table.Table`
+
+        The table format always stores the pixel positions in
+        `~ctapipe.coordinates.CameraFrame`, so a geometry in another frame is
+        transformed first. For angular frames, this requires the ``focal_length``
+        to be known by ``pix_coord``.
+        """
+        # not isinstance, as e.g. EngineeringCameraFrame is a CameraFrame subclass
+        geom = (
+            self if type(self.frame) is CameraFrame else self.transform_to(CameraFrame)
+        )
+
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
         t = Table(
-            [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
+            [geom.pix_id, geom.pix_x, geom.pix_y, geom.pix_area],
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
-                PIX_TYPE=self.pix_type.value,
-                GRID=self.grid_type.value,
+                PIX_TYPE=geom.pix_type.value,
+                GRID=geom.grid_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
-                TAB_VER=self.CURRENT_TAB_VERSION,
-                CAM_ID=self.name,
-                PIX_ROT=self.pix_rotation.deg,
-                CAM_ROT=self.cam_rotation.deg,
+                TAB_VER=geom.CURRENT_TAB_VERSION,
+                CAM_ID=geom.name,
+                PIX_ROT=geom.pix_rotation.deg,
+                CAM_ROT=geom.cam_rotation.deg,
             ),
         )
 
         # clear `info` member from quantities set by table creation
         # which impacts indexing performance because it is deepcopied
         # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
-        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
+        for q in (geom.pix_id, geom.pix_x, geom.pix_y, geom.pix_area):
             if hasattr(q, "__dict__"):
                 if "info" in q.__dict__:
                     del q.__dict__["info"]
@@ -703,11 +777,15 @@ class CameraGeometry:
         if version not in cls.SUPPORTED_TAB_VERSIONS:
             raise OSError(f"Unsupported camera geometry table version: {version}")
 
+        # the table format stores pixel positions in the CameraFrame, see to_table
+        pix_coord = SkyCoord(
+            tab["pix_x"].quantity, tab["pix_y"].quantity, frame=CameraFrame
+        )
+
         return cls(
             name=tab.meta.get("CAM_ID", "Unknown"),
             pix_id=tab["pix_id"],
-            pix_x=tab["pix_x"].quantity,
-            pix_y=tab["pix_y"].quantity,
+            pix_coord=pix_coord,
             pix_area=tab["pix_area"].quantity,
             pix_type=tab.meta["PIX_TYPE"],
             grid_type=tab.meta.get("GRID"),
@@ -748,8 +826,13 @@ class CameraGeometry:
     def neighbor_matrix_sparse(self):
         if self._neighbors is not None:
             return self._neighbors
-        else:
-            return self.calc_pixel_neighbors(diagonal=False)
+
+        # The slicing of the neighbor matrix happens here, since then it is only on access.
+        if self._sliced_from is not None:
+            parent, slice_ = self._sliced_from
+            return parent.neighbor_matrix_sparse[slice_][:, slice_]
+
+        return self.calc_pixel_neighbors(diagonal=False)
 
     def calc_pixel_neighbors(self, diagonal=False):
         """
@@ -894,8 +977,11 @@ class CameraGeometry:
         angle = Angle(angle)
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
-        self.pix_x = rotated[0] * self.pix_x.unit
-        self.pix_y = rotated[1] * self.pix_x.unit
+        unit = self.unit
+        # passing the SkyCoord as frame keeps all its frame attributes
+        self.pix_coord = SkyCoord(
+            rotated[0] * unit, rotated[1] * unit, frame=self.pix_coord
+        )
 
         # do not use -=, copy is intentional here
         self.pix_rotation = self.pix_rotation - angle
@@ -946,8 +1032,7 @@ class CameraGeometry:
         return cls(
             name="RectangularCamera",
             pix_id=ids,
-            pix_x=xx,
-            pix_y=yy,
+            pix_coord=SkyCoord(xx, yy, frame=CameraFrame),
             pix_area=(2 * rr) ** 2,
             neighbors=None,
             pix_type=PixelShape.SQUARE,

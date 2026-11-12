@@ -1,0 +1,15 @@
+``CameraGeometry.transform_to()`` now keeps all frame attributes, also when passing
+a frame class, including those not used by the target frame. Previously, e.g. the
+``focal_length`` was lost when transforming to ``TelescopeFrame``, so transforming
+back to ``CameraFrame`` failed:
+
+.. code-block:: python
+
+   geom_tel = geom.transform_to(TelescopeFrame)
+   geom_cam = geom_tel.transform_to(CameraFrame)  # previously failed: missing focal_length
+   geom_cam.frame.focal_length == geom.frame.focal_length  # True
+
+Slicing a ``CameraGeometry`` now keeps the neighbors of the original geometry.
+Previously, the neighbors of the sliced geometry were recomputed from the remaining
+pixel positions, which gives wrong neighbors (or fails) for sparse selections, e.g.
+the pixels surviving image cleaning.

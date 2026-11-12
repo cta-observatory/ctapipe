@@ -102,7 +102,7 @@ def hillas_parameters(geom, image):
     if not unit.is_equivalent(u.deg):
         raise ValueError(
             "hillas_parameters requires angular pixel coordinates. "
-            "Use geometry.transform_to(TelescopeFrame())."
+            "Use geometry.transform_to(TelescopeFrame)."
         )
 
     pix_x = geom.pix_x.to_value(unit)

@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import pytest
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 from numpy import isclose
 from pytest import approx
 
@@ -225,11 +225,9 @@ def test_straight_line_width_0():
                 geom = CameraGeometry(
                     name="testcam",
                     pix_id=pix_id,
-                    pix_x=x * u.deg,
-                    pix_y=y * u.deg,
+                    pix_coord=SkyCoord(x * u.deg, y * u.deg, frame=TelescopeFrame),
                     pix_type="hexagonal",
                     pix_area=np.full(len(pix_id), 1.0) * u.deg**2,
-                    frame=TelescopeFrame(),
                 )
 
                 img = rng.poisson(5, size=len(long))
@@ -246,11 +244,9 @@ def test_single_pixel():
     geom = CameraGeometry(
         name="testcam",
         pix_id=np.arange(9),
-        pix_x=x.ravel() * u.deg,
-        pix_y=y.ravel() * u.deg,
+        pix_coord=SkyCoord(x.ravel() * u.deg, y.ravel() * u.deg, frame=TelescopeFrame),
         pix_type="rectangular",
         pix_area=np.full(9, 1.0) * u.deg**2,
-        frame=TelescopeFrame(),
     )
 
     image = np.zeros((3, 3))
@@ -271,11 +267,9 @@ def test_psi_uncertainty():
     geom = CameraGeometry(
         name="testcam",
         pix_id=np.arange(9),
-        pix_x=x.ravel() * u.deg,
-        pix_y=y.ravel() * u.deg,
+        pix_coord=SkyCoord(x.ravel() * u.deg, y.ravel() * u.deg, frame=TelescopeFrame),
         pix_type="rectangular",
         pix_area=np.full(9, 1.0) * u.deg**2,
-        frame=TelescopeFrame(),
     )
 
     image = np.zeros((3, 3))

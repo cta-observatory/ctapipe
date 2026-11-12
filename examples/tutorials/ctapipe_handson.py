@@ -132,7 +132,7 @@ tel.camera
 tel.optics
 
 ######################################################################
-geom = tel.camera.geometry.transform_to(TelescopeFrame())
+geom = tel.camera.geometry.transform_to(TelescopeFrame)
 geom.pix_x
 
 ######################################################################
@@ -248,7 +248,7 @@ with HDF5TableWriter(filename="hillas.h5", group_name="dl1", overwrite=True) as 
             calib(event)
             for tel_id, tel_event in event.tel.items():
                 tel = source.subarray.tel[tel_id]
-                geom = tel.camera.geometry.transform_to(TelescopeFrame())
+                geom = tel.camera.geometry.transform_to(TelescopeFrame)
                 image = tel_event.dl1.image
 
                 mask = tailcuts_clean(geom, image)

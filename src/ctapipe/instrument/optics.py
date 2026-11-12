@@ -819,8 +819,8 @@ class ComaPSFModel(PSFModel):
         for tel_id in self.subarray.tels:
             cam_geom = self.subarray.tel[tel_id].camera.geometry
             # Transform camera geometry to telescope frame if not already in that frame
-            if cam_geom.frame != TelescopeFrame:
-                cam_geom = cam_geom.transform_to(TelescopeFrame())
+            if not isinstance(cam_geom.frame, TelescopeFrame):
+                cam_geom = cam_geom.transform_to(TelescopeFrame)
 
             # pixel width is only used to determine a useful distance measure to the camera center
             self.pixel_width[tel_id] = cam_geom.pixel_width[0].to_value(u.deg)
