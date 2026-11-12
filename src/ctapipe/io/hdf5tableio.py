@@ -483,7 +483,7 @@ class HDF5TableWriter(TableWriter):
         ----------
         table_name : str
             name of table to write to
-        containers : `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`
+        containers : `ctapipe.core.Container` or iterable of `ctapipe.core.Container`
             container to write
         """
         if isinstance(containers, Container):

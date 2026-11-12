@@ -494,7 +494,7 @@ class CameraDisplay:
 
         Parameters
         ----------
-        hillas_parameters : `HillasParametersContainer`
+        hillas_parameters : `~ctapipe.containers.HillasParametersContainer`
             structuring containing Hillas-style parameterization
         with_label : bool
             If True, show coordinates of centroid and width and length
