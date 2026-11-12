@@ -61,6 +61,8 @@ extensions = [
 
 numpydoc_show_class_members = False
 numpydoc_class_members_toctree = False
+# Share the validation policy with the numpydoc pre-commit hook.
+numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["checks"])
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 

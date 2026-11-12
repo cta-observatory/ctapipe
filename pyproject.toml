@@ -279,3 +279,6 @@ known-first-party = ["ctapipe"]
 
 [tool.codespell]
 ignore-words = ".codespell-ignores"
+
+[tool.numpydoc_validation]
+checks = ["PR10"]

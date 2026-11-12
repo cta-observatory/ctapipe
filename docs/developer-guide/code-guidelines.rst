@@ -22,16 +22,14 @@ References for Good Coding Practices
 Checking for Logistic Errors
 ============================
 
-Several static analysis packages exist to help look for common coding
-errors, and these should be used frequently.
+Use Ruff to check for common coding errors and style issues, or run all
+configured checks with pre-commit (see :ref:`getting_started_dev`).
 
 .. code-block:: sh
 
-	% pip install hacking  # installs all checker tools
-
-	% pyflakes file.py # checks for code errors
-	% flake8 file.py   # checks style and code errors
-	% flake8           # checks code in all subdirs
+    ruff check file.py  # checks style and code errors
+    ruff check .        # checks code in all subdirs
+    pre-commit run --all-files
 
 
 If you use *PyCharm* as an IDE, there is also a GUI function to find

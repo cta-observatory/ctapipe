@@ -41,7 +41,7 @@ Keep in Mind
   (see the ``docs/`` directory), and make sure it builds with no errors
   (``make doc``)
 
-* Pull requests that cause tests to fail on *Travis* (the continuous
+* Pull requests that cause tests to fail on *GitHub Actions* (the continuous
   integration system) will not be accepted until those tests pass.
 
 * make sure to add a news fragment for the changelog.  In order to do this add a file to the directory ``docs/changes`` and use the following naming scheme
