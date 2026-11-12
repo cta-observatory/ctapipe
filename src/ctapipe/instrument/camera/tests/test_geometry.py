@@ -267,6 +267,36 @@ def test_slicing(prod5_mst_nectarcam):
     assert len(sliced2.pix_x) == 5
 
 
+def test_slicing_neighbors(prod5_lst):
+    """Sliced geometries must keep the neighbors of the original geometry"""
+    geom = prod5_lst.camera.geometry
+    full = geom.neighbor_matrix
+
+    rng = np.random.default_rng(0)
+    mask = np.zeros(geom.n_pixels, dtype=bool)
+    mask[rng.choice(geom.n_pixels, 50, replace=False)] = True
+    indices = np.flatnonzero(mask)
+
+    for slice_ in (slice(100, 200), [5, 7, 8, 9, 10], mask):
+        sliced = geom[slice_]
+        np.testing.assert_array_equal(sliced.neighbor_matrix, full[slice_][:, slice_])
+
+    # recomputing the neighbors from the positions of a sparse selection is wrong,
+    # e.g. isolated pixels would get neighbors
+    sliced = geom[mask]
+    assert sliced.neighbor_matrix.sum() == full[mask][:, mask].sum()
+
+    # slice of a slice
+    sliced_twice = sliced[:10]
+    np.testing.assert_array_equal(
+        sliced_twice.neighbor_matrix, full[indices[:10]][:, indices[:10]]
+    )
+
+    # transforming a sliced geometry keeps its neighbors
+    transformed = sliced.transform_to(TelescopeFrame)
+    np.testing.assert_array_equal(transformed.neighbor_matrix, sliced.neighbor_matrix)
+
+
 @pytest.mark.parametrize("frame", [CameraFrame, TelescopeFrame])
 def test_slicing_pix_coord(prod5_mst_nectarcam, frame):
     """Sliced pix_x / pix_y (copied from the parent) must match the sliced pix_coord"""

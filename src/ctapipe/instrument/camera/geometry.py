@@ -166,6 +166,8 @@ class CameraGeometry:
         self.pix_rotation = pix_rotation
         self.cam_rotation = cam_rotation
         self._neighbors = neighbors
+        # (parent geometry, slice) if created by slicing, see __getitem__
+        self._sliced_from = None
 
         if _validate:
             self._validate()
@@ -402,6 +404,11 @@ class CameraGeometry:
         trans_unit = getattr(trans, trans_x_name).unit
         pix_area = (cam.pix_area * scale**2).to(trans_unit**2)
 
+        # a sliced geometry cannot recompute its neighbors, see __getitem__
+        neighbors = cam._neighbors
+        if neighbors is None and cam._sliced_from is not None:
+            neighbors = cam.neighbor_matrix_sparse
+
         return CameraGeometry(
             name=cam.name,
             pix_id=cam.pix_id,
@@ -411,7 +418,7 @@ class CameraGeometry:
             grid_type=cam.grid_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=cam._neighbors,
+            neighbors=neighbors,
             apply_derotation=False,
         )
 
@@ -447,6 +454,9 @@ class CameraGeometry:
         # this geometry, computing them from the sliced SkyCoord is slow (~100 µs)
         geom.pix_x = self.pix_x[slice_]
         geom.pix_y = self.pix_y[slice_]
+        # neighbors must come from this geometry, recomputing them from the
+        # remaining pixel positions is wrong. Sliced lazily, as this is slow (~100 µs)
+        geom._sliced_from = (self, slice_)
         return geom
 
     @lazyproperty
@@ -814,8 +824,12 @@ class CameraGeometry:
     def neighbor_matrix_sparse(self):
         if self._neighbors is not None:
             return self._neighbors
-        else:
-            return self.calc_pixel_neighbors(diagonal=False)
+
+        if self._sliced_from is not None:
+            parent, slice_ = self._sliced_from
+            return parent.neighbor_matrix_sparse[slice_][:, slice_]
+
+        return self.calc_pixel_neighbors(diagonal=False)
 
     def calc_pixel_neighbors(self, diagonal=False):
         """
