@@ -17,11 +17,11 @@ def leakage_parameters(geom, image, cleaning_mask):
 
     Parameters
     ----------
-    geom: ctapipe.instrument.CameraGeometry
+    geom : ctapipe.instrument.CameraGeometry
         Camera geometry information
-    image: array
+    image : array
         pixel values
-    cleaning_mask: array, dtype=bool
+    cleaning_mask : array, dtype=bool
         The pixel that survived cleaning, e.g. tailcuts_clean
 
     Returns

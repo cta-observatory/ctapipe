@@ -132,7 +132,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
-        parent: Tool or Component
+        parent : Tool or Component
             If a Component is created by another Component or Tool,
             you need to pass the creating Component as parent, e.g.
             `parent=self`. This makes sure the config is correctly

@@ -21,11 +21,11 @@ def impact_distance(point: np.ndarray, direction: np.ndarray, test_points: np.nd
 
     Parameters
     ----------
-    point: np.ndarray
+    point : np.ndarray
        point defining the line
-    direction: np.ndarray
+    direction : np.ndarray
        direction vector
-    test_points: np.ndarray
+    test_points : np.ndarray
        array of test points
     """
     return np.linalg.norm(

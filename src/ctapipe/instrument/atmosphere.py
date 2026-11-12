@@ -21,7 +21,7 @@ def get_atmosphere_profile_table(atmosphere_name="paranal"):
 
     Parameters
     ----------
-    atmosphere_name: str
+    atmosphere_name : str
         identifier of atmosphere profile
 
     Returns
@@ -46,9 +46,9 @@ def get_atmosphere_profile_functions(atmosphere_name="paranal", with_units=True)
 
     Parameters
     ----------
-    atmosphere_name: str
+    atmosphere_name : str
         identifier of atmosphere profile
-    with_units: bool
+    with_units : bool
        if true, return functions that accept and return unit quantities.
        Otherwise assume units are 'm' and 'g cm-2'
 

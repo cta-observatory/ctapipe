@@ -665,7 +665,7 @@ class ImageCleaner(TelescopeComponent):
             image pixel data corresponding to the camera geometry
         arrival_times : np.ndarray
             image of arrival time (not used in this method)
-        monitoring: `ctapipe.containers.CameraMonitoringContainer`
+        monitoring : `ctapipe.containers.CameraMonitoringContainer`
             Monitoring information to make use of additional parameters
             e.g. pedestal std.
 

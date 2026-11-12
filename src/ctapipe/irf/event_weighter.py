@@ -108,7 +108,7 @@ class EventWeighter(Component):
         """
         Parameters
         ----------
-        source_spectrum: Callable
+        source_spectrum : Callable
             initial spectrum of the events to be processed.
         """
         super().__init__(config=config, parent=parent, **kwargs)

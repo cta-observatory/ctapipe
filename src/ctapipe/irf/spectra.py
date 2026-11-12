@@ -67,13 +67,13 @@ def spectrum_from_simulation_config(
 
     Parameters
     ----------
-    simulation_configuration_table: Table
+    simulation_configuration_table : Table
         table as read by TableLoader.read_simulation_configuration()
-    shower_distribution_table: Table
+    shower_distribution_table : Table
         table of simulated shower distribution as read from TableLoader.read_shower_distribution()
-    obs_time: u.Quantity['s']
+    obs_time : u.Quantity['s']
         Observation time in a unit convertible to seconds.
-    method: str
+    method : str
         "powerlaw" (for assuming powerlaw distributions), or "histogram" to return an
         interpolation function from the underlying distribution histogram.
 

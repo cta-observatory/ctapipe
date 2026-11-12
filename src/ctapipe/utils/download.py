@@ -23,12 +23,12 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
 
     Parameters
     ----------
-    url: str or url
+    url : str or url
         The URL to download
-    path: pathlib.Path or str
+    path : pathlib.Path or str
         Where to store the downloaded data.
-    auth: None or tuple of (username, password) or a request.AuthBase instance.
-    chunk_size: int
+    auth : None or tuple of (username, password) or a request.AuthBase instance.
+    chunk_size : int
         Chunk size for writing the data file, 10 kB by default.
     """
     log.info(f"Downloading {url} to {path}")
@@ -127,21 +127,21 @@ def download_file_cached(
 
     Parameters
     ----------
-    name: str or pathlib.Path
+    name : str or pathlib.Path
         the name of the file, relative to the data server url
-    cache_name: str
+    cache_name : str
         What name to use for the cache directory
-    env_prefix: str
+    env_prefix : str
         Prefix for the environt variables used for overriding the URL,
         and providing username and password in case authentication is required.
-    auth: True, None or tuple of (username, password)
+    auth : True, None or tuple of (username, password)
         Authentication data for the request. Will be passed to ``requests.get``.
         If ``True``, read username and password for the request from
         the env variables ``env_prefix + 'USER'`` and ``env_prefix + PASSWORD``
-    default_url: str
+    default_url : str
         The default url from which to download ``name``, can be overridden
         by setting the env variable ``env_prefix + URL``
-    progress: bool
+    progress : bool
         Whether or not to show a progress bar for downloads
 
     Returns

@@ -97,9 +97,9 @@ def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
 
     Parameters
     ----------
-    n_pixels: int
+    n_pixels : int
         number of pixels of the telescope's camera
-    focal_length: float or u.Quantity[length]
+    focal_length : float or u.Quantity[length]
         Focal length, either in m or as astropy quantity
 
     Returns

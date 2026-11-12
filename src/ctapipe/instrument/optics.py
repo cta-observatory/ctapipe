@@ -411,9 +411,9 @@ class OpticsDescription:
 
         Parameters
         ----------
-        name: str
+        name : str
             string representation of optics (MST, LST, SST-1M, SST-ASTRI,...)
-        optics_table: str
+        optics_table : str
             base filename of optics table if not 'optics.*'
 
 
@@ -464,7 +464,7 @@ class OpticsDescription:
 
         Parameters
         ----------
-        optics_table: str or astropy Table
+        optics_table : str or astropy Table
             table where to read the optics description from. If a string, this is
             opened with `ctapipe.utils.get_table_dataset()`
         """

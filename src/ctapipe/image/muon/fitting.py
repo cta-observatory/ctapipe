@@ -22,13 +22,13 @@ def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
 
     Parameters
     ----------
-    x: array-like or astropy quantity
+    x : array-like or astropy quantity
         x coordinates of the points
-    y: array-like or astropy quantity
+    y : array-like or astropy quantity
         y coordinates of the points
-    weights: array-like
+    weights : array-like
         weights of the points
-    nan_errors_flag: bool
+    nan_errors_flag : bool
         The flag defines whether errors are set to NaN.
 
     Returns
@@ -229,11 +229,11 @@ def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y)
 
     Parameters
     ----------
-    x: array-like or astropy quantity
+    x : array-like or astropy quantity
         x coordinates of the points
-    y: array-like or astropy quantity
+    y : array-like or astropy quantity
         y coordinates of the points
-    weights: array-like
+    weights : array-like
         weights of the points
     radius : astropy.units.Quantity
         Fitted radius of the circle.
