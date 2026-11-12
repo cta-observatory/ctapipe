@@ -582,10 +582,14 @@ def test_guess_radius(prod5_lst, prod5_sst):
 
 def test_single_pixel(prod5_lst):
     """Regression test for #2316"""
+    from ctapipe.image.morphology import number_of_islands
+
     single_pixel = prod5_lst.camera.geometry[[0]]
 
     assert single_pixel.neighbor_matrix.shape == (1, 1)
-    assert single_pixel.neighbor_matrix[0, 0]
+    # neighbors come from the full geometry, where a pixel is not its own neighbor
+    assert not single_pixel.neighbor_matrix[0, 0]
+    assert number_of_islands(single_pixel, np.ones(1, dtype=bool))[0] == 1
 
 
 def test_empty(prod5_lst):
