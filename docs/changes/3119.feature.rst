@@ -1,0 +1,8 @@
+Added :class:`ctapipe.irf.EffectiveArea3DMaker` for computing effective areas binned
+in true energy, fov longitude and fov latitude, written as an ``AEFF_3D`` GADF HDU
+(requires ``pyirf >= 0.15.0``). Can be selected with
+``--effective-area-maker-name=EffectiveArea3DMaker`` in ``ctapipe-compute-irf``.
+``HDUCLAS3`` is set to ``POINT-LIKE`` when a spatial selection was applied or the
+simulation is point-like, and to ``FULL-ENCLOSURE`` otherwise.
+``DefaultFoVOffsetBins`` gained an optional ``fov_offset_edges`` trait to specify
+explicit FoV offset bin edges.
