@@ -18,8 +18,8 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    MuonBandwidthContainer,
     MuonContainer,
-    MuonEfficiencyContainer,
     MuonParametersContainer,
     MuonRingContainer,
     ObservationBlockContainer,
@@ -743,7 +743,7 @@ class HDF5EventSource(EventSource):
                 containers=[
                     MuonRingContainer,
                     MuonParametersContainer,
-                    MuonEfficiencyContainer,
+                    MuonBandwidthContainer,
                 ],
             )
             for table in self.file_.root.dl1.event.telescope.muon
