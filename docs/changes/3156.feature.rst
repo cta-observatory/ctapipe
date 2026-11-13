@@ -1,1 +1,1 @@
-Replacing the muon optical efficiency with the muon optical bandwidth, expressed in eV. The data model has been updated to version v8.1.0.
+Replacing the muon optical efficiency with the muon optical bandwidth, expressed in eV.
