@@ -216,15 +216,6 @@ class PixelStatisticsCalculatorTool(Tool):
                 tel_id,
             )
             return False
-        # Check if the chunk size does not exceed the table length of the input data
-        if self.stats_calculator.stats_aggregators[
-            self.stats_calculator.stats_aggregator_type.tel[tel_id]
-        ].chunking.chunk_size > len(table):
-            raise ToolConfigurationError(
-                f"Change --SizeChunking.chunk_size to decrease the chunk size "
-                f"of the aggregation to a maximum of '{len(table)}' (table length of the "
-                f"input data for telescope 'tel_id={tel_id}')."
-            )
         # Check if the input column name is in the table
         if self.input_column_name not in table.colnames:
             raise ToolConfigurationError(
