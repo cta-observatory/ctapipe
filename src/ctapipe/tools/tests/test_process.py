@@ -654,7 +654,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         muon_simtel_output_file, focal_length_choice="EQUIVALENT"
     ) as source:
         radius = table["muonring_radius"].quantity
-        efficiency = table["muonefficiency_optical_efficiency"]
+        efficiency = table["muonbandwidth_optical_bandwidth"].quantity
         completeness = table["muonparameters_completeness"]
 
         for event in source:
@@ -663,8 +663,8 @@ def test_muon_reconstruction_simtel(tmp_path):
             assert np.isclose(
                 muon.parameters.completeness, completeness[event.count], equal_nan=True
             )
-            assert np.isclose(
-                muon.efficiency.optical_efficiency,
+            assert u.isclose(
+                muon.efficiency.optical_bandwidth,
                 efficiency[event.count],
                 equal_nan=True,
             )

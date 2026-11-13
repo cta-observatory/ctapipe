@@ -107,7 +107,7 @@ def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
         )
         assert "muonring_radius" in table.colnames
         assert "muonparameters_containment" in table.colnames
-        assert "muonefficiency_optical_efficiency" in table.colnames
+        assert "muonbandwidth_optical_bandwidth" in table.colnames
         assert np.all(table["tel_id"] == 1)
 
     assert not table_loader.h5file.isopen

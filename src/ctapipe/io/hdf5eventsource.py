@@ -18,6 +18,7 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    MuonBandwidthContainer,
     MuonContainer,
     MuonEfficiencyContainer,
     MuonParametersContainer,
@@ -107,6 +108,9 @@ DL2_CONTAINERS = {
 }
 
 
+#: first data model version storing muon fit results as MuonBandwidthContainer
+MUON_BANDWIDTH_DATA_MODEL_VERSION = (8, 1, 0)
+
 COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v4.0.0",
     "v5.0.0",
@@ -121,6 +125,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.6.0",
     "v7.7.0",
     "v8.0.0",
+    "v8.1.0",
 ]
 
 
@@ -736,13 +741,18 @@ class HDF5EventSource(EventSource):
         if not self.has_muon_parameters:
             return {}
 
+        if self.datamodel_version >= MUON_BANDWIDTH_DATA_MODEL_VERSION:
+            muon_fit_container = MuonBandwidthContainer
+        else:
+            muon_fit_container = MuonEfficiencyContainer
+
         return {
             table.name: self.reader.read(
                 f"{DL1_TEL_MUON_GROUP}/{table.name}",
                 containers=[
                     MuonRingContainer,
                     MuonParametersContainer,
-                    MuonEfficiencyContainer,
+                    muon_fit_container,
                 ],
             )
             for table in self.file_.root.dl1.event.telescope.muon
