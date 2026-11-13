@@ -1,0 +1,3 @@
+Fix ``ctapipe-calculate-pixel-statistics`` not allowing
+the user to specify ``SizeChunking.chunk_size=None`` or
+``SizeChunking.allow_undersized_tables``.

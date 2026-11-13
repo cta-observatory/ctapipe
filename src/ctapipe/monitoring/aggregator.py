@@ -67,7 +67,7 @@ class BaseChunking(Component, metaclass=ABCMeta):
     """
 
     allow_undersized_tables = Bool(
-        default_value=False,
+        default_value=True,
         help=(
             "If True, allow processing tables smaller than chunk size/duration by yielding "
             "the entire table as a single chunk. If False, raise an error."

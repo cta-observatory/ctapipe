@@ -97,6 +97,39 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         )
 
 
+@pytest.mark.parametrize("chunk_size", [None, 2500])
+def test_calculate_pixel_stats_tool_single_chunk(tmp_path, dl1_image_file, chunk_size):
+    """The whole input can be aggregated, including when it is shorter than a chunk."""
+    tel_id = 3
+    output_file = tmp_path / "monitoring.dl1.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {"allowed_tels": [tel_id]},
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [("type", "*", "PlainAggregator")],
+            },
+            "SizeChunking": {
+                "chunk_size": chunk_size,
+            },
+        }
+    )
+    run_tool(
+        PixelStatisticsCalculatorTool(config=config),
+        argv=[f"--input_url={dl1_image_file}", f"--output_path={output_file}"],
+        cwd=tmp_path,
+        raises=True,
+    )
+    stats = read_table(
+        output_file,
+        path=f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_{tel_id:03d}",
+    )
+    with TableLoader(dl1_image_file) as loader:
+        table = loader.read_telescope_events(telescopes=[tel_id], dl1_images=True)
+    assert len(stats) == 1
+    assert stats["event_id_start"][0] == table["event_id"][0]
+    assert stats["event_id_end"][0] == table["event_id"][-1]
+
+
 def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_image_file):
     """check tool execution with HistogramAggregator"""
     hist = pytest.importorskip("hist")
@@ -199,21 +232,19 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             cwd=tmp_path,
             raises=True,
         )
-    # Check if ToolConfigurationError is raised
-    # when the chunk size is larger than the number of events in the input file
+    # Disabling undersized tables lets the chunker reject short inputs.
     monitoring_failure_chunk_size_file = (
         tmp_path / "monitoring_failure_chunk_size.dl1.h5"
     )
 
-    with pytest.raises(
-        ToolConfigurationError, match="Change --SizeChunking.chunk_size"
-    ):
+    with pytest.raises(ValueError, match="is less than chunk_size"):
         run_tool(
             PixelStatisticsCalculatorTool(),
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_failure_chunk_size_file}",
                 "--SizeChunking.chunk_size=2500",
+                "--SizeChunking.allow_undersized_tables=False",
             ],
             cwd=tmp_path,
             raises=True,

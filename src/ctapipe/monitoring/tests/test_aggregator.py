@@ -518,9 +518,8 @@ def test_chunk_shift():
     assert len(chunk_stats) == 3
     # Check if two chunks are used for the computation of aggregated statistic values as the last chunk is dropped
     assert len(chunk_stats_shift) == 3
-    # Check if ValueError is raised when the chunk_size is larger than the length of table
-    with pytest.raises(ValueError):
-        _ = aggregator(table=charge_table[1000:1500])
+    # A short table is processed as a single chunk by default.
+    assert len(aggregator(table=charge_table[1000:1500])) == 1
 
 
 def test_with_outliers():
@@ -1087,7 +1086,7 @@ def test_nan_handling():
 
 
 def test_undersized_tables():
-    """Test handling of tables smaller than chunk size with allow_undersized_tables option"""
+    """Test undersized tables are accepted by default and can be explicitly rejected."""
 
     # Create small test table (50 rows)
     times = Time(np.linspace(60117.911, 60117.912, num=50), scale="tai", format="mjd")
@@ -1100,7 +1099,7 @@ def test_undersized_tables():
         names=("time", "event_id", "image"),
     )
 
-    # Test 1: SizeChunking with undersized table - should raise error by default
+    # Explicitly disabling undersized tables rejects tables with too few rows.
     config_error = Config(
         {
             "PlainAggregator": {"chunking_type": "SizeChunking"},
@@ -1114,11 +1113,11 @@ def test_undersized_tables():
     ):
         aggregator_error(table=small_table)
 
-    # Test 2: SizeChunking with allow_undersized_tables=True
+    # By default, tables smaller than chunk_size are accepted.
     config_allow = Config(
         {
             "PlainAggregator": {"chunking_type": "SizeChunking"},
-            "SizeChunking": {"chunk_size": 100, "allow_undersized_tables": True},
+            "SizeChunking": {"chunk_size": 100},
         }
     )
     aggregator_allow = PlainAggregator(config=config_allow)
@@ -1128,7 +1127,7 @@ def test_undersized_tables():
     assert len(result_allow) == 1
     assert result_allow[0]["n_events"][0, 0] == 50  # All 50 events in single chunk
 
-    # Test 3: TimeChunking with undersized table - should raise error by default
+    # TimeChunking also rejects undersized tables when explicitly configured.
     # Note: table spans ~86.4 seconds, so use 100s chunk_duration to make it undersized
     config_time_error = Config(
         {
@@ -1146,13 +1145,12 @@ def test_undersized_tables():
     ):
         aggregator_time_error(table=small_table)
 
-    # Test 4: TimeChunking with allow_undersized_tables=True
+    # TimeChunking accepts undersized tables by default.
     config_time_allow = Config(
         {
             "PlainAggregator": {"chunking_type": "TimeChunking"},
             "TimeChunking": {
                 "chunk_duration": 100 * u.s,
-                "allow_undersized_tables": True,
             },
         }
     )
