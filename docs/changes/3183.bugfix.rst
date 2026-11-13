@@ -1,0 +1,2 @@
+Fix configuration not being passed to ``PointingInterpolator`` in ``HDF5MonitoringSource``,
+making it impossible to configure out of bounds and extrapolation options.
