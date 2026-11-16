@@ -59,6 +59,7 @@ class ImagePlotter(Component):
         self.cb_intensity = None
         self.cb_peak_time = None
         self.pdf = None
+        self.closed = False
         self.subarray = subarray
         self._exit_stack = ExitStack()
 
@@ -72,11 +73,15 @@ class ImagePlotter(Component):
             raise OptionalDependencyMissing("matplotlib") from None
 
         self.fig = plt.figure(figsize=(16, 7), layout="constrained")
+        self.fig.canvas.mpl_connect("close_event", self._on_close)
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
         self.ax_peak_time = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
             self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = self._exit_stack.enter_context(PdfPages(self.output_path))
+
+    def _on_close(self, event):
+        self.closed = True
 
     def plot(self, event, tel_id):
         """Update plot with new event data."""
@@ -228,6 +233,11 @@ class DisplayDL1Calib(Tool):
             for tel_id in tels:
                 if all(self.quality_query(dl1=event.tel[tel_id].dl1)):
                     self.plotter.plot(event, tel_id)
+                    if self.plotter.display and self.plotter.closed:
+                        self.log.info(
+                            "Display window closed, stopping event processing"
+                        )
+                        return
 
     def finish(self):
         self.plotter.finish()
