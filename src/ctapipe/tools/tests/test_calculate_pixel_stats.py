@@ -130,6 +130,44 @@ def test_calculate_pixel_stats_tool_single_chunk(tmp_path, dl1_image_file, chunk
     assert stats["event_id_end"][0] == table["event_id"][-1]
 
 
+def test_calculate_pixel_stats_tool_undersized_faulty_chunk(tmp_path, dl1_image_file):
+    """A faulty chunk from an undersized table must not crash the second pass."""
+    tel_id = 3
+    output_file = tmp_path / "monitoring.dl1.h5"
+    config = Config(
+        {
+            "PixelStatisticsCalculatorTool": {"allowed_tels": [tel_id]},
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [("type", "*", "PlainAggregator")],
+                # Unreachable range, so every pixel is an outlier and the chunk is faulty
+                "outlier_detector_list": [
+                    {
+                        "apply_to": "mean",
+                        "name": "RangeOutlierDetector",
+                        "config": {"validity_range": [1e9, 1e10]},
+                    }
+                ],
+            },
+            "SizeChunking": {
+                "chunk_size": 2500,
+                "chunk_shift": 1000,
+            },
+        }
+    )
+    run_tool(
+        PixelStatisticsCalculatorTool(config=config),
+        argv=[f"--input_url={dl1_image_file}", f"--output_path={output_file}"],
+        cwd=tmp_path,
+        raises=True,
+    )
+    stats = read_table(
+        output_file,
+        path=f"{DL1_PIXEL_STATISTICS_GROUP}/subarray_image/tel_{tel_id:03d}",
+    )
+    assert len(stats) == 1
+    assert not stats["is_valid"][0]
+
+
 def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_image_file):
     """check tool execution with HistogramAggregator"""
     hist = pytest.importorskip("hist")
