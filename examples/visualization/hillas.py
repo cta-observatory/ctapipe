@@ -403,7 +403,7 @@ def display_event_with_annotated_hillas(
 # -----------------
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-geom = subarray.tel[1].camera.geometry.transform_to(TelescopeFrame())
+geom = subarray.tel[1].camera.geometry.transform_to(TelescopeFrame)
 
 # Define Gaussian model parameters
 x0 = -0.6 * u.deg

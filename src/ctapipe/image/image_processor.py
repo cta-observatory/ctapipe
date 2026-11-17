@@ -97,10 +97,9 @@ class ImageProcessor(TelescopeComponent):
         self.check_image = ImageQualityQuery(parent=self)
 
         self.default_image_container = DEFAULT_IMAGE_PARAMETERS
-        telescope_frame = TelescopeFrame()
         self.telescope_frame_geometries = {
             tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
-                telescope_frame
+                TelescopeFrame
             )
             for tel_id in self.subarray.tel
         }

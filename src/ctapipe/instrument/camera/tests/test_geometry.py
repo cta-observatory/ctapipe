@@ -7,6 +7,7 @@ import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 
+from ctapipe.coordinates import CameraFrame, TelescopeFrame
 from ctapipe.instrument import CameraGeometry, PixelShape
 from ctapipe.instrument.warnings import FromNameWarning
 
@@ -18,8 +19,7 @@ def test_construct():
     geom = CameraGeometry(
         name="Unknown",
         pix_id=np.arange(100),
-        pix_x=x * u.m,
-        pix_y=y * u.m,
+        pix_coord=SkyCoord(x * u.m, y * u.m, frame=CameraFrame),
         pix_area=x * u.m**2,
         pix_type=PixelShape.SQUARE,
         pix_rotation="10d",
@@ -35,8 +35,7 @@ def test_construct():
         geom = CameraGeometry(
             name="Unknown",
             pix_id=np.arange(100),
-            pix_x=x * u.m,
-            pix_y=y * u.m,
+            pix_coord=SkyCoord(x * u.m, y * u.m, frame=CameraFrame),
             pix_area=x * u.m**2,
             pix_type="foo",
             pix_rotation="10d",
@@ -47,8 +46,7 @@ def test_construct():
     geom = CameraGeometry(
         name="Unknown",
         pix_id=np.arange(100),
-        pix_x=x * u.m,
-        pix_y=y * u.m,
+        pix_coord=SkyCoord(x * u.m, y * u.m, frame=CameraFrame),
         pix_area=x * u.m**2,
         pix_type="rectangular",
         pix_rotation="10d",
@@ -99,11 +97,10 @@ def test_find_neighbor_pixels():
     n_pixels = len(x)
 
     geom = CameraGeometry(
-        "test",
+        name="test",
         pix_id=np.arange(n_pixels),
         pix_area=u.Quantity(np.full(n_pixels, 4), u.cm**2),
-        pix_x=x.ravel(),
-        pix_y=y.ravel(),
+        pix_coord=SkyCoord(x.ravel(), y.ravel(), frame=CameraFrame),
         pix_type="rectangular",
     )
 
@@ -144,8 +141,11 @@ def test_calc_pixel_neighbors_square():
         name="test",
         pix_id=np.arange(400),
         pix_type="rectangular",
-        pix_x=u.Quantity(x.ravel(), u.cm),
-        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_coord=SkyCoord(
+            u.Quantity(x.ravel(), u.cm),
+            u.Quantity(y.ravel(), u.cm),
+            frame=CameraFrame,
+        ),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
     )
 
@@ -164,8 +164,11 @@ def test_calc_pixel_neighbors_square_diagonal():
         name="test",
         pix_id=np.arange(400),
         pix_type="rectangular",
-        pix_x=u.Quantity(x.ravel(), u.cm),
-        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_coord=SkyCoord(
+            u.Quantity(x.ravel(), u.cm),
+            u.Quantity(y.ravel(), u.cm),
+            frame=CameraFrame,
+        ),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
     )
 
@@ -184,6 +187,26 @@ def test_to_and_from_table(prod5_lst):
     assert (prod5_lst_cam.pix_y == prod5_lst_cam2.pix_y).all()
     assert (prod5_lst_cam.pix_area == prod5_lst_cam2.pix_area).all()
     assert prod5_lst_cam.pix_type == prod5_lst_cam2.pix_type
+
+
+@pytest.mark.parametrize("frame_name", ["EngineeringCameraFrame", "TelescopeFrame"])
+def test_to_table_uses_camera_frame(prod5_lst, frame_name):
+    """Tables always store CameraFrame coordinates, whatever the geometry's frame"""
+    from ctapipe import coordinates
+    from ctapipe.coordinates import CameraFrame
+
+    geom = prod5_lst.camera.geometry
+    geom_other = geom.transform_to(getattr(coordinates, frame_name))
+
+    table = geom_other.to_table()
+    assert table["pix_x"].unit.physical_type == "length"
+
+    geom_read = CameraGeometry.from_table(table)
+    assert type(geom_read.frame) is CameraFrame
+    assert u.allclose(geom_read.pix_x, geom.pix_x)
+    assert u.allclose(geom_read.pix_y, geom.pix_y)
+    assert u.allclose(geom_read.pix_area, geom.pix_area)
+    assert u.isclose(geom_read.pix_rotation, geom.pix_rotation)
 
 
 def test_write_read(tmpdir, prod5_lst):
@@ -209,8 +232,9 @@ def test_precal_neighbors():
     geom = CameraGeometry(
         name="TestCam",
         pix_id=np.arange(3),
-        pix_x=np.arange(3) * u.deg,
-        pix_y=np.arange(3) * u.deg,
+        pix_coord=SkyCoord(
+            np.arange(3) * u.deg, np.arange(3) * u.deg, frame=TelescopeFrame
+        ),
         pix_area=np.ones(3) * u.deg**2,
         neighbors=[[1], [0, 2], [1]],
         pix_type="rectangular",
@@ -235,12 +259,57 @@ def test_slicing(prod5_mst_nectarcam):
     assert len(sliced1.pix_y) == 100
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
-    assert sliced1.frame is prod5_nectarcam.frame
+    assert sliced1.frame.is_equivalent_frame(prod5_nectarcam.frame)
 
     sliced2 = prod5_nectarcam[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
+
+
+def test_slicing_neighbors(prod5_lst):
+    """Sliced geometries must keep the neighbors of the original geometry"""
+    geom = prod5_lst.camera.geometry
+    full = geom.neighbor_matrix
+
+    rng = np.random.default_rng(0)
+    mask = np.zeros(geom.n_pixels, dtype=bool)
+    mask[rng.choice(geom.n_pixels, 50, replace=False)] = True
+    indices = np.flatnonzero(mask)
+
+    for slice_ in (slice(100, 200), [5, 7, 8, 9, 10], mask):
+        sliced = geom[slice_]
+        np.testing.assert_array_equal(sliced.neighbor_matrix, full[slice_][:, slice_])
+
+    # recomputing the neighbors from the positions of a sparse selection is wrong,
+    # e.g. isolated pixels would get neighbors
+    sliced = geom[mask]
+    assert sliced.neighbor_matrix.sum() == full[mask][:, mask].sum()
+
+    # slice of a slice
+    sliced_twice = sliced[:10]
+    np.testing.assert_array_equal(
+        sliced_twice.neighbor_matrix, full[indices[:10]][:, indices[:10]]
+    )
+
+    # transforming a sliced geometry keeps its neighbors
+    transformed = sliced.transform_to(TelescopeFrame)
+    np.testing.assert_array_equal(transformed.neighbor_matrix, sliced.neighbor_matrix)
+
+
+@pytest.mark.parametrize("frame", [CameraFrame, TelescopeFrame])
+def test_slicing_pix_coord(prod5_mst_nectarcam, frame):
+    """Sliced pix_x / pix_y (copied from the parent) must match the sliced pix_coord"""
+    geom = prod5_mst_nectarcam.camera.geometry.transform_to(frame)
+    mask = np.zeros(geom.n_pixels, dtype=bool)
+    mask[::7] = True
+
+    sliced = geom[mask]
+    x_name, y_name = sliced.frame.get_representation_component_names().keys()
+    assert sliced.pix_coord.shape == (mask.sum(),)
+    assert u.allclose(sliced.pix_x, getattr(sliced.pix_coord, x_name))
+    assert u.allclose(sliced.pix_y, getattr(sliced.pix_coord, y_name))
+    assert sliced.pix_area.unit == geom.pix_area.unit
 
 
 def test_slicing_rotation(camera_geometry):
@@ -260,8 +329,7 @@ def test_rectangle_patch_neighbors():
     cam = CameraGeometry(
         name="testcam",
         pix_id=np.arange(pix_x.size),
-        pix_x=pix_x,
-        pix_y=pix_y,
+        pix_coord=SkyCoord(pix_x, pix_y, frame=CameraFrame),
         pix_area=pix_area,
         pix_type="rectangular",
     )
@@ -355,6 +423,126 @@ def test_camera_coordinate_transform(camera_geometry):
     assert np.allclose(geom_cam.pix_x.to_value(unit), geom.pix_x.to_value(unit))
 
 
+def test_pix_coord(camera_geometry):
+    """pix_x / pix_y must be the components of pix_coord, frame has no data"""
+    from ctapipe.coordinates import CameraFrame
+
+    geom = deepcopy(camera_geometry)
+    # setting a frame class must cache a frame instance, not the class
+    geom.frame = CameraFrame
+    assert isinstance(geom.frame, CameraFrame)
+
+    geom.frame = CameraFrame(focal_length=10 * u.m)
+    assert geom.frame.focal_length == 10 * u.m
+    # setting a new frame must update the cached one
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+    assert geom.frame.focal_length == 28 * u.m
+    assert geom.frame is geom.frame
+
+    assert isinstance(geom.pix_coord, SkyCoord)
+    assert geom.pix_coord.shape == (geom.n_pixels,)
+    assert u.allclose(geom.pix_coord.x, geom.pix_x)
+    assert u.allclose(geom.pix_coord.y, geom.pix_y)
+    assert not geom.frame.has_data
+    assert geom.frame.focal_length == 28 * u.m
+
+    # slicing and rotating must keep the frame attributes
+    assert geom[:10].pix_coord.focal_length == 28 * u.m
+    x_before = geom.pix_x.copy()
+    geom.rotate(10 * u.deg)
+    assert geom.pix_coord.focal_length == 28 * u.m
+
+    # cached pix_x / pix_y must be updated when pix_coord changes
+    assert not u.allclose(geom.pix_x, x_before)
+    assert u.allclose(geom.pix_x, geom.pix_coord.x)
+    assert u.allclose(geom.pix_y, geom.pix_coord.y)
+
+
+def test_construct_from_pix_coord():
+    """pix_x / pix_y / frame are derived from the pix_coord SkyCoord"""
+    x = np.linspace(-1, 1, 10) * u.m
+    y = np.linspace(-2, 2, 10) * u.m
+    kwargs = dict(
+        name="test",
+        pix_id=np.arange(10),
+        pix_area=np.full(10, 0.01) * u.m**2,
+        pix_type="hexagon",
+    )
+
+    geom = CameraGeometry(
+        pix_coord=SkyCoord(x, y, frame=CameraFrame(focal_length=28 * u.m)), **kwargs
+    )
+    assert u.allclose(geom.pix_x, x)
+    assert u.allclose(geom.pix_y, y)
+    assert isinstance(geom.frame, CameraFrame)
+    assert geom.frame.focal_length == 28 * u.m
+
+    # spherical frames: pix_x / pix_y map to fov_lon / fov_lat
+    coord = SkyCoord(
+        fov_lon=x.value * u.deg, fov_lat=y.value * u.deg, frame=TelescopeFrame
+    )
+    kwargs["pix_area"] = np.full(10, 0.01) * u.deg**2
+    geom = CameraGeometry(pix_coord=coord, **kwargs)
+    assert u.allclose(geom.pix_x, coord.fov_lon)
+    assert u.allclose(geom.pix_y, coord.fov_lat)
+    assert isinstance(geom.frame, TelescopeFrame)
+
+    # all arguments are keyword-only, and pix_coord, pix_area, pix_type are required
+    with pytest.raises(TypeError, match="positional"):
+        CameraGeometry("test", np.arange(10), coord, kwargs["pix_area"], "hexagon")
+
+    for missing in ("pix_area", "pix_type"):
+        incomplete = {k: v for k, v in kwargs.items() if k != missing}
+        with pytest.raises(TypeError, match=f"missing .*'{missing}'"):
+            CameraGeometry(pix_coord=coord, **incomplete)
+
+    with pytest.raises(TypeError, match="missing .*'pix_coord'"):
+        CameraGeometry(**kwargs)
+
+    with pytest.raises(TypeError, match="pix_coord must be a SkyCoord"):
+        CameraGeometry(pix_coord=x, **kwargs)
+
+    with pytest.raises(ValueError, match="pix_coord has wrong shape"):
+        CameraGeometry(pix_coord=coord[:5], **kwargs)
+
+
+@pytest.mark.parametrize("as_class", [True, False])
+def test_transform_keeps_frame_attributes(camera_geometry, as_class):
+    """Frame attributes must be propagated when passing frame classes or instances"""
+    from ctapipe.coordinates import CameraFrame, EngineeringCameraFrame
+
+    geom = deepcopy(camera_geometry)
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+
+    target = EngineeringCameraFrame if as_class else EngineeringCameraFrame()
+    geom_eng = geom.transform_to(target)
+
+    assert isinstance(geom_eng.frame, EngineeringCameraFrame)
+    assert not geom_eng.frame.has_data
+    assert geom_eng.frame.focal_length == 28 * u.m
+
+
+def test_transform_roundtrip_through_telescope_frame(camera_geometry):
+    """
+    TelescopeFrame does not have a focal_length, but it must be kept in
+    pix_coord so the transformation back to CameraFrame works without
+    specifying it again.
+    """
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    geom = deepcopy(camera_geometry)
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+
+    geom_tel = geom.transform_to(TelescopeFrame)
+    assert geom_tel.pix_coord.focal_length == 28 * u.m
+
+    geom_cam = geom_tel.transform_to(CameraFrame)
+    assert geom_cam.frame.focal_length == 28 * u.m
+    assert u.allclose(geom_cam.pix_x, geom.pix_x)
+    assert u.allclose(geom_cam.pix_y, geom.pix_y)
+    assert u.allclose(geom_cam.pix_area, geom.pix_area)
+
+
 def test_guess_width():
     x = u.Quantity([0, 1, 2], u.cm)
     y = u.Quantity([0, 0, 0], u.cm)
@@ -364,22 +552,20 @@ def test_guess_width():
 
 def test_pixel_width():
     geom = CameraGeometry(
-        "test",
+        name="test",
         pix_id=[1],
         pix_area=[2] * u.cm**2,
-        pix_x=[0] * u.m,
-        pix_y=[0] * u.m,
+        pix_coord=SkyCoord([0] * u.m, [0] * u.m, frame=CameraFrame),
         pix_type="hex",
     )
 
     assert np.isclose(geom.pixel_width.to_value(u.cm), [2 * np.sqrt(1 / np.sqrt(3))])
 
     geom = CameraGeometry(
-        "test",
+        name="test",
         pix_id=[1],
         pix_area=[2] * u.cm**2,
-        pix_x=[0] * u.m,
-        pix_y=[0] * u.m,
+        pix_coord=SkyCoord([0] * u.m, [0] * u.m, frame=CameraFrame),
         pix_type="rect",
     )
 
@@ -396,10 +582,14 @@ def test_guess_radius(prod5_lst, prod5_sst):
 
 def test_single_pixel(prod5_lst):
     """Regression test for #2316"""
+    from ctapipe.image.morphology import number_of_islands
+
     single_pixel = prod5_lst.camera.geometry[[0]]
 
     assert single_pixel.neighbor_matrix.shape == (1, 1)
-    assert single_pixel.neighbor_matrix[0, 0]
+    # neighbors come from the full geometry, where a pixel is not its own neighbor
+    assert not single_pixel.neighbor_matrix[0, 0]
+    assert number_of_islands(single_pixel, np.ones(1, dtype=bool))[0] == 1
 
 
 def test_empty(prod5_lst):

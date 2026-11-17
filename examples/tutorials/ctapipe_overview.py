@@ -179,7 +179,7 @@ calibrator(event)
 tel_id = 130
 
 ###############################################################################
-geometry = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
+geometry = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame)
 dl1 = event.tel[tel_id].dl1
 
 print(geometry)
@@ -546,7 +546,7 @@ for i in range(9):
     image += new_image
 
 ###############################################################################
-geometry = geometry.transform_to(TelescopeFrame())
+geometry = geometry.transform_to(TelescopeFrame)
 image_mask = cleaning(
     tel_id=1,
     image=image,
