@@ -33,6 +33,7 @@ __all__ = [
     "IntensityStatisticsContainer",
     "LeakageContainer",
     "MorphologyContainer",
+    "MuonBandwidthContainer",
     "MuonContainer",
     "MuonEfficiencyContainer",
     "MuonParametersContainer",
@@ -1372,6 +1373,25 @@ class MuonEfficiencyContainer(Container):
     likelihood_value = Field(nan, "cost function value at the minimum")
 
 
+class MuonBandwidthContainer(Container):
+    """Container for the result of the MuonIntensityFitter"""
+
+    width = Field(nan * u.deg, "width of the muon ring in degrees")
+    impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
+    impact_x = Field(nan * u.m, "impact parameter x position")
+    impact_y = Field(nan * u.m, "impact parameter y position")
+    optical_bandwidth = Field(
+        nan * u.eV,
+        "optical efficiency muon, integrated over photon energy",
+        unit=u.eV,
+    )
+    is_valid = Field(False, "True if the fit converged successfully")
+    parameters_at_limit = Field(
+        False, "True if any bounded parameter was fitted close to a bound"
+    )
+    likelihood_value = Field(nan, "cost function value at the minimum")
+
+
 class MuonParametersContainer(Container):
     """Container for muon-ring-related image parameters"""
 
@@ -1419,7 +1439,8 @@ class MuonContainer(Container):
         default_factory=MuonParametersContainer, description="muon parameters"
     )
     efficiency = Field(
-        default_factory=MuonEfficiencyContainer, description="muon efficiency"
+        default_factory=MuonBandwidthContainer,
+        description="muon optical bandwidth fit result",
     )
 
 

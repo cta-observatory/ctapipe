@@ -48,8 +48,9 @@ DL2_SUBLEVELS = {
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v8.0.0"
+DATA_MODEL_VERSION = "v8.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v8.1.0: - Migration from muon optical efficiency to muon optical bandwidth
 - v8.0.0: - Trigger information is moved from DL1 to DL0
           - Added field tels_with_data to SubarrayTriggerContainer and thus
             /dl0/event/subarray/trigger table to be compliant with CTAO DL0 data model

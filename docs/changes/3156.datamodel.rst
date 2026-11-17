@@ -1,0 +1,1 @@
+The data model has been updated to version v8.1.0. A new MuonBandwidthContainer has been added, which is filled by the MuonIntensityFitter. Compared to MuonEfficiencyContainer, MuonBandwidthContainer has one field removed: optical_efficiency and one field added: optical_bandwidth.

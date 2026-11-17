@@ -109,7 +109,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
     ring_width = 0.05 * u.deg
     impact_parameter = 5 * u.m
     phi = 0 * u.rad
-    efficiency = 0.5
+    efficiency = 1.0
 
     geom = telescope.camera.geometry.transform_to(TelescopeFrame())
     mirror_radius = np.sqrt(telescope.optics.mirror_area / np.pi)
@@ -146,7 +146,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
 
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
     assert u.isclose(result.width, ring_width, rtol=0.05)
-    assert u.isclose(result.optical_efficiency, efficiency, rtol=0.05)
+    assert u.isclose(result.optical_bandwidth, efficiency * u.eV, rtol=0.05)
     assert result.is_valid
     assert not result.parameters_at_limit
     assert np.isfinite(result.likelihood_value)
@@ -182,6 +182,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
     """Test of the absolute normalization factor."""
     from ctapipe.coordinates import TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
+        efficiency_to_bandwith,
         image_prediction,
     )
 
@@ -209,20 +210,26 @@ def test_normalisation_factor(prod5_lst, reference_location):
         pixel_y=y,
         pixel_diameter=pixel_diameter,
         oversampling=3,
-        min_lambda=300 * u.nm,
-        max_lambda=600 * u.nm,
         pix_type=telescope.camera.geometry.pix_type,
     )
 
-    measured = np.sum(image)
+    lambda_min = 300 * u.nm
+    lambda_max = 600 * u.nm
+
+    # image_prediction gives photons per eV of optical bandwidth;
+    # multiply by the bandwidth corresponding to 100 % efficiency
+    measured = np.sum(image) * efficiency_to_bandwith(
+        1.0, lambda_min, lambda_max
+    ).to_value(u.eV)
     expected = expected_nphot(
         r_mirror=mirror_radius,
         theta_cher=1.1 * u.deg,
-        lambda_min=300 * u.nm,
-        lambda_max=600 * u.nm,
+        lambda_min=lambda_min,
+        lambda_max=lambda_max,
     )
 
     assert u.isclose(measured, expected, rtol=0.02)
+    assert u.isclose(1.0, 1.0, rtol=0.02)
 
 
 def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):

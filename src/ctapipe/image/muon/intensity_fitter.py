@@ -7,11 +7,12 @@ from math import erf
 
 import numpy as np
 from astropy import units as u
+from astropy.constants import c, h
 from numba import double, vectorize
-from scipy.constants import alpha
+from scipy.constants import alpha, e
 from scipy.ndimage import correlate1d
 
-from ...containers import MuonEfficiencyContainer
+from ...containers import MuonBandwidthContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.env import CTAPIPE_DISABLE_NUMBA_CACHE
@@ -37,6 +38,25 @@ CIRCLE_HEXAGON_AREA_RATIO = np.pi / 2 / np.sqrt(3)
 
 # Sqrt of 2, as it is needed multiple times
 SQRT2 = np.sqrt(2)
+
+
+@u.quantity_input(lambda_min=u.nm, lambda_max=u.nm)
+def _efficiency_to_bandwidth_factor(lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    return ((1 / lambda_min - 1 / lambda_max) * h * c).to(u.eV)
+
+
+@u.quantity_input(bandwidth=u.eV, lambda_min=u.nm, lambda_max=u.nm)
+def bandwidth_to_efficiency(bandwidth, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    return (
+        bandwidth / _efficiency_to_bandwidth_factor(lambda_min, lambda_max)
+    ).to_value(u.one)
+
+
+@u.quantity_input(efficiency=u.one, lambda_min=u.nm, lambda_max=u.nm)
+def efficiency_to_bandwith(efficiency, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    return (efficiency * _efficiency_to_bandwidth_factor(lambda_min, lambda_max)).to(
+        u.eV
+    )
 
 
 def chord_length(radius, rho, phi, phi0=0):
@@ -202,8 +222,6 @@ def image_prediction(
     pixel_y,
     pixel_diameter,
     oversampling=3,
-    min_lambda=300 * u.nm,
-    max_lambda=600 * u.nm,
     pix_type=PixelShape.HEXAGON,
 ):
     """
@@ -244,8 +262,6 @@ def image_prediction(
         pixel_y.to_value(u.rad),
         pixel_diameter.to_value(u.rad),
         oversampling=oversampling,
-        min_lambda_m=min_lambda.to_value(u.m),
-        max_lambda_m=max_lambda.to_value(u.m),
         pix_type=pix_type,
     )
 
@@ -285,8 +301,6 @@ def image_prediction_no_units(
     pixel_y_rad,
     pixel_diameter_rad,
     oversampling=3,
-    min_lambda_m=300e-9,
-    max_lambda_m=600e-9,
     pix_type=PixelShape.HEXAGON,
 ):
     """
@@ -328,7 +342,7 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha * (min_lambda_m**-1 - max_lambda_m**-1)
+    pred *= alpha / h.value / c.value * e
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
@@ -364,8 +378,6 @@ def build_negative_log_likelihood(
     geometry_tel_frame,
     mask,
     oversampling,
-    min_lambda,
-    max_lambda,
     spe_width,
     pedestal,
     hole_radius=0 * u.m,
@@ -398,9 +410,6 @@ def build_negative_log_likelihood(
 
     pixel_diameter = geometry_tel_frame.pixel_width[0].to_value(u.rad)
 
-    min_lambda = min_lambda.to_value(u.m)
-    max_lambda = max_lambda.to_value(u.m)
-
     hole_radius_m = hole_radius.to_value(u.m)
 
     def negative_log_likelihood(
@@ -410,7 +419,7 @@ def build_negative_log_likelihood(
         center_y,
         radius,
         ring_width,
-        optical_efficiency_muon,
+        optical_bandwidth_muon,
     ):
         """
         Likelihood function to be called by minimizer
@@ -427,8 +436,8 @@ def build_negative_log_likelihood(
             Radius of muon ring
         ring_width: float
             Gaussian width of muon ring
-        optical_efficiency_muon: float
-            Efficiency of the optical system
+        optical_bandwidth_muon: float
+            Optical efficiency integrated over photon energy (in eV)
 
         Returns
         -------
@@ -449,13 +458,11 @@ def build_negative_log_likelihood(
             pixel_y_rad=pixel_y,
             pixel_diameter_rad=pixel_diameter,
             oversampling=oversampling,
-            min_lambda_m=min_lambda,
-            max_lambda_m=max_lambda,
             pix_type=pix_type,
         )
 
         # scale prediction by optical efficiency of the telescope
-        prediction *= optical_efficiency_muon
+        prediction *= optical_bandwidth_muon
 
         return neg_log_likelihood_approx(image, prediction, spe_width, pedestal).sum()
 
@@ -479,7 +486,7 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     initial_guess["center_x"] = center_x.to_value(u.rad)
     initial_guess["center_y"] = center_y.to_value(u.rad)
     initial_guess["ring_width"] = 3 * pixel_radius
-    initial_guess["optical_efficiency_muon"] = 0.1
+    initial_guess["optical_bandwidth_muon"] = 0.3
 
     return initial_guess
 
@@ -495,14 +502,6 @@ class MuonIntensityFitter(TelescopeComponent):
 
     spe_width = FloatTelescopeParameter(
         help="Width of a single photo electron distribution", default_value=0.5
-    ).tag(config=True)
-
-    min_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
-    ).tag(config=True)
-
-    max_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
@@ -553,7 +552,7 @@ class MuonIntensityFitter(TelescopeComponent):
 
         Returns
         -------
-        MuonEfficiencyContainer
+        MuonBandwidthContainer
         """
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.n_mirrors != 1:
@@ -568,8 +567,6 @@ class MuonIntensityFitter(TelescopeComponent):
             geometry_tel_frame=self._geometries_tel_frame[tel_id],
             mask=mask,
             oversampling=self.oversampling.tel[tel_id],
-            min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
-            max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
             spe_width=self.spe_width.tel[tel_id],
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
@@ -589,12 +586,12 @@ class MuonIntensityFitter(TelescopeComponent):
         minuit.errors["impact_parameter"] = 0.5
         minuit.errors["phi"] = np.deg2rad(0.5)
         minuit.errors["ring_width"] = 0.001 * radius.to_value(u.rad)
-        minuit.errors["optical_efficiency_muon"] = 0.05
+        minuit.errors["optical_bandwidth_muon"] = 0.05
 
         minuit.limits["impact_parameter"] = (0, None)
         minuit.limits["phi"] = (-np.pi, np.pi)
         minuit.limits["ring_width"] = (0.0, None)
-        minuit.limits["optical_efficiency_muon"] = (0.0, None)
+        minuit.limits["optical_bandwidth_muon"] = (0.0, None)
 
         minuit.fixed["radius"] = True
         minuit.fixed["center_x"] = True
@@ -606,12 +603,12 @@ class MuonIntensityFitter(TelescopeComponent):
         # Get fitted values
         result = minuit.values
 
-        return MuonEfficiencyContainer(
+        return MuonBandwidthContainer(
             impact=result["impact_parameter"] * u.m,
             impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
             impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
             width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
-            optical_efficiency=result["optical_efficiency_muon"],
+            optical_bandwidth=result["optical_bandwidth_muon"] * u.eV,
             is_valid=minuit.valid,
             parameters_at_limit=minuit.fmin.has_parameters_at_limit,
             likelihood_value=minuit.fval,
