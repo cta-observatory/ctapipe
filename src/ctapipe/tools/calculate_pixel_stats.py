@@ -337,6 +337,8 @@ class PixelStatisticsCalculatorTool(Tool):
             tel_id=tel_id,
             col_name=self.input_column_name,
         )
+        if stats_secondpass is None:
+            return stats
 
         combined_stats = vstack([stats, stats_secondpass])
         combined_stats.sort(["time_start"])
