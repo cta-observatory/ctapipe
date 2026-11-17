@@ -60,7 +60,7 @@ def get_representation_component_names(
     Return the component names of a Frame (or SkyCoord)
     """
     if isinstance(frame, type):
-        return tuple(frame().get_representation_component_names().keys())
+        frame = frame()
 
     return tuple(frame.get_representation_component_names().keys())
 
