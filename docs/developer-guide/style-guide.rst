@@ -25,10 +25,10 @@ written in ReStructuredText format (same as the Sphinx high-level
 documentation), and should follow the `NumPy Docstring Standards
 <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`_
 
-Sphinx and pre-commit use the numpydoc validation checks configured in
-``[tool.numpydoc_validation]`` in ``pyproject.toml``. Currently, only ``PR10``
-is enabled: a space is required before the colon separating a parameter name
-and its type (``name : type``). Existing violations will be fixed separately.
+Docstring style is checked primarily by Ruff, using the NumPy convention.
+Selected numpydoc validation checks complement Ruff for requirements it does
+not cover. Both tools are configured in ``pyproject.toml`` and run via
+pre-commit. Sphinx uses the same numpydoc validation settings.
 Run ``pre-commit run numpydoc-validation --all-files`` to check all Python files.
 
 Documentation for all algorithms should contain citations to external
