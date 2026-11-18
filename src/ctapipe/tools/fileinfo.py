@@ -58,6 +58,7 @@ def _write_index_table(files, output_path, table_format):
 def fileinfo(args):
     """
     Display information about ctapipe output files (DL1 or DL2 in HDF5 format).
+
     Optionally create an index table from all headers
     """
     files = []  # accumulated info for table output

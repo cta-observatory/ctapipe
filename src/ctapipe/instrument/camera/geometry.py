@@ -563,6 +563,7 @@ class CameraGeometry:
     def _pixel_positions_2d(self):
         """
         Pixel positions on the orthogonal grid of the 2d image.
+
         In order for hexagonal pixels to behave as if they were
         square, the grid has to be distorted.
         Namely, slanting and stretching of the 1d pixel positions
@@ -615,6 +616,7 @@ class CameraGeometry:
     def image_to_cartesian_representation(self, image):
         """
         Create a 2D-image from a given flat image or multiple flat images.
+
         In the case of hexagonal pixels, the resulting
         image is skewed to match a rectangular grid.
 

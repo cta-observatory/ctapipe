@@ -288,6 +288,7 @@ class StereoMeanCombiner(StereoCombiner):
     def predict_table(self, mono_predictions: Table) -> Table:
         """
         Calculates the (array-)event-wise mean.
+
         Telescope events, that are nan, get discarded.
         This means you might end up with less events if
         all telescope predictions of a shower are invalid.

@@ -12,6 +12,7 @@ __all__ = ["leakage_parameters"]
 def leakage_parameters(geom, image, cleaning_mask):
     """
     Calculating the leakage-values for a given image.
+
     Image must be cleaned for example with tailcuts_clean.
     Leakage describes how strong a shower is on the edge of a telescope.
 

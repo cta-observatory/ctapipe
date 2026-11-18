@@ -166,6 +166,7 @@ class TableWriter(Component, metaclass=ABCMeta):
     def write(self, table_name, containers, **kwargs):
         """
         Write the contents of the given container or containers to a table.
+
         The first call to write  will create a schema and initialize the table
         within the file.
         The shape of data within the container must not change between calls,

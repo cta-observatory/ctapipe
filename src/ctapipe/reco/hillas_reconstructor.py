@@ -80,6 +80,7 @@ def normalise(vec):
 def line_line_intersection_3d(uvw_vectors, origins):
     """
     Intersection of many lines in 3d.
+
     See https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
     """
     C = []

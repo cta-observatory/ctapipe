@@ -216,6 +216,7 @@ class ImageModel(metaclass=ABCMeta):
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
+
         For the signal, poisson random numbers are drawn from
         the expected signal distribution for each pixel.
         For the background, for each pixel a poisson random number
@@ -324,6 +325,7 @@ class SkewedGaussian(ImageModel):
 
     def __init__(self, x, y, length, width, psi, skewness):
         """Create 2D skewed Gaussian model for a shower image in a camera.
+
         Skewness is only applied along the main shower axis.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution and
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html

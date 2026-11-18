@@ -14,6 +14,7 @@ __all__ = ["PlanarRepresentation"]
 class PlanarRepresentation(BaseRepresentation):
     """
     Representation of a point in a 2D plane.
+
     This is essentially a copy of the Cartesian representation used
     in astropy.
 

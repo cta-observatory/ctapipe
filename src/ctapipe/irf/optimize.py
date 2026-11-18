@@ -343,6 +343,7 @@ class PercentileCuts(CutOptimizerBase):
 class PointSourceSensitivityOptimizerBase(CutOptimizerBase):
     """
     Base class for optimizers optimizing cuts for maximum point source efficiency.
+
     This holds some configurable traits shared between different optimization
     algorithms implemented in subclasses of this class.
     """

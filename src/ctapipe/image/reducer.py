@@ -73,6 +73,7 @@ class DataVolumeReducer(TelescopeComponent):
     def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
         """
         Abstract method to be defined by a DataVolumeReducer subclass.
+
         Call the relevant functions for the required pixel selection.
 
         Parameters

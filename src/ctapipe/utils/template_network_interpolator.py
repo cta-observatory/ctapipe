@@ -66,6 +66,7 @@ class BaseTemplate:
     def _get_bounds(self, zenith, azimuth):
         """
         Get bounding indices of a given direction in the zenith, azimuth grid
+
         This code is ugly and not easily transferable, but should be fast enough
 
         Parameters

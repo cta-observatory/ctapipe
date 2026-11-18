@@ -475,6 +475,7 @@ class HDF5TableWriter(TableWriter):
     def write(self, table_name, containers):
         """
         Write the contents of the given container or containers to a table.
+
         The first call to write  will create a schema and initialize the table
         within the file.
         The shape of data within the container must not change between
@@ -499,6 +500,7 @@ class HDF5TableWriter(TableWriter):
 class HDF5TableReader(TableReader):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
+
     Simply construct a `HDF5TableReader` with an input HDF5 file,
     and call the `read(path, container) <read>`_ method to get a generator that fills
     the given container with a new row of the table on each access.

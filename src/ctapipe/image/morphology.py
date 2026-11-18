@@ -53,6 +53,7 @@ def _n_islands_sparse_indices(indices, indptr, mask):
 def number_of_islands(geom, mask):
     """
     Search a given pixel mask for connected clusters.
+
     This can be used to separate between gamma and hadronic showers.
 
     Parameters

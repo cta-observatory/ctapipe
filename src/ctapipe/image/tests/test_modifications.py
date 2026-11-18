@@ -83,6 +83,7 @@ def test_add_noise():
 def test_smear_image(prod5_lst):
     """
     Test that smearing the image leads to the expected results.
+
     For random smearing this will not work with all seeds.
     With the selected seed it will not lose charge
     (No pixel outside of the camera receives light) but

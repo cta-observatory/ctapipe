@@ -201,6 +201,7 @@ def test_update_telescope_lists(subarray_prod5_paranal, allowed_tels, tels_with_
 def test_simulation_info(dl1_file):
     """
     Test that the simulated event information is plausible.
+
     In particular this means simulated event information is finite
     for all events and parameters calculated on the true images
     are not all nan with the same number of nans in different columns.

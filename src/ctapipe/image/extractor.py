@@ -1451,6 +1451,7 @@ def deconvolution_parameters(
 def __filtfilt_fast(signal, filt):
     """
     Apply a linear filter forward and backward to a signal, based on scipy.signal.filtfilt.
+
     filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
     """
     forward = convolve1d(signal, filt, axis=-1, mode="nearest")

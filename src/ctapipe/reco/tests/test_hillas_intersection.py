@@ -49,6 +49,7 @@ def test_parallel():
 def test_intersection_xmax_reco(example_subarray):
     """
     Test the reconstruction of xmax with two LSTs that are pointing at zenith = 0.
+
     The telescopes are places along the x and y axis at the same distance from the center.
     The impact point is hard-coded to be happening in the center of this cartesian system.
     """
@@ -100,6 +101,7 @@ def test_intersection_xmax_reco(example_subarray):
 def test_intersection_reco_impact_point_tilted(example_subarray):
     """
     Function to test the reconstruction of the impact point in the tilted frame.
+
     This is done using a squared configuration, of which the impact point occupies a vertex,
     ad the three telescopes the other three vertices.
     """
@@ -155,6 +157,7 @@ def test_intersection_weighting_spoiled_parameters(example_subarray):
 def test_intersection_nominal_reconstruction(example_subarray):
     """
     Testing the reconstruction of the position in the nominal frame with a three-telescopes system.
+
     This is done using a squared configuration, of which the impact point occupies a vertex,
     ad the three telescopes the other three vertices.
     """

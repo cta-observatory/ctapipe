@@ -782,6 +782,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         time_dict=None,
     ):
         """Predict method for the ImPACT reconstructor.
+
         Used to calculate the reconstructed ImPACT shower geometry and energy.
 
         Parameters

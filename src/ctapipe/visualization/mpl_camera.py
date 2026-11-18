@@ -397,6 +397,7 @@ class CameraDisplay:
     def add_colorbar(self, **kwargs):
         """
         Add a colorbar to the camera plot
+
         kwargs are passed to ``figure.colorbar(self.pixels, **kwargs)``
         See matplotlib documentation for the supported kwargs:
         https://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar

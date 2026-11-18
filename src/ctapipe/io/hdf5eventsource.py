@@ -183,6 +183,7 @@ def read_atmosphere_density_profile(
 class HDF5EventSource(EventSource):
     """
     Event source for files in the ctapipe DL1 format.
+
     For general information about the concept of event sources,
     take a look at the parent class ctapipe.io.EventSource.
 

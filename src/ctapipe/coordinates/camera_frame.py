@@ -116,6 +116,7 @@ class EngineeringCameraFrame(CameraFrame):
 def camera_to_telescope(camera_coord, telescope_frame):
     """
     Transformation between CameraFrame and TelescopeFrame.
+
     Is called when a SkyCoord is transformed from CameraFrame into TelescopeFrame
     """
     x_pos = camera_coord.cartesian.x

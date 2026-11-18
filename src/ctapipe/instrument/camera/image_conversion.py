@@ -13,6 +13,7 @@ __all__ = [
 def get_orthogonal_grid_indices(pos, size):
     """
     Bin pixel positions on a square grid with bin widths at least half the pixel size.
+
     This can be used to infer the rows and columns.
     """
     rnd = np.round((pos / size).to_value(u.dimensionless_unscaled), 1)

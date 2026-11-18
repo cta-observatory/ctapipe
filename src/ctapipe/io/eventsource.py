@@ -269,6 +269,7 @@ class EventSource(Component):
     def obs_ids(self) -> list[int]:
         """
         The observation ids of the runs located in the file
+
         Unmerged files should only contain a single obs id.
 
         Returns

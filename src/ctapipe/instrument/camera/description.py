@@ -48,6 +48,7 @@ class CameraDescription:
     def get_known_camera_names(cls):
         """
         Returns a list of camera names that are available currently on the system.
+
         Beware that the `from_name` method also tries to download camera descriptions
         from the data server, so this list might not be exhaustive.
 
