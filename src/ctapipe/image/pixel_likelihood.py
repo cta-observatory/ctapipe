@@ -50,7 +50,7 @@ class PixelLikelihoodError(RuntimeError):
 
 
 def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
-    """Calculate negative log likelihood for telescope.
+    r"""Calculate negative log likelihood for telescope.
 
     Gaussian approximation from :cite:p:`denaurois2009`, p. 22 (equation between (24) and (25)).
 
@@ -60,17 +60,17 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
         θ = σ_p^2 + μ · (1 + σ_γ^2)
 
-        → P = \\frac{1}{\\sqrt{2 π θ}} · \\exp\\left(- \\frac{(s - μ)^2}{2 θ}\\right)
+        → P = \frac{1}{\sqrt{2 π θ}} · \exp\left(- \frac{(s - μ)^2}{2 θ}\right)
 
-        \\ln{P} = \\ln{\\frac{1}{\\sqrt{2 π θ}}} - \\frac{(s - μ)^2}{2 θ}
+        \ln{P} = \ln{\frac{1}{\sqrt{2 π θ}}} - \frac{(s - μ)^2}{2 θ}
 
-                = \\ln{1} - \\ln{\\sqrt{2 π θ}} - \\frac{(s - μ)^2}{2 θ}
+                = \ln{1} - \ln{\sqrt{2 π θ}} - \frac{(s - μ)^2}{2 θ}
 
-                = - \\frac{\\ln{2 π θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+                = - \frac{\ln{2 π θ}}{2} - \frac{(s - μ)^2}{2 θ}
 
-                = - \\frac{\\ln{2 π} + \\ln{θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+                = - \frac{\ln{2 π} + \ln{θ}}{2} - \frac{(s - μ)^2}{2 θ}
 
-        - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
+        - \ln{P} = \frac{\ln{2 π} + \ln{θ}}{2} + \frac{(s - μ)^2}{2 θ}
 
     We keep the constants in this because the actual value of the likelihood
     can be used to calculate a goodness-of-fit value

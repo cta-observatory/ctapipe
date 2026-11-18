@@ -222,12 +222,12 @@ class AtmosphereDensityProfile(abc.ABC):
 
 @dataclass
 class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
-    """
+    r"""
     A simple functional density profile modeled as an exponential.
 
     The is defined following the form:
 
-    .. math:: \\rho(h) = \\rho_0 e^{-h/h_0}
+    .. math:: \rho(h) = \rho_0 e^{-h/h_0}
 
 
     .. code-block:: python

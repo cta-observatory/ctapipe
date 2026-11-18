@@ -143,7 +143,7 @@ def test_equals():
 
 
 def test_hashing():
-    """ " check that hashes are correctly computed"""
+    """Check that equivalent camera readouts hash consistently."""
     name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float64)

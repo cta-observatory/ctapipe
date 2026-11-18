@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def polar_to_cart(rho, phi):
-    """ "returns r, theta(degrees)"""
+    """Convert polar coordinates with an angle in radians to Cartesian coordinates."""
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y

@@ -322,7 +322,7 @@ def test_slicing_rotation(camera_geometry):
 
 
 def test_rectangle_patch_neighbors():
-    """ " test that a simple rectangular camera has the expected neighbors"""
+    """Check that a rectangular camera has the expected pixel neighbors."""
     pix_x = np.array([-1.1, 0.1, 0.9, -1, 0, 1, -0.9, -0.1, 1.1]) * u.m
     pix_y = np.array([1.1, 1, 0.9, -0.1, 0, 0.1, -0.9, -1, -1.1]) * u.m
     pix_area = np.full(len(pix_x), 0.01) * u.m**2
@@ -367,7 +367,7 @@ def test_equals(prod5_lst, prod5_mst_nectarcam):
 
 
 def test_hashing(prod5_lst, prod5_mst_nectarcam):
-    """ " check that hashes are correctly computed"""
+    """Check that equivalent camera geometries hash consistently."""
     cam1 = prod5_lst.camera.geometry
     cam2 = deepcopy(prod5_lst.camera.geometry)
     cam3 = prod5_mst_nectarcam.camera.geometry

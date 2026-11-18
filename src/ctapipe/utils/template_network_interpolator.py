@@ -160,15 +160,31 @@ class BaseTemplate:
 
     def perform_interpolation(self, zenith, azimuth, interpolation_array, points):
         """
+        Interpolate template predictions for a shower direction.
+
+        Evaluate the templates at the requested shower parameters for each
+        neighboring direction used, then combine the predictions by linear
+        interpolation in zenith followed by azimuth.
+
         Parameters
         ----------
-        zenith
-        azimuth
-        interpolation_array
-        points
+        zenith : float
+            Target zenith angle in degrees.
+        azimuth : float
+            Target azimuth angle in degrees.
+        interpolation_array : ndarray
+            Shower parameters with energy, impact distance, and depth of shower
+            maximum along the last axis, in that order.
+        points : ndarray or None
+            Camera pixel positions with x and y coordinates along the last
+            axis for image templates. Use None for time-gradient templates.
 
         Returns
         -------
+        ndarray
+            Expected charge at the supplied pixel positions for image
+            templates, or the expected time gradient and its RMS for
+            time-gradient templates.
         """
         zenith_bounds, azimuth_bounds = self._get_bounds(zenith, azimuth)
 
