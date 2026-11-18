@@ -36,6 +36,7 @@ from .hdf5dataformat import (
     SIMULATION_PARAMETERS_GROUP,
     SIMULATION_RUN_TABLE,
     SIMULATION_SHOWER_TABLE,
+    SIMULATION_TELESCOPE_CONFIG_GROUP,
 )
 
 __all__ = ["TableLoader"]
@@ -389,6 +390,19 @@ class TableLoader(Component):
         Read the simulation configuration table
         """
         return read_table(self.h5file, SIMULATION_RUN_TABLE)
+
+    def read_telescope_simulation_configuration(self) -> dict[int, Table]:
+        """Read the available telescope simulation configuration tables keyed by tel_id."""
+        if SIMULATION_TELESCOPE_CONFIG_GROUP not in self.h5file:
+            return {}
+
+        tables_by_id = {}
+        for tel_id in self.subarray.tel:
+            path = f"{SIMULATION_TELESCOPE_CONFIG_GROUP}/tel_{tel_id:03d}"
+            if path in self.h5file:
+                tables_by_id[tel_id] = read_table(self.h5file, path)
+
+        return tables_by_id
 
     def read_shower_distribution(self):
         """

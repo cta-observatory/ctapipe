@@ -1,0 +1,6 @@
+Read and write RANDOM_MONO_PROBABILITY
+
+- Adds a TelescopeSimulationConfigurationContainer with field random_mono_probability
+- Added to ``EventSource`` interface
+- Also added to the HDF5 data format as a table per telescope
+- Support for reading / writing / merging in SimTelEventSource, HDF5EventSource, TableLoader, HDF5Merger

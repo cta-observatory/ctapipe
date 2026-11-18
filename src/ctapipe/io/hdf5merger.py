@@ -65,6 +65,7 @@ from .hdf5dataformat import (
     SIMULATION_PARAMETERS_GROUP,
     SIMULATION_RUN_TABLE,
     SIMULATION_SHOWER_TABLE,
+    SIMULATION_TELESCOPE_CONFIG_GROUP,
 )
 from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
 
@@ -76,6 +77,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.6.0",
     "v7.7.0",
     "v8.0.0",
+    "v8.1.0",
 ]
 
 
@@ -650,7 +652,7 @@ class HDF5Merger(Component):
         return required_nodes
 
     def _append_simulation_data(self, other):
-        """Append simulation-related data (run, shower, impact, images, parameters)."""
+        """Append simulation configuration and event data."""
         simulation_table_keys = [
             SIMULATION_RUN_TABLE,
             SHOWER_DISTRIBUTION_TABLE,
@@ -659,6 +661,13 @@ class HDF5Merger(Component):
         for key in simulation_table_keys:
             if key in other.root:
                 self._append_table(other, other.root[key])
+
+        if SIMULATION_TELESCOPE_CONFIG_GROUP in other.root:
+            self._append_table_group(
+                other,
+                other.root[SIMULATION_TELESCOPE_CONFIG_GROUP],
+                once=self.single_ob,
+            )
 
         if not self.telescope_events:
             return

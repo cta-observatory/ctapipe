@@ -28,13 +28,16 @@ from ctapipe.containers import (
     TelescopeDL2Container,
     TelescopeEventContainer,
     TelescopeR1Container,
+    TelescopeSimulationConfigurationContainer,
 )
-from ctapipe.core import ToolConfigurationError
+from ctapipe.core import Field, ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import DataLevel, EventSource, HDF5EventSource
+from ctapipe.io import DataLevel, EventSource, HDF5EventSource, TableLoader
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
+from ctapipe.io.hdf5dataformat import SIMULATION_TELESCOPE_CONFIG_GROUP
 from ctapipe.io.hdf5tableio import get_column_attrs
 from ctapipe.io.metadata import ProductMetadata, read_ctao_metadata
+from ctapipe.io.simteleventsource import SimTelFile
 from ctapipe.utils import get_dataset_path
 
 
@@ -441,6 +444,91 @@ def test_dl1writer_no_events(tmpdir: Path, south_site_config):
     with tables.open_file(output_path) as h5file:
         assert h5file.get_node("/configuration/simulation/run") is not None
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
+
+
+def test_telescope_simulation_configuration_roundtrip(
+    tmp_path, monkeypatch, prod5_gamma_simtel_path, south_site_config
+):
+    class ConfigurationWithArray(TelescopeSimulationConfigurationContainer):
+        default_prefix = ""
+        per_pixel_setting = Field(None, "Example array-valued configuration")
+
+    key = b"RANDOM_MONO_PROBability"
+
+    def simtel_with_random_mono_probability(*args, **kwargs):
+        file = SimTelFile(*args, **kwargs)
+        file.telescope_meta.setdefault(1, {})[key] = b"0.01 "
+        file.telescope_meta.setdefault(2, {})[key] = b"0 "
+        file.telescope_meta.pop(3, None)
+        return file
+
+    monkeypatch.setattr(
+        "ctapipe.io.simteleventsource.SimTelFile", simtel_with_random_mono_probability
+    )
+    monkeypatch.setattr(
+        "ctapipe.io.hdf5eventsource.TelescopeSimulationConfigurationContainer",
+        ConfigurationWithArray,
+    )
+    output_path = tmp_path / "telescope_config.h5"
+    with EventSource(
+        prod5_gamma_simtel_path,
+        allowed_tels={1, 2, 3},
+        override_obs_id=42,
+        max_events=1,
+    ) as source:
+        configs = source.telescope_simulation_config[42]
+        assert configs.keys() == {1, 2, 3}
+        assert configs[1].random_mono_probability == 0.01
+        assert configs[2].random_mono_probability == 0
+        assert np.isnan(configs[3].random_mono_probability)
+
+        for tel_id, config in configs.items():
+            configs[tel_id] = ConfigurationWithArray(
+                random_mono_probability=config.random_mono_probability,
+                per_pixel_setting=np.arange(tel_id),
+            )
+
+        with DataWriter(
+            source,
+            output_path=output_path,
+            write_dl1_parameters=False,
+            config=south_site_config,
+        ) as writer:
+            for event in source:
+                writer(event)
+
+    with EventSource(output_path, allowed_tels={1, 3}) as source:
+        configs = source.telescope_simulation_config[42]
+        assert configs.keys() == {1, 3}
+        assert configs[1].random_mono_probability == 0.01
+        assert np.isnan(configs[3].random_mono_probability)
+        for tel_id, config in configs.items():
+            np.testing.assert_array_equal(config.per_pixel_setting, np.arange(tel_id))
+
+    with TableLoader(output_path) as loader:
+        config_tables = loader.read_telescope_simulation_configuration()
+        assert config_tables.keys() == {1, 2, 3}
+        for tel_id, probability in enumerate([0.01, 0.0, np.nan], start=1):
+            table = config_tables[tel_id]
+            assert table["obs_id"].dtype == np.uint64
+            assert table["tel_id"].dtype == np.uint16
+            np.testing.assert_array_equal(table["obs_id"], [42])
+            np.testing.assert_array_equal(table["tel_id"], [tel_id])
+            np.testing.assert_allclose(table["random_mono_probability"], [probability])
+            np.testing.assert_array_equal(
+                table["per_pixel_setting"], [np.arange(tel_id)]
+            )
+
+    with tables.open_file(output_path, "a") as h5file:
+        group = h5file.get_node(SIMULATION_TELESCOPE_CONFIG_GROUP)
+        assert set(group._v_children) == {"tel_001", "tel_002", "tel_003"}
+        h5file.remove_node(group, recursive=True)
+
+    with HDF5EventSource(output_path) as source:
+        assert source.telescope_simulation_config == {}
+
+    with TableLoader(output_path) as loader:
+        assert loader.read_telescope_simulation_configuration() == {}
 
 
 def test_metadata(tmpdir: Path, prod6_gamma_simtel_path):

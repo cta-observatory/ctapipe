@@ -16,6 +16,7 @@ from ..containers import (
     SimulatedShowerDistribution,
     SimulationConfigContainer,
     SubarrayEventContainer,
+    TelescopeSimulationConfigurationContainer,
 )
 from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
@@ -205,6 +206,13 @@ class EventSource(Component):
         -------
         dict[int,ctapipe.containers.SimulationConfigContainer] | None
         """
+        return None
+
+    @property
+    def telescope_simulation_config(
+        self,
+    ) -> dict[int, dict[int, TelescopeSimulationConfigurationContainer]] | None:
+        """Telescope simulation configurations indexed by obs_id, then tel_id, if available."""
         return None
 
     @property
