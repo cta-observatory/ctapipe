@@ -276,8 +276,14 @@ unfixable = []
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
-# notebooks have imports in all cells
-"examples/**" = ["I"]
+# Examples can omit API docstrings, use reST titles, and import within cells.
+"examples/**" = ["I", "D100", "D101", "D102", "D103", "D104", "D106", "D205"]
+# Use descriptive test names. Test docstrings are optional.
+"**/tests/**" = ["D100", "D101", "D102", "D103", "D104", "D106"]
+# Pytest fixtures and hooks are test infrastructure.
+"**/conftest.py" = ["D100", "D101", "D102", "D103", "D104", "D106"]
+# Sphinx configuration and hooks are internal.
+"docs/conf.py" = ["D100", "D103"]
 
 [tool.ruff.format]
 quote-style = "double"
