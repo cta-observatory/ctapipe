@@ -192,7 +192,6 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
         Shape: (n_channels, n_pix)
 
     """
-
     # first find the cumulative waveform
     cwf = np.cumsum(waveforms)
     # add zero at the beginning so it is easier to subtract the two arrays later
@@ -245,7 +244,6 @@ def neighbor_average_maximum(
     peak_pos : ndarray
         Index of the maximum for each pixel's neighbor averaged waveform.
     """
-
     n_channels, n_pixels, _ = waveforms.shape
     indptr = neighbors_indptr
     indices = neighbors_indices
@@ -834,7 +832,6 @@ class TwoPassWindowSum(ImageExtractor):
 
     Notes
     -----
-
     #. slide a 3-samples window through the waveform, finding max counts sum;
        the range of the sliding is the one allowing extension from 3 to 5;
        add 1 sample on each side and integrate charge in the 5-sample window;

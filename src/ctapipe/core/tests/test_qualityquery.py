@@ -11,7 +11,7 @@ from ctapipe.core.traits import List
 
 
 def test_selector():
-    """test the functionality of an example Selector subclass"""
+    """Test the functionality of an example Selector subclass"""
 
     class ExampleQualityQuery(QualityQuery):
         """Available variables: x"""
@@ -81,8 +81,7 @@ def test_invalid_input():
 
 
 def test_bad_selector():
-    """ensure failure if a selector function is not a function or can't be evaluated"""
-
+    """Ensure failure if a selector function is not a function or can't be evaluated"""
     query = QualityQuery(
         quality_criteria=[
             ("high_enough", "x > 3"),
@@ -151,7 +150,6 @@ def test_setup():
 
 def test_add_columns():
     """Test that we can add columns."""
-
     query = QualityQuery(
         quality_criteria=[
             ("low", "x>0"),
@@ -179,7 +177,6 @@ def test_add_columns():
 )
 def test_add_columns_matches_table_mask(criteria):
     """Test that adding columns accepts the same results as get_table_mask."""
-
     table = Table({"x": [-10, 1, 11]})
 
     query = QualityQuery(quality_criteria=criteria)
@@ -196,7 +193,6 @@ def test_add_columns_matches_table_mask(criteria):
 
 def test_add_columns_criteria_are_independent():
     """Test that a criterion cannot use the result of an earlier criterion."""
-
     query = QualityQuery(
         quality_criteria=[("low", "x > 0"), ("both", "low & (x < 10)")]
     )
@@ -216,7 +212,6 @@ def test_add_columns_criteria_are_independent():
 )
 def test_add_columns_name_collision(criteria):
     """Test that criteria names may not collide when adding columns."""
-
     query = QualityQuery(quality_criteria=criteria)
     table = Table({"x": [-10, 1, 11]})
 
@@ -232,7 +227,6 @@ def test_add_columns_name_collision(criteria):
 @pytest.mark.parametrize("table_cls", [Table, QTable])
 def test_add_columns_shallow_copy(table_cls):
     """Test that adding columns shares the data and leaves the input unchanged."""
-
     query = QualityQuery(quality_criteria=[("low", "x > 0")])
     table = table_cls(
         {
@@ -254,7 +248,6 @@ def test_add_columns_shallow_copy(table_cls):
 
 def test_add_columns_passed_all():
     """Test the column with the combination of all criteria."""
-
     query = QualityQuery(quality_criteria=[("low", "x > 0"), ("high", "x < 10")])
     table = Table({"x": [-10, 1, 5, 11]})
 
@@ -271,7 +264,6 @@ def test_add_columns_passed_all():
 
 def test_add_columns_passed_all_configurable():
     """Test that two queries can mark the same table with different column names."""
-
     table = Table({"x": [-10, 1, 11]})
 
     low = QualityQuery(

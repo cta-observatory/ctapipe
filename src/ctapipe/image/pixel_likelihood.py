@@ -91,7 +91,6 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     -------
     ndarray
     """
-
     theta = 2 * (pedestal**2 + prediction * (1 + spe_width**2))
     neg_log_l = np.log(np.pi * theta) / 2.0 + (image - prediction) ** 2 / theta
 
@@ -123,7 +122,6 @@ def neg_log_likelihood_numeric(
     -------
     ndarray
     """
-
     epsilon = np.finfo(np.float64).eps
 
     prediction = prediction + epsilon
@@ -173,7 +171,6 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
     -------
     ndarray
     """
-
     approx_mask = prediction > prediction_safety
 
     neg_log_l = np.zeros_like(image, dtype=np.float64)
@@ -252,7 +249,6 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     -------
     ndarray
     """
-
     if len(spe_width) == 1:
         spe_width = np.full_like(prediction, spe_width, dtype=np.float64)
 
@@ -300,7 +296,6 @@ def chi_squared(image, prediction, pedestal, error_factor=2.9):
     -------
     ndarray
     """
-
     chi_square = (image - prediction) ** 2 / (pedestal + 0.5 * (image - prediction))
     chi_square *= 1.0 / error_factor
 

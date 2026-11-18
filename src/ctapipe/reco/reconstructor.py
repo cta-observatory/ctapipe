@@ -65,7 +65,8 @@ class InvalidWidthException(Exception):
 
 class StereoQualityQuery(QualityQuery):
     """Quality criteria for dl1 parameters checked for telescope events to enter
-    into stereo reconstruction"""
+    into stereo reconstruction
+    """
 
     quality_criteria = List(
         default_value=[

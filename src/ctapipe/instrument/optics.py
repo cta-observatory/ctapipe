@@ -458,7 +458,7 @@ class OpticsDescription:
     @classmethod
     def get_known_optics_names(cls, optics_table="optics"):
         """
-        return the list of optics names from ctapipe resources, i.e. those that can be
+        Return the list of optics names from ctapipe resources, i.e. those that can be
         constructed by name (this does not return the list of known names from an
         already open Monte-Carlo file)
 
@@ -674,12 +674,12 @@ class PSFModel(TelescopeComponent):
             longitude coordinate of the point source on the focal plane
         lat0 : u.Quantity[angle]
             latitude coordinate of the point source on the focal plane
+
         Returns
-        ----------
+        -------
         psf : np.ndarray
             value of the PSF at the specified location with the specified position of the point source
         """
-
         pass
 
 
@@ -807,7 +807,6 @@ class ComaPSFModel(PSFModel):
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """Initialize the ComaPSFModel component and check for missing configuration parameters."""
-
         super().__init__(
             subarray=subarray,
             config=config,

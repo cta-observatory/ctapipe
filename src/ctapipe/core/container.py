@@ -269,7 +269,7 @@ class Field[T]:
 
     def validate(self, value):
         """
-        check that a given value is appropriate for this Field
+        Check that a given value is appropriate for this Field
 
         Parameters
         ----------
@@ -281,7 +281,6 @@ class Field[T]:
         FieldValidationError:
             if the value is not valid
         """
-
         if self.allow_none and value is None:
             return
 
@@ -545,7 +544,6 @@ class Container(metaclass=ContainerMeta):
         recursive: bool
             If true, also reset all sub-containers
         """
-
         for name, field in self.fields.items():
             if field.default_factory is not None:
                 setattr(self, name, field.default_factory())
@@ -554,7 +552,7 @@ class Container(metaclass=ContainerMeta):
 
     def update(self, **values):
         """
-        update more than one parameter at once (e.g. ``update(x=3,y=4)``
+        Update more than one parameter at once (e.g. ``update(x=3,y=4)``
         or ``update(**dict_of_values)``)
         """
         for key in values:

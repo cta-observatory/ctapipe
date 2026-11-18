@@ -192,8 +192,7 @@ def _info_dependencies():
 
 
 def _info_resources():
-    """display all known resources"""
-
+    """Display all known resources"""
     print("\n*** ctapipe resources ***\n")
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
     if os.getenv("CTAPIPE_SVC_PATH") is not None:

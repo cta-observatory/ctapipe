@@ -21,8 +21,7 @@ hist = pytest.importorskip("hist")
 
 
 def test_aggregators():
-    """test basic functionality of the StatisticsAggregators"""
-
+    """Test basic functionality of the StatisticsAggregators"""
     # Create dummy data for testing
     times = Time(
         np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
@@ -113,7 +112,6 @@ def test_aggregators():
 
 def test_histograms_aggregator():
     """Test histogram computation shape, values and entry counts for N-D event data."""
-
     # Create dummy data for testing
     times = Time(np.linspace(60117.911, 60117.9258, num=200), scale="tai", format="mjd")
     event_ids = np.linspace(35, 725000, num=200, dtype=int)
@@ -177,7 +175,6 @@ def test_histograms_aggregator():
 
 def test_histograms_aggregator_masks_and_nan_handling():
     """Test masking and NaN handling in histogram computation."""
-
     # Create dummy data for testing
     n_events = 100
     times = Time(
@@ -359,7 +356,6 @@ def test_histograms_aggregator_underflow_overflow(underflow, overflow):
 )
 def test_histograms_aggregator_input_shapes(shape, spatial_shape):
     """Test histogram computation for 1D, 2D and higher-dimensional inputs."""
-
     # Create dummy data for testing
     rng = np.random.default_rng(13)
     data = rng.normal(50.0, 5.0, size=shape)
@@ -453,7 +449,6 @@ def test_histograms_aggregator_axis_classes(
     axis_definition, expected_axis_type, data, expected_counts
 ):
     """Test that histogram axes round-trip for Regular and Integer classes."""
-
     # Create dummy data for testing
     times = Time(
         np.linspace(60117.911, 60117.9258, num=data.shape[0]), scale="tai", format="mjd"
@@ -481,8 +476,7 @@ def test_histograms_aggregator_axis_classes(
 
 
 def test_chunk_shift():
-    """test the chunk shift option and the boundary case for the last chunk"""
-
+    """Test the chunk shift option and the boundary case for the last chunk"""
     # Create dummy data for testing
     times = Time(
         np.linspace(60117.911, 60117.9258, num=5500), scale="tai", format="mjd"
@@ -524,8 +518,7 @@ def test_chunk_shift():
 
 
 def test_with_outliers():
-    """test the robustness of the aggregators in the presence of outliers"""
-
+    """Test the robustness of the aggregators in the presence of outliers"""
     # Create dummy data for testing
     times = Time(
         np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
@@ -589,8 +582,7 @@ def test_with_outliers():
 
 
 def test_time_based_chunking():
-    """test time-based chunking functionality"""
-
+    """Test time-based chunking functionality"""
     # Create dummy data spanning 10 seconds with uniform time distribution
     start_time = Time("2020-01-01T20:00:00")
     times = start_time + np.linspace(0, 10, 1000) * u.s
@@ -639,8 +631,7 @@ def test_time_based_chunking():
 
 
 def test_time_based_chunking_with_shift():
-    """test time-based chunking with overlapping windows (rolling statistics)"""
-
+    """Test time-based chunking with overlapping windows (rolling statistics)"""
     # Create dummy data spanning exactly 5 seconds to get cleaner chunks
     start_time = Time("2020-01-01T20:00:00")
     times = start_time + np.linspace(0, 4.99, 500) * u.s
@@ -693,8 +684,7 @@ def test_time_based_chunking_with_shift():
 
 
 def test_time_vs_event_chunking_consistency():
-    """test that time and event chunking modes work consistently"""
-
+    """Test that time and event chunking modes work consistently"""
     # Create dummy data
     times = Time(np.linspace(60117.911, 60117.912, num=500), scale="tai", format="mjd")
     event_ids = np.arange(500)
@@ -751,8 +741,7 @@ def test_time_vs_event_chunking_consistency():
 
 
 def test_time_chunking_validation():
-    """test error handling for time-based chunking parameters"""
-
+    """Test error handling for time-based chunking parameters"""
     # Create small test data
     times = Time(
         np.linspace(60117.911, 60117.911 + 5 / 86400, num=100),
@@ -798,8 +787,7 @@ def test_time_chunking_validation():
 
 
 def test_1d_data_handling():
-    """test that aggregators handle 1D data correctly (single-pixel case)"""
-
+    """Test that aggregators handle 1D data correctly (single-pixel case)"""
     # Create 1D dummy data (e.g., single pixel or scalar values per event)
     times = Time(
         np.linspace(60117.911, 60117.9258, num=1000), scale="tai", format="mjd"
@@ -920,8 +908,7 @@ def test_1d_data_handling():
 
 
 def test_nan_handling():
-    """test that aggregators properly handle NaN values in input data"""
-
+    """Test that aggregators properly handle NaN values in input data"""
     # Create test data with NaN values
     times = Time(
         np.linspace(60117.911, 60117.9258, num=1000), scale="tai", format="mjd"
@@ -1165,7 +1152,6 @@ def test_undersized_tables():
 
 def test_last_chunk_policy_size_chunking():
     """Test different last_chunk_policy options for SizeChunking"""
-
     # Create test table with 55 rows (chunk_size=20 leaves 15 rows remainder)
     times = Time(np.linspace(60117.911, 60117.912, num=55), scale="tai", format="mjd")
     event_ids = np.arange(55)
@@ -1228,7 +1214,6 @@ def test_last_chunk_policy_size_chunking():
 
 def test_last_chunk_policy_time_chunking():
     """Test different last_chunk_policy options for TimeChunking"""
-
     # Create test table with 5.5 seconds of data (chunk_duration=2s leaves 1.5s remainder)
     times = Time(
         np.linspace(60117.911, 60117.911 + 5.5 / 86400, num=55),

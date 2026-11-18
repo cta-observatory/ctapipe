@@ -39,7 +39,6 @@ class NominalFrame(BaseCoordinateFrame):
 
     Attributes
     ----------
-
     origin: astropy.coordinates.SkyCoord[AltAz]
         Origin of this frame as a HorizonCoordinate
     obstime: astropy.time.Time
@@ -72,7 +71,6 @@ class NominalFrame(BaseCoordinateFrame):
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, NominalFrame)
 def nominal_to_nominal(from_nominal_coord, to_nominal_frame):
     """Transform between two skyoffset frames."""
-
     intermediate_from = from_nominal_coord.transform_to(from_nominal_coord.origin)
     intermediate_to = intermediate_from.transform_to(to_nominal_frame.origin)
     return intermediate_to.transform_to(to_nominal_frame)
@@ -81,7 +79,6 @@ def nominal_to_nominal(from_nominal_coord, to_nominal_frame):
 @frame_transform_graph.transform(DynamicMatrixTransform, AltAz, NominalFrame)
 def altaz_to_nominal(altaz_coord, nominal_frame):
     """Convert a reference coordinate to an sky offset frame."""
-
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
     origin = nominal_frame.origin.represent_as(UnitSphericalRepresentation)
@@ -93,7 +90,6 @@ def altaz_to_nominal(altaz_coord, nominal_frame):
 @frame_transform_graph.transform(DynamicMatrixTransform, NominalFrame, AltAz)
 def nominal_to_altaz(nominal_coord, altaz_frame):
     """Convert an sky offset frame coordinate to the reference frame"""
-
     # use the forward transform, but just invert it
     mat = altaz_to_nominal(altaz_frame, nominal_coord)
     # transpose is the inverse because mat is a rotation matrix

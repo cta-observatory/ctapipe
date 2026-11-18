@@ -41,7 +41,6 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
         If the geometry coordinates and Hillas parameters do not have compatible
         angular units.
     """
-
     h = hillas_parameters
     unit = h.fov_lon.unit
     pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(

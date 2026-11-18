@@ -14,13 +14,13 @@ reconstructors = [HillasIntersection, HillasReconstructor, ImPACTReconstructor]
 @pytest.mark.parametrize("cls", reconstructors)
 def test_reconstructors(cls):
     """
-    a test of the complete fit procedure on one event including:
+    A test of the complete fit procedure on one event including:
     • tailcut cleaning
     • hillas parametrisation
     • direction fit
     • position fit
-    in the end, proper units in the output are asserted"""
-
+    in the end, proper units in the output are asserted
+    """
     filename = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )

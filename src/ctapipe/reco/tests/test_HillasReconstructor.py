@@ -14,7 +14,6 @@ from ctapipe.reco.hillas_reconstructor import HillasReconstructor
 
 def test_estimator_results():
     """Test direction results from cog and point 2 (along the main axis) coordinates"""
-
     weight = np.ones(4)
     cog_alt = [43, 44, 44.5, 43.5] * u.deg
     cog_az = [45, 90, 45, 90] * u.deg
@@ -31,7 +30,7 @@ def test_estimator_results():
 
 
 def test_h_max_results():
-    """test h_max estimation from cog coordinates"""
+    """Test h_max estimation from cog coordinates"""
     cog_alt = [45.0, 45.0, 45.0, 45.0] * u.deg
     cog_az = [180, 90, 0, -90.0] * u.deg
 
@@ -61,7 +60,6 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     some hillas dictionaries to make it non-reconstructable.
     It is supposed to fail if no Exception or another Exception gets thrown.
     """
-
     # 4-LST bright event already calibrated
     # we'll clean it and parametrize it again in the TelescopeFrame
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
@@ -127,8 +125,8 @@ def test_reconstruction_against_simulation(
 ):
     """Reconstruction is here done only in the TelescopeFrame,
     since the previous tests test already for the compatibility between
-    frames"""
-
+    frames
+    """
     # 4-LST bright event already calibrated
     # we'll clean it and parametrize it again in the TelescopeFrame
     subarray, event = subarray_and_event_gamma_off_axis_500_gev

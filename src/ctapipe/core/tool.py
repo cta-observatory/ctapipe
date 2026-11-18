@@ -319,7 +319,7 @@ class Tool(Application):
 
     def add_component(self, component_instance):
         """
-        constructs and adds a component to the list of registered components,
+        Constructs and adds a component to the list of registered components,
         so that later we can ask for the current configuration of all instances,
         e.g. in`get_full_config()`.  All sub-components of a tool should be
         constructed using this function, in order to ensure the configuration is
@@ -406,7 +406,6 @@ class Tool(Application):
 
         Parameters
         ----------
-
         argv: list(str)
             command-line arguments, or None to get them
             from sys.argv automatically
@@ -416,7 +415,6 @@ class Tool(Application):
             codes. If None, ``CTAPIPE_TOOL_DEBUG`` environment variable is used.
             If the variable is not set, this defaults to False.
         """
-
         # return codes are taken from:
         #  https://tldp.org/LDP/abs/html/exitcodes.html
         if raises is None:
@@ -503,17 +501,17 @@ class Tool(Application):
 
     @property
     def version_string(self):
-        """a formatted version string with version, release, and git hash"""
+        """A formatted version string with version, release, and git hash"""
         return f"{version}"
 
     def get_current_config(self):
-        """return the current configuration as a dict (e.g. the values
+        """Return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
         return Component.get_current_config(self)
 
     def _repr_html_(self):
-        """nice HTML rep, with blue for non-default values"""
+        """Nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
         docstring = (
@@ -587,12 +585,11 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
         The list of other classes in the config file.
         Used to reduce redundant information.
     """
-
     tool = tool_instance.__class__
     config = tool_instance.get_current_config()[tool_instance.__class__.__name__]
 
     def commented(text, indent_level=2, width=70):
-        """return a commented, wrapped block."""
+        """Return a commented, wrapped block."""
         return textwrap.fill(
             text,
             width=width,

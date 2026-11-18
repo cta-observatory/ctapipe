@@ -33,7 +33,6 @@ _CTAO_IDENTIFIERS_URL = (
 
 def _make_ids_reference(description, data_model_name, site="CTAO-North"):
     """Create a Reference metadata object for CTAO identifier JSON files."""
-
     return meta.Reference(
         contact=meta.Contact(),
         product=meta.Product(
@@ -53,7 +52,6 @@ def _make_ids_reference(description, data_model_name, site="CTAO-North"):
 
 def _write_instrument_meta(tmp_path, site="CTAO-North"):
     """Write instrument.meta.json into *tmp_path*."""
-
     ref = meta.Reference(
         contact=meta.Contact(),
         product=meta.Product(

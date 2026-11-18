@@ -82,7 +82,6 @@ def spectrum_from_simulation_config(
     Callable:
        simulated spectrum function.
     """
-
     if method != "powerlaw":
         return NotImplementedError(f"Method '{method}' is not implemented")
 

@@ -278,7 +278,7 @@ def test_field_validation():
 
 
 def test_container_validation():
-    """check that we can validate all fields in a container"""
+    """Check that we can validate all fields in a container"""
 
     class MyContainer(Container):
         x = Field(3.2, "test", unit="m")

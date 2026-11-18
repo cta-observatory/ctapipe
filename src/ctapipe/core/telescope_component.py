@@ -106,7 +106,7 @@ class TelescopePatternList(UserList):
 
     @property
     def tel(self):
-        """access the value per telescope_id, e.g. ``param.tel[2]``"""
+        """Access the value per telescope_id, e.g. ``param.tel[2]``"""
         if self._lookup:
             return self._lookup
         else:

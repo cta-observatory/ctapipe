@@ -646,12 +646,12 @@ class Product(HasTraits):
 
     @default("creation_time")
     def default_time(self):
-        """return current time by default"""
+        """Return current time by default"""
         return Time.now().iso
 
     @default("id_")
     def default_product_id(self):
-        """default id is a UUID"""
+        """Default id is a UUID"""
         return str(uuid.uuid4())
 
     def __repr__(self):
@@ -723,7 +723,7 @@ class Activity(HasTraits):
     # pylint: disable=no-self-use
     @default("start_time")
     def default_time(self):
-        """default time is now"""
+        """Default time is now"""
         return Time.now().iso
 
     def __repr__(self):
@@ -786,7 +786,7 @@ class Instrument(Configurable):
 
 
 def _to_dict(hastraits_instance, prefix=""):
-    """helper to convert a HasTraits to a dict with keys
+    """Helper to convert a HasTraits to a dict with keys
     in the required CTAO format (upper-case, space separated)
     """
     res = {}

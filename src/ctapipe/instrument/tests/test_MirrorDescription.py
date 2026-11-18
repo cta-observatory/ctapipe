@@ -171,7 +171,7 @@ def test_init_invalid_shape():
 
 @pytest.mark.parametrize("wrong_unit", [u.s, u.deg, u.kg, u.m**2])
 def test_init_x_wrong_unit_type(wrong_unit):
-    """x must have units of length."""
+    """X must have units of length."""
     with pytest.raises(u.UnitsError, match="Argument 'x'.*'length'"):
         MirrorDescription(**_mirror_kwargs(x=np.zeros(1) * wrong_unit))
 

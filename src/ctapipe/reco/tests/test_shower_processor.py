@@ -20,7 +20,7 @@ SIMTEL_PATH = get_dataset_path(
 
 
 def get_simtel_profile_from_eventsource():
-    """get a TableAtmosphereDensityProfile from a simtel file"""
+    """Get a TableAtmosphereDensityProfile from a simtel file"""
     from ctapipe.io import EventSource
 
     with EventSource(SIMTEL_PATH) as source:
@@ -29,7 +29,7 @@ def get_simtel_profile_from_eventsource():
 
 @pytest.fixture(scope="session")
 def table_profile():
-    """a table profile for testing"""
+    """A table profile for testing"""
     return get_simtel_profile_from_eventsource()
 
 
@@ -46,7 +46,6 @@ def test_shower_processor_geometry(
     example_event, example_subarray, reconstructor_types, table_profile
 ):
     """Ensure we get shower geometry when we input an event with parametrized images."""
-
     calibrate = CameraCalibrator(subarray=example_subarray)
 
     config = Config()

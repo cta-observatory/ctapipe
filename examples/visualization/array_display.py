@@ -148,7 +148,6 @@ def plot_event(event, subarray, ax):
     Draw an ArrayDisplay with image axes and the
     true and reconstructed impact position overlaid
     """
-
     disp = ArrayDisplay(subarray, axes=ax)
     event.monitoring.pointing.azimuth
 

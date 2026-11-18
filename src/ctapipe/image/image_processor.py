@@ -86,7 +86,6 @@ class ImageProcessor(TelescopeComponent):
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
         """
-
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.clean = ImageCleaner.from_name(

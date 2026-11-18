@@ -59,7 +59,6 @@ class CameraDisplay:
 
     Notes
     -----
-
     Speed:
         CameraDisplay is not intended to be very fast (matplotlib
         is not a very speed performant graphics library, it is
@@ -265,7 +264,6 @@ class CameraDisplay:
         alpha: 0 <= alpha <= 1
             The transparency
         """
-
         linewidths = np.zeros_like(self.image)
         linewidths[pixels] = linewidth
         self.pixel_highlighting.set_linewidth(linewidths)
@@ -274,13 +272,13 @@ class CameraDisplay:
         self._update()
 
     def enable_pixel_picker(self):
-        """enable ability to click on pixels"""
+        """Enable ability to click on pixels"""
         self.pixels.set_picker(True)
         self.pixels.set_pickradius(self.geom.pixel_width.to_value(self.unit)[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
-        """set the color scale limits from min to max"""
+        """Set the color scale limits from min to max"""
         self.pixels.set_clim(zmin, zmax)
         self._update()
 
@@ -381,12 +379,12 @@ class CameraDisplay:
         self._update()
 
     def _update(self):
-        """signal a redraw if autoupdate is turned on"""
+        """Signal a redraw if autoupdate is turned on"""
         if self.autoupdate:
             self.update()
 
     def update(self):
-        """redraw the display now"""
+        """Redraw the display now"""
         fig = self.axes.figure
         fig.canvas.draw_idle()
         if self.colorbar is not None:
@@ -398,7 +396,7 @@ class CameraDisplay:
 
     def add_colorbar(self, **kwargs):
         """
-        add a colorbar to the camera plot
+        Add a colorbar to the camera plot
         kwargs are passed to ``figure.colorbar(self.pixels, **kwargs)``
         See matplotlib documentation for the supported kwargs:
         https://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
@@ -415,7 +413,7 @@ class CameraDisplay:
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
-        plot an ellipse on top of the camera
+        Plot an ellipse on top of the camera
 
         Parameters
         ----------
@@ -490,7 +488,7 @@ class CameraDisplay:
         psi_uncertainty_length=3.0,
         **kwargs,
     ):
-        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
+        """Helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------
@@ -564,7 +562,7 @@ class CameraDisplay:
             overlay.remove()
 
     def _on_pick(self, event):
-        """handler for when a pixel is clicked"""
+        """Handler for when a pixel is clicked"""
         if event.artist is not self.pixels:
             # do nothing if the event was triggered by something
             # other than this displays pixels artist
@@ -584,7 +582,7 @@ class CameraDisplay:
         self.on_pixel_clicked(pix_id)  # call user-function
 
     def on_pixel_clicked(self, pix_id):
-        """virtual function to override in sub-classes to do something special
+        """Virtual function to override in sub-classes to do something special
         when a pixel is clicked
         """
         print(f"Clicked pixel_id {pix_id}")
@@ -593,7 +591,7 @@ class CameraDisplay:
         self.axes.figure.show()
 
     def auto_set_axes_labels(self):
-        """set the axes labels based on the Frame attribute"""
+        """Set the axes labels based on the Frame attribute"""
         axes_labels = ("X", "Y")
         if self.geom.frame is not None:
             axes_labels = list(
@@ -604,8 +602,7 @@ class CameraDisplay:
         self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
 
     def add_frame_name(self, color="grey"):
-        """label the frame type of the display (e.g. CameraFrame)"""
-
+        """Label the frame type of the display (e.g. CameraFrame)"""
         frame_name = (
             self.geom.frame.__class__.__name__
             if self.geom.frame is not None

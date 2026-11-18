@@ -154,12 +154,12 @@ class ArrayDisplay:
 
     @values.setter
     def values(self, values):
-        """set the telescope colors to display"""
+        """Set the telescope colors to display"""
         self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 
     def add_radial_grid(self, spacing=100 * u.m):
-        """add some dotted rings for distance estimation. The number of rings
+        """Add some dotted rings for distance estimation. The number of rings
         is estimated automatically from the spacing and the array footprint.
 
         Parameters
@@ -199,7 +199,7 @@ class ArrayDisplay:
         self.axes.add_collection(circle_patches)
 
     def set_vector_uv(self, uu, vv, c=None, **kwargs):
-        """sets the vector field U,V and color for all telescopes
+        """Sets the vector field U,V and color for all telescopes
 
         Parameters
         ----------
@@ -245,7 +245,7 @@ class ArrayDisplay:
             self._quiver.set_UVC(uu, vv, c)
 
     def set_vector_rho_phi(self, rho, phi, c=None, **kwargs):
-        """sets the vector field using R, Phi for each telescope
+        """Sets the vector field using R, Phi for each telescope
 
         Parameters
         ----------
@@ -287,7 +287,6 @@ class ArrayDisplay:
         angle_offset: Float
             This should be the ``event.monitoring.pointing.azimuth`` parameter
         """
-
         # rot_angle_ellipse is psi parameter in HillasParametersContainer
         rho = np.zeros(self.subarray.n_tels) * u.m
         rot_angle_ellipse = np.zeros(self.subarray.n_tels) * u.deg
@@ -324,7 +323,6 @@ class ArrayDisplay:
         range: float
             half of the length of the segments to be plotted (in meters)
         """
-
         # transform to GroundFrame
         positions_in_frame = SkyCoord(self.tel_coords, frame=self.frame)
         coords = positions_in_frame.transform_to(GroundFrame())
@@ -378,7 +376,7 @@ class ArrayDisplay:
         self._labels = []
 
     def _update(self):
-        """signal a redraw if necessary"""
+        """Signal a redraw if necessary"""
         import matplotlib.pyplot as plt
 
         if self.autoupdate:
@@ -399,6 +397,5 @@ class ArrayDisplay:
         kwargs: key=value
             any style keywords to pass to matplotlib
         """
-
         # use zorder to ensure the contours appear under the telescopes.
         self.axes.contour(x, y, background, zorder=0, **kwargs)

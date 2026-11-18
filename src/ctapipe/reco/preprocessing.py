@@ -41,7 +41,6 @@ def table_to_float(table: Table, dtype=np.float32) -> np.ndarray:
 
 def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
     """Check for nans, returning a mask of the rows not containing any nans"""
-
     nans = np.array([np.isnan(col) for col in table.columns.values()]).T
     valid = ~nans.any(axis=1)
 

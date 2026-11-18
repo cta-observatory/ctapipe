@@ -29,7 +29,8 @@ def prod5_lst_cam(prod5_lst):
 )
 def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
     """With matplotlib==3.6.3 we can not change the norm
-    parameter of a CameraDisplay after we attached a colorbar."""
+    parameter of a CameraDisplay after we attached a colorbar.
+    """
     from ..mpl_camera import CameraDisplay
 
     image = np.ones(prod5_lst_cam.pix_x.shape)
@@ -58,7 +59,7 @@ def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
     ),
 )
 def test_camera_display_single(prod5_lst_cam, tmp_path):
-    """test CameraDisplay functionality"""
+    """Test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
     fig, ax = plt.subplots()
@@ -106,7 +107,7 @@ def test_hillas_overlay(prod5_lst_cam, tmp_path):
 
 @pytest.mark.parametrize("pix_type", PixelShape.__members__.values())
 def test_pixel_shapes(pix_type, prod5_lst_cam, tmp_path):
-    """test CameraDisplay functionality"""
+    """Test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
     geom = prod5_lst_cam
@@ -123,7 +124,7 @@ def test_pixel_shapes(pix_type, prod5_lst_cam, tmp_path):
 
 
 def test_camera_display_multiple(prod5_lst_cam, tmp_path):
-    """create a figure with 2 subplots, each with a CameraDisplay"""
+    """Create a figure with 2 subplots, each with a CameraDisplay"""
     from ..mpl_camera import CameraDisplay
 
     geom = prod5_lst_cam
@@ -139,7 +140,7 @@ def test_camera_display_multiple(prod5_lst_cam, tmp_path):
 
 
 def test_array_display(prod5_mst_nectarcam, reference_location):
-    """check that we can do basic array display functionality"""
+    """Check that we can do basic array display functionality"""
     from ctapipe.containers import (
         CoreParametersContainer,
         ImageParametersContainer,

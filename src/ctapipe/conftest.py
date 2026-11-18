@@ -66,42 +66,36 @@ if importlib.util.find_spec("pyirf") is None:
 @pytest.fixture(scope="session")
 def lstn_01_mirror_facets_path():
     """Path to the LST-1 (north) mirror facet file from the test data server."""
-
     return get_dataset_path("instrument/simulation/v7.0.0/LSTN-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
 def lstn_02_mirror_facets_path():
     """Path to the LST-2 (north) mirror facet file from the test data server."""
-
     return get_dataset_path("instrument/simulation/v7.0.0/LSTN-02.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
 def lsts_01_mirror_facets_path():
     """Path to the LST-2 (south) mirror facet file from the test data server."""
-
     return get_dataset_path("instrument/simulation/v7.0.0/LSTS-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
 def mstn_01_mirror_facets_path():
     """Path to the MST-1 (north) mirror facet file from the test data server."""
-
     return get_dataset_path("instrument/simulation/v7.0.0/MSTN-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
 def msts_01_mirror_facets_path():
     """Path to the MST-1 (south) mirror facet file from the test data server."""
-
     return get_dataset_path("instrument/simulation/v7.0.0/MSTS-01.tel_optics.ecsv")
 
 
 @pytest.fixture(scope="session")
 def ssts_01_mirror_facets_path():
     """Path to the SST-1 (south) mirror facet file from the test data server."""
-
     return get_dataset_path("instrument/simulation/v7.0.0/SSTS-01.tel_optics.ecsv")
 
 
@@ -118,7 +112,7 @@ def _lock_file(path: Path):
 @pytest.fixture(scope="session")
 def _global_example_event():
     """
-    helper to get a single event from a MC file. Don't use this fixture
+    Helper to get a single event from a MC file. Don't use this fixture
     directly, rather use `example_event`
     """
     filename = get_dataset_path("gamma_test_large.simtel.gz")
@@ -766,7 +760,7 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
 
 @pytest.fixture(scope="session")
 def reference_location():
-    """a dummy EarthLocation to use for SubarrayDescriptions"""
+    """A dummy EarthLocation to use for SubarrayDescriptions"""
     return EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
 
 

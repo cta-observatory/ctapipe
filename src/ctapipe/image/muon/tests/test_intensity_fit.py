@@ -249,7 +249,6 @@ def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
     float: number of Cherenkov photons
 
     """
-
     return (
         np.pi
         * alpha

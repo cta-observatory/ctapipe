@@ -58,8 +58,8 @@ def _smear_psf_randomly(
     so the indices, indptr and smear_probabilities have to match
     to get sensible results.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     image: ndarray
         1d array of the pixel charge values
     fraction: float
@@ -76,8 +76,8 @@ def _smear_psf_randomly(
         Random seed for the numpy rng.
         Because this is numba optimized, a rng instance can not be used here
 
-    Returns:
-    --------
+    Returns
+    -------
     new_image: ndarray
         1d array with smeared values
     """
@@ -277,7 +277,6 @@ class WaveformModifier(TelescopeComponent):
             this is mutually exclusive with passing ``config``
 
         """
-
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
@@ -361,7 +360,6 @@ class WaveformModifier(TelescopeComponent):
         stats_ok : bool
         True if statistics of noise events is considered sufficient
         """
-
         stats_ok = True
         for tel_id in nsb_database:
             nevents = nsb_database[tel_id].shape[0]
@@ -396,7 +394,6 @@ class WaveformModifier(TelescopeComponent):
         nsb_database: dict
         Dictionary, same as above but after baseline zeroing
         """
-
         for tel_id in nsb_database:
             for channel in range(nsb_database[tel_id].shape[1]):
                 mean = np.mean(nsb_database[tel_id][:, channel, :, :])
@@ -409,7 +406,6 @@ class WaveformModifier(TelescopeComponent):
         event: container
             A `~ctapipe.containers.SubarrayEventContainer` event container
         """
-
         for tel_id, tel_event in event.tel.items():
             r1 = tel_event.r1
             if r1 is None or r1.waveform is None:
@@ -483,7 +479,6 @@ class ImageModifier(TelescopeComponent):
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
         """
-
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 

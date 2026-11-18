@@ -201,12 +201,14 @@ class UnstructuredInterpolator:
     def _call_class_function(self, point_num, eval_points):
         """
         Function to loop over class function and return array of outputs
+
         Parameters
         ----------
         point_num: int
             Index of class position in values list
         eval_points: ndarray
             Inputs used to evaluate class member function
+
         Returns
         -------
         ndarray: output from member function
@@ -249,11 +251,11 @@ class UnstructuredInterpolator:
         Index of class position in values list
         eval_points: ndarray
         Inputs used to evaluate class member function
+
         Returns
         -------
         ndarray: output from member function
         """
-
         # Check if our array is masked and remember its shape
         is_masked = ma.is_masked(eval_points)
         shape = point_num.shape

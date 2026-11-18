@@ -37,7 +37,7 @@ def shower_impact_distance(
     shower_geom: ReconstructedGeometryContainer | SimulatedShowerContainer,
     subarray,
 ):
-    """computes the impact distance of the shower axis to the telescope positions
+    """Computes the impact distance of the shower axis to the telescope positions
 
     Parameters
     ----------
@@ -51,7 +51,6 @@ def shower_impact_distance(
     Quantity[m] :
        array of impact distances to each telescope (packed by tel index)
     """
-
     # core position in the ground frame
     core_position = np.array(
         [
@@ -83,13 +82,12 @@ def shower_impact_distance(
 def shower_impact_distance_with_frames(
     shower_geom: ReconstructedGeometryContainer, subarray
 ):
-    """an alternate and slower implementation for cross-check testing purposes.
+    """An alternate and slower implementation for cross-check testing purposes.
 
     Here we make a TiltedFrame that is aligned with the shower axis and
     transform both the telescopes and the impact point into that frame. Then the
     cartesian distance in the X-Y plane should be the impact distance.
     """
-
     tilted = TiltedGroundFrame(
         pointing_direction=SkyCoord(
             alt=shower_geom.alt, az=shower_geom.az, frame="altaz"

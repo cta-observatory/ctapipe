@@ -8,7 +8,7 @@ from ctapipe.instrument.warnings import FromNameWarning
 
 
 def test_guess_optics():
-    """make sure we can guess an optics type from metadata"""
+    """Make sure we can guess an optics type from metadata"""
     from ctapipe.instrument import guess_telescope
 
     answer = guess_telescope(1855, 28.0 * u.m)
@@ -18,8 +18,9 @@ def test_guess_optics():
 
 
 def test_construct_optics():
-    """create an OpticsDescription and make sure it
-    fails if units are missing"""
+    """Create an OpticsDescription and make sure it
+    fails if units are missing
+    """
     OpticsDescription(
         name="test",
         size_type=SizeType.LST,

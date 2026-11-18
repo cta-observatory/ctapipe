@@ -827,7 +827,6 @@ class DispReconstructor(Reconstructor):
         altaz_table : `~astropy.table.Table`
             Table with resulting predictions of horizontal coordinates
         """
-
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)

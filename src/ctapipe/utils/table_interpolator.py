@@ -144,7 +144,6 @@ class TableInterpolator:
         ndarray of expected intensity for all pixel positions given
 
         """
-
         image = self.interpolated_image(params)
         self.grid_interp.values = image
 

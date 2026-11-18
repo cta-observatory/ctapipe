@@ -27,8 +27,7 @@ from ctapipe.tools.merge import MergeTool
 
 
 def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
-    """check statistics calculation from pixel-wise image data files"""
-
+    """Check statistics calculation from pixel-wise image data files"""
     # Create a configuration suitable for the test
     tel_id = 3
     config = Config(
@@ -169,7 +168,7 @@ def test_calculate_pixel_stats_tool_undersized_faulty_chunk(tmp_path, dl1_image_
 
 
 def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_image_file):
-    """check tool execution with HistogramAggregator"""
+    """Check tool execution with HistogramAggregator"""
     hist = pytest.importorskip("hist")
 
     tel_id = 3
@@ -242,8 +241,7 @@ def test_calculate_pixel_stats_tool_with_histogram_aggregator(tmp_path, dl1_imag
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):
-    """check tool configuration error"""
-
+    """Check tool configuration error"""
     # Run the tool with the configuration and the input file
     config = Config(
         {
@@ -290,8 +288,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
 
 
 def test_calculate_pixel_stats_tool_per_channel(tmp_path, dl1_image_file):
-    """check per-channel statistics calculation from gain selected image data"""
-
+    """Check per-channel statistics calculation from gain selected image data"""
     tel_id = 3
     output_file = tmp_path / "per_channel_monitoring.dl1.h5"
     config = Config(
@@ -351,8 +348,7 @@ def test_calculate_pixel_stats_tool_per_channel(tmp_path, dl1_image_file):
 
 @pytest.mark.parametrize("per_channel_statistics", [True, False])
 def test_reshape_dl1_dimensions_per_channel(dl1_image_file, per_channel_statistics):
-    """check the reshaping of gain selected data with mixed gain channels"""
-
+    """Check the reshaping of gain selected data with mixed gain channels"""
     tel_id = 3
     subarray = SubarrayDescription.from_hdf(dl1_image_file)
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -397,8 +393,7 @@ def test_reshape_dl1_dimensions_per_channel(dl1_image_file, per_channel_statisti
 
 
 def test_per_channel_missing_selected_gain_channel(dl1_image_file):
-    """check error if per-channel statistics are requested without gain information"""
-
+    """Check error if per-channel statistics are requested without gain information"""
     tel_id = 3
     subarray = SubarrayDescription.from_hdf(dl1_image_file)
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -417,8 +412,7 @@ def test_per_channel_missing_selected_gain_channel(dl1_image_file):
 
 @pytest.mark.parametrize("per_channel_statistics", [True, False])
 def test_mask_invalid_pixels_gain_selected(dl1_image_file, per_channel_statistics):
-    """check that pixels without a stored gain channel are excluded from the stats"""
-
+    """Check that pixels without a stored gain channel are excluded from the stats"""
     tel_id = 3
     subarray = SubarrayDescription.from_hdf(dl1_image_file)
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -471,8 +465,7 @@ def test_mask_invalid_pixels_gain_selected(dl1_image_file, per_channel_statistic
 
 
 def test_mask_invalid_pixels_two_channels(dl1_image_file):
-    """check that each channel is masked by its own gain bit"""
-
+    """Check that each channel is masked by its own gain bit"""
     tel_id = 3
     subarray = SubarrayDescription.from_hdf(dl1_image_file)
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels

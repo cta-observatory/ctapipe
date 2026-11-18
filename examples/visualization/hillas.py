@@ -31,7 +31,6 @@ def display_event_with_annotated_hillas(
     """
     Display an event with detailed annotations showing what each Hillas parameter represents.
     """
-
     # Clean the image
     mask = tailcuts_clean(
         geom, image, picture_thresh=picture_thresh, boundary_thresh=boundary_thresh

@@ -184,7 +184,6 @@ class PointingInterpolator(LinearInterpolator):
         azimuth : astropy.units.Quantity[deg]
             Interpolated azimuth angle.
         """
-
         self._check_interpolators(tel_id)
 
         mjd = time.tai.mjd
@@ -274,7 +273,6 @@ class ChunkInterpolator(MonitoringInterpolator):
             Interpolated data for the specified column(s). Optional columns
             absent from the table are not included.
         """
-
         if tel_id not in self.values:
             self._read_parameter_table(tel_id)
 
@@ -303,7 +301,6 @@ class ChunkInterpolator(MonitoringInterpolator):
             for the data of the chunks. Columns in ``optional_columns``
             are used if present.
         """
-
         self._check_tables(input_table)
 
         input_table = input_table.copy()
@@ -336,7 +333,6 @@ class ChunkInterpolator(MonitoringInterpolator):
         timestamp_tolerance : astropy.units.Quantity
             Time difference in seconds to consider two timestamps equal. Default is 0s.
         """
-
         time_start = self.time_start[tel_id]
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]

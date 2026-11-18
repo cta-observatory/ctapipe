@@ -279,7 +279,7 @@ class EventSource(Component):
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile | None:
-        """atmosphere density profile that can be integrated to
+        """Atmosphere density profile that can be integrated to
         convert between h_max and X_max.  This should correspond
         either to what was used in a simulation, or a measurement
         for use with observed data.

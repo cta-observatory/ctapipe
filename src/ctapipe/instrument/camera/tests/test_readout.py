@@ -84,7 +84,7 @@ def test_write_read(tmpdir, readout):
 
 
 def test_equals():
-    """check we can use the == operator"""
+    """Check we can use the == operator"""
     name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
@@ -186,7 +186,7 @@ def test_hashing():
 
 @pytest.mark.parametrize("name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
 def test_camera_from_name(name, svc_path):
-    """check we can construct all cameras from name"""
+    """Check we can construct all cameras from name"""
     with pytest.warns(FromNameWarning):
         camera = CameraReadout.from_name(name)
     assert str(camera) == name

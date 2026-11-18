@@ -100,8 +100,9 @@ class DumpInstrumentTool(Tool):
 
     @staticmethod
     def _get_file_format_info(format_name):
-        """returns file extension + dict of required parameters for
-        Table.write"""
+        """Returns file extension + dict of required parameters for
+        Table.write
+        """
         if format_name == "fits":
             return "fits.gz", dict()
         elif format_name == "ecsv":
@@ -110,7 +111,7 @@ class DumpInstrumentTool(Tool):
             raise NameError(f"format {format_name} not supported")
 
     def write_camera_definitions(self):
-        """writes out camgeom and camreadout files for each camera"""
+        """Writes out camgeom and camreadout files for each camera"""
         self.subarray.info(printer=self.log.info)
         for camera in self.subarray.camera_types:
             self.write_single_camera(camera)
@@ -155,7 +156,7 @@ class DumpInstrumentTool(Tool):
             self.log.exception("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
-        """writes out optics files for each telescope type"""
+        """Writes out optics files for each telescope type"""
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format)
 

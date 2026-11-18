@@ -17,7 +17,7 @@ from erfa import ErfaWarning
 @pytest.mark.vizier
 def test_get_bright_stars():
     """
-    unit test for utils.astro.get_bright_stars_with_motion().
+    Unit test for utils.astro.get_bright_stars_with_motion().
     """
     from ctapipe.utils import get_bright_stars
 

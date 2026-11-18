@@ -15,8 +15,7 @@ from ctapipe.monitoring.outlier import (
 
 
 def test_range_detection(example_subarray):
-    """test the RangeOutlierDetector"""
-
+    """Test the RangeOutlierDetector"""
     # Create dummy data for testing
     rng = np.random.default_rng(0)
     # Distribution mimics the mean values of peak times of flat-field events
@@ -105,8 +104,7 @@ def test_range_optional_bounds(example_subarray, ndim, config, expected):
 
 
 def test_median_detection(example_subarray):
-    """test the MedianOutlierDetector"""
-
+    """Test the MedianOutlierDetector"""
     # Create dummy data for testing
     rng = np.random.default_rng(0)
     # Distribution mimics the median values of charge images of flat-field events
@@ -133,8 +131,7 @@ def test_median_detection(example_subarray):
 
 
 def test_std_detection(example_subarray):
-    """test the StdOutlierDetector"""
-
+    """Test the StdOutlierDetector"""
     # Create dummy data for testing
     rng = np.random.default_rng(0)
     # Distribution mimics the std values of charge images of flat-field events
@@ -169,8 +166,7 @@ def test_std_detection(example_subarray):
 
 
 def test_check_for_column_shape(example_subarray):
-    """test the check for the shape of the column"""
-
+    """Test the check for the shape of the column"""
     # Create dummy data for testing
     rng = np.random.default_rng(0)
     # Distribution mimics the median values of gain-selected charge images of flat-field events
@@ -201,8 +197,7 @@ def test_check_for_column_shape(example_subarray):
     ],
 )
 def test_detection_with_nan(example_subarray, detector_cls, config):
-    """test that NaN values are ignored and not flagged as outliers"""
-
+    """Test that NaN values are ignored and not flagged as outliers"""
     rng = np.random.default_rng(0)
     values = rng.normal(77.0, 0.6, size=(10, 2, 1855))
     # Mimic per-channel statistics of gain selected data with mostly empty low gain

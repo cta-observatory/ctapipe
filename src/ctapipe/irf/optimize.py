@@ -83,7 +83,6 @@ class OptimizationResult:
 
     def write(self, output_name: Path | str, overwrite: bool = False) -> None:
         """Write an ``OptimizationResult`` to a file in FITS format."""
-
         cut_expr_tab = Table(
             rows=self.quality_query.quality_criteria,
             names=["name", "cut_expr"],
@@ -125,7 +124,6 @@ class OptimizationResult:
     @classmethod
     def read(cls, file_name):
         """Read an ``OptimizationResult`` from a file in FITS format."""
-
         with fits.open(file_name) as hdul:
             cut_expr_tab = Table.read(hdul["QUALITY_CUTS_EXPR"])
             cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]

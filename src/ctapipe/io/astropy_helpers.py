@@ -65,7 +65,6 @@ def read_table(
         table in Astropy Format
 
     """
-
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
@@ -289,7 +288,6 @@ def join_allow_empty(left, right, keys, join_type="left", keep_order=False, **kw
     This behaves as `~astropy.table.join`, with the only difference of
     allowing empty tables to be joined.
     """
-
     left_empty = len(left) == 0
     right_empty = len(right) == 0
 

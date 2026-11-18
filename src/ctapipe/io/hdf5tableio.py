@@ -135,7 +135,7 @@ def get_node_meta(node):
 
 def get_column_transforms(column_attrs):
     """
-    create any transforms needed to "undo" ones in the writer
+    Create any transforms needed to "undo" ones in the writer
 
     Parameters
     ----------
@@ -413,8 +413,9 @@ class HDF5TableWriter(TableWriter):
         return meta
 
     def _setup_new_table(self, table_name, containers):
-        """set up the table. This is called the first time `write()`
-        is called on a new table"""
+        """Set up the table. This is called the first time `write()`
+        is called on a new table
+        """
         self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
         meta = self._create_hdf5_table_schema(table_name, containers)
 
@@ -448,7 +449,7 @@ class HDF5TableWriter(TableWriter):
 
     def _append_row(self, table_name, containers):
         """
-        append a row to an already initialized table. This is called
+        Append a row to an already initialized table. This is called
         automatically by `write()`
         """
         table = self._tables[table_name]
@@ -530,7 +531,6 @@ class HDF5TableReader(TableReader):
             any other arguments that will be passed through to
             `pytables.file.open_file`.
         """
-
         super().__init__()
         self._tables = {}
         self._col_mapping = {}
@@ -584,8 +584,9 @@ class HDF5TableReader(TableReader):
         prefixes,
         ignore_columns,
     ):
-        """identifies which columns in the table to read into the containers,
-        by comparing their names including an optional prefix."""
+        """Identifies which columns in the table to read into the containers,
+        by comparing their names including an optional prefix.
+        """
         self._missing_fields[table_name] = []
         self._col_mapping[table_name] = []
         self._prefixes[table_name] = []
@@ -665,7 +666,6 @@ class HDF5TableReader(TableReader):
             If a list is provided, the length needs to match th number
             of containers.
         """
-
         ignore_columns = set(ignore_columns) if ignore_columns is not None else set()
 
         return_iterable = True

@@ -17,9 +17,9 @@ from ctapipe.instrument.subarray import SubarrayDescription
 
 
 def test_impact_distance():
-    """just test a few limit cases. the more detailed tests are done in
-    test_shower_impact_distance_off_axis"""
-
+    """Just test a few limit cases. the more detailed tests are done in
+    test_shower_impact_distance_off_axis
+    """
     # test on axis (coming from  zenith onto an array)
     point = np.array([0, 0, 0])
     direction = np.array([0, 0, 1])  # coming perfectly down from zenith
@@ -55,10 +55,9 @@ def test_impact_distance():
 
 
 def test_shower_impact_distance(reference_location):
-    """test several boundary cases using the function that takes a Subarray and
+    """Test several boundary cases using the function that takes a Subarray and
     Container
     """
-
     sub = SubarrayDescription(
         name="test",
         tel_positions={1: [0, 0, 0] * u.m, 2: [0, 1, 0] * u.m, 3: [0, 2, 0] * u.m},
@@ -97,7 +96,6 @@ def test_compare_3d_and_frame_impact_distance(
     """Test another (slower) way of computing the impact distance, using Frames
     and compare to the implemented method.
     """
-
     for alt in [90, 0, 50, 60] * u.deg:
         for az in [0, 90, 45, 270, 360] * u.deg:
             shower_geom = ReconstructedGeometryContainer(

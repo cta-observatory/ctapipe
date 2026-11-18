@@ -46,7 +46,6 @@ def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
     center_y_err : astropy.units.Quantity
         Fitted y-coordinate of the circle center error.
     """
-
     weights_sum = np.sum(weights)
     mean_x = np.sum(x * weights) / weights_sum
     mean_y = np.sum(y * weights) / weights_sum
@@ -139,7 +138,6 @@ def taubin_circle_fit(
     ----------
     - Barcelona_Muons_TPA_final.pdf (slide 6)
     """
-
     if Minuit is None:
         raise OptionalDependencyMissing("iminuit")
 
@@ -197,7 +195,7 @@ def taubin_circle_fit(
 
 
 def make_loss_function(x, y, w):
-    """closure around taubin_loss_function to make
+    """Closure around taubin_loss_function to make
     surviving pixel positions availaboe inside.
 
     x, y: positions of pixels surviving the cleaning
@@ -206,10 +204,9 @@ def make_loss_function(x, y, w):
     """
 
     def taubin_loss_function(xc, yc, r):
-        """taubin fit formula
+        """Taubin fit formula
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
         """
-
         distance_squared = (x - xc) ** 2 + (y - yc) ** 2
         upper_term = ((w * (distance_squared - r**2)) ** 2).sum()
         lower_term = (w * distance_squared).sum()
@@ -251,7 +248,6 @@ def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y)
     center_y_err : astropy.units.Quantity
         Fitted y-coordinate of the circle center error.
     """
-
     weights_sum = np.sum(weights)
     radius_squared = (x - center_x) ** 2 + (y - center_y) ** 2
     delta = radius_squared - radius**2

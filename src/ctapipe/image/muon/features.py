@@ -92,7 +92,6 @@ def intensity_ratio_inside_ring(
     their weights. The ratio is the sum of the weights inside the ring divided by
     the total sum of the weights.
     """
-
     pixel_r = np.hypot(
         ring.center_fov_lon - pixel_fov_lon, ring.center_fov_lat - pixel_fov_lat
     )
@@ -145,7 +144,6 @@ def ring_completeness(
     threshold. The completeness is the ratio of the number of segments above the threshold
     to the total number of segments.
     """
-
     if hasattr(weights, "unit"):
         weights = weights.to_value(u.dimensionless_unscaled)
     angle = np.arctan2(
@@ -254,7 +252,6 @@ def ring_intensity_parameters(
         and restricted by the outer ring width, i.e. in the strip between
         ring integration width and outer ring width.
     """
-
     dist = np.hypot(
         pixel_fov_lon - ring.center_fov_lon, pixel_fov_lat - ring.center_fov_lat
     )
@@ -320,7 +317,6 @@ def radial_light_distribution(
     the standard deviation, skewness, and excess kurtosis of the radial distances of the pixels
     from the center of the ring, weighted by the pixel intensities.
     """
-
     if np.sum(image) == 0:
         return (
             np.nan * u.deg,

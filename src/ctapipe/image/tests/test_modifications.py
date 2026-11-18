@@ -12,7 +12,6 @@ def test_waveform_modifier():
     """
     Test the addition of noise on R1 waveforms
     """
-
     nsb_only_file = get_dataset_path("only_nsb_LaPalma_Alpha__nsb_x0.25.simtel.zst")
 
     with EventSource(nsb_only_file, skip_calibration_events=False) as source:

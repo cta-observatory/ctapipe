@@ -460,7 +460,6 @@ def test_is_compatible_with_only_trigger(tmp_path):
     """
     Regression test for has_trigger copy-paste bug.
     """
-
     import tables
 
     filename = tmp_path / "only_trigger.h5"

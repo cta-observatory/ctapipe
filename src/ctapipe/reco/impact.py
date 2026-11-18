@@ -190,7 +190,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         event : container
             `ctapipe.containers.SubarrayEventContainer`
         """
-
         self._prepare_event(event)
         try:
             hillas_dict = self._create_hillas_dict(event)
@@ -279,7 +278,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         boolean: Confirm initialisation
 
         """
-
         for t in tel_type:
             if tel_type[t] in self.prediction.keys() or tel_type[t] == "DUMMY":
                 continue
@@ -484,6 +482,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             Scaling factor applied to geometrically calculated Xmax
         goodness_of_fit: boolean
             Determines whether expected likelihood should be subtracted from result
+
         Returns
         -------
         float: Likelihood the model represents the camera image at this position
@@ -659,6 +658,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             Array pointing direction in the AltAz Frame
         telescope_pointing: SkyCoord[AltAz]
             Telescope pointing directions in the AltAz Frame
+
         Returns
         -------
         None
@@ -971,6 +971,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             Initial step size in the fit
         limits: ndarray
             Fit bounds
+
         Returns
         -------
         tuple: best fit parameters and errors

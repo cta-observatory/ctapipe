@@ -418,7 +418,8 @@ def apply_gain_selection(r0_waveforms, r1_waveforms, gain_selector):
 class AtmosphereProfileKind(Enum):
     """
     choice for which kind of atmosphere density profile to load if more than
-    one is present"""
+    one is present
+    """
 
     #: Don't load a profile
     NONE = auto()
@@ -776,7 +777,6 @@ class SimTelEventSource(EventSource):
         SubarrayDescription :
             instrumental information
         """
-
         tel_descriptions = {}  # tel_id : TelescopeDescription
         tel_positions = {}  # tel_id : TelescopeDescription
 
@@ -1357,10 +1357,9 @@ class SimTelEventSource(EventSource):
         return {self.obs_id: configs}
 
     def _fill_scheduling_and_observation_blocks(self):
-        """fill scheduling and observation blocks must be run after the
+        """Fill scheduling and observation blocks must be run after the
         simulation config is filled
         """
-
         header = self.file_.header
         az, alt = header["direction"]
 

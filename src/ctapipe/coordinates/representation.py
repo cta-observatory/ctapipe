@@ -19,7 +19,6 @@ class PlanarRepresentation(BaseRepresentation):
 
     Parameters
     ----------
-
     x, y : `~astropy.units.Quantity`
         The x and y coordinates of the point(s). If ``x`` and ``y``have
         different shapes, they should be broadcastable.

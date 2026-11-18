@@ -1,7 +1,6 @@
 """
 Image Cleaning Algorithms (identification of noisy pixels)
 
-
 All algorithms return a boolean mask that is True for pixels surviving
 the cleaning.
 
@@ -197,7 +196,6 @@ def mars_cleaning_1st_pass(
     -------
     A boolean mask of selected pixels.
     """
-
     pixels_from_tailcuts_clean = tailcuts_clean(
         geom,
         image,
@@ -378,7 +376,6 @@ def fact_image_cleaning(
     ----------
     See :cite:p:`phd-temme` and for implementation :cite:p:`fact-tools`.
     """
-
     # Step 1
     pixels_to_keep = image >= picture_threshold
 
@@ -461,7 +458,6 @@ def time_constrained_clean(
     -------
     A boolean mask of selected pixels.
     """
-
     # find core pixels that pass a picture threshold
     pixels_above_picture = image >= picture_thresh
 
@@ -712,7 +708,6 @@ class TailcutsImageCleaner(ImageCleaner):
         """
         Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
         """
-
         return tailcuts_clean(
             self.subarray.tel[tel_id].camera.geometry,
             image,
@@ -833,7 +828,6 @@ class MARSImageCleaner(TailcutsImageCleaner):
         """
         Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
         """
-
         return mars_cleaning_1st_pass(
             self.subarray.tel[tel_id].camera.geometry,
             image,
@@ -863,7 +857,6 @@ class FACTImageCleaner(TailcutsImageCleaner):
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
         """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
-
         return fact_image_cleaning(
             geom=self.subarray.tel[tel_id].camera.geometry,
             image=image,
@@ -901,7 +894,6 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
         """
         Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
         """
-
         return time_constrained_clean(
             self.subarray.tel[tel_id].camera.geometry,
             image,

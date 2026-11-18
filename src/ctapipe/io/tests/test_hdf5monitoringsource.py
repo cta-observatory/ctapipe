@@ -60,7 +60,7 @@ def calibpipe_camcalib_obslike_same_chunks_fixed_meta(
 
 
 def test_hdf5_monitoring_source_subarray():
-    """test a simple subarray"""
+    """Test a simple subarray"""
     file = get_dataset_path("calibpipe_camcalib_sims_single_chunk_i0.2.0.dl1.h5")
     with HDF5MonitoringSource(input_files=[file]) as source:
         assert source.subarray.telescope_types
@@ -69,7 +69,7 @@ def test_hdf5_monitoring_source_subarray():
 
 
 def test_passing_subarray(dl1_file, calibpipe_camcalib_obslike_same_chunks_fixed_meta):
-    """test the functionality of passing a subarray from an EventSource"""
+    """Test the functionality of passing a subarray from an EventSource"""
     allowed_tels = {1}
     with EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         monitoring_source = HDF5MonitoringSource(
@@ -124,8 +124,7 @@ def test_get_monitoring_types(request, fixture, has_camera, has_pointing):
 
 
 def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
-    """test the monitoring filling for the camera calibration coefficients"""
-
+    """Test the monitoring filling for the camera calibration coefficients"""
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
@@ -166,8 +165,7 @@ def test_camcalib_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file):
 
 
 def test_get_camera_monitoring_container_sims(calibpipe_camcalib_sims_single_chunk):
-    """test the get_camera_monitoring_container method with the monitoring source of simulation"""
-
+    """Test the get_camera_monitoring_container method with the monitoring source of simulation"""
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
@@ -234,8 +232,7 @@ def test_get_camera_monitoring_container_sims(calibpipe_camcalib_sims_single_chu
 def test_get_camera_monitoring_container_obs(
     calibpipe_camcalib_obslike_same_chunks_fixed_meta,
 ):
-    """test the get_camera_monitoring_container method with the monitoring source of observation"""
-
+    """Test the get_camera_monitoring_container method with the monitoring source of observation"""
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
@@ -328,8 +325,7 @@ def test_get_camera_monitoring_container_obs(
 def test_get_camera_monitoring_container_obs_invalid(
     calibpipe_camcalib_obslike_same_chunks_fixed_meta,
 ):
-    """test the get_camera_monitoring_container method with the monitoring source of observation"""
-
+    """Test the get_camera_monitoring_container method with the monitoring source of observation"""
     tel_id = 1
     with HDF5MonitoringSource(
         subarray=None,
@@ -353,8 +349,7 @@ def test_get_camera_monitoring_container_obs_invalid(
 
 
 def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_file_obs):
-    """test the monitoring filling for the telescope pointings"""
-
+    """Test the monitoring filling for the telescope pointings"""
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     pointing_time = (
@@ -398,8 +393,7 @@ def test_tel_pointing_filling(prod6_gamma_simtel_path, dl1_merged_monitoring_fil
 def test_camcalib_obs(
     prod6_gamma_simtel_path, calibpipe_camcalib_obslike_same_chunks_fixed_meta
 ):
-    """test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
-
+    """Test the HDF5MonitoringSource with camcalib monitoring files from 'observation'"""
     tel_id = 1
     # Read the camera monitoring data with the coefficients
     camcalib_coefficients = read_table(
@@ -465,7 +459,6 @@ def test_hdf5_monitoring_source_multi_files_loading(
     dl1_mon_pointing_file_obs, calibpipe_camcalib_obslike_same_chunks_fixed_meta
 ):
     """Test loading multiple HDF5 monitoring files in the HDF5MonitoringSource"""
-
     tel_id = 1
     # Read the camera monitoring data with the coefficients for the timestamp
     camcalib_coefficients = read_table(
@@ -517,7 +510,7 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
     calibpipe_camcalib_obslike_same_chunks_fixed_meta,
     dl1_mon_pointing_file,
 ):
-    """test the common exceptions and warnings of the HDF5MonitoringSource"""
+    """Test the common exceptions and warnings of the HDF5MonitoringSource"""
     # Pass a subarray with more telescopes than available in the monitoring file.
     # This should raise an IOError.
     with EventSource(
@@ -567,7 +560,7 @@ def test_hdf5_monitoring_source_exceptions_and_warnings(
 
 
 def test_get_telescope_table(calibpipe_camcalib_sims_single_chunk):
-    """test the get_telescope_table method"""
+    """Test the get_telescope_table method"""
     tel_id = 1
 
     with HDF5MonitoringSource(
@@ -612,7 +605,7 @@ def test_get_telescope_table(calibpipe_camcalib_sims_single_chunk):
 
 
 def test_get_telescope_table_pointing(dl1_merged_monitoring_file):
-    """test get_telescope_table method for telescope pointing"""
+    """Test get_telescope_table method for telescope pointing"""
     tel_id = 1
 
     with HDF5MonitoringSource(input_files=[dl1_merged_monitoring_file]) as source:
@@ -627,7 +620,7 @@ def test_get_telescope_table_pointing(dl1_merged_monitoring_file):
 
 
 def test_get_telescope_values_camera_coefficients(calibpipe_camcalib_sims_single_chunk):
-    """test the get_telescope_values method for camera coefficients"""
+    """Test the get_telescope_values method for camera coefficients"""
     tel_id = 1
 
     with HDF5MonitoringSource(
@@ -656,7 +649,7 @@ def test_get_telescope_values_camera_coefficients(calibpipe_camcalib_sims_single
 
 
 def test_get_telescope_values_pixel_statistics(calibpipe_camcalib_sims_single_chunk):
-    """test the get_telescope_values method for pixel statistics"""
+    """Test the get_telescope_values method for pixel statistics"""
     tel_id = 1
 
     with HDF5MonitoringSource(
@@ -682,7 +675,7 @@ def test_get_telescope_values_pixel_statistics(calibpipe_camcalib_sims_single_ch
 
 
 def test_get_telescope_values_telescope_pointing(dl1_merged_monitoring_file):
-    """test the get_telescope_values method for telescope pointing"""
+    """Test the get_telescope_values method for telescope pointing"""
     from astropy.coordinates import SkyCoord
 
     tel_id = 1
@@ -712,7 +705,7 @@ def test_get_telescope_values_telescope_pointing(dl1_merged_monitoring_file):
 
 
 def test_get_telescope_values_errors(calibpipe_camcalib_sims_single_chunk):
-    """test error handling in get_telescope_values method"""
+    """Test error handling in get_telescope_values method"""
     tel_id = 1
 
     with HDF5MonitoringSource(

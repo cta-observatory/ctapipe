@@ -304,7 +304,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl2(self):
-        """returns true if we should compute DL2 info"""
+        """Returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
 
@@ -312,7 +312,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl1(self):
-        """returns true if we should compute DL1 info"""
+        """Returns true if we should compute DL1 info"""
         if self.force_recompute_dl1:
             return True
 
@@ -327,7 +327,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_calibrate(self):
-        """returns true if data should be calibrated"""
+        """Returns true if data should be calibrated"""
         if self.force_recompute_dl1:
             return True
 
@@ -344,14 +344,14 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_muon_parameters(self):
-        """returns true if we should compute muon parameters info"""
+        """Returns true if we should compute muon parameters info"""
         if self.write.write_muon_parameters:
             return True
 
         return False
 
     def _write_processing_statistics(self):
-        """write out the event selection stats, etc."""
+        """Write out the event selection stats, etc."""
         # NOTE: don't remove this, not part of DataWriter
 
         if self.should_compute_dl1:
@@ -436,7 +436,7 @@ class ProcessorTool(Tool):
 
 
 def main():
-    """run the tool"""
+    """Run the tool"""
     tool = ProcessorTool()
     tool.run()
 

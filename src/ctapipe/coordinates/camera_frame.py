@@ -26,7 +26,7 @@ class MirrorAttribute(Attribute):
     """A frame Attribute that can only store the integers 1 and 2"""
 
     def convert_input(self, value):
-        """make sure input is 1 or 2"""
+        """Make sure input is 1 or 2"""
         if value in (1, 2):
             return value, False
 
@@ -60,7 +60,6 @@ class CameraFrame(BaseCoordinateFrame):
 
     Attributes
     ----------
-
     focal_length : u.Quantity[length]
         Focal length of the telescope as a unit quantity (usually meters)
     rotation : u.Quantity[angle]

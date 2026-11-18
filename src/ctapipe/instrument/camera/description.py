@@ -55,7 +55,6 @@ class CameraDescription:
         -------
         list(str)
         """
-
         pattern = r"(.*)\.camgeom\.fits(\.gz)?"
         return find_all_matching_datasets(pattern, regexp_group=1)
 
@@ -71,7 +70,6 @@ class CameraDescription:
 
         Notes
         -----
-
         Warning: This method loads a pre-generated ``CameraDescription`` and is
         thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you

@@ -283,7 +283,7 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
 
 
 def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
-    """test that reconstructor also works with "missing" ids"""
+    """Test that reconstructor also works with "missing" ids"""
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
 
     # remove telescopes 2 and 3 to see that HillasIntersection can work

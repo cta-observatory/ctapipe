@@ -130,7 +130,7 @@ class SubarrayDescription:
 
     @property
     def n_tels(self):
-        """number of telescopes in this subarray"""
+        """Number of telescopes in this subarray"""
         return len(self.tels)
 
     def __len__(self):
@@ -138,7 +138,7 @@ class SubarrayDescription:
 
     def info(self, printer=print):
         """
-        print descriptive info about subarray
+        Print descriptive info about subarray
         """
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.n_tels}")
@@ -173,7 +173,6 @@ class SubarrayDescription:
     @lazyproperty
     def tel_coords(self):
         """Telescope positions in `~ctapipe.coordinates.GroundFrame`"""
-
         pos_x = [p[0].to_value(u.m) for p in self.positions.values()]
         pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
         pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
@@ -205,7 +204,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_indices(self):
-        """dictionary mapping telescope ids to telescope index"""
+        """Dictionary mapping telescope ids to telescope index"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
     @lazyproperty
@@ -227,7 +226,7 @@ class SubarrayDescription:
         return idx
 
     def tel_ids_to_indices(self, tel_ids):
-        """maps a telescope id (or array of them) to flat indices
+        """Maps a telescope id (or array of them) to flat indices
 
         Parameters
         ----------
@@ -272,6 +271,7 @@ class SubarrayDescription:
         tel_mask: array-like
             Boolean array of length ``n_tels`` with indices of the
             telescopes in ``tel_ids`` set to True.
+
         Returns
         -------
         np.array:
@@ -281,21 +281,20 @@ class SubarrayDescription:
 
     @property
     def footprint(self):
-        """area of smallest circle containing array on ground"""
+        """Area of smallest circle containing array on ground"""
         pos_x = self.tel_coords.x
         pos_y = self.tel_coords.y
         return (np.hypot(pos_x, pos_y).max() ** 2 * np.pi).to("km^2")
 
     def to_table(self, kind="subarray", meta_convention="hdf"):
         """
-        export SubarrayDescription information as an `astropy.table.Table`
+        Export SubarrayDescription information as an `astropy.table.Table`
 
         Parameters
         ----------
         kind: str
             which table to generate (subarray or optics)
         """
-
         if meta_convention not in {"hdf", "fits"}:
             raise ValueError(
                 f"meta_convention must be 'hdf' or 'fits', not {meta_convention}"
@@ -403,7 +402,7 @@ class SubarrayDescription:
 
     def select_subarray(self, tel_ids, name=None) -> "SubarrayDescription":
         """
-        return a new SubarrayDescription that is a sub-array of this one
+        Return a new SubarrayDescription that is a sub-array of this one
 
         Parameters
         ----------
@@ -411,11 +410,11 @@ class SubarrayDescription:
             list of telescope IDs to include in the new subarray
         name: str
             name of new sub-selection
+
         Returns
         -------
         SubarrayDescription
         """
-
         unknown_tel_ids = set(tel_ids).difference(self.tel.keys())
         if len(unknown_tel_ids) > 0:
             known = _range_extraction(self.tel.keys())
@@ -504,7 +503,7 @@ class SubarrayDescription:
 
     def get_tel_ids_for_type(self, tel_type) -> tuple[int]:
         """
-        return tuple of tel_ids that have the given tel_type
+        Return tuple of tel_ids that have the given tel_type
 
         Parameters
         ----------
@@ -527,7 +526,7 @@ class SubarrayDescription:
 
     def get_tel_indices_for_type(self, tel_type):
         """
-        return tuple of telescope indices that have the given tel_type
+        Return tuple of telescope indices that have the given tel_type
 
         Parameters
         ----------
@@ -554,7 +553,6 @@ class SubarrayDescription:
         multiplicity : int or np.ndarray
             Number of true values for given telescope mask and telescope type
         """
-
         if tel_type is None:
             return np.count_nonzero(tel_mask, axis=-1)
 
@@ -627,7 +625,7 @@ class SubarrayDescription:
         return True
 
     def to_hdf(self, h5file, overwrite=False, mode="a"):
-        """write the SubarrayDescription
+        """Write the SubarrayDescription
 
         Parameters
         ----------

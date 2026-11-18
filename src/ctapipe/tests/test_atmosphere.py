@@ -19,7 +19,7 @@ SIMTEL_PATH = get_dataset_path(
 
 
 def get_simtel_profile_from_eventsource():
-    """get a TableAtmosphereDensityProfile from a simtel file"""
+    """Get a TableAtmosphereDensityProfile from a simtel file"""
     from ctapipe.io import EventSource
 
     with EventSource(SIMTEL_PATH) as source:
@@ -28,13 +28,13 @@ def get_simtel_profile_from_eventsource():
 
 @pytest.fixture(scope="session")
 def table_profile():
-    """a table profile for testing"""
+    """A table profile for testing"""
     return get_simtel_profile_from_eventsource()
 
 
 @pytest.fixture(scope="session")
 def layer5_profile():
-    """a 5 layer profile for testing"""
+    """A 5 layer profile for testing"""
     fit_reference = np.array(
         [
             [0.00 * 100000, -140.508, 1178.05, 994186, 0],
@@ -51,7 +51,7 @@ def layer5_profile():
 
 def get_simtel_fivelayer_profile():
     """
-    get a sample 3-layer profile
+    Get a sample 3-layer profile
     """
     from ctapipe.io.simteleventsource import (
         AtmosphereProfileKind,
@@ -72,8 +72,7 @@ def get_simtel_fivelayer_profile():
     ],
 )
 def test_models(density_model):
-    """check that a set of model classes work"""
-
+    """Check that a set of model classes work"""
     # test we can convert to correct units
     density_model(10 * u.km).to(u.kg / u.m**3)
 
@@ -94,8 +93,7 @@ def test_models(density_model):
 
 
 def test_exponential_model():
-    """check exponential models"""
-
+    """Check exponential models"""
     density_model = atmo.ExponentialAtmosphereDensityProfile(
         scale_height=10 * u.m, scale_density=0.00125 * atmo.DENSITY_UNIT
     )
@@ -104,8 +102,7 @@ def test_exponential_model():
 
 
 def test_table_model_interpolation(table_profile):
-    """check that interpolation is reasonable"""
-
+    """Check that interpolation is reasonable"""
     np.testing.assert_allclose(
         table_profile(table_profile.table["height"].to("km")),
         table_profile.table["density"].to("g cm-3"),
@@ -146,7 +143,6 @@ def test_slant_depth_from_height(table_profile):
     """
     Test observer altitude and zenith angle dependence of LoS integral function
     """
-
     assert table_profile.slant_depth_from_height(
         20 * u.km
     ) < table_profile.slant_depth_from_height(10 * u.km)
@@ -183,7 +179,6 @@ def test_height_overburden_roundtrip(table_profile, layer5_profile):
     Test that successive application of height to overburden
     and overburden to height functions return original values
     """
-
     layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 
     for height in layer_5_heights:
@@ -216,7 +211,6 @@ def test_height_slant_depth_roundtrip(table_profile, layer5_profile):
     Test that successive application of height to overburden
     and overburden to height functions return original values
     """
-
     layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 
     for height in layer_5_heights:

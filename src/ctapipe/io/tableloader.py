@@ -454,7 +454,6 @@ class TableLoader(Component):
 
         Parameters
         ----------
-
         dl2: bool
             load available dl2 stereo parameters
         simulated: bool

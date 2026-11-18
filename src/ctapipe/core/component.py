@@ -24,7 +24,6 @@ def find_config_in_hierarchy(parent, class_name, trait_name):
     This is needed as parent.config is the full config and not the
     config starting at the level of the parent.
     """
-
     config = parent.config
 
     # find the path from the config root to the desired object
@@ -59,6 +58,7 @@ def non_abstract_children(base):
     base : class
         High level class object that is inherited by the
         desired subclasses
+
     Returns
     -------
     non_abstract : dict
@@ -225,7 +225,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return subclasses
 
     def get_current_config(self):
-        """return the current configuration as a dict (e.g. the values
+        """Return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
         from .tool import Tool  # to avoid circular import
@@ -248,7 +248,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return config
 
     def _repr_html_(self):
-        """nice HTML rep, with blue for non-default values"""
+        """Nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
 

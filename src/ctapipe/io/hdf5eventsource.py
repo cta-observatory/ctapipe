@@ -157,7 +157,7 @@ def get_hdf5_datalevels(h5file: tables.File | str | Path):
 def read_atmosphere_density_profile(
     h5file: tables.File, path=ATMOSPHERE_DENSITY_PROFILE_TABLE
 ):
-    """return a subclass of AtmosphereDensityProfile by
+    """Return a subclass of AtmosphereDensityProfile by
     reading a table in a h5 file
 
     Parameters
@@ -173,7 +173,6 @@ def read_atmosphere_density_profile(
     AtmosphereDensityProfile:
         subclass depending on type of table
     """
-
     if path not in h5file:
         return None
 
@@ -241,8 +240,8 @@ class HDF5EventSource(EventSource):
         """
         EventSource for dl1 files in the standard DL1 data format
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input_url : str
             Path of the file to load
         config : traitlets.loader.Config
@@ -534,8 +533,7 @@ class HDF5EventSource(EventSource):
             return {}
 
     def _parse_sb_and_ob_configs(self):
-        """read Observation and Scheduling block configurations"""
-
+        """Read Observation and Scheduling block configurations"""
         sb_reader = HDF5TableReader(self.file_).read(
             SCHEDULING_BLOCK_TABLE,
             containers=SchedulingBlockContainer,

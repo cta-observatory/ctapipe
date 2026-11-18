@@ -73,7 +73,6 @@ def test_to_unit():
 
 def test_multiplicity(subarray_prod5_paranal):
     """Test if generating features works."""
-
     expressions = [
         ("n_telescopes", "subarray.multiplicity(tels_with_trigger)"),
         ("n_lsts", "subarray.multiplicity(tels_with_trigger, 'LST_LST_LSTCam')"),
@@ -113,7 +112,6 @@ def test_unit_propagation(table_class):
     If a column in the input table has a unit, and a feature does math on that
     unit, the feature should have the appropriate unit.
     """
-
     import astropy.units as u
 
     table = table_class(dict(x=np.arange(11) * u.cm, E=np.linspace(-2, 2, 11) * u.TeV))
@@ -132,7 +130,6 @@ def test_unit_propagation(table_class):
 @pytest.mark.parametrize("table_class", [QTable, Table])
 def test_input_output_class(table_class):
     """Ensure output table class is same as input."""
-
     import astropy.units as u
 
     table = table_class(dict(x=np.arange(11) * u.cm, E=np.linspace(-2, 2, 11) * u.TeV))

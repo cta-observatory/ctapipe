@@ -448,12 +448,11 @@ class DataWriter(Component):
 
     def _write_dl2_telescope(self, tel_event: TelescopeEventContainer):
         """
-        write per-telescope DL2 shower information.
+        Write per-telescope DL2 shower information.
 
         Currently this writes to a single table per type of shower
         reconstruction and per algorithm, with all telescopes combined.
         """
-
         if tel_event.dl2 is None:
             return
         table_name = self.table_name(tel_event.index.tel_id)
@@ -472,7 +471,7 @@ class DataWriter(Component):
 
     def _write_dl2_subarray(self, event: SubarrayEventContainer):
         """
-        write per-telescope DL2 shower information to e.g.
+        Write per-telescope DL2 shower information to e.g.
         `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
         """
         if event.dl2 is None:
@@ -522,7 +521,7 @@ class DataWriter(Component):
         self._constant_telescope_pointing_written[obs_id].add(tel_id)
 
     def finish(self):
-        """called after all events are done"""
+        """Called after all events are done"""
         self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
@@ -534,7 +533,7 @@ class DataWriter(Component):
 
     @property
     def datalevels(self):
-        """returns a list of data levels requested"""
+        """Returns a list of data levels requested"""
         data_levels = []
         if self.write_dl1_images:
             data_levels.append(DataLevel.DL1_IMAGES)
@@ -551,7 +550,7 @@ class DataWriter(Component):
         return data_levels
 
     def _setup_compression(self):
-        """setup HDF5 compression"""
+        """Setup HDF5 compression"""
         self._hdf5_filters = tables.Filters(
             complevel=self.compression_level,
             complib=self.compression_type,
@@ -678,8 +677,7 @@ class DataWriter(Component):
         self.log.debug("Writer initialized: %s", self._writer)
 
     def _write_scheduling_and_observation_blocks(self):
-        """write out SB and OB info"""
-
+        """Write out SB and OB info"""
         self.log.debug(
             "writing %d sbs and %d obs",
             len(self.event_source.scheduling_blocks.values()),
@@ -722,7 +720,6 @@ class DataWriter(Component):
 
     def write_simulated_shower_distributions(self, distributions):
         """Write the distribution of thrown showers."""
-
         self.log.debug("Writing simulation histograms")
 
         for container in distributions.values():
@@ -736,7 +733,7 @@ class DataWriter(Component):
         return f"tel_{tel_id:03d}"
 
     def _write_context_metadata_headers(self):
-        """write out any user-defined metadata in the context_metadata field to the
+        """Write out any user-defined metadata in the context_metadata field to the
         headers.
 
         This will create a set of headers that start with CONTEXT <KEY> = value
@@ -744,7 +741,6 @@ class DataWriter(Component):
         Keys can be hierarchical separated by spaces
 
         """
-
         # first append CONTEXT to each key in the dict
 
         context_dict = {}
@@ -1011,7 +1007,7 @@ class DataWriter(Component):
 
     def _write_atmosphere_profile(self, path):
         """
-        write atmosphere profiles if they are in a tabular format
+        Write atmosphere profiles if they are in a tabular format
 
         Parameters
         ----------
@@ -1019,7 +1015,6 @@ class DataWriter(Component):
             path in the HDF5 file where to place the profile
 
         """
-
         profile = self.event_source.atmosphere_density_profile
 
         if profile:

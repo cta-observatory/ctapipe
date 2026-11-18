@@ -180,9 +180,10 @@ class _ActivityProvenance:
         self.name = activity_name
 
     def start(self):
-        """begin recording provenance for this activity. Set's up the system
+        """Begin recording provenance for this activity. Set's up the system
         and startup provenance data. Generally should be called at start of a
-        program."""
+        program.
+        """
         self._prov["start"].update(_sample_cpu_and_memory())
         self._prov["system"].update(_get_system_provenance())
 
@@ -237,11 +238,11 @@ class _ActivityProvenance:
         )
 
     def register_config(self, config):
-        """add a dictionary of configuration parameters to this activity"""
+        """Add a dictionary of configuration parameters to this activity"""
         self._prov["config"] = config
 
     def finish(self, status="success", exit_code=0):
-        """record final provenance information, normally called at shutdown."""
+        """Record final provenance information, normally called at shutdown."""
         self._prov["stop"].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
@@ -308,7 +309,7 @@ class Provenance(metaclass=Singleton):
         self._finished_activities = []
 
     def start_activity(self, activity_name=sys.executable):
-        """push activity onto the stack"""
+        """Push activity onto the stack"""
         activity = _ActivityProvenance(activity_name)
         activity.start()
         self._activities.append(activity)
@@ -325,7 +326,7 @@ class Provenance(metaclass=Singleton):
         return self.current_activity
 
     def add_input_file(self, filename, role=None, add_meta=True, reference_meta=None):
-        """register an input to the current activity
+        """Register an input to the current activity
 
         Parameters
         ----------
@@ -349,7 +350,7 @@ class Provenance(metaclass=Singleton):
 
     def add_output_file(self, filename, role=None, add_meta=True):
         """
-        register an output to the current activity
+        Register an output to the current activity
 
         Parameters
         ----------
@@ -369,7 +370,7 @@ class Provenance(metaclass=Singleton):
 
     def add_config(self, config):
         """
-        add configuration parameters to the current activity
+        Add configuration parameters to the current activity
 
         Parameters
         ----------
@@ -385,7 +386,7 @@ class Provenance(metaclass=Singleton):
         )
 
     def finish_activity(self, status="completed", exit_code=0, activity_name=None):
-        """end the current activity"""
+        """End the current activity"""
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError(
@@ -400,7 +401,7 @@ class Provenance(metaclass=Singleton):
 
     @contextmanager
     def activity(self, name):
-        """context manager for activities"""
+        """Context manager for activities"""
         self.start_activity(name)
         yield
         self.finish_activity(name)
@@ -417,11 +418,11 @@ class Provenance(metaclass=Singleton):
 
     @property
     def provenance(self):
-        """returns provenence for full list of activities"""
+        """Returns provenence for full list of activities"""
         return [x.provenance for x in self._finished_activities]
 
     def as_json(self, **kwargs):
-        """return all finished provenance as JSON.  Kwargs for `json.dumps`
+        """Return all finished provenance as JSON.  Kwargs for `json.dumps`
         may be included, e.g. ``indent=4``
         """
         return json.dumps(self.provenance, default=json_config_handler, **kwargs)
@@ -435,7 +436,7 @@ class Provenance(metaclass=Singleton):
         return [x.name for x in self._finished_activities]
 
     def clear(self):
-        """remove all tracked activities"""
+        """Remove all tracked activities"""
         self._activities = []
         self._finished_activities = []
 
@@ -456,9 +457,9 @@ def _get_python_packages():
 
 
 def _get_system_provenance():
-    """return a dict containing provenance for all things that are
-    fixed during the runtime"""
-
+    """Return a dict containing provenance for all things that are
+    fixed during the runtime
+    """
     bits, linkage = platform.architecture()
 
     return dict(

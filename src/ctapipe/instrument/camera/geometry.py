@@ -469,7 +469,6 @@ class CameraGeometry:
 
         This is calculated from the pixel area.
         """
-
         if self.pix_type == PixelShape.HEXAGON:
             width = 2 * np.sqrt(self.pix_area / (2 * np.sqrt(3)))
         elif self.pix_type == PixelShape.SQUARE:
@@ -500,8 +499,7 @@ class CameraGeometry:
 
     @lazyproperty
     def _pixel_circumradius(self):
-        """pixel circumference radius/radii based on pixel area and layout"""
-
+        """Pixel circumference radius/radii based on pixel area and layout"""
         if self.pix_type == PixelShape.HEXAGON:
             circum_rad = self.pixel_width / np.sqrt(3)
         elif self.pix_type == PixelShape.SQUARE:
@@ -525,7 +523,6 @@ class CameraGeometry:
         kdtree
 
         """
-
         pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
         return KDTree(pixel_centers)
 
@@ -680,7 +677,6 @@ class CameraGeometry:
 
         Notes
         -----
-
         Warning: This method loads a pre-generated ``CameraGeometry`` and is
         thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you
@@ -716,7 +712,7 @@ class CameraGeometry:
 
     def to_table(self):
         """
-        convert this to an `astropy.table.Table`
+        Convert this to an `astropy.table.Table`.
 
         The table format always stores the pixel positions in
         `~ctapipe.coordinates.CameraFrame`, so a geometry in another frame is
@@ -768,7 +764,6 @@ class CameraGeometry:
             extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
         """
-
         tab = url_or_table
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
@@ -929,7 +924,6 @@ class CameraGeometry:
             x*y^3, y^4
 
         """
-
         x = self.pix_x.value
         y = self.pix_y.value
 
@@ -953,14 +947,13 @@ class CameraGeometry:
         )
 
     def rotate(self, angle):
-        """rotate the camera coordinates about the center of the camera by
+        """Rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
         after this is called, the pix_x and pix_y arrays are
         rotated.
 
         Notes
         -----
-
         This is intended only to correct simulated data that are
         rotated by a fixed angle.  For the more general case of
         correction for camera pointing errors (rotations,
@@ -969,7 +962,6 @@ class CameraGeometry:
 
         Parameters
         ----------
-
         angle: value convertible to an `astropy.coordinates.Angle`
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
@@ -988,7 +980,7 @@ class CameraGeometry:
         self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
-        """print detailed info about this camera"""
+        """Print detailed info about this camera"""
         printer(f'CameraGeometry: "{self}"')
         printer("   - num-pixels: {}".format(len(self.pix_id)))
         printer(f"   - pixel-type: {self.pix_type}")

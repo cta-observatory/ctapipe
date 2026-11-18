@@ -906,7 +906,6 @@ class HDF5Merger(Component):
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
-
         if not isinstance(input_group, tables.Group):
             raise TypeError(f"node must be a `tables.Group`, got {input_group}")
 

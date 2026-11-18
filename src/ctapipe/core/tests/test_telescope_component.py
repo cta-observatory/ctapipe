@@ -89,7 +89,6 @@ def test_telescope_parameter_lookup_by_type(subarray_prod5_paranal):
 
 def test_telescope_parameter_patterns(mock_subarray):
     """Test validation of TelescopeParameters"""
-
     with pytest.raises(TypeError):
         TelescopeParameter(trait=int)
 
@@ -185,8 +184,9 @@ def test_telescope_parameter_scalar_default(mock_subarray):
 
 
 def test_telescope_parameter_resolver(mock_subarray):
-    """check that you can resolve the rules specified in a
-    TelescopeParameter trait"""
+    """Check that you can resolve the rules specified in a
+    TelescopeParameter trait
+    """
 
     class SomeComponent(Component):
         tel_param1 = IntTelescopeParameter(
@@ -268,7 +268,7 @@ def test_telescope_parameter_set_retain_subarray(mock_subarray):
 
 def test_telescope_parameter_to_config(mock_subarray):
     """
-    test that the config can be read back from a component with a TelescopeParameter
+    Test that the config can be read back from a component with a TelescopeParameter
     (see Issue #1216)
     """
 
@@ -286,7 +286,6 @@ def test_telescope_parameter_from_cli(tmp_path, mock_subarray):
     Test we can pass single default for telescope components via cli
     see #1559
     """
-
     from ctapipe.core import Tool, run_tool
 
     class SomeComponent(TelescopeComponent):

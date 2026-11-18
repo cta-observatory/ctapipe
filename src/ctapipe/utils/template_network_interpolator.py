@@ -27,7 +27,6 @@ class BaseTemplate:
         """
         Reset method to delete some saved results from the previous event
         """
-
         for i in self.interpolator:
             for j in i:
                 if j is not None:
@@ -37,17 +36,18 @@ class BaseTemplate:
         """
         Create the array of interpolators to be used for all combinations of zenith and
         azimuth included in the templates
+
         Parameters
         ----------
         keys: ndarray
             Template grid points
         values: ndarray
             Template values
+
         Returns
         -------
         None
         """
-
         # First lets store the unique zeniths and azimuths stored in our table
         zeniths = np.sort(np.unique(keys.T[0]))
         azimuths = np.sort(np.unique(keys.T[1]))
@@ -67,17 +67,18 @@ class BaseTemplate:
         """
         Get bounding indices of a given direction in the zenith, azimuth grid
         This code is ugly and not easily transferable, but should be fast enough
+
         Parameters
         ----------
         zenith: float
             Zenith angle (degrees)
         azimuth: float
             Azimuth angle (degrees)
+
         Returns
         -------
         tuple: (zenith indices, azimuth indices)
         """
-
         # If we only have one zenith angle available in the templates, don't bother
         # searching
         if len(self.zeniths) == 0:
@@ -122,12 +123,14 @@ class BaseTemplate:
         """
         Creates unstructured interpolator object in a given zenith and azimuth bin when
         needed
+
         Parameters
         ----------
         zenith_bin: int
             Bin number of requested zenith
         azimuth_bin: int
             Bin number of requested azimuth
+
         Returns
         -------
         None
@@ -163,10 +166,10 @@ class BaseTemplate:
         azimuth
         interpolation_array
         points
+
         Returns
         -------
         """
-
         zenith_bounds, azimuth_bounds = self._get_bounds(zenith, azimuth)
 
         zenith_lower, zenith_upper = zenith_bounds
@@ -230,6 +233,7 @@ class BaseTemplate:
     def _linear_interpolation(point, grid1, grid2, value1, value2):
         """
         Simple function to perform linear interpolation between two values
+
         Parameters
         ----------
         point: float
@@ -242,6 +246,7 @@ class BaseTemplate:
             Lower interpolation value
         value2: ndarray
             Upper interpolation value
+
         Returns
         -------
         ndarray: Interpolated values
@@ -266,7 +271,6 @@ class TemplateNetworkInterpolator(BaseTemplate):
         template_file: str
             Location of pickle file containing ImPACT NN templates
         """
-
         super().__init__()
 
         input_dict = None
@@ -294,6 +298,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):
         """
         Evaluate interpolated templates for a set of shower parameters and pixel positions
+
         Parameters
         ----------
         energy: array-like
@@ -306,6 +311,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
             Pixel X position at which to evaluate template
         yb: array-like
             Pixel X position at which to evaluate template
+
         Returns
         -------
         ndarray: Pixel amplitude expectation values
@@ -337,7 +343,6 @@ class TimeGradientInterpolator(BaseTemplate):
         template_file: str
             Location of pickle file containing ImPACT NN templates
         """
-
         super().__init__()
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
@@ -362,6 +367,7 @@ class TimeGradientInterpolator(BaseTemplate):
     def __call__(self, zenith, azimuth, energy, impact, xmax):
         """
         Evaluate expected time gradient for a set of shower parameters and pixel positions
+
         Parameters
         ----------
         energy: array-like
@@ -370,6 +376,7 @@ class TimeGradientInterpolator(BaseTemplate):
             Impact distance of interpolated template
         xmax: array-like
             Depth of maximum of interpolated templates
+
         Returns
         -------
         ndarray: Time Gradient expectation and RMS values

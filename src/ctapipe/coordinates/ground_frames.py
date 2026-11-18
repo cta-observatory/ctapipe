@@ -324,7 +324,8 @@ def project_to_ground(tilt_system):
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
 def ground_to_ground(ground_coords, ground_frame):
     """Null transform for going from ground to ground, since there are no
-    attributes of the GroundSystem"""
+    attributes of the GroundSystem
+    """
     return ground_coords
 
 
@@ -336,17 +337,16 @@ GROUND_TO_EASTNORTH = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
 @frame_transform_graph.transform(AffineTransform, GroundFrame, EastingNorthingFrame)
 def ground_to_easting_northing(ground_coords, eastnorth_frame):
     """
-    convert GroundFrame points into eastings/northings for plotting purposes
+    Convert GroundFrame points into eastings/northings for plotting purposes
 
     """
-
     return GROUND_TO_EASTNORTH, NO_OFFSET
 
 
 @frame_transform_graph.transform(AffineTransform, EastingNorthingFrame, GroundFrame)
 def easting_northing_to_ground(eastnorth_coords, ground_frame):
     """
-    convert  eastings/northings back to GroundFrame
+    Convert  eastings/northings back to GroundFrame
 
     """
     return GROUND_TO_EASTNORTH.T, NO_OFFSET

@@ -176,7 +176,7 @@ def test_process_r1_and_dl1_input(
     ],
 )
 def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files, provenance):
-    """check that we can read multiple formats of config file"""
+    """Check that we can read multiple formats of config file"""
     tool = ProcessorTool()
 
     for config_base in config_files:
@@ -197,7 +197,7 @@ def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files, prov
 
 
 def test_multiple_configs(dl1_image_file, provenance):
-    """ensure a config file loaded later overwrites keys from an earlier one"""
+    """Ensure a config file loaded later overwrites keys from an earlier one"""
     tool = ProcessorTool()
 
     tool.load_config_file(resource_file("base_config.yaml"))
@@ -214,7 +214,7 @@ def test_multiple_configs(dl1_image_file, provenance):
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
-    """check simtel to DL1 conversion"""
+    """Check simtel to DL1 conversion"""
     config = resource_file("stage1_config.json")
 
     # DL1A file as input
@@ -283,8 +283,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
 
 def test_stage1_datalevels(tmp_path):
-    """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
-
+    """Test the dl1 tool on a file not providing r1, dl0 or dl1a"""
     dummy_file = tmp_path / "datalevels_dummy.h5"
     out_file = tmp_path / "datalevels_dummy_stage1_output.h5"
     with dummy_file.open("wb") as infile:
@@ -311,7 +310,7 @@ def test_stage1_datalevels(tmp_path):
 
 
 def test_stage_2_from_simtel(tmp_path):
-    """check we can go to DL2 geometry from simtel file"""
+    """Check we can go to DL2 geometry from simtel file"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
@@ -358,7 +357,7 @@ def test_stage_2_from_simtel(tmp_path):
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
-    """check we can go to DL2 geometry from DL1 images"""
+    """Check we can go to DL2 geometry from DL1 images"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
@@ -380,8 +379,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
 
 
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
-    """check we can go to DL2 geometry from DL1 parameters"""
-
+    """Check we can go to DL2 geometry from DL1 parameters"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
 
@@ -403,8 +401,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
 
 
 def test_wf_modification_from_simtel(tmp_path):
-    """check we can produce dl1 after adding noise to the waveforms"""
-
+    """Check we can produce dl1 after adding noise to the waveforms"""
     config = json.load(open(resource_file("stage1_config.json")))
     output = tmp_path / "test_wf_modification_dl1.h5"
     input = get_dataset_path(
@@ -444,8 +441,7 @@ def test_wf_modification_from_simtel(tmp_path):
 
 
 def test_ml_preprocessing_from_simtel(tmp_path):
-    """check we can write both dl1 and dl2 info (e.g. for ml_preprocessing input)"""
-
+    """Check we can write both dl1 and dl2 info (e.g. for ml_preprocessing input)"""
     config = resource_file("ml_preprocessing_config.json")
     output = tmp_path / "test_ml_preprocessing.DL1DL2.h5"
 
@@ -475,7 +471,6 @@ def test_image_modifications(tmp_path, dl1_image_file):
     Test that running ctapipe-process with an ImageModifier set
     produces a file with different images.
     """
-
     unmodified_images = read_table(dl1_image_file, f"{DL1_TEL_IMAGES_GROUP}/tel_025")
     noise_config = resource_file("image_modification_config.json")
 
@@ -501,7 +496,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
     "filename", ["base_config.yaml", "stage1_config.json", "stage1_config.toml"]
 )
 def test_quickstart_templates(filename):
-    """ensure template configs have an appropriate placeholder for the contact info"""
+    """Ensure template configs have an appropriate placeholder for the contact info"""
     config = resource_file(filename)
     text = config.read_text()
 
@@ -511,8 +506,7 @@ def test_quickstart_templates(filename):
 
 
 def test_quickstart(tmp_path):
-    """ensure quickstart tool generates expected output"""
-
+    """Ensure quickstart tool generates expected output"""
     tool = QuickStartTool()
     run_tool(
         tool,
@@ -548,7 +542,6 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
     Keep in mind that both DL2 allowed_tels need to be the same,
     but different from the allowed_tels in the simtel->DL1 step!
     """
-
     input_path = prod5_proton_simtel_path
 
     many_tels = [
@@ -622,7 +615,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
 
 
 def test_muon_reconstruction_simtel(tmp_path):
-    """ensure processor tool generates expected output when used to analyze muons"""
+    """Ensure processor tool generates expected output when used to analyze muons"""
     pytest.importorskip("iminuit")
 
     muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
@@ -671,7 +664,7 @@ def test_muon_reconstruction_simtel(tmp_path):
 
 
 def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_chunk):
-    """check we can use the process tool with a monitoring file"""
+    """Check we can use the process tool with a monitoring file"""
     from ctapipe.io import HDF5MonitoringSource
 
     output = tmp_path / "test_process_with_monitoring_file.dl1.h5"
@@ -702,8 +695,7 @@ def test_process_with_monitoring_file(tmp_path, calibpipe_camcalib_sims_single_c
 
 
 def test_process_with_invalid_monitoring_file(tmp_path, dl1_image_file):
-    """check we can not use the process tool with an invalid monitoring file"""
-
+    """Check we can not use the process tool with an invalid monitoring file"""
     output = tmp_path / "test_process_with_invalid_monitoring_file.dl1.h5"
 
     with pytest.raises(

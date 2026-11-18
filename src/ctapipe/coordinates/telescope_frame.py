@@ -46,7 +46,6 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     Attributes
     ----------
-
     telescope_pointing: SkyCoord[AltAz]
         Coordinate of the telescope pointing in AltAz
     obstime: Time
@@ -79,7 +78,6 @@ class TelescopeFrame(BaseCoordinateFrame):
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, TelescopeFrame)
 def telescope_to_telescope(from_telescope_coord, to_telescope_frame):
     """Transform between two skyoffset frames."""
-
     intermediate_from = from_telescope_coord.transform_to(
         from_telescope_coord.telescope_pointing
     )
@@ -92,7 +90,6 @@ def telescope_to_telescope(from_telescope_coord, to_telescope_frame):
 @frame_transform_graph.transform(DynamicMatrixTransform, AltAz, TelescopeFrame)
 def altaz_to_telescope(altaz_coord, telescope_frame):
     """Convert a reference coordinate to an sky offset frame."""
-
     # Define rotation matrices along the position angle vector, and
     # relative to the telescope_pointing.
     telescope_pointing = telescope_frame.telescope_pointing.represent_as(
@@ -106,7 +103,6 @@ def altaz_to_telescope(altaz_coord, telescope_frame):
 @frame_transform_graph.transform(DynamicMatrixTransform, TelescopeFrame, AltAz)
 def telescope_to_altaz(telescope_coord, altaz_frame):
     """Convert an sky offset frame coordinate to the reference frame"""
-
     # use the forward transform, but just invert it
     mat = altaz_to_telescope(altaz_frame, telescope_coord)
     # transpose is the inverse because mat is a rotation matrix

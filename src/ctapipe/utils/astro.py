@@ -216,7 +216,6 @@ def update_star_catalogs(resource_path=None):
     This function is intended for developers to update the resources files bundled
     with ctapipe.
     """
-
     if resource_path is None:
         resource_path = Path(__file__).parents[1] / "resources"
 

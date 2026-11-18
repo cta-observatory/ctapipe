@@ -300,7 +300,6 @@ class DL2EventLoader(Component):
         meta : dict
             Metadata dictionary with simulation info and input spectrum.
         """
-
         opts = dict(dl2=True, simulated=True, observation_info=True)
 
         with TableLoader(self.file, parent=self, **opts) as loader:

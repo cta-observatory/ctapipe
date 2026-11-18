@@ -292,7 +292,6 @@ class StereoMeanCombiner(StereoCombiner):
         This means you might end up with less events if
         all telescope predictions of a shower are invalid.
         """
-
         prefix = f"{self.prefix}_tel"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]

@@ -48,7 +48,7 @@ def get_default_url():
 
 
 def get_searchpath_dirs(searchpath=None, url=None):
-    """returns a list of dirs in specified searchpath"""
+    """Returns a list of dirs in specified searchpath"""
     if url is None:
         url = get_default_url()
 
@@ -249,7 +249,7 @@ def try_filetypes(basename, role, file_types, url=None, **kwargs):
 
 def get_table_dataset(table_name, role="resource", **kwargs):
     """
-    get a tabular dataset as an `astropy.table.Table` object
+    Get a tabular dataset as an `astropy.table.Table` object
 
     Parameters
     ----------
@@ -266,7 +266,6 @@ def get_table_dataset(table_name, role="resource", **kwargs):
     -------
     Table
     """
-
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
     table_types = {
@@ -281,7 +280,7 @@ def get_table_dataset(table_name, role="resource", **kwargs):
 
 def get_structured_dataset(basename, role="resource", **kwargs):
     """
-    find and return a YAML or JSON dataset as a dictionary
+    Find and return a YAML or JSON dataset as a dictionary
 
     Parameters
     ----------

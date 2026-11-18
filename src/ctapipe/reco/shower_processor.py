@@ -63,7 +63,6 @@ class ShowerProcessor(Component):
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
         """
-
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.atmosphere_profile = atmosphere_profile

@@ -110,7 +110,6 @@ class AtmosphereDensityProfile(abc.ABC):
            unit to output (must be convertible to g/cm2)
 
         """
-
         if np.any(zenith_angle > 70 * u.deg):
             warnings.warn(
                 "Zenith angle too high for accurate slant depth",
@@ -138,7 +137,6 @@ class AtmosphereDensityProfile(abc.ABC):
            unit to output (must be convertible to m)
 
         """
-
         if np.any(zenith_angle > 70 * u.deg):
             warnings.warn(
                 "Zenith angle too high for accurate slant depth",
@@ -200,9 +198,9 @@ class AtmosphereDensityProfile(abc.ABC):
 
     @classmethod
     def from_table(cls, table: Table):
-        """return a subclass of AtmosphereDensityProfile from a serialized
-        table"""
-
+        """Return a subclass of AtmosphereDensityProfile from a serialized
+        table
+        """
         table = QTable(table, copy=False)
 
         if "TAB_TYPE" not in table.meta:
@@ -322,7 +320,6 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         table : Table
             Table with columns `height`, `density`, and `column_density`
         """
-
         for col in ["height", "density", "column_density"]:
             if col not in table.colnames:
                 raise ValueError(f"Missing expected column: {col} in table")
@@ -388,32 +385,32 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
 # pylint: disable=invalid-name,unused-argument
 def _exponential(h, a, b, c):
-    """exponential atmosphere"""
+    """Exponential atmosphere"""
     return a + b * np.exp(-h / c)
 
 
 def _inv_exponential(T, a, b, c):
-    "inverse function for exponential atmosphere"
+    "Inverse function for exponential atmosphere"
     return -c * np.log((T - a) / b)
 
 
 def _d_exponential(h, a, b, c):
-    """derivative of exponential atmosphere"""
+    """Derivative of exponential atmosphere"""
     return -b / c * np.exp(-h / c)
 
 
 def _linear(h, a, b, c):
-    """linear atmosphere"""
+    """Linear atmosphere"""
     return np.where(h < a * c / b, a - b * h / c, 0)
 
 
 def _inv_linear(T, a, b, c):
-    "inverse function for linear atmosphere"
+    "Inverse function for linear atmosphere"
     return np.where(T > 0, -c / b * (T - a), np.inf)
 
 
 def _d_linear(h, a, b, c):
-    """derivative of linear atmosphere"""
+    """Derivative of linear atmosphere"""
     return -b / c
 
 
@@ -465,8 +462,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @classmethod
     def from_array(cls, array: np.ndarray, metadata: dict = None):
-        """construct from a 5x5 array as provided by eventio"""
-
+        """Construct from a 5x5 array as provided by eventio"""
         if metadata is None:
             metadata = {}
 

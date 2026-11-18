@@ -20,7 +20,7 @@ LOCATION = EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
 
 
 def create_subarray(tel_type, n_tels=10):
-    """generate a simple subarray for testing purposes"""
+    """Generate a simple subarray for testing purposes"""
     rng = np.random.default_rng(0)
 
     pos = {}
@@ -126,7 +126,7 @@ def test_tel_ids_to_mask(prod5_lst, reference_location):
 
 def test_get_tel_ids_for_type(example_subarray):
     """
-    check that we can get a list of telescope ids by a telescope type, which can
+    Check that we can get a list of telescope ids by a telescope type, which can
     be passed by string or `TelescopeDescription` instance
     """
     sub = example_subarray

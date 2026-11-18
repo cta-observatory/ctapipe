@@ -10,7 +10,6 @@ def test_simple_interpolation():
     Simple test function to asses the basic functionality of the unstructured
     interpolator, check if we just spread points on a grid
     """
-
     interpolation_points = {(0, 0): 0.0, (0, 1): 0.0, (1, 0): 1.0, (1, 1): 1.0}
 
     interpolator = UnstructuredInterpolator(
@@ -30,7 +29,6 @@ def test_linear_nd():
     In its simplest configuration this code should behave exactly the same as the scipy
     LinearNDInterpolator, so lets test that
     """
-
     # First set up 4 grid points and fill them randomly
     interpolation_points = {
         (0, 0): np.random.rand(2, 2),
@@ -61,7 +59,6 @@ def test_remember_last():
     """
     Check we get the same answer when using masked arrays
     """
-
     # First set up 4 grid points and fill them randomly
     interpolation_points = {
         (0, 0): np.random.rand(2, 2),
@@ -92,7 +89,6 @@ def test_masked_input():
     """
     Now lets test how well this all works if we pass a masked input
     """
-
     # First set up 4 grid points and fill them randomly
     interpolation_points = {
         (0, 0): np.random.rand(2, 2),
@@ -130,7 +126,6 @@ def test_class_output():
     number of numpy regulat grid interpolators and comparing to the output of the
     linear nd interpolator. Again this is a crazy use case, but is a good test.
     """
-
     x = np.linspace(0, 1, 11)
     # Create a bunch of random numbers to interpolate between
     rand_numbers = np.random.rand(4, 11, 11)
@@ -179,7 +174,6 @@ def test_out_of_bounds():
     Test function to check that we sensibly extrapolate when handed a point outside of
     the interpolations bounds
     """
-
     interpolation_points = {(0, 0): 0.0, (0, 1): 0.0, (1, 0): 1.0, (1, 1): 1.0}
 
     interpolator = UnstructuredInterpolator(

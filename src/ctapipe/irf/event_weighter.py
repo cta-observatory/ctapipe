@@ -123,7 +123,6 @@ class EventWeighter(Component):
 
     def __call__(self, events_table: Table | QTable) -> QTable:
         """Returns shallow copy of input table with a ``weight`` column added"""
-
         table = shallow_copy_table(events_table, output_cls=QTable)
         self._compute_weights(table)
         return table

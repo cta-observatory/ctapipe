@@ -75,7 +75,7 @@ class TelescopeDescription:
     @classmethod
     def from_name(cls, optics_name, camera_name):
         """
-        construct a TelescopeDescription from a name (telescope description
+        Construct a TelescopeDescription from a name (telescope description
         string)
 
         Parameters
@@ -88,7 +88,6 @@ class TelescopeDescription:
 
         Notes
         -----
-
         Warning: This method loads a pre-generated ``TelescopeDescription`` and is
         thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you

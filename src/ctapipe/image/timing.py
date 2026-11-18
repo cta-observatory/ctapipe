@@ -55,7 +55,6 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         If the geometry coordinates and Hillas parameters do not have compatible
         angular units.
     """
-
     # numba needs arguments to be the same type, so upcast to float64 if necessary
     peak_time = peak_time.astype(np.float64)
 

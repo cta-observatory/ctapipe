@@ -87,7 +87,7 @@ This file was generated using ctapipe version {VERSION}
 
 
 def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
-    """reads input_file and writes output_file, swapping text listed in the
+    """Reads input_file and writes output_file, swapping text listed in the
     transformations dict
 
     Parameters
@@ -99,7 +99,6 @@ def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
     transformations: Dict[str, str]
         dict of search and replacement strings
     """
-
     input_file = Path(input_file)
     output_file = Path(output_file)
 
@@ -197,7 +196,7 @@ class QuickStartTool(Tool):
 
 
 def main():
-    """run the tool"""
+    """Run the tool"""
     tool = QuickStartTool()
     tool.run()
 

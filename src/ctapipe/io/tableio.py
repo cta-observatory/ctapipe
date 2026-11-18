@@ -185,7 +185,7 @@ class TableWriter(Component, metaclass=ABCMeta):
     @abstractmethod
     def open(self, filename, **kwargs):
         """
-        open an output file
+        Open an output file
 
         Parameters
         ----------
@@ -203,7 +203,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     def _apply_col_transform(self, table_name, col_name, value):
         """
-        apply value transform function if it exists for this column
+        Apply value transform function if it exists for this column
         """
         if col_name in self._transforms[table_name]:
             tr = self._transforms[table_name][col_name]
@@ -251,7 +251,7 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def _apply_col_transform(self, table_name, col_name, value):
         """
-        apply value transform function if it exists for this column
+        Apply value transform function if it exists for this column
         """
         if col_name in self._transforms[table_name]:
             tr = self._transforms[table_name][col_name]

@@ -71,7 +71,6 @@ def chord_length(radius, rho, phi, phi0=0):
 
 
     """
-
     return _chord_length(radius, rho, phi, phi0)
 
 
@@ -292,7 +291,6 @@ def image_prediction_no_units(
     """
     Unit-less version of `image_prediction`.
     """
-
     # First produce angular position of each pixel w.r.t muon center
     dx = pixel_x_rad - center_x_rad
     dy = pixel_y_rad - center_y_rad
@@ -381,7 +379,6 @@ def build_negative_log_likelihood(
     The logarithm of the likelihood is calculated analytically as far as possible
     and terms constant under differentation are discarded.
     """
-
     # get all the needed values and transform them into appropriate units
     mirror_area = optics.mirror_area.to_value(u.m**2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
@@ -434,7 +431,6 @@ def build_negative_log_likelihood(
         -------
         float: Likelihood that model matches data
         """
-
         # Generate model prediction
         prediction = image_prediction_no_units(
             mirror_radius_m=mirror_radius,

@@ -102,7 +102,6 @@ def number_of_island_sizes(island_labels):
     n_large: int
         number of islands with more than 50 pixels
     """
-
     # count number of pixels in each island, remove 0 = no island
     island_sizes = np.bincount(island_labels)[1:]
 
@@ -164,7 +163,6 @@ def brightest_island(n_islands, island_labels, image):
         A boolean mask created from the input labels and filtered for the brightest island.
         If no islands survived the cleaning the array is all False.
     """
-
     if n_islands == 0:
         return np.zeros(image.shape, dtype="bool")
 
@@ -196,7 +194,6 @@ def morphology_parameters(geom, image_mask) -> MorphologyContainer:
     -------
     MorphologyContainer: parameters related to the morphology
     """
-
     n_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
 
     n_small, n_medium, n_large = number_of_island_sizes(island_labels)

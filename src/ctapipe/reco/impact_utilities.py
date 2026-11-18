@@ -33,7 +33,6 @@ def guess_shower_depth(energy):
     -------
     float: Expected depth of shower maximum
     """
-
     x_max_exp = 300 + (93 * np.log10(energy))
 
     return x_max_exp
@@ -144,7 +143,8 @@ def generate_fake_template(
         yb (int, optional): Number of y bins in template. Defaults to 150.
         bounds (tuple, optional): Boundaries of templates. Defaults to ((-5, 1), (-1.5, 1.5)).
 
-    Returns:
+    Returns
+    -------
         ndarray, ndarray, ndarray: Template image, x bin centres, y bin centres
     """
     x, y = np.meshgrid(

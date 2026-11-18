@@ -121,7 +121,6 @@ class HillasIntersection(HillasGeometryReconstructor):
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
         """
-
         self._prepare_event(event)
         try:
             hillas_dict = self._create_hillas_dict(event)
@@ -165,7 +164,6 @@ class HillasIntersection(HillasGeometryReconstructor):
         ReconstructedGeometryContainer:
 
         """
-
         # filter warnings for missing obs time. this is needed because MC data has no obs time
         warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
@@ -567,6 +565,7 @@ def get_shower_height(
     """
     Function to calculate the depth of shower maximum geometrically under the assumption
     that the shower maximum lies at the brightest point of the camera image.
+
     Parameters
     ----------
     source_x: float
@@ -590,7 +589,6 @@ def get_shower_height(
     -------
     float: Depth of maximum of air shower
     """
-
     # Calculate displacement of image centroid from source position (in rad)
     disp = np.sqrt((cog_x - source_x) ** 2 + (cog_y - source_y) ** 2)
     # Calculate impact parameter of the shower

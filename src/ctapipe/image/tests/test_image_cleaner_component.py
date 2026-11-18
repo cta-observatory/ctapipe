@@ -10,7 +10,6 @@ from ctapipe.instrument import SubarrayDescription
 @pytest.mark.parametrize("method", ImageCleaner.non_abstract_subclasses().keys())
 def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
     """Test that we can construct and use a component-based ImageCleaner"""
-
     config = Config(
         {
             "TailcutsImageCleaner": {

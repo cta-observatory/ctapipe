@@ -161,8 +161,8 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         MonitoringSource for monitoring files in the standard HDF5 data format
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         subarray : SubarrayDescription or None
             Optional description of the subarray. If provided, the subarray
             description should match the one from the monitoring file(s).
@@ -174,7 +174,6 @@ class HDF5MonitoringSource(MonitoringSource):
             Parent from which the config is used. Mutually exclusive with config
         kwargs
         """
-
         super().__init__(
             subarray=subarray,
             config=config,
@@ -747,7 +746,6 @@ class HDF5MonitoringSource(MonitoringSource):
             the corresponding data (with units preserved as Quantity objects) for the
             requested time(s) as values.
         """
-
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         table_times = table["time"]
         # Convert timestamp tolerance to MJD days

@@ -4,7 +4,7 @@ from astropy.units import Quantity
 
 
 def all_to_value(*args, unit):
-    """converts all `args` to value after converting to `unit`.
+    """Converts all `args` to value after converting to `unit`.
 
     - does not copy the data
     - makes sure all args are convertible to the same unit

@@ -91,7 +91,7 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 def descriptive_statistics(
     values, container_class=ImageStatisticsContainer
 ) -> ImageStatisticsContainer:
-    """compute intensity statistics of an image"""
+    """Compute intensity statistics of an image"""
     mean = values.mean()
     std = values.std()
     return container_class(
@@ -106,7 +106,7 @@ def descriptive_statistics(
 
 @njit
 def n_largest(n, array):
-    """return the n largest values of an array"""
+    """Return the n largest values of an array"""
     return nlargest(n, array)
 
 

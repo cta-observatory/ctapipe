@@ -8,9 +8,8 @@ from ctapipe.image.toymodel import Gaussian
 
 def create_mock_image(geom, psi=25 * u.deg):
     """
-    creates a mock image, which parameters are adapted to the camera size
+    Creates a mock image, which parameters are adapted to the camera size
     """
-
     camera_r = np.max(np.sqrt(geom.pix_x**2 + geom.pix_y**2))
     model = Gaussian(
         x=0.3 * camera_r,

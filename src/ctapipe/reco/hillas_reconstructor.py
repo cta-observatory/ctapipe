@@ -36,7 +36,7 @@ INVALID = ReconstructedGeometryContainer(
 
 
 def angle(v1, v2):
-    """computes the angle between two vectors
+    """Computes the angle between two vectors
         assuming cartesian coordinates
 
     Parameters
@@ -313,7 +313,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     @staticmethod
     def estimate_direction(norm, weight):
-        """calculates the origin of the gamma as the weighted average
+        """Calculates the origin of the gamma as the weighted average
         direction of the intersections of all hillas planes
 
         Returns
@@ -363,7 +363,6 @@ class HillasReconstructor(HillasGeometryReconstructor):
         the usage of a corrected psi angle is explained in :cite:p:`phd-gasparetto`
         section 7.1.4.
         """
-
         # Since psi has been recalculated in the fake CameraFrame
         # it doesn't need any further corrections because it is now independent
         # of both pointing and cleaning/parametrization frame.

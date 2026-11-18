@@ -455,7 +455,7 @@ class CameraDisplay(BokehPlot):
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
-        plot an ellipse on top of the camera
+        Plot an ellipse on top of the camera
 
         Parameters
         ----------
@@ -489,7 +489,7 @@ class CameraDisplay(BokehPlot):
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
-        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
+        """Helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------

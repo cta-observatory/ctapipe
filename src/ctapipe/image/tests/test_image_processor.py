@@ -12,8 +12,7 @@ from ctapipe.image import ImageCleaner, ImageProcessor
 
 @pytest.mark.parametrize("cleaner", ImageCleaner.non_abstract_subclasses().values())
 def test_image_processor(cleaner, example_event, example_subarray):
-    """ensure we get parameters out when we input an event with images"""
-
+    """Ensure we get parameters out when we input an event with images"""
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
         subarray=example_subarray, image_cleaner_type=cleaner.__name__

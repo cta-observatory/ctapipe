@@ -6,7 +6,7 @@ __all__ = ["rotation_matrix_2d", "length", "normalise", "angle"]
 
 
 def rotation_matrix_2d(angle):
-    """construct a 2D rotation matrix as a numpy NDArray that rotates a
+    """Construct a 2D rotation matrix as a numpy NDArray that rotates a
     vector clockwise. Angle should be any object that can be converted
     into an `astropy.coordinates.Angle`
     """
@@ -15,7 +15,7 @@ def rotation_matrix_2d(angle):
 
 
 def length(vec):
-    """returns the length/norm of a numpy array
+    """Returns the length/norm of a numpy array
     as the square root of the inner product with itself
     """
     return vec.dot(vec) ** 0.5
@@ -40,7 +40,7 @@ def normalise(vec):
 
 
 def angle(v1, v2):
-    """computes the angle between two vectors
+    """Computes the angle between two vectors
         assuming cartesian coordinates
 
     Parameters
