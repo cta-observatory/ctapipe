@@ -1,7 +1,8 @@
 """
-Class for calculation of likelihood of a pixel expectation, given the pixel amplitude,
-the level of noise in the pixel and the photoelectron resolution.
-This calculation is taken from :cite:p:`denaurois2009`.
+Compute likelihoods for measured camera pixel signals.
+
+The calculation uses the pixel amplitude, noise, and photoelectron resolution. It
+follows :cite:p:`denaurois2009`.
 
 The likelihood is essentially a poissonian convolved with a gaussian, at low signal
 a full possonian approach must be adopted, which requires the sum of contributions
@@ -101,8 +102,9 @@ def neg_log_likelihood_numeric(
     image, prediction, spe_width, pedestal, confidence=0.999
 ):
     """
-    Calculate likelihood of prediction given the measured signal,
-    full numerical integration from :cite:p:`denaurois2009`.
+    Compute the negative log likelihood by numerical integration.
+
+    The calculation follows :cite:p:`denaurois2009`.
 
     Parameters
     ----------
@@ -148,10 +150,10 @@ def neg_log_likelihood_numeric(
 
 def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety=20.0):
     """
-    Safe implementation of the poissonian likelihood implementation,
-    adaptively switches between the full solution and the gaussian
-    approx depending on the prediction. Prediction safety parameter
-    determines cross over point between the two solutions.
+    Compute the negative log likelihood for measured pixel signals.
+
+    Use numerical integration at or below ``prediction_safety`` and the Gaussian
+    approximation above it.
 
     Parameters
     ----------
@@ -194,9 +196,9 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
 
 
 def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
-    """Calculation of the mean of twice the negative log likelihood for a give expectation
-    value of pixel intensity in the gaussian approximation.
-    This is useful in the calculation of the goodness of fit.
+    """Compute the mean of twice the negative log likelihood using a Gaussian.
+
+    The result is used to calculate the goodness of fit.
 
     Parameters
     ----------
@@ -219,8 +221,7 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
 
 def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     """
-    Wrapper function around likelihood calculation, used in numerical
-    integration.
+    Wrapper function around likelihood calculation, used in numerical integration.
     """
     image = np.asarray(image)
     prediction = np.asarray(prediction)
@@ -230,11 +231,10 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
     """
-    Calculation of the mean of twice the negative log likelihood for a give expectation value
-    of pixel intensity using the full numerical integration.
-    This is useful in the calculation of the goodness of fit.
-    This numerical integration is very slow and really doesn't
-    make a large difference in the goodness of fit in most cases.
+    Compute the mean of twice the negative log likelihood by integration.
+
+    The result is used to calculate the goodness of fit. Numerical integration is slow
+    and usually has little effect on that result.
 
     Parameters
     ----------

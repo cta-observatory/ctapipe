@@ -1,6 +1,8 @@
 """
-Plot the same event in two camera displays showing the
-different coordinate frames for camera coordinates.
+Compare camera coordinate frames for a simulated shower image.
+
+The same image is displayed in three frames: CameraFrame, TelescopeFrame, and
+EngineeringCameraFrame.
 """
 
 import astropy.units as u

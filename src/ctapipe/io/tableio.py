@@ -56,8 +56,9 @@ class TableWriter(Component, metaclass=ABCMeta):
         self.close()
 
     def exclude(self, table_regexp, pattern):
-        """Exclude any columns (Fields) matching the pattern from being written. The
-        patterns are matched with re.fullmatch.
+        """Exclude matching fields when writing a table.
+
+        The patterns are matched with re.fullmatch.
 
         Parameters
         ----------
@@ -79,8 +80,10 @@ class TableWriter(Component, metaclass=ABCMeta):
         return False
 
     def add_column_transform(self, table_name, col_name, transform):
-        """Add a transformation function for a column. This function will be called on
-        the value in the container before it is written to the output file.
+        """Register a transform for one column.
+
+        This function will be called on the value in the container before it is written
+        to the output file.
 
         Parameters
         ----------
@@ -99,9 +102,10 @@ class TableWriter(Component, metaclass=ABCMeta):
         )
 
     def add_column_transform_regexp(self, table_regexp, col_regexp, transform):
-        """Add a transformation function for a set of columns and tables that match the
-        given regular expressions. Each requested transform pattern will be
-        turned into an explicit column transform when the table schema is built.
+        """Register a transform for matching tables and columns.
+
+        Table and column names are matched by regular expression. Matches are resolved
+        into explicit column transforms when the table schema is built.
 
         Parameters
         ----------
@@ -124,12 +128,11 @@ class TableWriter(Component, metaclass=ABCMeta):
         )
 
     def _realize_regexp_transforms(self, table_name, containers):
-        """Loops though all requested transform regexps, checks if they apply the the
-        given table, if so, checks each Field in the given Container, and if
-        that matches, calls `self.add_column_transform(table, fieldname)` to
-        create an explicit (non-regexp) transform. This is done for speed
-        reasons: if we called the regexp for each table and each column, it adds
-        a significant overhead.
+        """Resolve transform patterns to specific fields for a table.
+
+        For each matching field in the container, register an explicit transform with
+        `add_column_transform`. This avoids checking the regular expressions for every
+        table and column on each write.
 
         This should be called when building the table schema.
 
@@ -214,10 +217,10 @@ class TableWriter(Component, metaclass=ABCMeta):
 
 class TableReader(Component, metaclass=ABCMeta):
     """
-    Base class for row-wise table readers. Generally methods that read a
-    full table at once are preferred to this method, since they are faster,
-    but this can be used to re-play a table row by row into a
-    `ctapipe.core.Container` class (the opposite of TableWriter)
+    Define the interface for reading table rows.
+
+    Prefer reading the whole table at once when feasible for performance. This interface
+    is useful for replaying rows as `ctapipe.core.Container` objects.
     """
 
     def __init__(self):
@@ -232,18 +235,19 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def add_column_transform(self, table_name, col_name, transform):
         """
-        Add a transformation function for a column. This function will be
-        called on the value in the container before it is written to the
-        output file.
+        Register a column transform for reading a table.
+
+        The reader calls the transform's ``inverse`` method on stored values before
+        placing them in a container.
 
         Parameters
         ----------
-        table_name: str
-            identifier of table being written
-        col_name: str
-            name of column in the table (or item in the Container)
-        transform: callable
-            function that take a value and returns a new one
+        table_name : str
+            Name of the table being read.
+        col_name : str
+            Name of the column to transform.
+        transform : ColumnTransform
+            Transform whose inverse is applied to the stored value.
         """
         self._transforms[table_name][col_name] = transform
         self.log.debug(
@@ -262,18 +266,20 @@ class TableReader(Component, metaclass=ABCMeta):
     @abstractmethod
     def read(self, table_name, containers, prefixes, **kwargs):
         """
-        Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
-        no containers are copied, the data are overwritten inside.
+        Yield table rows as containers.
+
+        The concrete reader determines how the containers are constructed.
 
         Parameters
         ----------
-        table_name: str
-            name of table to read from
-        containers: ctapipe.core.Container or iterable thereof
-            Container instance(s) to fill
-        prefixes: bool, str or iterable of str
-            prefixes used during writing of the table
+        table_name : str
+            Name of the table to read.
+        containers : type or sequence of types
+            Container classes to populate.
+        prefixes : bool, str, iterable of str or None
+            How to match column prefixes used when writing the table.
+        **kwargs
+            Additional options supported by the concrete reader.
         """
         pass
 

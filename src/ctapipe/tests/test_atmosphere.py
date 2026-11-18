@@ -115,8 +115,10 @@ def test_table_model_interpolation(table_profile):
 
 def test_against_reference(layer5_profile):
     """
-    Test five-layer and table methods against a reference analysis from
-    SimTelArray.  Data from communication with K. Bernloehr.
+    Compare atmospheric profiles with a SimTelArray reference.
+
+    The comparison covers the five-layer and tabulated profiles. The reference data came
+    from K. Bernlöhr.
 
     See https://github.com/cta-observatory/ctapipe/pull/2000
     """
@@ -176,8 +178,7 @@ def test_slant_depth_from_height(table_profile):
 
 def test_height_overburden_roundtrip(table_profile, layer5_profile):
     """
-    Test that successive application of height to overburden
-    and overburden to height functions return original values
+    Check the round trip between height and overburden.
     """
     layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 
@@ -208,8 +209,7 @@ def test_height_overburden_roundtrip(table_profile, layer5_profile):
 
 def test_height_slant_depth_roundtrip(table_profile, layer5_profile):
     """
-    Test that successive application of height to overburden
-    and overburden to height functions return original values
+    Check the round trip between height and slant depth.
     """
     layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 

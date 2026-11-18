@@ -177,10 +177,10 @@ def get_column_transforms(column_attrs):
 
 class HDF5TableWriter(TableWriter):
     """
-    A very basic table writer that can take a container (or more than one)
-    and write it to an HDF5 file. It does _not_ recursively write the
-    container. This is intended as a building block to create a more complex
-    I/O system.
+    Write container data to HDF5 tables.
+
+    The writer accepts one or more containers and does not write nested containers
+    recursively. It can serve as a building block for more complex I/O.
 
     It works by creating a HDF5 Table description from the `~ctapipe.core.Field`
     definitions inside a container, where each item becomes a column in the table.
@@ -359,8 +359,9 @@ class HDF5TableWriter(TableWriter):
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
-        Creates a pytables description class for the given containers
-        and registers it in the Writer
+        Build and register the HDF5 table schema for the containers.
+
+        The schema is a PyTables description registered with the writer.
 
         Parameters
         ----------
@@ -413,8 +414,9 @@ class HDF5TableWriter(TableWriter):
         return meta
 
     def _setup_new_table(self, table_name, containers):
-        """Set up the table. This is called the first time `write()`
-        is called on a new table
+        """Set up the table.
+
+        This is called the first time `write()` is called on a new table
         """
         self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
         meta = self._create_hdf5_table_schema(table_name, containers)
@@ -449,8 +451,9 @@ class HDF5TableWriter(TableWriter):
 
     def _append_row(self, table_name, containers):
         """
-        Append a row to an already initialized table. This is called
-        automatically by `write()`
+        Append a row to an already initialized table.
+
+        This is called automatically by `write()`
         """
         table = self._tables[table_name]
         row = table.row
@@ -586,8 +589,9 @@ class HDF5TableReader(TableReader):
         prefixes,
         ignore_columns,
     ):
-        """Identifies which columns in the table to read into the containers,
-        by comparing their names including an optional prefix.
+        """Match HDF5 table columns to the fields of the containers.
+
+        Column names are matched to container fields, accounting for an optional prefix.
         """
         self._missing_fields[table_name] = []
         self._col_mapping[table_name] = []
@@ -647,26 +651,30 @@ class HDF5TableReader(TableReader):
 
     def read(self, table_name, containers, prefixes=None, ignore_columns=None):
         """
-        Returns a generator that reads the next row from the table into the
-        given container. The generator returns the same container. Note that
-        no containers are copied, the data are overwritten inside.
+        Yield HDF5 rows as newly created containers.
+
+        Pass container classes rather than instances. Missing fields are set to
+        ``None``.
 
         Parameters
         ----------
-        table_name: str
-            name of table to read from
-        containers : Iterable[ctapipe.core.Container]
-            Container classes to fill
-        prefix: bool, str or list
-            Prefix that was added while writing the file.
-            If None, the prefix in the file are used. This only works
-            when the mapping from column name without prefix to container
-            is unique.
-            If True, the ``default_prefix`` attribute of the containers is used
-            If False, no prefix is used.
-            If a string is provided, it is used as prefix for all containers.
-            If a list is provided, the length needs to match th number
-            of containers.
+        table_name : str
+            Path of the table to read.
+        containers : type or sequence of types
+            Container class or classes to populate for each row.
+        prefixes : bool, str, sequence of str or None
+            How to match stored prefixes. With ``None``, infer prefixes if column
+            names map unambiguously to fields. With ``True``, use each class's
+            ``default_prefix``. With ``False``, use no prefix. A string applies to
+            every class. A sequence supplies one prefix per class.
+        ignore_columns : iterable of str or None
+            Column names to skip when setting up the table for reading.
+
+        Yields
+        ------
+        ctapipe.core.Container or list of ctapipe.core.Container
+            A new container for a single class, or a list of new containers if
+            a sequence of classes was supplied.
         """
         ignore_columns = set(ignore_columns) if ignore_columns is not None else set()
 

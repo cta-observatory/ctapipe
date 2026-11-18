@@ -548,8 +548,9 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
 class DispReconstructor(Reconstructor):
     """
-    Predict absolute value and sign for disp origin reconstruction and
-    convert to altitude and azimuth prediction for each telescope.
+    Predict the signed displacement and use it to estimate arrival direction.
+
+    Convert the displacement into an altitude and azimuth prediction for each telescope.
     """
 
     target = "true_disp"

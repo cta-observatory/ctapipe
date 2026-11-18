@@ -112,8 +112,9 @@ def _lock_file(path: Path):
 @pytest.fixture(scope="session")
 def _global_example_event():
     """
-    Helper to get a single event from a MC file. Don't use this fixture
-    directly, rather use `example_event`
+    Load a single simulated event for use by other fixtures.
+
+    Don't use this fixture directly, rather use `example_event`
     """
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -152,8 +153,9 @@ def example_subarray(subarray_prod3_paranal):
 @pytest.fixture(scope="function")
 def example_event(_global_example_event):
     """
-    Use this fixture anywhere you need a test event read from a MC file. For
-    example:
+    Provide an independent copy of a simulated event for each test.
+
+    For example:
 
     .. code-block::
         def test_my_thing(example_event):
@@ -192,11 +194,10 @@ def subarray_and_event_gamma_off_axis_500_gev(
     _subarray_and_event_gamma_off_axis_500_gev,
 ):
     """
-    A four LST subarray event with a nice shower, well suited to test
-    reconstruction algorithms.
+    Provide a four-LST event for shower reconstruction tests.
 
-    This event should be very well reconstructible, as we have four LSTs with
-    bright events.
+    All four telescopes have bright images, making the event suitable for reconstruction
+    checks. Each test receives independent copies of both the event and the subarray.
 
     The event is already calibrated and image parameters have been calculated.
 
@@ -584,8 +585,9 @@ def dl1_muon_file(dl1_tmp_path):
 @pytest.fixture(scope="session")
 def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
     """
-    DL1 file containing images, parameters and muon ring parameters
-    from a muon simulation set.
+    Provide a DL1 file from a muon simulation.
+
+    The file contains images, image parameters, and muon ring parameters.
     """
     from ctapipe.tools.process import ProcessorTool
 

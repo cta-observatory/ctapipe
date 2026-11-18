@@ -21,8 +21,9 @@ _zero_m = u.Quantity(0, u.m)
 
 
 def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
-    """Turns an alt/az coordinate into a 3d direction in a right-handed coordinate
-    system.  This is because azimuths are in a left-handed system.
+    """Convert altitude and azimuth to a right-handed Cartesian direction.
+
+    The azimuth convention is left-handed.
 
     See e.g: https://github.com/astropy/astropy/issues/5300
 

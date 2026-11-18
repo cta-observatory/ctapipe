@@ -1,6 +1,8 @@
 """
-Table interpolation class, to allow interpolation of 2D images in any number of other
-dimensions. Reads in an interim FITS table as defined below:
+Interpolate two-dimensional templates stored in lookup tables.
+
+The FITS input contains two-dimensional images on a grid in any number of additional
+dimensions.
 
 Tables organised as a standard FITS image file with each table as an image HDU.
 ---------------
@@ -35,14 +37,12 @@ from scipy import interpolate
 
 class TableInterpolator:
     """
-    This is a simple class for loading lookup tables from a fits file and
-    interpolating between them
+    Load and interpolate templates from a FITS table.
     """
 
     def __init__(self, filename, verbose=1):
         """
-        Initialisation of class to load templates from a file and create the interpolation
-        objects
+        Load the templates and initialize their interpolators.
 
         Parameters
         ----------
@@ -76,8 +76,7 @@ class TableInterpolator:
 
     def parse_fits_table(self, filename):
         """
-        Function opens tables contained within fits files and parses them into a format
-        recognisable by the interpolator.
+        Parse a FITS lookup table for the interpolator.
 
         Parameters
         ----------

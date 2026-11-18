@@ -571,8 +571,10 @@ class HistogramAggregator(BaseAggregator):
     def hist_from_tablerow(
         row: Row,
     ):
-        """Build a ``hist.Hist`` from an Astropy table row produced by the
-        ``HistogramAggregator``.
+        """Rebuild a histogram from an aggregator table row.
+
+        The input is an Astropy table row produced by `HistogramAggregator`. The result
+        is a `hist.Hist`.
 
         This is a thin wrapper that constructs a ``ChunkHistogramContainer``
         from the provided ``row`` (reading ``n_events``, ``histogram`` and
@@ -657,8 +659,9 @@ class HistogramAggregator(BaseAggregator):
 
 class StatisticsAggregator(BaseAggregator):
     """
-    Base component to handle the computation of aggregated statistic values from a table
-    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
+    Compute aggregate statistics from a table of event quantities.
+
+    The event quantities can be images, scalars, vectors, or other arrays.
 
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """

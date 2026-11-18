@@ -408,8 +408,7 @@ class ContainerMeta(type):
 
 
 class Container(metaclass=ContainerMeta):
-    """Generic class that can hold and accumulate data to be passed
-    between Components.
+    """Generic class that can hold and accumulate data to be passed between Components.
 
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
@@ -552,8 +551,10 @@ class Container(metaclass=ContainerMeta):
 
     def update(self, **values):
         """
-        Update more than one parameter at once (e.g. ``update(x=3,y=4)``
-        or ``update(**dict_of_values)``)
+        Update several container fields at once.
+
+        Pass fields as keyword arguments, for example ``update(x=3, y=4)`` or
+        ``update(**dict_of_values)``.
         """
         for key in values:
             self[key] = values[key]
@@ -576,14 +577,15 @@ class Container(metaclass=ContainerMeta):
 
     def validate(self):
         """
-        Check that all fields in the Container have the expected characteristics (as
-        defined by the Field metadata).  This is not intended to be run every time a
-        Container is filled, since it is slow, only for testing a first event.
+        Validate the container fields against their metadata.
+
+        Validation can be slow. Typically, validate the first event rather than every
+        event.
 
         Raises
         ------
-        ValueError:
-            if the Container's values are not valid
+        FieldValidationError
+            If a field value does not satisfy its metadata constraints.
         """
         for name, field in self.fields.items():
             try:
@@ -595,9 +597,10 @@ class Container(metaclass=ContainerMeta):
 
 
 class Map[K, V](defaultdict[K, V]):
-    """A dictionary of sub-containers that can be added to a Container. This
-    may be used e.g. to store a set of identical sub-Containers (e.g. indexed
-    by ``tel_id`` or algorithm name).
+    """Store related subcontainers in a dictionary.
+
+    A container can use this mapping to group identical subcontainers by telescope ID or
+    algorithm name.
     """
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):

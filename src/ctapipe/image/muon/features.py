@@ -62,10 +62,10 @@ def intensity_ratio_inside_ring(
     width: Quantity,
 ) -> float:
     """
-    Calculate the ratio of the photons inside a given ring with
-    coordinates (center_fov_lon, center_fov_lat), radius and width.
+    Compute the fraction of the total pixel weight inside a ring.
 
-    The ring is assumed to be in [radius - 0.5 * width, radius + 0.5 * width]
+    The weights are typically pixel charges. A pixel counts toward the ring
+    if its center is between ``radius - width / 2`` and ``radius + width / 2``.
 
     Parameters
     ----------
@@ -114,8 +114,9 @@ def ring_completeness(
     bins: int = 30,
 ) -> float:
     """
-    Estimate how complete a muon ring is by binning the light distribution along the ring
-    and applying a threshold to the bin content.
+    Estimate the fraction of a muon ring that contains signal.
+
+    Bin the light distribution along the ring and apply a threshold to the bin contents.
 
     Parameters
     ----------

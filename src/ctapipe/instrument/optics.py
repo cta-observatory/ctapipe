@@ -263,9 +263,10 @@ class MirrorDescription:
 
     def __str__(self, n_str=3):
         """
-        Summary of the mirror facets: a header with the total number of
-        facets, followed by one line per facet for the first ``n_str``
-        facets (or all facets, if there are fewer than ``n_str``).
+        Summarize the mirror facets.
+
+        The header gives the total number of facets. The following lines describe up to
+        ``n_str`` facets, one per line.
 
         Parameters
         ----------
@@ -458,9 +459,10 @@ class OpticsDescription:
     @classmethod
     def get_known_optics_names(cls, optics_table="optics"):
         """
-        Return the list of optics names from ctapipe resources, i.e. those that can be
-        constructed by name (this does not return the list of known names from an
-        already open Monte-Carlo file)
+        List the optics descriptions available by name.
+
+        The names come from ctapipe resources, independently of any open Monte Carlo
+        file.
 
         Parameters
         ----------
@@ -1131,11 +1133,11 @@ class ZernikePSFModel(PSFModel):
 
     def _coeff_vector(self, tel_id, lon0_deg, lat0_deg):
         """
-        Build the Noll coefficient vector [m] for a given telescope and
-        field-of-view offset. Internally works with plain floats in fixed
-        units (m for OPD amplitudes, deg for angles) after unwrapping the
-        Quantity-valued traits, since the downstream Zernike/FFT machinery
-        is unit-agnostic.
+        Build the Noll coefficient vector for a telescope and field offset.
+
+        The calculation unpacks the quantities into plain floats in meters for optical
+        path difference amplitudes and degrees for angles. The Zernike and FFT
+        calculations operate on those floats.
         """
         rz, _, _ = self._zernike_grid(tel_id)
         coeff = np.zeros(rz.nk)

@@ -75,11 +75,10 @@ __all__ = ["ImPACTReconstructor"]
 
 
 class ImPACTReconstructor(HillasGeometryReconstructor):
-    """This class is an implementation if the impact_reco Monte Carlo
-    Template based image fitting method from parsons14.  This method uses a
-    comparison of the predicted image from a library of image
-    templates to perform a maximum likelihood fit for the shower axis,
-    energy and height of maximum.
+    """Reconstruct showers by fitting ImPACT image templates.
+
+    The Monte Carlo template fit follows [parsons14]_ and maximizes the likelihood for
+    the shower axis, energy, and depth of shower maximum.
 
     Besides the image information, there is also the option to use the time gradient of the pixels
     across the image as additional information in the fit. This requires an additional set of templates
@@ -265,8 +264,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self._store_impact_parameter(event)
 
     def initialise_templates(self, tel_type):
-        """Check if templates for a given telescope type has been initialised
-        and if not do it and add to the dictionary
+        """Load templates for a telescope type if they are not already loaded.
+
+        The templates are cached by telescope type.
 
         Parameters
         ----------
@@ -312,10 +312,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         return True
 
     def get_hillas_mean(self):
-        """This is a simple function to find the peak position of each image
-        in an event which will be used later in the Xmax calculation. Peak is
-        found by taking the average position of the n hottest pixels in the
-        image.
+        """Store the Hillas centroids and intensities for the shower maximum estimate.
+
+        Each telescope contributes its image centroid in radians and its total image
+        charge.
         """
         peak_x = np.zeros([len(self.pixel_x)])  # Create blank arrays for peaks
         # rather than a dict (faster)
@@ -341,9 +341,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     # This function would be useful elsewhere so probably be implemented in a
     # more general form
     def get_shower_max(self, source_x, source_y, core_x, core_y, zen):
-        """Function to calculate the depth of shower maximum geometrically
-        under the assumption that the shower maximum lies at the
-        brightest point of the camera image.
+        """Estimate the slant depth of shower maximum in grams per square centimeter.
+
+        Combine the geometric estimates from the image centroids and impact distances,
+        then use the atmospheric profile to convert the altitude to slant depth.
 
         Parameters
         ----------
@@ -403,8 +404,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     def image_prediction(
         self, tel_type, zenith, azimuth, energy, impact, x_max, pix_x, pix_y
     ):
-        """Creates predicted image for the specified pixels, interpolated
-        from the template library.
+        """Predict the camera image by interpolating templates.
+
+        The template is evaluated at the specified pixels.
 
         Parameters
         ----------
@@ -431,24 +433,30 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         )
 
     def predict_time(self, tel_type, zenith, azimuth, energy, impact, x_max):
-        """Creates predicted image for the specified pixels, interpolated
-        from the template library.
+        """Predict the gradient of pixel peak times along each telescope image.
 
         Parameters
         ----------
-        tel_type: string
-            Telescope type specifier
-        energy: float
-            Event energy (TeV)
-        impact: float
-            Impact diance of shower (metres)
-        x_max: float
-            Depth of shower maximum (num bins from expectation)
+        tel_type : str
+            Telescope type used to select the template library.
+        zenith : float
+            Template zenith angle in degrees.
+        azimuth : float
+            Template azimuth angle in degrees.
+        energy : ndarray
+            Shower energies in TeV.
+        impact : ndarray
+            Impact distances in meters.
+        x_max : ndarray
+            Shower maximum depth offsets from the expected depth, in grams per
+            square centimeter.
 
         Returns
         -------
-        ndarray: predicted amplitude for all pixels
-
+        gradient : ndarray
+            Expected gradient along each image.
+        gradient_rms : ndarray
+            RMS of the gradient from each template.
         """
         time = self.time_prediction[tel_type](zenith, azimuth, energy, impact, x_max)
         return time.T[0], time.T[1]
@@ -463,15 +471,17 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         x_max_scale,
         goodness_of_fit=False,
     ):
-        """Get the likelihood that the image predicted at the given test
-        position matches the camera image.
+        """Compute the objective used to fit the measured camera images.
+
+        Sum the negative log likelihood over selected pixels, adding the timing term
+        when enabled. In goodness-of-fit mode, return one value per telescope instead.
 
         Parameters
         ----------
         source_x: float
-            Source position of shower in the nominal system (in deg)
+            Source position of shower in the nominal frame in radians.
         source_y: float
-            Source position of shower in the nominal system (in deg)
+            Source position of shower in the nominal frame in radians.
         core_x: float
             Core position of shower in tilted telescope system (in m)
         core_y: float
@@ -485,7 +495,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Returns
         -------
-        float: Likelihood the model represents the camera image at this position
+        float or ndarray
+            Fit objective, or one goodness-of-fit value per telescope.
 
         """
         if np.isnan(source_x) or np.isnan(source_y):
@@ -636,10 +647,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         array_pointing,
         telescope_pointing,
     ):
-        """The setter class is used to set the event properties within this
-        class before minimisation can take place. This simply copies a
-        bunch of useful properties to class members, so that we can
-        use them later without passing all this information around.
+        """Store event properties for the minimization.
+
+        The values are stored on the reconstructor for reuse by the fit.
 
         Parameters
         ----------
@@ -1030,9 +1040,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
     def reset_interpolator(self):
         """
-        This function is needed in order to reset some variables in the interpolator
-        at each new event. Without this reset, a new event starts with information
-        from the previous event.
+        Reset the interpolators for a new event.
+
+        This prevents cached information from one event from carrying over to the next.
         """
         for key in self.prediction:
             self.prediction[key].reset()

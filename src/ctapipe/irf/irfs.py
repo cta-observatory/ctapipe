@@ -71,8 +71,7 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
         self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
     ) -> BinTableHDU:
         """
-        Calculate the background rate and create a fits binary table HDU
-        in GADF format.
+        Calculate the background rate and create a fits binary table HDU in GADF format.
 
         Parameters
         ----------
@@ -136,8 +135,7 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
         extname: str = "ENERGY MIGRATION",
     ) -> BinTableHDU:
         """
-        Calculate the energy dispersion and create a fits binary table HDU
-        in GADF format.
+        Calculate energy dispersion and store it in a GADF FITS table.
 
         Parameters
         ----------
@@ -170,8 +168,7 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
         extname: str = "EFFECTIVE AREA",
     ) -> BinTableHDU:
         """
-        Calculate the effective area and create a fits binary table HDU
-        in GADF format.
+        Calculate the effective area and create a fits binary table HDU in GADF format.
 
         Parameters
         ----------
@@ -195,8 +192,10 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
 
 class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the effective area in equidistant
-    bins of logarithmic true energy and field of view offset.
+    Parameterize effective area in true energy and field of view offset bins.
+
+    The response is radially symmetric. The binning in logarithmic true energy and
+    field-of-view offset is uniform.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -239,8 +238,10 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
 
 class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the energy dispersion in
-    equidistant bins of logarithmic true energy and field of view offset.
+    Parameterize dispersion in true energy and field of view offset bins.
+
+    The response is radially symmetric. The binning in logarithmic true energy and
+    field-of-view offset is uniform.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -270,8 +271,10 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
 
 class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the background rate in equidistant
-    bins of logarithmic reconstructed energy and field of view offset.
+    Parameterize background rate in reconstructed energy and offset bins.
+
+    The response is radially symmetric. The binning in logarithmic reconstructed energy
+    and field-of-view offset is uniform.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -296,8 +299,10 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
 
 class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric point spread function calculated in equidistant bins
-    of source offset, logarithmic true energy, and field of view offset.
+    Parameterize the point spread function assuming radial symmetry.
+
+    The bins are evenly spaced in source offset, logarithmic true energy, and
+    field-of-view offset.
     """
 
     source_offset_min = AstroQuantity(

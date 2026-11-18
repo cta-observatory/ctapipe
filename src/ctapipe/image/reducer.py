@@ -43,8 +43,7 @@ class DataVolumeReducer(TelescopeComponent):
 
     def __call__(self, waveforms, tel_id=None, selected_gain_channel=None):
         """
-        Call the relevant functions to perform data volume reduction on the
-        waveforms.
+        Call the relevant functions to perform data volume reduction on the waveforms.
 
         Parameters
         ----------

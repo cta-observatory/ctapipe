@@ -18,8 +18,7 @@ def test_guess_optics():
 
 
 def test_construct_optics():
-    """Create an OpticsDescription and make sure it
-    fails if units are missing
+    """Create an OpticsDescription and make sure it fails if units are missing
     """
     OpticsDescription(
         name="test",

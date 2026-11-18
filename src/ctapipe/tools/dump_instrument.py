@@ -1,8 +1,8 @@
 """
-Dump instrumental descriptions in a monte-carlo (simtelarray) input file to
-FITS files that can be loaded independently (e.g. with
-CameraGeometry.from_table()).  The name of the output files are
-automatically generated.
+Export simulated instrument descriptions to FITS files.
+
+Output names are generated automatically. The files can be loaded independently, for
+example with `CameraGeometry.from_table`.
 """
 
 import os
@@ -100,8 +100,7 @@ class DumpInstrumentTool(Tool):
 
     @staticmethod
     def _get_file_format_info(format_name):
-        """Returns file extension + dict of required parameters for
-        Table.write
+        """Returns file extension + dict of required parameters for Table.write
         """
         if format_name == "fits":
             return "fits.gz", dict()

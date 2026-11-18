@@ -1,6 +1,8 @@
 """
-Definition of the `CameraCalibrator` class, providing all steps needed to apply
-calibration and image extraction, as well as supporting algorithms.
+Calibrate camera waveforms and extract images.
+
+The module provides `CameraCalibrator` and supporting routines for timing alignment and
+waveform processing.
 """
 
 import astropy.units as u
@@ -81,8 +83,9 @@ def _get_invalid_pixels(
 
 class CameraCalibrator(TelescopeComponent):
     """
-    Calibrator to handle the full camera calibration chain, in order to fill
-    the DL1 data level in the event container.
+    Calibrate camera data to DL1.
+
+    The results populate the DL1 fields of the event container.
 
     Attributes
     ----------
@@ -416,8 +419,10 @@ class CameraCalibrator(TelescopeComponent):
 
     def __call__(self, event):
         """
-        Perform the full camera calibration from R1 to DL1. Any calibration
-        relating to data levels before the data level the file is read into
+        Perform the full camera calibration from R1 to DL1.
+
+        Any calibration relating to data levels before the data level the file is read
+        into
         will be skipped.
 
         Parameters
@@ -443,10 +448,11 @@ class CameraCalibrator(TelescopeComponent):
 
 def shift_waveforms(waveforms, time_shift_samples):
     """
-    Shift the waveforms by the mean integer shift to mediate
-    time differences between pixels.
-    The remaining shift (mean + fractional part) is returned
-    to be applied later to the extracted peak time.
+    Align waveforms by shifting each pixel by an integer number of samples.
+
+    Round each pixel's offset relative to the mean offset for its gain channel. Return
+    the uncorrected offset in samples, including the common and fractional parts, so it
+    can be applied to the extracted peak time.
 
     Parameters
     ----------

@@ -263,9 +263,9 @@ def _dummy_event(tel_ids):
 
 def test_different_telescope_type_same_string(subarray_prod5_paranal):
     """
-    Test that for a subarray that contains two different telescope types
-    with the same string representation, the subarray trigger is working
-    as expected, treating these telescopes as a single group.
+    Check trigger filtering for distinct telescope types with the same name.
+
+    The trigger should treat these types as a single group.
     """
     from ctapipe.instrument.trigger import SoftwareTrigger
 

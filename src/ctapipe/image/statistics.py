@@ -18,8 +18,9 @@ __all__ = [
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def skewness(data, mean=None, std=None):
-    """Calculate skewnewss (normalized third central moment)
-    with allowing precomputed mean and std.
+    """Compute skewness with an optional precomputed mean and standard deviation.
+
+    Skewness is the normalized third central moment.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
     for our use case (1D arrays with ~100-1000 elements)
@@ -51,8 +52,9 @@ def skewness(data, mean=None, std=None):
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def kurtosis(data, mean=None, std=None, fisher=True):
-    """Calculate kurtosis (normalized fourth central moment)
-    with allowing precomputed mean and std.
+    """Compute kurtosis with an optional precomputed mean and standard deviation.
+
+    Kurtosis is the normalized fourth central moment.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
     for our use case (1D arrays with ~100-1000 elements)

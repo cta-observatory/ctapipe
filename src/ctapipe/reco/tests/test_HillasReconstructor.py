@@ -123,7 +123,9 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
 def test_reconstruction_against_simulation(
     subarray_and_event_gamma_off_axis_500_gev,
 ):
-    """Reconstruction is here done only in the TelescopeFrame,
+    """Compare telescope-frame reconstruction with simulation truth.
+
+    Reconstruction is here done only in the TelescopeFrame,
     since the previous tests test already for the compatibility between
     frames
     """

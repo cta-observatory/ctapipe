@@ -9,10 +9,10 @@ from .unstructured_interpolator import UnstructuredInterpolator
 
 class BaseTemplate:
     """
-    Base class for template interpolators, cheifly associated with code for the special
-    interpolation performed on the zenith and azimuth directions. These dimensions are
-    treated separately as they should be in principle generated on a grid, so Delauny
-    triangulation based interpolation becomes needlessly inefficient
+    Provide common support for direction-dependent template interpolation.
+
+    The angles are handled separately because their templates are expected on a regular
+    grid, where Delaunay triangulation is unnecessary.
     """
 
     def __init__(self):
@@ -34,8 +34,9 @@ class BaseTemplate:
 
     def _create_table_matrix(self, keys, values):
         """
-        Create the array of interpolators to be used for all combinations of zenith and
-        azimuth included in the templates
+        Set up the template grid for the supplied zenith and azimuth angles.
+
+        Store the input samples so each direction's interpolator can be built on demand.
 
         Parameters
         ----------
@@ -122,8 +123,10 @@ class BaseTemplate:
 
     def _create_interpolator(self, zenith_bin, azimuth_bin):
         """
-        Creates unstructured interpolator object in a given zenith and azimuth bin when
-        needed
+        Create an unstructured interpolator for one zenith and azimuth bin.
+
+        Remove that bin's samples from the stored arrays after building its
+        interpolator.
 
         Parameters
         ----------

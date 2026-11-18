@@ -192,8 +192,10 @@ class CameraReadout:
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
-        """Load a CameraReadout from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read`.
+        """Load the camera readout from a table or a file.
+
+        The input can be an `astropy.table.Table` or any file supported by its `read`
+        method.
 
         Parameters
         ----------

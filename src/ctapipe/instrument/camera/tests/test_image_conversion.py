@@ -32,8 +32,7 @@ def image_conversion_path(tmp_path_factory):
 
 def test_single_image(camera_geometry, image_conversion_path):
     """
-    Test if we can transform toy images for different geometries
-    and get the same images after transforming back
+    Check round-trip geometry conversions for a single image.
     """
     from ctapipe.visualization import CameraDisplay
 
@@ -61,8 +60,7 @@ def test_single_image(camera_geometry, image_conversion_path):
 
 def test_multiple_images(camera_geometry):
     """
-    Test if we can transform multiple toy images at once
-    and get the same images after transforming back
+    Check round-trip geometry conversions for a batch of images.
     """
     images = np.array(
         [create_mock_image(camera_geometry, psi=i * 30 * u.deg) for i in range(5)]

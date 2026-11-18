@@ -58,8 +58,7 @@ def compare_hillas(hillas1, hillas2):
 
 def test_hillas_selected(prod5_lst):
     """
-    Test Hillas-parameter routines on a sample image with selected values
-    against a sample image with masked values set to zero
+    Compare Hillas parameters for masked pixels and zeroed pixels.
     """
     geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
     image, clean_mask = create_sample_image(geometry=geom)

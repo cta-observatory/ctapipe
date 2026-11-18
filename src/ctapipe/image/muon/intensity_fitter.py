@@ -103,8 +103,10 @@ def _chord_length(radius, rho, phi, phi0):
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
-    """Perform line integration along a given axis in the mirror frame
-    given an impact point on the mirror
+    """Compute the mirror path length along a line from the impact point.
+
+    The line is specified by an impact point and an angle in the mirror frame. For a
+    mirror with a central hole, subtract the length through the hole.
 
     Parameters
     ----------
@@ -126,8 +128,9 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
 
 
 def pixels_on_ring(radius, pixel_diameter):
-    """Calculate number of pixels of diameter ``pixel_diameter`` on the circumference
-    of a circle with radius ``radius``
+    """Estimate the number of pixels along a ring circumference.
+
+    The estimate uses the pixel diameter and the ring radius.
     """
     circumference = 2 * np.pi * radius
     n_pixels = u.Quantity(circumference / pixel_diameter)
@@ -252,8 +255,7 @@ def image_prediction(
 @vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def gaussian_cdf(x, mu, sig):
     """
-    Function to compute values of a given gaussians
-    cumulative distribution function (cdf)
+    Evaluate a Gaussian cumulative distribution function.
 
     Parameters
     ----------
@@ -369,9 +371,10 @@ def build_negative_log_likelihood(
     hole_radius=0 * u.m,
     pix_type=PixelShape.HEXAGON,
 ):
-    """Create an efficient negative log_likelihood function that does
-    not rely on astropy units internally by defining needed values as closures
-    in this function.
+    """Build a negative log likelihood function for muon-ring intensity.
+
+    Convert the input geometry and optics to numerical values once and capture them in a
+    closure so repeated evaluations do not need unit conversions.
 
     The likelihood is the gaussian approximation,
     i.e. the unnumbered equation on page 22 between (24) and (25), from [denaurois2009]_

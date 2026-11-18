@@ -54,8 +54,10 @@ def _range_extraction(sequence):
 
 class SubarrayDescription:
     """
-    Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes
-    along with their positions on the ground.
+    Describe an array of telescopes and their ground positions.
+
+    The individual telescopes are represented by
+    `~ctapipe.instrument.TelescopeDescription` objects.
 
     Attributes
     ----------
@@ -242,9 +244,10 @@ class SubarrayDescription:
         return self.tel_index_array[tel_ids]
 
     def tel_ids_to_mask(self, tel_ids):
-        """Convert a list of telescope ids to a boolean mask
-        of length ``n_tels`` where the **index** of the telescope
-        is set to ``True`` for each tel_id in tel_ids
+        """Convert telescope IDs to a mask indexed by telescope order.
+
+        The boolean mask has length ``n_tels``. Each requested ID sets the entry at that
+        telescope's index to ``True``.
 
         Parameters
         ----------
@@ -564,8 +567,7 @@ class SubarrayDescription:
         self, telescopes: Iterable[int | str | TelescopeDescription]
     ) -> tuple[int]:
         """
-        Convert a list of telescope ids and telescope descriptions to
-        a list of unique telescope ids.
+        Resolve telescope IDs and descriptions to unique IDs.
 
         Parameters
         ----------

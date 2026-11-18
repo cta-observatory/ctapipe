@@ -786,8 +786,9 @@ class Instrument(Configurable):
 
 
 def _to_dict(hastraits_instance, prefix=""):
-    """Helper to convert a HasTraits to a dict with keys
-    in the required CTAO format (upper-case, space separated)
+    """Convert trait values to a dictionary with CTAO metadata keys.
+
+    The keys are uppercase and space-separated.
     """
     res = {}
 

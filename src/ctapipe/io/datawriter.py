@@ -598,8 +598,9 @@ class DataWriter(Component):
 
     def _setup_writer(self):
         """
-        Create a TableWriter and setup any column exclusions
-        When complete, self._writer should be initialized
+        Initialize the table writer and configure column exclusions.
+
+        The initialized writer is stored in ``self._writer``.
         """
         writer = HDF5TableWriter(
             str(self.output_path),
@@ -733,8 +734,10 @@ class DataWriter(Component):
         return f"tel_{tel_id:03d}"
 
     def _write_context_metadata_headers(self):
-        """Write out any user-defined metadata in the context_metadata field to the
-        headers.
+        """Write user-defined context metadata to the headers.
+
+        The values come from ``context_metadata``. Each key is prefixed with ``CONTEXT``
+        before it is written to the file headers.
 
         This will create a set of headers that start with CONTEXT <KEY> = value
 

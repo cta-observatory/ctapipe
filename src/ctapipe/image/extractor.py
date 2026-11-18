@@ -269,8 +269,10 @@ def neighbor_average_maximum(
 
 def subtract_baseline(waveforms, baseline_start, baseline_end):
     """
-    Subtracts the waveform baseline, estimated as the mean waveform value
-    in the interval [baseline_start:baseline_end]
+    Subtract a mean baseline from each waveform.
+
+    The baseline is calculated along the sample axis over
+    ``[baseline_start:baseline_end]`` for each waveform independently.
 
     Parameters
     ----------
@@ -362,9 +364,9 @@ def integration_correction(
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
-        Base component to handle the extraction of charge and pulse time
-        from an image cube (waveforms), taking into account the sampling rate
-        of the waveform.
+        Initialize an extractor for charge and pulse time.
+
+        The extractor records the sampling rate for each telescope in the subarray.
 
         Assuming a waveform with sample units X and containing a noise-less unit
         pulse, the aim of the ImageExtractor is to return 1 X*ns.
@@ -395,9 +397,11 @@ class ImageExtractor(TelescopeComponent):
 
     def _calculate_correction(self, tel_id):
         """
-        Calculate the correction for the extracted charge such that the value
-        returned would equal 1 for a noise-less unit pulse. `ImageExtractor` types
-        calculating corrections need to overwrite this method.
+        Compute the charge correction for the integration window.
+
+        The correction makes the extracted charge of a noiseless unit pulse equal to
+        one. Extractors that calculate their own corrections should override this
+        method.
 
         This method should be decorated with @lru_cache to ensure it is only
         calculated once per telescope.
@@ -429,8 +433,7 @@ class ImageExtractor(TelescopeComponent):
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
         """
-        Call the relevant functions to fully extract the charge and time
-        for the particular extractor.
+        Extract charge and pulse time from the waveforms.
 
         Parameters
         ----------
@@ -533,8 +536,7 @@ class FixedWindowSum(ImageExtractor):
 
 class GlobalPeakWindowSum(ImageExtractor):
     """
-    Extractor which sums in a window about the
-    peak from the global average waveform.
+    Extractor which sums in a window about the peak from the global average waveform.
 
     To reduce the influence of noise pixels, the average can be calculated
     only on the ``pixel_fraction`` brightest pixels.
@@ -620,8 +622,7 @@ class GlobalPeakWindowSum(ImageExtractor):
 
 class LocalPeakWindowSum(ImageExtractor):
     """
-    Extractor which sums in a window about the
-    peak in each pixel's waveform.
+    Extractor which sums in a window about the peak in each pixel's waveform.
     """
 
     window_width = IntTelescopeParameter(
@@ -736,8 +737,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
 class NeighborPeakWindowSum(ImageExtractor):
     """
-    Extractor which sums in a window about the
-    peak defined by the waveforms in neighboring pixels.
+    Sum each waveform near the peak of its neighbors' average waveform.
     """
 
     window_width = IntTelescopeParameter(
@@ -805,8 +805,7 @@ class NeighborPeakWindowSum(ImageExtractor):
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     """
-    Extractor that first subtracts the baseline before summing in a
-    window about the peak defined by the waveforms in neighboring pixels.
+    Subtract the baseline and integrate around the neighboring pixel peak.
     """
 
     baseline_start = Int(0, help="Start sample for baseline estimation").tag(
@@ -826,9 +825,10 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
 
 
 class TwoPassWindowSum(ImageExtractor):
-    """Extractor based on [1]_ which integrates the waveform a second time using
-    a time-gradient linear fit. This is in particular the version implemented
-    in the CTA-MARS analysis pipeline [2]_.
+    """Refine waveform integration using a fitted time gradient.
+
+    The second integration pass follows [1]_. This is the version used by the CTA-MARS
+    analysis pipeline [2]_.
 
     Notes
     -----
@@ -906,14 +906,11 @@ class TwoPassWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=4096)
     def _calculate_correction(self, tel_id, width, shift):
-        """Obtain the correction for the integration window specified for each
-        pixel.
+        """Obtain the correction for the integration window specified for each pixel.
 
-        The TwoPassWindowSum image extractor applies potentially different
-        parameters for the integration window to each pixel, depending on the
-        position of the peak. It has been decided to apply gain selection
-        directly here. For basic definitions look at the documentation of
-        `integration_correction`.
+        The second pass can use different windows for individual pixels. For
+        each requested window, this method uses the telescope's reference pulse
+        and sample widths. See `integration_correction` for the normalization.
 
         Parameters
         ----------
@@ -927,7 +924,7 @@ class TwoPassWindowSum(ImageExtractor):
         Returns
         -------
         correction : ndarray
-            Value of the pixel-wise gain-selected integration correction.
+            Correction factors for the requested window, one per gain channel.
 
         """
         readout = self.subarray.tel[tel_id].camera.readout
@@ -1334,8 +1331,11 @@ def deconvolution_parameters(
     time_profile_pdf: None | Callable[[npt.ArrayLike], npt.ArrayLike] = None,
 ) -> tuple[list[float], list[float], list[float]]:
     """
-    Estimates deconvolution and recalibration parameters from the camera's reference
-    single-p.e. pulse shape for the given configuration of FlashCamExtractor.
+    Estimate deconvolution parameters from the reference pulse.
+
+    The method uses the camera's single-photoelectron pulse and the given
+    FlashCamExtractor configuration to estimate deconvolution and recalibration
+    parameters.
 
     Parameters
     ----------
@@ -1466,8 +1466,9 @@ def deconvolve(
     pole_zero: float,
 ) -> np.ndarray:
     """
-    Applies pole-zero deconvolution and upsampling to pixel waveforms. Use
-    `deconvolution_parameters(...)` to estimate the required `pole_zero` parameter
+    Apply pole-zero deconvolution and upsample the waveforms.
+
+    Use `deconvolution_parameters(...)` to estimate the required `pole_zero` parameter
     for the specific camera model.
 
     Parameters

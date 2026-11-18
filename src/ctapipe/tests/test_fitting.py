@@ -83,8 +83,7 @@ def test_lts_regression():
 
 def test_lts_regression_singular_pair():
     """
-    Test the lts regression with data that contains a pair
-    of points creating a singular matrix
+    Check regression on data containing a singular pair of points.
     """
     from ctapipe.fitting import EPS, design_matrix, lts_linear_regression
 

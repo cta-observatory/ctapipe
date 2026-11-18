@@ -57,8 +57,7 @@ class StereoCombiner(Component):
     @abstractmethod
     def predict_table(self, mono_predictions: Table) -> Table:
         """
-        Constructs stereo predictions from a table of
-        telescope events.
+        Constructs stereo predictions from a table of telescope events.
         """
 
 

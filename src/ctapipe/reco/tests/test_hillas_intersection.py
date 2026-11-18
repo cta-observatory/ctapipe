@@ -11,8 +11,9 @@ from ctapipe.reco.hillas_intersection import HillasIntersection
 
 def test_intersect():
     """
-    Simple test to check the intersection of lines. Try to intersect positions at (0,1) and (1,0)
-    with angles perpendicular and test they cross at (0,0)
+    Check where two perpendicular lines intersect.
+
+    The lines pass through (0, 1) and (1, 0) and should meet at (0, 0).
     """
     x1 = 0
     y1 = 1
@@ -30,8 +31,9 @@ def test_intersect():
 
 def test_parallel():
     """
-    ?    Simple test to check the intersection of lines. Try to intersect positions at (0,0) and (0,1)
-        with angles parallel and check the behaviour
+    Check that parallel image axes have no defined intersection.
+
+    The test expects both intersection coordinates to be NaN.
     """
     x1 = 0
     y1 = 0
@@ -227,9 +229,10 @@ def test_intersection_nominal_reconstruction(example_subarray):
 
 def test_badly_reconstructed_event(prod5_mst_flashcam):
     """
-    Test that events reconstructed at large angular distance
-    from FoV center return INVALID. Event and array loosely follow an
-    actual simulation event.
+    Check that reconstruction rejects events far from the field of view.
+
+    The test configuration loosely follows a simulated event and expects an invalid
+    result.
     """
     tel_pos = {1: np.array([150, 75, 0]) * u.m, 2: np.array([150, -240, 0]) * u.m}
     tel_desc = {1: prod5_mst_flashcam, 2: prod5_mst_flashcam}

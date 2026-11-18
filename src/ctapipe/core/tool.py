@@ -49,13 +49,11 @@ class ToolConfigurationError(Exception):
 
 
 class Tool(Application):
-    """A base class for all executable tools (applications) that handles
-    configuration loading/saving, logging, command-line processing,
-    and provenance meta-data handling. It is based on
-    `traitlets.config.Application`. Tools may contain configurable
-    `ctapipe.core.Component` classes that do work, and their
-    configuration parameters will propagate automatically to the
-    `Tool`.
+    """Provide the common command-line interface for executable tools.
+
+    Based on `traitlets.config.Application`, this class handles configuration loading
+    and saving, logging, command-line arguments, and provenance. Configuration
+    parameters of nested `ctapipe.core.Component` instances propagate to the tool.
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
@@ -269,8 +267,9 @@ class Tool(Application):
 
     def load_config_file(self, path: str | pathlib.Path) -> None:
         """
-        Load a configuration file in one of the supported formats, and merge it with
-        the current config if it exists.
+        Load a configuration file and merge it into the current configuration.
+
+        An unsupported file extension raises `ToolConfigurationError`.
 
         Parameters
         ----------
@@ -319,11 +318,11 @@ class Tool(Application):
 
     def add_component(self, component_instance):
         """
-        Constructs and adds a component to the list of registered components,
-        so that later we can ask for the current configuration of all instances,
-        e.g. in`get_full_config()`.  All sub-components of a tool should be
-        constructed using this function, in order to ensure the configuration is
-        properly traced.
+        Register a component for configuration reporting.
+
+        Call this for each tool subcomponent so its configuration can be tracked. Pass a
+        constructed instance and keep it as a tool attribute for configuration
+        reporting. The method returns that instance.
 
         Parameters
         ----------
@@ -348,14 +347,10 @@ class Tool(Application):
 
     def check_output(self, *output_paths):
         """
-        Test if output files exist and if they do, throw an error
-        unless ``self.overwrite`` is set to True.
-        This should be checked during tool setup to avoid having a tool only
-        realize the output can not be written after some long-running calculations
-        (e.g. training of ML-models).
-        Because we currently do not collect all created output files in the tool
-        (they can be attached to some component), the output files need
-        to be given and can not easily be derived from ``self``.
+        Reject existing output files unless overwriting is enabled.
+
+        Check during setup to catch existing outputs before expensive calculations.
+        Supply the output paths explicitly because some may belong to subcomponents.
 
         Parameters
         ----------
@@ -505,8 +500,10 @@ class Tool(Application):
         return f"{version}"
 
     def get_current_config(self):
-        """Return the current configuration as a dict (e.g. the values
-        of all traits, even if they were not set during configuration)
+        """Return the current configurable trait values as a nested dictionary.
+
+        The result includes default values and the configuration of components
+        stored in tool attributes, including lists and tuples of components.
         """
         return Component.get_current_config(self)
 

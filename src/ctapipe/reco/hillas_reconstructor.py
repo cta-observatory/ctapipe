@@ -1,6 +1,5 @@
 """
-Line-intersection-based fitting for reconstruction of direction
-and core position of a shower.
+Reconstruct shower direction and core position by intersecting lines.
 """
 
 import warnings
@@ -36,8 +35,7 @@ INVALID = ReconstructedGeometryContainer(
 
 
 def angle(v1, v2):
-    """Computes the angle between two vectors
-        assuming cartesian coordinates
+    """Computes the angle between two vectors assuming cartesian coordinates
 
     Parameters
     ----------
@@ -53,8 +51,7 @@ def angle(v1, v2):
 
 
 def normalise(vec):
-    """Sets the length of the vector to 1
-        without changing its direction
+    """Sets the length of the vector to 1 without changing its direction
 
     Parameters
     ----------
@@ -98,10 +95,10 @@ def line_line_intersection_3d(uvw_vectors, origins):
 
 class HillasReconstructor(HillasGeometryReconstructor):
     """
-    class that reconstructs the direction of an atmospheric shower
-    using a simple hillas parametrisation of the camera images it
-    provides a direction estimate in two steps and an estimate for the
-    shower's impact position on the ground.
+    Reconstruct atmospheric showers using Hillas image parameters.
+
+    Estimate the arrival direction from intersections of the shower planes, the core
+    position on the ground, and the height of shower maximum.
 
     so far, it does neither provide an energy estimator nor an
     uncertainty on the reconstructed parameters
@@ -314,8 +311,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     @staticmethod
     def estimate_direction(norm, weight):
-        """Calculates the origin of the gamma as the weighted average
-        direction of the intersections of all hillas planes
+        """Estimate the shower direction from weighted plane intersections.
 
         Returns
         -------
@@ -397,9 +393,10 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     @staticmethod
     def estimate_relative_h_max(cog_vectors, positions):
-        """Estimate the relative (to the observatory) vertical height of
-        shower-max by intersecting the lines of the cog directions of each
-        telescope.
+        """Estimate the height of shower maximum relative to the observatory.
+
+        The estimate uses intersections of the directions to the image centroids from
+        each telescope.
 
         Returns
         -------

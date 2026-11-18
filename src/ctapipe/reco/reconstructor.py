@@ -64,8 +64,9 @@ class InvalidWidthException(Exception):
 
 
 class StereoQualityQuery(QualityQuery):
-    """Quality criteria for dl1 parameters checked for telescope events to enter
-    into stereo reconstruction
+    """Select telescope events that pass the stereo reconstruction cuts.
+
+    The cuts are evaluated on DL1 image parameters.
     """
 
     quality_criteria = List(
@@ -80,8 +81,11 @@ class StereoQualityQuery(QualityQuery):
 
 class Reconstructor(TelescopeComponent):
     """
-    This is the base class from which all reconstruction
-    algorithms should inherit from
+    Define the common interface for event reconstructors.
+
+    Subclasses process events with DL1 parameters and store reconstruction
+    results in their DL2 containers. Algorithms that need an atmospheric
+    profile indicate this through ``needs_atmosphere_profile``.
     """
 
     #: ctapipe_reco entry points may provide Reconstructor implementations

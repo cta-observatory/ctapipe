@@ -58,8 +58,7 @@ def test_waveform_modifier():
 
 def test_add_noise():
     """
-    Test that adding noise changes a dummy
-    image in the expected way.
+    Test that adding noise changes a dummy image in the expected way.
     """
     image = np.array([0, 0, 5, 1, 0, 0])
     rng = np.random.default_rng(42)

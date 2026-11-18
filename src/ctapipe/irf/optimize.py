@@ -181,8 +181,9 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
         clf_prefix: str,
     ) -> OptimizationResult:
         """
-        Optimize G/H (and optionally spatial selection) cuts
-        and fill them in an ``OptimizationResult``.
+        Optimize gamma-hadron and optional spatial selection cuts.
+
+        Store the resulting cuts in an `OptimizationResult`.
 
         Parameters
         ----------
@@ -290,10 +291,11 @@ class ThetaPercentileCutCalculator(Component):
 
 class PercentileCuts(CutOptimizerBase):
     """
-    Calculates G/H separation cut based on the percentile of signal events
-    to keep in each bin via ``GhPercentileCutCalculator``.
-    Optionally also calculates a percentile cut on theta based on the signal
-    events surviving this G/H cut via ``ThetaPercentileCutCalculator``.
+    Set gamma-hadron cuts using signal percentiles.
+
+    `GhPercentileCutCalculator` retains a configured percentage of signal events in each
+    bin. Optionally, `ThetaPercentileCutCalculator` derives a cut from the events that
+    pass the gamma-hadron cut.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):

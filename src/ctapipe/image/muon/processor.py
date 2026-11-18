@@ -32,8 +32,7 @@ __all__ = ["MuonProcessor"]
 
 class ImageParameterQuery(QualityQuery):
     """
-    For configuring quality checks performed on image parameters
-    before rings are fitted.
+    Configure image quality cuts for muon ring fitting.
     """
 
     quality_criteria = List(
@@ -56,8 +55,7 @@ class ImageParameterQuery(QualityQuery):
 
 class RingQuery(QualityQuery):
     """
-    For configuring quality checks performed on the extracted rings before
-    computing efficiency parameters.
+    Configure ring quality cuts for efficiency calculations.
     """
 
     quality_criteria = List(

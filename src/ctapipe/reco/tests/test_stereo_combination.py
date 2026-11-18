@@ -23,8 +23,7 @@ from ctapipe.reco.stereo_combination import StereoMeanCombiner
 @pytest.fixture(scope="module")
 def mono_table():
     """
-    Dummy table of telescope events with a
-    prediction and weights.
+    Dummy table of telescope events with a prediction and weights.
     """
     return Table(
         {

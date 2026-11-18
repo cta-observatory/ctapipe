@@ -583,8 +583,10 @@ class CameraDisplay:
         self.on_pixel_clicked(pix_id)  # call user-function
 
     def on_pixel_clicked(self, pix_id):
-        """Virtual function to override in sub-classes to do something special
-        when a pixel is clicked
+        """Handle a click on a camera pixel.
+
+        The default handler prints the pixel ID. Override the method to customize click
+        behavior.
         """
         print(f"Clicked pixel_id {pix_id}")
 

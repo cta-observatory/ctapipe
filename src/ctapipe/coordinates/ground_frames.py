@@ -1,8 +1,7 @@
-"""This module defines the important coordinate systems to be used in
-reconstruction with the CTA pipeline and the transformations between
-this different systems. Frames and transformations are defined using
-the astropy.coordinates framework. This module defines transformations
-for ground based cartesian and planar systems.
+"""Define ground coordinate frames and their transformations.
+
+The ground-based Cartesian and planar transformations used in reconstruction are
+implemented with `astropy.coordinates`.
 """
 
 import astropy.units as u
@@ -104,8 +103,10 @@ class GroundFrame(BaseCoordinateFrame):
 
 
 class EastingNorthingFrame(BaseCoordinateFrame):
-    """GroundFrame but in standard Easting/Northing coordinates instead of
-    SimTel/Corsika conventions
+    """Represent ground positions in easting and northing coordinates.
+
+    Unlike `GroundFrame`, this frame names its Cartesian axes easting, northing, and
+    height. Its ``reference_location`` locates the origin on Earth.
 
     Frame attributes: None
 
@@ -146,11 +147,10 @@ class EastingNorthingFrame(BaseCoordinateFrame):
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
-    """Tilted ground coordinate frame.  The tilted ground coordinate frame
-    is a cartesian system describing the 2 dimensional projected
-    positions of objects in a tilted plane described by
-    pointing_direction Typically this frame will be used for the
-    reconstruction of the shower core position
+    """Represent ground positions in a plane tilted by the pointing direction.
+
+    The two-dimensional Cartesian projection is useful for reconstructing the shower
+    core.
 
     Frame attributes:
 
@@ -167,10 +167,9 @@ class TiltedGroundFrame(BaseCoordinateFrame):
 
 
 def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
-    """Get Transformation matrix for conversion from the ground system to
-    the Tilted system and back again (This function is directly lifted
-    from read_hess, probably could be streamlined using python
-    functionality)
+    """Build the transformation matrix between ground and tilted coordinates.
+
+    The implementation comes from `read_hess`.
 
     Parameters
     ----------
@@ -205,8 +204,10 @@ def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
 
 def _get_xyz(coord):
     """
-    Essentially the same as coord.cartesian.xyz, but much faster by
-    avoiding some astropy bottlenecks.
+    Get Cartesian coordinates as an array.
+
+    Return the x, y, and z components in a single quantity, using the existing Cartesian
+    representation directly when available.
     """
     # this is a speed optimization. Much faster to use data if already a
     # Cartesian object
@@ -283,11 +284,10 @@ def tilted_to_ground(tilted_coord, ground_frame):
 
 
 def project_to_ground(tilt_system):
-    """Project position in the tilted system onto the ground. This is
-    needed as the standard transformation will return the 3d position
-    of the tilted frame. This projection may ultimately be the
-    standard use case so may be implemented in the tilted to ground
-    transformation
+    """Project a position in the tilted frame onto the ground.
+
+    Unlike a coordinate transformation alone, this projection sets the output height to
+    zero. Use it when the position must lie on the ground plane.
 
     Parameters
     ----------
@@ -323,8 +323,9 @@ def project_to_ground(tilt_system):
 
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
 def ground_to_ground(ground_coords, ground_frame):
-    """Null transform for going from ground to ground, since there are no
-    attributes of the GroundSystem
+    """Return the same coordinates when transforming within the ground frame.
+
+    The transform returns the input coordinates directly.
     """
     return ground_coords
 

@@ -68,9 +68,9 @@ def test_mean_poisson_likelihood_full():
 
 def test_full_likelihood():
     """
-    Simple test of likelihood, test against known values for high and low
-    signal cases. Check that full calculation and the gaussian approx become
-    equal at high signal.
+    Check the likelihood at low and high signal against reference values.
+
+    At high signal, the full calculation should agree with the Gaussian approximation.
     """
     spe = 0.5 * np.ones(3)  # Single photo-electron width
     pedestal = np.ones(3)  # width of the pedestal distribution

@@ -21,8 +21,7 @@ __all__ = [
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def design_matrix(x):
     """
-    Build the design matrix for linear regression for
-    a given array of x-values.
+    Build the design matrix for linear regression for a given array of x-values.
 
     This creates a (N, 2) matrix, where the first column are the
     x values and the second contains all 1.

@@ -18,8 +18,9 @@ __all__ = ["hillas_parameters", "HillasParameterizationError"]
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
     """
-    Return longitudinal and transverse coordinates for x and y
-    for a given set of hillas parameters
+    Transform camera positions into longitudinal and transverse coordinates.
+
+    The axes are defined by the supplied Hillas parameters.
 
     Parameters
     ----------

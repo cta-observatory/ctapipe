@@ -1,8 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-This module is intended to contain astronomy-related helper tools which are
-not provided by external packages and/or to satisfy particular needs of
-usage within ctapipe.
+Provide astronomy utilities for use in ctapipe.
+
+These helpers cover functionality missing from external packages or specific to ctapipe.
 """
 
 import gzip

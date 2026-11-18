@@ -18,11 +18,11 @@ class QualityCriteriaError(TypeError):
 
 class QualityQuery(Component):
     """
-    Manages a set of user-configurable (at runtime or in a config file) selection
-    criteria that operate on the same type of input. Each time it is called, it
-    returns a boolean array of whether or not each criterion passed. It  also keeps
-    track of the total number of times each criterium is passed, as well as a
-    cumulative product of criterium (i.e. the criteria applied in-order)
+    Apply configurable selection criteria to the same input.
+
+    Configure the criteria at runtime or in a configuration file. Each call returns a
+    boolean array and tracks how often each criterion passes, both individually and
+    after applying preceding criteria.
     """
 
     quality_criteria = List(

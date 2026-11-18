@@ -8,10 +8,11 @@ __all__ = ["IndexFinder"]
 
 class IndexFinder:
     """
-    Helper class to find the index of the closest matching value in an array/list/...,
-    used to locate the pointing of an event based on the trigger time.
-    This searches using pythons bisect module.
-    Duplicated values will result in the first value being returned.
+    Find the index of the closest value in a possibly unsorted sequence.
+
+    The lookup uses Python's bisect module on sorted values and returns indices into the
+    original sequence. Duplicate values trigger a warning and retain their last index.
+    The helper is used, for example, to match a pointing to an event's trigger time.
 
 
     Explanations can be found here:
@@ -29,11 +30,10 @@ class IndexFinder:
 
     def _rank(self, target):
         """
-        Searches for the closest match in the ordered
-        self.nums list and returns the index relative to this
-        list.
-        To find the index relative to the original values, use the
-        `closest` method.
+        Find the closest value's position in the sorted list.
+
+        On a tie, prefer the larger value. Use `closest` to get its index in the
+        original sequence.
         """
         rank = bisect.bisect(self.nums, target)
         if rank == 0:
@@ -49,10 +49,7 @@ class IndexFinder:
 
     def closest(self, target):
         """
-        Given a value, that is comparable to the
-        associated ``values`` list, return the
-        index of the closest matching entry relative to the unordered
-        list, that was given at construction.
+        Return the index of the closest value in the original sequence.
         """
         if len(self.nums) == 1:
             return 0

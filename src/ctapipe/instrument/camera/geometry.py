@@ -88,13 +88,11 @@ SIMTEL_PIXEL_SHAPES = {
 
 
 class CameraGeometry:
-    """`CameraGeometry` is a class that stores information about a
-    Cherenkov Camera that is useful for imaging algorithms and
-    displays. It contains lists of pixel positions, areas, pixel
-    shapes, as well as a neighbor (adjacency) list and matrix for each pixel.
-    In general the neighbor_matrix attribute should be used in any algorithm
-    needing pixel neighbors, since it is much faster. See for example
-    `ctapipe.image.tailcuts_clean`
+    """Store the camera geometry used by imaging algorithms.
+
+    The geometry includes pixel positions, areas, shapes, and adjacency information. Use
+    `neighbor_matrix` for efficient access to pixel neighbors, as in
+    `ctapipe.image.tailcuts_clean`.
 
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
@@ -314,8 +312,9 @@ class CameraGeometry:
 
     def guess_radius(self):
         """
-        Guess the camera radius as mean distance of the border pixels from
-        the center pixel
+        Estimate the camera radius from its border pixels.
+
+        Return the mean distance from the mean pixel position to the border pixels.
         """
         border = self.get_border_pixel_mask()
         cx = self.pix_x.mean()
@@ -326,8 +325,10 @@ class CameraGeometry:
         ).mean()
 
     def transform_to(self, frame: BaseCoordinateFrame):
-        """Transform the pixel coordinates stored in this geometry and the pixel
-        and camera rotations to another camera coordinate frame.
+        """Transform the geometry to another camera frame.
+
+        The method returns a new geometry with transformed positions and rotations. If
+        no source frame is set, it initializes the source geometry with `CameraFrame`.
 
         Note that ``geom.frame`` must contain all the necessary attributes needed
         to transform into the requested frame, i.e. if going from
@@ -464,6 +465,8 @@ class CameraGeometry:
     @lazyproperty
     def pixel_width(self):
         """
+        Return the pixel width for the camera's pixel shape.
+
         in-circle diameter for hexagons, edge width for square pixels,
         diameter for circles.
 
@@ -755,8 +758,10 @@ class CameraGeometry:
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
-        Load a CameraGeometry from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read`
+        Load camera geometry from a table or a file.
+
+        The input can be an `astropy.table.Table` or any file supported by its `read`
+        method.
 
         Parameters
         ----------
@@ -833,8 +838,7 @@ class CameraGeometry:
 
     def calc_pixel_neighbors(self, diagonal=False):
         """
-        Calculate the neighbors of pixels using
-        a kdtree for nearest neighbor lookup.
+        Calculate the neighbors of pixels using a kdtree for nearest neighbor lookup.
 
         Parameters
         ----------
@@ -905,8 +909,10 @@ class CameraGeometry:
     @lazyproperty
     def pixel_moment_matrix(self):
         """
-        Pre-calculated matrix needed for higher-order moment calculation,
-        up to 4th order.
+        Return the matrix used to calculate higher-order pixel moments.
+
+        The rows contain powers and products of the pixel coordinates up to total degree
+        four.
 
         Note this is *not* recalculated if the CameraGeometry is modified.
 
@@ -949,10 +955,10 @@ class CameraGeometry:
         )
 
     def rotate(self, angle):
-        """Rotate the camera coordinates about the center of the camera by
-        specified angle. Modifies the CameraGeometry in-place (so
-        after this is called, the pix_x and pix_y arrays are
-        rotated.
+        """Rotate the pixel coordinates in place about the camera origin.
+
+        The rotation updates ``pix_x`` and ``pix_y``, subtracts the angle from
+        ``pix_rotation``, and resets ``cam_rotation`` to zero.
 
         Notes
         -----

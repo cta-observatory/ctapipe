@@ -70,25 +70,28 @@ def find_all_matching_datasets(
     url=None,
 ):
     """
-    Returns a list of resource names (or substrings) matching the given
-    pattern, searching first in CTAPIPE_SVC_PATH (a colon-separated list of
-    directories) and then in the download cache.
+    Find matching dataset names in the configured search locations.
+
+    Search the supplied directories and the download cache for the selected URL.
+    The directory list defaults to ``CTAPIPE_SVC_PATH``. This searches local files
+    only. It does not query the remote server.
 
     Parameters
     ----------
-    pattern: str
-       regular expression to use for matching
-    searchpath: str
-       colon-seprated list of directories in which to search, defaulting to
-       CTAPIPE_SVC_PATH environment variable
-    regexp_group: int
-       if not None, return the regular expression group indicated (assuming
-       pattern has a group specifier in it)
+    pattern : str
+        Regular expression matched against each entry name from the start.
+    searchpath : str or None
+        Colon-separated directories to search before the cache.
+    regexp_group : int or None
+        Capture group to return instead of each matching path.
+    url : str or None
+        Dataset server URL used to locate the cache. Defaults to the configured URL.
 
     Returns
     -------
-    list(str):
-       resources names, use get_dataset_path() to retrieve the full filename
+    list of pathlib.Path or list of str
+        Distinct matches in no guaranteed order. With ``regexp_group`` the
+        result contains the captured strings instead of paths.
     """
     if url is None:
         url = get_default_url()
@@ -142,8 +145,9 @@ def find_in_path(filename, searchpath, url=None):
 
 def get_dataset_path(filename, url=None):
     """
-    Returns the full file path to an auxiliary dataset needed by
-    ctapipe, given the dataset's full name (filename with no directory).
+    Find the full path to a named ctapipe dataset.
+
+    Supply the filename without its directory.
 
     This will first search for the file in directories listed in
     the environment variable CTAPIPE_SVC_PATH (if set), and if not found,
@@ -184,8 +188,7 @@ def get_dataset_path(filename, url=None):
 
 def try_filetypes(basename, role, file_types, url=None, **kwargs):
     """
-    Get the contents of dataset as an `astropy.table.Table` object from
-    different file types if available.
+    Load a dataset as an Astropy table using the available file type.
 
     Parameters
     ----------

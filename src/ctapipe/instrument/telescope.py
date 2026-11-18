@@ -25,8 +25,10 @@ __all__ = ["TelescopeDescription"]
 
 class TelescopeDescription:
     """
-    Describes a Cherenkov Telescope and its associated
-    `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
+    Describe a Cherenkov telescope and its camera and optics.
+
+    The optics and camera are represented by `~ctapipe.instrument.OpticsDescription` and
+    `~ctapipe.instrument.CameraDescription`.
 
     Attributes
     ----------
@@ -75,8 +77,7 @@ class TelescopeDescription:
     @classmethod
     def from_name(cls, optics_name, camera_name):
         """
-        Construct a TelescopeDescription from a name (telescope description
-        string)
+        Construct a TelescopeDescription from a name (telescope description string)
 
         Parameters
         ----------

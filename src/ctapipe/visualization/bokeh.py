@@ -68,8 +68,10 @@ def palette_from_mpl_name(name):
 
 def is_notebook():
     """
-    Returns True if currently running in a notebook session,
-    see https://stackoverflow.com/a/37661854/3838691
+    Check whether the notebook kernel module has been imported.
+
+    The check tests for ``ipykernel`` in ``sys.modules``. See
+    https://stackoverflow.com/a/37661854/3838691 for the detection approach.
     """
     return "ipykernel" in sys.modules
 

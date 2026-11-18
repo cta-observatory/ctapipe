@@ -157,8 +157,7 @@ def get_hdf5_datalevels(h5file: tables.File | str | Path):
 def read_atmosphere_density_profile(
     h5file: tables.File, path=ATMOSPHERE_DENSITY_PROFILE_TABLE
 ):
-    """Return a subclass of AtmosphereDensityProfile by
-    reading a table in a h5 file
+    """Read an atmospheric density profile from an HDF5 table.
 
     Parameters
     ----------
@@ -170,8 +169,8 @@ def read_atmosphere_density_profile(
 
     Returns
     -------
-    AtmosphereDensityProfile:
-        subclass depending on type of table
+    AtmosphereDensityProfile or None
+        Deserialized profile, or None if the table is missing.
     """
     if path not in h5file:
         return None
@@ -463,8 +462,7 @@ class HDF5EventSource(EventSource):
     @property
     def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         """
-        Returns the simulation config(s) as
-        a dict mapping obs_id to the respective config.
+        Return the simulation configuration for each observation ID.
         """
         return self._simulation_configs
 
@@ -509,9 +507,10 @@ class HDF5EventSource(EventSource):
 
     def _parse_simulation_configs(self):
         """
-        Construct a dict of SimulationConfigContainers from the
-        self.file_.root.configuration.simulation.run.
-        These are used to match the correct header to each event
+        Read the simulation configurations from the file.
+
+        Read the run configuration from ``self.file_.root.configuration.simulation.run``
+        so that each event can be matched to its header.
         """
 
         # Just returning next(reader) would work as long as there are no merged files

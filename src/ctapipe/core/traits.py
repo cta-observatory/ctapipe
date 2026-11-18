@@ -418,8 +418,10 @@ class ComponentNameList(List):
 
 
 def classes_with_traits(base_class):
-    """Returns a list of the base class plus its non-abstract children
-    if they have traits
+    """Find a base class and concrete subclasses that define traits.
+
+    If the base class declares a plugin entry point, discover and import its plugins
+    before listing subclasses.
     """
     if hasattr(base_class, "plugin_entry_point"):
         detect_and_import_plugins(base_class.plugin_entry_point)

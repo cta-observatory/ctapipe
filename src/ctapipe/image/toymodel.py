@@ -1,7 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Utilities to generate toymodel (fake) reconstruction inputs for testing
-purposes.
+Utilities to generate toymodel (fake) reconstruction inputs for testing purposes.
 
 Examples
 --------
@@ -48,8 +47,10 @@ VALID_GAIN_CHANNEL = {"HIGH", "LOW", "ALL"}
 
 
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
-    """Create a pulse time image for a toymodel shower. Assumes the time development
-    occurs only along the longitudinal (major) axis of the shower, and scales
+    """Generate a pulse time image for a simulated shower.
+
+    Assumes the time development occurs only along the longitudinal (major) axis of the
+    shower, and scales
     linearly with distance along the axis.
 
     Parameters
@@ -93,8 +94,10 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 class WaveformModel:
     @u.quantity_input(reference_pulse_sample_width=u.ns, sample_width=u.ns)
     def __init__(self, reference_pulse, reference_pulse_sample_width, sample_width):
-        """Generate a toy model waveform for each gain channel using the reference
-        pulse shape of a camera. Useful for testing image extraction algorithms.
+        """Initialize a waveform model using the camera reference pulse.
+
+        The model generates a waveform for each gain channel and can be used to test
+        image extraction.
 
         Does not include the electronic noise and the Excess Noise Factor of
         the photosensor, and therefore should not be used to make charge
@@ -250,8 +253,7 @@ class ImageModel(metaclass=ABCMeta):
         return image, signal, noise
 
     def expected_signal(self, camera, intensity):
-        """Expected signal in each pixel for the given camera
-        and total intensity.
+        """Expected signal in each pixel for the given camera and total intensity.
 
         Parameters
         ----------

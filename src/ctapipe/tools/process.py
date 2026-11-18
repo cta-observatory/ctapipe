@@ -52,9 +52,10 @@ __all__ = ["ProcessorTool"]
 
 class ProcessorTool(Tool):
     """
-    Process data from lower-data levels up to DL1 and DL2, including image
-    extraction and optionally image parameterization as well as muon analysis
-    and shower reconstruction.
+    Process lower-level data into DL1 and DL2 products.
+
+    Processing includes image extraction and can also perform image parameterization,
+    muon analysis, and shower reconstruction.
 
     Note that the muon analysis and shower reconstruction both depend on
     parametrized images and therefore compute image parameters even if

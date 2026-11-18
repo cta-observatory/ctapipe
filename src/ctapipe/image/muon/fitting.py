@@ -195,8 +195,7 @@ def taubin_circle_fit(
 
 
 def make_loss_function(x, y, w):
-    """Closure around taubin_loss_function to make
-    surviving pixel positions availaboe inside.
+    """Bind the surviving pixel positions to the Taubin loss function.
 
     x, y: positions of pixels surviving the cleaning
         should not be quantities
@@ -204,7 +203,8 @@ def make_loss_function(x, y, w):
     """
 
     def taubin_loss_function(xc, yc, r):
-        """Taubin fit formula
+        """Evaluate the Taubin fit formula.
+
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
         """
         distance_squared = (x - xc) ** 2 + (y - yc) ** 2

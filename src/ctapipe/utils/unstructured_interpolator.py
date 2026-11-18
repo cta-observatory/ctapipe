@@ -1,8 +1,8 @@
 """
-This class is largely created as a more versatile alternative to the Linear ND
-interpolator, allowing the user to pass the interpolator an array of classes and then
-perform interpolation between the results of a member function of that class. Currently
-the name of the target interpolation function is passed in a string at initialisation.
+Interpolate unstructured samples or values computed from them.
+
+Pass the name of the member function at initialization to interpolate its results. This
+extends the behavior of SciPy's `LinearNDInterpolator`.
 TODO:
 - Figure out what to do when out of bounds of interpolation range
 - Implement for higher dimensions
@@ -17,13 +17,12 @@ from scipy.spatial import Delaunay
 
 class UnstructuredInterpolator:
     """
-    This class performs linear interpolation between an unstructured set of data
-    points. However the class is expanded such that it can interpolate between the
-    values returned from class member functions. The primary use case of this being to
-    interpolate between the predictions of a set of machine learning algorithms or
-    regular grid interpolators.
-    In the case that a numpy array is passed as the interpolation values this class will
-    behave exactly the same as the scipy LinearNDInterpolator
+    Interpolate values on an unstructured grid.
+
+    The interpolator also accepts outputs of class methods, such as predictions from
+    estimators or regular-grid interpolators. With array inputs and no separate
+    evaluation points, it uses Delaunay simplices as in SciPy's
+    `LinearNDInterpolator` for points inside the interpolation domain.
     """
 
     def __init__(
@@ -93,8 +92,9 @@ class UnstructuredInterpolator:
 
     def reset(self):
         """
-        Function used to reset some class values stored after previous event,
-        also used as their initialisation in the init function
+        Reset interpolation state saved for the previous event.
+
+        The same reset also initializes this state at construction.
         """
         self._previous_v = None
         self._previous_m = None

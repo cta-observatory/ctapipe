@@ -13,8 +13,10 @@ __all__ = ["CameraDescription"]
 
 class CameraDescription:
     """
-    Describes a Cherenkov camera and its associated
-    `~ctapipe.instrument.CameraGeometry` and `~ctapipe.instrument.CameraReadout`
+    Describe a Cherenkov camera, its geometry, and its readout.
+
+    The associated objects are a `~ctapipe.instrument.CameraGeometry` and a
+    `~ctapipe.instrument.CameraReadout`.
 
     Parameters
     ----------

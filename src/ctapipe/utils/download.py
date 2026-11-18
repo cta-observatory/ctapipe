@@ -18,8 +18,10 @@ USER_AGENT = f"ctapipe/{__version__}"
 
 def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     """
-    Download a file. Will write to ``path + '.part'`` while downloading
-    and rename after successful download to the final name.
+    Download a file.
+
+    Will write to ``path + '.part'`` while downloading and rename after successful
+    download to the final name.
 
     Parameters
     ----------
@@ -121,9 +123,9 @@ def download_file_cached(
     progress=False,
 ):
     """
-    Downloads a file from a dataserver and caches the result locally
-    in ``$HOME/.cache/<cache_name>``.
-    If the file is found in the cache, no new download is performed.
+    Download a file and cache it locally.
+
+    Reuse files in ``$HOME/.cache/<cache_name>`` without downloading them again.
 
     Parameters
     ----------

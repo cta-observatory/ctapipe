@@ -40,9 +40,10 @@ def get_atmosphere_profile_table(atmosphere_name="paranal"):
 )
 def get_atmosphere_profile_functions(atmosphere_name="paranal", with_units=True):
     """
-    Gives atmospheric profile as a continuous function thickness(
-    altitude), and it's inverse altitude(thickness)  in m and g/cm^2
-    respectively.
+    Build interpolators between altitude and atmospheric thickness.
+
+    Return the altitude-to-thickness interpolator first and the inverse second. Altitude
+    is in meters and atmospheric thickness in grams per square centimeter.
 
     Parameters
     ----------

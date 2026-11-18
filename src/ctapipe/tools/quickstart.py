@@ -1,6 +1,5 @@
 """
-Create a working directory for ctapipe-process containing standard
-configuration files.
+Create a working directory for ctapipe-process containing standard configuration files.
 """
 
 from importlib.resources import files
@@ -87,8 +86,9 @@ This file was generated using ctapipe version {VERSION}
 
 
 def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
-    """Reads input_file and writes output_file, swapping text listed in the
-    transformations dict
+    """Copy a file while applying text substitutions.
+
+    The replacement strings come from the transformations dictionary.
 
     Parameters
     ----------

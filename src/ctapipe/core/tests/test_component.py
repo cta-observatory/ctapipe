@@ -114,8 +114,7 @@ def test_component_is_abstract():
 
 def test_component_simple():
     """
-    Very basic test to construct a component and check
-    that it's traits work correctly
+    Very basic test to construct a component and check that it's traits work correctly
     """
     comp = ExampleComponent()
 
@@ -281,8 +280,7 @@ def test_unknown_traitlet_raises():
 
 def test_extra_config_missing():
     """
-    Check that setting an incorrect trait via config also raises
-    an exception
+    Check that setting an incorrect trait via config also raises an exception
     """
     config = Config()
     config["ExampleSubclass1"] = Config()
@@ -347,9 +345,10 @@ def test_help_changed_default():
 
 
 def test_non_abstract_subclasses():
-    """non_abstract_subclasses() is a helper function:
-    it might just be nice, in case a person wants to see the subclasses
-    in a python session.
+    """Check that the helper lists non-abstract subclasses.
+
+    The helper is useful for interactive inspection and for parametrizing tests over all
+    concrete subclasses.
 
     Can also be helpful in parametrized tests, to make sure all
     subclasses are being tested.

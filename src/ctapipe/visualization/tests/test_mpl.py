@@ -28,8 +28,9 @@ def prod5_lst_cam(prod5_lst):
     reason="See test below (test_camera_display_single)",
 )
 def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
-    """With matplotlib==3.6.3 we can not change the norm
-    parameter of a CameraDisplay after we attached a colorbar.
+    """Check that changing the normalization after adding a colorbar raises.
+
+    The display requires the normalization to be set before attaching the colorbar.
     """
     from ..mpl_camera import CameraDisplay
 

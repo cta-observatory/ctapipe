@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-"""Atmosphere density models and functions to transform between column density
-(X in grammage units) and height (meters) units.
+"""Model atmospheric density and convert between height and column density.
+
+Heights are in meters and column densities in grams per square centimeter.
 
 Zenith angle is taken into account in the line-of-sight integral to compute the
 column density X assuming Earth as a flat plane (the curvature is not taken into
@@ -40,8 +41,9 @@ DENSITY_UNIT = u.g / u.cm**3
 
 class SlantDepthZenithRangeWarning(UserWarning):
     """
-    Issued when the zenith angle of an event is beyond
-    the range where the slant depth computation is correct (approx. 70 deg)
+    Warn when the zenith angle exceeds the valid range for slant depth.
+
+    The approximation becomes unreliable above about 70 degrees.
     """
 
 
@@ -61,8 +63,9 @@ class AtmosphereDensityProfile(abc.ABC):
 
     @abc.abstractmethod
     def integral(self, height: u.Quantity) -> u.Quantity:
-        r"""Integral of the profile along the height axis, i.e. the *atmospheric
-        depth* :math:`X`.
+        r"""Integrate the density profile vertically to obtain atmospheric depth.
+
+        Atmospheric depth is denoted by :math:`X`.
 
         .. math:: X(h) = \int_{h}^{\infty} \rho(h') dh'
 
@@ -91,12 +94,11 @@ class AtmosphereDensityProfile(abc.ABC):
         zenith_angle=0 * u.deg,
         output_units=GRAMMAGE_UNIT,
     ):
-        r"""Line-of-sight integral from height to infinity, along
-        the direction specified by the zenith angle. This is sometimes called
-        the *slant depth*. The atmosphere here is assumed to be Cartesian, the
-        curvature of the Earth is not taken into account. This approximation breaks down
-        for large zenith angles (>70 deg), in which case this function
-        does not give correct results. Inverse of height_from_slant_depth function.
+        r"""Compute slant depth from a height and zenith angle.
+
+        The integral runs from the starting height to infinity along the line of sight.
+        It assumes a flat Earth and emits a `SlantDepthZenithRangeWarning` for angles
+        above 70 degrees. See `height_from_slant_depth` for the inverse operation.
 
         .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h') dh' / \cos{\Psi}
 
@@ -124,8 +126,10 @@ class AtmosphereDensityProfile(abc.ABC):
         zenith_angle=0 * u.deg,
         output_units=u.m,
     ):
-        r"""Calculates height a.s.l. in the atmosphere from traversed slant depth
-            taking into account the shower zenith angle.
+        r"""Compute the height from slant depth and zenith angle.
+
+        The result is altitude above sea level. The flat-Earth approximation emits a
+        `SlantDepthZenithRangeWarning` for angles above 70 degrees.
 
         Parameters
         ----------
@@ -198,8 +202,10 @@ class AtmosphereDensityProfile(abc.ABC):
 
     @classmethod
     def from_table(cls, table: Table):
-        """Return a subclass of AtmosphereDensityProfile from a serialized
-        table
+        """Deserialize a density profile from a table.
+
+        The ``TAB_TYPE`` metadata selects the concrete profile class, and ``TAB_VER``
+        must be supported.
         """
         table = QTable(table, copy=False)
 
@@ -280,8 +286,9 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
 
 
 class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
-    """Tabular profile from a table that has both the density and it's integral
-    pre-computed.  The table is interpolated to return the density and its integral.
+    """Interpolate atmospheric density and its integral from a table.
+
+    The table supplies precomputed values for both quantities.
 
     .. code-block:: python
 

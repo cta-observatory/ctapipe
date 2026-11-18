@@ -24,8 +24,7 @@ def get_orthogonal_grid_indices(pos, size):
 
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):
-    r"""Transform the pixel coordinates of a hexagonal image into an
-    orthogonal image
+    r"""Transform the pixel coordinates of a hexagonal image into an orthogonal image
 
     Parameters
     ----------
@@ -219,10 +218,9 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.d
 
 
 def reskew_hex_pixel_from_orthogonal_edges(x_edges, y_edges, square_mask):
-    """Extracts and skews the pixel coordinates from a 2D orthogonal
-    histogram (i.e. the bin-edges) and skews them into the hexagonal
-    image while selecting only the pixel that are selected by the
-    given mask
+    """Transform orthogonal histogram edges back to the hexagonal grid.
+
+    The mask selects the pixels to keep.
 
     Parameters
     ----------
@@ -247,8 +245,10 @@ def reskew_hex_pixel_from_orthogonal_edges(x_edges, y_edges, square_mask):
 
 
 def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
-    """Calculate the bin edges of the slanted, orthogonal pixel grid to
-    resample the pixel signals with np.histogramdd right after.
+    """Calculate bin edges for resampling onto an orthogonal grid.
+
+    The resulting edges can be passed to `numpy.histogramdd` to resample the pixel
+    signals.
 
     Parameters
     ----------

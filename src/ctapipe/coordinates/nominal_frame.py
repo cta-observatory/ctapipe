@@ -1,4 +1,6 @@
 """
+Define the nominal coordinate frame.
+
 The code in this module is basically a copy of
 https://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/skyoffset.html
 

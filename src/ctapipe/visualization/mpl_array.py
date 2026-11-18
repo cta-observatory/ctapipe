@@ -159,8 +159,10 @@ class ArrayDisplay:
         self._update()
 
     def add_radial_grid(self, spacing=100 * u.m):
-        """Add some dotted rings for distance estimation. The number of rings
-        is estimated automatically from the spacing and the array footprint.
+        """Add dotted radial distance markers to the array display.
+
+        The number of rings is estimated from the specified spacing and the array
+        footprint.
 
         Parameters
         ----------

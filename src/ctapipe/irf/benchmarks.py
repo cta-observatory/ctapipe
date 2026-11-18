@@ -74,8 +74,7 @@ class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
 
 class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffsetBins):
     """
-    Calculates the bias and the resolution of the energy prediction in bins of
-    true energy and fov offset.
+    Calculate energy bias and resolution in true energy and offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -148,8 +147,9 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
 
 class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins):
     """
-    Calculates the angular resolution in bins of either true or reconstructed energy
-    and fov offset.
+    Calculate angular resolution in energy and field of view offset bins.
+
+    The energy axis can use either true or reconstructed energy.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -234,8 +234,9 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
         extname: str = "SENSITIVITY",
     ) -> BinTableHDU:
         """
-        Calculate the point source sensitivity
-        based on ``pyirf.sensitivity.calculate_sensitivity``.
+        Calculate the point-source sensitivity.
+
+        Uses `pyirf.sensitivity.calculate_sensitivity`.
 
         Parameters
         ----------
@@ -258,8 +259,7 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
 
 class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
     """
-    Calculates the point source sensitivity in bins of reconstructed energy
-    and fov offset.
+    Calculate point-source sensitivity in reconstructed energy and offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):

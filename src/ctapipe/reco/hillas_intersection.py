@@ -46,8 +46,10 @@ H_MAX_UPPER_LIMIT_M = 100_000
 
 def _far_outside_fov(fov_lat, fov_lon):
     """
-    Check if a given latitude or longiude in the FoV is further away from
-    the FoV center than `FOV_ANGULAR_DISTANCE_LIMIT`
+    Check whether either field-of-view coordinate exceeds the limit.
+
+    Compare the absolute longitude and latitude separately against
+    ``FOV_ANGULAR_DISTANCE_LIMIT_RAD``. The coordinates are in radians.
 
     Parameters
     ----------
@@ -67,8 +69,9 @@ def _far_outside_fov(fov_lat, fov_lon):
 
 class HillasIntersection(HillasGeometryReconstructor):
     """
-    This class is a simple re-implementation of Hillas parameter based event
-    reconstruction. See algorithm I of :cite:p:`hofmann-1999-comparison`.
+    Reconstruct showers by intersecting axes derived from Hillas parameters.
+
+    See algorithm I of :cite:p:`hofmann-1999-comparison`.
 
     In this case the Hillas parameters are all constructed in the shared
     angular (Nominal) system. Direction reconstruction is performed by
@@ -287,8 +290,10 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def reconstruct_nominal(self, hillas_parameters):
         """
-        Perform event reconstruction by simple Hillas parameter intersection
-        in the nominal system
+        Reconstruct the arrival direction by crossing image axes in the nominal frame.
+
+        Combine the pairwise intersections with weights. Return four NaNs if fewer than
+        two images are available.
 
         Parameters
         ----------
@@ -354,8 +359,10 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def reconstruct_tilted(self, hillas_parameters, tel_x, tel_y):
         """
-        Core position reconstruction by image axis intersection in the tilted
-        system
+        Reconstruct the core position by crossing image axes in the tilted frame.
+
+        The uncertainties are the weighted spreads of the intersections. Return four
+        NaNs if fewer than two images are available.
 
         Parameters
         ----------
@@ -370,7 +377,7 @@ class HillasIntersection(HillasGeometryReconstructor):
         -------
         (float, float, float, float):
             core position X, core position Y, core uncertainty X,
-            core uncertainty X
+            core uncertainty Y
         """
         if len(hillas_parameters) < 2:
             return (np.nan, np.nan, np.nan, np.nan)  # Throw away events with < 2 images
@@ -434,8 +441,11 @@ class HillasIntersection(HillasGeometryReconstructor):
         self, source_x, source_y, core_x, core_y, hillas_parameters, tel_x, tel_y, zen
     ):
         """
-        Geometrical depth of shower maximum reconstruction, assuming the shower
-        maximum lies at the image centroid
+        Estimate the altitude of shower maximum above sea level.
+
+        Use image centroids to obtain geometric estimates for individual telescopes,
+        weighted by Hillas intensity. Convert the result to vertical height, add the
+        reference altitude, and return NaN above the configured height limit.
 
         Parameters
         ----------
@@ -458,8 +468,8 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         Returns
         -------
-        float:
-            Estimated depth of shower maximum
+        astropy.units.Quantity
+            Estimated altitude of shower maximum above sea level in meters.
         """
         cog_x = list()
         cog_y = list()
@@ -563,8 +573,10 @@ def get_shower_height(
     source_x, source_y, cog_x, cog_y, core_x, core_y, tel_pos_x, tel_pos_y
 ):
     """
-    Function to calculate the depth of shower maximum geometrically under the assumption
-    that the shower maximum lies at the brightest point of the camera image.
+    Estimate the distance to shower maximum from the image displacement.
+
+    Use the ratio of the impact distance to the angular separation between the source
+    position and the image centroid.
 
     Parameters
     ----------
@@ -587,7 +599,9 @@ def get_shower_height(
 
     Returns
     -------
-    float: Depth of maximum of air shower
+    ndarray
+        Distance to shower maximum for each telescope, in the units of the
+        supplied impact coordinates when the angles are given in radians.
     """
     # Calculate displacement of image centroid from source position (in rad)
     disp = np.sqrt((cog_x - source_x) ** 2 + (cog_y - source_y) ** 2)

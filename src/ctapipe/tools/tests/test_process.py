@@ -468,8 +468,7 @@ def test_ml_preprocessing_from_simtel(tmp_path):
 
 def test_image_modifications(tmp_path, dl1_image_file):
     """
-    Test that running ctapipe-process with an ImageModifier set
-    produces a file with different images.
+    Check that applying an image modifier changes the output images.
     """
     unmodified_images = read_table(dl1_image_file, f"{DL1_TEL_IMAGES_GROUP}/tel_025")
     noise_config = resource_file("image_modification_config.json")
@@ -530,9 +529,10 @@ def test_quickstart(tmp_path):
 
 
 def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
-    """In #2057 reading a subset of allowed tels from
-    simtel yields another result as reading from DL1,
-    which was produced with all tels.
+    """Check that telescope selection agrees for SimTel and DL1 inputs.
+
+    Issue #2057 reported a difference when processing a subset directly from SimTel
+    versus selecting it from DL1 data produced with all telescopes.
 
     This test has three steps:
     1) Create a DL2 file from simtel.

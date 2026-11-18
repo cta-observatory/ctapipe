@@ -99,9 +99,9 @@ def get_subarray_index(tel_table) -> SubarrayIndex:
 
 def _grouped_add(tel_data, n_array_events, indices):
     """
-    Calculate the group-wise sum for each array event over the
-    corresponding telescope events. ``indices`` is an array
-    that gives the index of the subarray event for each telescope event.
+    Sum the telescope values belonging to each array event.
+
+    The ``indices`` array maps each telescope event to its subarray event.
     """
     combined_values = np.zeros(n_array_events)
     np.add.at(combined_values, indices, tel_data)
@@ -116,8 +116,9 @@ def weighted_mean_std_ufunc(
     weights=np.array([1]),
 ):
     """
-    Calculate the weighted mean and standard deviation for each array event
-    over the corresponding telescope events.
+    Compute the weighted mean and standard deviation for each array event.
+
+    Apply the telescope validity mask before combining the grouped values.
 
     Parameters
     ----------

@@ -45,18 +45,13 @@ def _smear_psf_randomly(
     image, fraction, indices, indptr, smear_probabilities, seed=None
 ):
     """
-    Create a new image with values smeared across the
-    neighbor pixels specified by `indices` and `indptr`.
-    These are what defines the sparse neighbor matrix
-    and are available as attributes from the neighbor matrix.
-    The amount of charge that is distributed away from a given
-    pixel is drawn from a poissonian distribution.
-    The distribution of this charge among the neighboring
-    pixels follows a multinomial.
-    Pixels at the camera edge lose charge this way.
-    No geometry is available in this function due to the numba optimization,
-    so the indices, indptr and smear_probabilities have to match
-    to get sensible results.
+    Redistribute pixel values randomly among their neighbors.
+
+    The sparse neighbor matrix provides `indices` and `indptr`. The amount of
+    redistributed charge follows a Poisson distribution, and its allocation among
+    neighbors follows a multinomial distribution. Pixels at the camera edge lose charge.
+    The function does not have access to the geometry, so the indices, pointers, and
+    smearing probabilities must be consistent.
 
     Parameters
     ----------
@@ -114,8 +109,9 @@ def _smear_psf_randomly(
 
 class NoiseEventTypeFilter(EventTypeFilter):
     """
-    Event filter to select noise events for MC tuning
-    By default it selects SKY_PEDESTAL events
+    Select noise events for simulation tuning.
+
+    By default, the filter selects ``SKY_PEDESTAL`` events.
     """
 
     @default("allowed_types")
@@ -128,8 +124,11 @@ def build_wf_noise_pixelwise(
     waveforms, n_noise_realizations, nsb_level, rng, sample_pixels_independently
 ):
     """
-    Combine "elemental noise waveforms" into total noise waveforms by
-    combining a given number of them, chosen randomly
+    Combine randomly selected noise waveforms into noise realizations.
+
+    Each realization samples elementary events without replacement. Sample the same
+    events for all pixels or draw a separate sample per pixel, depending on
+    ``sample_pixels_independently``.
 
     Parameters
     ----------
@@ -344,8 +343,9 @@ class WaveformModifier(TelescopeComponent):
 
     def check_noise_statistics(self, nsb_database):
         """
-        Check that we have enough NSB-only events for all telescopes. We
-        require that the number of NSB events for any telescope is at
+        Check that each telescope has enough night sky background events.
+
+        We require that the number of NSB events for any telescope is at
         least two times the number of waveforms (=nsb_level) that we will add
         up. This is to avoid excessive correlation among the waveforms.
 
@@ -378,10 +378,11 @@ class WaveformModifier(TelescopeComponent):
 
     def zero_baseline(self, nsb_database):
         """
-        For each telescope and gain we average the waveform values for all
-        pixels, and subtract those averages from the waveforms.
-        In this way we make sure we do not introduce any net average charge,
-        but only increase the fluctuations.
+        Center the noise samples for each telescope and gain channel.
+
+        Subtract one scalar mean across all events, pixels, and samples in place. This
+        allows the sampled waveforms to add fluctuations without adding charge on
+        average.
 
         Parameters
         ----------
@@ -426,12 +427,11 @@ class WaveformModifier(TelescopeComponent):
 
 class ImageModifier(TelescopeComponent):
     """
-    Component to tune simulated background to
-    overserved NSB values.
-    A differentiation between bright and dim pixels is taking place
-    because this happens at DL1a level and in general the integration window
-    would change for peak-searching extraction algorithms with different background levels
-    introducing a bias to the charge in dim pixels.
+    Tune simulated night sky background to observations.
+
+    Bright and dim pixels are handled separately at DL1a. For peak-searching extractors,
+    changing the background can shift the integration window and bias the charge of dim
+    pixels.
 
     The performed steps include:
     - Smearing of the image (simulating a worse PSF)

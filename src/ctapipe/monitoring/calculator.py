@@ -1,6 +1,8 @@
 """
-Definition of the ``PixelStatisticsCalculator`` class, providing all steps needed to
-calculate the monitoring data for the camera calibration.
+Calculate camera monitoring statistics for calibration.
+
+The ``PixelStatisticsCalculator`` combines configured aggregators to produce the
+monitoring data.
 """
 
 import numpy as np

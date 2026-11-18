@@ -23,8 +23,9 @@ def taubin(fov_lon, fov_lat, weights, mask):
 
 
 def kundu_chaudhuri_taubin(fov_lon, fov_lat, weights, mask):
-    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface
-    with initial parameters provided by kundu_chaudhuri
+    """Fit a circle with Taubin refinement after an initial Kundu-Chaudhuri fit.
+
+    The fit accepts field-of-view longitude and latitude, weights, and a mask.
     """
     taubin_r_initial, xc_initial, yc_initial, _, _, _ = kundu_chaudhuri_circle_fit(
         fov_lon[mask], fov_lat[mask], weights[mask], nan_errors_flag=True

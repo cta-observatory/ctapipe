@@ -160,9 +160,9 @@ class MissingReferenceMetadata(UserWarning):
 
 class _ActivityProvenance:
     """
-    Low-level helper class to collect provenance information for a given
-    *activity*.  Users should use `Provenance` as a top-level API,
-    not this class directly.
+    Collect provenance for a single activity.
+
+    Use `Provenance` as the public interface.
     """
 
     def __init__(self, activity_name=sys.executable):
@@ -180,8 +180,10 @@ class _ActivityProvenance:
         self.name = activity_name
 
     def start(self):
-        """Begin recording provenance for this activity. Set's up the system
-        and startup provenance data. Generally should be called at start of a
+        """Begin recording provenance for this activity.
+
+        Set's up the system and startup provenance data. Generally should be called at
+        start of a
         program.
         """
         self._prov["start"].update(_sample_cpu_and_memory())
@@ -198,8 +200,10 @@ class _ActivityProvenance:
 
     def register_input(self, url, role=None, add_meta=True, reference_meta=None):
         """
-        Add a URL of a file to the list of inputs (can be a filename or full
-        url, if no URL specifier is given, assume 'file://')
+        Record an input file in the activity provenance.
+
+        Accepts a path or a full URL. Paths without a scheme are treated as ``file://``
+        URLs.
 
         Parameters
         ----------
@@ -217,8 +221,10 @@ class _ActivityProvenance:
 
     def register_output(self, url, role=None, add_meta=True, reference_meta=None):
         """
-        Add a URL of a file to the list of outputs (can be a filename or full
-        url, if no URL specifier is given, assume 'file://')
+        Record an output file in the activity provenance.
+
+        Accepts a path or a full URL. Paths without a scheme are treated as ``file://``
+        URLs.
 
         Should only be called once the file is finalized, so that reference metadata
         can be read.
@@ -422,8 +428,9 @@ class Provenance(metaclass=Singleton):
         return [x.provenance for x in self._finished_activities]
 
     def as_json(self, **kwargs):
-        """Return all finished provenance as JSON.  Kwargs for `json.dumps`
-        may be included, e.g. ``indent=4``
+        """Serialize finished activity provenance as JSON.
+
+        Kwargs for `json.dumps` may be included, e.g. ``indent=4``
         """
         return json.dumps(self.provenance, default=json_config_handler, **kwargs)
 
@@ -457,8 +464,9 @@ def _get_python_packages():
 
 
 def _get_system_provenance():
-    """Return a dict containing provenance for all things that are
-    fixed during the runtime
+    """Collect system provenance that stays fixed during execution.
+
+    The result is a dictionary.
     """
     bits, linkage = platform.architecture()
 

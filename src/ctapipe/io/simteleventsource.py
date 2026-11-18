@@ -417,8 +417,9 @@ def apply_gain_selection(r0_waveforms, r1_waveforms, gain_selector):
 @unique
 class AtmosphereProfileKind(Enum):
     """
-    choice for which kind of atmosphere density profile to load if more than
-    one is present
+    Choose the atmosphere profile to load from a simulation file.
+
+    The choice applies when the file contains more than one profile.
     """
 
     #: Don't load a profile
@@ -762,8 +763,10 @@ class SimTelEventSource(EventSource):
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
-        Constructs a SubarrayDescription object from the
-        ``telescope_descriptions`` given by ``SimTelFile``
+        Build the subarray description from SimTel telescope metadata.
+
+        The metadata comes from the ``telescope_descriptions`` provided by
+        ``SimTelFile``.
 
         Parameters
         ----------
@@ -1291,11 +1294,9 @@ class SimTelEventSource(EventSource):
 
     def _parse_simulation_header(self):
         """
-        Parse the simulation infos and return a dict with
-        observation ids mapped to SimulationConfigContainers.
-        As merged simtel files are not supported at this
-        point in time, this dictionary will always have
-        length 1.
+        Parse simulation headers into configurations keyed by observation ID.
+
+        Merged SimTel files are unsupported, so the result contains one entry.
         """
         obs_id = self.obs_id
         # With only one run, we can take the first entry:
@@ -1357,8 +1358,10 @@ class SimTelEventSource(EventSource):
         return {self.obs_id: configs}
 
     def _fill_scheduling_and_observation_blocks(self):
-        """Fill scheduling and observation blocks must be run after the
-        simulation config is filled
+        """Build scheduling and observation blocks from the SimTel run header.
+
+        The observation ID can be replaced or offset by configuration. Both results are
+        keyed by observation ID.
         """
         header = self.file_.header
         az, alt = header["direction"]

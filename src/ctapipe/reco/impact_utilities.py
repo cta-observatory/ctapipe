@@ -21,8 +21,7 @@ class EmptyImages(Exception):
 
 def guess_shower_depth(energy):
     """
-    Simple estimation of depth of shower max based on the expected gamma-ray elongation
-    rate.
+    Estimate shower maximum depth from the gamma-ray elongation rate.
 
     Parameters
     ----------
@@ -41,25 +40,28 @@ def guess_shower_depth(energy):
 @numba.njit
 def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     """
-    Function to perform rotation and translation of pixel lists. Array
-    manipulation slowing this function significantly. Now Numba accelerated.
+    Rotate and translate pixel positions.
+
+    Use a shared origin for all input images and one rotation angle per image.
+    This routine is compiled with Numba for use inside the ImPACT fit.
 
     Parameters
     ----------
-    pixel_pos_x: ndarray
-        Array of pixel x positions
-    pixel_pos_y: ndarray
-        Array of pixel x positions
-    x_trans: float
-        Translation of position in x coordinates
-    y_trans: float
-        Translation of position in y coordinates
-    phi: float
-        Rotation angle of pixels
+    pixel_pos_x : ndarray
+        Pixel x coordinates with shape (n_images, n_pixels).
+    pixel_pos_y : ndarray
+        Pixel y coordinates with the same shape as ``pixel_pos_x``.
+    x_trans : float
+        X coordinate of the shared origin in the units of the input positions.
+    y_trans : float
+        Y coordinate of the shared origin in the units of the input positions.
+    phi : ndarray
+        Rotation angle in radians for each image.
 
     Returns
     -------
-        ndarray,ndarray: Transformed pixel x and y coordinates
+    x, y : ndarray
+        Transformed coordinates with the same shape as the inputs.
 
     """
     shape = pixel_pos_x.shape

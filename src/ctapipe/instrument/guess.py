@@ -1,8 +1,8 @@
 """
-Methods for guessing details about a telescope from some metadata, so that
-we can create TelescopeDescriptions from Monte-Carlo where some
-parameters like the names of the camera and optics structure are not
-stored in the file.
+Infer telescope properties from available metadata.
+
+This lets us construct telescope descriptions from Monte Carlo files that omit metadata
+such as the camera and optics names.
 """
 
 from collections import namedtuple
@@ -90,10 +90,11 @@ LOOKUP_TREE = _build_lookup_tree(TELESCOPE_NAMES)
 
 def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
     """
-    From n_pixels of the camera and the focal_length,
-    guess which telescope we are dealing with.
-    This is mainly needed to add human readable names
-    to telescopes read from simtel array.
+    Infer the telescope type from the pixel count and focal length.
+
+    The lookup uses camera pixel count and focal length and can use the mirror facet
+    count to distinguish entries. This supplies readable telescope names for SimTelArray
+    inputs.
 
     Parameters
     ----------

@@ -25,8 +25,7 @@ logger = logging.getLogger(__name__)
 
 def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
     """
-    Check whether ``bins`` are within a ``valid_range`` and either warn
-    or raise an error if not.
+    Warn or raise an error when bin edges lie outside the valid range.
 
     Parameters
     ----------
@@ -63,10 +62,11 @@ def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
 @u.quantity_input(e_min=u.TeV, e_max=u.TeV)
 def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
     """
-    Create energy bins with at least ``n_bins_per_decade`` bins per decade,
-    while using the exact lower (``e_min``) and upper (``e_max``) limits.
-    If you want to get exactly ``n_bins_per_decade`` use
-    `pyirf.binning.create_bins_per_decade`.
+    Create logarithmic energy bins with the specified outer edges.
+
+    The bins use the exact ``e_min`` and ``e_max`` limits and have at least
+    ``n_bins_per_decade`` bins per decade. Use `pyirf.binning.create_bins_per_decade`
+    for exactly that bin density.
 
     The number of bins is calculated as
     ``n_bins = ceil((log10(e_max) - log10(e_min)) * n_bins_per_decade)``.

@@ -1,6 +1,7 @@
 """
-Utility functions for preprocessing data before handing them to machine
-learning algorithms like sklearn models.
+Prepare event data for machine learning.
+
+The resulting features can be passed to estimators such as scikit-learn models.
 
 These functions are mainly taken from https://github.com/fact-project/aict-tools
 and adapted to work with astropy Tables instead of pandas dataframes
@@ -58,8 +59,10 @@ def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
 
 def table_to_X(table: Table, features: list[str], log=LOG):
     """
-    Extract features as numpy ndarray to be given to sklearn from input table
-    dropping all events for which one or more training features are nan
+    Build a feature matrix from rows with valid feature values.
+
+    Return a NumPy array for scikit-learn and the mask identifying the rows that were
+    kept.
     """
     feature_table = table[features]
     valid = check_valid_rows(feature_table, log=log)

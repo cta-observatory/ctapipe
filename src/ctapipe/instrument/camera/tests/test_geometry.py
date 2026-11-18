@@ -110,9 +110,10 @@ def test_find_neighbor_pixels():
 
 def test_neighbor_pixels(camera_geometry):
     """
-    Test if each camera has a reasonable number of neighbor pixels (4 for
-    rectangular, and 6 for hexagonal.  Other than edge pixels, the majority
-    should have the same value
+    Check the expected number of neighbors for interior pixels.
+
+    Most interior pixels should have four neighbors in rectangular cameras and six in
+    hexagonal cameras.
     """
     geom = camera_geometry
     n_pix = len(geom.pix_id)
@@ -155,8 +156,7 @@ def test_calc_pixel_neighbors_square():
 
 def test_calc_pixel_neighbors_square_diagonal():
     """
-    Check that neighbors for square-pixel cameras are what we expect,
-    namely that the diagonals are included if requested.
+    Check whether square pixel neighbors include diagonals as requested.
     """
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
@@ -226,8 +226,7 @@ def test_write_read(tmpdir, prod5_lst):
 
 def test_precal_neighbors():
     """
-    Test that pre-calculated neighbor lists don't get
-    overwritten by automatic ones
+    Test that pre-calculated neighbor lists don't get overwritten by automatic ones
     """
     geom = CameraGeometry(
         name="TestCam",

@@ -1,6 +1,7 @@
 """
-Class and related functions to read DL1 (a,b) and/or DL2 (a) data
-from an HDF5 file produced with ctapipe-process.
+Read DL1 and DL2 tables written by ctapipe-process.
+
+Supports DL1a, DL1b, and DL2a data in HDF5 files.
 """
 
 import warnings
@@ -121,8 +122,7 @@ class ChunkIterator:
 
 def _empty_telescope_events_table():
     """
-    Create a new astropy table with correct column names and dtypes
-    for telescope event based data.
+    Create an empty table with the schema for telescope events.
     """
     return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.uint64, np.uint64, np.uint16])
 
@@ -916,8 +916,10 @@ class TableLoader(Component):
     @lazyproperty
     def _n_telescope_events(self):
         """
-        Number of telescope events in the file for each telescope previous
-        to the nth subarray event.
+        Count earlier telescope events separately for each telescope.
+
+        Row n records the per-telescope counts before subarray event n. Counts are
+        derived from the trigger table.
         """
         # we need to load the trigger table until "stop" to
         # know which telescopes participated in which events
@@ -941,8 +943,9 @@ class TableLoader(Component):
     @lazyproperty
     def _n_total_telescope_events(self):
         """
-        Number of telescope events in the file for each telescope previous
-        to the nth subarray event.
+        Count all telescope events before each subarray event.
+
+        Sum the per-telescope counts for each row of the trigger table.
         """
         return self._n_telescope_events.sum(axis=1)
 

@@ -117,8 +117,10 @@ class EventSource(Component):
 
     def __new__(cls, input_url=Undefined, config=None, parent=None, **kwargs):
         """
-        Returns a compatible subclass for given input url, either
-        directly or via config / parent
+        Construct an event source compatible with the input.
+
+        The URL can be supplied directly or obtained from the configuration or parent
+        component.
         """
         # needed to break recursion, as __new__ of subclass will also
         # call this method
@@ -173,8 +175,9 @@ class EventSource(Component):
     @property
     def is_stream(self):
         """
-        Bool indicating if input is a stream. If it is then it is incompatible
-        with `ctapipe.io.eventseeker.EventSeeker`.
+        Indicate whether the input is a stream.
+
+        If it is then it is incompatible with `ctapipe.io.eventseeker.EventSeeker`.
 
         TODO: Define a method to detect if it is a stream
 
@@ -199,8 +202,10 @@ class EventSource(Component):
 
     @property
     def simulation_config(self) -> dict[int, SimulationConfigContainer] | None:
-        """The simulation configurations of all observations provided by the
-        EventSource, or None if the source does not provide simulated data
+        """Return the simulation configurations provided by the source.
+
+        The result maps the IDs of all simulated observations to their configurations.
+        Return ``None`` when the source does not provide simulated data.
 
         Returns
         -------
@@ -280,10 +285,11 @@ class EventSource(Component):
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile | None:
-        """Atmosphere density profile that can be integrated to
-        convert between h_max and X_max.  This should correspond
-        either to what was used in a simulation, or a measurement
-        for use with observed data.
+        """Return the density profile associated with the observations.
+
+        Use the profile from the simulation or a measured profile for observed data. The
+        profile converts between ``h_max`` and ``X_max``. The default implementation
+        returns ``None``.
 
         Returns
         -------
@@ -317,8 +323,7 @@ class EventSource(Component):
 
     def __iter__(self):
         """
-        Generator that iterates through `_generator`, but keeps track of
-        `self.max_events`.
+        Iterate through events up to the configured maximum.
 
         Returns
         -------

@@ -200,8 +200,9 @@ def test_tool_current_config_subcomponents():
 
 
 def test_tool_current_config_subcomponents_list():
-    """Check that we can get the full instance configuration for tools that
-    contain lists of subcomponents (which can be tools)
+    """Check that the tool configuration includes lists of subcomponents.
+
+    Subcomponents in the list can themselves be tools.
     """
     from ctapipe.core.component import Component
 
@@ -677,9 +678,9 @@ def test_exit_status_interrupted(tmp_path):
 
 
 def test_no_ignore_bad_config_type(tmp_path: Path):
-    """Check that if an unknown type of config file is given, an error is raised
-    instead of silently ignoring the file (which is the default for
-    traitlets.config)
+    """Check that an unsupported configuration file type raises an error.
+
+    By default, `traitlets.config` silently ignores unknown file types.
     """
 
     class SomeTool(Tool):
@@ -708,8 +709,7 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
 
 
 def test_tool_in_tool():
-    """Check that a Tool that calls other Tools has the right config in the
-    provenance log.
+    """Check that provenance records the configuration of nested tools.
     """
 
     class InnerTool(Tool):

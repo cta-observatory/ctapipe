@@ -114,9 +114,11 @@ class SoftwareTrigger(TelescopeComponent):
 
     def __call__(self, event: SubarrayEventContainer) -> bool:
         """
-        Remove telescope events that have not the required number of telescopes of
-        a given type from the subarray event and decide if the event would
-        have triggered the stereo trigger.
+        Filter telescope events by multiplicity and evaluate the stereo trigger.
+
+        The method updates the event in place and requires subarray DL0 trigger
+        information. It returns whether the remaining telescopes satisfy the stereo
+        trigger.
 
         Data is cleared from events that did not trigger.
 

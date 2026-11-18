@@ -25,9 +25,10 @@ logger = logging.getLogger(__name__)
 
 class TelescopeComponent(Component):
     """
-    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,
-    and which contains configurable `~ctapipe.core.telescope_component.TelescopeParameter`
-    fields that must be configured on construction.
+    Configure a component with telescope-dependent parameters.
+
+    Construction requires a `~ctapipe.instrument.SubarrayDescription` and configures the
+    `~ctapipe.core.telescope_component.TelescopeParameter` fields.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
@@ -92,8 +93,10 @@ class TelescopeComponent(Component):
 
 class TelescopePatternList(UserList):
     """
-    Representation for a list of telescope pattern tuples. This is a helper class
-    used  by the Trait TelescopeParameter as its value type
+    Store the patterns used to configure telescope parameters.
+
+    The list stores the pattern tuples used as the value of a `TelescopeParameter`
+    trait.
     """
 
     def __init__(self, *args):
@@ -134,8 +137,9 @@ class TelescopePatternList(UserList):
 
     def attach_subarray(self, subarray):
         """
-        Register a SubarrayDescription so that the user-specified values can be
-        looked up by tel_id. This must be done before using the ``.tel[x]`` property
+        Attach the subarray for telescope-specific lookups.
+
+        Call this before accessing ``.tel[x]``.
         """
         self._subarray = subarray
         self._lookup.attach_subarray(subarray)
@@ -144,8 +148,10 @@ class TelescopePatternList(UserList):
 class TelescopeParameterLookup:
     def __init__(self, telescope_parameter_list):
         """
-        Handles the lookup of corresponding configuration value from a list of
-        tuples for a tel_id.
+        Initialize the lookup of configuration values by telescope ID.
+
+        The lookup copies the supplied patterns and resolves telescope-specific values
+        once a subarray is attached.
 
         Parameters
         ----------
@@ -164,8 +170,7 @@ class TelescopeParameterLookup:
 
     def attach_subarray(self, subarray):
         """
-        Prepare the TelescopeParameter by informing it of the
-        subarray description
+        Prepare the TelescopeParameter by informing it of the subarray description
 
         Parameters
         ----------
@@ -253,8 +258,10 @@ class TelescopeParameterLookup:
 
 class TelescopeParameter(List):
     """
-    Allow a parameter value to be specified as a simple value (of type *dtype*),
-    or as a list of patterns that match different telescopes.
+    Configure either a single value or values matched by telescope pattern.
+
+    A single value has type *dtype*. Telescope-specific values are provided as a list of
+    patterns.
 
     The patterns are given as a list of 3-tuples in the
     form: ``[(command, argument, value), ...]``.

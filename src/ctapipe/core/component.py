@@ -19,10 +19,10 @@ __all__ = ["non_abstract_children", "Component"]
 
 def find_config_in_hierarchy(parent, class_name, trait_name):
     """
-    Find the value of a config item in the hierarchy by going up the hierarchy
-    from the parent and then down again to the child.
-    This is needed as parent.config is the full config and not the
-    config starting at the level of the parent.
+    Look up a configuration value in the component hierarchy.
+
+    The search walks up to the parent and back down to the child. The parent's
+    configuration covers the full hierarchy.
     """
     config = parent.config
 
@@ -78,8 +78,9 @@ def non_abstract_children(base):
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     """
-    Metaclass to be able to make Component abstract
-    see: https://stackoverflow.com/a/7314847/3838691
+    Allow configurable components to be abstract.
+
+    See https://stackoverflow.com/a/7314847/3838691 for the metaclass approach.
     """
 
     pass
@@ -225,8 +226,10 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return subclasses
 
     def get_current_config(self):
-        """Return the current configuration as a dict (e.g. the values
-        of all traits, even if they were not set during configuration)
+        """Return the current configurable trait values as a nested dictionary.
+
+        The result includes default values and the configuration of nested tools and
+        components.
         """
         from .tool import Tool  # to avoid circular import
 
