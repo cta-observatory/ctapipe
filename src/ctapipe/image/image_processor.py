@@ -72,19 +72,23 @@ class ImageProcessor(TelescopeComponent):
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
+        Set up image cleaning, modification, and parameterization.
+
+        Create the configured cleaner and image-quality query and cache camera
+        geometries in the telescope frame for parameterization.
+
         Parameters
         ----------
-        subarray: SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used for processing and for resolving
+            telescope-dependent settings.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray

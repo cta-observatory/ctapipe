@@ -35,15 +35,27 @@ class UnstructuredInterpolator:
         dtype=None,
     ):
         """
+        Build a Delaunay triangulation for interpolation on unstructured samples.
+
         Parameters
         ----------
-        keys: ndarray
-            Interpolation grid points
-        values: ndarray
-            Interpolation values
-        function_name: str
-            Name of class member function to call in the case we are interpolating
-            between class predictions, for numpy arrays leave blank
+        keys : array-like
+            Sample coordinates with shape (n_samples, n_dimensions).
+        values : array-like
+            Numeric values, arrays, or callable objects associated with the sample
+            coordinates, in the same order.
+        function_name : str or None, optional
+            Method to call on object-valued samples. With None, call the objects
+            directly. Ignored for numeric values.
+        remember_last : bool, optional
+            Allow reuse of the previous interpolation simplex information when
+            evaluating the same or nearby points.
+        bounds : array-like or None, optional
+            Lower and upper coordinates for each gridded image axis. Supply bounds
+            when evaluating array-valued image templates at separate pixel positions.
+        dtype : numpy.dtype or None, optional
+            Data type for stored values and grid bounds. If None, infer it from
+            the inputs.
         """
         self.keys = keys
         if dtype:

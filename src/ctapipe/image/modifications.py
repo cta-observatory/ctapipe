@@ -260,21 +260,27 @@ class WaveformModifier(TelescopeComponent):
         **kwargs,
     ):
         """
+        Prepare noise waveforms to add to simulated telescope events.
+
+        Read the configured noise database, center its samples, and combine random
+        samples into noise realizations for each telescope.
 
         Parameters
         ----------
-        subarray: SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray that will receive the noise waveforms.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
 
+        Raises
+        ------
+        ValueError
+            If the database contains too few usable noise events.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
@@ -402,10 +408,26 @@ class WaveformModifier(TelescopeComponent):
 
     def __call__(self, event: SubarrayEventContainer):
         """
+        Add sampled noise to an event's R1 waveforms in place.
+
+        Apply this before data volume reduction while the waveforms still cover
+        all pixels. If gain selection has already been applied, use the matching
+        noise gain channel for each pixel.
+
         Parameters
         ----------
-        event: container
-            A `~ctapipe.containers.SubarrayEventContainer` event container
+        event : ctapipe.containers.SubarrayEventContainer
+            Event with R1 waveforms to modify for each telescope.
+
+        Returns
+        -------
+        None
+            The event's R1 waveform arrays are replaced with the noisy waveforms.
+
+        Raises
+        ------
+        ValueError
+            If any telescope event does not contain R1 waveforms.
         """
         for tel_id, tel_event in event.tel.items():
             r1 = tel_event.r1
@@ -465,19 +487,22 @@ class ImageModifier(TelescopeComponent):
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
+        Configure telescope-dependent image smearing and noise.
+
+        Initialize the random number generator used by the image modifications
+        from the configured seed.
+
         Parameters
         ----------
-        subarray: SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope descriptions and camera geometries used by the modifications.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)

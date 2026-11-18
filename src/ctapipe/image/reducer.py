@@ -28,15 +28,19 @@ class DataVolumeReducer(TelescopeComponent):
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
+        Initialize the reducer's telescope-dependent configuration.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        kwargs
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used when selecting pixels.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         self.subarray = subarray
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
@@ -150,15 +154,24 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         **kwargs,
     ):
         """
+        Configure charge extraction and tail-cuts pixel selection.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        kwargs
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used by the cleaner and extractors.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        cleaner : ctapipe.image.ImageCleaner or None, optional
+            Preconfigured cleaner. If None, create a TailcutsImageCleaner.
+        image_extractor : ctapipe.image.ImageExtractor or None, optional
+            Preconfigured charge extractor to use for all telescopes. If None,
+            create the extractors selected by ``image_extractor_type``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 

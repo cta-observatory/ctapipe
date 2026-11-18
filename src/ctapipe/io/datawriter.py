@@ -204,20 +204,28 @@ class DataWriter(Component):
 
     def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
+        Validate the output configuration and open the HDF5 data product.
+
+        The writer checks that any requested R0 or R1 waveforms are available and
+        validates the configured metadata before creating the file.
 
         Parameters
         ----------
-        event_source : EventSource
-            parent event source, which provides header information for the
-            subarray, observation, simulation configuration, and the obs_id
-        config : , optional
-            configuration class
-        parent : , optional
-            parent of this component in the config hierarchy (this supersedes
-            the config option)
-        **kwargs :
-            other options, such as parameters passed to parent.
+        event_source : ctapipe.io.EventSource
+            Source of the input data levels and of the metadata written for the
+            subarray, observations, and simulation runs.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
 
+        Raises
+        ------
+        ctapipe.core.ToolConfigurationError
+            If R0 or R1 waveform output is requested but absent from the input.
         """
         super().__init__(config=config, parent=parent, **kwargs)
 

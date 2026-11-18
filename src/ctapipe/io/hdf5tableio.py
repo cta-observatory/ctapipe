@@ -528,13 +528,21 @@ class HDF5TableReader(TableReader):
 
     def __init__(self, filename, **kwargs):
         """
+        Prepare to read tables from an HDF5 file.
+
         Parameters
         ----------
-        filename: str, pathlib.PurePath or tables.File instance
-            name of hdf5 file or file handle
-        kwargs:
-            any other arguments that will be passed through to
-            `pytables.file.open_file`.
+        filename : str, pathlib.PurePath or tables.File
+            Path to open in read-only mode, or an already open PyTables file to use
+            directly.
+        **kwargs
+            Additional options passed to `tables.open_file` when opening a path.
+            The mode is always set to read-only.
+
+        Raises
+        ------
+        NotImplementedError
+            If ``filename`` is neither a supported path nor an open PyTables file.
         """
         super().__init__()
         self._tables = {}

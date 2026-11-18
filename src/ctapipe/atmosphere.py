@@ -55,10 +55,17 @@ class AtmosphereDensityProfile(abc.ABC):
     @abc.abstractmethod
     def __call__(self, height: u.Quantity) -> u.Quantity:
         """
+        Evaluate atmospheric mass density at the given height.
+
+        Parameters
+        ----------
+        height : astropy.units.Quantity
+            Altitude above sea level as a scalar or array with length units.
+
         Returns
         -------
-        u.Quantity["g cm-3"]
-            the density at height h
+        astropy.units.Quantity
+            Atmospheric mass density in grams per cubic centimeter.
         """
 
     @abc.abstractmethod
@@ -322,10 +329,22 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     def __init__(self, table: Table):
         """
+        Initialize a density profile from tabulated atmospheric data.
+
+        Discard rows with negative height or nonpositive density or column density.
+        Interpolate the density and column density in logarithmic space and build
+        an inverse interpolator from column density to height.
+
         Parameters
         ----------
-        table : Table
-            Table with columns `height`, `density`, and `column_density`
+        table : astropy.table.Table
+            Table with ``height``, ``density``, and ``column_density`` columns
+            carrying length, mass-density, and mass-per-area units, respectively.
+
+        Raises
+        ------
+        ValueError
+            If a required column is missing.
         """
         for col in ["height", "density", "column_density"]:
             if col not in table.colnames:

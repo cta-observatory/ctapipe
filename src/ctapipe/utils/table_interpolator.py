@@ -127,21 +127,26 @@ class TableInterpolator:
 
     def interpolate(self, params, pixel_pos_x, pixel_pos_y):
         """
+        Evaluate an interpolated image template at the requested pixel positions.
+
+        The template is first interpolated over the shower parameters and then
+        evaluated on its regular image grid.
 
         Parameters
         ----------
-        params: ndarray
-            numpy array of interpolation parameters
-            currently [energy, impact distance, xmax]
-        pixel_pos_x: ndarray
-            pixel position in degrees
-        pixel_pos_y: ndarray
-            pixel position in degrees
+        params : array-like
+            Shower parameters in the order specified by the template file,
+            typically energy, impact distance, and depth of shower maximum.
+        pixel_pos_x : ndarray
+            Pixel x coordinates in degrees.
+        pixel_pos_y : ndarray
+            Corresponding pixel y coordinates in degrees.
 
         Returns
         -------
-        ndarray of expected intensity for all pixel positions given
-
+        ndarray
+            Expected intensity at each pixel position. Positions outside the
+            template's image grid receive zero.
         """
         image = self.interpolated_image(params)
         self.grid_interp.values = image

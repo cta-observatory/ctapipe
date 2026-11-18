@@ -150,26 +150,27 @@ class CameraCalibrator(TelescopeComponent):
         **kwargs,
     ):
         """
+        Configure the components used to calibrate camera events.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
-        data_volume_reducer: ctapipe.image.reducer.DataVolumeReducer
-            The DataVolumeReducer to use.
-            This is used to override the options from the config system
-            and to enable passing a preconfigured reducer.
-        image_extractor: ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use. If None, the default via the
-            configuration system will be constructed.
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used for calibration and for
+            resolving telescope-dependent settings.
+        config : traitlets.loader.Config or None, optional
+            Configuration used to initialize trait values. Mutually exclusive with
+            ``parent``.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        image_extractor : ctapipe.image.ImageExtractor or None, optional
+            Preconfigured extractor to use for all telescopes. If None, create
+            the extractors selected by ``image_extractor_type``.
+        data_volume_reducer : ctapipe.image.DataVolumeReducer or None, optional
+            Preconfigured reducer. If None, create the reducer selected by
+            ``data_volume_reducer_type``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray

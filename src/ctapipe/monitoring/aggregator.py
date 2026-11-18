@@ -314,12 +314,20 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
+        Initialize the strategy for splitting events into aggregation chunks.
+
+        Create the chunking component selected by ``chunking_type`` and give it
+        this aggregator as its configuration parent.
+
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments
-        parent : ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -448,12 +456,27 @@ class HistogramAggregator(BaseAggregator):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
+        Configure chunked histogram aggregation and build its histogram axis.
+
+        The ``axis_definition`` trait selects the ``hist.axis`` class using
+        ``class_name``. Its remaining entries are passed to the axis constructor.
+
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments
-        parent : ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
+
+        Raises
+        ------
+        OptionalDependencyMissing
+            If the optional ``hist`` package is unavailable.
+        traitlets.TraitError
+            If ``axis_definition`` does not specify an axis class.
         """
         if hist is None:
             raise OptionalDependencyMissing("hist")

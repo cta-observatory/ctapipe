@@ -106,10 +106,21 @@ class EventWeighter(Component):
         **kwargs,
     ):
         """
+        Set up the simulated and target spectra for event weighting.
+
         Parameters
         ----------
-        source_spectrum: Callable
-            initial spectrum of the events to be processed.
+        source_spectrum : callable
+            Simulated spectrum evaluated at photon or particle energies supplied
+            as quantities. The target spectrum is selected by
+            ``target_spectrum_name``.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.source_spectrum = source_spectrum

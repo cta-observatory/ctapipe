@@ -149,23 +149,35 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
+        Reconstruct shower geometry by intersecting telescope image axes.
+
+        Transform the image centroids to the array's nominal frame to estimate
+        arrival direction, then use the tilted ground frame for the core fit.
 
         Parameters
         ----------
-        hillas_dict: dict
-            Dictionary containing Hillas parameters for all telescopes
-            in reconstruction
-        inst : ctapipe.io.InstrumentContainer
-            instrumental description
-        array_pointing: SkyCoord[AltAz]
-            pointing direction of the array
-        telescopes_pointings: dict[SkyCoord[AltAz]]
-            dictionary of pointing direction per each telescope
+        hillas_dict : dict of int to ctapipe.containers.HillasParametersContainer
+            Image parameters indexed by telescope ID. At least two images with
+            nonzero, non-NaN widths are required.
+        array_pointing : astropy.coordinates.SkyCoord
+            Array pointing in the AltAz frame.
+        telescopes_pointings : dict of int to astropy.coordinates.SkyCoord or None
+            AltAz pointing per participating telescope. If None, use the array
+            pointing for all telescopes.
 
         Returns
         -------
-        ReconstructedGeometryContainer:
+        ctapipe.containers.ReconstructedGeometryContainer
+            Reconstructed direction, core position, and shower maximum height.
+            If the fitted direction lies too far from the field-of-view center,
+            return an invalid reconstruction.
 
+        Raises
+        ------
+        TooFewTelescopesException
+            If fewer than two telescope images are supplied.
+        InvalidWidthException
+            If an image width is zero or NaN.
         """
         # filter warnings for missing obs time. this is needed because MC data has no obs time
         warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)

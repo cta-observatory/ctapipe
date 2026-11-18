@@ -286,10 +286,18 @@ class TemplateNetworkInterpolator(BaseTemplate):
 
     def __init__(self, template_file, bounds=((-5, 1), (-1.5, 1.5))):
         """
+        Load image templates for interpolating predicted pixel charges.
+
+        Prepare direction-specific interpolation when the template keys supply
+        zenith and azimuth. Otherwise, use a single interpolator.
+
         Parameters
         ----------
-        template_file: str
-            Location of pickle file containing ImPACT NN templates
+        template_file : str or path-like
+            Path to the gzip-compressed pickle containing ImPACT image templates.
+        bounds : array-like, optional
+            Lower and upper image-coordinate bounds in degrees for the x and y
+            axes, respectively. Used to map pixel coordinates to template bins.
         """
         super().__init__()
 
@@ -358,10 +366,16 @@ class TimeGradientInterpolator(BaseTemplate):
 
     def __init__(self, template_file):
         """
+        Load templates for interpolating the expected image time gradient.
+
+        Prepare direction-specific interpolation when the template keys supply
+        zenith and azimuth. Otherwise, use a single interpolator.
+
         Parameters
         ----------
-        template_file: str
-            Location of pickle file containing ImPACT NN templates
+        template_file : str or path-like
+            Path to the gzip-compressed pickle containing the ImPACT time-gradient
+            templates.
         """
         super().__init__()
         file_list = gzip.open(template_file)

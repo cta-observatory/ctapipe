@@ -532,27 +532,38 @@ class MuonIntensityFitter(TelescopeComponent):
 
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
+        Fit optical efficiency and ring width from a muon image.
+
+        The fit keeps the supplied ring center and radius fixed and also fits the
+        muon impact position. It supports single-mirror telescopes.
 
         Parameters
         ----------
-        tel_id: int
-            the telescope id
-        center_x: Angle quantity
-            Initial guess for muon ring center in telescope frame
-        center_y: Angle quantity
-            Initial guess for muon ring center in telescope frame
-        radius: Angle quantity
-            Initial guess for muon ring radius in telescope frame
-        image: ndarray
-            Amplitude of image pixels
-        pedestal: ndarray
-            Pedestal standard deviation in each pixel
-        mask: ndarray
-            mask marking the pixels to be used in the likelihood fit
+        tel_id : int
+            Telescope ID used to select its optics, geometry, and fit settings.
+        center_x : astropy.units.Quantity
+            Initial guess for the ring center longitude in the telescope frame.
+        center_y : astropy.units.Quantity
+            Initial guess for the ring center latitude in the telescope frame.
+        radius : astropy.units.Quantity
+            Initial guess for the angular radius of the ring.
+        image : ndarray
+            Integrated charge for each camera pixel.
+        pedestal : ndarray
+            Pedestal standard deviation for each pixel, in the same units as image.
+        mask : ndarray of bool or None, optional
+            Pixels to include in the fit. If None, use all pixels.
 
         Returns
         -------
-        MuonEfficiencyContainer
+        ctapipe.containers.MuonEfficiencyContainer
+            Fitted optical efficiency, ring width, and impact position, together
+            with the likelihood and fit validity and boundary flags.
+
+        Raises
+        ------
+        NotImplementedError
+            If the telescope does not have exactly one mirror.
         """
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.n_mirrors != 1:

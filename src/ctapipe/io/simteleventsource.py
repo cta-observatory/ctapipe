@@ -870,12 +870,13 @@ class SimTelEventSource(EventSource):
 
     def _make_dummy_location(self):
         """
+        Create a fallback observatory location for a simulated run.
+
         Returns
         -------
-        EarthLocation:
-            Dummy earth location that is at the correct height (as given in the
-            SimulationConfigContainer), but with the lat/lon set to (0,0), i.e.
-            on "Null Island"
+        astropy.coordinates.EarthLocation
+            Location at longitude and latitude zero with the site altitude from
+            the current observation's simulation configuration.
         """
         return EarthLocation(
             lon=0 * u.deg,

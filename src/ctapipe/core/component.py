@@ -128,21 +128,25 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
+        Initialize component configuration and logging.
+
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-        parent: Tool or Component
-            If a Component is created by another Component or Tool,
-            you need to pass the creating Component as parent, e.g.
-            `parent=self`. This makes sure the config is correctly
-            handed down to the child components.
-            Do not pass config in this case.
-        kwargs
-            Traitlets to be overridden.
-            TraitError is raised if kwargs contains a key that does not
-            correspond to a traitlet.
+        config : traitlets.loader.Config or None, optional
+            Configuration from a file, command-line arguments, or other caller.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            When a component or tool creates a child component, pass
+            ``parent=self`` so the child inherits its configuration and uses
+            a child of its logger. Leave ``config`` unset in this case.
+        **kwargs
+            Trait values that override the configuration.
+
+        Raises
+        ------
+        ValueError
+            If both ``config`` and ``parent`` are provided.
+        TraitError
+            If a supplied trait value is invalid or an unknown trait is supplied.
         """
         if parent is not None and config is not None:
             raise ValueError(

@@ -973,19 +973,32 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         limits,
     ):
         """
+        Fit the shower parameters by minimizing the ImPACT objective.
+
+        The source position, core position, energy, and shower-maximum scale are
+        free. The fit starts with a scale of one and keeps goodness-of-fit mode
+        disabled.
 
         Parameters
         ----------
-        params: ndarray
-            Seed parameters for fit
-        step: ndarray
-            Initial step size in the fit
-        limits: ndarray
-            Fit bounds
+        params : array-like
+            Initial direction coordinates in radians, core coordinates in meters,
+            and energy in TeV, in that order.
+        step : array-like
+            Initial Minuit step sizes in parameter order: source x and y, core x
+            and y, energy, shower-maximum scale, and the fixed mode flag.
+        limits : array-like
+            Lower and upper parameter limits in the same order as ``step``.
 
         Returns
         -------
-        tuple: best fit parameters and errors
+        parameters : tuple of float
+            Fitted source x and y, core x and y, energy, and shower-maximum scale.
+        errors : tuple of float
+            Minuit errors in fitted-parameter order. The current implementation
+            uses the core-x error for both core coordinates.
+        objective_value : float
+            Value of the minimized objective at the fitted parameters.
         """
         limits = np.asarray(limits)
 
