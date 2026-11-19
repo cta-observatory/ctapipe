@@ -1,3 +1,11 @@
+"""Coordinate frames and transformations for the camera focal plane.
+
+Use `CameraFrame` for Cartesian positions on the focal plane and
+`TelescopeFrame` for angular positions in the field of view. The camera
+rotation and focal length enter this conversion. `EngineeringCameraFrame`
+uses the engineering axis conventions for single- and dual-mirror telescopes.
+"""
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import (

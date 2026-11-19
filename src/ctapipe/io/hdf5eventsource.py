@@ -1,3 +1,10 @@
+"""Read ctapipe HDF5 event data and its observation metadata.
+
+`HDF5EventSource` assembles event containers from stored waveform, image,
+parameter, and reconstruction tables where available. The module can also
+identify which data levels a file contains and load its atmospheric profile.
+"""
+
 import logging
 import warnings
 from contextlib import ExitStack

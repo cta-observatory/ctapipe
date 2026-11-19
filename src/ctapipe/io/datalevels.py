@@ -1,3 +1,9 @@
+"""Identify the processing levels present in telescope and array data products.
+
+The enum distinguishes raw and calibrated waveforms, camera images and
+their parameters, reconstructed events, and downstream science products.
+"""
+
 from enum import Enum, auto
 
 

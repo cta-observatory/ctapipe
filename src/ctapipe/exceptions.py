@@ -1,3 +1,5 @@
+"""Exceptions for missing inputs, optional dependencies, and data compatibility."""
+
 class CTAPipeException(Exception):
     pass
 

@@ -1,3 +1,9 @@
+"""Plot telescope positions and event information on a Matplotlib array display.
+
+Color telescopes by measured or reconstructed values and overlay vectors
+or lines derived from Hillas parameters to inspect shower geometry.
+"""
+
 from itertools import cycle
 
 import numpy as np

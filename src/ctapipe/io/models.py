@@ -1,3 +1,10 @@
+"""Store and load reconstruction models in BagIt ZIP archives.
+
+The archive can include joblib-serialized models, a subarray description,
+configuration, and product metadata. The reader checks the model data format
+version and restores instrument information when loading a reconstructor.
+"""
+
 import hashlib
 import json
 import zipfile

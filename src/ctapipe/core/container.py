@@ -1,3 +1,9 @@
+"""Define structured containers and their fields for passing data between components.
+
+Fields describe defaults, units, and validation constraints. Containers
+can be nested or grouped in maps keyed by identifiers such as telescope ID.
+"""
+
 import logging
 import warnings
 from collections import defaultdict

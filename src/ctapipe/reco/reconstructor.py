@@ -1,3 +1,10 @@
+"""Define the interface for event reconstruction and its telescope quality cuts.
+
+Reconstructors operate on events with DL1 parameters and store results
+in DL2 containers. The module also provides a common base for Hillas-based
+geometry reconstruction and a loader for serialized reconstructors.
+"""
+
 import warnings
 import weakref
 import zipfile

@@ -1,4 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+"""Locate and load datasets used by ctapipe.
+
+Look for named datasets in configured directories or the download cache,
+and fetch them from the configured server when needed. The module also
+loads table and structured datasets and locates bundled resources.
+"""
+
 import gzip
 import json
 import logging

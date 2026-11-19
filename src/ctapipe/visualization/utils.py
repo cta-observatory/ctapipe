@@ -1,3 +1,9 @@
+"""Prepare Hillas ellipse geometry and labels for camera displays.
+
+Convert Hillas parameters to the display units and compute the optional
+label position and rotation from the ellipse geometry.
+"""
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle

@@ -1,3 +1,9 @@
+"""Prepare coordinates and fit seeds for ImPACT reconstruction.
+
+The helpers also estimate the expected shower-maximum depth from the
+primary energy and generate dummy image templates for tests.
+"""
+
 import gzip
 import pickle
 

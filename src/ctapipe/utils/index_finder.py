@@ -1,3 +1,5 @@
+"""Find the index of the nearest value in a possibly unsorted sequence."""
+
 import bisect
 import warnings
 

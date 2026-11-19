@@ -1,3 +1,11 @@
+"""Interpolate ImPACT templates for camera charge and timing predictions.
+
+The interpolators evaluate image templates at pixel coordinates or return
+the expected time gradient and its spread. If the template library includes
+zenith and azimuth, those angles are interpolated separately from the
+remaining shower parameters.
+"""
+
 import gzip
 import pickle
 

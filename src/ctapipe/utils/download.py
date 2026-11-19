@@ -1,3 +1,9 @@
+"""Download remote files and reuse local copies in the dataset cache.
+
+Downloads use partial files until they complete. A lock coordinates downloads
+to the same cache entry across processes.
+"""
+
 import logging
 import os
 from pathlib import Path

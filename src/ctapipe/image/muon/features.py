@@ -1,3 +1,10 @@
+"""Measure muon-ring quality and light distribution in camera images.
+
+Estimate how well the light follows a circle, how much falls within the
+ring, how complete the ring is, and how much lies inside the camera's field
+of view. The module also provides radial light profiles.
+"""
+
 from typing import Sequence
 
 import astropy.units as u

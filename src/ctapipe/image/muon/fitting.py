@@ -1,3 +1,9 @@
+"""Fit circles to weighted camera pixel positions for muon-ring analysis.
+
+The Kundu-Chaudhuri and Taubin methods estimate the ring center and radius
+from pixel coordinates and image weights.
+"""
+
 import astropy.units as u
 import numpy as np
 from astropy.units import Quantity

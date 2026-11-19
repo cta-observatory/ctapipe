@@ -1,3 +1,10 @@
+"""Evaluate telescope monitoring data at event timestamps.
+
+Interpolate pointing data and look up camera statistics and calibration
+values in time chunks. Overlapping chunks can supply values missing from
+the most recent applicable chunk.
+"""
+
 from abc import ABCMeta, abstractmethod
 from typing import Any
 

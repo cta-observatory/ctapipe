@@ -1,3 +1,9 @@
+"""Display Cherenkov cameras and telescope arrays interactively with Bokeh.
+
+Plot pixel values or telescope positions and update their colors as data
+change. Camera displays support image overlays and pixel selection.
+"""
+
 import sys
 from abc import ABCMeta
 from tempfile import NamedTemporaryFile

@@ -1,3 +1,9 @@
+"""Apply a software stereo trigger to processed subarray events.
+
+Filter telescope events by event type and enforce configurable minimum
+multiplicities for the array and for individual telescope types.
+"""
+
 import numpy as np
 
 from ..containers import EventType, SubarrayEventContainer

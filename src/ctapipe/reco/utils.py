@@ -1,3 +1,9 @@
+"""Populate reconstruction table columns and metadata from container definitions.
+
+Use field defaults to fill missing columns and record the field name and
+description for reading the result back into a container.
+"""
+
 def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
     """
     Fill column descriptions and default values into table for container

@@ -1,3 +1,9 @@
+"""Map camera pixel coordinates between hexagonal and orthogonal grids.
+
+Compute orthogonal bin indices or edges for resampling, and map positions
+on the orthogonal grid back to the hexagonal layout.
+"""
+
 import astropy.units as u
 import numpy as np
 

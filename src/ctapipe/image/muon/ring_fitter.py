@@ -1,3 +1,9 @@
+"""Choose and apply a circle fit to selected pixels in a muon image.
+
+`MuonRingFitter` wraps the Kundu-Chaudhuri and Taubin fits in a common
+interface and supports using the former to initialize the latter.
+"""
+
 import numpy as np
 import traitlets as traits
 

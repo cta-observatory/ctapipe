@@ -1,3 +1,9 @@
+"""Select events by their trigger event type.
+
+Configure the allowed types using `EventTypeFilter`. Applying the selection
+requires DL0 trigger information when an allowlist is configured.
+"""
+
 from ..containers import EventType
 from ..core import Component
 from ..core.traits import Set, UseEnum

@@ -1,3 +1,10 @@
+"""Read SimTelArray event files and expose simulated events to ctapipe.
+
+`SimTelEventSource` reads the EventIO format and supplies the instrument
+description along with raw and calibrated waveforms. The module also reads
+simulation and atmosphere metadata.
+"""
+
 import enum
 import pathlib
 import warnings

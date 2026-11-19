@@ -1,3 +1,10 @@
+"""Transform pointing and shower coordinates between common analysis frames.
+
+Convert altitude and azimuth to right-handed Cartesian directions,
+nominal field-of-view coordinates, or ICRS. The module also projects a
+point on a reconstructed shower axis into a telescope's horizontal frame.
+"""
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord

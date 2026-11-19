@@ -1,3 +1,9 @@
+"""Measure how concentrated the charge is in a cleaned camera image.
+
+The ratios compare the brightest pixel, the pixels near the charge
+centroid, and the pixels inside the Hillas ellipse with the total image charge.
+"""
+
 import astropy.units as u
 import numpy as np
 

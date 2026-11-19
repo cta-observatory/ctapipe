@@ -1,3 +1,5 @@
+"""Summarize camera pixel intensities and find the brightest pixels."""
+
 from heapq import nlargest
 
 import numpy as np

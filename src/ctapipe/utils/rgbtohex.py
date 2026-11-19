@@ -1,3 +1,9 @@
+"""Map numerical intensities to display colors.
+
+Scale values into the viridis colormap and return byte-valued RGBA colors
+or hexadecimal color strings for display backends.
+"""
+
 import codecs
 
 import numpy as np

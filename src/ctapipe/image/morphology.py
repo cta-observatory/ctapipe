@@ -1,3 +1,9 @@
+"""Measure the connected regions of cleaned Cherenkov camera images.
+
+Label islands using the camera's pixel adjacency, count them by size, and
+select the largest or brightest island for further analysis.
+"""
+
 import numpy as np
 from numba import njit
 

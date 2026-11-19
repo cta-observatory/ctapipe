@@ -1,3 +1,5 @@
+"""Plot the pixel positions and neighbor matrix of a simulated camera."""
+
 from matplotlib import pyplot as plt
 
 from ctapipe.instrument import SubarrayDescription

@@ -1,3 +1,9 @@
+"""Merge compatible ctapipe HDF5 data products into one file.
+
+`HDF5Merger` combines event tables and their associated instrument,
+observation, and simulation data. It can append to an existing output file.
+"""
+
 import enum
 import uuid
 import warnings

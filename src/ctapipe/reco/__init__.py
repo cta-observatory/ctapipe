@@ -1,5 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
+"""Reconstruct air showers and estimate primary-particle properties.
+
+The package provides geometrical and template-based shower reconstruction,
+machine-learning estimators for energy, direction, and particle type, and
+methods to combine telescope-level predictions into array-event results.
+"""
+
 # reconstructors must be imported before ShowerProcessor, so
 # they are available there
 from .hillas_intersection import HillasIntersection

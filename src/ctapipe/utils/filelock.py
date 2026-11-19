@@ -1,3 +1,9 @@
+"""Coordinate cooperating processes using an exclusively created lock file.
+
+Use `FileLock` as a context manager to wait for an existing lock and
+remove the acquired lock when leaving the context.
+"""
+
 import time
 from pathlib import Path
 

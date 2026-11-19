@@ -1,3 +1,5 @@
+"""Provide vector norms, normalization, angles, and planar rotation matrices."""
+
 import numpy as np
 from astropy.coordinates import Angle
 from numpy import cos, sin

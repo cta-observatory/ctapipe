@@ -1,3 +1,10 @@
+"""Adjust simulated waveforms and images to match camera conditions.
+
+Add sampled night-sky background noise to R1 waveforms before data volume
+reduction. At image level, add noise to the integrated pixel charges or
+redistribute charge among neighboring pixels to simulate optical blurring.
+"""
+
 from collections import defaultdict
 
 import numpy as np

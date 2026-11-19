@@ -1,4 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+"""Shared tools for finding data, looking up bright stars, and interpolating values.
+
+The package also exposes event-type filtering and nearest-value indexing for
+use in event processing and analysis.
+"""
+
 from .astro import get_bright_stars
 from .datasets import (
     find_all_matching_datasets,

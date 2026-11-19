@@ -1,3 +1,9 @@
+"""Combine telescope-level predictions into a stereo result for each array event.
+
+The weighted-mean combiner works with event containers and tables and
+combines energy estimates, arrival directions, or particle-type scores.
+"""
+
 from abc import abstractmethod
 
 import astropy.units as u
