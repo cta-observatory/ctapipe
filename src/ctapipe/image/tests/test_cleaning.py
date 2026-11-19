@@ -197,8 +197,7 @@ def test_tailcuts_clean_min_neighbors_1():
 
 
 def test_tailcuts_clean_min_neighbors_2():
-    """Requiring that picture pixels have at least two neighbors above picture_thresh
-    """
+    """Requiring that picture pixels have at least two neighbors above picture_thresh"""
     # start with simple 3-pixel camera
     geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
 

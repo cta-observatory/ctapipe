@@ -170,8 +170,7 @@ def test_hdf(example_subarray, tmp_path):
 
 
 def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam, reference_location):
-    """Check that a subarray with a shared camera survives an HDF5 round trip.
-    """
+    """Check that a subarray with a shared camera survives an HDF5 round trip."""
     frankenstein_lst = TelescopeDescription(
         name="LST",
         optics=prod5_lst.optics,
@@ -197,8 +196,7 @@ def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam, reference_loca
 
 
 def test_hdf_duplicate_string_repr(tmp_path, prod5_lst, reference_location):
-    """Check the HDF5 round trip for different telescopes with the same name.
-    """
+    """Check the HDF5 round trip for different telescopes with the same name."""
     # test with a subarray that has two different telescopes with the same
     # camera
     tel1 = prod5_lst

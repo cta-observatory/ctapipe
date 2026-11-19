@@ -184,8 +184,7 @@ def test_telescope_parameter_scalar_default(mock_subarray):
 
 
 def test_telescope_parameter_resolver(mock_subarray):
-    """Check that you can resolve the rules specified in a TelescopeParameter trait
-    """
+    """Check that you can resolve the rules specified in a TelescopeParameter trait"""
 
     class SomeComponent(Component):
         tel_param1 = IntTelescopeParameter(

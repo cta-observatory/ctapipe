@@ -709,8 +709,7 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
 
 
 def test_tool_in_tool():
-    """Check that provenance records the configuration of nested tools.
-    """
+    """Check that provenance records the configuration of nested tools."""
 
     class InnerTool(Tool):
         param1 = traits.Int(12).tag(config=True)

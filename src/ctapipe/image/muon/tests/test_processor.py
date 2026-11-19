@@ -13,8 +13,7 @@ pytest.importorskip("iminuit")
 
 
 def test_processor(dl1_muon_file):
-    """Check that the muon processor supplies results or defaults.
-    """
+    """Check that the muon processor supplies results or defaults."""
     with EventSource(dl1_muon_file, focal_length_choice="EQUIVALENT") as source:
         image_processor = ImageProcessor(source.subarray)
         muon_processor = MuonProcessor(source.subarray)
