@@ -442,9 +442,9 @@ def read_atmosphere_profile_from_simtel(
 
     Parameters
     ----------
-    simtelfile: str | SimTelFile
+    simtelfile : str | SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
-    kind: AtmosphereProfileKind | str
+    kind : AtmosphereProfileKind | str
         which type of model to load. In AUTO mode, table is tried first,
         and if it doesn't exist, fivelayer is used.
 
@@ -770,9 +770,9 @@ class SimTelEventSource(EventSource):
 
         Parameters
         ----------
-        telescope_descriptions: dict
+        telescope_descriptions : dict
             telescope descriptions as given by ``SimTelFile.telescope_descriptions``
-        header: dict
+        header : dict
             header as returned by ``SimTelFile.header``
 
         Returns

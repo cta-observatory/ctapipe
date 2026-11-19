@@ -55,19 +55,19 @@ def _smear_psf_randomly(
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         1d array of the pixel charge values
-    fraction: float
+    fraction : float
         fraction of charge that will be distributed among neighbors (modulo poissonian)
-    indices: ndarray[int]
+    indices : ndarray[int]
         CSR format index array of the neighbor matrix
-    indptr: ndarray[int]
+    indptr : ndarray[int]
         CSR format index pointer array of the neighbor matrix
-    smear_probabilities: ndarray[float]
+    smear_probabilities : ndarray[float]
         shape: (n_neighbors, )
         A priori distribution of the charge amongst neighbors.
         In most cases probably of the form np.full(n_neighbors, 1/n_neighbors)
-    seed: int
+    seed : int
         Random seed for the numpy rng.
         Because this is numba optimized, a rng instance can not be used here
 
@@ -132,19 +132,19 @@ def build_wf_noise_pixelwise(
 
     Parameters
     ----------
-    waveforms: array (nevents, ngains, npixels, nsamples), the elemental noise
+    waveforms : array (nevents, ngains, npixels, nsamples), the elemental noise
     waveforms
 
-    n_noise_realizations: int
+    n_noise_realizations : int
     the number of total noise waveforms we want to generate
 
-    nsb_level: int
+    nsb_level : int
     the number of elemental noise waveforms we combine to produce each total
     noise waveform
 
-    rng: random number generator
+    rng : random number generator
 
-    sample_pixels_independently: bool
+    sample_pixels_independently : bool
     if True, each pixel will use a different random combination of the elemental
     noise events to build the noise to be added to its waveform.
     if False, the waveform for each pixel in any given noise realization comes
@@ -357,7 +357,7 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        nsb_database: dict
+        nsb_database : dict
         Dictionary with one key per telescope, containing an array [n_events,
         n_gains, n_pixels, n_samples] (noise waveforms)
 
@@ -392,7 +392,7 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        nsb_database: dict
+        nsb_database : dict
         Dictionary with one key per telescope, containing an array [n_events,
         n_gains, n_pixels, n_samples] (noise waveforms)
 

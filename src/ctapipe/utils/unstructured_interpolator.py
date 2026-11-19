@@ -216,9 +216,9 @@ class UnstructuredInterpolator:
 
         Parameters
         ----------
-        point_num: int
+        point_num : int
             Index of class position in values list
-        eval_points: ndarray
+        eval_points : ndarray
             Inputs used to evaluate class member function
 
         Returns
@@ -259,9 +259,9 @@ class UnstructuredInterpolator:
 
         Parameters
         ----------
-        point_num: int
+        point_num : int
         Index of class position in values list
-        eval_points: ndarray
+        eval_points : ndarray
         Inputs used to evaluate class member function
 
         Returns

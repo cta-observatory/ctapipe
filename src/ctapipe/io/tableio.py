@@ -62,9 +62,9 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_regexp: str
+        table_regexp : str
             regexp matching to match table name to apply exclusion
-        pattern: str
+        pattern : str
             regular expression string to match column name in the table
 
         """
@@ -87,11 +87,11 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_name: str
+        table_name : str
             identifier of table being written
-        col_name: str
+        col_name : str
             name of column in the table (or item in the Container).
-        transform: ColumnTransform
+        transform : ColumnTransform
             function that transforms input into output
 
         """
@@ -109,12 +109,12 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_name: regexp
+        table_name : regexp
             pattern matching the table name (via re.matchall)
-        col_name: regexp
+        col_name : regexp
             pattern matching the column name if the table name also matches
             (via re.matchall)
-        transform: ColumnTransform
+        transform : ColumnTransform
             function that tranformns input value into output value
 
         """
@@ -138,9 +138,9 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_name: str
+        table_name : str
             table name
-        containers: List[Container]
+        containers : List[Container]
             List of containers to check
         """
         for table_regexp, column_regexp_dict in self._transform_regexps.items():
@@ -177,9 +177,9 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_name: str
+        table_name : str
             name of table to write to
-        containers: ctapipe.core.Container or iterable thereof
+        containers : ctapipe.core.Container or iterable thereof
             container instance(s) to write
         **kwargs:
             may be passed to a lower level implementation to set options
@@ -193,9 +193,9 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        filename: str
+        filename : str
             output file name
-        kwargs:
+        **kwargs
             any extra args to pass to the subclass open method
         """
         pass

@@ -54,7 +54,7 @@ class CameraReadout:
 
         Parameters
         ----------
-        name: str
+        name : str
              Camera name (e.g. NectarCam, LSTCam, ...)
         sampling_rate : u.Quantity[frequency]
             Sampling rate of the waveform
@@ -135,14 +135,14 @@ class CameraReadout:
         This expects that there is a resource accessible
         via `~ctapipe.utils.get_table_dataset` called
         ``"[array]-[camera].camreadout.fits.gz"`` or
-        ``"[array]-[camera]-[version].camgeom.fits.gz"``.
+        ``"[array]-[camera]-[version].camreadout.fits.gz"``.
 
         Parameters
         ----------
-        name: str
+        name : str
              Camera name (e.g. NectarCam, LSTCam, ...)
-        version:
-           camera version id (currently unused)
+        version : int or None, optional
+            Version appended to the camera name as a three-digit suffix.
 
         Returns
         -------
@@ -199,9 +199,9 @@ class CameraReadout:
 
         Parameters
         ----------
-        url_or_table: string or astropy.table.Table
+        url_or_table : string or astropy.table.Table
             either input filename/url or a Table instance
-        kwargs: extra keyword arguments
+        kwargs : extra keyword arguments
             extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
 

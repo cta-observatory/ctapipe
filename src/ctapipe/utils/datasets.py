@@ -122,9 +122,9 @@ def find_in_path(filename, searchpath, url=None):
 
     Parameters
     ----------
-    searchpath: str
+    searchpath : str
         colon-separated list of directories (like PATH)
-    filename:
+    filename : str or path-like
         filename to find
 
     Returns
@@ -155,7 +155,7 @@ def get_dataset_path(filename, url=None):
 
     Parameters
     ----------
-    filename: str
+    filename : str
         name of dataset to fetch
 
     Returns
@@ -192,17 +192,17 @@ def try_filetypes(basename, role, file_types, url=None, **kwargs):
 
     Parameters
     ----------
-    basename: str
+    basename : str
         base-name (without extension) of the dataset
-    role: str
+    role : str
         Provenance role. It should be set to the CTA data hierarchy name when
         possible (e.g. dl1.sub.svc.arraylayout). This will be recorded in the
         provenance system.
-    file_types: dict
+    file_types : dict
         Mapping of file extensions to readers.
     url : str
         URL where the dataset is stored.
-    kwargs:
+    **kwargs
         extra arguments to pass to Table.read()
 
     Returns
@@ -256,13 +256,13 @@ def get_table_dataset(table_name, role="resource", **kwargs):
 
     Parameters
     ----------
-    table_name: str
+    table_name : str
         base name of table, without file extension
-    role: str
+    role : str
         should be set to the CTA data hierarchy name when possible (e.g.
         dl1.sub.svc.arraylayout). This will be recorded in the provenance
         system.
-    kwargs:
+    **kwargs
         extra arguments to pass to Table.read()
 
     Returns
@@ -287,11 +287,11 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
     Parameters
     ----------
-    basename: str
+    basename : str
         base-name (without extension) of the dataset
-    role: str
+    role : str
         provenence role
-    kwargs: dict
+    kwargs : dict
         any other arguments to pass on to yaml or json loader.
 
     Returns

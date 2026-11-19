@@ -215,9 +215,9 @@ class HillasReconstructor(HillasGeometryReconstructor):
             dictionary of hillas moments
         subarray : ctapipe.instrument.SubarrayDescription
             subarray information
-        telescopes_pointings: dictionary
+        telescopes_pointings : dictionary
             dictionary of pointing direction per each telescope
-        array_pointing: SkyCoord[AltAz]
+        array_pointing : SkyCoord[AltAz]
             pointing direction of the array
 
         Notes
@@ -342,9 +342,9 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_dict: dict[HillasContainer]
+        hillas_dict : dict[HillasContainer]
             dictionary of hillas moments
-        array_pointing: SkyCoord[HorizonFrame]
+        array_pointing : SkyCoord[HorizonFrame]
             Pointing direction of the array
 
         Returns

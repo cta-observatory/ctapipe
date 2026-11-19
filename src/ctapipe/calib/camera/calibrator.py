@@ -457,9 +457,9 @@ def shift_waveforms(waveforms, time_shift_samples):
 
     Parameters
     ----------
-    waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
+    waveforms : ndarray of shape (n_channels, n_pixels, n_samples)
         The waveforms to shift
-    time_shift_samples: ndarray
+    time_shift_samples : ndarray
         The shift to apply in units of samples.
         Waveforms are shifted to the left by the smallest integer
         that minimizes inter-pixel differences.

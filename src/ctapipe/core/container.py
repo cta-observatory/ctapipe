@@ -273,7 +273,7 @@ class Field[T]:
 
         Parameters
         ----------
-        value: Any
+        value : Any
            the value to test
 
         Raises
@@ -503,14 +503,14 @@ class Container(metaclass=ContainerMeta):
 
         Parameters
         ----------
-        recursive: bool
+        recursive : bool
             sub-Containers should also be converted to dicts
-        flatten: type
+        flatten : type
             return a flat dictionary, with any sub-field keys generated
             by appending the sub-Container name.
-        add_prefix: bool
+        add_prefix : bool
             include the container's prefix in the name of each item
-        add_key: bool
+        add_key : bool
             include map key
         """
         if not recursive:
@@ -540,7 +540,7 @@ class Container(metaclass=ContainerMeta):
 
         Parameters
         ----------
-        recursive: bool
+        recursive : bool
             If true, also reset all sub-containers
         """
         for name, field in self.fields.items():

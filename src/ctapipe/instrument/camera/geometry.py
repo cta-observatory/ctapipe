@@ -337,7 +337,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        frame: ctapipe.coordinates.CameraFrame
+        frame : ctapipe.coordinates.CameraFrame
             The coordinate frame to transform to.
 
         Returns
@@ -625,7 +625,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        image: np.ndarray
+        image : np.ndarray
             One or multiple images of shape
             (n_images, n_pixels) or (n_pixels) for a single image.
 
@@ -649,7 +649,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        image_2d: np.ndarray
+        image_2d : np.ndarray
             2D image created by the `image_to_cartesian_representation` function
             of the same geometry.
             shape is expected to be:
@@ -765,9 +765,9 @@ class CameraGeometry:
 
         Parameters
         ----------
-        url_or_table: string or astropy.table.Table
+        url_or_table : string or astropy.table.Table
             either input filename/url or a Table instance
-        kwargs: extra keyword arguments
+        kwargs : extra keyword arguments
             extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
         """
@@ -842,7 +842,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        diagonal: bool
+        diagonal : bool
             If rectangular geometry, also add diagonal neighbors
         """
         if self.n_pixels <= 1:
@@ -970,7 +970,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        angle: value convertible to an `astropy.coordinates.Angle`
+        angle : value convertible to an `astropy.coordinates.Angle`
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
@@ -1044,7 +1044,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        width: int
+        width : int
             The width of the border in pixels
 
         Returns

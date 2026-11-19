@@ -51,13 +51,13 @@ class DataVolumeReducer(TelescopeComponent):
 
         Parameters
         ----------
-        waveforms: ndarray
+        waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        tel_id: int
+        tel_id : int
             The telescope id. Required for the 'image_extractor' and
             'camera.geometry' in 'TailCutsDataVolumeReducer'.
-        selected_gain_channel: ndarray
+        selected_gain_channel : ndarray
             The channel selected in the gain selection, per pixel. Required for
             the 'image_extractor' in 'TailCutsDataVolumeReducer'.
             extraction.
@@ -81,13 +81,13 @@ class DataVolumeReducer(TelescopeComponent):
 
         Parameters
         ----------
-        waveforms: ndarray
+        waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        tel_id: int
+        tel_id : int
             The telescope id. Required for the 'image_extractor' and
             'camera.geometry' in 'TailCutsDataVolumeReducer'.
-        selected_gain_channel: ndarray
+        selected_gain_channel : ndarray
             The channel selected in the gain selection, per pixel. Required for
             the 'image_extractor' in 'TailCutsDataVolumeReducer'.
 

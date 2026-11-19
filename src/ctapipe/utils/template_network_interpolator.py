@@ -40,9 +40,9 @@ class BaseTemplate:
 
         Parameters
         ----------
-        keys: ndarray
+        keys : ndarray
             Template grid points
-        values: ndarray
+        values : ndarray
             Template values
 
         Returns
@@ -72,9 +72,9 @@ class BaseTemplate:
 
         Parameters
         ----------
-        zenith: float
+        zenith : float
             Zenith angle (degrees)
-        azimuth: float
+        azimuth : float
             Azimuth angle (degrees)
 
         Returns
@@ -130,9 +130,9 @@ class BaseTemplate:
 
         Parameters
         ----------
-        zenith_bin: int
+        zenith_bin : int
             Bin number of requested zenith
-        azimuth_bin: int
+        azimuth_bin : int
             Bin number of requested azimuth
 
         Returns
@@ -256,15 +256,15 @@ class BaseTemplate:
 
         Parameters
         ----------
-        point: float
+        point : float
             Point at which to perform interpolation
-        grid1: float
+        grid1 : float
             Lower interpolation point
-        grid2: float
+        grid2 : float
             Upper interpolation point
-        value1: ndarray
+        value1 : ndarray
             Lower interpolation value
-        value2: ndarray
+        value2 : ndarray
             Upper interpolation value
 
         Returns
@@ -329,15 +329,15 @@ class TemplateNetworkInterpolator(BaseTemplate):
 
         Parameters
         ----------
-        energy: array-like
+        energy : array-like
             Energy of interpolated template
-        impact: array-like
+        impact : array-like
             Impact distance of interpolated template
-        xmax: array-like
+        xmax : array-like
             Depth of maximum of interpolated templates
-        xb: array-like
+        xb : array-like
             Pixel X position at which to evaluate template
-        yb: array-like
+        yb : array-like
             Pixel X position at which to evaluate template
 
         Returns
@@ -404,11 +404,11 @@ class TimeGradientInterpolator(BaseTemplate):
 
         Parameters
         ----------
-        energy: array-like
+        energy : array-like
             Energy of interpolated template
-        impact: array-like
+        impact : array-like
             Impact distance of interpolated template
-        xmax: array-like
+        xmax : array-like
             Depth of maximum of interpolated templates
 
         Returns

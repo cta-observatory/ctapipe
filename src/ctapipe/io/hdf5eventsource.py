@@ -161,9 +161,9 @@ def read_atmosphere_density_profile(
 
     Parameters
     ----------
-    h5file: tables.File
+    h5file : tables.File
         file handle of HDF5 file
-    path: str
+    path : str
         path in the file where the serialized model is stored as an
         astropy.table.Table
 
@@ -248,7 +248,7 @@ class HDF5EventSource(EventSource):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        parent:
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
             Parent from which the config is used. Mutually exclusive with config
         kwargs
         """

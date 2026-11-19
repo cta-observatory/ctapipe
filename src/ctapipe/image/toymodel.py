@@ -257,9 +257,9 @@ class ImageModel(metaclass=ABCMeta):
 
         Parameters
         ----------
-        camera: `ctapipe.instrument.CameraGeometry`
+        camera : `ctapipe.instrument.CameraGeometry`
             camera geometry object
-        intensity: int
+        intensity : int
             Total number of expected photo electrons
 
         Returns
@@ -279,9 +279,9 @@ class Gaussian(ImageModel):
         ----------
         centroid : u.Quantity[length, shape=(2, )]
             position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
+        width : u.Quantity[length]
             width of shower (minor axis)
-        length: u.Quantity[length]
+        length : u.Quantity[length]
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
@@ -337,9 +337,9 @@ class SkewedGaussian(ImageModel):
         ----------
         centroid : u.Quantity[length, shape=(2, )]
             position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
+        width : u.Quantity[length]
             width of shower (minor axis)
-        length: u.Quantity[length]
+        length : u.Quantity[length]
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)

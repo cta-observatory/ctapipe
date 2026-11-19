@@ -65,7 +65,7 @@ class TelescopeComponent(Component):
         ----------
         name : str
             Name of the subclass to obtain
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             The current subarray for this TelescopeComponent.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
@@ -174,7 +174,7 @@ class TelescopeParameterLookup:
 
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             Description of the subarray
             (includes mapping of tel_id to tel_type)
         """

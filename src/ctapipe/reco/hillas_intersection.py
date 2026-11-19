@@ -305,7 +305,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_parameters: dict
+        hillas_parameters : dict
             Hillas parameter objects
 
         Returns
@@ -374,11 +374,11 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_parameters: dict
+        hillas_parameters : dict
             Hillas parameter objects
-        tel_x: dict
+        tel_x : dict
             Telescope X positions, tilted system
-        tel_y: dict
+        tel_y : dict
             Telescope Y positions, tilted system
 
         Returns
@@ -457,21 +457,21 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        source_x: float
+        source_x : float
             Source X position in nominal system
-        source_y: float
+        source_y : float
             Source Y position in nominal system
-        core_x: float
+        core_x : float
             Core X position in nominal system
-        core_y: float
+        core_y : float
             Core Y position in nominal system
-        hillas_parameters: dict
+        hillas_parameters : dict
             Dictionary of hillas parameters objects
-        tel_x: dict
+        tel_x : dict
             Dictionary of telescope X positions in tilted frame
-        tel_y: dict
+        tel_y : dict
             Dictionary of telescope Y positions in tilted frame
-        zen: float
+        zen : float
             Zenith angle of shower
 
         Returns
@@ -527,17 +527,17 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        xp1: ndarray
+        xp1 : ndarray
             X position of first image
-        yp1: ndarray
+        yp1 : ndarray
             Y position of first image
-        phi1: ndarray
+        phi1 : ndarray
             Rotation angle of first image
-        xp2: ndarray
+        xp2 : ndarray
             X position of second image
-        yp2: ndarray
+        yp2 : ndarray
             Y position of second image
-        phi2: ndarray
+        phi2 : ndarray
             Rotation angle of second image
 
         Returns
@@ -588,21 +588,21 @@ def get_shower_height(
 
     Parameters
     ----------
-    source_x: float
+    source_x : float
         Event source position in nominal frame
-    source_y: float
+    source_y : float
         Event source position in nominal frame
-    cog_x: list[float]
+    cog_x : list[float]
         Center of gravity x-position for all the telescopes in rad
-    cog_y: list[float]
+    cog_y : list[float]
         Center of gravity y-position for all the telescopes in rad
-    core_x: float
+    core_x : float
         Event core position in telescope tilted frame
-    core_y: float
+    core_y : float
         Event core position in telescope tilted frame
-    tel_pos_x: list
+    tel_pos_x : list
         List of telescope X positions in tilted frame
-    tel_pos_y: list
+    tel_pos_y : list
         List of telescope Y positions in tilted frame
 
     Returns

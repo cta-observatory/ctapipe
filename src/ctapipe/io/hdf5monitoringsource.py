@@ -170,7 +170,7 @@ class HDF5MonitoringSource(MonitoringSource):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        parent:
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
             Parent from which the config is used. Mutually exclusive with config
         kwargs
         """

@@ -25,7 +25,7 @@ def guess_shower_depth(energy):
 
     Parameters
     ----------
-    energy: float
+    energy : float
         Energy of the shower in TeV
 
     Returns
@@ -88,15 +88,15 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 
     Parameters
     ----------
-    source_x: float
+    source_x : float
         Source X position in nominal system (radians)
-    source_y:float
+    source_y : float
         Source Y position in nominal system (radians)
-    tilt_x: float
+    tilt_x : float
         Core X position in tilited system (radians)
-    tilt_y: float
+    tilt_y : float
         Core Y position in tilited system (radians)
-    energy: float
+    energy : float
         Energy in TeV
 
     Returns
