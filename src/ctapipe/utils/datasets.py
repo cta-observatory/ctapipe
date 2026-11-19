@@ -299,8 +299,8 @@ def get_structured_dataset(basename, role="resource", **kwargs):
         base-name (without extension) of the dataset
     role : str
         provenence role
-    kwargs : dict
-        any other arguments to pass on to yaml or json loader.
+    **kwargs
+        Keyword arguments forwarded to the loader for the selected file format.
 
     Returns
     -------

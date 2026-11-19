@@ -654,17 +654,16 @@ class SimTelEventSource(EventSource):
 
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
-            The GainSelector to use. If None, then ThresholdGainSelector will be used.
-        kwargs
+        input_url : str or pathlib.Path, optional
+            Path to the sim_telarray file. If omitted, use the configured input.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent supplying configuration and logging. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration. Set ``gain_selector_type``
+            to choose the gain selector. The default is ``ThresholdGainSelector``.
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
         if SimTelFile is None:

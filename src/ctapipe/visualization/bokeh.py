@@ -292,11 +292,14 @@ class CameraDisplay(BokehPlot):
         lin, log, symlog or a bokeh.models.ColorMapper instance
     autoscale : bool
         Whether to automatically adjust color range after updating image
+    title : str or None, optional
+        Plot title. By default, use the camera geometry and frame name
+        if a geometry is supplied.
     use_notebook : bool or None
         Whether to use bokehs notebook output. If None, tries to autodetect
         running in a notebook.
-
-    **figure_kwargs are passed to bokeh.plots.figure
+    **figure_kwargs
+        Keyword arguments forwarded to `bokeh.plotting.figure`.
     """
 
     def __init__(
@@ -508,9 +511,11 @@ class CameraDisplay(BokehPlot):
             If True, show coordinates of centroid and width and length
         keep_old : bool
             If True, to not remove old overlays
-        kwargs : key=value
-            any style keywords to pass to matplotlib (e.g. color='red'
-            or linewidth=6)
+        n_sigma : float, optional
+            Scale the ellipse's semi-axes by this many Hillas lengths and widths.
+        **kwargs
+            Style options for the Bokeh ellipse glyph, such as ``line_color``
+            or ``line_width``.
         """
         if not keep_old:
             self.clear_overlays()
@@ -572,10 +577,10 @@ class ArrayDisplay(BokehPlot):
         be used.
     scale : float
         scaling between telescope mirror radius in m to displayed size
-    title : str
-        title of array plot
     alpha : float
         Alpha value for telescopes
+    title : str
+        title of array plot
     cmap : str or bokeh.palette.Palette
         matplotlib colormap name or bokeh palette for color mapping values
     norm : str or bokeh.
@@ -588,8 +593,8 @@ class ArrayDisplay(BokehPlot):
         running in a notebook.
     frame : GroundFrame or TiltedGroundFrame
         If given, transform telescope positions into this frame
-
-    **figure_kwargs are passed to bokeh.plots.figure
+    **figure_kwargs
+        Keyword arguments forwarded to `bokeh.plotting.figure`.
     """
 
     def __init__(

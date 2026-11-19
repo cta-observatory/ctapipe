@@ -489,8 +489,8 @@ class CameraDisplay:
         keep_old : bool
             If False, any previously created overlays will be removed
             before plotting the new one
-        kwargs :
-            All kwargs are passed to ``matplotlib.Axes.plot``
+        **kwargs
+            Keyword arguments forwarded to `matplotlib.axes.Axes.plot`.
         """
         if not keep_old:
             self.clear_overlays()
@@ -533,9 +533,9 @@ class CameraDisplay:
             If true, add wedges that indicates the uncertainty on psi
         psi_uncertainty_length : float
             Length of the psi uncertainty wedges as multiple of the hillas_length
-        kwargs : key=value
-            any style keywords to pass to matplotlib (e.g. color='red'
-            or linewidth=6)
+        **kwargs
+            Style options forwarded to the Matplotlib ellipse patch, such as
+            ``color`` or ``linewidth``.
         """
         if not keep_old:
             self.clear_overlays()

@@ -207,6 +207,8 @@ class SKLearnReconstructor(Reconstructor):
         Parameters
         ----------
         event : SubarrayEventContainer
+            Event providing the features for prediction and receiving the DL2 results
+            in place.
         """
 
     def __getstate__(self):
@@ -832,6 +834,9 @@ class DispReconstructor(Reconstructor):
         Parameters
         ----------
         event : SubarrayEventContainer
+            Event with telescope image parameters and pointing. The method writes
+            the DISP and direction predictions per telescope and combines the
+            directions into a subarray DL2 geometry estimate.
         """
         self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():

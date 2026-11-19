@@ -188,6 +188,8 @@ class WaveformModel:
         Parameters
         ----------
         readout : `ctapipe.instrument.CameraReadout`
+            Camera readout supplying the reference pulse shapes, reference pulse
+            sample width, and waveform sampling rate.
         gain_channel : str
             The reference pulse gain channel to use.
             Choose between 'HIGH', 'LOW' and 'ALL'.
@@ -342,18 +344,18 @@ class SkewedGaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
-        width : u.Quantity[length]
-            width of shower (minor axis)
-        length : u.Quantity[length]
-            length of shower (major axis)
-        psi : u.Quantity[angle]
-            rotation angle about the centroid (0=x-axis)
-
-        Returns
-        -------
-        a `scipy.stats` object
+        x : astropy.units.Quantity
+            Centroid x coordinate in the camera plane.
+        y : astropy.units.Quantity
+            Centroid y coordinate in the camera plane, in units compatible with x.
+        length : astropy.units.Quantity
+            Standard deviation along the shower's major axis.
+        width : astropy.units.Quantity
+            Standard deviation along the shower's minor axis.
+        psi : astropy.units.Quantity
+            Orientation of the major axis about the centroid, measured from the x-axis.
+        skewness : float
+            Dimensionless skewness along the major axis. Zero gives a symmetric profile.
 
         """
         self.unit = x.unit

@@ -151,15 +151,16 @@ class Reconstructor(TelescopeComponent):
         ----------
         path : str or pathlib.Path
             Path to a Reconstructor instance pickled using joblib
-        parent : None or Component or Tool
-            Attach a new parent to the loaded class, this will properly
+        parent : Component or Tool or None, optional
+            Parent to attach to the loaded instance. When supplied, the instance
+            uses a child of the parent's logger.
         subarray : SubarrayDescription
             Attach a new subarray to the loaded reconstructor
             A warning will be raised if the telescope types of the
             subarray stored in the pickled class do not match with the
             provided subarray.
-
-        **kwargs are set on the loaded instance
+        **kwargs
+            Additional attributes to set on the loaded instance.
 
         Returns
         -------

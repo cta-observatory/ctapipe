@@ -82,7 +82,7 @@ class FeatureGenerator(Component):
         table : QTable | Table
             Input table. Internally a Table will be converted to a QTable so that
             unit propagation works, so expressions should only rely on properties of QTables.
-        **kwargs:
+        **kwargs
             Other objects that should be available in expressions. For example,
             if a you pass ``subarray=subarray``, expressions can use that
             object. This can also be special functions like ``f=my_function``,

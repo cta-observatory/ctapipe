@@ -62,24 +62,23 @@ class Field[T]:
         For mutable default values, use ``default_factory`` instead.
     description : str
         Help text associated with the item
+    default_factory : Callable
+        A callable providing a fresh instance as default value.
     unit : str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
     ucd : str
         universal content descriptor (see Virtual Observatory standards)
-    type : type
-        expected type of value
     dtype : None or np.dtype
         expected data type of the value, None to ignore in validation.
         Means value is expected to be a numpy array or astropy quantity
+    type : type
+        expected type of value
     ndim : int or None
         expected dimensionality of the data, for arrays, None to ignore
     allow_none : bool
         if the value of None is given to this Field, skip validation
-    max_len : int
-        if type is str, max_len is the maximum number of bytes of the utf-8
-        encoded string to be used.
-    default_factory : Callable
-        A callable providing a fresh instance as default value.
+    max_length : int or None
+        For string fields, the maximum number of bytes in the UTF-8 encoding.
     time_resolution : TimeResolution | None
         For time fields, whether to serialize as high or low resolution
         timestamp.
@@ -544,12 +543,7 @@ class Container(metaclass=ContainerMeta):
 
     def reset(self):
         """
-        Reset all values back to their default values
-
-        Parameters
-        ----------
-        recursive : bool
-            If true, also reset all sub-containers
+        Reset all fields to their defaults, creating fresh values from factories.
         """
         for name, field in self.fields.items():
             if field.default_factory is not None:

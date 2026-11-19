@@ -139,28 +139,23 @@ def build_wf_noise_pixelwise(
 
     Parameters
     ----------
-    waveforms : array (nevents, ngains, npixels, nsamples), the elemental noise
-    waveforms
-
+    waveforms : ndarray
+        Input noise waveforms of shape ``(n_events, n_gains, n_pixels, n_samples)``.
     n_noise_realizations : int
-    the number of total noise waveforms we want to generate
-
+        Number of noise waveform realizations to generate.
     nsb_level : int
-    the number of elemental noise waveforms we combine to produce each total
-    noise waveform
-
-    rng : random number generator
-
+        Number of input noise events to sum for each realization.
+    rng : numpy.random.Generator
+        Random number generator used to choose the noise events.
     sample_pixels_independently : bool
-    if True, each pixel will use a different random combination of the elemental
-    noise events to build the noise to be added to its waveform.
-    if False, the waveform for each pixel in any given noise realization comes
-    from the same random combination of the input elemental noise events.
-
+        If True, draw noise events independently for each pixel. If False,
+        each realization uses the same selected events for all pixels.
 
     Returns
     -------
-    array (n_noise, ngains, npixels, nsamples), total noise waveforms
+    ndarray
+        Summed noise waveforms of shape
+        ``(n_noise_realizations, n_gains, n_pixels, n_samples)``.
 
     """
     n_events, n_gains, n_pixels, n_samples = waveforms.shape
@@ -364,14 +359,14 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        nsb_database : dict
-        Dictionary with one key per telescope, containing an array [n_events,
-        n_gains, n_pixels, n_samples] (noise waveforms)
+        nsb_database : dict[int, ndarray]
+            Noise waveforms keyed by telescope ID, each with shape
+            ``(n_events, n_gains, n_pixels, n_samples)``.
 
         Returns
         -------
         stats_ok : bool
-        True if statistics of noise events is considered sufficient
+            True if every telescope has enough noise events.
         """
         stats_ok = True
         for tel_id in nsb_database:
@@ -399,14 +394,9 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        nsb_database : dict
-        Dictionary with one key per telescope, containing an array [n_events,
-        n_gains, n_pixels, n_samples] (noise waveforms)
-
-        Returns
-        -------
-        nsb_database: dict
-        Dictionary, same as above but after baseline zeroing
+        nsb_database : dict[int, ndarray]
+            Noise waveforms keyed by telescope ID, each with shape
+            ``(n_events, n_gains, n_pixels, n_samples)``.
         """
         for tel_id in nsb_database:
             for channel in range(nsb_database[tel_id].shape[1]):

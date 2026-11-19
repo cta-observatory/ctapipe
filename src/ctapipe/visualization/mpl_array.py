@@ -404,8 +404,8 @@ class ArrayDisplay:
             array of image Y coordinates
         background : ndarray
             Array of image to use in background
-        kwargs : key=value
-            any style keywords to pass to matplotlib
+        **kwargs
+            Keyword arguments forwarded to `matplotlib.axes.Axes.contour`.
         """
         # use zorder to ensure the contours appear under the telescopes.
         self.axes.contour(x, y, background, zorder=0, **kwargs)

@@ -104,7 +104,7 @@ class QualityQuery(Component):
 
         Parameters
         ----------
-        **kwargs:
+        **kwargs
             Are passed as locals to evaluate the given expression
 
         Returns

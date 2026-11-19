@@ -370,8 +370,8 @@ class HDF5TableWriter(TableWriter):
         ----------
         table_name : str
             name of table
-        container : ctapipe.core.Container
-            instance of an initialized container
+        containers : list of ctapipe.core.Container
+            Initialized containers whose fields define the table columns.
 
         Returns
         -------

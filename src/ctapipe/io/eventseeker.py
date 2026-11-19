@@ -59,11 +59,11 @@ class EventSeeker(Component):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent supplying configuration and logging. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, **kwargs)
 

@@ -173,7 +173,8 @@ class HDF5MonitoringSource(MonitoringSource):
             Set to None if no configuration to pass.
         parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
             Parent from which the config is used. Mutually exclusive with config
-        kwargs
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(
             subarray=subarray,

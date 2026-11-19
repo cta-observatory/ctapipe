@@ -442,18 +442,18 @@ def time_constrained_clean(
         pixel charges
     arrival_times : np.ndarray
         pixel timing information
-    picture_threshold : float | np.ndarray
-        threshold above which all pixels are retained
-    boundary_threshold : float | np.ndarray
-        threshold above which pixels are retained if they have a neighbor
-        already above the ``picture_thresh``
+    picture_thresh : float or ndarray
+        Minimum charge for a candidate core pixel.
+    boundary_thresh : float or ndarray
+        Minimum charge for a candidate boundary pixel.
     time_limit_core : int | float
         arrival time limit of core pixels w.r.t the average time
     time_limit_boundary : int | float
         arrival time limit of boundary pixels w.r.t neighboring core pixels
-    min_number_neighbors : int
-        Threshold to determine if a pixel survives cleaning steps.
-        These steps include checks of neighbor arrival time and value
+    min_number_picture_neighbors : int
+        Minimum number of neighbors above ``picture_thresh`` for a candidate
+        core pixel. A boundary pixel needs this many core neighbors within
+        ``time_limit_boundary``.
 
     Returns
     -------

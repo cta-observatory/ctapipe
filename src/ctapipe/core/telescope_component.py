@@ -78,8 +78,8 @@ class TelescopeComponent(Component):
             Passes the correct logger and configuration to the component.
             This argument is typically only specified when using this method
             from within a Tool (config need not be passed if parent is used).
-        kwargs
-            Are passed to the subclass
+        **kwargs
+            Additional keyword arguments forwarded to the subclass constructor.
 
         Returns
         -------

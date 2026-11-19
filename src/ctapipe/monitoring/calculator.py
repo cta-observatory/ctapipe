@@ -206,8 +206,9 @@ class PixelStatisticsCalculator(TelescopeComponent):
             Note: This boolean array can be a ``logical_and`` from multiple first passes of different calibration events.
         tel_id : int
             Telescope ID for which the calibration is being performed.
-        masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing.
+        masked_elements_of_sample : ndarray, optional
+            Boolean mask of unavailable elements. For camera images it has shape
+            ``(n_channels, n_pixels)``.
         col_name : str
             Column name in the table from which the statistics will be aggregated.
 

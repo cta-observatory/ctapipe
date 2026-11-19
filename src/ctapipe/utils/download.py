@@ -35,9 +35,12 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
         The URL to download
     path : pathlib.Path or str
         Where to store the downloaded data.
-    auth : None or tuple of (username, password) or a request.AuthBase instance.
+    auth : tuple or requests.auth.AuthBase or None, optional
+        Username and password pair or authentication handler for the HTTP request.
     chunk_size : int
         Chunk size for writing the data file, 10 kB by default.
+    progress : bool, optional
+        Show a progress bar while downloading.
     """
     log.info(f"Downloading {url} to {path}")
     name = urlparse(url).path.split("/")[-1]

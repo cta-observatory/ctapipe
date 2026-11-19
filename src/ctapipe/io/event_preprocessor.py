@@ -326,7 +326,7 @@ class EventPreprocessor(Component):
         ----------
         table : Table
            Table to process
-        **other_attributes: Any
+        **other_attributes : Any
            Other functions or objects that the FeatureGenerator should have
            access to, in addition to the default ones. The ``dl2_to_dl3`` feature
            set requires ``gammaness_cut_function(gammaness, energy)`` and

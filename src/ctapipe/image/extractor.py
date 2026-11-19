@@ -405,6 +405,7 @@ class ImageExtractor(TelescopeComponent):
         Parameters
         ----------
         tel_id : int
+            Telescope ID used to look up the reference pulse and extraction settings.
 
         Returns
         -------

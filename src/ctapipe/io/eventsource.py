@@ -83,14 +83,18 @@ class EventSource(Component):
 
     Parameters
     ----------
-    input_url : str | Path
-        Path to the input event file.
-    max_events : int
-        Maximum number of events to loop through in generator
-    allowed_tels : Set or None
-        Ids of the telescopes to be included in the data.
-        If given, only this subset of telescopes will be present in the
-        generated events. If None, all available telescopes are used.
+    input_url : str or pathlib.Path or None, optional
+        Path to the input event file. If omitted, use the configured input.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent supplying configuration and logging. Mutually exclusive with
+        ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``max_events`` to limit
+        how many events the source yields. Set ``allowed_tels`` to a set of
+        telescope IDs to include, or leave it as None to use all available
+        telescopes.
     """
 
     #: ctapipe_io entry points may provide EventSource implementations

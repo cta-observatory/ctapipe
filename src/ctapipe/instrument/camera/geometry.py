@@ -767,9 +767,9 @@ class CameraGeometry:
         ----------
         url_or_table : string or astropy.table.Table
             either input filename/url or a Table instance
-        kwargs : extra keyword arguments
-            extra arguments passed to `astropy.table.Table.read`, depending on
-            file type (e.g. format, hdu, path)
+        **kwargs
+            Extra keyword arguments passed to `astropy.table.Table.read` when
+            reading a file, such as ``format``, ``hdu``, or ``path``.
         """
         tab = url_or_table
         if not isinstance(url_or_table, Table):

@@ -65,9 +65,14 @@ class ChunkIterator:
         a chunk.
     n_total : int
         Total number of elements
-    chunk_size : size of one chunk, last chunk will have size <= chunk_size
-
-    *args and **kwargs will be passed to `func`
+    chunk_size : int
+        Number of elements per chunk. The last chunk may be smaller.
+    args : tuple
+        Positional arguments forwarded to `func`.
+    kwargs : dict
+        Keyword arguments forwarded to `func`. The optional ``start`` and
+        ``stop`` entries delimit the full range to iterate over. The iterator
+        passes the bounds for the current chunk to `func`.
 
     """
 
@@ -902,8 +907,10 @@ class TableLoader(Component):
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
-
-        **kwargs are passed to `read_telescope_events`
+        *args
+            Positional arguments forwarded to `read_telescope_events`.
+        **kwargs
+            Keyword arguments forwarded to `read_telescope_events`.
         """
         return ChunkIterator(
             self.read_telescope_events,
@@ -1080,8 +1087,10 @@ class TableLoader(Component):
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
-
-        **kwargs are passed to `read_telescope_events`
+        *args
+            Positional arguments forwarded to `read_telescope_events_by_type`.
+        **kwargs
+            Keyword arguments forwarded to `read_telescope_events_by_type`.
         """
         return ChunkIterator(
             self.read_telescope_events_by_type,
@@ -1220,8 +1229,10 @@ class TableLoader(Component):
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
-
-        *args, **kwargs are passed to `read_telescope_events_by_id`
+        *args
+            Positional arguments forwarded to `read_telescope_events_by_id`.
+        **kwargs
+            Keyword arguments forwarded to `read_telescope_events_by_id`.
         """
         return ChunkIterator(
             self.read_telescope_events_by_id,

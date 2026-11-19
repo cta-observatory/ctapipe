@@ -110,11 +110,11 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_name : regexp
-            pattern matching the table name (via re.matchall)
-        col_name : regexp
-            pattern matching the column name if the table name also matches
-            (via re.matchall)
+        table_regexp : str
+            Regular expression required to match the full table name.
+        col_regexp : str
+            Regular expression required to match the full column name in a matching
+            table.
         transform : ColumnTransform
             function that tranformns input value into output value
 
@@ -182,7 +182,7 @@ class TableWriter(Component, metaclass=ABCMeta):
             name of table to write to
         containers : ctapipe.core.Container or iterable thereof
             container instance(s) to write
-        **kwargs:
+        **kwargs
             may be passed to a lower level implementation to set options
         """
         pass

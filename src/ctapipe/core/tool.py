@@ -362,8 +362,8 @@ class Tool(Application):
 
         Parameters
         ----------
-        output_paths : Path
-            One or more output path to check.
+        *output_paths : pathlib.Path or None
+            Output paths to check. Skip any ``None`` entries.
 
         """
         for output in output_paths:

@@ -283,14 +283,17 @@ class UnstructuredInterpolator:
 
         Parameters
         ----------
-        point_num : int
-        Index of class position in values list
-        eval_points : ndarray
-        Inputs used to evaluate class member function
+        point_num : ndarray of int
+            Indices of template values at the simplex vertices, with shape
+            ``(n_queries, n_vertices)``.
+        eval_points : ndarray or numpy.ma.MaskedArray
+            Template-plane positions with shape ``(n_queries, n_positions, 2)``.
 
         Returns
         -------
-        ndarray: output from member function
+        numpy.ma.MaskedArray
+            Template values at the requested positions for each simplex vertex,
+            with shape ``(n_queries, n_vertices, n_positions)``.
         """
         # Check if our array is masked and remember its shape
         is_masked = ma.is_masked(eval_points)

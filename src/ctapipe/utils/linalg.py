@@ -30,7 +30,8 @@ def normalise(vec):
 
     Parameters
     ----------
-    vec : numpy array
+    vec : ndarray
+        Vector to normalize.
 
     Returns
     -------
@@ -50,12 +51,15 @@ def angle(v1, v2):
 
     Parameters
     ----------
-    v1 : numpy array
-    v2 : numpy array
+    v1 : ndarray
+        First Cartesian vector.
+    v2 : ndarray
+        Second Cartesian vector.
 
     Returns
     -------
-    the angle between v1 and v2 as a dimensioned astropy quantity
+    float
+        Angle between the two vectors in radians.
     """
     norm = np.linalg.norm(v1) * np.linalg.norm(v2)
     return np.arccos(np.clip(v1.dot(v2) / norm, -1.0, 1.0))

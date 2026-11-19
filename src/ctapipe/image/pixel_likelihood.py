@@ -244,8 +244,9 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
         Predicted pixel amplitudes from model
     spe_width : ndarray
         Width of single p.e. distribution
-    pedestal : ndarray
-        Width of pedestal
+    ped : ndarray
+        Pedestal standard deviation per pixel, or a length-one array to use
+        the same value for all pixels.
 
     Returns
     -------

@@ -235,7 +235,7 @@ def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
 
     Parameters
     ----------
-    Rmirror : quantity[length]
+    r_mirror : quantity[length]
         mirror radius
     theta_cher : quantity[angle]
         Cherenkov angle

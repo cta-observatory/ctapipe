@@ -39,12 +39,15 @@ def angle(v1, v2):
 
     Parameters
     ----------
-    v1 : numpy array
-    v2 : numpy array
+    v1 : ndarray
+        First Cartesian vector, or array of vectors along the last axis.
+    v2 : ndarray
+        Second Cartesian vector, or array of vectors along the last axis.
 
     Returns
     -------
-    the angle between v1 and v2 as a dimensioned astropy quantity
+    float or ndarray
+        Angle in radians for each pair of vectors.
     """
     norm = np.linalg.norm(v1, axis=-1) * np.linalg.norm(v2, axis=-1)
     return np.arccos(np.clip(np.sum(v1 * v2, axis=-1) / norm, -1.0, 1.0))
@@ -55,7 +58,8 @@ def normalise(vec):
 
     Parameters
     ----------
-    vec : numpy array
+    vec : ndarray
+        Cartesian vector or array of vectors along the last axis.
 
     Returns
     -------
@@ -211,17 +215,15 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_dict : dictionary
-            dictionary of hillas moments
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray information
-        telescopes_pointings : dictionary
-            dictionary of pointing direction per each telescope
-        array_pointing : SkyCoord[AltAz]
-            pointing direction of the array
+        event : SubarrayEventContainer
+            Event supplying the array pointing and the pointing of each telescope.
+        hillas_dict : dict[int, HillasParametersContainer]
+            Hillas image parameters keyed by telescope ID.
 
         Notes
         -----
+        The telescope positions and camera geometry come from the configured subarray.
+
         The part of the algorithm taking into account divergent pointing mode and
         the correction to the psi angle is explained in :cite:p:`phd-gasparetto`,
         section 7.1.4.
@@ -342,17 +344,20 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_dict : dict[HillasContainer]
-            dictionary of hillas moments
-        array_pointing : SkyCoord[HorizonFrame]
-            Pointing direction of the array
+        array_pointing : astropy.coordinates.SkyCoord
+            Array pointing in AltAz, used to define the tilted ground frame.
+        psi : ndarray
+            Corrected orientation of each image's major axis in radians, in the
+            same telescope order as ``positions``.
+        positions : GroundFrame
+            Positions of the telescopes used for the reconstruction.
 
         Returns
         -------
-        core_x: u.Quantity
-            estimated x position of impact
-        core_y: u.Quantity
-            estimated y position of impact
+        core_pos_ground : GroundFrame
+            Estimated shower impact position projected onto the ground.
+        core_pos_tilted : astropy.coordinates.SkyCoord
+            Estimated shower core in the tilted ground frame.
 
         Notes
         -----
