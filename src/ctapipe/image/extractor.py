@@ -362,32 +362,27 @@ def integration_correction(
 
 
 class ImageExtractor(TelescopeComponent):
+    """Base class for extracting pixel charge and pulse time from waveforms.
+
+    Subclasses choose how to integrate the signal and estimate the pulse time.
+    An integration correction can compensate for signal outside the selected
+    window so that a noiseless reference pulse with unit charge yields one.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Telescope settings and camera descriptions. Extractors use the
+        sampling rate and may also use the reference pulse or pixel adjacency.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging. Mutually
+        exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
+    """
+
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """
-        Initialize an extractor for charge and pulse time.
-
-        The extractor records the sampling rate for each telescope in the subarray.
-
-        Assuming a waveform with sample units X and containing a noise-less unit
-        pulse, the aim of the ImageExtractor is to return 1 X*ns.
-
-        Parameters
-        ----------
-        subarray : ctapipe.instrument.SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in charge extraction, such as reference
-            pulse shape, sampling rate, neighboring pixels. Also required for
-            configuring the TelescopeParameter traitlets.
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self.sampling_rate_ghz = {

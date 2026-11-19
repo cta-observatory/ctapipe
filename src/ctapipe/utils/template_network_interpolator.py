@@ -436,6 +436,8 @@ class TimeGradientInterpolator(BaseTemplate):
 
 
 class DummyTemplateInterpolator:
+    """Supply unit-valued pixel predictions for tests without ImPACT templates."""
+
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):
         return np.ones_like(xb)
 
@@ -444,6 +446,8 @@ class DummyTemplateInterpolator:
 
 
 class DummyTimeInterpolator:
+    """Return an array of ones matching the input energy for timing tests."""
+
     def __call__(self, energy, impact, xmax):
         return np.ones_like(energy)
 

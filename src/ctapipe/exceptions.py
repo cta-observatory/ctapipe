@@ -1,6 +1,9 @@
 """Exceptions for missing inputs, optional dependencies, and data compatibility."""
 
+
 class CTAPipeException(Exception):
+    """Common base class for ctapipe-specific exceptions."""
+
     pass
 
 

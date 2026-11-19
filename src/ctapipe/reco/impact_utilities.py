@@ -22,6 +22,8 @@ __all__ = [
 
 
 class EmptyImages(Exception):
+    """Raised when ImPACT is asked to reconstruct an event without images."""
+
     pass
 
 

@@ -55,6 +55,12 @@ def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
 
 
 class HillasParameterizationError(RuntimeError):
+    """Raised when Hillas moments cannot be computed for a camera image.
+
+    This can occur when the total image charge is zero or when the
+    covariance calculation fails.
+    """
+
     pass
 
 

@@ -146,18 +146,20 @@ class TelescopePatternList(UserList):
 
 
 class TelescopeParameterLookup:
+    """Resolve telescope-dependent configuration for a subarray.
+
+    Attach a subarray before looking up values by telescope ID or type.
+    Rules are applied in order, so a later match can replace an earlier
+    one. Use a None key to retrieve the global value, if one was configured.
+
+    Parameters
+    ----------
+    telescope_parameter_list : list of tuple
+        Rules given as ``(command, argument, value)`` tuples. The lookup
+        copies this list before resolving values for a subarray.
+    """
+
     def __init__(self, telescope_parameter_list):
-        """
-        Initialize the lookup of configuration values by telescope ID.
-
-        The lookup copies the supplied patterns and resolves telescope-specific values
-        once a subarray is attached.
-
-        Parameters
-        ----------
-        telescope_parameter_list : list
-            List of tuples in the form `[(command, argument, value), ...]`
-        """
         self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._value_for_tel_id = None
         self._value_for_type = None

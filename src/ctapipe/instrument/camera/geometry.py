@@ -1164,4 +1164,9 @@ class CameraGeometry:
 
 
 class UnknownPixelShapeWarning(UserWarning):
+    """Warn when a SimTel camera has an unrecognized pixel shape.
+
+    The reader falls back to unrotated hexagonal pixels.
+    """
+
     pass

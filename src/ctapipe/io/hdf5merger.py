@@ -88,6 +88,12 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
 
 
 class NodeType(enum.Enum):
+    """Describe the layouts of HDF5 nodes handled by the merger.
+
+    The layout determines whether the merger combines a single table
+    or iterates over groups of tables organized by telescope or result.
+    """
+
     # a single table
     TABLE = enum.auto()
     # a group comprising tel_XXX tables

@@ -25,6 +25,13 @@ __all__ = ["DumpInstrumentTool"]
 
 
 class DumpInstrumentTool(Tool):
+    """Export the instrument description from an event source.
+
+    Write camera geometry, readout, optics, and subarray information as
+    individual FITS or ECSV tables, one HDF5 file, or a CTAO service data
+    directory.
+    """
+
     description = Unicode(__doc__)
     name = "ctapipe-dump-instrument"
 
@@ -100,8 +107,7 @@ class DumpInstrumentTool(Tool):
 
     @staticmethod
     def _get_file_format_info(format_name):
-        """Returns file extension + dict of required parameters for Table.write
-        """
+        """Returns file extension + dict of required parameters for Table.write"""
         if format_name == "fits":
             return "fits.gz", dict()
         elif format_name == "ecsv":

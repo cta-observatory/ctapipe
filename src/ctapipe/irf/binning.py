@@ -98,6 +98,13 @@ def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
 
 @dataclass
 class ResultValidRange:
+    """Store inclusive bounds for the validity of an analysis result.
+
+    The limits are quantities, for example energy bounds for a set of
+    selection cuts. Use them to check whether requested bin edges are
+    within the range covered by the result.
+    """
+
     min: u.Quantity
     max: u.Quantity
 

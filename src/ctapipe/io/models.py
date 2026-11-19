@@ -237,6 +237,21 @@ class BagItWriter(Component):
 
 
 class BagItReader(Component):
+    """Read serialized reconstruction models from a BagIt ZIP archive.
+
+    The reader checks the archive's product metadata and model format
+    version. A reconstructor loaded from the archive is paired with its
+    stored subarray description. Use a context manager to close the archive.
+
+    Parameters
+    ----------
+    input_path : str or pathlib.Path or None, optional
+        Path to the BagIt ZIP archive. It can also be set in the component
+        configuration.
+    **kwargs
+        Options passed to `ctapipe.core.Component`, such as ``config`` or ``parent``.
+    """
+
     input_path = Path(help="Path to the input BagIt ZIP archive.").tag(config=True)
 
     def __init__(self, input_path=None, **kwargs):

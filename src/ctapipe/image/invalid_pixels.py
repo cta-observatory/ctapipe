@@ -51,6 +51,13 @@ class InvalidPixelHandler(TelescopeComponent, metaclass=ABCMeta):
 
 
 class NeighborAverage(InvalidPixelHandler):
+    """Replace invalid image pixels with the mean of their valid neighbors.
+
+    Apply the camera's pixel adjacency separately for each gain channel.
+    The handler updates the charge and, when supplied, the peak time in place.
+    It fills pixels that have no valid neighbors with zeros.
+    """
+
     def __call__(self, tel_id, image, peak_time, pixel_mask):
         """Interpolate pixels in dl1 images and peak_times
 

@@ -26,6 +26,28 @@ logger = logging.getLogger(__name__)
 
 
 class ToyEventSource(TelescopeComponent, EventSource):
+    """Generate toy DL1 camera images without reading an event file.
+
+    Sample a set of participating telescopes and generate a skewed Gaussian
+    shower image for each using its camera geometry. This produces test
+    events for image processing without running a shower simulation.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the telescopes and camera geometries.
+    config : traitlets.loader.Config or None, optional
+        Source configuration when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration. Mutually exclusive with
+        ``config``.
+    rng : numpy.random.Generator or None, optional
+        Generator for choosing participating telescopes and shower parameters.
+        If None, initialize it from the configured seed.
+    **kwargs
+        Trait values that override the configuration.
+    """
+
     # override input url from EventSource, we don't need one here
     input_url = traits.Path(
         allow_none=True,

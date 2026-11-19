@@ -47,6 +47,8 @@ EPSILON = 5.0e-324
 
 
 class PixelLikelihoodError(RuntimeError):
+    """Exception type for errors in pixel likelihood calculations."""
+
     pass
 
 

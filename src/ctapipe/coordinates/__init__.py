@@ -50,6 +50,8 @@ __all__ = [
 
 
 class MissingFrameAttributeWarning(Warning):
+    """Warn when transforming AltAz coordinates with missing frame metadata."""
+
     pass
 
 

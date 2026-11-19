@@ -776,6 +776,13 @@ class TelescopeImpactParameterContainer(Container):
 
 # Simulation containers
 class SimulatedShowerContainer(Container):
+    """Store the Monte Carlo truth for one simulated air shower.
+
+    The fields describe the primary particle, its energy and direction, the
+    ground impact position, and the longitudinal development of the shower.
+    Use these values as a reference for evaluating reconstruction.
+    """
+
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
     alt = Field(nan * u.deg, "Simulated altitude", unit=u.deg)
@@ -828,6 +835,12 @@ class TelescopeSimulationContainer(Container):
 
 
 class SubarraySimulationContainer(Container):
+    """Store simulated shower truth at the subarray event level.
+
+    The ``shower`` field holds the properties shared by all telescopes for
+    this event. Telescope-specific simulation data are stored separately.
+    """
+
     shower = Field(
         default_factory=SimulatedShowerContainer,
         description="True event information",

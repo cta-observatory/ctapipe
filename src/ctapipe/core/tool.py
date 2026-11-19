@@ -43,6 +43,14 @@ class CollectTraitWarningsHandler(logging.NullHandler):
 
 
 class ToolConfigurationError(Exception):
+    """Raised when a tool's configuration prevents it from running.
+
+    Parameters
+    ----------
+    message : str
+        Description of the configuration problem.
+    """
+
     def __init__(self, message):
         # Call the base class constructor with the parameters it needs
         self.message = message

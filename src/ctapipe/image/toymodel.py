@@ -92,27 +92,26 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
 
 class WaveformModel:
+    """Generate toy pixel waveforms from a camera's reference pulses.
+
+    Place each pixel's charge at the requested arrival time, convolve with
+    the reference pulse for each gain channel, and sample at the camera
+    readout rate. Use this model to test image extraction. It omits electronic
+    noise and the photosensor's excess noise factor, so it cannot estimate
+    camera charge resolution.
+
+    Parameters
+    ----------
+    reference_pulse : ndarray
+        Reference pulse samples with shape (n_channels, n_samples).
+    reference_pulse_sample_width : astropy.units.Quantity
+        Duration of one reference pulse sample.
+    sample_width : astropy.units.Quantity
+        Duration of one sample in the generated waveform.
+    """
+
     @u.quantity_input(reference_pulse_sample_width=u.ns, sample_width=u.ns)
     def __init__(self, reference_pulse, reference_pulse_sample_width, sample_width):
-        """Initialize a waveform model using the camera reference pulse.
-
-        The model generates a waveform for each gain channel and can be used to test
-        image extraction.
-
-        Does not include the electronic noise and the Excess Noise Factor of
-        the photosensor, and therefore should not be used to make charge
-        resolution conclusions about a camera.
-
-        Parameters
-        ----------
-        reference_pulse_sample_width : u.Quantity[time]
-            Sample width of the reference pulse shape
-        reference_pulse : ndarray
-            Reference pulse shape for each channel
-        sample_width : u.Quantity[time]
-            Sample width of the waveform
-
-        """
         self.n_channels = reference_pulse.shape[-2]
         self.upsampling = 10
         reference_pulse_sample_width = reference_pulse_sample_width.to_value(u.ns)
@@ -213,6 +212,13 @@ class WaveformModel:
 
 
 class ImageModel(metaclass=ABCMeta):
+    """Base class for generating toy shower images on a camera geometry.
+
+    Subclasses provide a spatial probability density. The model scales it
+    by the pixel area and expected total signal, then can draw Poisson signal
+    and night-sky background to make a randomized DL1 image.
+    """
+
     @abstractmethod
     def pdf(self, x, y):
         """Probability density function."""
@@ -272,25 +278,26 @@ class ImageModel(metaclass=ABCMeta):
 
 
 class Gaussian(ImageModel):
+    """Model a shower image as an elliptical Gaussian in two dimensions.
+
+    Use the model to predict the charge pattern on a camera or generate
+    toy images for analysis and reconstruction tests.
+
+    Parameters
+    ----------
+    x : astropy.units.Quantity
+        First coordinate of the centroid in the camera or telescope frame.
+    y : astropy.units.Quantity
+        Second coordinate of the centroid, in units compatible with ``x``.
+    length : astropy.units.Quantity
+        Standard deviation along the major axis, in units compatible with ``x``.
+    width : astropy.units.Quantity
+        Standard deviation along the minor axis, in units compatible with ``x``.
+    psi : astropy.units.Quantity or str
+        Orientation of the major axis. Zero aligns it with the x axis.
+    """
+
     def __init__(self, x, y, length, width, psi):
-        """Create 2D Gaussian model for a shower image in a camera.
-
-        Parameters
-        ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
-        width : u.Quantity[length]
-            width of shower (minor axis)
-        length : u.Quantity[length]
-            length of shower (major axis)
-        psi : u.Quantity[angle]
-            rotation angle about the centroid (0=x-axis)
-
-        Returns
-        -------
-        a `scipy.stats` object
-
-        """
         self.unit = x.unit
         self.x = x
         self.y = y

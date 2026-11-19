@@ -28,6 +28,8 @@ def _fqdn(obj):
 
 
 class FieldValidationError(ValueError):
+    """Raised when a value does not satisfy a container field's constraints."""
+
     pass
 
 

@@ -163,6 +163,17 @@ class ImagePlotter(Component):
 
 
 class DisplayDL1Calib(Tool):
+    """Display pixel charge and pulse time for selected DL1 telescope events.
+
+    Read existing DL1 images or extract them from waveforms when needed.
+    Inspect the plots on screen or save them to a PDF.
+
+    Parameters
+    ----------
+    **kwargs
+        Configuration and trait overrides passed to `ctapipe.core.Tool`.
+    """
+
     name = "ctapipe-display-dl1"
     description = __doc__
 
