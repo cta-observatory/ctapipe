@@ -64,12 +64,20 @@ def apply_colors(levelname: str):
 
 
 def recursive_update(d1, d2, copy=False):
-    """Merge dicts recursively, e.g.
+    """Merge entries from one mapping into another recursively.
+
+    By default, update and return the first mapping in place. With ``copy=True``,
+    copy the top-level mapping first. Nested mappings can still be modified.
+
+    Examples
+    --------
     >>> d1 = {'a': {'b': 'foo'}}
     >>> d2 = {'a': {'c': 'foo'}}
     >>> recursive_update(d1, d2)
     {'a': {'b': 'foo', 'c': 'foo'}}
-    >>> # As opposed to
+
+    An ordinary update replaces the whole nested mapping:
+
     >>> d1.update(d2)
     >>> d1
     {'a': {'c': 'foo'}}

@@ -1,13 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""
+"""Reconstruct shower geometry by intersecting Hillas image axes."""
 
-TODO:
-- Speed tests, need to be certain the looping on all telescopes is not killing
-performance
-- Introduce new weighting schemes
-- Make intersect_lines code more readable
-
-"""
+# TODO: Benchmark the loops over telescopes.
+# TODO: Add more weighting schemes.
+# TODO: Make intersect_lines easier to read.
 
 import itertools
 import warnings

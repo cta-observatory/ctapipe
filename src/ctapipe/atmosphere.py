@@ -85,14 +85,19 @@ class AtmosphereDensityProfile(abc.ABC):
 
     @abc.abstractmethod
     def height_from_overburden(self, overburden: u.Quantity) -> u.Quantity:
-        r"""Get the height a.s.l. from the mass overburden in the atmosphere.
-            Inverse of the integral function
+        """Convert atmospheric overburden to altitude above sea level.
+
+        This is the inverse of `integral`.
+
+        Parameters
+        ----------
+        overburden : astropy.units.Quantity
+            Vertical column density, in units of mass per area.
 
         Returns
         -------
-        u.Quantity["m"]:
-            Height a.s.l. for given overburden
-
+        astropy.units.Quantity
+            Corresponding altitude, in units of length.
         """
 
     def slant_depth_from_height(

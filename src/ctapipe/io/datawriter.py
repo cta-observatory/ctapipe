@@ -479,8 +479,11 @@ class DataWriter(Component):
 
     def _write_dl2_subarray(self, event: SubarrayEventContainer):
         """
-        Write per-telescope DL2 shower information to e.g.
-        `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
+        Write the subarray-level DL2 results for an event.
+
+        For example, geometry results go to
+        ``/dl2/event/subarray/geometry/<algorithm_name>``. Only results present
+        in the event are written.
         """
         if event.dl2 is None:
             return

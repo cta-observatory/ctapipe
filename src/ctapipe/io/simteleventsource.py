@@ -345,12 +345,12 @@ def _telescope_from_meta(telescope_meta, mirror_area):
 
 def apply_simtel_r1_calibration(r0_waveforms, pedestal, factor, calib_shift=0.0):
     """
-    Perform the R1 calibration for R0 simtel waveforms. This includes:
-        - Pedestal subtraction
-        - Conversion of samples into units proportional to photoelectrons
-          (If the full signal in the waveform was integrated, then the resulting
-          value would be in photoelectrons.)
-          (Also applies flat-fielding)
+    Calibrate raw simtel waveforms from R0 to R1.
+
+    Subtract the pedestal and multiply by the conversion factor for each
+    pixel and gain channel. The factor includes flat-fielding and scales
+    the samples so the integrated signal is in photoelectrons. Apply the
+    optional calibration offset after conversion.
 
     Parameters
     ----------
@@ -364,7 +364,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, factor, calib_shift=0.0)
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
-    calib_shift: float
+    calib_shift : float
         Shift the resulting R1 output in p.e. for simulating miscalibration.
         Defaults to no shift.
 
