@@ -66,6 +66,17 @@ def get_installed_tools():
 
 
 def get_all_descriptions():
+    """Read the descriptions of the installed ctapipe command-line tools.
+
+    Read each console script's module docstring directly from the source
+    and flatten it to one line for display by ``ctapipe-info``.
+
+    Returns
+    -------
+    collections.OrderedDict
+        Tool names mapped to their descriptions, with a placeholder for
+        modules without a docstring.
+    """
     tools = get_installed_tools()
 
     descriptions = OrderedDict()

@@ -125,6 +125,23 @@ def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
 
 @u.quantity_input(mirror_area=u.m**2)
 def type_from_mirror_area(mirror_area):
+    """Estimate the telescope size class from its mirror area.
+
+    Use the diameter of a circle with the given area as a proxy for
+    telescope size, for example when the telescope type is missing from
+    simulation metadata.
+
+    Parameters
+    ----------
+    mirror_area : astropy.units.Quantity
+        Scalar mirror area in units convertible to square meters.
+
+    Returns
+    -------
+    str
+        ``SST`` below 8 m, ``MST`` from 8 m up to but excluding 16 m,
+        or ``LST`` from 16 m upward.
+    """
     mirror_diameter = (2 * np.sqrt(mirror_area / np.pi)).to_value(u.m)
 
     if mirror_diameter < 8:

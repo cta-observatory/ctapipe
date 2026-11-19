@@ -94,6 +94,38 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
 def download_cached(
     url, cache_name="ctapipe", auth=None, env_prefix="CTAPIPE_DATA_", progress=False
 ) -> Path:
+    """Get the local path to a URL, downloading it on a cache miss.
+
+    Use an existing cached file without contacting the server. A file lock
+    prevents concurrent downloads to the same cache entry.
+
+    Parameters
+    ----------
+    url : str
+        URL of the file to retrieve. Its host and path identify the cache entry.
+    cache_name : str, optional
+        Directory name under the user's ``.cache`` directory. If
+        ``CTAPIPE_CACHE`` is set, it specifies the cache root instead.
+    auth : bool or tuple of str or requests.auth.AuthBase or None, optional
+        Authentication passed to the HTTP request. Use a (username, password)
+        pair or set this to True to read the pair from the environment.
+    env_prefix : str, optional
+        Prefix for the ``USER`` and ``PASSWORD`` environment variables read
+        when ``auth=True`` and the file needs to be downloaded.
+    progress : bool, optional
+        Show a progress bar while downloading the file.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the cached file.
+
+    Raises
+    ------
+    KeyError
+        If ``auth=True``, the file is not cached, and a required credential
+        variable is missing.
+    """
     path = get_cache_path(url, cache_name=cache_name)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = path.with_suffix(path.suffix + ".lock")

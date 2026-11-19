@@ -147,6 +147,22 @@ def get_lower_level(l0, l1):
 
 
 def get_default_logging(module="ctapipe"):
+    """Build the default logging configuration for a named logger.
+
+    The logger sends messages at WARNING level and above to standard error
+    with colored formatting. Pass the returned configuration to
+    `logging.config.dictConfig` to apply it.
+
+    Parameters
+    ----------
+    module : str, optional
+        Name of the logger to configure.
+
+    Returns
+    -------
+    dict
+        A new logging configuration that can be customized before applying it.
+    """
     return {
         "version": 1,
         "disable_existing_loggers": False,
