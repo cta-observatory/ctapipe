@@ -37,6 +37,7 @@ from ..containers import (
     SubarrayEventIndexContainer,
     SubarraySimulationContainer,
     SubarrayTriggerContainer,
+    TelescopeConfigurationIndexContainer,
     TelescopeDL0Container,
     TelescopeDL1Container,
     TelescopeDL2Container,
@@ -45,6 +46,7 @@ from ..containers import (
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
     TelescopeR1Container,
+    TelescopeSimulationConfigurationContainer,
     TelescopeSimulationContainer,
     TelescopeTriggerContainer,
     TimingParametersContainer,
@@ -84,6 +86,7 @@ from .hdf5dataformat import (
     SIMULATION_RUN_TABLE,
     SIMULATION_SHOWER_TABLE,
     SIMULATION_TEL_TABLE,
+    SIMULATION_TELESCOPE_CONFIG_GROUP,
 )
 from .hdf5tableio import HDF5TableReader, get_column_attrs
 from .metadata import (
@@ -121,6 +124,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v7.6.0",
     "v7.7.0",
     "v8.0.0",
+    "v8.1.0",
 ]
 
 
@@ -463,6 +467,32 @@ class HDF5EventSource(EventSource):
         a dict mapping obs_id to the respective config.
         """
         return self._simulation_configs
+
+    @lazyproperty
+    def telescope_simulation_config(
+        self,
+    ) -> dict[int, dict[int, TelescopeSimulationConfigurationContainer]]:
+        """Telescope simulation configurations indexed by obs_id, then tel_id."""
+        if SIMULATION_TELESCOPE_CONFIG_GROUP not in self.file_:
+            return {}
+
+        reader = HDF5TableReader(self.file_)
+        configs = {}
+        for tel_id in self.subarray.tel:
+            path = f"{SIMULATION_TELESCOPE_CONFIG_GROUP}/tel_{tel_id:03d}"
+            if path not in self.file_:
+                continue
+
+            for index, config in reader.read(
+                path,
+                containers=(
+                    TelescopeConfigurationIndexContainer,
+                    TelescopeSimulationConfigurationContainer,
+                ),
+            ):
+                configs.setdefault(index.obs_id, {})[tel_id] = config
+
+        return configs
 
     def __len__(self):
         trigger_table = DL0_SUBARRAY_TRIGGER_TABLE

@@ -12,6 +12,7 @@ __all__ = [
     "SCHEDULING_BLOCK_TABLE",
     "OBSERVATION_BLOCK_TABLE",
     "SIMULATION_RUN_TABLE",
+    "SIMULATION_TELESCOPE_CONFIG_GROUP",
     "FIXED_POINTING_GROUP",
     "ATMOSPHERE_DENSITY_PROFILE_TABLE",
     "DL1_IMAGE_STATISTICS_TABLE",
@@ -72,6 +73,7 @@ CONFIG_GROUP = "/configuration"
 SCHEDULING_BLOCK_TABLE = "/configuration/observation/scheduling_block"
 OBSERVATION_BLOCK_TABLE = "/configuration/observation/observation_block"
 SIMULATION_RUN_TABLE = "/configuration/simulation/run"
+SIMULATION_TELESCOPE_CONFIG_GROUP = "/configuration/simulation/telescope"
 FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
 DL1_IMAGE_STATISTICS_TABLE = "/dl1/service/image_statistics"
 DL2_EVENT_STATISTICS_GROUP = "/dl2/service/tel_event_statistics"

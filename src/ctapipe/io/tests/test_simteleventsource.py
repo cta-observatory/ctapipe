@@ -903,3 +903,12 @@ def test_nsb_scaling_factor(request, fixture_name, expected):
     with SimTelEventSource(path) as source:
         config = next(iter(source.simulation_config.values()))
         assert config["nsb_scaling_factor"] == expected
+
+
+def test_random_mono_probability():
+    with SimTelEventSource("dataset://prod6_issues.simtel.zst") as source:
+        configs = source.telescope_simulation_config[source.obs_id]
+        assert configs.keys() == source.subarray.tel.keys()
+        assert len(configs) == 32
+        for config in configs.values():
+            assert config.random_mono_probability == 0.01

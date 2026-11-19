@@ -49,6 +49,7 @@ from ..containers import (
     TelescopePointingContainer,
     TelescopeR0Container,
     TelescopeR1Container,
+    TelescopeSimulationConfigurationContainer,
     TelescopeSimulationContainer,
     TelescopeTriggerContainer,
 )
@@ -687,6 +688,7 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
+        self._telescope_simulation_config = self._parse_telescope_simulation_config()
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -723,6 +725,12 @@ class SimTelEventSource(EventSource):
     @property
     def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         return self._simulation_config
+
+    @property
+    def telescope_simulation_config(
+        self,
+    ) -> dict[int, dict[int, TelescopeSimulationConfigurationContainer]]:
+        return self._telescope_simulation_config
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
@@ -1336,6 +1344,17 @@ class SimTelEventSource(EventSource):
             nsb_scaling_factor=nsb_scaling_factor,
         )
         return {obs_id: simulation_config}
+
+    def _parse_telescope_simulation_config(self):
+        configs = {}
+        for tel_id in self.subarray.tel:
+            meta = self.file_.telescope_meta.get(tel_id, {})
+            probability = float(meta.get(b"RANDOM_MONO_PROBability", np.nan))
+            configs[tel_id] = TelescopeSimulationConfigurationContainer(
+                random_mono_probability=probability
+            )
+
+        return {self.obs_id: configs}
 
     def _fill_scheduling_and_observation_blocks(self):
         """fill scheduling and observation blocks must be run after the
