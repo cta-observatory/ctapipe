@@ -171,13 +171,13 @@ def download_file_cached(
         the name of the file, relative to the data server url
     cache_name : str
         What name to use for the cache directory
-    env_prefix : str
-        Prefix for the environt variables used for overriding the URL,
-        and providing username and password in case authentication is required.
     auth : True, None or tuple of (username, password)
         Authentication data for the request. Will be passed to ``requests.get``.
         If ``True``, read username and password for the request from
         the env variables ``env_prefix + 'USER'`` and ``env_prefix + PASSWORD``
+    env_prefix : str
+        Prefix for the environt variables used for overriding the URL,
+        and providing username and password in case authentication is required.
     default_url : str
         The default url from which to download ``name``, can be overridden
         by setting the env variable ``env_prefix + URL``

@@ -81,11 +81,11 @@ class TelescopeDescription:
 
         Parameters
         ----------
-        camera_name : str
-           camera name
         optics_name : str
            optics name (e.g. LST, or SST-ASTRI), also called
            telescope_description
+        camera_name : str
+           camera name
 
         Notes
         -----

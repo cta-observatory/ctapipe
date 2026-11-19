@@ -556,10 +556,6 @@ class TableLoader(Component):
         ----------
         tel_id : int
             Telescope identification number.
-        start : int
-            First *subarray* event to read
-        stop : int
-            Last *subarray* event (non-inclusive)
         dl1_images : bool
             load extracted images
         dl1_parameters : bool
@@ -578,6 +574,10 @@ class TableLoader(Component):
             join subarray instrument information to each event
         pointing : bool
             join pointing information to each event
+        start : int
+            First *subarray* event to read
+        stop : int
+            Last *subarray* event (non-inclusive)
 
         Returns
         -------

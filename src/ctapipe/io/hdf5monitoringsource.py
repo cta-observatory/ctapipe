@@ -776,10 +776,10 @@ class HDF5MonitoringSource(MonitoringSource):
 
         Parameters
         ----------
-        time : astropy.time.Time
-            Target timestamp(s) to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
+        time : astropy.time.Time
+            Target timestamp(s) to find the interval.
 
         Returns
         -------
