@@ -818,14 +818,23 @@ class CameraGeometry:
 
     @lazyproperty
     def neighbor_matrix(self):
+        """Return the dense boolean pixel adjacency matrix in camera pixel order."""
         return self.neighbor_matrix_sparse.toarray()
 
     @lazyproperty
     def max_neighbors(self):
+        """Return the maximum number of neighbors of any pixel in the camera."""
         return self.neighbor_matrix_sparse.sum(axis=1).max()
 
     @lazyproperty
     def neighbor_matrix_sparse(self):
+        """
+        Return the sparse pixel adjacency matrix in camera pixel order.
+
+        Use the supplied adjacency matrix if available. Otherwise, infer
+        adjacency from the pixel positions, excluding diagonal neighbors
+        for square pixels.
+        """
         if self._neighbors is not None:
             return self._neighbors
 
@@ -1155,6 +1164,26 @@ class CameraGeometry:
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
+        """
+        Translate a sim_telarray pixel shape code to a shape and rotation.
+
+        Parameters
+        ----------
+        pixel_shape : int
+            Pixel shape code from sim_telarray.
+
+        Returns
+        -------
+        PixelShape
+            Camera pixel shape.
+        astropy.coordinates.Angle
+            A copy of the pixel rotation associated with the code.
+
+        Raises
+        ------
+        ValueError
+            If the shape code is unknown.
+        """
         try:
             shape, rotation = SIMTEL_PIXEL_SHAPES[pixel_shape]
             # make sure we don't introduce a mutable global state

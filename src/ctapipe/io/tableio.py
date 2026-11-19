@@ -5,6 +5,7 @@ Base functionality for reading and writing tabular data
 import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from typing import override
 
 import numpy as np
 from astropy.time import Time
@@ -285,10 +286,21 @@ class TableReader(Component, metaclass=ABCMeta):
 
     @abstractmethod
     def open(self, filename, **kwargs):
+        """
+        Open the input file for reading.
+
+        Parameters
+        ----------
+        filename : str or pathlib.Path
+            Path of the input file.
+        **kwargs
+            Additional options for the file backend.
+        """
         pass
 
     @abstractmethod
     def close(self):
+        """Close the input file."""
         pass
 
 
@@ -306,6 +318,19 @@ class ColumnTransform(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self, value):
+        """
+        Convert a column value to its representation for storage.
+
+        Parameters
+        ----------
+        value : object
+            Python or Astropy value, such as an array, quantity, or timestamp.
+
+        Returns
+        -------
+        object
+            Encoded value suitable for the table backend.
+        """
         pass
 
     @abstractmethod
@@ -341,6 +366,7 @@ class TimeColumnTransform(ColumnTransform):
         # for all other formats, use astropy mechanism
         return getattr(getattr(value, self.scale), self.format)
 
+    @override
     def inverse(self, value):
         # ctao_high_res is not implemented as an astropy format but using
         # conversion functions defined in ctapipe
@@ -349,6 +375,7 @@ class TimeColumnTransform(ColumnTransform):
         # for all other formats, use astropy mechanism
         return Time(value, scale=self.scale, format=self.format, copy=COPY_IF_NEEDED)
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "time",
@@ -363,12 +390,15 @@ class QuantityColumnTransform(ColumnTransform):
     def __init__(self, unit):
         self.unit = unit
 
+    @override
     def __call__(self, value):
         return value.to_value(self.unit)
 
+    @override
     def inverse(self, value):
         return Quantity(value, self.unit, copy=COPY_IF_NEEDED)
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "quantity",
@@ -429,6 +459,7 @@ class FixedPointColumnTransform(ColumnTransform):
             self.minval = iinfo.min + 2
             self.maxval = iinfo.max - 1
 
+    @override
     def __call__(self, value):
         is_scalar = np.array(value, copy=COPY_IF_NEEDED).shape == ()
         value = np.atleast_1d(value).astype(self.source_dtype, copy=COPY_IF_NEEDED)
@@ -453,6 +484,7 @@ class FixedPointColumnTransform(ColumnTransform):
 
         return result
 
+    @override
     def inverse(self, value):
         is_scalar = np.array(value, copy=COPY_IF_NEEDED).shape == ()
         value = np.atleast_1d(value)
@@ -473,6 +505,7 @@ class FixedPointColumnTransform(ColumnTransform):
 
         return result
 
+    @override
     def get_meta(self, colname: str):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "fixed_point",
@@ -492,12 +525,15 @@ class EnumColumnTransform(ColumnTransform):
         self.enum = enum
 
     @staticmethod
+    @override
     def __call__(value):
         return value.value
 
+    @override
     def inverse(self, value):
         return self.enum(value)
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "enum",
@@ -547,6 +583,7 @@ class StringTransform(ColumnTransform):
         self.max_length = max_length
         self.dtype = f"S{max_length:d}"
 
+    @override
     def __call__(self, value):
         if isinstance(value, str):
             return encode_utf8_max_len(value, self.max_length)
@@ -555,6 +592,7 @@ class StringTransform(ColumnTransform):
             [encode_utf8_max_len(v, self.max_length) for v in value]
         ).astype(self.dtype)
 
+    @override
     def inverse(self, value):
         if isinstance(value, bytes):
             return value.decode("utf-8")
@@ -564,6 +602,7 @@ class StringTransform(ColumnTransform):
         value = np.array(value, copy=COPY_IF_NEEDED)
         return np.array([v.decode("utf-8") for v in value])
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "string",
@@ -578,16 +617,19 @@ class TelListToMaskTransform(ColumnTransform):
         self._forward = subarray.tel_ids_to_mask
         self._inverse = subarray.tel_mask_to_tel_ids
 
+    @override
     def __call__(self, value):
         if value is None:
             return None
 
         return self._forward(value)
 
+    @override
     def inverse(self, value):
         if value is None:
             return None
         return self._inverse(value)
 
+    @override
     def get_meta(self, colname):
         return {f"CTAFIELD_{colname}_TRANSFORM": "tel_list_to_mask"}

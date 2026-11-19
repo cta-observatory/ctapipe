@@ -74,15 +74,38 @@ class PlanarRepresentation(BaseRepresentation):
 
     @property
     def xy(self):
+        """Stack x and y into a quantity with both components on the first axis."""
         return u.Quantity((self._x, self._y))
 
     @classmethod
     def from_cartesian(cls, cartesian):
+        """
+        Project Cartesian coordinates onto the xy plane.
+
+        Parameters
+        ----------
+        cartesian : astropy.coordinates.CartesianRepresentation
+            Cartesian coordinates from which to take the x and y components.
+
+        Returns
+        -------
+        PlanarRepresentation
+            Coordinates in the xy plane.
+        """
         return cls(x=cartesian.x, y=cartesian.y)
 
     def to_cartesian(self):
+        """
+        Represent the planar coordinates in three-dimensional Cartesian space.
+
+        Returns
+        -------
+        astropy.coordinates.CartesianRepresentation
+            Cartesian coordinates with the same x and y values and z set to zero.
+        """
         return CartesianRepresentation(x=self._x, y=self._y, z=0 * self._x.unit)
 
     @property
     def components(self):
+        """Return the component names as the tuple ``("x", "y")``."""
         return "x", "y"

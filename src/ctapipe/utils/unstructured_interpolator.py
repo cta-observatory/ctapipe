@@ -115,6 +115,30 @@ class UnstructuredInterpolator:
         self._previous_points = None
 
     def __call__(self, points, eval_points=None):
+        """
+        Interpolate sample values linearly on the Delaunay triangulation.
+
+        At each query point, use the barycentric weights of the simplex
+        vertices. For gridded templates, the vertex values can first be
+        sampled at additional positions in the template plane.
+
+        Parameters
+        ----------
+        points : array-like
+            Query coordinates with shape ``(n_queries, n_dimensions)``, or a
+            single point with shape ``(n_dimensions,)``. Use points inside the
+            convex hull of the sample coordinates for interpolation.
+        eval_points : ndarray or None, optional
+            For gridded templates with bounds, evaluate each template at
+            positions of shape ``(n_queries, n_positions, 2)``, in the coordinate
+            units of those bounds. For object-valued samples, provide the
+            evaluation positions for the configured callable.
+
+        Returns
+        -------
+        ndarray
+            Interpolated values with one leading entry per query.
+        """
         # Convert to a numpy array here in case we get a list
         points = np.array(points, dtype=np.float32)
         if eval_points is not None:

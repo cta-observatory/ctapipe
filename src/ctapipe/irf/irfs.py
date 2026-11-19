@@ -1,6 +1,7 @@
 """Components to generate IRFs"""
 
 from abc import abstractmethod
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -201,6 +202,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self,
         events: QTable,
@@ -247,6 +249,7 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self,
         events: QTable,
@@ -280,6 +283,7 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
     ) -> BinTableHDU:
@@ -333,6 +337,7 @@ class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
             u.deg,
         )
 
+    @override
     def __call__(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         psf = psf_table(
             events=events,

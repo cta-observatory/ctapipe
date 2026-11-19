@@ -363,6 +363,7 @@ class ArrayDisplay:
             )
 
     def add_labels(self):
+        """Label each plotted telescope with its ID."""
         px = self.tel_coords.x.to_value("m")
         py = self.tel_coords.y.to_value("m")
         for tel, x, y, r in zip(self.subarray.tels, px, py, self.radii):
@@ -379,6 +380,7 @@ class ArrayDisplay:
             self._labels.append(lab)
 
     def remove_labels(self):
+        """Remove the telescope labels from the array display."""
         for lab in self._labels:
             lab.remove()
         self._labels = []

@@ -76,12 +76,14 @@ class MonitoringSource(TelescopeComponent):
         subtype: str | None = None,
     ):
         """
-        Get the monitoring table for a given telescope monitoring type.
+        Get the monitoring table for a telescope.
 
         Parameters
         ----------
-        monitoring_type : MonitoringType
-            The type of monitoring data to retrieve.
+        tel_id : int
+            Telescope ID.
+        monitoring_type : TelescopeMonitoringType
+            Type of telescope monitoring data to retrieve.
         subtype : str | None
             Optional subtype, e.g. for PIXEL_STATISTICS type
 
@@ -168,16 +170,18 @@ class MonitoringSource(TelescopeComponent):
         subtype: str | None = None,
     ) -> Any:
         """
-        Get monitoring values for specific timestamp(s).
+        Get monitoring values for a telescope at specific timestamps.
 
-        Performs interpolation or nearest-neighbor lookup as appropriate.
+        Uses interpolation or a lookup according to the monitoring data type.
 
         Parameters
         ----------
+        tel_id : int
+            Telescope ID.
         time : astropy.time.Time
             Target timestamp(s). Can be scalar or array.
-        monitoring_type : MonitoringType
-            The type of monitoring data to retrieve.
+        monitoring_type : TelescopeMonitoringType
+            Type of telescope monitoring data to retrieve.
         subtype : str | None
             Optional subtype
 

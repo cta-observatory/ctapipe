@@ -5,6 +5,7 @@ Handles reading of monitoring files
 import logging
 import warnings
 from contextlib import ExitStack
+from typing import override
 
 import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
@@ -366,9 +367,11 @@ class HDF5MonitoringSource(MonitoringSource):
 
     @property
     def available_data(self) -> AvailableTypes:
+        """Return an empty tuple since only telescope-level data are available."""
         return ()
 
     @property
+    @override
     def available_telescope_data(
         self,
     ) -> dict[int, tuple[tuple[TelescopeMonitoringType, str | None], ...]]:
@@ -397,19 +400,38 @@ class HDF5MonitoringSource(MonitoringSource):
 
     @property
     def camera_coefficients(self):
+        """Return the camera coefficient tables keyed by telescope ID."""
         return self._camera_coefficients
 
     @property
     def pixel_statistics(self):
+        """Return pixel statistics tables by telescope ID and statistic subtype."""
         return self._pixel_statistics
 
     @property
     def telescope_pointings(self):
+        """Return the telescope pointing tables keyed by telescope ID."""
         return self._telescope_pointings
 
     def get_table(
         self, monitoring_type: MonitoringType, subtype: str | None = None
     ) -> Table:
+        """
+        Request a subarray monitoring table.
+
+        Parameters
+        ----------
+        monitoring_type : MonitoringType
+            Requested subarray monitoring type.
+        subtype : str or None, optional
+            Requested subtype, where applicable.
+
+        Raises
+        ------
+        KeyError
+            Always, since this source provides only telescope-level monitoring.
+            Use `get_telescope_table` for those tables.
+        """
         raise KeyError(
             f"Monitoring data {(monitoring_type, subtype)} not available in this source."
         )
@@ -417,6 +439,24 @@ class HDF5MonitoringSource(MonitoringSource):
     def get_values(
         self, time: Time, monitoring_type: MonitoringType, subtype: str | None = None
     ):
+        """
+        Request subarray monitoring values at a given time.
+
+        Parameters
+        ----------
+        time : astropy.time.Time
+            Requested timestamp or timestamps.
+        monitoring_type : MonitoringType
+            Requested subarray monitoring type.
+        subtype : str or None, optional
+            Requested subtype, where applicable.
+
+        Raises
+        ------
+        KeyError
+            Always, since this source provides only telescope-level monitoring.
+            Use `get_telescope_values` for those values.
+        """
         raise KeyError(
             f"Monitoring data {(monitoring_type, subtype)} not available in this source."
         )
@@ -439,6 +479,7 @@ class HDF5MonitoringSource(MonitoringSource):
             f"{tel_id}. Available data: {available}"
         )
 
+    @override
     def get_telescope_table(
         self,
         tel_id: int,
@@ -541,6 +582,7 @@ class HDF5MonitoringSource(MonitoringSource):
             )
         return interpolator(tel_id, time, self.timestamp_tolerance)
 
+    @override
     def get_telescope_values(
         self,
         tel_id: int,

@@ -6,6 +6,7 @@ import sys
 from argparse import ArgumentParser
 from collections import Counter
 from pathlib import Path
+from typing import override
 
 from tqdm.auto import tqdm
 from traitlets import List
@@ -170,6 +171,7 @@ class MergeTool(Tool):
 
     classes = [HDF5Merger]
 
+    @override
     def setup(self):
         # Get input Files
         args = self.parser.parse_args(self.extra_args)
@@ -197,6 +199,7 @@ class MergeTool(Tool):
                 "Output path contained in input files. Fix your configuration / cli arguments."
             )
 
+    @override
     def start(self):
         n_merged = 0
 
@@ -220,6 +223,7 @@ class MergeTool(Tool):
             len(self.input_files),
         )
 
+    @override
     def finish(self):
         # override activity meta with merge current activity
         current_activity = Provenance().current_activity

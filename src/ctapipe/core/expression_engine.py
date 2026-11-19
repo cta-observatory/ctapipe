@@ -43,6 +43,24 @@ class ExpressionEngine:
                 ) from err
 
     def __call__(self, locals):
+        """
+        Evaluate the configured expressions in order.
+
+        Parameters
+        ----------
+        locals : Mapping
+            Local names and values available to the expressions.
+
+        Yields
+        ------
+        object
+            Result of each expression in configuration order.
+
+        Raises
+        ------
+        ExpressionError
+            If an expression cannot be evaluated.
+        """
         for compiled, expression in zip(self.compiled, self.expressions):
             try:
                 yield eval(compiled, ALLOWED_GLOBALS, locals)

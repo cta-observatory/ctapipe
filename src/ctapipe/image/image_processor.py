@@ -108,6 +108,20 @@ class ImageProcessor(TelescopeComponent):
         }
 
     def __call__(self, event: SubarrayEventContainer):
+        """
+        Clean and parameterize the DL1 images for all telescopes in an event.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with DL1 camera images. The telescope images may be modified,
+            and their cleaning masks and image parameters are set in place.
+
+        Raises
+        ------
+        ValueError
+            If a telescope event has no DL1 image.
+        """
         for tel_event in event.tel.values():
             self._process_telescope_event(tel_event)
 

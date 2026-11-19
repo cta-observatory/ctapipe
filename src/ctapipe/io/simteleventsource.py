@@ -12,6 +12,7 @@ from contextlib import nullcontext
 from enum import Enum, IntFlag, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
+from typing import override
 
 import numpy as np
 from astropy import units as u
@@ -720,28 +721,34 @@ class SimTelEventSource(EventSource):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    @override
     def close(self):
         self.file_.close()
 
     @property
+    @override
     def is_simulation(self):
         return True
 
     @property
+    @override
     def datalevels(self):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
+    @override
     def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         return self._simulation_config
 
     @property
+    @override
     def telescope_simulation_config(
         self,
     ) -> dict[int, dict[int, TelescopeSimulationConfigurationContainer]]:
         return self._telescope_simulation_config
 
     @property
+    @override
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return self._atmosphere_density_profile
 
@@ -760,6 +767,7 @@ class SimTelEventSource(EventSource):
         return self._scheduling_blocks
 
     @property
+    @override
     def is_stream(self):
         # eventio 1.x
         fh = getattr(self.file_, "_filehandle", None)
@@ -892,6 +900,7 @@ class SimTelEventSource(EventSource):
         )
 
     @staticmethod
+    @override
     def is_compatible(file_path):
         try:
             from eventio.file_types import is_eventio
@@ -904,11 +913,25 @@ class SimTelEventSource(EventSource):
         return is_eventio(path)
 
     @property
+    @override
     def subarray(self):
         return self._subarray_info
 
     @property
     def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
+        """
+        Return the simulated shower histogram keyed by observation ID.
+
+        SimTel stores histograms at the end of the file. Consume all events
+        before requesting them. Limiting iteration with ``max_events`` can
+        prevent the histograms from being read. If none have been read,
+        emit a warning and return an empty dictionary.
+
+        Returns
+        -------
+        dict[int, SimulatedShowerDistribution]
+            Distribution of simulated showers in true energy and core distance.
+        """
         if self.file_.histograms is None:
             warnings.warn(
                 "eventio file has no histograms (yet)."

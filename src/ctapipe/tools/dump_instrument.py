@@ -7,6 +7,7 @@ example with `CameraGeometry.from_table`.
 
 import os
 import pathlib
+from typing import override
 
 import ctao_datamodel as dm
 import ctao_datamodel.models.dataproducts as dp
@@ -69,6 +70,7 @@ class DumpInstrumentTool(Tool):
 
     classes = [EventSource, meta.Contact, meta.Curation]
 
+    @override
     def setup(self):
 
         self.contact_info = meta.Contact(parent=self)
@@ -87,6 +89,7 @@ class DumpInstrumentTool(Tool):
             )
             self.exit(1)
 
+    @override
     def start(self):
         if self.outdir is None:
             self.outdir = pathlib.Path(os.getcwd())
@@ -102,6 +105,7 @@ class DumpInstrumentTool(Tool):
             self.write_optics_descriptions()
             self.write_subarray_description()
 
+    @override
     def finish(self):
         pass
 
@@ -177,6 +181,12 @@ class DumpInstrumentTool(Tool):
             )
 
     def write_subarray_description(self):
+        """
+        Write the telescope layout as a separate table in the configured format.
+
+        The file name is derived from the subarray name. Its metadata records the
+        source file, and provenance records the output after a successful write.
+        """
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format)
         tab = sub.to_table(kind="subarray", meta_convention="fits")

@@ -192,11 +192,11 @@ class EventSource(Component):
     @abstractmethod
     def subarray(self) -> SubarrayDescription:
         """
-        Obtain the subarray from the EventSource
+        Return the instrument description for the source's subarray.
 
         Returns
         -------
-        ctapipe.instrument.SubarrayDecription
+        ctapipe.instrument.SubarrayDescription
 
         """
 
@@ -223,30 +223,19 @@ class EventSource(Component):
     @property
     @abstractmethod
     def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
-        """
-        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
-        """
+        """Return observation blocks keyed by observation ID."""
         pass
 
     @property
     @abstractmethod
     def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
-        """
-        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
-        """
+        """Return scheduling blocks keyed by scheduling block ID."""
         pass
 
     @property
     @abstractmethod
     def is_simulation(self) -> bool:
-        """
-        Whether the currently opened file is simulated
-
-        Returns
-        -------
-        bool
-
-        """
+        """Indicate whether the source provides simulated events."""
 
     @property
     @abstractmethod
@@ -301,11 +290,12 @@ class EventSource(Component):
     @property
     def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
         """
-        The distribution of simulated showers for each obs_id.
+        Return the available distributions of simulated showers by observation ID.
 
         Returns
         -------
-        dict[int,ctapipe.containers.SimulatedShowerDistribution]
+        dict[int, ctapipe.containers.SimulatedShowerDistribution]
+            Empty when no simulated shower distributions are available.
         """
         return {}
 

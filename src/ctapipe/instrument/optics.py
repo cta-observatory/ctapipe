@@ -7,6 +7,7 @@ from abc import abstractmethod
 from enum import Enum, StrEnum, auto, unique
 from functools import cached_property
 from pathlib import Path
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -866,6 +867,7 @@ class ComaPSFModel(PSFModel):
         a3 = self.polar_scale_offset.tel[tel_id]
         return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
+    @override
     @u.quantity_input(
         lon=u.deg,
         lat=u.deg,
@@ -1261,6 +1263,7 @@ class ZernikePSFModel(PSFModel):
 
         return intensity
 
+    @override
     @u.quantity_input(
         lon=u.deg,
         lat=u.deg,

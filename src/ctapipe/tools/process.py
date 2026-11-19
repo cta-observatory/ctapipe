@@ -5,6 +5,7 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 # pylint: disable=W0201
 import logging
 import sys
+from typing import override
 
 from tqdm.auto import tqdm
 
@@ -193,6 +194,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(Reconstructor)
     )
 
+    @override
     def setup(self):
         # setup components:
         try:

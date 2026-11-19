@@ -4,6 +4,7 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 
 from contextlib import ExitStack
 from copy import copy
+from typing import override
 
 from ..calib import CameraCalibrator
 from ..core import Component, QualityQuery, Tool
@@ -157,6 +158,7 @@ class ImagePlotter(Component):
         return self._exit_stack.__exit__(exc_type, exc_value, traceback)
 
     def finish(self):
+        """Close the output PDF if one has been opened."""
         if self.pdf is not None:
             self.log.info("Closing PDF")
             self.pdf.close()
@@ -206,6 +208,7 @@ class DisplayDL1Calib(Tool):
         self.calibrator = None
         self.plotter = None
 
+    @override
     def setup(self):
         try:
             self.eventsource = self.enter_context(EventSource(parent=self))
@@ -229,6 +232,7 @@ class DisplayDL1Calib(Tool):
         self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
         self.plotter = self.enter_context(ImagePlotter(parent=self, subarray=subarray))
 
+    @override
     def start(self):
         for event in self.eventsource:
             if self.eventsource.has_any_datalevel((DataLevel.R1, DataLevel.DL0)):
@@ -250,6 +254,7 @@ class DisplayDL1Calib(Tool):
                         )
                         return
 
+    @override
     def finish(self):
         self.plotter.finish()
 

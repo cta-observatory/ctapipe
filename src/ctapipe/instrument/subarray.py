@@ -685,6 +685,21 @@ class SubarrayDescription:
 
     @classmethod
     def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
+        """
+        Read a subarray description from instrument tables in an HDF5 file.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path or tables.File
+            Path to an HDF5 file or an already open PyTables file.
+        focal_length_choice : FocalLengthKind, optional
+            Choose the effective or equivalent focal length for the camera frames.
+
+        Returns
+        -------
+        SubarrayDescription
+            Subarray with its telescope positions, optics, and cameras.
+        """
         # here to prevent circular import
         from ..io import read_table
 

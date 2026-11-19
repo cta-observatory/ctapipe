@@ -189,6 +189,34 @@ class CameraDisplay:
 
     @staticmethod
     def create_patches(shape, pix_x, pix_y, pix_width, pix_rotation=0 * u.deg):
+        """
+        Create a Matplotlib patch for each camera pixel.
+
+        Parameters
+        ----------
+        shape : PixelShape
+            Common shape of the pixels.
+        pix_x : array-like
+            Pixel center x coordinates in the display coordinate units.
+        pix_y : array-like
+            Pixel center y coordinates in the display coordinate units.
+        pix_width : array-like
+            Width per pixel in the same units as the coordinates. This is the
+            side length for squares, the diameter for circles, and the
+            flat-to-flat distance for hexagons.
+        pix_rotation : astropy.units.Quantity, optional
+            Rotation of the square or hexagonal pixels.
+
+        Returns
+        -------
+        list of matplotlib.patches.Patch
+            Patches in the order of the input pixel coordinates.
+
+        Raises
+        ------
+        ValueError
+            If the pixel shape is unsupported.
+        """
         if shape == PixelShape.HEXAGON:
             return CameraDisplay._create_hex_patches(
                 pix_x, pix_y, pix_width, pix_rotation
@@ -591,6 +619,7 @@ class CameraDisplay:
         print(f"Clicked pixel_id {pix_id}")
 
     def show(self):
+        """Show the Matplotlib figure containing the camera display."""
         self.axes.figure.show()
 
     def auto_set_axes_labels(self):

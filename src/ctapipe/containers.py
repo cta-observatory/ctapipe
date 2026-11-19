@@ -1014,6 +1014,12 @@ class ReconstructedShowerContainer(Container):
 
     @property
     def classification(self):
+        """
+        Return the particle type through its deprecated alias.
+
+        Accessing this property emits a deprecation warning. Use
+        `particle_type` to access the reconstruction results.
+        """
         self._warn_classification_deprecated()
         return self.particle_type
 

@@ -14,6 +14,7 @@ import abc
 import warnings
 from dataclasses import dataclass
 from functools import partial
+from typing import override
 
 import numpy as np
 from astropy import units as u
@@ -266,6 +267,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     scale_height: u.Quantity = 8 * u.km
     scale_density: u.Quantity = 0.00125 * u.g / u.cm**3
 
+    @override
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         return np.where(
@@ -274,6 +276,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
             np.nan,
         )
 
+    @override
     @u.quantity_input(height=u.m)
     def integral(
         self,
@@ -287,6 +290,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
             np.nan,
         )
 
+    @override
     @u.quantity_input(overburden=u.g / u.cm**2)
     def height_from_overburden(self, overburden) -> u.Quantity:
         return np.where(
@@ -387,16 +391,19 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         self.table.meta["TAB_TYPE"] = "ctapipe.atmosphere.TableAtmosphereDensityProfile"
         self.table.meta["TAB_VER"] = 1
 
+    @override
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         log_density = self._density_interp(height.to_value(u.km))
         return u.Quantity(10**log_density, DENSITY_UNIT, copy=COPY_IF_NEEDED)
 
+    @override
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         log_col_density = self._col_density_interp(height.to_value(u.km))
         return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=COPY_IF_NEEDED)
 
+    @override
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
         log_overburden = np.log10(overburden.to_value(GRAMMAGE_UNIT))
@@ -515,6 +522,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         )
         return cls(table)
 
+    @override
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         which_func = np.digitize(height, self.table["height"])
@@ -528,6 +536,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             )
         ).to(DENSITY_UNIT)
 
+    @override
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         which_func = np.digitize(height, self.table["height"])
@@ -540,6 +549,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             )
         ).to(GRAMMAGE_UNIT)
 
+    @override
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
         overburdens_at_heights = np.flip(self.integral(self.table["height"].to(u.km)))

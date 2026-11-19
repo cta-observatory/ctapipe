@@ -37,6 +37,7 @@ class TelescopeComponent(Component):
 
     @property
     def subarray(self):
+        """Return the subarray used for telescope-dependent parameter lookups."""
         return self._subarray
 
     @subarray.setter
@@ -120,6 +121,20 @@ class TelescopePatternList(UserList):
 
     @staticmethod
     def single_to_pattern(value):
+        """
+        Convert a scalar parameter to a pattern matching every telescope type.
+
+        Parameters
+        ----------
+        value : object
+            A scalar parameter value or a three-item tuple whose command is
+            ``"type"`` or ``"id"``.
+
+        Returns
+        -------
+        list or tuple
+            The input pattern tuple, or ``["type", "*", value]`` for a scalar.
+        """
         # make sure we only change things that are not already a
         # pattern tuple
         if (
@@ -322,6 +337,7 @@ class TelescopeParameter(List):
 
     @property
     def help(self):
+        """Return the help for this parameter followed by the wrapped trait's help."""
         sep = "." if not self._help.endswith(".") else ""
         return f"{self._help}{sep} {self._trait.help}"
 
@@ -387,6 +403,16 @@ class TelescopeParameter(List):
         return normalized_value
 
     def set(self, obj, value):
+        """
+        Set a telescope parameter and retain its subarray lookup.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose parameter is being set.
+        value : object
+            Telescope patterns or a single value to apply to every telescope type.
+        """
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]

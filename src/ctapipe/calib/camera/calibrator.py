@@ -248,6 +248,17 @@ class CameraCalibrator(TelescopeComponent):
             return False
 
     def r1_to_dl0(self, tel_event: TelescopeEventContainer):
+        """
+        Reduce the waveform data volume for one telescope event.
+
+        Copy the R1 waveforms to DL0, zero the samples of rejected pixels, and
+        set the data-volume reduction flags in the DL0 pixel status.
+
+        Parameters
+        ----------
+        tel_event : TelescopeEventContainer
+            Telescope event with R1 waveforms. The DL0 camera data are updated in place.
+        """
         tel_id = tel_event.index.tel_id
         r1 = tel_event.r1
 
@@ -324,6 +335,21 @@ class CameraCalibrator(TelescopeComponent):
         return factor
 
     def dl0_to_dl1(self, tel_event: TelescopeEventContainer):
+        """
+        Calibrate DL0 waveforms into a DL1 camera image for one telescope.
+
+        Apply the available pedestal and timing corrections and run the
+        configured extractor, typically for integrated charge and pulse time.
+        For single-sample readouts, use the sample values as image charges
+        and initialize the pulse times to zero. Apply the charge calibration
+        to the resulting image, squaring the factors for waveform variances.
+
+        Parameters
+        ----------
+        tel_event : TelescopeEventContainer
+            Telescope event with DL0 camera data and monitoring information.
+            The DL1 container is replaced in place.
+        """
         tel_id = tel_event.index.tel_id
         dl0 = tel_event.dl0.camera
         waveforms = dl0.waveform

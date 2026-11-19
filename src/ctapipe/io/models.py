@@ -108,6 +108,13 @@ class BagItWriter(Component):
         )
 
     def close(self):
+        """
+        Finalize and close the BagIt archive.
+
+        Write the product metadata and checksum manifests, then close the
+        archive and register it in provenance. If already closed, return
+        immediately.
+        """
         if self.outfile.fp is None:
             return
 
@@ -187,6 +194,21 @@ class BagItWriter(Component):
             )
 
     def write_joblib(self, key, obj):
+        """
+        Serialize an object with joblib and store it under a key in the archive.
+
+        Parameters
+        ----------
+        key : str
+            Key used to name the archive entry.
+        obj : object
+            Object to serialize.
+
+        Raises
+        ------
+        FileExistsError
+            If an entry for the key already exists.
+        """
         name = _joblib_name(key)
         self._check_exists(name)
 
@@ -200,6 +222,19 @@ class BagItWriter(Component):
         self.close()
 
     def write_subarray(self, subarray):
+        """
+        Store the subarray instrument tables as an HDF5 file inside the archive.
+
+        Parameters
+        ----------
+        subarray : SubarrayDescription
+            Subarray with the telescope layout, cameras, and optics.
+
+        Raises
+        ------
+        FileExistsError
+            If a subarray entry already exists.
+        """
         name = SUBARRAY_NAME
         self._check_exists(name)
 
@@ -231,6 +266,15 @@ class BagItWriter(Component):
             json.dump(config, wrapper, default=json_config_handler)
 
     def write_reconstructor(self, reconstructor):
+        """
+        Save the reconstructor, its configuration, and its subarray.
+
+        Parameters
+        ----------
+        reconstructor : Reconstructor
+            Reconstructor to serialize. Use `write_joblib` for any models stored
+            separately from the reconstructor.
+        """
         self.write_joblib("reconstructor", reconstructor)
         self._write_reconstructor_config(reconstructor)
         self.write_subarray(reconstructor.subarray)
@@ -285,6 +329,7 @@ class BagItReader(Component):
 
     @property
     def keys(self):
+        """Return the keys of joblib entries other than the reconstructor itself."""
         return self._keys
 
     @property
@@ -294,6 +339,14 @@ class BagItReader(Component):
 
     @lazyproperty
     def subarray(self):
+        """
+        Read and cache the archived subarray description.
+
+        Raises
+        ------
+        KeyError
+            If the archive does not contain a subarray description.
+        """
         if SUBARRAY_NAME not in self._files:
             raise KeyError(f"No subarray stored in input_path {self.input_path}")
 
@@ -311,15 +364,42 @@ class BagItReader(Component):
             return SubarrayDescription.from_hdf(h5file)
 
     def read_joblib(self, key):
+        """
+        Load a joblib object from the archive.
+
+        Parameters
+        ----------
+        key : str
+            Key of the stored object.
+
+        Returns
+        -------
+        object
+            Deserialized object.
+
+        Raises
+        ------
+        KeyError
+            If the archive has no entry for the key.
+        """
         with self.zip.open(_joblib_name(key), "r") as f:
             return joblib.load(f)
 
     def read_reconstructor(self):
+        """
+        Load the reconstructor and attach the archived subarray.
+
+        Returns
+        -------
+        Reconstructor
+            The deserialized reconstructor with its subarray restored.
+        """
         reconstructor = self.read_joblib("reconstructor")
         reconstructor.subarray = self.subarray
         return reconstructor
 
     def close(self):
+        """Close the input archive."""
         self.zip.close()
 
     def __enter__(self):

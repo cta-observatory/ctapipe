@@ -124,6 +124,14 @@ class EastingNorthingFrame(BaseCoordinateFrame):
     }
 
     def to_earth_location(self):
+        """
+        Convert local ground coordinates to an Earth location.
+
+        Returns
+        -------
+        astropy.coordinates.EarthLocation
+            Geographic location relative to the frame's reference location.
+        """
         # in astropy, x points north, y points east
         cart = CartesianRepresentation(self.northing, self.easting, self.height)
         altaz = AltAz(cart, location=self.reference_location)
@@ -131,6 +139,21 @@ class EastingNorthingFrame(BaseCoordinateFrame):
 
     @classmethod
     def from_earth_location(cls, location, reference_location):
+        """
+        Express an Earth location in local ground coordinates.
+
+        Parameters
+        ----------
+        location : astropy.coordinates.EarthLocation
+            Location to express in the local frame.
+        reference_location : astropy.coordinates.EarthLocation
+            Origin of the local frame.
+
+        Returns
+        -------
+        GroundFrame
+            Northing, easting, and height relative to the reference location.
+        """
         altaz = _earthlocation_to_altaz(location, reference_location)
         x, y, z = altaz.cartesian.xyz
         # in astropy, x points north, y points east
@@ -143,6 +166,7 @@ class EastingNorthingFrame(BaseCoordinateFrame):
 
     @property
     def observation_level(self):
+        """Return the height of the frame's reference location as a quantity."""
         return self.reference_location.height
 
 

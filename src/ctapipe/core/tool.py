@@ -491,6 +491,7 @@ class Tool(Application):
         self.exit(exit_status)
 
     def write_provenance(self):
+        """Log activity outputs and append the collected provenance to the log file."""
         for activity in Provenance().finished_activities:
             output_str = " ".join([x["url"] for x in activity.output])
             self.log.info("Output: %s", output_str)

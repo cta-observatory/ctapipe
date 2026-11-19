@@ -515,6 +515,23 @@ class ImageModifier(TelescopeComponent):
         self.rng = np.random.default_rng(self.rng_seed)
 
     def __call__(self, tel_id, image, rng=None):
+        """
+        Apply the configured PSF smearing and charge-dependent noise to an image.
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the geometry and modification settings.
+        image : ndarray
+            Image charges indexed by camera pixel.
+        rng : object, optional
+            Unused. Random draws use the modifier's configured generator.
+
+        Returns
+        -------
+        ndarray
+            Image charges after modification, with the input data type.
+        """
         dtype = image.dtype
 
         if self.psf_smear_factor.tel[tel_id] > 0:

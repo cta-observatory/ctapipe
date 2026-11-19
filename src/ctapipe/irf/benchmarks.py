@@ -1,6 +1,7 @@
 """Components to generate benchmarks"""
 
 from abc import abstractmethod
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -80,6 +81,7 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffse
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self, events: QTable, extname: str = "ENERGY BIAS RESOLUTION"
     ) -> BinTableHDU:
@@ -155,6 +157,7 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self, events: QTable, extname: str = "ANGULAR RESOLUTION"
     ) -> BinTableHDU:
@@ -265,6 +268,7 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self,
         signal_events: QTable,

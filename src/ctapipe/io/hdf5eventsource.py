@@ -9,6 +9,7 @@ import logging
 import warnings
 from contextlib import ExitStack
 from pathlib import Path
+from typing import override
 
 import numpy as np
 import tables
@@ -333,16 +334,19 @@ class HDF5EventSource(EventSource):
         return {dist.obs_id: dist for dist in reader}
 
     @property
+    @override
     def simulated_shower_distributions(self):
         return self._simulated_shower_distributions
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    @override
     def close(self):
         self.file_.close()
 
     @staticmethod
+    @override
     def is_compatible(file_path):
         path = Path(file_path).expanduser()
         if not path.is_file():
@@ -443,26 +447,32 @@ class HDF5EventSource(EventSource):
         return DL1_TEL_MUON_GROUP in self.file_.root
 
     @property
+    @override
     def subarray(self):
         return self._subarray
 
     @lazyproperty
+    @override
     def datalevels(self):
         return get_hdf5_datalevels(self.file_)
 
     @lazyproperty
+    @override
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return read_atmosphere_density_profile(self.file_)
 
     @property
+    @override
     def obs_ids(self):
         return self._obs_ids
 
     @property
+    @override
     def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         return self._scheduling_block
 
     @property
+    @override
     def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         return self._observation_block
 

@@ -439,9 +439,35 @@ class DummyTemplateInterpolator:
     """Supply unit-valued pixel predictions for tests without ImPACT templates."""
 
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):
+        """
+        Return a constant unit-amplitude image template.
+
+        Parameters
+        ----------
+        zenith : array-like
+            Zenith angle, unused.
+        azimuth : array-like
+            Azimuth angle, unused.
+        energy : array-like
+            Shower energy, unused.
+        impact : array-like
+            Impact distance, unused.
+        xmax : array-like
+            Depth of shower maximum, unused.
+        xb : array-like
+            Template x coordinates, which determine the result shape and dtype.
+        yb : array-like
+            Template y coordinates, unused.
+
+        Returns
+        -------
+        ndarray
+            Ones with the shape and dtype of ``xb``.
+        """
         return np.ones_like(xb)
 
     def reset(self):
+        """Return True. The dummy image interpolator has no cached state."""
         return True
 
 
@@ -449,7 +475,25 @@ class DummyTimeInterpolator:
     """Return an array of ones matching the input energy for timing tests."""
 
     def __call__(self, energy, impact, xmax):
+        """
+        Return a constant unit-valued timing template.
+
+        Parameters
+        ----------
+        energy : array-like
+            Shower energy, which determines the result shape and dtype.
+        impact : array-like
+            Impact distance, unused.
+        xmax : array-like
+            Depth of shower maximum, unused.
+
+        Returns
+        -------
+        ndarray
+            Ones with the shape and dtype of ``energy``.
+        """
         return np.ones_like(energy)
 
     def reset(self):
+        """Return True. The dummy time interpolator has no cached state."""
         return True

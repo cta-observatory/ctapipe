@@ -414,12 +414,14 @@ class Provenance(metaclass=Singleton):
 
     @property
     def current_activity(self):
+        """Return the most recently started active activity, or None."""
         if len(self._activities) == 0:
             return None
         return self._activities[-1]  # current activity is at the top of stack
 
     @property
     def finished_activities(self):
+        """Return the list of finished activities in completion order."""
         return self._finished_activities
 
     @property
@@ -436,10 +438,12 @@ class Provenance(metaclass=Singleton):
 
     @property
     def active_activity_names(self):
+        """Return the names of active activities in the order they were started."""
         return [x.name for x in self._activities]
 
     @property
     def finished_activity_names(self):
+        """Return the names of finished activities in completion order."""
         return [x.name for x in self._finished_activities]
 
     def clear(self):

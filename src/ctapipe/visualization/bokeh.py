@@ -172,6 +172,7 @@ class BokehPlot(metaclass=ABCMeta):
             push_notebook(handle=self._handle)
 
     def add_colorbar(self):
+        """Add a colorbar to the right of the figure using the current color mapper."""
         self._color_bar = ColorBar(
             color_mapper=self._color_mapper,
             label_standoff=12,

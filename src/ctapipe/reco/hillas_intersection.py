@@ -570,10 +570,40 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     @staticmethod
     def weight_mean_intensity(p1, p2):
+        """
+        Weight a telescope pair by the charges of its cleaned images.
+
+        Parameters
+        ----------
+        p1 : float or ndarray
+            Integrated charge of the first cleaned image.
+        p2 : float or ndarray
+            Integrated charge of the second cleaned image, in the same units as p1.
+
+        Returns
+        -------
+        float or ndarray
+            Half the harmonic mean of the two charges, in the same units.
+        """
         return (p1 * p2) / (p1 + p2)
 
     @staticmethod
     def weight_sin(phi1, phi2):
+        """
+        Weight an image-axis intersection by the opening angle of the axes.
+
+        Parameters
+        ----------
+        phi1 : float or ndarray or astropy.units.Quantity
+            Orientation of the first image axis. Bare numbers are in radians.
+        phi2 : float or ndarray or astropy.units.Quantity
+            Orientation of the second image axis in the same convention.
+
+        Returns
+        -------
+        float or ndarray or astropy.units.Quantity
+            Absolute sine of the angle between the two axes.
+        """
         return np.abs(np.sin(phi1 - phi2))
 
 

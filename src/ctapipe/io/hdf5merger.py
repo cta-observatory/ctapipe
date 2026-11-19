@@ -879,6 +879,7 @@ class HDF5Merger(Component):
         self.close()
 
     def close(self):
+        """Close the merged HDF5 file and record its path in provenance."""
         if hasattr(self, "h5file"):
             self.h5file.close()
         Provenance().add_output_file(str(self.output_path))

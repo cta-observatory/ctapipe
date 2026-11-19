@@ -612,6 +612,26 @@ class Map[K, V](defaultdict[K, V]):
     """
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):
+        """
+        Convert the map and optionally its nested values to a dict.
+
+        Parameters
+        ----------
+        recursive : bool, optional
+            Convert nested containers and maps to dictionaries.
+        flatten : bool, optional
+            With recursive conversion, merge the entries from nested values into
+            the output dictionary. Later entries overwrite duplicate keys.
+        add_prefix : bool, optional
+            Include container prefixes when converting nested containers.
+        add_key : bool, optional
+            When flattening, prefix each promoted key with its outer map key.
+
+        Returns
+        -------
+        dict
+            Dictionary of the map's entries.
+        """
         if not recursive:
             return dict(self.items())
         else:

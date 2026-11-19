@@ -3,6 +3,7 @@
 import operator
 from abc import abstractmethod
 from collections.abc import Sequence
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -219,6 +220,27 @@ class GhPercentileCutCalculator(Component):
     ).tag(config=True)
 
     def __call__(self, gammaness, reco_energy, reco_energy_bins):
+        """
+        Compute lower gammaness thresholds in reconstructed energy bins.
+
+        In each bin, use the gammaness percentile at 100 minus the configured
+        target percentage of events to retain. Use the maximum input gammaness
+        in bins with too few events. Smoothing can be applied across bins.
+
+        Parameters
+        ----------
+        gammaness : ndarray
+            Gamma-ray classification score for each event.
+        reco_energy : astropy.units.Quantity
+            Reconstructed energy for each event.
+        reco_energy_bins : astropy.units.Quantity
+            Edges of the reconstructed energy bins.
+
+        Returns
+        -------
+        astropy.table.QTable
+            Energy bin bounds and centers, event counts, and gammaness thresholds.
+        """
         if self.smoothing and self.smoothing < 0:
             self.smoothing = None
 
@@ -273,6 +295,28 @@ class ThetaPercentileCutCalculator(Component):
     ).tag(config=True)
 
     def __call__(self, theta, reco_energy, reco_energy_bins):
+        """
+        Compute upper angular separation thresholds in reconstructed energy bins.
+
+        Use the configured percentile of the separations in each bin and the
+        configured fill value in bins with too few events. The percentile cuts
+        can be clipped to angular bounds and smoothed across bins.
+
+        Parameters
+        ----------
+        theta : astropy.units.Quantity
+            Angular separation between the reconstructed direction and the source
+            position for each event.
+        reco_energy : astropy.units.Quantity
+            Reconstructed energy for each event.
+        reco_energy_bins : astropy.units.Quantity
+            Edges of the reconstructed energy bins.
+
+        Returns
+        -------
+        astropy.table.QTable
+            Energy bin bounds and centers, event counts, and angular thresholds.
+        """
         if self.smoothing and self.smoothing < 0:
             self.smoothing = None
 
@@ -303,6 +347,7 @@ class PercentileCuts(CutOptimizerBase):
         self.gh_cut_calculator = GhPercentileCutCalculator(parent=self)
         self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
 
+    @override
     def __call__(
         self,
         events: dict[str, QTable],
@@ -414,6 +459,7 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
         super().__init__(config=config, parent=parent, **kwargs)
         self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
 
+    @override
     def __call__(
         self,
         events: dict[str, QTable],
@@ -529,6 +575,7 @@ class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
         help="Event-multiplicity cuts used for scanning after optimal cut",
     ).tag(config=True)
 
+    @override
     def __call__(
         self,
         events: dict[str, QTable],

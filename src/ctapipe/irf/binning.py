@@ -189,6 +189,7 @@ class DefaultFoVOffsetBins(Component):
 
     @property
     def fov_offset_bins(self):
+        """Return evenly spaced field-of-view offset bin edges in degrees."""
         return u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
@@ -213,6 +214,7 @@ class DefaultFoVPhiBins(Component):
 
     @property
     def fov_phi_bins(self):
+        """Return uniform field-of-view azimuth bin edges from 0 to 360 degrees."""
         return u.Quantity(
             np.linspace(
                 0.0 * u.deg,

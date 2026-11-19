@@ -3,6 +3,7 @@ Outlier detection algorithms to identify faulty pixels
 """
 
 from abc import abstractmethod
+from typing import override
 
 import numpy as np
 
@@ -81,6 +82,7 @@ class RangeOutlierDetector(OutlierDetector):
         help="Whether the maximum value is acceptable.",
     ).tag(config=True)
 
+    @override
     def __call__(self, column):
         if column.ndim not in (3, 4):
             raise ValueError(
@@ -117,6 +119,7 @@ class MedianOutlierDetector(OutlierDetector):
         maxlen=2,
     ).tag(config=True)
 
+    @override
     def __call__(self, column):
         # Accept both chunk-wise stats (3D) and histogram stats (4D)
         if column.ndim not in (3, 4):
@@ -158,6 +161,7 @@ class StdOutlierDetector(OutlierDetector):
         maxlen=2,
     ).tag(config=True)
 
+    @override
     def __call__(self, column):
         # Accept both chunk-wise stats (3D) and histogram stats (4D)
         if column.ndim not in (3, 4):

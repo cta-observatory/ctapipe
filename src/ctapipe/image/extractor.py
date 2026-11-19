@@ -25,6 +25,7 @@ __all__ = [
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import lru_cache
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -436,12 +437,10 @@ class ImageExtractor(TelescopeComponent):
             Waveforms stored in a numpy array of shape
             (n_channels, n_pix, n_samples).
         tel_id : int
-            The telescope id. Used to obtain to correct traitlet configuration
-            and instrument properties
-        selected_gain_channel : ndarray
-            The channel selected in the gain selection, per pixel. Required in
-            some cases to calculate the correct correction for the charge
-            extraction.
+            Telescope ID used to look up configuration and instrument properties.
+        selected_gain_channel : ndarray or None
+            Selected gain channel for each pixel, or None if no gain selection
+            was applied. Used by some extractors for the integration correction.
         broken_pixels : ndarray
             Mask of broken pixels used for certain `ImageExtractor` types.
             Shape: (n_channels, n_pix), matching the waveform channel axis.
@@ -450,8 +449,8 @@ class ImageExtractor(TelescopeComponent):
 
         Returns
         -------
-        TelescopeDL1Container:
-            extracted images and validity flags
+        TelescopeDL1Container
+            DL1 image, pulse times where available, and extraction validity.
         """
 
 
@@ -460,6 +459,7 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -507,6 +507,7 @@ class FixedWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -574,6 +575,7 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -645,6 +647,7 @@ class LocalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -711,6 +714,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
         return correction
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -766,6 +770,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -808,6 +813,7 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     )
     baseline_end = Int(10, help="End sample for baseline estimation").tag(config=True)
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -1269,6 +1275,30 @@ class TwoPassWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
+        """
+        Extract image charge and pulse times in two passes from gain-selected data.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms of shape ``(1, n_pixels, n_samples)``.
+        tel_id : int
+            Telescope ID used to select the settings and camera geometry.
+        selected_gain_channel : ndarray
+            Selected gain channel for each pixel.
+        broken_pixels : ndarray of bool
+            Mask of unusable pixels with shape ``(1, n_pixels)``.
+
+        Returns
+        -------
+        TelescopeDL1Container
+            Integrated charges, pulse times in ns, and extraction validity.
+
+        Raises
+        ------
+        AttributeError
+            If the waveforms do not have exactly one gain channel.
+        """
         if waveforms.shape[-3] != 1:
             raise AttributeError(
                 "The data needs to be gain selected to use the TwoPassWindowSum."
@@ -1307,6 +1337,32 @@ class VarianceExtractor(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
+        """
+        Compute the variance across waveform samples in each pixel and gain channel.
+
+        NaN samples are ignored. The result is marked valid if at least one
+        variance is finite.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms of shape ``(n_channels, n_pixels, n_samples)``.
+        tel_id : int
+            Telescope ID.
+        selected_gain_channel : ndarray or None
+            Selected gain channel per pixel, if gain selection was applied.
+        broken_pixels : ndarray of bool
+            Mask of unusable pixels.
+
+        Returns
+        -------
+        TelescopeDL1Container
+            Waveform variances in the image field, with no pulse times.
+
+        Notes
+        -----
+        Only ``waveforms`` is used. The other parameters follow the extractor interface.
+        """
         image = np.nanvar(waveforms, dtype="float32", axis=2)
         container = TelescopeDL1Container(
             image=image,
@@ -1669,6 +1725,7 @@ class FlashCamExtractor(ImageExtractor):
         """Applies soft clipping to ±1 and then hard clipping to (lo, hi)."""
         return np.clip(x / (1.0 + np.abs(x)), lo, hi)
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:

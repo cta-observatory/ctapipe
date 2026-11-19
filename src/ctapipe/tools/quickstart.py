@@ -4,6 +4,7 @@ Create a working directory for ctapipe-process containing standard configuration
 
 from importlib.resources import files
 from pathlib import Path
+from typing import override
 
 from ..core import Provenance, Tool, traits
 from ..version import __version__ as VERSION
@@ -146,6 +147,7 @@ class QuickStartTool(Tool):
         ("o", "org"): "QuickStartTool.contact_organization",
     }
 
+    @override
     def setup(self):
         self.workdir.mkdir(parents=True, exist_ok=True)
 
@@ -168,6 +170,7 @@ class QuickStartTool(Tool):
             "VERSION": VERSION,
         }
 
+    @override
     def start(self):
         for filename in CONFIGS_TO_WRITE:
             config = files("ctapipe").joinpath("resources", filename)
@@ -191,6 +194,7 @@ class QuickStartTool(Tool):
             readme.write_text(README_TEXT)
             Provenance().add_output_file(readme, role="README", add_meta=False)
 
+    @override
     def finish(self):
         print(f"Generated examples in {self.workdir}")
 

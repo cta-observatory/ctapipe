@@ -2,6 +2,7 @@
 
 import enum
 from pathlib import PurePath
+from typing import override
 
 import numpy as np
 import tables
@@ -251,10 +252,12 @@ class HDF5TableWriter(TableWriter):
 
         self.log.debug("h5file: %s", self.h5file)
 
+    @override
     def open(self, filename, **kwargs):
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
         self.h5file = tables.open_file(filename, **kwargs)
 
+    @override
     def close(self):
         self.h5file.close()
 
@@ -561,9 +564,11 @@ class HDF5TableReader(TableReader):
                 "filename needs to be either a string, pathlib.PurePath or tables.File"
             )
 
+    @override
     def open(self, filename, **kwargs):
         self._h5file = tables.open_file(filename, **kwargs)
 
+    @override
     def close(self):
         self._h5file.close()
 

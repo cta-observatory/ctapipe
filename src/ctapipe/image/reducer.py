@@ -3,6 +3,7 @@ Algorithms for the data volume reduction.
 """
 
 from abc import abstractmethod
+from typing import override
 
 import numpy as np
 
@@ -103,6 +104,7 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
+    @override
     def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
         n_pixels = waveforms.shape[-2]
         return np.ones(n_pixels, dtype=bool)
@@ -191,6 +193,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             self.image_extractor_type = [("type", "*", name)]
             self.image_extractors[name] = image_extractor
 
+    @override
     def select_pixels(self, waveforms, tel_id, selected_gain_channel=None):
         camera_geom = self.subarray.tel[tel_id].camera.geometry
         # Pulse-integrate waveforms
