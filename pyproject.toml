@@ -300,6 +300,11 @@ ignore-words = ".codespell-ignores"
 
 [tool.numpydoc_validation]
 exclude = ['\.(?!__\w*__$)_\w*$']
+exclude_files = [
+    '^(?:.*/)?tests/',
+    '^(?:.*/)?conftest\.py$',
+    '^examples/',
+]
 checks = [
     "PR01",  # signature parameters must be documented
     "PR02",  # documented parameters must exist in the signature
