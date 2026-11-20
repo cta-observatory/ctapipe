@@ -39,6 +39,7 @@ jobs:
       - uses: ./ctapipe-asv/.github/actions/setup-asv
 
       - name: Compare base and PR merge commits
+        id: comparison
         shell: bash
         working-directory: ctapipe-asv
         env:
@@ -57,7 +58,24 @@ jobs:
             cat comparison.txt
             printf '\n````\n'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          # ASV exits with 1 when it detects a performance regression.
+          summary="$RUNNER_TEMP/asv-pr-summary-$GITHUB_RUN_ATTEMPT.txt"
+          if [[ "$status" -le 1 ]] &&
+            uv run --no-sync asv compare --config asv.conf.local.json --split \
+              --sort ratio "$BASE_SHA" "$GITHUB_SHA" > "$summary" &&
+            [[ -s "$summary" ]]; then
+            printf 'summary_ready=true\n' >> "$GITHUB_OUTPUT"
+          fi
           exit "$status"
+
+      - name: Upload the PR comment summary
+        if: ${{ !cancelled() && steps.comparison.outputs.summary_ready == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/asv-pr-summary-${{ github.run_attempt }}.txt
+          archive: false
+          if-no-files-found: error
 
       - name: Upload PR benchmark results
         if: always()
