@@ -1,4 +1,6 @@
 import astropy.units as u
+import numpy as np
+import pytest
 from astropy.io.fits import BinTableHDU
 from pyirf.simulations import SimulatedEventsInfo
 
@@ -17,6 +19,18 @@ def _check_boundaries_in_hdu(
         assert u.isclose(
             u.Quantity(hdu.data[f"{col}_HI"][0][-1], hdu.columns[f"{col}_HI"].unit), val
         )
+
+
+def _sim_info():
+    return SimulatedEventsInfo(
+        n_showers=3000,
+        energy_min=0.01 * u.TeV,
+        energy_max=10 * u.TeV,
+        max_impact=1000 * u.m,
+        spectral_index=-1.9,
+        viewcone_min=0 * u.deg,
+        viewcone_max=10 * u.deg,
+    )
 
 
 def test_make_2d_background(irf_events_table):
@@ -75,15 +89,7 @@ def test_make_2d_eff_area(irf_events_table):
         true_energy_n_bins_per_decade=7,
         true_energy_max=155 * u.TeV,
     )
-    sim_info = SimulatedEventsInfo(
-        n_showers=3000,
-        energy_min=0.01 * u.TeV,
-        energy_max=10 * u.TeV,
-        max_impact=1000 * u.m,
-        spectral_index=-1.9,
-        viewcone_min=0 * u.deg,
-        viewcone_max=10 * u.deg,
-    )
+    sim_info = _sim_info()
     eff_area_hdu = eff_area_maker(
         events=irf_events_table,
         spatial_selection_applied=False,
@@ -107,6 +113,106 @@ def test_make_2d_eff_area(irf_events_table):
         sim_info=sim_info,
     )
     assert eff_area_hdu.data["EFFAREA"].shape == (1, 1, 29)
+
+
+def test_make_3d_eff_area(irf_events_table):
+    from ctapipe.irf import EffectiveArea3DMaker
+
+    true_fov_lon = irf_events_table["true_source_fov_lon"].copy()
+    true_fov_lat = irf_events_table["true_source_fov_lat"].copy()
+
+    eff_area_maker = EffectiveArea3DMaker(
+        fov_lon_n_bins=5,
+        fov_lon_max=3 * u.deg,
+        fov_lat_n_bins=5,
+        fov_lat_max=3 * u.deg,
+        true_energy_n_bins_per_decade=7,
+        true_energy_max=155 * u.TeV,
+    )
+    sim_info = _sim_info()
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=False,
+        signal_is_point_like=False,
+        sim_info=sim_info,
+    )
+    # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+
+    _check_boundaries_in_hdu(
+        eff_area_hdu,
+        lo_vals=[-3 * u.deg, -3 * u.deg, 0.015 * u.TeV],
+        hi_vals=[3 * u.deg, 3 * u.deg, 155 * u.TeV],
+        colnames=["DETX", "DETY", "ENERG"],
+    )
+
+    assert eff_area_hdu.header["HDUCLAS4"] == "AEFF_3D"
+    assert eff_area_hdu.header["HDUCLAS3"] == "FULL-ENCLOSURE"
+    assert eff_area_hdu.header["HDUCLASS"] == "GADF"
+    assert eff_area_hdu.header["HDUVERS"] == "0.4"
+    assert eff_area_hdu.header["FOVALIGN"] == "ALTAZ"
+
+    # the selection only affects HDUCLAS3, not the computed effective area
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=False,
+        signal_is_point_like=True,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu.header["HDUCLAS3"] == "POINT-LIKE"
+
+    eff_area_hdu = eff_area_maker(
+        events=irf_events_table,
+        spatial_selection_applied=True,
+        signal_is_point_like=False,
+        sim_info=sim_info,
+    )
+    assert eff_area_hdu.data["EFFAREA"].shape == (1, 5, 5, 29)
+    assert eff_area_hdu.header["HDUCLAS3"] == "POINT-LIKE"
+
+    # the maker must not modify the input table
+    assert u.allclose(irf_events_table["true_source_fov_lon"], true_fov_lon)
+    assert u.allclose(irf_events_table["true_source_fov_lat"], true_fov_lat)
+
+
+@pytest.mark.parametrize(
+    "lon, has_area",
+    [(1 * u.deg, True), (-1 * u.deg, False)],
+    ids=["native_positive_lon", "native_negative_lon"],
+)
+def test_make_3d_eff_area_gadf_sign(irf_events_table, lon, has_area):
+    from ctapipe.irf import EffectiveArea3DMaker
+
+    eff_area_maker = EffectiveArea3DMaker(
+        fov_lon_n_bins=4,
+        fov_lon_min=-4 * u.deg,
+        fov_lon_max=0 * u.deg,
+        fov_lat_n_bins=4,
+        fov_lat_min=-1 * u.deg,
+        fov_lat_max=1 * u.deg,
+        true_energy_n_bins_per_decade=7,
+        true_energy_max=155 * u.TeV,
+    )
+    # A square fov grid is required until pyirf 0.15 (which returns the fov
+    # axes in (lat, lon) order for calculate_n_showers_3d_lonlat) is replaced;
+    # a non-square grid test will be implemented with the next pyirf release.
+
+    events = irf_events_table.copy()
+    # the dl2 columns store the native fov lon; the maker flips the sign for GADF
+    events["true_source_fov_lon"] = lon * np.ones(len(events))
+    events["true_source_fov_lat"] = np.zeros(len(events)) * u.deg
+
+    eff_area_hdu = eff_area_maker(
+        events=events,
+        spatial_selection_applied=False,
+        signal_is_point_like=False,
+        sim_info=_sim_info(),
+    )
+
+    eff_area = eff_area_hdu.data["EFFAREA"]
+    total_area = np.nansum(np.where(np.isnan(eff_area), 0, eff_area))
+    assert (total_area > 0) == has_area
 
 
 def test_make_3d_psf(irf_events_table):
