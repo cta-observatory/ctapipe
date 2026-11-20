@@ -28,11 +28,11 @@ def skewness(data, mean=None, std=None):
 
     Parameters
     ----------
-    data: ndarray
+    data : ndarray
         Data for which skewness is calculated
-    mean: float or None
+    mean : float or None
         pre-computed mean, if not given, mean is computed
-    std: float or None
+    std : float or None
         pre-computed std, if not given, std is computed
 
     Returns
@@ -61,13 +61,13 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 
     Parameters
     ----------
-    data: ndarray
+    data : ndarray
         Data for which skewness is calculated
-    mean: float or None
+    mean : float or None
         pre-computed mean, if not given, mean is computed
-    std: float or None
+    std : float or None
         pre-computed std, if not given, std is computed
-    fisher: bool
+    fisher : bool
         If True, Fisher’s definition is used (normal ==> 0.0).
         If False, Pearson’s definition is used (normal ==> 3.0).
 

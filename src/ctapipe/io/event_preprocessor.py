@@ -324,7 +324,7 @@ class EventPreprocessor(Component):
 
         Parameters
         ----------
-        table: Table
+        table : Table
            Table to process
         **other_attributes: Any
            Other functions or objects that the FeatureGenerator should have

@@ -133,19 +133,19 @@ def build_wf_noise_pixelwise(
 
     Parameters
     ----------
-    waveforms: array (nevents, ngains, npixels, nsamples), the elemental noise
+    waveforms : array (nevents, ngains, npixels, nsamples), the elemental noise
     waveforms
 
-    n_noise_realizations: int
+    n_noise_realizations : int
     the number of total noise waveforms we want to generate
 
-    nsb_level: int
+    nsb_level : int
     the number of elemental noise waveforms we combine to produce each total
     noise waveform
 
-    rng: random number generator
+    rng : random number generator
 
-    sample_pixels_independently: bool
+    sample_pixels_independently : bool
     if True, each pixel will use a different random combination of the elemental
     noise events to build the noise to be added to its waveform.
     if False, the waveform for each pixel in any given noise realization comes
@@ -264,15 +264,15 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        subarray: SubarrayDescription
+        subarray : SubarrayDescription
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
+        config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
+        parent : ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
 
@@ -352,7 +352,7 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        nsb_database: dict
+        nsb_database : dict
         Dictionary with one key per telescope, containing an array [n_events,
         n_gains, n_pixels, n_samples] (noise waveforms)
 
@@ -387,13 +387,13 @@ class WaveformModifier(TelescopeComponent):
 
         Parameters
         ----------
-        nsb_database: dict
+        nsb_database : dict
         Dictionary with one key per telescope, containing an array [n_events,
         n_gains, n_pixels, n_samples] (noise waveforms)
 
         Returns
         -------
-        nsb_database: dict
+        nsb_database : dict
         Dictionary, same as above but after baseline zeroing
         """
 
@@ -406,7 +406,7 @@ class WaveformModifier(TelescopeComponent):
         """
         Parameters
         ----------
-        event: container
+        event : container
             A `~ctapipe.containers.SubarrayEventContainer` event container
         """
 
@@ -471,15 +471,15 @@ class ImageModifier(TelescopeComponent):
         """
         Parameters
         ----------
-        subarray: SubarrayDescription
+        subarray : SubarrayDescription
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
+        config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
+        parent : ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
         """

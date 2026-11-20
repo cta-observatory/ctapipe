@@ -38,11 +38,11 @@ class UnstructuredInterpolator:
         """
         Parameters
         ----------
-        keys: ndarray
+        keys : ndarray
             Interpolation grid points
-        values: ndarray
+        values : ndarray
             Interpolation values
-        function_name: str
+        function_name : str
             Name of class member function to call in the case we are interpolating
             between class predictions, for numpy arrays leave blank
         """
@@ -245,13 +245,13 @@ class UnstructuredInterpolator:
 
         Parameters
         ----------
-        point_num: int
+        point_num : int
         Index of class position in values list
-        eval_points: ndarray
+        eval_points : ndarray
         Inputs used to evaluate class member function
         Returns
         -------
-        ndarray: output from member function
+        ndarray : output from member function
         """
 
         # Check if our array is masked and remember its shape

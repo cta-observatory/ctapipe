@@ -188,13 +188,13 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
 
         Parameters
         ----------
-        events: dict[str, astropy.table.QTable]
+        events : dict[str, astropy.table.QTable]
             Dictionary containing tables of events used for calculating cuts.
             This has to include "signal" events and can include "background" events.
-        quality_query: ctapipe.io.DL2EventPreprocessor
+        quality_query : ctapipe.io.DL2EventPreprocessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events.
-        clf_prefix: str
+        clf_prefix : str
             Prefix of the output from the G/H classifier for which the
             cut will be optimized.
         """

@@ -49,9 +49,9 @@ class PSFMakerBase(DefaultTrueEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        extname: str
+        extname : str
             Name for the BinTableHDU.
 
         Returns
@@ -76,12 +76,12 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        obs_time: astropy.units.Quantity[time]
+        obs_time : astropy.units.Quantity[time]
             Observation time. This must match with how the individual event
             weights are calculated.
-        extname: str
+        extname : str
             Name for the BinTableHDU.
 
         Returns
@@ -141,11 +141,11 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        spatial_selection_applied: bool
+        spatial_selection_applied : bool
             If a direction cut was applied on ``events``, pass ``True``, else ``False``.
-        extname: str
+        extname : str
             Name for the BinTableHDU.
 
         Returns
@@ -175,16 +175,16 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        spatial_selection_applied: bool
+        spatial_selection_applied : bool
             If a direction cut was applied on ``events``, pass ``True``, else ``False``.
-        signal_is_point_like: bool
+        signal_is_point_like : bool
             If ``events`` were simulated only at a single point in the field of view,
             pass ``True``, else ``False``.
-        sim_info: pyirf.simulations.SimulatedEventsInfoa
+        sim_info : pyirf.simulations.SimulatedEventsInfoa
             The overall statistics of the simulated events.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns

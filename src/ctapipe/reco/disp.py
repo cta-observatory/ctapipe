@@ -65,9 +65,9 @@ def compute_true_disp(
 
     Parameters
     ----------
-    table:
+    table :
         DL1 telescope events table as created by `ctapipe.io.TableLoader.read_telescope_events`.
-    project_disp:
+    project_disp :
         If true, the true source position of the gamma-ray is projected onto the reconstructed
         shower axis for computing the disp norm.
         Otherwise, the euclidean distance from the center of gravity to the true source position

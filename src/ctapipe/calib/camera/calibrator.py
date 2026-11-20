@@ -149,22 +149,22 @@ class CameraCalibrator(TelescopeComponent):
         """
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
+        config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
+        parent : ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
-        data_volume_reducer: ctapipe.image.reducer.DataVolumeReducer
+        data_volume_reducer : ctapipe.image.reducer.DataVolumeReducer
             The DataVolumeReducer to use.
             This is used to override the options from the config system
             and to enable passing a preconfigured reducer.
-        image_extractor: ctapipe.image.extractor.ImageExtractor
+        image_extractor : ctapipe.image.extractor.ImageExtractor
             The ImageExtractor to use. If None, the default via the
             configuration system will be constructed.
         """
@@ -450,9 +450,9 @@ def shift_waveforms(waveforms, time_shift_samples):
 
     Parameters
     ----------
-    waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
+    waveforms : ndarray of shape (n_channels, n_pixels, n_samples)
         The waveforms to shift
-    time_shift_samples: ndarray
+    time_shift_samples : ndarray
         The shift to apply in units of samples.
         Waveforms are shifted to the left by the smallest integer
         that minimizes inter-pixel differences.
