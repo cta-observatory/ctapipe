@@ -224,6 +224,21 @@ class EventPreprocessor(Component):
 
     - `~astropy.coordinates.angular_separation`
     - `~ctapipe.coordinates.altaz_to_nominal`
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray available to feature expressions. Required for DL2-to-DL3
+        processing, which uses the reference location for sky coordinates and
+        the telescope layout to compute multiplicity.
+    **kwargs
+        Trait values that override the configuration. Set ``feature_set`` to choose a
+        registered feature set or to use a custom list of output features.
     """
 
     mode = traits.UseEnum(

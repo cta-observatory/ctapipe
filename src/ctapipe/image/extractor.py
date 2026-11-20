@@ -832,6 +832,16 @@ class TwoPassWindowSum(ImageExtractor):
     The second integration pass follows [1]_. This is the version used by the CTA-MARS
     analysis pipeline [2]_.
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometry and readout properties used for waveform
+        integration and the time-gradient fit.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. Set ``disable_second_pass`` for single-pass
+        extraction.
+
     Notes
     -----
     #. slide a 3-samples window through the waveform, finding max counts sum;
@@ -1648,6 +1658,15 @@ class FlashCamExtractor(ImageExtractor):
     [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium.
     A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the sampling rates, reference pulses, and pixel adjacency
+        used for deconvolution and integration.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. For example, set ``leading_edge_timing`` to estimate
+        the pulse time from its rising edge.
     """
 
     upsampling = IntTelescopeParameter(

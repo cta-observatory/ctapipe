@@ -38,7 +38,19 @@ __all__ = [
 
 
 class PSFMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the point spread function."""
+    """Base class for calculating the point spread function.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the number of bins per decade.
+    """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -62,7 +74,19 @@ class PSFMakerBase(DefaultTrueEnergyBins):
 
 
 class BackgroundRateMakerBase(DefaultRecoEnergyBins):
-    """Base class for calculating the background rate."""
+    """Base class for calculating the background rate.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy bounds and the number of bins per decade.
+    """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -91,7 +115,20 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
 
 
 class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the energy dispersion."""
+    """Base class for calculating the energy dispersion.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``energy_migration_binning`` to choose linear or logarithmic bins in the ratio
+        of reconstructed to true energy.
+    """
 
     energy_migration_min = Float(
         help="Minimum value of energy migration ratio",
@@ -154,7 +191,19 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
 
 
 class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the effective area."""
+    """Base class for calculating the effective area.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the number of bins per decade.
+    """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -197,6 +246,17 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
 
     The response is radially symmetric. The binning in logarithmic true energy and
     field-of-view offset is uniform.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        and field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -244,6 +304,17 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
 
     The response is radially symmetric. The binning in logarithmic true energy and
     field-of-view offset is uniform.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy,
+        energy migration, and field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -278,6 +349,17 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
 
     The response is radially symmetric. The binning in logarithmic reconstructed energy
     and field-of-view offset is uniform.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy and field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -307,6 +389,18 @@ class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
 
     The bins are evenly spaced in source offset, logarithmic true energy, and
     field-of-view offset.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``source_offset_min``, ``source_offset_max``, and ``source_offset_n_bins`` to
+        control the angular separation bins around the true source position.
     """
 
     source_offset_min = AstroQuantity(

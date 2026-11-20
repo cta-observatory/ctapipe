@@ -340,6 +340,18 @@ class PercentileCuts(CutOptimizerBase):
     `GhPercentileCutCalculator` retains a configured percentage of signal events in each
     bin. Optionally, `ThetaPercentileCutCalculator` derives a cut from the events that
     pass the gamma-hadron cut.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy bins for the percentile cuts. The child calculators inherit
+        their settings through the component configuration.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -449,6 +461,18 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
     This approach computes a simple, percentile based cut for theta and
     then performs a grid search for best sensitivity only for the G/H cut
     using `pyirf.cut_optimization.optimize_gh_cut`.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``gh_cut_efficiency_step`` to control the spacing of the gamma-ray efficiency
+        grid used in the scan.
     """
 
     initial_gh_cut_efficency = Float(

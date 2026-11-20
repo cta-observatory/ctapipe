@@ -304,6 +304,17 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
     Aggregators use a chunking strategy to divide input tables and compute
     aggregated statistics and histograms for each chunk.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``chunking_type`` to choose
+        the component that divides the input table.
     """
 
     chunking_type = ComponentName(
@@ -436,6 +447,17 @@ class HistogramAggregator(BaseAggregator):
     Compute aggregated histograms from a chunk of event-wise data using Hist.
 
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``axis_definition`` to choose
+        the histogram axis type and binning.
     """
 
     axis_definition = Dict(

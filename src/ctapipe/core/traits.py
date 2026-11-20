@@ -461,24 +461,66 @@ def has_traits(cls, ignore=("config", "parent")):
 
 
 class FloatTelescopeParameter(TelescopeParameter):
-    """a `~ctapipe.core.telescope_component.TelescopeParameter` with Float trait type"""
+    """Define a floating-point trait whose value can vary by telescope.
+
+    Parameters
+    ----------
+    **kwargs
+        Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`, such
+        as ``default_value`` and ``help``.
+    """
 
     def __init__(self, **kwargs):
-        """Create a new FloatTelescopeParameter"""
+        """Initialize a floating-point telescope parameter.
+
+        Parameters
+        ----------
+        **kwargs
+            Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`,
+            such as ``default_value`` and ``help``.
+        """
         super().__init__(trait=Float(), **kwargs)
 
 
 class IntTelescopeParameter(TelescopeParameter):
-    """a `~ctapipe.core.telescope_component.TelescopeParameter` with Int trait type"""
+    """Define an integer trait whose value can vary by telescope.
+
+    Parameters
+    ----------
+    **kwargs
+        Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`, such
+        as ``default_value`` and ``help``.
+    """
 
     def __init__(self, **kwargs):
-        """Create a new IntTelescopeParameter"""
+        """Initialize an integer telescope parameter.
+
+        Parameters
+        ----------
+        **kwargs
+            Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`,
+            such as ``default_value`` and ``help``.
+        """
         super().__init__(trait=Int(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):
-    """a `~ctapipe.core.telescope_component.TelescopeParameter` with Bool trait type"""
+    """Define a boolean trait whose value can vary by telescope.
+
+    Parameters
+    ----------
+    **kwargs
+        Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`, such
+        as ``default_value`` and ``help``.
+    """
 
     def __init__(self, **kwargs):
-        """Create a new BoolTelescopeParameter"""
+        """Initialize a boolean telescope parameter.
+
+        Parameters
+        ----------
+        **kwargs
+            Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`,
+            such as ``default_value`` and ``help``.
+        """
         super().__init__(trait=Bool(), **kwargs)

@@ -134,6 +134,20 @@ class HDF5MonitoringSource(MonitoringSource):
     [[False False False ... False False False]]
     True
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray to use for telescope lookups. It must be compatible with the input
+        files. With None, use the description from the first file.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Supply ``input_files`` to select
+        the HDF5 monitoring files to read.
+
     Attributes
     ----------
     input_files: list of Paths

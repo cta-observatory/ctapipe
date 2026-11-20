@@ -821,7 +821,20 @@ class ComaPSFModel(PSFModel):
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """Initialize the ComaPSFModel component and check for missing configuration parameters."""
+        """Initialize the coma model and check its required configuration.
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray supplying the cameras and their angular pixel widths.
+        config : traitlets.loader.Config or None, optional
+            Configuration, including the telescope-dependent coma model parameters.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration and logging.
+            Mutually exclusive with ``config``.
+        **kwargs
+            Trait values that override the configuration.
+        """
         super().__init__(
             subarray=subarray,
             config=config,
@@ -958,6 +971,21 @@ class ZernikePSFModel(PSFModel):
     represented by linear coma terms and quadratic astigmatism terms,
     providing a compact phenomenological description of off-axis optical
     degradation while retaining a physically motivated wavefront model.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to resolve telescope-dependent wavefront coefficients and pupil
+        sampling settings.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        telescope-dependent Zernike coefficients or the pupil sampling through
+        ``pupil_size``.
     """
 
     # Universal model performance parameters
@@ -1102,7 +1130,23 @@ class ZernikePSFModel(PSFModel):
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """Initialize the ZernikePSFModel component and check for missing optional dependency."""
+        """Initialize the wavefront PSF model and check that zernike is installed.
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray used to resolve telescope-dependent wavefront coefficients and
+            pupil sampling settings.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration and logging.
+            Mutually exclusive with ``config``.
+        **kwargs
+            Trait values that override the configuration. For example, set the
+            telescope-dependent Zernike coefficients or the pupil sampling through
+            ``pupil_size``.
+        """
         if RZern is None:
             raise OptionalDependencyMissing("zernike")
         super().__init__(

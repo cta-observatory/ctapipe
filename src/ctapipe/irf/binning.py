@@ -110,7 +110,20 @@ class ResultValidRange:
 
 
 class DefaultTrueEnergyBins(Component):
-    """Base class for creating irfs or benchmarks binned in true energy."""
+    """Base class for creating irfs or benchmarks binned in true energy.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``true_energy_min``,
+        ``true_energy_max``, and ``true_energy_n_bins_per_decade`` to control the bin
+        edges.
+    """
 
     true_energy_min = AstroQuantity(
         help="Minimum value for True Energy bins",
@@ -139,7 +152,20 @@ class DefaultTrueEnergyBins(Component):
 
 
 class DefaultRecoEnergyBins(Component):
-    """Base class for creating irfs or benchmarks binned in reconstructed energy."""
+    """Base class for creating irfs or benchmarks binned in reconstructed energy.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``reco_energy_min``,
+        ``reco_energy_max``, and ``reco_energy_n_bins_per_decade`` to control the bin
+        edges.
+    """
 
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",

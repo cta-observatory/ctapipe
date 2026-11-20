@@ -25,6 +25,20 @@ __all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeRedu
 class DataVolumeReducer(TelescopeComponent):
     """
     Base component for data volume reducers.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to resolve telescope-dependent reduction settings and supply
+        camera geometry to reducers that need it.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Reducer-specific traits are
+        defined by the concrete implementation.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):

@@ -54,6 +54,17 @@ class FeatureGenerator(Component):
     Raises Exceptions in two cases:
     1. If a feature already exists in the table
     2. If a feature cannot be built with the given expression
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``features`` to pairs of
+        output column names and expressions.
     """
 
     features = List(

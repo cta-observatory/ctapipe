@@ -23,6 +23,17 @@ class QualityQuery(Component):
     Configure the criteria at runtime or in a configuration file. Each call returns a
     boolean array and tracks how often each criterion passes, both individually and
     after applying preceding criteria.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``quality_criteria`` to pairs
+        of labels and selection expressions.
     """
 
     quality_criteria = List(

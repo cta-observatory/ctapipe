@@ -611,7 +611,14 @@ class StringTransform(ColumnTransform):
 
 
 class TelListToMaskTransform(ColumnTransform):
-    """convert variable-length list of tel_ids to a fixed-length mask"""
+    """convert variable-length list of tel_ids to a fixed-length mask
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray that defines the mask length and the order of telescope IDs along the
+        mask axis.
+    """
 
     def __init__(self, subarray: SubarrayDescription):
         self._forward = subarray.tel_ids_to_mask

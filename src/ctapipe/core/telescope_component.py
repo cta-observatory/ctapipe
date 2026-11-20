@@ -27,8 +27,21 @@ class TelescopeComponent(Component):
     """
     Configure a component with telescope-dependent parameters.
 
-    Construction requires a `~ctapipe.instrument.SubarrayDescription` and configures the
-    `~ctapipe.core.telescope_component.TelescopeParameter` fields.
+    Use `~ctapipe.core.telescope_component.TelescopeParameter` for settings that
+    vary by telescope.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None
+        Subarray used to resolve telescope-dependent parameters by telescope type or ID.
+        Pass None to attach a subarray later.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
@@ -155,6 +168,11 @@ class TelescopePatternList(UserList):
         Attach the subarray for telescope-specific lookups.
 
         Call this before accessing ``.tel[x]``.
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray whose telescope IDs and types are matched against the patterns.
         """
         self._subarray = subarray
         self._lookup.attach_subarray(subarray)

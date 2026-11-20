@@ -246,7 +246,14 @@ class _ActivityProvenance:
         )
 
     def register_config(self, config):
-        """Add a dictionary of configuration parameters to this activity"""
+        """Record the configuration used for this activity.
+
+        Parameters
+        ----------
+        config : dict
+            Configuration to store for this activity. Replaces any previously recorded
+            configuration.
+        """
         self._prov["config"] = config
 
     def finish(self, status="success", exit_code=0):
@@ -441,7 +448,11 @@ class Provenance(metaclass=Singleton):
     def as_json(self, **kwargs):
         """Serialize finished activity provenance as JSON.
 
-        Kwargs for `json.dumps` may be included, e.g. ``indent=4``
+        Parameters
+        ----------
+        **kwargs
+            Options forwarded to `json.dumps`, such as ``indent``. ctapipe supplies the
+            ``default`` encoder.
         """
         return json.dumps(self.provenance, default=json_config_handler, **kwargs)
 

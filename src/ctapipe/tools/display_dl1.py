@@ -21,7 +21,22 @@ __all__ = ["ImagePlotter", "DisplayDL1Calib"]
 
 
 class ImagePlotter(Component):
-    """Plotter for camera images"""
+    """Plotter for camera images
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometry for each telescope's charge and
+        pulse-time displays.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``output_path`` to write a PDF
+        of the camera displays.
+    """
 
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."

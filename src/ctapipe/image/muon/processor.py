@@ -84,6 +84,16 @@ class MuonProcessor(TelescopeComponent):
 
     Relies on image parameters for quality query, thus should be run after
     the ImageProcessor.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometries and field-of-view radii used for muon
+        ring selection and fitting.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. For example, set ``ring_integration_width`` to control
+        the width of the pixel selection around the fitted ring.
     """
 
     completeness_threshold = FloatTelescopeParameter(

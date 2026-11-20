@@ -148,6 +148,11 @@ class Tool(Application):
     *entry_points*, it will become a command-line tool (see examples
     in the ``ctapipe/tools`` subdirectory).
 
+    Parameters
+    ----------
+    **kwargs
+        Options forwarded to `traitlets.config.Application`, including a configuration
+        object or explicit trait values such as ``log_level``.
     """
 
     config_files = List(

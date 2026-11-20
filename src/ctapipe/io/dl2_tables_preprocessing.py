@@ -51,7 +51,20 @@ class DL2EventQualityQuery(QualityQuery):
 
 
 class DL2EventPreprocessor(Component):
-    """Defines pre-selection cuts and the necessary renaming of columns."""
+    """Defines pre-selection cuts and the necessary renaming of columns.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``energy_reconstructor`` to choose the prefix for the reconstructed energy
+        column.
+    """
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",

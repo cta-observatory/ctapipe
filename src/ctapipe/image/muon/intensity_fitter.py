@@ -524,6 +524,16 @@ class MuonIntensityFitter(TelescopeComponent):
     The image prediction function is currently modeled after :cite:p:`chalmecalvet2013`.
 
     For more information, also see :cite:p:`muon-review`.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometry and optics for predicting the muon-ring
+        signal in each pixel.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. For example, set ``hole_radius_m`` to specify the
+        central obscuration used in the light-yield model.
     """
 
     spe_width = FloatTelescopeParameter(

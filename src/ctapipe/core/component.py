@@ -124,6 +124,16 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp = MyComponent()
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration from a file, command-line arguments, or another caller.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):

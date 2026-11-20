@@ -37,6 +37,21 @@ class PixelStatisticsCalculator(TelescopeComponent):
     while overlapping chunks can be set by the ``chunk_shift`` parameter for the second pass.
     The second pass over the data is only conducted in regions of trouble with a high fraction
     of faulty pixels exceeding the threshold ``faulty_pixels_fraction``.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to select the statistics aggregator for each telescope and
+        configure the outlier detectors.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``stats_aggregator_type`` or ``outlier_detector_list`` to choose how calibration
+        data are aggregated and checked.
     """
 
     stats_aggregator_type = TelescopeParameter(

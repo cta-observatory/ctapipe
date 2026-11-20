@@ -58,6 +58,20 @@ class ImageProcessor(TelescopeComponent):
     Takes DL1/Image data and cleans and parametrizes the images into DL1/parameters.
 
     Should be run after CameraCalibrator to produce all DL1 information.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying camera geometry for image cleaning and parameterization in
+        the telescope frame.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``image_cleaner_type`` to choose the cleaning algorithm.
     """
 
     image_cleaner_type = ComponentName(

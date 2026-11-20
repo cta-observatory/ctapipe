@@ -620,6 +620,12 @@ class Product(HasTraits):
 
     The fields describe the product identity, data levels, processing category,
     association, data model, and storage format used by the legacy metadata schema.
+
+    Parameters
+    ----------
+    **kwargs
+        Values for metadata fields. Supply ``data_levels`` as a list or as a
+        comma-separated string.
     """
 
     description = Unicode("unknown")

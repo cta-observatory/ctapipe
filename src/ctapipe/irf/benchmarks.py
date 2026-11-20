@@ -48,6 +48,17 @@ def _get_2d_result_table(
 class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
     """
     Base class for calculating the bias and resolution of the energy prediction.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the number of bins per decade.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -76,6 +87,17 @@ class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
 class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffsetBins):
     """
     Calculate energy bias and resolution in true energy and offset bins.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -111,6 +133,17 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffse
 class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
     """
     Base class for calculating the angular resolution.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Use ``use_reco_energy`` to choose
+        the energy axis and ``quantiles`` to choose the containment fractions.
     """
 
     use_reco_energy = Bool(
@@ -152,6 +185,17 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
     Calculate angular resolution in energy and field of view offset bins.
 
     The energy axis can use either true or reconstructed energy.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the field-of-view
+        offset bins and the containment fractions in ``quantiles``.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -207,6 +251,17 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
     All other benchmarks/ IRF components prioritize respecting the lower and upper
     bounds for the energy binning over creating exactly ``n_bins_per_decade`` bins
     per decade.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy bins and ``alpha``, the on-to-off region size ratio.
     """
 
     alpha = Float(
@@ -263,6 +318,18 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
 class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
     """
     Calculate point-source sensitivity in reconstructed energy and offset bins.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy and field-of-view offset bins or the on-to-off region size
+        ratio ``alpha``.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):

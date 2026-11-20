@@ -214,7 +214,19 @@ class WaveformModifier(TelescopeComponent):
     events. This is to guarantee that the different noise waveforms are not
     too correlated
 
-
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray of the events to which the sampled noise waveforms will be added.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Supply ``nsb_file`` for the input
+        noise waveforms and set ``nsb_level`` to control how many waveforms are summed
+        per realization.
     """
 
     nsb_file = Path(
@@ -456,6 +468,20 @@ class ImageModifier(TelescopeComponent):
     - Smearing of the image (simulating a worse PSF)
     - Adding poissonian noise (different for bright and dim pixels)
     - Adding a bias to dim pixel charges (see above)
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to look up telescope-dependent settings and the pixel neighbours
+        used in PSF smearing.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``psf_smear_factor`` and the noise levels by telescope.
     """
 
     psf_smear_factor = FloatTelescopeParameter(
