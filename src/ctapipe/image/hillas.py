@@ -122,8 +122,13 @@ def hillas_parameters(geom, image):
         raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
     # calculate the cog as the mean of the coordinates weighted with the image
-    cog_x = np.average(pix_x, weights=image)
-    cog_y = np.average(pix_y, weights=image)
+    cog_x = 0.0
+    cog_y = 0.0
+    for i in range(len(pix_x)):
+        cog_x += pix_x[i] * image[i]
+        cog_y += pix_y[i] * image[i]
+    cog_x /= size
+    cog_y /= size
 
     # polar coordinates of the cog
     cog_r = np.linalg.norm([cog_x, cog_y])
