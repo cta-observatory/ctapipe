@@ -58,6 +58,9 @@ def read_table(
         For example, use "hillas_length > 0" to only load rows where the
         hillas length is larger than 0 (so not nan and not 0).
         Ignored when reading tables that were written using astropy.
+    table_cls : type[astropy.table.Table], optional
+        Class to use for the result. Use `~astropy.table.QTable` to represent
+        columns with units as quantities.
 
     Returns
     -------
@@ -150,16 +153,19 @@ def write_table(
     path : str
         dataset path inside the ``h5file``
     append : bool
-        Whether to try to append to or replace an existing table
+        Append rows if the table already exists.
     overwrite : bool
-        If table is already in file and overwrite and append are false,
-        raise an error.
+        Replace an existing table. Mutually exclusive with ``append``. When both
+        options are False, writing to an existing table raises an error.
     mode : str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
     time_format : str
         Format to use for storing time columns.
         Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
+    filters : tables.Filters, optional
+        PyTables filters used when creating a table, including compression.
+        When appending rows, the existing table retains its filters.
     """
     copied = False
     parent, table_name = os.path.split(path)

@@ -102,6 +102,10 @@ def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
         number of pixels of the telescope's camera
     focal_length : float or u.Quantity[length]
         Focal length, either in m or as astropy quantity
+    n_mirror_tiles : int or None, optional
+        Number of mirror facets, used to distinguish telescope types with the
+        same pixel count and focal length. If no specific match is found,
+        fall back to the entry for which the facet count is irrelevant, if present.
 
     Returns
     -------

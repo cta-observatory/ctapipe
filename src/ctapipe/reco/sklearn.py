@@ -897,16 +897,17 @@ class DispReconstructor(Reconstructor):
 
         Parameters
         ----------
+        key : str
+            Telescope-type key used to select the DISP regression and sign models.
         table : `~astropy.table.Table`
             Table of features
 
         Returns
         -------
-        disp_table : `~astropy.table.Table`
-            Table with disp predictions, matches the corresponding
-            container definition
-        altaz_table : `~astropy.table.Table`
-            Table with resulting predictions of horizontal coordinates
+        dict[ReconstructionProperty, astropy.table.Table]
+            DISP predictions under ``ReconstructionProperty.DISP`` and the
+            corresponding horizontal coordinates under
+            ``ReconstructionProperty.GEOMETRY``.
         """
         table = self.feature_generator(table, subarray=self.subarray)
 

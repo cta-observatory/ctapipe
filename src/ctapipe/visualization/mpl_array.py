@@ -17,16 +17,16 @@ from .mpl_camera import polar_to_cart
 
 class ArrayDisplay:
     """
-    Display a top-town view of a telescope array.
+    Display a top-down view of a telescope array.
 
     This can be used in two ways: by default, you get a display of all
     telescopes in the subarray, colored by telescope type, however you can
     also color the telescopes by a value (like trigger pattern, or some other
     scalar per-telescope parameter). To set the color value, simply set the
-    ``value`` attribute, and the fill color will be updated with the value. You
+    ``values`` attribute, and the fill color will be updated with the value. You
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
-    ``array_disp.telescope.set_linewidth(0)``)
+    ``array_disp.telescopes.set_linewidth(0)``)
 
     To display a vector field over the telescope positions, e.g. for
     reconstruction, call `set_vector_uv()` to set cartesian vectors,
@@ -40,15 +40,20 @@ class ArrayDisplay:
         the array layout to display
     axes : matplotlib.axes.Axes
         matplotlib axes to plot on, or None to use current one
-    title : str
-        title of array plot
-    tel_scale : float
-        scaling between telescope mirror radius in m to displayed size
     autoupdate : bool
         redraw when the input changes
+    tel_scale : float
+        scaling between telescope mirror radius in m to displayed size
+    alpha : float, optional
+        Opacity of telescope markers and their legend entries, between 0 and 1.
+    title : str
+        title of array plot
     radius : Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
+    frame : astropy.coordinates.BaseCoordinateFrame, optional
+        Ground coordinate frame to transform telescope positions into before
+        plotting their Cartesian x and y coordinates. Defaults to `GroundFrame`.
     """
 
     def __init__(
@@ -263,6 +268,9 @@ class ArrayDisplay:
             vector angle for each telescope
         c : color or list of colors
             vector color for each telescope (or one for all)
+        **kwargs
+            Options forwarded to `matplotlib.axes.Axes.quiver` when creating the
+            vector field. Subsequent calls update the existing vectors and colors.
         """
         phi = Angle(phi).rad
         uu, vv = polar_to_cart(rho, phi)
@@ -326,10 +334,13 @@ class ArrayDisplay:
         ----------
         hillas_dict : Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
-        core_dict : Dict[int, CoreParameters]
-            mapping of tel_id to CoreParametersContainer
+        core_dict : dict[int, astropy.units.Quantity]
+            Ground-plane direction angle for each telescope ID.
         range : float
             half of the length of the segments to be plotted (in meters)
+        **kwargs
+            Line style options forwarded to `matplotlib.axes.Axes.plot`.
+            The display supplies the line color according to telescope type.
         """
         # transform to GroundFrame
         positions_in_frame = SkyCoord(self.tel_coords, frame=self.frame)

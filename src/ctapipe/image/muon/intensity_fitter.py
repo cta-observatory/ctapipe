@@ -110,12 +110,21 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
 
     Parameters
     ----------
-    angle : ndarray
-        Angle along which to integrate mirror
+    mirror_radius : float
+        Radius of the outer reflector, in the same length units as ``r``.
+    r : float or ndarray
+        Distance of the muon impact point from the reflector center.
+    angle : float or ndarray
+        Integration direction in radians in the mirror plane, relative to
+        the direction in which the effective chord length is maximal.
+    hole_radius : float, optional
+        Radius of the central opening, in the same units as the mirror radius.
+        Use zero for a reflector without a central opening.
 
     Returns
     -------
-    float: length from impact point to mirror edge
+    float or ndarray
+        Effective path length through the reflector, excluding the central opening.
 
     """
     mirror_length = chord_length(mirror_radius, (r / mirror_radius), angle)
@@ -213,25 +222,46 @@ def image_prediction(
 
     Parameters
     ----------
+    mirror_radius : astropy.units.Quantity
+        Outer radius of the reflector.
+    hole_radius : astropy.units.Quantity
+        Radius of the central opening. Use zero with a length unit for a
+        reflector without a central opening.
     impact_parameter : quantity[length]
-        Impact distance of muon
+        Distance of the muon impact point from the reflector center.
+    phi : astropy.units.Quantity
+        Angular phase of the light profile, corresponding to the azimuth of
+        maximum light intensity around the ring.
     center_x : quantity[angle]
-        Muon ring center in telescope frame
+        Field-of-view longitude of the ring center in the telescope frame.
     center_y : quantity[angle]
-        Muon ring center in telescope frame
+        Field-of-view latitude of the ring center in the telescope frame.
     radius : quantity[angle]
         Radius of muon ring in telescope frame
     ring_width : quantity[angle]
         Gaussian width of muon ring
     pixel_x : quantity[angle]
-        Pixel x coordinate in telescope
+        Per-pixel field-of-view longitude in the telescope frame.
     pixel_y : quantity[angle]
-        Pixel y coordinate in telescope
+        Per-pixel field-of-view latitude in the telescope frame.
+    pixel_diameter : astropy.units.Quantity
+        Angular width of a pixel, used to integrate the ring signal over a
+        pixel and to set the angular sampling of the light profile.
+    oversampling : int, optional
+        Number of azimuthal samples per pixel width used to build and smooth
+        the light profile.
+    min_lambda : astropy.units.Quantity, optional
+        Lower wavelength limit for integrating the Cherenkov emission.
+    max_lambda : astropy.units.Quantity, optional
+        Upper wavelength limit for integrating the Cherenkov emission.
+    pix_type : PixelShape, optional
+        Pixel shape used for the area correction. Supports hexagonal, square,
+        and circular pixels.
 
     Returns
     -------
-    ndarray:
-        Predicted signal
+    ndarray
+        Expected Cherenkov photons per pixel before applying optical efficiency.
     """
     return image_prediction_no_units(
         mirror_radius.to_value(u.m),
@@ -418,21 +448,25 @@ def build_negative_log_likelihood(
         Parameters
         ----------
         impact_parameter : float
-            Impact distance from telescope center
+            Distance of the muon impact point from the reflector center, in metres.
+        phi : float
+            Azimuthal phase of maximum ring light intensity, in radians.
         center_x : float
-            center of muon ring in the telescope frame
+            Field-of-view longitude of the ring center, in radians.
         center_y : float
-            center of muon ring in the telescope frame
+            Field-of-view latitude of the ring center, in radians.
         radius : float
-            Radius of muon ring
+            Angular radius of the ring, in radians.
         ring_width : float
-            Gaussian width of muon ring
+            Standard deviation of the radial light profile, in radians.
         optical_efficiency_muon : float
-            Efficiency of the optical system
+            Dimensionless factor that scales the model prediction to the observed
+            pixel charges.
 
         Returns
         -------
-        float: Likelihood that model matches data
+        float
+            Sum of the approximate negative log likelihood across pixels.
         """
         # Generate model prediction
         prediction = image_prediction_no_units(

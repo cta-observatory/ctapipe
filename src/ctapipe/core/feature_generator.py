@@ -31,6 +31,8 @@ def shallow_copy_table(
 
     Parameters
     ----------
+    table : astropy.table.Table or astropy.table.QTable
+        Source table whose column data are shared and whose metadata are copied.
     output_cls : type[Table] | type[QTable] | None
         type of the output table. If None, use the input table type
     """

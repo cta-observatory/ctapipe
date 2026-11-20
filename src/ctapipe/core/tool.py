@@ -659,6 +659,8 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
 
     Parameters
     ----------
+    tool : ctapipe.core.Tool
+        Tool instance to run in the current Python process.
     argv : List[str]
         List of command line arguments for the tool.
     cwd : str or pathlib.Path

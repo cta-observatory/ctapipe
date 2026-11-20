@@ -211,9 +211,10 @@ class _ActivityProvenance:
             filename or url of input file
         role : str
             role name that this input satisfies
-        add_meta : bool
-            If true, try to load reference metadata from input file
-            and add to provenance.
+        add_meta : bool, optional
+            Try reading reference metadata from the input file when none is supplied.
+        reference_meta : dict or None, optional
+            Reference metadata to record directly, in place of reading the file.
         """
         self._register(
             "input", url, role=role, add_meta=add_meta, reference_meta=reference_meta
@@ -235,9 +236,10 @@ class _ActivityProvenance:
             filename or url of output file
         role : str
             role name that this output satisfies
-        add_meta : bool
-            If true, try to load reference metadata from input file
-            and add to provenance.
+        add_meta : bool, optional
+            Try reading reference metadata from the output file when none is supplied.
+        reference_meta : dict or None, optional
+            Reference metadata to record directly, in place of reading the file.
         """
         self._register(
             "output", url, role=role, add_meta=add_meta, reference_meta=reference_meta
@@ -340,6 +342,10 @@ class Provenance(metaclass=Singleton):
             name or url of file
         role : str
             role this input file satisfies (optional)
+        add_meta : bool, optional
+            Try reading reference metadata from the input file when none is supplied.
+        reference_meta : dict or None, optional
+            Reference metadata to record directly, in place of reading the file.
         """
         activity = self._get_current_or_start_activity()
         activity.register_input(
@@ -364,6 +370,9 @@ class Provenance(metaclass=Singleton):
             name or url of file
         role : str
             role this output file satisfies (optional)
+        add_meta : bool, optional
+            Try reading reference metadata from the output file and recording it
+            with the provenance entry.
 
         """
         activity = self._get_current_or_start_activity()

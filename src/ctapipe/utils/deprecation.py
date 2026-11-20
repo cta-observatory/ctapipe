@@ -24,6 +24,10 @@ def deprecated(since, **kwargs):
     ----------
     since : str
         The release at which this API became deprecated.  This is required.
+    **kwargs
+        Options forwarded to Astropy's deprecation decorator, such as
+        ``message`` and ``alternative``. The warning type is always
+        ``CTAPipeDeprecationWarning``.
     """
     kwargs["warning_type"] = CTAPipeDeprecationWarning
     return astropy.utils.deprecated(since, **kwargs)

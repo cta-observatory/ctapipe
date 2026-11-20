@@ -21,9 +21,8 @@ class PlanarRepresentation(BaseRepresentation):
     Parameters
     ----------
     x, y : `~astropy.units.Quantity`
-        The x and y coordinates of the point(s). If ``x`` and ``y``have
+        The x and y coordinates of the point(s). If ``x`` and ``y`` have
         different shapes, they should be broadcastable.
-
     copy : bool, optional
         If True arrays will be copied rather than referenced.
 
@@ -31,7 +30,7 @@ class PlanarRepresentation(BaseRepresentation):
 
     attr_classes = OrderedDict([("x", u.Quantity), ("y", u.Quantity)])
 
-    def __init__(self, x, y, copy=True, **kwargs):
+    def __init__(self, x, y, copy=True):
         if x is None or y is None:
             raise ValueError(
                 "x and y are required to instantiate CartesianRepresentation"

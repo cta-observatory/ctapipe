@@ -43,6 +43,9 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
     ----------
     h5file : None | tables.File
         An open hdf5 file with read access.
+    **kwargs
+        Component configuration and trait values for the interpolator. Pass
+        ``config`` or ``parent`` to supply the configuration.
     """
 
     #: Columns that are used if present, but may be absent (e.g. older files).
@@ -130,6 +133,9 @@ class LinearInterpolator(MonitoringInterpolator):
     ----------
     h5file : None | tables.File
         An open hdf5 file with read access.
+    **kwargs
+        Component configuration and trait values. Use ``bounds_error`` and
+        ``extrapolate`` to control evaluation outside the tabulated time range.
     """
 
     bounds_error = traits.Bool(

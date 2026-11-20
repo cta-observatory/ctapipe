@@ -213,14 +213,19 @@ class HDF5TableWriter(TableWriter):
         Writer (it will be placed under "/" in the file)
     add_prefix : bool
         if True, add the container prefix before each column name
-    mode : str ('w', 'a')
-        'w' if you want to overwrite the file
-        'a' if you want to append data to the file
+    mode : str, optional
+        Use ``"w"`` to overwrite the file, ``"a"`` to append, or ``"r+"`` to open
+        an existing file for writing.
     root_uep : str
         root location of the ``group_name``
     filters : pytables.Filters
         A set of filters (compression settings) to be used for
         all datasets created by this writer.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging. Mutually
+        exclusive with ``config``.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
     **kwargs
         any other arguments that will be passed through to ``pytables.open_file``.
     """

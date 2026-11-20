@@ -295,8 +295,12 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        kind : str
-            which table to generate (subarray or optics)
+        kind : str, optional
+            Table to generate. Use ``"subarray"`` for the telescope layout,
+            ``"optics"`` for the optics table, or ``"joined"`` to combine them.
+        meta_convention : str, optional
+            Keyword convention for the reference location in the layout table.
+            Use ``"hdf"`` for ``reference_itrs_*`` or ``"fits"`` for ``OBSGEO-*``.
         """
         if meta_convention not in {"hdf", "fits"}:
             raise ValueError(

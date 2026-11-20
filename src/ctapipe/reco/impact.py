@@ -101,6 +101,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     dummy_reconstructor : bool, optional
         Option to use a set of dummy templates. This can be used for testing the algorithm,
         but for any actual reconstruction should be set to its default False
+    **kwargs
+        Configuration passed to the base reconstructor, including ``config``,
+        ``parent``, and trait values such as ``root_dir`` for the template location.
 
     References
     ----------
@@ -410,22 +413,28 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        tel_type : string
-            Telescope type specifier
-        energy : float
-            Event energy (TeV)
-        impact : float
-            Impact diance of shower (metres)
-        x_max : float
-            Depth of shower maximum (num bins from expectation)
+        tel_type : str
+            Telescope type key used to select the loaded template interpolator.
+        zenith : float
+            Zenith angle in degrees at which to interpolate the templates.
+        azimuth : float
+            Azimuth in degrees at which to interpolate the templates.
+        energy : array-like
+            Shower energies in TeV.
+        impact : array-like
+            Shower impact distances in metres.
+        x_max : array-like
+            Slant depth of shower maximum relative to the template's expected
+            depth at each energy, in g/cm².
         pix_x : ndarray
-            X coordinate of pixels
+            Pixel x coordinates in the template plane, in degrees.
         pix_y : ndarray
-            Y coordinate of pixels
+            Pixel y coordinates in the template plane, in degrees.
 
         Returns
         -------
-        ndarray: predicted amplitude for all pixels
+        ndarray
+            Expected charge at the supplied pixel positions.
 
         """
         return self.prediction[tel_type](
@@ -797,14 +806,33 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        shower_seed : ReconstructedShowerContainer
-            Seed shower geometry to be used in the fit
-        energy_seed : ReconstructedEnergyContainer
-            Seed energy to be used in fit
+        hillas_dict : dict[int, HillasParametersContainer]
+            Hillas image parameters keyed by ID for the telescopes in the fit.
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray supplying the telescope positions, camera geometry, and optics.
+        array_pointing : astropy.coordinates.SkyCoord
+            Array pointing in AltAz. Defines the nominal and tilted ground frames.
+        shower_seed : mapping of str to ReconstructedGeometryContainer
+            Initial geometry estimates, keyed by reconstruction algorithm. The fit
+            uses the direction and ground impact position from each estimate.
+        energy_seed : mapping of str to ReconstructedEnergyContainer
+            Initial energy estimates in TeV, keyed by reconstruction algorithm.
+            The fit tries each energy estimate with each geometry estimate.
+        telescope_pointings : dict[int, astropy.coordinates.SkyCoord]
+            Per-telescope pointing directions in AltAz.
+        image_dict : dict[int, ndarray]
+            DL1 image charges in camera pixel order, keyed by telescope ID.
+        mask_dict : dict[int, ndarray]
+            Boolean pixel mask for each telescope. True selects pixels for the fit.
+        time_dict : dict[int, ndarray]
+            DL1 pulse times in ns in camera pixel order, keyed by telescope ID.
 
         Returns
         -------
-        ReconstructedShowerContainer, ReconstructedEnergyContainer:
+        ReconstructedGeometryContainer
+            Fitted shower direction, core position, and shower maximum altitude.
+        ReconstructedEnergyContainer
+            Fitted shower energy.
         """
         if image_dict is None:
             raise EmptyImages("Images not passed to ImPACT reconstructor")

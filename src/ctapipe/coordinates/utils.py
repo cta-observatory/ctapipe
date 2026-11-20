@@ -36,10 +36,13 @@ def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
 
     Parameters
     ----------
-    alt : u.Quantity
-        altitude
-    az : u.Quantity
-        azimuth
+    alt : astropy.units.Quantity or float or ndarray
+        Altitude. Give both angles as quantities or both as bare values in radians.
+    az : astropy.units.Quantity or float or ndarray
+        Azimuth, in the same input convention as ``alt``.
+    distance : float or ndarray or astropy.units.Quantity, optional
+        Radial distance that sets the vector length. The default gives a unit
+        direction vector. A quantity preserves its unit in the result.
     """
     # this is an optimization, shaves of ca. 50 % compared to handing over units
     # to the erfa function

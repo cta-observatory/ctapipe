@@ -113,8 +113,10 @@ class CameraGeometry:
         other frames.
     pix_area : u.Quantity
         surface area of each pixel
-    pix_type : PixelShape | str
-        shape of the pixels, a `PixelShape` or its name (e.g. "hexagon")
+    pix_type : PixelShape or str
+        Pixel shape enum or name, such as ``"hexagon"``, ``"square"``, or
+        ``"circle"``. The string ``"rectangular"`` is accepted as an alias for
+        square.
     grid_type : None | PixelGridType
         The grid type of the pixel grid. By default, square pixels
         are assumed to be on a regular square grid and circular and hexagonal
@@ -131,6 +133,10 @@ class CameraGeometry:
         between pixels.
     apply_derotation : bool
         If true, rotate the pixel coordinates, so that cam_rotation is 0.
+    _validate : bool, optional
+        Check the shapes of the pixel arrays and normalize the pixel shape,
+        grid type, and rotation angles. Internal callers can set this to
+        False when passing already validated geometry values.
     """
 
     CURRENT_TAB_VERSION = "2.1"

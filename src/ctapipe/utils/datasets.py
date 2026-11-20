@@ -130,14 +130,18 @@ def find_in_path(filename, searchpath, url=None):
 
     Parameters
     ----------
-    searchpath : str
-        colon-separated list of directories (like PATH)
     filename : str or path-like
         filename to find
+    searchpath : str or None
+        Colon-separated directories to search. None uses ``CTAPIPE_SVC_PATH``.
+    url : str or None, optional
+        Dataset server base URL used to locate the local download cache.
+        None uses the configured default URL.
 
     Returns
     -------
-    full path to file if found, None otherwise
+    pathlib.Path or None
+        Path to the first match, or None if the file was not found.
 
     """
     if url is None:
@@ -165,10 +169,14 @@ def get_dataset_path(filename, url=None):
     ----------
     filename : str
         name of dataset to fetch
+    url : str or None, optional
+        Base URL used for downloading the dataset and locating its local cache.
+        None uses the configured default URL.
 
     Returns
     -------
-    string with full path to the given dataset
+    pathlib.Path
+        Path to the local dataset file.
     """
     searchpath = os.getenv("CTAPIPE_SVC_PATH")
     if url is None:

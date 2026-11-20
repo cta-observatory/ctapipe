@@ -299,6 +299,8 @@ class OpticsDescription:
     ----------
     name : str
         Name of this optical system
+    size_type : SizeType or str
+        Telescope size class, such as ``LST``, ``MST``, or ``SST``.
     n_mirrors : int
         Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
     equivalent_focal_length : astropy.units.Quantity[length]
@@ -317,13 +319,16 @@ class OpticsDescription:
         total reflective surface area of the optical system (in m^2)
     n_mirror_tiles : int
         number of mirror facets
+    reflector_shape : ReflectorShape or str
+        Optical design of the reflector, such as ``PARABOLIC`` or
+        ``SCHWARZSCHILD_COUDER``.
     mirror_description : MirrorDescription or None
         Optional description of the individual mirror facets of the reflector
 
     Raises
     ------
     ValueError:
-        if tel_type or mirror_type are not one of the accepted values
+        If ``size_type`` or ``reflector_shape`` is invalid.
     TypeError, astropy.units.UnitsError:
         if the units of one of the inputs are missing or incompatible
     """
@@ -723,7 +728,14 @@ class ComaPSFModel(PSFModel):
     Parameters
     ----------
     subarray : ctapipe.instrument.SubarrayDescription
-        Description of the subarray.
+        Subarray supplying the cameras and their angular pixel widths.
+    config : traitlets.loader.Config or None, optional
+        Configuration, including the telescope-dependent coma model parameters.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging. Mutually
+        exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
 
     Notes
     -----

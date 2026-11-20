@@ -237,10 +237,13 @@ class ImageModel(metaclass=ABCMeta):
         ----------
         camera : `ctapipe.instrument.CameraGeometry`
             camera geometry object
-        intensity : int
-            Total number of photo electrons to generate
-        nsb_level_pe : type
-            level of NSB/pedestal in photo-electrons
+        intensity : float
+            Total expected signal in photoelectrons before sampling.
+        nsb_level_pe : float
+            Mean night-sky background in photoelectrons per pixel.
+        rng : numpy.random.Generator or None, optional
+            Generator for the Poisson draws of signal and background. With None,
+            use the module's default generator.
 
         Returns
         -------

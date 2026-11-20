@@ -459,16 +459,21 @@ class TableLoader(Component):
 
         Parameters
         ----------
+        start : int or None, optional
+            First row of the subarray trigger table to read, inclusive. None
+            starts at the beginning.
+        stop : int or None, optional
+            End row of the subarray trigger table, exclusive. None reads through
+            the end of the table.
         dl2 : bool
             load available dl2 stereo parameters
         simulated : bool
             load simulated shower information
         observation_info : bool
             join observation information to each event
-        start : int
-            First *subarray* event to read
-        stop : int
-            Last *subarray* event (non-inclusive)
+        keep_order : bool, optional
+            Restore the subarray trigger table's row order after joining data
+            from other tables.
 
         Returns
         -------
@@ -529,6 +534,12 @@ class TableLoader(Component):
         ----------
         chunk_size : int
             Number of subarray events to load per chunk
+        *args
+            Positional arguments forwarded to `read_subarray_events`. Leave this
+            empty because the iterator passes the chunk bounds by keyword.
+        **kwargs
+            Options for `read_subarray_events`. Use ``start`` and ``stop`` to restrict
+            the full range to iterate over.
         """
         return ChunkIterator(
             self.read_subarray_events,
@@ -978,6 +989,12 @@ class TableLoader(Component):
         ----------
         telescopes : List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
+        start : int or None, optional
+            First subarray event row to include, in trigger table order. None
+            starts at the beginning.
+        stop : int or None, optional
+            Subarray event row at which to stop, exclusive. None reads through
+            the end of the trigger table.
         dl1_images : bool
             load extracted images
         dl1_parameters : bool
@@ -1122,6 +1139,12 @@ class TableLoader(Component):
         ----------
         telescopes : List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
+        start : int or None, optional
+            First subarray event row to include, in trigger table order. None
+            starts at the beginning.
+        stop : int or None, optional
+            Subarray event row at which to stop, exclusive. None reads through
+            the end of the trigger table.
         dl1_images : bool
             load extracted images
         dl1_parameters : bool

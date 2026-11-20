@@ -37,25 +37,28 @@ class CameraDisplay:
         Definition of the Camera/Image
     image : array_like
         array of values corresponding to the pixels in the CameraGeometry.
-    ax : `matplotlib.axes.Axes`
-        A matplotlib axes object to plot on, or None to create a new one
-    title : str (default "Camera")
-        Title to put on camera plot
+    cmap : str or matplotlib.colors.Colormap, optional
+        Color map for the pixel values. Defaults to ``"inferno"``.
     norm : str or `matplotlib.colors.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
         - 'lin': linear scale
         - 'log': logarithmic scale (base 10)
-    cmap : str or `matplotlib.colors.Colormap` (default 'hot')
-        Color map to use (see `matplotlib.cm`)
-    allow_pick : bool (default False)
-        if True, allow user to click and select a pixel
-    autoupdate : bool (default True)
-        redraw automatically (otherwise need to call plt.draw())
+        - 'symlog': symmetric logarithmic scale (base 10)
     autoscale : bool (default True)
         rescale the vmin/vmax values when the image changes.
         This is set to False if ``set_limits_*`` is called to explicitly
         set data limits.
+    title : str or None, optional
+        Plot title. None uses the camera geometry name.
+    allow_pick : bool (default False)
+        if True, allow user to click and select a pixel
+    autoupdate : bool (default True)
+        redraw automatically (otherwise need to call plt.draw())
+    show_frame : bool, optional
+        Annotate the display with the camera geometry's coordinate frame name.
+    ax : matplotlib.axes.Axes or None, optional
+        Axes to plot on. None uses the current Matplotlib axes.
 
     Notes
     -----

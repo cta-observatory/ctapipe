@@ -337,6 +337,10 @@ class TemplateNetworkInterpolator(BaseTemplate):
 
         Parameters
         ----------
+        zenith : float
+            Target zenith angle in degrees, used for templates with angular bins.
+        azimuth : float
+            Target azimuth angle in degrees, used for templates with angular bins.
         energy : array-like
             Energy of interpolated template
         impact : array-like
@@ -344,9 +348,9 @@ class TemplateNetworkInterpolator(BaseTemplate):
         xmax : array-like
             Depth of maximum of interpolated templates
         xb : array-like
-            Pixel X position at which to evaluate template
+            Pixel x positions at which to evaluate the template.
         yb : array-like
-            Pixel X position at which to evaluate template
+            Pixel y positions at which to evaluate the template.
 
         Returns
         -------
@@ -408,10 +412,14 @@ class TimeGradientInterpolator(BaseTemplate):
 
     def __call__(self, zenith, azimuth, energy, impact, xmax):
         """
-        Evaluate expected time gradient for a set of shower parameters and pixel positions
+        Evaluate the expected time gradient for a set of shower parameters.
 
         Parameters
         ----------
+        zenith : float
+            Target zenith angle in degrees, used for templates with angular bins.
+        azimuth : float
+            Target azimuth angle in degrees, used for templates with angular bins.
         energy : array-like
             Energy of interpolated template
         impact : array-like
@@ -421,7 +429,8 @@ class TimeGradientInterpolator(BaseTemplate):
 
         Returns
         -------
-        ndarray: Time Gradient expectation and RMS values
+        ndarray
+            Expected time gradient and its RMS for each set of shower parameters.
         """
         array = np.stack((energy, impact, xmax), axis=-1)
 
