@@ -1,0 +1,144 @@
+name: Post benchmark comparison
+
+on:
+  workflow_run:
+    workflows: [Benchmark pull request]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  locate:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      (github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      pull-requests: read
+    outputs:
+      artifact: ${{ steps.result.outputs.artifact }}
+      pull-request: ${{ steps.result.outputs.pull-request }}
+    steps:
+      - name: Find the summary and its pull request
+        id: result
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (run.path?.split('@', 1)[0] !== '.github/workflows/benchmark-pr.yml' ||
+                !run.head_repository || !run.head_branch) {
+              return;
+            }
+
+            const name = 'asv-pr-summary-' + run.run_attempt + '.txt';
+            const {data} = await github.rest.actions.listWorkflowRunArtifacts({
+              ...context.repo, run_id: run.id, name,
+            });
+            const summaries = data.artifacts.filter(artifact => !artifact.expired && artifact.name === name);
+            if (summaries.length !== 1 || summaries[0].size_in_bytes > 1_000_000) {
+              core.info('No usable benchmark summary for this attempt.');
+              return;
+            }
+
+            // Look up forks by head ref because run.pull_requests can be empty.
+            const candidates = await github.paginate(github.rest.pulls.list, {
+              ...context.repo,
+              state: 'open',
+              head: run.head_repository.owner.login + ':' + run.head_branch,
+            });
+            const associated = (run.pull_requests ?? []).map(pr => pr.number);
+            const matches = candidates.filter(pr =>
+              pr.head.repo?.id === run.head_repository.id &&
+              pr.head.sha === run.head_sha &&
+              (associated.length === 0 || associated.includes(pr.number))
+            );
+            if (matches.length !== 1) {
+              core.info('No unique open pull request matches the benchmarked head.');
+              return;
+            }
+            core.setOutput('artifact', name);
+            core.setOutput('pull-request', matches[0].number);
+
+  comment:
+    needs: locate
+    if: needs.locate.outputs.pull-request != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      pull-requests: write
+    concurrency:
+      group: benchmark-comment-${{ needs.locate.outputs.pull-request }}
+      cancel-in-progress: false
+    steps:
+      - name: Download the summary as a text file
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          name: ${{ needs.locate.outputs.artifact }}
+          path: ${{ runner.temp }}/asv-comment
+          skip-decompress: true
+
+      - name: Publish the benchmark comparison
+        uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ needs.locate.outputs.pull-request }}
+          SUMMARY_NAME: ${{ needs.locate.outputs.artifact }}
+        with:
+          script: |
+            const {lstat, readFile} = require('node:fs/promises');
+            const {join} = require('node:path');
+            const run = context.payload.workflow_run;
+            const pull_number = Number(process.env.PR_NUMBER);
+            const {data: pr} = await github.rest.pulls.get({...context.repo, pull_number});
+            if (pr.state !== 'open' || pr.head.sha !== run.head_sha) {
+              core.info('The pull request has changed since the benchmark ran.');
+              return;
+            }
+
+            const path = join(process.env.RUNNER_TEMP, 'asv-comment', process.env.SUMMARY_NAME);
+            const file = await lstat(path);
+            if (!file.isFile() || file.size > 1_000_000) {
+              core.info('The benchmark summary is not a readable text artifact.');
+              return;
+            }
+            const text = new TextDecoder('utf-8', {fatal: true}).decode(await readFile(path));
+            if (!text.trim() || text.includes('\0')) {
+              return;
+            }
+            // Render the artifact as literal text, with no Markdown from the PR.
+            const limit = 24_000;
+            const table = text.replace(/\r\n?/g, '\n').trimEnd().slice(0, limit)
+              .split('\n').map(line => '    ' + line).join('\n');
+            const marker = '<!-- ctapipe-asv-benchmark -->';
+            const body = [
+              marker,
+              '<!-- benchmark-run: ' + run.run_number + '.' + run.run_attempt + ' -->',
+              '### ASV benchmark comparison',
+              '',
+              '[Benchmark workflow run](' + run.html_url + ') · PR head ' + run.head_sha.slice(0, 12),
+              '',
+              table,
+              text.length > limit ? '\nThe full comparison is available in the workflow run.' : '',
+            ].join('\n');
+
+            const issue = {...context.repo, issue_number: pull_number};
+            const comments = await github.paginate(github.rest.issues.listComments, issue);
+            const previous = comments.find(comment =>
+              comment.user?.login === 'github-actions[bot]' && comment.body?.startsWith(marker)
+            );
+            const recorded = previous?.body.match(/\n<!-- benchmark-run: (\d+)\.(\d+) -->/);
+            if (recorded) {
+              const [, number, attempt] = recorded.map(Number);
+              if (number > run.run_number || (number === run.run_number && attempt >= run.run_attempt)) {
+                core.info('This comparison has already been superseded or published.');
+                return;
+              }
+            }
+            if (previous) {
+              await github.rest.issues.updateComment({...context.repo, comment_id: previous.id, body});
+            } else {
+              await github.rest.issues.createComment({...issue, body});
+            }
