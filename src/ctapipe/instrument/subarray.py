@@ -59,6 +59,19 @@ class SubarrayDescription:
     The individual telescopes are represented by
     `~ctapipe.instrument.TelescopeDescription` objects.
 
+    Parameters
+    ----------
+    name : str
+        Name of the subarray.
+    tel_positions : dict[int, astropy.units.Quantity] or None
+        Ground offsets ``(x, y, z)`` with length units, keyed by telescope ID. Use the
+        same IDs as in ``tel_descriptions``.
+    tel_descriptions : dict[int, TelescopeDescription] or None
+        Camera and optics descriptions keyed by telescope ID.
+    reference_location : astropy.coordinates.EarthLocation
+        Earth location of the ground frame origin from which the telescope positions are
+        measured.
+
     Attributes
     ----------
     name: str
@@ -141,6 +154,11 @@ class SubarrayDescription:
     def info(self, printer=print):
         """
         Print descriptive info about subarray
+
+        Parameters
+        ----------
+        printer : callable, optional
+            Callable that receives each formatted line. Defaults to `print`.
         """
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.n_tels}")
@@ -829,6 +847,13 @@ class SubarrayDescription:
         installed io plugin.
 
         kwargs are passed to the event source
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Location of an event file that includes an instrument description.
+        **kwargs
+            Options passed to the event source selected for the file.
         """
         # here to prevent circular import
         from ..io import EventSource
@@ -842,6 +867,11 @@ class SubarrayDescription:
 
         Currently only checks if the tel_ids are the same in all subarrays.
         More checks can be added if needed.
+
+        Parameters
+        ----------
+        subarray_list : sequence of SubarrayDescription
+            Subarrays whose sets of telescope IDs are compared.
         """
         return all(
             set(subarray.tel_ids) == set(subarray_list[0].tel_ids)

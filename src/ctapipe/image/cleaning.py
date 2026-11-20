@@ -657,20 +657,20 @@ class ImageCleaner(TelescopeComponent):
         Parameters
         ----------
         tel_id : int
-            which telescope id in the subarray is being used (determines
-            which cut is used)
-        image : np.ndarray
-            image pixel data corresponding to the camera geometry
-        arrival_times : np.ndarray
-            image of arrival time (not used in this method)
-        monitoring : `ctapipe.containers.CameraMonitoringContainer`
-            Monitoring information to make use of additional parameters
-            e.g. pedestal std.
+            Telescope ID used to select the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Pulse times in ns in the same pixel order. Timing-based algorithms
+            require these values.
+        monitoring : CameraMonitoringContainer or None, optional
+            Camera monitoring data for algorithms that use measurements such as
+            the pedestal charge standard deviation.
 
         Returns
         -------
-        np.ndarray
-            boolean mask of pixels passing cleaning
+        ndarray of bool
+            Mask of pixels that pass cleaning, in camera pixel order.
         """
         pass
 
@@ -710,6 +710,19 @@ class TailcutsImageCleaner(ImageCleaner):
     ) -> np.ndarray:
         """
         Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning thresholds.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Arrival times supplied through the cleaner interface. This algorithm uses
+            the charges and pixel adjacency.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
         """
         return tailcuts_clean(
             self.subarray.tel[tel_id].camera.geometry,
@@ -793,6 +806,19 @@ class NSBImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """
         Apply NSB image cleaning used by lstchain. See `ImageCleaner.__call__()`
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Per-pixel pulse times in ns. Supply these when time-delta cleaning is
+            enabled.
+        monitoring : CameraMonitoringContainer or None, optional
+            Camera monitoring data that can supply pedestal charge standard deviations
+            for pixel-dependent thresholds.
         """
         pedestal_std = None
         if monitoring is not None:
@@ -832,6 +858,19 @@ class MARSImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """
         Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning thresholds.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Arrival times supplied through the cleaner interface. This algorithm uses
+            the charges and pixel adjacency.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
         """
         return mars_cleaning_1st_pass(
             self.subarray.tel[tel_id].camera.geometry,
@@ -862,7 +901,20 @@ class FACTImageCleaner(TailcutsImageCleaner):
         *,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
-        """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
+        """Apply FACT-style image cleaning. see ImageCleaner.__call__()
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray
+            Per-pixel pulse times in ns. The time-based selection requires this array.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
+        """
         return fact_image_cleaning(
             geom=self.subarray.tel[tel_id].camera.geometry,
             image=image,
@@ -900,6 +952,18 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """
         Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray
+            Per-pixel pulse times in ns. The time-based selection requires this array.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
         """
         return time_constrained_clean(
             self.subarray.tel[tel_id].camera.geometry,

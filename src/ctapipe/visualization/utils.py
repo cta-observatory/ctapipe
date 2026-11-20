@@ -14,6 +14,17 @@ from ..containers import HillasParametersContainer
 def build_hillas_overlay(hillas, unit, with_label=True, n_sigma=1):
     """
     Get position, rotation and text for the hillas parameters label
+
+    Parameters
+    ----------
+    hillas : HillasParametersContainer
+        Hillas centroid, axis lengths, and orientation in the field of view.
+    unit : astropy.units.UnitBase
+        Unit in which to express the centroid and axis lengths, matching the display.
+    with_label : bool, optional
+        Compute label text, position, and rotation if True.
+    n_sigma : float, optional
+        Ellipse scale used when positioning the label outside the ellipse.
     """
     try:
         length = hillas.length.to_value(unit)

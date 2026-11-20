@@ -223,7 +223,16 @@ class ImageModel(metaclass=ABCMeta):
 
     @abstractmethod
     def pdf(self, x, y):
-        """Probability density function."""
+        """Probability density function.
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
@@ -325,7 +334,16 @@ class Gaussian(ImageModel):
         )
 
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane"""
+        """2d probability for photon electrons in the camera plane
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
         X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
         return u.Quantity(
             self.dist.pdf(X),
@@ -335,7 +353,23 @@ class Gaussian(ImageModel):
 
 
 class SkewedGaussian(ImageModel):
-    """A shower image that has a skewness along the major axis."""
+    """A shower image that has a skewness along the major axis.
+
+    Parameters
+    ----------
+    x : astropy.units.Quantity
+        Image centroid x coordinate in the camera plane.
+    y : astropy.units.Quantity
+        Image centroid y coordinate in the camera plane, with units compatible with x.
+    length : astropy.units.Quantity
+        Standard deviation along the major axis.
+    width : astropy.units.Quantity
+        Standard deviation along the minor axis.
+    psi : astropy.units.Quantity
+        Angle of the major axis measured from the x-axis.
+    skewness : float
+        Dimensionless skewness along the major axis. Zero gives a symmetric image.
+    """
 
     def __init__(self, x, y, length, width, psi, skewness):
         """Create 2D skewed Gaussian model for a shower image in a camera.
@@ -388,7 +422,16 @@ class SkewedGaussian(ImageModel):
         return a, loc, scale
 
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane."""
+        """2d probability for photon electrons in the camera plane.
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
         pos = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
         long, trans = self.rotation @ (pos - self.mu).T
         return u.Quantity(
@@ -449,7 +492,16 @@ class RingGaussian(ImageModel):
             self.norm = 0.25 / ellipe(self.rho**2)
 
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane."""
+        """2d probability for photon electrons in the camera plane.
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
         dx = (x - self.x).to_value(self.unit)
         dy = (y - self.y).to_value(self.unit)
         r = np.sqrt(dx**2 + dy**2)

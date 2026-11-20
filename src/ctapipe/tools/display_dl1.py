@@ -102,7 +102,15 @@ class ImagePlotter(Component):
         self.closed = True
 
     def plot(self, event, tel_id):
-        """Update plot with new event data."""
+        """Update plot with new event data.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event containing the telescope's DL1 charge and pulse-time images.
+        tel_id : int
+            Telescope ID whose camera display to update.
+        """
         from matplotlib import pyplot as plt
 
         image = event.tel[tel_id].dl1.image

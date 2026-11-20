@@ -23,6 +23,23 @@ class UnstructuredInterpolator:
     estimators or regular-grid interpolators. With array inputs and no separate
     evaluation points, it uses Delaunay simplices as in SciPy's
     `LinearNDInterpolator` for points inside the interpolation domain.
+
+    Parameters
+    ----------
+    keys : ndarray
+        Sample coordinates with shape ``(n_samples, n_dimensions)``.
+    values : array-like
+        Numeric values, arrays, or callable objects associated with the sample
+        coordinates in the same order.
+    function_name : str or None, optional
+        Method to call on object-valued samples. None calls the objects directly.
+    remember_last : bool, optional
+        Reuse the previous simplex information where possible.
+    bounds : array-like or None, optional
+        Lower and upper coordinates of each gridded template axis, needed when
+        resampling numeric templates at specified positions.
+    dtype : numpy.dtype or None, optional
+        Data type for the stored template values and bounds. None infers the data type.
     """
 
     def __init__(

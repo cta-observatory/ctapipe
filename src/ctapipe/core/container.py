@@ -349,7 +349,21 @@ class Field[T]:
 
 
 class DeprecatedField(Field):
-    """used to mark which fields may be removed in next version"""
+    """used to mark which fields may be removed in next version
+
+    Parameters
+    ----------
+    default : object
+        Default value assigned to the deprecated field.
+    description : str, optional
+        Description of the field.
+    unit : str or astropy.units.UnitBase or None, optional
+        Unit used when writing the field.
+    ucd : str or None, optional
+        Virtual Observatory unified content descriptor.
+    reason : str, optional
+        Explanation or replacement to include in the deprecation warning.
+    """
 
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)
@@ -462,6 +476,13 @@ class Container(metaclass=ContainerMeta):
     Finally, a Container can have associated metadata via its
     `meta` attribute, which is a `dict` of keywords to values.
 
+    Parameters
+    ----------
+    prefix : str or None, optional
+        Prefix for flattened field names. With None, use the container's default prefix.
+    **fields
+        Initial values keyed by field name. Omitted fields are initialized from their
+        defaults.
     """
 
     def __init__(self, prefix=None, **fields):
@@ -490,7 +511,13 @@ class Container(metaclass=ContainerMeta):
         return setattr(self, key, value)
 
     def items(self, add_prefix=False):
-        """Generator over (key, value) pairs for the items"""
+        """Generator over (key, value) pairs for the items
+
+        Parameters
+        ----------
+        add_prefix : bool, optional
+            Include the container's prefix in each emitted field name.
+        """
         if not add_prefix or self.prefix == "":
             return ((k, getattr(self, k)) for k in self.fields.keys())
 
@@ -557,6 +584,11 @@ class Container(metaclass=ContainerMeta):
 
         Pass fields as keyword arguments, for example ``update(x=3, y=4)`` or
         ``update(**dict_of_values)``.
+
+        Parameters
+        ----------
+        **values
+            New values keyed by field name.
         """
         for key in values:
             self[key] = values[key]
@@ -650,7 +682,19 @@ class Map[K, V](defaultdict[K, V]):
             return d
 
     def reset(self, recursive=True):
-        """Calls all ``Container.reset`` for all values in the Map"""
+        """Forward a reset request to each container value.
+
+        Parameters
+        ----------
+        recursive : bool, optional
+            Value forwarded as ``recursive`` to each contained container's reset method.
+
+        Raises
+        ------
+        TypeError
+            If a member's reset method does not accept ``recursive``, as with
+            the default `Container.reset` implementation.
+        """
         for val in self.values():
             if isinstance(val, Container):
                 val.reset(recursive=recursive)

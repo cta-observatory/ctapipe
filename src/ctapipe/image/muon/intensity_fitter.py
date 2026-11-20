@@ -140,6 +140,13 @@ def pixels_on_ring(radius, pixel_diameter):
     """Estimate the number of pixels along a ring circumference.
 
     The estimate uses the pixel diameter and the ring radius.
+
+    Parameters
+    ----------
+    radius : astropy.units.Quantity
+        Angular radius of the ring.
+    pixel_diameter : astropy.units.Quantity
+        Angular pixel width, compatible with the ring radius.
     """
     circumference = 2 * np.pi * radius
     n_pixels = u.Quantity(circumference / pixel_diameter)
@@ -322,6 +329,39 @@ def image_prediction_no_units(
 ):
     """
     Unit-less version of `image_prediction`.
+
+    Parameters
+    ----------
+    mirror_radius_m : float
+        Outer reflector radius in metres.
+    hole_radius_m : float
+        Radius of the central opening in metres. Use zero for an unobscured center.
+    impact_parameter_m : float
+        Distance of the muon impact point from the reflector center in metres.
+    phi_rad : float
+        Phase of the maximum ring intensity in radians.
+    center_x_rad : float
+        Field-of-view longitude of the ring center in radians.
+    center_y_rad : float
+        Field-of-view latitude of the ring center in radians.
+    radius_rad : float
+        Angular ring radius in radians.
+    ring_width_rad : float
+        Standard deviation of the radial light profile in radians.
+    pixel_x_rad : ndarray
+        Field-of-view longitude of each pixel in radians.
+    pixel_y_rad : ndarray
+        Field-of-view latitude of each pixel in radians.
+    pixel_diameter_rad : float
+        Angular pixel width in radians.
+    oversampling : int, optional
+        Number of azimuthal samples per pixel width used for the light profile.
+    min_lambda_m : float, optional
+        Lower wavelength bound for the Cherenkov yield integral, in metres.
+    max_lambda_m : float, optional
+        Upper wavelength bound for the Cherenkov yield integral, in metres.
+    pix_type : PixelShape, optional
+        Pixel shape used to apply the area correction.
     """
     # First produce angular position of each pixel w.r.t muon center
     dx = pixel_x_rad - center_x_rad
@@ -411,6 +451,32 @@ def build_negative_log_likelihood(
 
     The logarithm of the likelihood is calculated analytically as far as possible
     and terms constant under differentation are discarded.
+
+    Parameters
+    ----------
+    image : ndarray
+        Observed integrated pixel charge in photoelectrons.
+    optics : OpticsDescription
+        Telescope optics supplying the reflective mirror area.
+    geometry_tel_frame : CameraGeometry
+        Camera pixel geometry expressed in the telescope frame.
+    mask : ndarray of bool or None
+        Mask selecting pixels in the fit. With None, use every pixel.
+    oversampling : int
+        Number of azimuthal samples per pixel width used for the model.
+    min_lambda : astropy.units.Quantity
+        Lower wavelength bound for the Cherenkov yield integral.
+    max_lambda : astropy.units.Quantity
+        Upper wavelength bound for the Cherenkov yield integral.
+    spe_width : float
+        Width of the single-photoelectron response in photoelectrons.
+    pedestal : ndarray
+        Pedestal charge standard deviations in photoelectrons, in the original camera
+        pixel order.
+    hole_radius : astropy.units.Quantity, optional
+        Radius of the central reflector opening.
+    pix_type : PixelShape, optional
+        Pixel shape used for the prediction's area correction.
     """
     # get all the needed values and transform them into appropriate units
     mirror_area = optics.mirror_area.to_value(u.m**2)

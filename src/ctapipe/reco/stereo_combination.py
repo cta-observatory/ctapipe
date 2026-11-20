@@ -58,18 +58,38 @@ class StereoCombiner(Component):
     def __call__(self, event: SubarrayEventContainer) -> None:
         """
         Fill event container with stereo predictions.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with telescope-wise DL2 predictions. The combiner stores the stereo
+            prediction in the event's subarray DL2 data.
         """
 
     @abstractmethod
     def predict_table(self, mono_predictions: Table) -> Table:
         """
         Constructs stereo predictions from a table of telescope events.
+
+        Parameters
+        ----------
+        mono_predictions : astropy.table.Table
+            Telescope-wise predictions with observation and event IDs for grouping rows
+            into array events.
         """
 
 
 class StereoMeanCombiner(StereoCombiner):
     """
     Calculate array-event prediction as (weighted) mean of telescope-wise predictions.
+
+    Parameters
+    ----------
+    *args
+        Positional configuration arguments forwarded to the base component.
+    **kwargs
+        Component configuration and trait values, including the reconstruction
+        ``property``, output ``prefix``, and the choice of ``weights``.
     """
 
     weights = CaselessStrEnum(
@@ -271,6 +291,13 @@ class StereoMeanCombiner(StereoCombiner):
     def __call__(self, event: SubarrayEventContainer) -> None:
         """
         Calculate the mean prediction for a single array event.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with telescope-wise DL2 predictions under the configured prefix.
+            Supply DL1 image parameters when using image-based weights. The result is
+            written to subarray DL2 in place.
         """
         if event.dl2 is None:
             event.dl2 = SubarrayDL2Container()
@@ -292,11 +319,16 @@ class StereoMeanCombiner(StereoCombiner):
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
-        Calculates the (array-)event-wise mean.
+        Average valid telescope predictions for each array event.
 
-        Telescope events, that are nan, get discarded.
-        This means you might end up with less events if
-        all telescope predictions of a shower are invalid.
+        Array events without valid telescope predictions receive invalid results.
+
+        Parameters
+        ----------
+        mono_predictions : astropy.table.Table
+            Telescope predictions with observation and event IDs, validity flags, and
+            the columns for the configured property and prefix. Include the relevant
+            Hillas and leakage columns when using image-based weights.
         """
         prefix = f"{self.prefix}_tel"
         # TODO: Integrate table quality query once its done

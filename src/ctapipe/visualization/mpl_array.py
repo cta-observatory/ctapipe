@@ -165,7 +165,13 @@ class ArrayDisplay:
 
     @values.setter
     def values(self, values):
-        """Set the telescope colors to display"""
+        """Set the telescope colors to display
+
+        Parameters
+        ----------
+        values : array-like
+            Values in the telescope order of the displayed subarray.
+        """
         self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 

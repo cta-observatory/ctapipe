@@ -23,7 +23,27 @@ def parse_dotted_version(version):
 
 
 class CameraReadout:
-    """Stores properties related to the readout of a Cherenkov Camera."""
+    """Stores properties related to the readout of a Cherenkov Camera.
+
+    Parameters
+    ----------
+    name : str
+        Name of the camera.
+    sampling_rate : astropy.units.Quantity
+        Sampling frequency of the recorded waveforms.
+    reference_pulse_shape : ndarray
+        Reference pulse shapes, with one row per gain channel.
+    reference_pulse_sample_width : astropy.units.Quantity
+        Time step between samples of the reference pulse shape.
+    n_channels : int
+        Number of gain channels.
+    n_pixels : int
+        Number of camera pixels.
+    n_samples : int
+        Number of samples in a standard readout waveform.
+    n_samples_long : int or None, optional
+        Number of samples in a long waveform, when available.
+    """
 
     CURRENT_TAB_VERSION = "3.0"
     SUPPORTED_TAB_VERSIONS = {"3.0"}

@@ -10,7 +10,13 @@ from numpy.lib.recfunctions import repack_fields
 
 @cache
 def cached_arange(n):
-    """Cached version of np.arange."""
+    """Cached version of np.arange.
+
+    Parameters
+    ----------
+    n : int
+        Exclusive stop value of the cached, read-only range starting at zero.
+    """
     idx = np.arange(n)
     # prevent modification of returned array
     idx.flags.writeable = False
@@ -20,6 +26,13 @@ def cached_arange(n):
 def recarray_drop_columns(array, columns):
     """
     Remove columns from rec array
+
+    Parameters
+    ----------
+    array : ndarray
+        Structured array from which to remove fields.
+    columns : iterable of str
+        Names of fields to drop.
     """
     to_use = [col for col in array.dtype.names if col not in columns]
     subset = array.view(subset_dtype(array.dtype, to_use))
@@ -29,6 +42,13 @@ def recarray_drop_columns(array, columns):
 def subset_dtype(dtype, names):
     """
     Create a new dtype only containing a subset of the columns
+
+    Parameters
+    ----------
+    dtype : numpy.dtype
+        Structured dtype whose field formats and byte offsets are reused.
+    names : sequence of str
+        Fields to retain, in the requested order.
     """
     formats = [dtype.fields[name][0] for name in names]
     offsets = [dtype.fields[name][1] for name in names]

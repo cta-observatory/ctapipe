@@ -233,7 +233,13 @@ NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
 def parse_simtel_time(simtel_time):
-    """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
+    """Convert a unix time second / nanosecond tuple into astropy.time.Time
+
+    Parameters
+    ----------
+    simtel_time : tuple of int
+        sim_telarray timestamp as Unix seconds and additional nanoseconds, in UTC.
+    """
     return Time(
         simtel_time[0],
         simtel_time[1] * 1e-9,
@@ -259,7 +265,18 @@ def _location_from_meta(global_meta):
 
 
 def build_camera(simtel_telescope, telescope, frame):
-    """Create CameraDescription from eventio data structures"""
+    """Create CameraDescription from eventio data structures
+
+    Parameters
+    ----------
+    simtel_telescope : dict
+        eventio telescope description containing the sim_telarray camera and pixel
+        settings and organization.
+    telescope : GuessingResult
+        Inferred telescope description supplying the camera name.
+    frame : CameraFrame
+        Coordinate frame to assign to the camera geometry.
+    """
     camera_settings = simtel_telescope["camera_settings"]
     pixel_settings = simtel_telescope["pixel_settings"]
     camera_organization = simtel_telescope["camera_organization"]
@@ -559,6 +576,19 @@ class SimTelEventSource(EventSource):
     If these parameters are not included in the input data, ctapipe will
     fallback guesses these based on available data and the list of known telescopes
     for `ctapipe.instrument.guess_telescope`.
+
+    Parameters
+    ----------
+    input_url : str or pathlib.Path or None, optional
+        Path to a sim_telarray event file. If omitted, use the configured input.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, choose the gain
+        selector via ``gain_selector_type``.
     """
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(

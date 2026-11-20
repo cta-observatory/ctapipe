@@ -21,7 +21,15 @@ logger = logging.getLogger(__name__)
 
 
 def polar_to_cart(rho, phi):
-    """Convert polar coordinates with an angle in radians to Cartesian coordinates."""
+    """Convert polar coordinates with an angle in radians to Cartesian coordinates.
+
+    Parameters
+    ----------
+    rho : float or ndarray or astropy.units.Quantity
+        Radial coordinate or vector magnitude.
+    phi : float or ndarray or astropy.units.Quantity
+        Angle measured from the x-axis. Bare values are in radians.
+    """
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
@@ -309,12 +317,26 @@ class CameraDisplay:
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
-        """Set the color scale limits from min to max"""
+        """Set the color scale limits from min to max
+
+        Parameters
+        ----------
+        zmin : float
+            Lower limit of the color scale in the units of the displayed values.
+        zmax : float
+            Upper limit of the color scale in the units of the displayed values.
+        """
         self.pixels.set_clim(zmin, zmax)
         self._update()
 
     def set_limits_percent(self, percent=95):
-        """auto-scale the color range to percent of maximum"""
+        """Set the upper color limit to a fraction of the data range.
+
+        Parameters
+        ----------
+        percent : float, optional
+            Percentage of the data range to keep, measured upward from the minimum.
+        """
         from matplotlib.colors import LogNorm
 
         zmin = np.nanmin(self.pixels.get_array())
@@ -618,8 +640,13 @@ class CameraDisplay:
     def on_pixel_clicked(self, pix_id):
         """Handle a click on a camera pixel.
 
-        The default handler prints the pixel ID. Override the method to customize click
-        behavior.
+        The default handler prints the pixel index. Override this method to
+        customize click behavior.
+
+        Parameters
+        ----------
+        pix_id : int
+            Index of the selected pixel in the plotted patch collection.
         """
         print(f"Clicked pixel_id {pix_id}")
 
@@ -639,7 +666,13 @@ class CameraDisplay:
         self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
 
     def add_frame_name(self, color="grey"):
-        """Label the frame type of the display (e.g. CameraFrame)"""
+        """Label the frame type of the display (e.g. CameraFrame)
+
+        Parameters
+        ----------
+        color : color, optional
+            Matplotlib color for the coordinate frame annotation.
+        """
         frame_name = (
             self.geom.frame.__class__.__name__
             if self.geom.frame is not None

@@ -95,7 +95,15 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 def descriptive_statistics(
     values, container_class=ImageStatisticsContainer
 ) -> ImageStatisticsContainer:
-    """Compute intensity statistics of an image"""
+    """Compute intensity statistics of an image
+
+    Parameters
+    ----------
+    values : ndarray
+        Values over which to compute the statistics.
+    container_class : type[Container], optional
+        Container class accepting the moments and extrema as keyword arguments.
+    """
     mean = values.mean()
     std = values.std()
     return container_class(
@@ -110,7 +118,15 @@ def descriptive_statistics(
 
 @njit
 def n_largest(n, array):
-    """Return the n largest values of an array"""
+    """Return the n largest values of an array
+
+    Parameters
+    ----------
+    n : int
+        Maximum number of entries to select.
+    array : array-like
+        Comparable values from which to select the largest entries.
+    """
     return nlargest(n, array)
 
 
@@ -129,6 +145,15 @@ def arg_n_largest_gu(dummy, array, idx):
 
     Used by the `arg_n_largest` wrapper to return the indices of the n largest
     values of an array.
+
+    Parameters
+    ----------
+    dummy : ndarray
+        Size template. Its length determines how many indices to select.
+    array : ndarray
+        Values to rank.
+    idx : ndarray of int
+        Output buffer filled with indices in descending value order.
     """
     values = []
     for i in range(len(array)):
@@ -140,7 +165,15 @@ def arg_n_largest_gu(dummy, array, idx):
 
 
 def arg_n_largest(n, array):
-    """Return the indices of the n largest values of an array"""
+    """Return the indices of the n largest values of an array
+
+    Parameters
+    ----------
+    n : int
+        Number of indices to return. Use a value no larger than the array length.
+    array : ndarray
+        Values to rank. Ties are resolved by descending index.
+    """
     dummy = np.zeros(n, dtype=np.int64)
     idx = arg_n_largest_gu(dummy, array)
     return idx

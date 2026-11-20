@@ -83,6 +83,15 @@ def line_line_intersection_3d(uvw_vectors, origins):
     Intersection of many lines in 3d.
 
     See https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+
+    Parameters
+    ----------
+    uvw_vectors : ndarray
+        Unit vectors along each line, with the three Cartesian components in the last
+        axis.
+    origins : ndarray
+        Position of a point on each line, in the same row order as the direction vectors
+        and in a common length unit.
     """
     C = []
     S = []
@@ -107,6 +116,16 @@ class HillasReconstructor(HillasGeometryReconstructor):
     so far, it does neither provide an energy estimator nor an
     uncertainty on the reconstructed parameters
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying telescope positions and camera geometry, including the
+        angular camera radii used in the shower-axis fit.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric profile stored by the base reconstructor. This reconstruction
+        estimates shower maximum geometrically.
+    **kwargs
+        Component configuration and trait values forwarded to the base reconstructor.
     """
 
     needs_atmosphere_profile = False
@@ -315,6 +334,15 @@ class HillasReconstructor(HillasGeometryReconstructor):
     def estimate_direction(norm, weight):
         """Estimate the shower direction from weighted plane intersections.
 
+        Parameters
+        ----------
+        norm : ndarray
+            Normal vectors of the planes defined by the telescope image axes, with three
+            Cartesian components per telescope.
+        weight : ndarray
+            Weight of each telescope. A pair of intersecting planes receives the product
+            of their weights.
+
         Returns
         -------
         gamma : shape (3) numpy array
@@ -402,6 +430,15 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         The estimate uses intersections of the directions to the image centroids from
         each telescope.
+
+        Parameters
+        ----------
+        cog_vectors : ndarray
+            Unit vectors from each telescope toward its image centroid, in the same
+            Cartesian coordinate system as the telescope positions.
+        positions : SkyCoord or BaseCoordinateFrame
+            Telescope positions in the same order as the centroid vectors, with length
+            units.
 
         Returns
         -------

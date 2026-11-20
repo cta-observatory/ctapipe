@@ -41,6 +41,18 @@ class EventSeeker(Component):
 
     The event index is the sequential ``event.count`` assigned by ctapipe.
     The event ID is the identifier supplied by the input file.
+
+    Parameters
+    ----------
+    event_source : EventSource
+        Source to seek within. Backward seeks require a source that can restart.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
     """
 
     def __init__(self, event_source, config=None, parent=None, **kwargs):

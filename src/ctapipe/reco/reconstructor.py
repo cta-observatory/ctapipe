@@ -93,6 +93,17 @@ class Reconstructor(TelescopeComponent):
     Subclasses process events with DL1 parameters and store reconstruction
     results in their DL2 containers. Algorithms that need an atmospheric
     profile indicate this through ``needs_atmosphere_profile``.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying instrument information and telescope-dependent settings to
+        the reconstruction algorithm.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric density profile for algorithms that use it to convert between
+        altitude and slant depth.
+    **kwargs
+        Component configuration and trait values forwarded to the telescope component.
     """
 
     #: ctapipe_reco entry points may provide Reconstructor implementations

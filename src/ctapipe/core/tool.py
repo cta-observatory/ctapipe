@@ -252,12 +252,22 @@ class Tool(Application):
 
         This will guarantee that ``context_manager.__exit__`` is called when
         `~ctapipe.core.tool.Tool.run` finishes, even when an error occurs.
+
+        Parameters
+        ----------
+        context_manager : contextlib.AbstractContextManager
+            Context manager to enter and register for cleanup when the tool exits.
         """
         return self._exit_stack.enter_context(context_manager)
 
     def initialize(self, argv=None):
         """
         Handle config and any other low-level setup.
+
+        Parameters
+        ----------
+        argv : list of str or None, optional
+            Command-line arguments to parse. With None, use the process arguments.
         """
         self.parse_command_line(argv)
         self.update_logging_config()
@@ -600,7 +610,17 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     config = tool_instance.get_current_config()[tool_instance.__class__.__name__]
 
     def commented(text, indent_level=2, width=70):
-        """Return a commented, wrapped block."""
+        """Return a commented, wrapped block.
+
+        Parameters
+        ----------
+        text : str
+            Text to wrap as YAML comments.
+        indent_level : int, optional
+            Number of spaces before each comment marker.
+        width : int, optional
+            Maximum width of each line, including indentation and the comment marker.
+        """
         return textwrap.fill(
             text,
             width=width,

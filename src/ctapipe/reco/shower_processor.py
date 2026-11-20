@@ -27,6 +27,22 @@ class ShowerProcessor(Component):
     reconstructors, be it directly as model input or as input to the feature generation.
     This may include previously made dl2 predictions,
     in which case the order of ``reconstructor_types`` is important.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray shared by the selected reconstruction components.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric density profile to pass to the reconstructors. Required when any
+        selected reconstructor needs it.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``reconstructor_types`` to
+        choose the algorithms to apply.
     """
 
     reconstructor_types = traits.ComponentNameList(

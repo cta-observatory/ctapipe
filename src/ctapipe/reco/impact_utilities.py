@@ -143,19 +143,32 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 def generate_fake_template(
     center, length, width=0.3, xb=301, yb=151, bounds=((-5, 1), (-1.5, 1.5))
 ):
-    """Simple function to generate template for testing
+    """Generate a rectangular signal template for testing.
 
-    Args:
-        center (float): X axis coordinate of image center
-        length (float): Image length
-        width (float, optional): Image width. Defaults to 0.3.
-        xb (int, optional): Number of x bins in template. Defaults to 300.
-        yb (int, optional): Number of y bins in template. Defaults to 150.
-        bounds (tuple, optional): Boundaries of templates. Defaults to ((-5, 1), (-1.5, 1.5)).
+    Parameters
+    ----------
+    center : float
+        Center of the rectangular signal region along the x-axis.
+    length : float
+        Extent from the center to either end of the rectangle along x.
+    width : float, optional
+        Extent from the center to either edge along y.
+    xb : int, optional
+        Number of x samples in the template grid.
+    yb : int, optional
+        Number of y samples in the template grid.
+    bounds : tuple of tuple, optional
+        Lower and upper limits for each template axis, in the same units as the
+        rectangle dimensions.
 
     Returns
     -------
-        ndarray, ndarray, ndarray: Template image, x bin centres, y bin centres
+    template : ndarray
+        Template image with shape ``(yb, xb)``.
+    x : ndarray
+        Template grid with the x coordinates.
+    y : ndarray
+        Template grid with the y coordinates.
     """
     x, y = np.meshgrid(
         np.linspace(bounds[0][0], bounds[0][1], xb),
@@ -179,15 +192,25 @@ def create_dummy_templates(
     dist_range=np.linspace(0, 200, 5),
     xmax_range=np.linspace(-200, 200, 9),
 ):
-    """Create file with dummy template library
+    """Write a template library for testing ImPACT.
 
-    Args:
-        output_file (str): Output file name
-        energy (float): Peak energy of templates
-        pe (float, optional): Peak template amplitude. Defaults to 1000.
-        energy_range (ndarray, optional): Range of energy templates. Defaults to np.logspace(-1, 1,7).
-        dist_range (ndarray, optional): Range of distance templates. Defaults to np.linspace(0, 200, 5).
-        xmax_range (ndarray, optional): Range of xmax templates. Defaults to np.linspace(-200,200, 9).
+    Parameters
+    ----------
+    output_file : str or pathlib.Path
+        Output file for the gzip-compressed template mapping.
+    energy : float
+        Shower energy in TeV at which the template has its maximum normalization.
+    pe : float, optional
+        Photoelectron scale of the template at the peak energy. Defaults to 1000.
+    energy_range : array-like, optional
+        Energies in TeV in the grid. Defaults to seven logarithmically spaced
+        values from 0.1 to 10 TeV.
+    dist_range : array-like, optional
+        Impact distances in the grid. Defaults to five evenly spaced values
+        from 0 to 200 metres.
+    xmax_range : array-like, optional
+        Shower maximum offsets from the expected depth. Defaults to nine evenly
+        spaced values from -200 to 200 g/cm².
     """
     template_dict = {}
     for en in energy_range:

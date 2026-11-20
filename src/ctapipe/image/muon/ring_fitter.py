@@ -19,12 +19,37 @@ from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 
 
 def kundu_chaudhuri(fov_lon, fov_lat, weights, mask):
-    """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface"""
+    """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface
+
+    Parameters
+    ----------
+    fov_lon : astropy.units.Quantity
+        Field-of-view longitude of each camera pixel.
+    fov_lat : astropy.units.Quantity
+        Field-of-view latitude of each camera pixel.
+    weights : ndarray
+        Pixel weights, typically the integrated charges used in the circle fit.
+    mask : ndarray of bool
+        Mask selecting the pixels used to fit the ring.
+    """
     return kundu_chaudhuri_circle_fit(fov_lon[mask], fov_lat[mask], weights[mask])
 
 
 def taubin(fov_lon, fov_lat, weights, mask):
-    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface"""
+    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface
+
+    Parameters
+    ----------
+    fov_lon : astropy.units.Quantity
+        Field-of-view longitude of each camera pixel.
+    fov_lat : astropy.units.Quantity
+        Field-of-view latitude of each camera pixel.
+    weights : ndarray
+        Pixel weights supplied through the common fit interface. This fit uses equal
+        weights.
+    mask : ndarray of bool
+        Mask selecting the pixels used to fit the ring.
+    """
     return taubin_circle_fit(fov_lon, fov_lat, mask)
 
 
@@ -32,6 +57,17 @@ def kundu_chaudhuri_taubin(fov_lon, fov_lat, weights, mask):
     """Fit a circle with Taubin refinement after an initial Kundu-Chaudhuri fit.
 
     The fit accepts field-of-view longitude and latitude, weights, and a mask.
+
+    Parameters
+    ----------
+    fov_lon : astropy.units.Quantity
+        Field-of-view longitude of each camera pixel.
+    fov_lat : astropy.units.Quantity
+        Field-of-view latitude of each camera pixel.
+    weights : ndarray
+        Pixel weights, typically the integrated charges used in the circle fit.
+    mask : ndarray of bool
+        Mask selecting the pixels used to fit the ring.
     """
     taubin_r_initial, xc_initial, yc_initial, _, _, _ = kundu_chaudhuri_circle_fit(
         fov_lon[mask], fov_lat[mask], weights[mask], nan_errors_flag=True

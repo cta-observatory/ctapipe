@@ -269,6 +269,12 @@ class PixelStatus(enum.IntFlag):
         """
         Return only the bits corresponding to the DVR_STATUS
 
+        Parameters
+        ----------
+        pixel_status : PixelStatus or integer ndarray
+            Bit field for one pixel, or an array of pixel-status bit fields from the
+            event.
+
         Returns
         -------
         dvr_status: int or array[uint8]
@@ -283,6 +289,12 @@ class PixelStatus(enum.IntFlag):
     def get_channel_info(pixel_status):
         """
         Return only the bits corresponding to the channel info (high/low gain stored)
+
+        Parameters
+        ----------
+        pixel_status : PixelStatus or integer ndarray
+            Bit field for one pixel, or an array of pixel-status bit fields from the
+            event.
 
         Returns
         -------
@@ -300,6 +312,12 @@ class PixelStatus(enum.IntFlag):
         """Return if pixel values are marked as invalid
 
         This is encoded in the data model as neither high gain nor low gain marked as stored
+
+        Parameters
+        ----------
+        pixel_status : PixelStatus or integer ndarray
+            Bit field for one pixel, or an array of pixel-status bit fields from the
+            event.
         """
         gain_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
         return (pixel_status & gain_bits) == 0

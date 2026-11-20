@@ -46,6 +46,11 @@ SPECTRA = {
 def spectrum_from_name(name: str | Spectra) -> Callable:
     """
     Return spectrum function given a name or Spectra enum value.
+
+    Parameters
+    ----------
+    name : str or Spectra
+        Name of a supported reference spectrum or its enum member.
     """
     spectrum_value = Spectra(name)
     return SPECTRA[spectrum_value]

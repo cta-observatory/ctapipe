@@ -79,7 +79,22 @@ __all__ = [
 
 
 class EventWeighter(Component):
-    """Compute weights to go from source to target spectra."""
+    """Compute weights to go from source to target spectra.
+
+    Parameters
+    ----------
+    source_spectrum : callable
+        Simulated differential spectrum, evaluated at energies given as quantities, for
+        calculating the spectral weights.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``target_spectrum_name`` or choose the energy column.
+    """
 
     target_spectrum_name = traits.UseEnum(
         Spectra,
@@ -133,7 +148,14 @@ class EventWeighter(Component):
         )
 
     def __call__(self, events_table: Table | QTable) -> QTable:
-        """Returns shallow copy of input table with a ``weight`` column added"""
+        """Returns shallow copy of input table with a ``weight`` column added
+
+        Parameters
+        ----------
+        events_table : astropy.table.Table
+            Event table containing the configured energy column and any additional
+            columns needed by the weighting algorithm.
+        """
         table = shallow_copy_table(events_table, output_cls=QTable)
         self._compute_weights(table)
         return table

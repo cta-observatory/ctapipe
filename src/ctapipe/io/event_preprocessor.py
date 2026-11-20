@@ -30,6 +30,11 @@ class FeatureSetRegistry:
     def register(cls, name: str):
         """Register a feature set configuration.
 
+        Parameters
+        ----------
+        name : str
+            Name under which to register a feature-set factory.
+
         Examples
         --------
         >>> @FeatureSetRegistry.register("my_analysis")
@@ -55,7 +60,13 @@ class FeatureSetRegistry:
 
     @classmethod
     def get(cls, name: str):
-        """Get a registered configuration function."""
+        """Get a registered configuration function.
+
+        Parameters
+        ----------
+        name : str
+            Name of the registered feature set to look up.
+        """
         return cls._registry.get(name)
 
     @classmethod

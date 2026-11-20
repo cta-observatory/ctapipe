@@ -1075,7 +1075,6 @@ def test_nan_handling():
 
 def test_undersized_tables():
     """Test undersized tables are accepted by default and can be explicitly rejected."""
-
     # Create small test table (50 rows)
     times = Time(np.linspace(60117.911, 60117.912, num=50), scale="tai", format="mjd")
     event_ids = np.arange(50)

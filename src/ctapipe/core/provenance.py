@@ -62,6 +62,11 @@ def json_config_handler(obj):
     >>> config = {"quantity": 5 * u.m}
     >>> json.dumps(config, default=json_config_handler)
     '{"quantity": {"value": 5.0, "unit": "m"}}'
+
+    Parameters
+    ----------
+    obj : object
+        Value passed to the encoder when the standard JSON encoder cannot serialize it.
     """
     from ctapipe.io.metadata import (
         Contact,
@@ -109,7 +114,14 @@ def modules_of_distribution(distribution: Distribution):
 
 @cache
 def get_distribution_of_module(module: ModuleType | str):
-    """Get the package distribution for an imported module"""
+    """Get the package distribution for an imported module
+
+    Parameters
+    ----------
+    module : module or str
+        Imported module or importable module name whose installed distribution is
+        sought.
+    """
     if isinstance(module, str):
         name = module
         module = import_module(module)
@@ -137,6 +149,11 @@ def get_module_version(name):
     If the module does not expose a ``__version__`` attribute, this function
     will try to determine the *distribution* of the module and return its
     version.
+
+    Parameters
+    ----------
+    name : str
+        Importable module name to query for its version.
     """
     # we try first with module.__version__
     # to support editable installs
@@ -257,7 +274,15 @@ class _ActivityProvenance:
         self._prov["config"] = config
 
     def finish(self, status="success", exit_code=0):
-        """Record final provenance information, normally called at shutdown."""
+        """Record final provenance information, normally called at shutdown.
+
+        Parameters
+        ----------
+        status : str, optional
+            Status label to record on completion.
+        exit_code : int, optional
+            Exit code to record for the activity.
+        """
         self._prov["stop"].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
@@ -324,7 +349,13 @@ class Provenance(metaclass=Singleton):
         self._finished_activities = []
 
     def start_activity(self, activity_name=sys.executable):
-        """Push activity onto the stack"""
+        """Push activity onto the stack
+
+        Parameters
+        ----------
+        activity_name : str, optional
+            Name to identify the new activity. Defaults to the Python executable path.
+        """
         activity = _ActivityProvenance(activity_name)
         activity.start()
         self._activities.append(activity)
@@ -408,7 +439,17 @@ class Provenance(metaclass=Singleton):
         )
 
     def finish_activity(self, status="completed", exit_code=0, activity_name=None):
-        """End the current activity"""
+        """End the current activity
+
+        Parameters
+        ----------
+        status : str, optional
+            Status label to store for the finished activity.
+        exit_code : int, optional
+            Exit code to record for the activity.
+        activity_name : str or None, optional
+            Expected name of the current activity. When supplied, it must match.
+        """
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError(
@@ -423,7 +464,13 @@ class Provenance(metaclass=Singleton):
 
     @contextmanager
     def activity(self, name):
-        """Context manager for activities"""
+        """Context manager for activities
+
+        Parameters
+        ----------
+        name : str
+            Name of the activity to start when entering the context.
+        """
         self.start_activity(name)
         yield
         self.finish_activity(name)

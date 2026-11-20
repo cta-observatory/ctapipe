@@ -125,6 +125,20 @@ class EventSource(Component):
 
         The URL can be supplied directly or obtained from the configuration or parent
         component.
+
+        Parameters
+        ----------
+        input_url : str or pathlib.Path or None, optional
+            Input path used to select a compatible source. If omitted, resolve the path
+            from the configuration.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration and logging.
+            Mutually exclusive with ``config``.
+        **kwargs
+            Options for the selected source's initializer. Source selection itself uses
+            the input path.
         """
         # needed to break recursion, as __new__ of subclass will also
         # call this method

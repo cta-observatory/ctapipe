@@ -38,6 +38,16 @@ class TableWriter(Component, metaclass=ABCMeta):
     where each `~ctapipe.core.Field` becomes a column.
     Subclasses of this implement specific output types.
 
+    Parameters
+    ----------
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    add_prefix : bool, optional
+        Prefix column names with the container's prefix when writing.
+    **kwargs
+        Component configuration and trait values for the table writer.
+
     See Also
     --------
     ctapipe.io.HDF5TableWriter: Implementation of this base class for writing HDF5 files
@@ -335,7 +345,13 @@ class ColumnTransform(metaclass=ABCMeta):
 
     @abstractmethod
     def inverse(self, value):
-        """Invert the transformation applied in ``__call__``"""
+        """Invert the transformation applied in ``__call__``
+
+        Parameters
+        ----------
+        value : object
+            Stored column value to convert back to its in-memory representation.
+        """
         return value
 
     @abstractmethod
@@ -344,12 +360,25 @@ class ColumnTransform(metaclass=ABCMeta):
 
         Needs to fully describe the transformation so upon reading, the
         transformation can be inverted based on this metadata.
+
+        Parameters
+        ----------
+        colname : str
+            Column name used to form the keys of the transformation metadata.
         """
         return {}
 
 
 class TimeColumnTransform(ColumnTransform):
-    """A Column transformation that converts astropy time objects to a specific format."""
+    """A Column transformation that converts astropy time objects to a specific format.
+
+    Parameters
+    ----------
+    scale : str
+        Astropy time scale used with standard Time formats, such as ``"tai"``.
+    format : str
+        Astropy Time output format, or ``"ctao_high_res"`` for the CTAO time encoding.
+    """
 
     def __init__(self, scale, format):
         self.scale = scale
@@ -357,7 +386,13 @@ class TimeColumnTransform(ColumnTransform):
 
     def __call__(self, value: Time):
         """
-        Convert an astropy time object to an mjd value in tai scale
+        Convert Astropy times to the configured storage format.
+
+        Parameters
+        ----------
+        value : astropy.time.Time
+            Scalar or array of times to convert to the configured storage
+            representation.
         """
         # ctao_high_res is not implemented as an astropy format but using
         # conversion functions defined in ctapipe
@@ -385,7 +420,13 @@ class TimeColumnTransform(ColumnTransform):
 
 
 class QuantityColumnTransform(ColumnTransform):
-    """A Column Transform that transforms quantities to their values in the given unit"""
+    """A Column Transform that transforms quantities to their values in the given unit
+
+    Parameters
+    ----------
+    unit : astropy.units.UnitBase or str
+        Unit whose numeric values are stored and whose units are restored when reading.
+    """
 
     def __init__(self, unit):
         self.unit = unit
@@ -430,6 +471,18 @@ class FixedPointColumnTransform(ColumnTransform):
     values but be transformed back into -inf, nan, inf respectively.
 
     This is a lossy transformation.
+
+    Parameters
+    ----------
+    scale : float
+        Multiplier applied before rounding the source values to integers.
+    offset : int
+        Integer offset added after rounding to shift the stored range.
+    source_dtype : numpy.dtype or str
+        Numeric dtype used for the source values and decoded results.
+    target_dtype : numpy.dtype or str
+        Integer storage dtype. Its range determines the reserved codes for nonfinite
+        values.
     """
 
     def __init__(self, scale, offset, source_dtype, target_dtype):
@@ -519,7 +572,13 @@ class FixedPointColumnTransform(ColumnTransform):
 
 
 class EnumColumnTransform(ColumnTransform):
-    """Store the value of an enum"""
+    """Store the value of an enum
+
+    Parameters
+    ----------
+    enum : type[enum.Enum]
+        Enum class whose member values are stored and used to reconstruct the members.
+    """
 
     def __init__(self, enum):
         self.enum = enum
@@ -555,6 +614,13 @@ def encode_utf8_max_len(string, max_length):
     when truncating strings in hdf5 data of ctapipe
 
     See https://stackoverflow.com/a/56724327/3838691
+
+    Parameters
+    ----------
+    string : str
+        Text to encode as UTF-8.
+    max_length : int
+        Maximum number of encoded bytes. Truncation preserves complete UTF-8 characters.
     """
     utf8 = string.encode("utf-8")
 
@@ -577,6 +643,11 @@ class StringTransform(ColumnTransform):
 
     Should not be used anymore when tables starts supporting
     variable length strings in tables.
+
+    Parameters
+    ----------
+    max_length : int
+        Maximum width of the stored UTF-8 strings, in bytes.
     """
 
     def __init__(self, max_length):

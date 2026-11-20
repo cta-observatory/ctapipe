@@ -158,7 +158,17 @@ def type_from_mirror_area(mirror_area):
 
 
 def unknown_telescope(mirror_area, n_pixels, n_mirrors=-1):
-    """Create a GuessingResult for an unknown_telescope"""
+    """Create a GuessingResult for an unknown_telescope
+
+    Parameters
+    ----------
+    mirror_area : float or astropy.units.Quantity
+        Reflective mirror area, in square metres for a bare number.
+    n_pixels : int
+        Camera pixel count used to label the unknown camera.
+    n_mirrors : int, optional
+        Known number of mirrors. The default -1 records an unknown count.
+    """
     # this allows passing a plain number in square meter and any quantity
     # with an area unit
     mirror_area = u.Quantity(mirror_area, u.m**2)

@@ -25,6 +25,12 @@ class ExpressionEngine:
     Additionally, astropy.units is exposed as ``u`` and numpy as ``np``.
 
     Basic mathematical functions are also exposed without the np prefix.
+
+    Parameters
+    ----------
+    expressions : sequence of tuple[str, str]
+        Pairs of result names and Python expressions. Expressions are compiled in the
+        given order and evaluated against the provided locals.
     """
 
     def __init__(self, expressions):

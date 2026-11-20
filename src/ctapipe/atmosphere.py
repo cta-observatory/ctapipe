@@ -77,6 +77,11 @@ class AtmosphereDensityProfile(abc.ABC):
 
         .. math:: X(h) = \int_{h}^{\infty} \rho(h') dh'
 
+        Parameters
+        ----------
+        height : astropy.units.Quantity
+            Lower integration limit, as altitude above sea level with length units.
+
         Returns
         -------
         u.Quantity["g/cm2"]:
@@ -219,6 +224,12 @@ class AtmosphereDensityProfile(abc.ABC):
 
         The ``TAB_TYPE`` metadata selects the concrete profile class, and ``TAB_VER``
         must be supported.
+
+        Parameters
+        ----------
+        table : astropy.table.Table
+            Serialized profile with ``TAB_TYPE`` and ``TAB_VER`` metadata identifying
+            the model and format version.
         """
         table = QTable(table, copy=False)
 
@@ -324,6 +335,14 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         profile = TableAtmosphereDensityProfile(table=table)
         print(profile(10 * u.km))
 
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Samples with ``height`` above sea level, mass ``density``, and
+        ``column_density`` in mass per unit area, all with units. Rows with
+        negative heights or nonpositive densities are discarded. Cubic
+        interpolation requires at least four retained samples, with
+        distinct heights and column densities.
 
     Attributes
     ----------
@@ -468,6 +487,12 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     .. math:: T(h) = a_5 - b_5 \frac{h}{c_5}
 
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Five rows in order of increasing layer boundary altitude. Supply ``height`` and
+        ``c`` as lengths, and ``a`` and ``b`` as mass per unit area.
+
     References
     ----------
     [corsika-user] D. Heck and T. Pierog, "Extensive Air Shower Simulation with CORSIKA:
@@ -500,7 +525,17 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @classmethod
     def from_array(cls, array: np.ndarray, metadata: dict = None):
-        """Construct from a 5x5 array as provided by eventio"""
+        """Construct from a 5x5 array as provided by eventio
+
+        Parameters
+        ----------
+        array : ndarray
+            CORSIKA parameters of shape ``(5, 5)`` in ascending layer order. Columns are
+            height in cm, a and b in g/cm², c in cm, and 1/c in inverse cm.
+        metadata : dict or None, optional
+            Metadata to attach to the profile table. The constructor sets the format
+            type and version.
+        """
         if metadata is None:
             metadata = {}
 

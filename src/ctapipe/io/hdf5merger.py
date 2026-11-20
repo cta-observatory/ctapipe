@@ -146,6 +146,14 @@ class CannotMerge(OSError):
 class HDF5Merger(Component):
     """
     Class to copy / append / merge ctapipe hdf5 files
+
+    Parameters
+    ----------
+    output_path : str or pathlib.Path or None, optional
+        Destination HDF5 file. With None, use the configured output path.
+    **kwargs
+        Component configuration and trait values such as ``merge_strategy``, ``append``,
+        and ``overwrite``.
     """
 
     contact_info = Instance(
@@ -316,6 +324,11 @@ class HDF5Merger(Component):
     def __call__(self, other: str | Path | tables.File):
         """
         Append file ``other`` to the output file
+
+        Parameters
+        ----------
+        other : str or pathlib.Path or tables.File
+            ctapipe HDF5 input file to merge, as a path or open read handle.
         """
         exit_stack = ExitStack()
         if not isinstance(other, tables.File):

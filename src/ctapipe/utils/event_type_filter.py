@@ -15,7 +15,15 @@ _values = ", ".join([f"{e.name} or {e.value}" for e in EventType])
 
 
 class EventTypeFilter(Component):
-    """Check that an event has one of the allowed types"""
+    """Check that an event has one of the allowed types
+
+    Parameters
+    ----------
+    *args
+        Positional configuration arguments forwarded to the base component.
+    **kwargs
+        Component configuration and trait values, such as ``allowed_types``.
+    """
 
     allowed_types = Set(
         # add both the enum instance and the integer values to support
@@ -33,7 +41,14 @@ class EventTypeFilter(Component):
         super().__init__(*args, **kwargs)
 
     def __call__(self, event):
-        """Returns True if the event should be kept"""
+        """Returns True if the event should be kept
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event whose DL0 trigger carries the event type. When ``allowed_types`` is
+            None, all events pass.
+        """
         if self.allowed_types is None:
             return True
 

@@ -106,6 +106,17 @@ def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> SkyCoord:
     column of coordinates, from which further expressions can use ``.fov_lon``
     and ``.fov_lat``.
 
+    Parameters
+    ----------
+    az : astropy.units.Quantity
+        Event azimuth in the horizontal frame.
+    alt : astropy.units.Quantity
+        Event altitude in the horizontal frame.
+    pointing_az : astropy.units.Quantity
+        Azimuth of the pointing direction that defines the nominal origin.
+    pointing_alt : astropy.units.Quantity
+        Altitude of the pointing direction that defines the nominal origin.
+
     Returns
     -------
     SkyCoord:

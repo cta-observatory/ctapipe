@@ -522,10 +522,10 @@ def test_transform_keeps_frame_attributes(camera_geometry, as_class):
 
 
 def test_transform_roundtrip_through_telescope_frame(camera_geometry):
-    """
-    TelescopeFrame does not have a focal_length, but it must be kept in
-    pix_coord so the transformation back to CameraFrame works without
-    specifying it again.
+    """Check that the focal length survives a round trip through TelescopeFrame.
+
+    TelescopeFrame has no focal_length attribute. The pixel coordinates must
+    retain it for the transformation back to CameraFrame.
     """
     from ctapipe.coordinates import CameraFrame, TelescopeFrame
 

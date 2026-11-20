@@ -133,6 +133,24 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying camera geometry and telescope-dependent cleaning and
+        extraction settings.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    cleaner : ImageCleaner or None, optional
+        Preconstructed image cleaner. With None, use a `TailcutsImageCleaner`.
+    image_extractor : ImageExtractor or None, optional
+        Preconstructed extractor used for all telescopes. With None, use the configured
+        ``image_extractor_type``.
+    **kwargs
+        Trait values that override the configuration.
+
     Attributes
     ----------
     image_extractor_type: String

@@ -259,7 +259,13 @@ class MirrorDescription:
         )
 
     def __eq__(self, other):
-        """For eq, we just compare equal hash"""
+        """For eq, we just compare equal hash
+
+        Parameters
+        ----------
+        other : object
+            Object whose hash is compared with that of this description.
+        """
         return hash(self) == hash(other)
 
     def __str__(self, n_str=3):
@@ -405,7 +411,13 @@ class OpticsDescription:
         )
 
     def __eq__(self, other):
-        """For eq, we just compare equal hash"""
+        """For eq, we just compare equal hash
+
+        Parameters
+        ----------
+        other : object
+            Object whose hash is compared with that of this description.
+        """
         return hash(self) == hash(other)
 
     @classmethod
@@ -552,6 +564,13 @@ class OpticsDescription:
         ``mirror_description``, otherwise it is set to None.
 
         See `OpticsDescription.to_table` for the opposite operation.
+
+        Parameters
+        ----------
+        table : astropy.table.Table or str or pathlib.Path
+            Optics table, or a file containing one, with version and telescope metadata.
+        **kwargs
+            Options forwarded to `astropy.table.Table.read` when opening a file.
         """
         if not isinstance(table, Table):
             table = Table.read(table, **kwargs)
@@ -633,6 +652,12 @@ class OpticsDescription:
 
         By default, this function will try to use the effective focal length and raise
         an error if it is not available.
+
+        Parameters
+        ----------
+        focal_length_choice : FocalLengthKind or str, optional
+            Select the ray-traced effective or nominal equivalent focal length. Accepted
+            string names are ``"effective"`` and ``"equivalent"``.
         """
         if isinstance(focal_length_choice, str):
             focal_length_choice = FocalLengthKind[focal_length_choice.upper()]

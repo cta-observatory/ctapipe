@@ -89,6 +89,15 @@ def shower_impact_distance_with_frames(
     Here we make a TiltedFrame that is aligned with the shower axis and
     transform both the telescopes and the impact point into that frame. Then the
     cartesian distance in the X-Y plane should be the impact distance.
+
+    Parameters
+    ----------
+    shower_geom : ReconstructedGeometryContainer
+        Reconstructed shower direction in AltAz and impact position in ground
+        coordinates.
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying telescope positions in ground coordinates, in the order used
+        by the result.
     """
     tilted = TiltedGroundFrame(
         pointing_direction=SkyCoord(

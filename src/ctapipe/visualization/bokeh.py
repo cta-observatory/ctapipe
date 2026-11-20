@@ -57,7 +57,13 @@ CMAPS = {
 
 
 def palette_from_mpl_name(name):
-    """Create a bokeh palette from a matplotlib colormap name"""
+    """Create a bokeh palette from a matplotlib colormap name
+
+    Parameters
+    ----------
+    name : str
+        Name of a built-in Bokeh palette alias or a Matplotlib colormap.
+    """
     if name in CMAPS:
         return CMAPS[name]
 
@@ -83,7 +89,14 @@ def is_notebook():
 
 
 def generate_hex_vertices(geom):
-    """Generate vertices of pixels for a hexagonal grid camera geometry"""
+    """Generate vertices of pixels for a hexagonal grid camera geometry
+
+    Parameters
+    ----------
+    geom : CameraGeometry
+        Geometry supplying the pixel centers, widths, and rotation for the hexagon
+        vertices.
+    """
     phi = np.arange(0, 2 * np.pi, np.pi / 3)
 
     # apply pixel rotation and conversion from flat top to pointy top
@@ -103,7 +116,14 @@ def generate_hex_vertices(geom):
 
 
 def generate_square_vertices(geom):
-    """Generate vertices of pixels for a square grid camera geometry"""
+    """Generate vertices of pixels for a square grid camera geometry
+
+    Parameters
+    ----------
+    geom : CameraGeometry
+        Geometry supplying the pixel centers and side lengths for the axis-aligned
+        square vertices.
+    """
     unit = geom.pix_x.unit
     width = geom.pixel_width.to_value(unit) / 2
     x = geom.pix_x.to_value(unit)
@@ -118,7 +138,21 @@ def generate_square_vertices(geom):
 
 
 class BokehPlot(metaclass=ABCMeta):
-    """Base class for bokeh plots"""
+    """Base class for bokeh plots
+
+    Parameters
+    ----------
+    use_notebook : bool or None, optional
+        Enable notebook display. None detects whether code is running in a notebook.
+    autoscale : bool, optional
+        Adjust the color limits automatically when display values change.
+    cmap : str or sequence of str, optional
+        Colormap name or sequence of color specifications.
+    norm : str or bokeh.models.ContinuousColorMapper, optional
+        Linear or logarithmic normalization, or an existing continuous color mapper.
+    **figure_kwargs
+        Options forwarded to `bokeh.plotting.figure`.
+    """
 
     def __init__(
         self,
@@ -183,12 +217,26 @@ class BokehPlot(metaclass=ABCMeta):
         self.update()
 
     def set_limits_minmax(self, zmin, zmax):
-        """Set the limits of the color range to ``zmin`` / ``zmax``"""
+        """Set the limits of the color range to ``zmin`` / ``zmax``
+
+        Parameters
+        ----------
+        zmin : float
+            Lower limit of the color scale in the units of the displayed values.
+        zmax : float
+            Upper limit of the color scale in the units of the displayed values.
+        """
         self._color_mapper.update(low=zmin, high=zmax)
         self.update()
 
     def set_limits_percent(self, percent=95):
-        """Set the limits to min / fraction of max value"""
+        """Set the upper color limit to a fraction of the data range.
+
+        Parameters
+        ----------
+        percent : float, optional
+            Percentage of the data range to keep, measured upward from the minimum.
+        """
         low = np.nanmin(self.datasource.data["values"])
         high = np.nanmax(self.datasource.data["values"])
 
@@ -202,7 +250,13 @@ class BokehPlot(metaclass=ABCMeta):
 
     @cmap.setter
     def cmap(self, cmap):
-        """Set colormap"""
+        """Set colormap
+
+        Parameters
+        ----------
+        cmap : str or sequence of str
+            Colormap name or sequence of colors to use as the palette.
+        """
         if isinstance(cmap, str):
             cmap = palette_from_mpl_name(cmap)
 
@@ -256,7 +310,14 @@ class BokehPlot(metaclass=ABCMeta):
 
     @norm.setter
     def norm(self, norm):
-        """Set the norm"""
+        """Set the norm
+
+        Parameters
+        ----------
+        norm : str or bokeh.models.ContinuousColorMapper
+            Use ``"lin"`` for a linear scale, ``"log"`` for a logarithmic scale, or pass
+            a continuous color mapper.
+        """
         if not isinstance(norm, ContinuousColorMapper):
             if norm == "lin":
                 norm = LinearColorMapper
@@ -397,7 +458,14 @@ class CameraDisplay(BokehPlot):
             )
 
     def enable_pixel_picker(self, callback):
-        """Call ``callback`` when a pixel is clicked"""
+        """Call ``callback`` when a pixel is clicked
+
+        Parameters
+        ----------
+        callback : callable
+            Callback taking ``(attr, old, new)`` when the Bokeh selection indices
+            change.
+        """
         if self._tap_tool is None:
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
@@ -444,7 +512,13 @@ class CameraDisplay(BokehPlot):
 
     @geometry.setter
     def geometry(self, new_geometry):
-        """Set the geometry"""
+        """Set the geometry
+
+        Parameters
+        ----------
+        new_geometry : CameraGeometry
+            Geometry with which to rebuild the camera glyphs and reset the data source.
+        """
         self._geometry = new_geometry
         if self._patches in self.figure.renderers:
             self.figure.renderers.remove(self._patches)
@@ -460,7 +534,13 @@ class CameraDisplay(BokehPlot):
 
     @image.setter
     def image(self, new_image):
-        """Set the image"""
+        """Set the image
+
+        Parameters
+        ----------
+        new_image : array-like
+            Values in the pixel order of the current camera geometry.
+        """
         self.datasource.patch({"values": [(slice(None), new_image)]})
         if self.autoscale:
             self.rescale()
@@ -714,7 +794,13 @@ class ArrayDisplay(BokehPlot):
 
     @values.setter
     def values(self, new_values):
-        """Set the image"""
+        """Set the values used to color the telescopes.
+
+        Parameters
+        ----------
+        new_values : array-like
+            Values in the telescope order of the displayed subarray.
+        """
         # currently displaying telescope types
         if self._patches.glyph.fill_color["field"] == "type":
             self.norm = "lin"

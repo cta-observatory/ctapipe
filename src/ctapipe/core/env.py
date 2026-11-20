@@ -16,6 +16,13 @@ def env_bool(key, default=False):
     ``"1"``, ``"true"`` and ``"on"`` are treated as truthy, case-insensitive.
 
     If the variable is not set, ``default`` is returned.
+
+    Parameters
+    ----------
+    key : str
+        Name of the environment variable to interpret.
+    default : bool, optional
+        Value to return when the variable is unset.
     """
     val = os.getenv(key)
     if val is None:

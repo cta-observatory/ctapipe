@@ -104,6 +104,23 @@ class SKLearnReconstructor(Reconstructor):
 
     Keeps a dictionary of sklearn models, the current tools are designed
     to train one model per telescope type.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray used to identify telescope types and supply instrument features.
+        Required when creating a new reconstructor.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Profile passed to the base reconstructor when creating a new model.
+    models : dict or None, optional
+        Preconstructed estimators keyed by telescope type for a new reconstructor. With
+        None, start with an empty model mapping.
+    n_jobs : int or None, optional
+        Unused by this initializer. Set the ``n_jobs`` trait through the component
+        configuration, or supply a supported threading option in ``model_config``.
+    **kwargs
+        Component configuration and trait values. Set ``model_cls`` for a new
+        reconstructor or ``load_path`` to load one from disk.
     """
 
     #: Name of the target table column for training.
@@ -288,6 +305,14 @@ class SKLearnReconstructor(Reconstructor):
     def fit(self, key, table):
         """
         Create and fit a new model for ``key`` using the data in ``table``.
+
+        Parameters
+        ----------
+        key : str
+            Telescope-type key under which to store the trained estimator.
+        table : astropy.table.Table
+            Training rows with the configured feature and target columns. Rows with NaN
+            features are dropped.
         """
         self._models[key] = self._new_model()
 
@@ -616,6 +641,20 @@ class DispReconstructor(Reconstructor):
     Predict the signed displacement and use it to estimate arrival direction.
 
     Convert the displacement into an altitude and azimuth prediction for each telescope.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray used to identify telescope types and supply instrument features.
+        Required when creating a new reconstructor.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Profile passed to the base reconstructor when creating a new model.
+    models : dict or None, optional
+        Mapping from telescope type to pairs of displacement-magnitude and sign
+        estimators. With None, start with an empty model mapping.
+    **kwargs
+        Component configuration and trait values. Set ``norm_cls`` and ``sign_cls`` for
+        new models or ``load_path`` to load saved models.
     """
 
     target = "true_disp"
@@ -756,6 +795,14 @@ class DispReconstructor(Reconstructor):
     def fit(self, key, table):
         """
         Create and fit new models for ``key`` using the data in ``table``.
+
+        Parameters
+        ----------
+        key : str
+            Telescope-type key under which to store the trained DISP estimators.
+        table : astropy.table.Table
+            Training rows with the configured features and true displacement target.
+            Rows with NaN features are dropped.
         """
         self._models[key] = self._new_models()
 
@@ -977,7 +1024,19 @@ class DispReconstructor(Reconstructor):
 
 
 class CrossValidator(Component):
-    """Class to train sklearn based reconstructors in a cross validation."""
+    """Class to train sklearn based reconstructors in a cross validation.
+
+    Parameters
+    ----------
+    model_component : SKLearnReconstructor or DispReconstructor
+        Reconstruction component defining the model, features, and training target to
+        validate.
+    overwrite : bool, optional
+        Replace an existing cross-validation output file if True.
+    **kwargs
+        Component configuration and trait values, such as the fold count and output
+        path.
+    """
 
     n_cross_validations = traits.Int(
         default_value=5, help="Number of cross validation iterations."
@@ -1085,7 +1144,19 @@ class CrossValidator(Component):
             yield train_mask[reverse_idx], test_mask[reverse_idx]
 
     def __call__(self, telescope_type, table, keep_subarray_events=False):
-        """Perform cross validation for the given model."""
+        """Perform cross validation for the given model.
+
+        Parameters
+        ----------
+        telescope_type : str or TelescopeDescription
+            Telescope type labeling the training sample and its validation results.
+        table : astropy.table.Table
+            Training events for this telescope type, with the features and target needed
+            by the model.
+        keep_subarray_events : bool, optional
+            Keep telescope rows from the same subarray event in the same fold for energy
+            or classification models. DISP validation splits telescope events.
+        """
         if self.n_cross_validations == 0:
             return
 

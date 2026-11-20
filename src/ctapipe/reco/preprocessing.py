@@ -34,14 +34,32 @@ __all__ = [
 
 
 def table_to_float(table: Table, dtype=np.float32) -> np.ndarray:
-    """Convert a table to a float32 array, replacing inf/-inf with float min/max"""
+    """Convert a table to a float32 array, replacing inf/-inf with float min/max
+
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Table whose numeric columns become features in their original column order.
+    dtype : numpy.dtype or type, optional
+        Floating-point dtype of the output array.
+    """
     X = structured_to_unstructured(table.as_array(), dtype=dtype)
     np.nan_to_num(X, nan=np.nan, copy=False)
     return X
 
 
 def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
-    """Check for nans, returning a mask of the rows not containing any nans"""
+    """Check for nans, returning a mask of the rows not containing any nans
+
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Numeric feature columns to check for NaN values.
+    warn : bool, optional
+        Log per-column counts when NaNs are found.
+    log : logging.Logger, optional
+        Logger for reporting invalid values.
+    """
     nans = np.array([np.isnan(col) for col in table.columns.values()]).T
     valid = ~nans.any(axis=1)
 
@@ -63,6 +81,15 @@ def table_to_X(table: Table, features: list[str], log=LOG):
 
     Return a NumPy array for scikit-learn and the mask identifying the rows that were
     kept.
+
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Event table from which to select model features.
+    features : list of str
+        Names of feature columns in the order expected by the model.
+    log : logging.Logger, optional
+        Logger for reporting rows with NaN features.
     """
     feature_table = table[features]
     valid = check_valid_rows(feature_table, log=log)
@@ -129,7 +156,19 @@ def collect_features(
 
 @u.quantity_input(alt=u.deg, az=u.deg, pointing_alt=u.deg, pointing_az=u.deg)
 def horizontal_to_telescope(alt, az, pointing_alt, pointing_az):
-    """Transform coordinates from horizontal coordinates into TelescopeFrame"""
+    """Transform coordinates from horizontal coordinates into TelescopeFrame
+
+    Parameters
+    ----------
+    alt : astropy.units.Quantity
+        Event altitude in the horizontal frame.
+    az : astropy.units.Quantity
+        Event azimuth in the horizontal frame.
+    pointing_alt : astropy.units.Quantity
+        Altitude of the telescope pointing.
+    pointing_az : astropy.units.Quantity
+        Azimuth of the telescope pointing.
+    """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
@@ -144,7 +183,19 @@ def horizontal_to_telescope(alt, az, pointing_alt, pointing_az):
 
 @u.quantity_input(lon=u.deg, lat=u.deg, pointing_alt=u.deg, pointing_az=u.deg)
 def telescope_to_horizontal(lon, lat, pointing_alt, pointing_az):
-    """Transform coordinates from TelescopeFrame into horizontal coordinates"""
+    """Transform coordinates from TelescopeFrame into horizontal coordinates
+
+    Parameters
+    ----------
+    lon : astropy.units.Quantity
+        Field-of-view longitude relative to the telescope pointing.
+    lat : astropy.units.Quantity
+        Field-of-view latitude relative to the telescope pointing.
+    pointing_alt : astropy.units.Quantity
+        Altitude of the telescope pointing.
+    pointing_az : astropy.units.Quantity
+        Azimuth of the telescope pointing.
+    """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 

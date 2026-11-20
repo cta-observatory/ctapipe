@@ -53,6 +53,15 @@ class SoftwareTrigger(TelescopeComponent):
        SoftwareTrigger:
            allowed_telescope_event_types:
                - "RANDOM_MONO"
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying telescope types and IDs for multiplicity checks.
+    *args
+        Positional configuration arguments forwarded to the telescope component.
+    **kwargs
+        Component configuration and trait values such as ``min_telescopes_of_type``.
     """
 
     min_telescopes = Int(
@@ -127,6 +136,12 @@ class SoftwareTrigger(TelescopeComponent):
         trigger.
 
         Data is cleared from events that did not trigger.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event containing the subarray DL0 trigger list. For accepted events, the
+            trigger updates the telescope data selection in place.
 
         Returns
         -------

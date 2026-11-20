@@ -23,6 +23,16 @@ def find_config_in_hierarchy(parent, class_name, trait_name):
 
     The search walks up to the parent and back down to the child. The parent's
     configuration covers the full hierarchy.
+
+    Parameters
+    ----------
+    parent : ctapipe.core.Component or ctapipe.core.Tool
+        Parent at which to start following the component chain for the configuration
+        lookup.
+    class_name : str
+        Name of the child component class whose section contains the setting.
+    trait_name : str
+        Trait name to look up in that section.
     """
     config = parent.config
 

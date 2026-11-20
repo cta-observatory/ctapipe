@@ -30,6 +30,15 @@ class TelescopeDescription:
     The optics and camera are represented by `~ctapipe.instrument.OpticsDescription` and
     `~ctapipe.instrument.CameraDescription`.
 
+    Parameters
+    ----------
+    name : str
+        Name of the telescope design.
+    optics : OpticsDescription
+        Optical system of the telescope.
+    camera : CameraDescription
+        Camera geometry and readout description.
+
     Attributes
     ----------
     name: str

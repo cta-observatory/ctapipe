@@ -54,6 +54,11 @@ def get_hdf5_monitoring_types(
 
     Currently only telescope monitoring tables are supported, so the array-wide
     availability is empty. Pixel statistics subtypes use their HDF5 group names.
+
+    Parameters
+    ----------
+    h5file : str or pathlib.Path or tables.File
+        Input file or open handle to inspect for monitoring tables.
     """
     telescope_data = {}
     groups = (

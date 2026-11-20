@@ -193,6 +193,16 @@ class TableLoader(Component):
       different shapes for each of the telescope types as tables do not support
       variable length columns.
 
+    Parameters
+    ----------
+    input_url : str or pathlib.Path or None, optional
+        Path to the ctapipe event file. Supply this or an open file handle, or configure
+        ``input_url``.
+    h5file : tables.File or None, optional
+        Already open event file. The caller retains responsibility for closing it.
+    **kwargs
+        Component configuration and trait values selecting the data products to load.
+
     Attributes
     ----------
     subarray : `~ctapipe.instrument.SubarrayDescription`

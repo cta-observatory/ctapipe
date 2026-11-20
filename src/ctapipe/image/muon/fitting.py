@@ -203,15 +203,31 @@ def taubin_circle_fit(
 def make_loss_function(x, y, w):
     """Bind the surviving pixel positions to the Taubin loss function.
 
-    x, y: positions of pixels surviving the cleaning
-        should not be quantities
-    w : array-like of float, weights for the points
+    Parameters
+    ----------
+    x : ndarray
+        Coordinates along the first axis for the selected pixels, as bare values.
+    y : ndarray
+        Coordinates along the second axis for the same pixels, in the same units as x.
+    w : ndarray
+        Fit weights for the selected pixels.
     """
 
     def taubin_loss_function(xc, yc, r):
         """Evaluate the Taubin fit formula.
 
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
+
+        Parameters
+        ----------
+        xc : float
+            Trial circle center along the first axis, in the same units as the pixel
+            coordinates.
+        yc : float
+            Trial circle center along the second axis, in the same units as the pixel
+            coordinates.
+        r : float
+            Trial circle radius, in the same units as the pixel coordinates.
         """
         distance_squared = (x - xc) ** 2 + (y - yc) ** 2
         upper_term = ((w * (distance_squared - r**2)) ** 2).sum()

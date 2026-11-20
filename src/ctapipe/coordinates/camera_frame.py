@@ -34,7 +34,13 @@ class MirrorAttribute(Attribute):
     """A frame Attribute that can only store the integers 1 and 2"""
 
     def convert_input(self, value):
-        """Make sure input is 1 or 2"""
+        """Make sure input is 1 or 2
+
+        Parameters
+        ----------
+        value : int
+            Number of telescope mirrors. Supported values are 1 and 2.
+        """
         if value in (1, 2):
             return value, False
 
@@ -126,6 +132,13 @@ def camera_to_telescope(camera_coord, telescope_frame):
     Transformation between CameraFrame and TelescopeFrame.
 
     Is called when a SkyCoord is transformed from CameraFrame into TelescopeFrame
+
+    Parameters
+    ----------
+    camera_coord : CameraFrame
+        Camera-plane coordinates with length units, camera rotation, and focal length.
+    telescope_frame : TelescopeFrame
+        Target frame that will hold the angular field-of-view coordinates.
     """
     x_pos = camera_coord.cartesian.x
     y_pos = camera_coord.cartesian.y
@@ -174,6 +187,13 @@ def telescope_to_camera(telescope_coord, camera_frame):
     Transformation between TelescopeFrame and CameraFrame
 
     Is called when a SkyCoord is transformed from TelescopeFrame into CameraFrame
+
+    Parameters
+    ----------
+    telescope_coord : TelescopeFrame
+        Angular field-of-view coordinates to project into the camera plane.
+    camera_frame : CameraFrame
+        Target frame supplying the focal length and camera rotation.
     """
     x_pos = telescope_coord.fov_lat
     y_pos = telescope_coord.fov_lon

@@ -12,6 +12,11 @@ def rotation_matrix_2d(angle):
 
     The angle can be any value accepted by `astropy.coordinates.Angle`. The result is a
     NumPy array.
+
+    Parameters
+    ----------
+    angle : astropy.units.Quantity or str
+        Rotation angle accepted by `astropy.coordinates.Angle`.
     """
     psi = Angle(angle).rad
     return np.array([[cos(psi), -sin(psi)], [sin(psi), cos(psi)]])
@@ -21,6 +26,11 @@ def length(vec):
     """Compute the Euclidean norm of an array.
 
     The norm is the square root of the inner product of the array with itself.
+
+    Parameters
+    ----------
+    vec : ndarray
+        Vector whose Euclidean norm is requested.
     """
     return vec.dot(vec) ** 0.5
 

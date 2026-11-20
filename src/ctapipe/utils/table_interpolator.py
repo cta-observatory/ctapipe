@@ -38,6 +38,13 @@ from scipy import interpolate
 class TableInterpolator:
     """
     Load and interpolate templates from a FITS table.
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        FITS file containing the template images and lookup coordinates.
+    verbose : int, optional
+        Verbosity for reporting template loading and interpolation.
     """
 
     def __init__(self, filename, verbose=1):

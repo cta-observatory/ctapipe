@@ -63,6 +63,12 @@ class PixelShape(Enum):
 
         This function supports abbreviations and for backwards compatibility
         "rect" as alias for "square".
+
+        Parameters
+        ----------
+        name : str
+            Pixel shape name, case-insensitive. Hexagonal and circular prefixes and the
+            legacy rectangular alias are accepted.
         """
         name = name.lower()
 
@@ -236,9 +242,15 @@ class CameraGeometry:
 
     @frame.setter
     def frame(self, frame):
-        """
-        Re-interpret the pixel coordinates in a new frame, without transforming
-        them. Frame attributes of the previous ``pix_coord`` are not kept.
+        """Assign a new frame to the existing pixel coordinates.
+
+        The coordinate values are reused without transformation. Frame attributes
+        from the previous ``pix_coord`` are discarded.
+
+        Parameters
+        ----------
+        frame : BaseCoordinateFrame, type, or str
+            Frame instance, frame class, or registered frame name to assign.
         """
         self.pix_coord = SkyCoord(self.pix_x, self.pix_y, frame=frame)
         # returning the newly cached frame stops lazyproperty from caching the
@@ -498,6 +510,13 @@ class CameraGeometry:
 
         Note this will not work on cameras with varying pixel sizes or gaps
 
+        Parameters
+        ----------
+        pix_x : astropy.units.Quantity
+            Pixel-center x positions. Supply at least two positions.
+        pix_y : astropy.units.Quantity
+            Corresponding y positions, in compatible length or angle units.
+
         Returns
         -------
             in-circle diameter for hexagons, edge width for square pixels
@@ -550,6 +569,11 @@ class CameraGeometry:
     def image_index_to_cartesian_index(self, pixel_index):
         """
         Convert pixel index in the 1d image representation to row and col
+
+        Parameters
+        ----------
+        pixel_index : int or ndarray of int
+            Zero-based index or indices in the camera image's pixel order.
         """
         rows, cols = self._pixel_positions_2d
         return rows[pixel_index], cols[pixel_index]
@@ -557,6 +581,13 @@ class CameraGeometry:
     def cartesian_index_to_image_index(self, row, col):
         """
         Convert cartesian index (row, col) to pixel index in 1d representation.
+
+        Parameters
+        ----------
+        row : int or ndarray of int
+            Row index or indices in the Cartesian image grid.
+        col : int or ndarray of int
+            Corresponding column index or indices in the grid.
         """
         return self._pixel_indices_cartesian[row, col]
 
@@ -1003,7 +1034,13 @@ class CameraGeometry:
         self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
-        """Print detailed info about this camera"""
+        """Print detailed info about this camera
+
+        Parameters
+        ----------
+        printer : callable, optional
+            Callable that receives each formatted line. Defaults to `print`.
+        """
         printer(f'CameraGeometry: "{self}"')
         printer("   - num-pixels: {}".format(len(self.pix_id)))
         printer(f"   - pixel-type: {self.pix_type}")

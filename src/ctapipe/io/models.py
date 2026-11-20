@@ -59,6 +59,15 @@ class BagItWriter(Component):
     ``data/``. CTAO product metadata is stored as dot-separated keys in
     ``bag-info.txt`` at the bag root.
     SHA-256 payload and tag manifests are written when the archive is closed.
+
+    Parameters
+    ----------
+    output_path : str or pathlib.Path or None, optional
+        Destination path for the BagIt archive. If omitted, use the configured output
+        path.
+    **kwargs
+        Component configuration and trait values such as ``overwrite`` and
+        ``compression_level``.
     """
 
     output_path = Path(directory_ok=False, help="Output path").tag(config=True)

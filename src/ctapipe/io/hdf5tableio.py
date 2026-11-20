@@ -53,6 +53,11 @@ DEFAULT_FILTERS = tables.Filters(
 def split_h5path(path):
     """
     Split a path inside an hdf5 file into parent / child
+
+    Parameters
+    ----------
+    path : str
+        Absolute HDF5 node path, starting with a slash.
     """
     if not path.startswith("/"):
         raise ValueError("Path must start with /")
@@ -532,6 +537,14 @@ class HDF5TableReader(TableReader):
 
     Todo:
     - add ability to synchronize reading of multiple tables on a key
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path or tables.File
+        HDF5 filename or already open PyTables file to read.
+    **kwargs
+        Options forwarded to `tables.open_file` when the input is a filename. The reader
+        sets read-only mode.
     """
 
     def __init__(self, filename, **kwargs):

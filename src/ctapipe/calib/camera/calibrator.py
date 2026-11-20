@@ -87,6 +87,25 @@ class CameraCalibrator(TelescopeComponent):
 
     The results populate the DL1 fields of the event container.
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying camera readouts and telescope-dependent extraction and
+        calibration settings.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    image_extractor : ImageExtractor or None, optional
+        Preconstructed extractor to use for every telescope. With None, use the
+        configured ``image_extractor_type`` for each telescope.
+    data_volume_reducer : DataVolumeReducer or None, optional
+        Preconstructed waveform reducer. With None, instantiate the configured
+        ``data_volume_reducer_type``.
+    **kwargs
+        Trait values that override the configuration.
+
     Attributes
     ----------
     data_volume_reducer_type: str
@@ -461,7 +480,15 @@ class CameraCalibrator(TelescopeComponent):
             self.calibrate_tel_event(tel_event)
 
     def calibrate_tel_event(self, tel_event):
-        """Calibrate from R1 or existing DL0 waveforms to DL1."""
+        """Calibrate from R1 or existing DL0 waveforms to DL1.
+
+        Parameters
+        ----------
+        tel_event : TelescopeEventContainer
+            Telescope event with R1 or DL0 waveforms and calibration monitoring
+            information. The method updates the DL0 data when R1 is present and writes
+            the DL1 image in place.
+        """
         if not self._check_r1_empty(tel_event.r1):
             self.r1_to_dl0(tel_event)
         elif self._check_dl0_empty(tel_event.dl0):

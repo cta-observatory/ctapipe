@@ -85,6 +85,17 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     A more detailed explanation can be found in section 3.2 of
     :cite:p:`ctao-mc-design-studies`.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray providing the telescope positions and camera geometries for the
+        shower-axis intersections.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric profile stored by the base reconstructor. This reconstruction
+        estimates shower maximum geometrically.
+    **kwargs
+        Component configuration and trait values forwarded to the base reconstructor.
     """
 
     weighting = traits.CaselessStrEnum(
@@ -99,6 +110,18 @@ class HillasIntersection(HillasGeometryReconstructor):
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
         Weighting must be a function similar to the weight_mean_intensity function already implemented
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray providing the telescope positions and camera geometries for the
+            shower-axis intersections.
+        atmosphere_profile : AtmosphereDensityProfile or None, optional
+            Atmospheric profile stored by the base reconstructor. This reconstruction
+            estimates shower maximum geometrically.
+        **kwargs
+            Component configuration and trait values forwarded to the base
+            reconstructor.
         """
         super().__init__(subarray, atmosphere_profile, **kwargs)
 

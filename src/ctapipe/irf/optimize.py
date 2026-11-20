@@ -30,7 +30,31 @@ __all__ = [
 
 
 class OptimizationResult:
-    """Result of an optimization of G/H and theta cuts or only G/H cuts."""
+    """Result of an optimization of G/H and theta cuts or only G/H cuts.
+
+    Parameters
+    ----------
+    valid_energy_min : astropy.units.Quantity
+        Lower reconstructed-energy bound of the valid cut range.
+    valid_energy_max : astropy.units.Quantity
+        Upper reconstructed-energy bound of the valid cut range.
+    valid_offset_min : astropy.units.Quantity
+        Lower field-of-view offset bound of the valid cut range.
+    valid_offset_max : astropy.units.Quantity
+        Upper field-of-view offset bound of the valid cut range.
+    gh_cuts : astropy.table.QTable
+        Gammaness thresholds binned in reconstructed energy.
+    clf_prefix : str
+        Classifier prefix identifying the gammaness predictions to which these cuts
+        apply.
+    quality_query : QualityQuery or sequence or None, optional
+        Quality criteria to apply before the optimized cuts, as a query or pairs of
+        names and expressions.
+    spatial_selection_table : astropy.table.QTable or None, optional
+        Energy-dependent spatial cuts on the angular separation from the source.
+    multiplicity_cuts : astropy.table.QTable or None, optional
+        Energy-dependent telescope multiplicity cuts, if available.
+    """
 
     def __init__(
         self,
@@ -83,7 +107,15 @@ class OptimizationResult:
         return representation
 
     def write(self, output_name: Path | str, overwrite: bool = False) -> None:
-        """Write an ``OptimizationResult`` to a file in FITS format."""
+        """Write an ``OptimizationResult`` to a file in FITS format.
+
+        Parameters
+        ----------
+        output_name : str or pathlib.Path
+            Destination FITS file for the cut tables and selection metadata.
+        overwrite : bool, optional
+            Replace an existing FITS file if True.
+        """
         cut_expr_tab = Table(
             rows=self.quality_query.quality_criteria,
             names=["name", "cut_expr"],
@@ -124,7 +156,13 @@ class OptimizationResult:
 
     @classmethod
     def read(cls, file_name):
-        """Read an ``OptimizationResult`` from a file in FITS format."""
+        """Read an ``OptimizationResult`` from a file in FITS format.
+
+        Parameters
+        ----------
+        file_name : str or pathlib.Path
+            FITS file containing a serialized optimization result.
+        """
         with fits.open(file_name) as hdul:
             cut_expr_tab = Table.read(hdul["QUALITY_CUTS_EXPR"])
             cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]

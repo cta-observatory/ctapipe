@@ -21,6 +21,11 @@ class IndexFinder:
     https://stackoverflow.com/questions/9706041/finding-index-of-an-item-closest-to-the-value-in-a-list-thats-not-entirely-sort
 
     Since we only need the searching part, the code has been cut down slightly.
+
+    Parameters
+    ----------
+    values : sequence of float
+        Numeric values to index. Indices refer to the original input order.
     """
 
     def __init__(self, values):
@@ -52,6 +57,11 @@ class IndexFinder:
     def closest(self, target):
         """
         Return the index of the closest value in the original sequence.
+
+        Parameters
+        ----------
+        target : float
+            Value for which to find the nearest entry in the indexed sequence.
         """
         if len(self.nums) == 1:
             return 0

@@ -291,8 +291,25 @@ def join_allow_empty(left, right, keys, join_type="left", keep_order=False, **kw
     See https://github.com/astropy/astropy/issues/12012 for why
     this is necessary.
 
-    This behaves as `~astropy.table.join`, with the only difference of
-    allowing empty tables to be joined.
+    Joins with an empty input return a copy of the table selected by the
+    join mode.
+
+    Parameters
+    ----------
+    left : astropy.table.Table
+        Left input table, which may be empty.
+    right : astropy.table.Table
+        Right input table, which may be empty.
+    keys : str or sequence of str
+        Column name or names used as join keys.
+    join_type : str, optional
+        Join mode, such as ``"left"``, ``"right"``, ``"inner"``, or ``"outer"``.
+    keep_order : bool, optional
+        Preserve the order of the retained side in a left or right join.
+        With two nonempty inputs, this adds a sort-index column to that
+        input table. An ordered right join can fail when row counts differ.
+    **kwargs
+        Additional options forwarded to `astropy.table.join`.
     """
     left_empty = len(left) == 0
     right_empty = len(right) == 0

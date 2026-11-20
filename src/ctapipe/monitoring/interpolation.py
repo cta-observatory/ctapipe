@@ -251,6 +251,15 @@ class ChunkInterpolator(MonitoringInterpolator):
     The data columns are all ``required_columns`` and those of
     ``optional_columns`` present in the table, except ``time_start`` and
     ``time_end``. All tables of one file are assumed to share the same columns.
+
+    Parameters
+    ----------
+    h5file : tables.File or None, optional
+        Open monitoring HDF5 file for lazy loading. With None, supply the monitoring
+        tables using `add_table`.
+    **kwargs
+        Component configuration and trait values forwarded to the monitoring
+        interpolator.
     """
 
     #: Columns holding integer counts: 0 instead of NaN where no chunk is valid.

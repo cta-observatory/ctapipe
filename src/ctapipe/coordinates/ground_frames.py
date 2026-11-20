@@ -350,6 +350,13 @@ def ground_to_ground(ground_coords, ground_frame):
     """Return the same coordinates when transforming within the ground frame.
 
     The transform returns the input coordinates directly.
+
+    Parameters
+    ----------
+    ground_coords : GroundFrame
+        Input ground coordinates returned by this identity transform.
+    ground_frame : GroundFrame
+        Target ground frame required by the Astropy transform interface.
     """
     return ground_coords
 
@@ -364,6 +371,12 @@ def ground_to_easting_northing(ground_coords, eastnorth_frame):
     """
     Convert GroundFrame points into eastings/northings for plotting purposes
 
+    Parameters
+    ----------
+    ground_coords : GroundFrame
+        Source ground coordinates. The axis conversion is independent of position.
+    eastnorth_frame : EastingNorthingFrame
+        Target frame in easting, northing, and height.
     """
     return GROUND_TO_EASTNORTH, NO_OFFSET
 
@@ -373,5 +386,11 @@ def easting_northing_to_ground(eastnorth_coords, ground_frame):
     """
     Convert  eastings/northings back to GroundFrame
 
+    Parameters
+    ----------
+    eastnorth_coords : EastingNorthingFrame
+        Source coordinates in easting, northing, and height.
+    ground_frame : GroundFrame
+        Target frame for the inverse axis conversion.
     """
     return GROUND_TO_EASTNORTH.T, NO_OFFSET

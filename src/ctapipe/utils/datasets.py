@@ -56,7 +56,17 @@ def get_default_url():
 
 
 def get_searchpath_dirs(searchpath=None, url=None):
-    """Returns a list of dirs in specified searchpath"""
+    """Returns a list of dirs in specified searchpath
+
+    Parameters
+    ----------
+    searchpath : str or None, optional
+        Colon-separated directory list, with environment-variable expansion. None uses
+        ``CTAPIPE_SVC_PATH``.
+    url : str or None, optional
+        Dataset server base URL identifying the cache directory to append. None uses the
+        configured default URL.
+    """
     if url is None:
         url = get_default_url()
 
@@ -331,7 +341,13 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
 
 def resource_file(filename):
-    """Get the absolute path of ctapipe resource files."""
+    """Get the absolute path of ctapipe resource files.
+
+    Parameters
+    ----------
+    filename : str or path-like
+        Name or relative path of a file in the package's resource directory.
+    """
     return files("ctapipe").joinpath("resources", filename)
 
 
@@ -342,6 +358,11 @@ def get_file_type(
 
     Supports HDF5, FITS, ECSV, JSON, and ZIP, including gzip-compressed files.
     Returns None if the file type is not recognized.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        File whose leading bytes are inspected to determine the format.
     """
     path = Path(path)
     header_bytes = 8

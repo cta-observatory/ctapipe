@@ -267,6 +267,15 @@ class DL2EventPreprocessor(Component):
 class DL2EventLoader(Component):
     """
     Component for loading events and simulation metadata, applying preselection and optional derived column logic.
+
+    Parameters
+    ----------
+    file : pathlib.Path
+        HDF5 event file to read.
+    target_spectrum : Spectra
+        Reference spectrum used for spectral reweighting.
+    **kwargs
+        Component configuration and trait values, including the choice of event reader.
     """
 
     # User-selectable event reading function and kwargs

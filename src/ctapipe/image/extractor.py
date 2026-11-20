@@ -1742,7 +1742,17 @@ class FlashCamExtractor(ImageExtractor):
 
     @staticmethod
     def clip(x, lo=0.0, hi=np.inf):
-        """Applies soft clipping to ±1 and then hard clipping to (lo, hi)."""
+        """Applies soft clipping to ±1 and then hard clipping to (lo, hi).
+
+        Parameters
+        ----------
+        x : float or ndarray
+            Values to compress with ``x / (1 + abs(x))`` before clipping.
+        lo : float, optional
+            Lower bound applied to the compressed values.
+        hi : float, optional
+            Upper bound applied to the compressed values.
+        """
         return np.clip(x / (1.0 + np.abs(x)), lo, hi)
 
     @override

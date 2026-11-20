@@ -17,7 +17,15 @@ __all__ = ["timing_parameters"]
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def rmse(truth, prediction):
-    """Root mean squared error"""
+    """Root mean squared error
+
+    Parameters
+    ----------
+    truth : ndarray
+        Reference values.
+    prediction : ndarray
+        Predicted values, with shape and units compatible with the references.
+    """
     return np.sqrt(np.mean((truth - prediction) ** 2))
 
 

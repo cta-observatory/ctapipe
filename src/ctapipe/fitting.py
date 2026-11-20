@@ -25,6 +25,11 @@ def design_matrix(x):
 
     This creates a (N, 2) matrix, where the first column are the
     x values and the second contains all 1.
+
+    Parameters
+    ----------
+    x : ndarray
+        One-dimensional predictor values for the first column of the design matrix.
     """
     X = np.empty((len(x), 2), dtype=x.dtype)
     X[:, 0] = x

@@ -290,6 +290,14 @@ class BaseTemplate:
 class TemplateNetworkInterpolator(BaseTemplate):
     """
     Class for interpolating between the the predictions
+
+    Parameters
+    ----------
+    template_file : str or pathlib.Path
+        Gzip-compressed pickle containing image templates keyed by the parameter grid.
+    bounds : sequence of tuple, optional
+        Lower and upper coordinates of each template axis, used to map pixel positions
+        to the template grid.
     """
 
     def __init__(self, template_file, bounds=((-5, 1), (-1.5, 1.5))):
@@ -374,6 +382,12 @@ class TemplateNetworkInterpolator(BaseTemplate):
 class TimeGradientInterpolator(BaseTemplate):
     """
     Class for interpolating between the time gradient predictions
+
+    Parameters
+    ----------
+    template_file : str or pathlib.Path
+        Gzip-compressed pickle containing time-gradient expectations and RMS values on
+        the template parameter grid.
     """
 
     def __init__(self, template_file):

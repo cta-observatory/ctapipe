@@ -215,6 +215,12 @@ def update_star_catalogs(resource_path=None):
 
     This function is intended for developers to update the resources files bundled
     with ctapipe.
+
+    Parameters
+    ----------
+    resource_path : pathlib.Path or None, optional
+        Directory for the updated catalog files. None writes into the package's resource
+        directory.
     """
     if resource_path is None:
         resource_path = Path(__file__).parents[1] / "resources"

@@ -4,12 +4,22 @@ from astropy.units import Quantity
 
 
 def all_to_value(*args, unit):
-    """Converts all `args` to value after converting to `unit`.
+    """Convert quantities to numeric values in a common unit.
 
-    - does not copy the data
-    - makes sure all args are convertible to the same unit
-    - raises a meaningful error in case the args are not of a convertible unit.
+    Unit conversions raise an error for incompatible inputs. The result can
+    share data with the inputs when conversion is unnecessary.
 
-    Returns: *args_without_unit
+    Parameters
+    ----------
+    *args
+        Quantities to convert, in the order in which the numeric values should be
+        returned.
+    unit : astropy.units.UnitBase or str
+        Common unit in which to express the values.
+
+    Returns
+    -------
+    tuple
+        Numeric values in the requested unit, in input order.
     """
     return tuple(Quantity(arg, copy=False).to_value(unit) for arg in args)

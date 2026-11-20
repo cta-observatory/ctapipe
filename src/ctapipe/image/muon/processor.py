@@ -146,6 +146,12 @@ class MuonProcessor(TelescopeComponent):
     def __call__(self, event: SubarrayEventContainer):
         """
         Process all telescope events of the given subarray event.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with cleaned DL1 images and image parameters. The processor writes the
+            muon results into the telescope events.
         """
         for tel_event in event.tel.values():
             self._process_telescope_event(tel_event)

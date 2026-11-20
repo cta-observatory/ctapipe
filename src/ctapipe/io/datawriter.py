@@ -105,6 +105,20 @@ PROV = Provenance()
 class DataWriter(Component):
     """Serialize a sequence of events into the ctapipe HDF5 format.
 
+    Parameters
+    ----------
+    event_source : EventSource
+        Source providing the subarray, available data levels, and observation or
+        simulation metadata for the output.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the output path
+        and which data levels to write.
+
     Examples
     --------
     inside a Tool:
@@ -281,6 +295,12 @@ class DataWriter(Component):
     def __call__(self, event: SubarrayEventContainer):
         """
         Write a single event to the output file.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event containing the configured subarray and telescope data products to
+            append.
         """
         self._validate_event(event)
         self._at_least_one_event = True
@@ -731,7 +751,13 @@ class DataWriter(Component):
                 )
 
     def write_simulated_shower_distributions(self, distributions):
-        """Write the distribution of thrown showers."""
+        """Write the distribution of thrown showers.
+
+        Parameters
+        ----------
+        distributions : dict[int, SimulatedShowerDistribution]
+            Simulated shower distributions keyed by observation ID.
+        """
         self.log.debug("Writing simulation histograms")
 
         for container in distributions.values():
@@ -741,7 +767,13 @@ class DataWriter(Component):
             )
 
     def table_name(self, tel_id):
-        """Create table name for a telescope-wise table for given ``tel_id``"""
+        """Create table name for a telescope-wise table for given ``tel_id``
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID to encode in the table name.
+        """
         return f"tel_{tel_id:03d}"
 
     def _write_context_metadata_headers(self):

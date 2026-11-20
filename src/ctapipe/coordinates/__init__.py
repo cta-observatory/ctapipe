@@ -58,8 +58,18 @@ class MissingFrameAttributeWarning(Warning):
 def get_representation_component_names(
     frame: Union[BaseCoordinateFrame, Type[BaseCoordinateFrame]],
 ):
-    """
-    Return the component names of a Frame (or SkyCoord)
+    """Return the coordinate component names for a frame.
+
+    Parameters
+    ----------
+    frame : BaseCoordinateFrame, type, or SkyCoord
+        Frame instance, frame class, or coordinates whose component names are
+        requested. A frame class is instantiated with its default attributes.
+
+    Returns
+    -------
+    tuple of str
+        Component names in the order defined by the frame representation.
     """
     if isinstance(frame, type):
         frame = frame()

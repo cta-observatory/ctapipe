@@ -81,6 +81,31 @@ def info(
 ):
     """
     Display information about the current ctapipe installation.
+
+    Parameters
+    ----------
+    version : bool, optional
+        Report the installed ctapipe version.
+    tools : bool, optional
+        List available command-line tools.
+    dependencies : bool, optional
+        Report versions of dependencies.
+    resources : bool, optional
+        List data resources and search locations.
+    system : bool, optional
+        Report the runtime system information.
+    plugins : bool, optional
+        Include every information section.
+    show_all : bool, optional
+        Report the data model version.
+    datamodel : bool, optional
+        List discovered ctapipe plugins.
+    event_sources : bool, optional
+        List event source implementations.
+    monitoring_sources : bool, optional
+        List monitoring source implementations.
+    reconstructors : bool, optional
+        List available reconstruction components.
     """
     logging.basicConfig(level=logging.CRITICAL, format="%(levelname)s - %(message)s")
 

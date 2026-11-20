@@ -901,14 +901,26 @@ class Reference(HasTraits):
 
     @classmethod
     def from_fits(cls, header):
-        """Create a legacy reference record from a FITS header."""
+        """Create a legacy reference record from a FITS header.
+
+        Parameters
+        ----------
+        header : astropy.io.fits.Header
+            FITS header containing the legacy ctapipe reference metadata cards.
+        """
         # for now, just use from_dict, but we might need special handling
         # of some keys
         return cls.from_dict(header)
 
     @classmethod
     def from_json(cls, json_data):
-        """Create a legacy reference record from a JSON metadata mapping."""
+        """Create a legacy reference record from a JSON metadata mapping.
+
+        Parameters
+        ----------
+        json_data : collections.abc.Mapping
+            Decoded JSON metadata containing the legacy ctapipe reference fields.
+        """
         return cls.from_dict(json_data)
 
     def __repr__(self):

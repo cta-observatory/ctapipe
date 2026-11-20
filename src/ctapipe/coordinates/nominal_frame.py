@@ -39,6 +39,14 @@ class NominalFrame(BaseCoordinateFrame):
     If the telescopes are in divergent pointing, this Frame can be
     used to transform to a common system.
 
+    Parameters
+    ----------
+    *args
+        Coordinate components, or a coordinate representation, passed to Astropy.
+    **kwargs
+        Frame options passed to Astropy, including the AltAz ``origin``, ``obstime``,
+        and ``location``.
+
     Attributes
     ----------
     origin: astropy.coordinates.SkyCoord[AltAz]
@@ -72,7 +80,15 @@ class NominalFrame(BaseCoordinateFrame):
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, NominalFrame)
 def nominal_to_nominal(from_nominal_coord, to_nominal_frame):
-    """Transform between two skyoffset frames."""
+    """Transform between two skyoffset frames.
+
+    Parameters
+    ----------
+    from_nominal_coord : NominalFrame
+        Input coordinates relative to their original origin.
+    to_nominal_frame : NominalFrame
+        Target frame supplying the new origin.
+    """
     intermediate_from = from_nominal_coord.transform_to(from_nominal_coord.origin)
     intermediate_to = intermediate_from.transform_to(to_nominal_frame.origin)
     return intermediate_to.transform_to(to_nominal_frame)
@@ -80,7 +96,16 @@ def nominal_to_nominal(from_nominal_coord, to_nominal_frame):
 
 @frame_transform_graph.transform(DynamicMatrixTransform, AltAz, NominalFrame)
 def altaz_to_nominal(altaz_coord, nominal_frame):
-    """Convert a reference coordinate to an sky offset frame."""
+    """Convert a reference coordinate to an sky offset frame.
+
+    Parameters
+    ----------
+    altaz_coord : astropy.coordinates.AltAz
+        Source frame required by the rotation interface. The rotation is determined by
+        the target origin.
+    nominal_frame : NominalFrame
+        Target frame whose AltAz origin defines the rotation.
+    """
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
     origin = nominal_frame.origin.represent_as(UnitSphericalRepresentation)
@@ -91,7 +116,15 @@ def altaz_to_nominal(altaz_coord, nominal_frame):
 
 @frame_transform_graph.transform(DynamicMatrixTransform, NominalFrame, AltAz)
 def nominal_to_altaz(nominal_coord, altaz_frame):
-    """Convert an sky offset frame coordinate to the reference frame"""
+    """Convert an sky offset frame coordinate to the reference frame
+
+    Parameters
+    ----------
+    nominal_coord : NominalFrame
+        Source frame whose AltAz origin defines the inverse rotation.
+    altaz_frame : astropy.coordinates.AltAz
+        Target horizontal coordinate frame.
+    """
     # use the forward transform, but just invert it
     mat = altaz_to_nominal(altaz_frame, nominal_coord)
     # transpose is the inverse because mat is a rotation matrix

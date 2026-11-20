@@ -111,6 +111,12 @@ class TelescopePatternList(UserList):
 
     The list stores the pattern tuples used as the value of a `TelescopeParameter`
     trait.
+
+    Parameters
+    ----------
+    *args
+        Arguments forwarded to the list constructor, typically an iterable of telescope
+        patterns or scalar defaults.
     """
 
     def __init__(self, *args):
@@ -160,7 +166,13 @@ class TelescopePatternList(UserList):
         return value
 
     def append(self, value):
-        """Validate and then append a new value"""
+        """Validate and then append a new value
+
+        Parameters
+        ----------
+        value : object
+            Telescope pattern tuple or scalar default to append.
+        """
         super().append(self.single_to_pattern(value))
 
     def attach_subarray(self, subarray):
@@ -243,6 +255,12 @@ class TelescopeParameterLookup:
     def __getitem__(self, tel: int | str | None):
         """
         Returns the resolved parameter for the given telescope id
+
+        Parameters
+        ----------
+        tel : int or str or None
+            Telescope ID, telescope type name, or None for the configured global
+            setting.
         """
         if tel is None:
             if self._subarray_global_value is not Undefined:
@@ -312,6 +330,16 @@ class TelescopeParameter(List):
     These are evaluated in-order, so you can first set a default value, and then set
     values for specific telescopes or types to override them.
 
+    Parameters
+    ----------
+    trait : traitlets.TraitType
+        Trait instance used to validate each telescope's value.
+    default_value : object, optional
+        Single default value or list of telescope patterns. Omit to use the trait's
+        default initialization.
+    **kwargs
+        Trait options such as ``help`` and ``allow_none``.
+
     Examples
     --------
 
@@ -337,6 +365,16 @@ class TelescopeParameter(List):
     def __init__(self, trait, default_value=Undefined, **kwargs):
         """
         Create a new TelescopeParameter
+
+        Parameters
+        ----------
+        trait : traitlets.TraitType
+            Trait instance used to validate each telescope's value.
+        default_value : object, optional
+            Single default value or list of telescope patterns. Omit to use the trait's
+            default initialization.
+        **kwargs
+            Trait options such as ``help`` and ``allow_none``.
         """
         self._help = ""
 
@@ -364,7 +402,14 @@ class TelescopeParameter(List):
         self._help = value
 
     def from_string(self, s):
-        """Turn string into List."""
+        """Turn string into List.
+
+        Parameters
+        ----------
+        s : str
+            Configuration string representing a scalar value or a list of telescope
+            patterns.
+        """
         val = super().from_string(s)
         # for strings, parsing fails and traitlets returns None
         if val == [("type", "*", None)] and s != "None":
@@ -377,7 +422,16 @@ class TelescopeParameter(List):
         return self._trait.validate(obj, value)
 
     def validate(self, obj, value):
-        """Validate telescope-component dict."""
+        """Validate telescope-component dict.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose telescope parameter is being validated.
+        value : object
+            Scalar to apply to every telescope, or a list of telescope-ID or
+            telescope-type patterns.
+        """
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]

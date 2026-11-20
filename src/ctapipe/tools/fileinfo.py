@@ -60,6 +60,12 @@ def fileinfo(args):
     Display information about ctapipe output files (DL1 or DL2 in HDF5 format).
 
     Optionally create an index table from all headers
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed input file list and options for flat metadata and an optional index
+        table.
     """
     files = []  # accumulated info for table output
 

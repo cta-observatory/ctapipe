@@ -137,7 +137,13 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
 
 
 def get_hdf5_datalevels(h5file: tables.File | str | Path):
-    """Get the data levels present in the hdf5 file"""
+    """Get the data levels present in the hdf5 file
+
+    Parameters
+    ----------
+    h5file : str or pathlib.Path or tables.File
+        ctapipe HDF5 event file, as a path or open PyTables handle.
+    """
     datalevels = []
 
     with ExitStack() as stack:
@@ -200,6 +206,19 @@ class HDF5EventSource(EventSource):
     Looping over the EventSource yields events from the _generate_events
     method. An event equals an SubarrayEventContainer instance.
     See ctapipe.containers.SubarrayEventContainer for details.
+
+    Parameters
+    ----------
+    input_url : str or pathlib.Path or None, optional
+        Path to the HDF5 event file. With None, use the configured input path.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, restrict the
+        telescope IDs with ``allowed_tels``.
 
     Attributes
     ----------
