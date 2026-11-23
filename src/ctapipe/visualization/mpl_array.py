@@ -53,7 +53,8 @@ class ArrayDisplay:
         is taken from the telescope's mirror size.
     frame : astropy.coordinates.BaseCoordinateFrame, optional
         Ground coordinate frame to transform telescope positions into before
-        plotting their Cartesian x and y coordinates. Defaults to `GroundFrame`.
+        plotting their Cartesian x and y coordinates. Defaults to
+        `~ctapipe.coordinates.GroundFrame`.
     """
 
     def __init__(

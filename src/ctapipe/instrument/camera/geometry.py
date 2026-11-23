@@ -346,7 +346,8 @@ class CameraGeometry:
         """Transform the geometry to another camera frame.
 
         The method returns a new geometry with transformed positions and rotations. If
-        no source frame is set, it initializes the source geometry with `CameraFrame`.
+        no source frame is set, it initializes the source geometry with
+        `~ctapipe.coordinates.CameraFrame`.
 
         Note that ``geom.frame`` must contain all the necessary attributes needed
         to transform into the requested frame, i.e. if going from
@@ -797,8 +798,8 @@ class CameraGeometry:
         """
         Load camera geometry from a table or a file.
 
-        The input can be an `astropy.table.Table` or any file supported by its `read`
-        method.
+        The input can be an `astropy.table.Table` or any file supported by its
+        :attr:`~astropy.table.Table.read` method.
 
         Parameters
         ----------

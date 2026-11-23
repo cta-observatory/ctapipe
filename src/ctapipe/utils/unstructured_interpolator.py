@@ -2,7 +2,7 @@
 Interpolate unstructured samples or values computed from them.
 
 Pass the name of the member function at initialization to interpolate its results. This
-extends the behavior of SciPy's `LinearNDInterpolator`.
+extends the behavior of SciPy's `~scipy.interpolate.LinearNDInterpolator`.
 TODO:
 - Figure out what to do when out of bounds of interpolation range
 - Implement for higher dimensions
@@ -22,7 +22,7 @@ class UnstructuredInterpolator:
     The interpolator also accepts outputs of class methods, such as predictions from
     estimators or regular-grid interpolators. With array inputs and no separate
     evaluation points, it uses Delaunay simplices as in SciPy's
-    `LinearNDInterpolator` for points inside the interpolation domain.
+    `~scipy.interpolate.LinearNDInterpolator` for points inside the interpolation domain.
 
     Parameters
     ----------

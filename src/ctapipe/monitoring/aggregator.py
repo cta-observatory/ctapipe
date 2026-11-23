@@ -619,7 +619,7 @@ class HistogramAggregator(BaseAggregator):
         """Rebuild a histogram from an aggregator table row.
 
         The input is an Astropy table row produced by `HistogramAggregator`. The result
-        is a `hist.Hist`.
+        is a `hist.Hist <https://hist.readthedocs.io/en/stable/reference/hist.html#hist.Hist>`_.
 
         This is a thin wrapper that constructs a ``ChunkHistogramContainer``
         from the provided ``row`` (reading ``n_events``, ``histogram`` and

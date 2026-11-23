@@ -30,6 +30,7 @@ __all__ = [
     "ExponentialAtmosphereDensityProfile",
     "TableAtmosphereDensityProfile",
     "FiveLayerAtmosphereDensityProfile",
+    "SlantDepthZenithRangeWarning",
 ]
 
 SUPPORTED_TABLE_VERSIONS = {

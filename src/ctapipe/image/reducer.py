@@ -144,7 +144,8 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         Parent from which to inherit configuration and logging.
         Mutually exclusive with ``config``.
     cleaner : ImageCleaner or None, optional
-        Preconstructed image cleaner. With None, use a `TailcutsImageCleaner`.
+        Preconstructed image cleaner. With None, use a
+        `~ctapipe.image.TailcutsImageCleaner`.
     image_extractor : ImageExtractor or None, optional
         Preconstructed extractor used for all telescopes. With None, use the configured
         ``image_extractor_type``.

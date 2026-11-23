@@ -1,8 +1,9 @@
 """
 Export simulated instrument descriptions to FITS files.
 
-Output names are generated automatically. The files can be loaded independently, for
-example with `CameraGeometry.from_table`.
+Output names are generated automatically. The files can be loaded independently,
+for example with
+`CameraGeometry.from_table <ctapipe.instrument.CameraGeometry.from_table>`.
 """
 
 import os
