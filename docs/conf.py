@@ -61,8 +61,12 @@ extensions = [
 
 numpydoc_show_class_members = False
 numpydoc_class_members_toctree = False
-# Share the validation policy with the numpydoc pre-commit hook.
-numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["checks"])
+# During the Sphinx build, numpydoc checks docstrings against the full runtime
+# signature, including constructor parameters a subclass inherits without declaring
+# them itself. Exclude PR01 here so those parameters can be documented on the base class.
+numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["checks"]) - {
+    "PR01"
+}
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
