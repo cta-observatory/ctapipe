@@ -42,6 +42,68 @@ def test_range_detection(example_subarray):
     np.testing.assert_array_equal(outliers, expected_outliers)
 
 
+@pytest.mark.parametrize("ndim", [3, 4])
+@pytest.mark.parametrize(
+    ("min_inclusive", "max_inclusive", "expected"),
+    [
+        (True, True, [True, False, False, False, True, False]),
+        (True, False, [True, False, False, True, True, False]),
+        (False, True, [True, True, False, False, True, False]),
+        (False, False, [True, True, False, True, True, False]),
+    ],
+)
+def test_range_boundaries(
+    example_subarray, ndim, min_inclusive, max_inclusive, expected
+):
+    values = np.array([-1, 0, 1, 2, 3, np.nan]).reshape((1,) * (ndim - 1) + (6,))
+    table = Table([values], names=["values"])
+    detector = RangeOutlierDetector(
+        subarray=example_subarray,
+        validity_range=[0, 2],
+        min_inclusive=min_inclusive,
+        max_inclusive=max_inclusive,
+    )
+
+    np.testing.assert_array_equal(
+        detector(table["values"]), np.array(expected).reshape(values.shape)
+    )
+
+
+@pytest.mark.parametrize("ndim", [3, 4])
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ({"validity_range": [None, None]}, [False, False, False, False, False, False]),
+        (
+            {
+                "validity_range": [0, None],
+                "min_inclusive": False,
+                "max_inclusive": True,
+            },
+            [True, True, True, False, False, False],
+        ),
+        ({"validity_range": [0, None]}, [True, True, False, False, False, False]),
+        ({"validity_range": [None, 0]}, [False, False, False, True, True, False]),
+        (
+            {"validity_range": [None, 0], "max_inclusive": False},
+            [False, False, True, True, True, False],
+        ),
+    ],
+)
+def test_range_optional_bounds(example_subarray, ndim, config, expected):
+    values = np.array([-np.inf, -1, 0, 1, np.inf, np.nan]).reshape(
+        (1,) * (ndim - 1) + (6,)
+    )
+    table = Table([values], names=["std"])
+    detector = OutlierDetector.from_name(
+        "RangeOutlierDetector", subarray=example_subarray, **config
+    )
+
+    np.testing.assert_array_equal(
+        detector(table["std"]), np.array(expected).reshape(values.shape)
+    )
+
+
 def test_median_detection(example_subarray):
     """test the MedianOutlierDetector"""
 
