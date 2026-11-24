@@ -142,7 +142,10 @@ class HDF5Merger(Component):
         help="Contact information for the output data product.",
     ).tag(config=True)
 
-    output_path = traits.Path(directory_ok=False).tag(config=True)
+    output_path = traits.Path(
+        directory_ok=False,
+        help="Path to the merged HDF5 output file.",
+    ).tag(config=True)
 
     overwrite = traits.Bool(
         False,

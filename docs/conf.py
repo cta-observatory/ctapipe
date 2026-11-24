@@ -61,6 +61,16 @@ extensions = [
 
 numpydoc_show_class_members = False
 numpydoc_class_members_toctree = False
+# During the Sphinx build, numpydoc checks docstrings against the full runtime
+# signature, including constructor parameters a subclass inherits without declaring
+# them itself. Exclude PR01 here so those parameters can be documented on the base class.
+numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["checks"]) - {
+    "PR01"
+}
+numpydoc_validation_exclude = {
+    # Numpydoc drops the leading cls parameter from this module-level function.
+    r"^ctapipe\.core\.traits\.has_traits$",
+}
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 

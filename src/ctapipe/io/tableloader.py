@@ -195,7 +195,11 @@ class TableLoader(Component):
     """
 
     input_url = traits.Path(
-        directory_ok=False, exists=True, allow_none=True, default_value=None
+        directory_ok=False,
+        exists=True,
+        allow_none=True,
+        default_value=None,
+        help="Path or URL of the ctapipe HDF5 file to load.",
     ).tag(config=True)
     dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
     dl1_parameters = traits.Bool(True, help="load reconstructed image parameters").tag(

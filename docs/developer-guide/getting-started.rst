@@ -392,7 +392,7 @@ Keep in mind the following:
 
 * At least one reviewer must look at your code and accept your
   request. They may ask for changes before accepting.
-* All unit tests must pass.  They are automatically run by Travis when
+* All unit tests must pass.  They are automatically run by GitHub Actions when
   you submit or update your pull request and you can monitor the
   results on the pull-request page.  If there is a test that you added
   that should *not* pass because the feature is not yet implemented,
@@ -400,10 +400,10 @@ Keep in mind the following:
   <https://docs.pytest.org/en/latest/skipping.html>`_ until the
   feature is complete.
 * All documentation must build without errors. Again, this is checked
-  by Travis.  It is your responsibility to run "make doc" and check
+  by GitHub Actions.  It is your responsibility to run "make doc" and check
   that you don't have any syntax errors in your docstrings.
 * All code you have written should follow the style guide (e.g. no
-  warnings when you run the ``flake8`` syntax checker)
+  warnings when you run ``ruff check`` and no changes from ``ruff format --check``).
 
 If the reviewer asks for changes, all you need to do is make them, ``git
 commit`` them and then run ``git push`` and the reviewer will see the changes.

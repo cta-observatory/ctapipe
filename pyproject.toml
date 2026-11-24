@@ -257,16 +257,33 @@ line-length = 88
 [tool.ruff.lint]
 extend-select = [
     "I",  # isort
+    "D",  # pydocstyle
 ]
-ignore = []
+ignore = [
+    "D105",  # Magic methods do not need their own docstring.
+    "D200",  # One-line docstring should fit on one line.
+    "D300",  # Use triple double quotes.
+    "D400",  # First line should end with a period.
+    "D401",  # First line should be imperative.
+    "D404",  # First word should not be "This".
+]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
 
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
 [tool.ruff.lint.per-file-ignores]
-# notebooks have imports in all cells
-"examples/**" = ["I"]
+# Examples can omit API docstrings, use reST titles, and import within cells.
+"examples/**" = ["I", "D100", "D101", "D102", "D103", "D104", "D106", "D205"]
+# Use descriptive test names. Test docstrings are optional.
+"**/tests/**" = ["D100", "D101", "D102", "D103", "D104", "D106"]
+# Pytest fixtures and hooks are test infrastructure.
+"**/conftest.py" = ["D100", "D101", "D102", "D103", "D104", "D106"]
+# Sphinx configuration and hooks are internal.
+"docs/conf.py" = ["D100", "D103"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -280,3 +297,18 @@ known-first-party = ["ctapipe"]
 
 [tool.codespell]
 ignore-words = ".codespell-ignores"
+
+[tool.numpydoc_validation]
+exclude = ['\.(?!__\w*__$)_\w*$']  # skip private functions and methods
+exclude_files = [
+    '^(?:.*/)?tests/',  # skip test directories
+    '^(?:.*/)?conftest\.py$',  # skip pytest fixture files
+    '^examples/',  # skip examples
+]
+checks = [
+    "PR01",  # signature parameters must be documented
+    "PR02",  # documented parameters must exist in the signature
+    "PR03",  # parameter order must match the signature
+    "PR07",  # parameters must have a description
+    "PR10",  # require the correct name : type parameter syntax
+]

@@ -9,10 +9,10 @@ Coding Style
 Code follows the Python
 `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guide.
 This is enforced via the
-`black formatter <https://black.readthedocs.io/en/stable/>`_
+`Ruff linter and formatter <https://docs.astral.sh/ruff/>`_
 and the pre-commit hook set up in :ref:`getting_started_dev`.
 
-You can also use ``black \<filename\>`` to reformat your code by hand or install
+You can also use ``ruff format <filename>`` to reformat your code by hand or install
 editor plugins.
 
 
@@ -24,6 +24,12 @@ documentation in their *docstrings*.  The *docstrings* should be
 written in ReStructuredText format (same as the Sphinx high-level
 documentation), and should follow the `NumPy Docstring Standards
 <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`_
+
+Docstring style is checked primarily by Ruff, using the NumPy convention.
+Selected numpydoc validation checks complement Ruff for requirements it does
+not cover. Both tools are configured in ``pyproject.toml`` and run via
+pre-commit. Sphinx uses the same numpydoc validation settings.
+Run ``pre-commit run numpydoc-validation --all-files`` to check all Python files.
 
 Documentation for all algorithms should contain citations to external
 works, which should be collected in ``bibliography.rst``. An example of
