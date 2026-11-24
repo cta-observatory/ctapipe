@@ -76,6 +76,7 @@ tests = [
     "pandas",
     "pytest >=9.0",
     "pytest-cov",
+    "coverage<7.17.5", # breaks numba coverage collection
     "pytest-xdist",
     "pytest_astropy_header",
     "tomli",
