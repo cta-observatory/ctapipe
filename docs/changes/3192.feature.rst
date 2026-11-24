@@ -1,0 +1,3 @@
+Added independent inclusive or exclusive endpoints and support for unbounded
+endpoints to ``RangeOutlierDetector``. This allows rejecting chunks with zero
+standard deviation using ``validity_range=[0, None]`` and ``min_inclusive=False``.

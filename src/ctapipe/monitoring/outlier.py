@@ -7,12 +7,12 @@ from abc import abstractmethod
 import numpy as np
 
 from ..core import TelescopeComponent
-from ..core.traits import Float, List
+from ..core.traits import Bool, Float, List
 
 __all__ = [
+    "MedianOutlierDetector",
     "OutlierDetector",
     "RangeOutlierDetector",
-    "MedianOutlierDetector",
     "StdOutlierDetector",
 ]
 
@@ -44,7 +44,6 @@ class OutlierDetector(TelescopeComponent):
         boolean mask
             Mask of outliers with the same shape as ``column``.
         """
-        pass
 
 
 class RangeOutlierDetector(OutlierDetector):
@@ -53,32 +52,49 @@ class RangeOutlierDetector(OutlierDetector):
 
     The clipping interval to set the thresholds for detecting outliers corresponds to
     a configurable range of valid statistic values.
+
+    Either endpoint can be ``None`` to leave that side unbounded. Both endpoints
+    are inclusive by default. To reject chunks with zero standard deviation,
+    use ``validity_range=[0, None], min_inclusive=False`` and apply to ``std``.
+    NaN values are not flagged as outliers.
     """
 
     validity_range = List(
-        trait=Float(),
+        trait=Float(allow_none=True),
         default_value=[1.0, 2.0],
         help=(
             "Defines the range of acceptable values (lower, upper) in units of image values. "
-            "Values outside this range will be flagged as outliers."
+            "Values outside this range will be flagged as outliers. "
+            "Use None for an unbounded endpoint."
         ),
         minlen=2,
         maxlen=2,
     ).tag(config=True)
 
+    min_inclusive = Bool(
+        default_value=True,
+        help="Whether the minimum value is acceptable.",
+    ).tag(config=True)
+
+    max_inclusive = Bool(
+        default_value=True,
+        help="Whether the maximum value is acceptable.",
+    ).tag(config=True)
+
     def __call__(self, column):
-        # Accept both chunk-wise stats (3D) and histogram stats (4D)
         if column.ndim not in (3, 4):
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
                 "Expected statistic values of shape (n_entries, n_channels, n_pixels) "
                 "or histogram values of shape (n_entries, n_bins, n_channels, n_pixels)."
             )
-        # Remove outliers is statistical values out a given range
-        outliers = np.logical_or(
-            column < self.validity_range[0],
-            column > self.validity_range[1],
-        )
+
+        outliers = np.zeros(column.shape, dtype=bool)
+        lower, upper = self.validity_range
+        if lower is not None:
+            outliers |= column < lower if self.min_inclusive else column <= lower
+        if upper is not None:
+            outliers |= column > upper if self.max_inclusive else column >= upper
         return outliers
 
 
