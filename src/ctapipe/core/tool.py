@@ -180,7 +180,10 @@ class Tool(Application):
 
     _log_formatter_cls = ColoredFormatter
 
-    provenance_log = Path(directory_ok=False).tag(config=True)
+    provenance_log = Path(
+        directory_ok=False,
+        help="Path to the JSON file where the tool writes provenance information.",
+    ).tag(config=True)
 
     @default("provenance_log")
     def _default_provenance_log(self):

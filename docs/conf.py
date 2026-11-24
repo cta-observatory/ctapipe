@@ -70,11 +70,6 @@ numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["check
 numpydoc_validation_exclude = {
     # Numpydoc drops the leading cls parameter from this module-level function.
     r"^ctapipe\.core\.traits\.has_traits$",
-    # Sphinx uses the Path constructor docstring for these trait descriptors.
-    # Match both the re-exported names and the defining module names.
-    r"^ctapipe\.core\.(?:tool\.)?Tool\.provenance_log$",
-    r"^ctapipe\.io\.(?:hdf5merger\.)?HDF5Merger\.output_path$",
-    r"^ctapipe\.io\.(?:tableloader\.)?TableLoader\.input_url$",
 }
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 

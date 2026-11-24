@@ -230,7 +230,7 @@ class BagItWriter(Component):
 
 
 class BagItReader(Component):
-    input_path = Path().tag(config=True)
+    input_path = Path(help="Path to the input BagIt ZIP archive.").tag(config=True)
 
     def __init__(self, input_path=None, **kwargs):
         if input_path is not None:
