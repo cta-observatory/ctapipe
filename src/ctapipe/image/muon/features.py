@@ -1,3 +1,10 @@
+"""Measure muon-ring quality and light distribution in camera images.
+
+Estimate how well the light follows a circle, how much falls within the
+ring, how complete the ring is, and how much lies inside the camera's field
+of view. The module also provides radial light profiles.
+"""
+
 from typing import Sequence
 
 import astropy.units as u
@@ -62,10 +69,10 @@ def intensity_ratio_inside_ring(
     width: Quantity,
 ) -> float:
     """
-    Calculate the ratio of the photons inside a given ring with
-    coordinates (center_fov_lon, center_fov_lat), radius and width.
+    Compute the fraction of the total pixel weight inside a ring.
 
-    The ring is assumed to be in [radius - 0.5 * width, radius + 0.5 * width]
+    The weights are typically pixel charges. A pixel counts toward the ring
+    if its center is between ``radius - width / 2`` and ``radius + width / 2``.
 
     Parameters
     ----------
@@ -92,7 +99,6 @@ def intensity_ratio_inside_ring(
     their weights. The ratio is the sum of the weights inside the ring divided by
     the total sum of the weights.
     """
-
     pixel_r = np.hypot(
         ring.center_fov_lon - pixel_fov_lon, ring.center_fov_lat - pixel_fov_lat
     )
@@ -115,8 +121,9 @@ def ring_completeness(
     bins: int = 30,
 ) -> float:
     """
-    Estimate how complete a muon ring is by binning the light distribution along the ring
-    and applying a threshold to the bin content.
+    Estimate the fraction of a muon ring that contains signal.
+
+    Bin the light distribution along the ring and apply a threshold to the bin contents.
 
     Parameters
     ----------
@@ -145,7 +152,6 @@ def ring_completeness(
     threshold. The completeness is the ratio of the number of segments above the threshold
     to the total number of segments.
     """
-
     if hasattr(weights, "unit"):
         weights = weights.to_value(u.dimensionless_unscaled)
     angle = np.arctan2(
@@ -254,7 +260,6 @@ def ring_intensity_parameters(
         and restricted by the outer ring width, i.e. in the strip between
         ring integration width and outer ring width.
     """
-
     dist = np.hypot(
         pixel_fov_lon - ring.center_fov_lon, pixel_fov_lat - ring.center_fov_lat
     )
@@ -320,7 +325,6 @@ def radial_light_distribution(
     the standard deviation, skewness, and excess kurtosis of the radial distances of the pixels
     from the center of the ring, weighted by the pixel intensities.
     """
-
     if np.sum(image) == 0:
         return (
             np.nan * u.deg,

@@ -62,7 +62,7 @@ def test_path_allow_none_true(tmp_path):
 
 
 def test_path_exists():
-    """require existence of path"""
+    """Require existence of path"""
 
     class C1(Component):
         thepath = Path(exists=False)
@@ -108,7 +108,7 @@ def test_bytes():
 
 
 def test_path_directory_ok():
-    """test path is a directory"""
+    """Test path is a directory"""
 
     class C(Component):
         thepath = Path(exists=True, directory_ok=False)
@@ -127,7 +127,7 @@ def test_path_directory_ok():
 
 
 def test_path_file_ok():
-    """check that the file is there and not a directory, etc"""
+    """Check that the file is there and not a directory, etc"""
 
     class C(Component):
         thepath = Path(exists=True, file_ok=False)
@@ -188,7 +188,7 @@ def test_path_envvars():
 
 
 def test_enum_trait_default_is_right():
-    """check default value of enum trait"""
+    """Check default value of enum trait"""
     from ctapipe.core.traits import create_class_enum_trait
 
     with pytest.raises(ValueError):
@@ -196,7 +196,7 @@ def test_enum_trait_default_is_right():
 
 
 def test_enum_trait():
-    """check that enum traits are constructable from a complex class"""
+    """Check that enum traits are constructable from a complex class"""
     from ctapipe.core.traits import create_class_enum_trait
 
     trait = create_class_enum_trait(
@@ -206,7 +206,7 @@ def test_enum_trait():
 
 
 def test_enum_classes_with_traits():
-    """test that we can get a list of classes that have traits"""
+    """Test that we can get a list of classes that have traits"""
     list_of_classes = classes_with_traits(ImageExtractor)
     assert list_of_classes  # should not be empty
 
@@ -236,7 +236,7 @@ def test_classes_with_traits():
 
 
 def test_has_traits():
-    """test the has_traits func"""
+    """Test the has_traits func"""
 
     class WithoutTraits(HasTraits):
         """a traits class that has no traits"""

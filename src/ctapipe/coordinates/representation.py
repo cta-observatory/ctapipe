@@ -14,16 +14,15 @@ __all__ = ["PlanarRepresentation"]
 class PlanarRepresentation(BaseRepresentation):
     """
     Representation of a point in a 2D plane.
+
     This is essentially a copy of the Cartesian representation used
     in astropy.
 
     Parameters
     ----------
-
     x, y : `~astropy.units.Quantity`
-        The x and y coordinates of the point(s). If ``x`` and ``y``have
+        The x and y coordinates of the point(s). If ``x`` and ``y`` have
         different shapes, they should be broadcastable.
-
     copy : bool, optional
         If True arrays will be copied rather than referenced.
 
@@ -31,7 +30,7 @@ class PlanarRepresentation(BaseRepresentation):
 
     attr_classes = OrderedDict([("x", u.Quantity), ("y", u.Quantity)])
 
-    def __init__(self, x, y, copy=True, **kwargs):
+    def __init__(self, x, y, copy=True):
         if x is None or y is None:
             raise ValueError(
                 "x and y are required to instantiate CartesianRepresentation"
@@ -74,15 +73,38 @@ class PlanarRepresentation(BaseRepresentation):
 
     @property
     def xy(self):
+        """Stack x and y into a quantity with both components on the first axis."""
         return u.Quantity((self._x, self._y))
 
     @classmethod
     def from_cartesian(cls, cartesian):
+        """
+        Project Cartesian coordinates onto the xy plane.
+
+        Parameters
+        ----------
+        cartesian : astropy.coordinates.CartesianRepresentation
+            Cartesian coordinates from which to take the x and y components.
+
+        Returns
+        -------
+        PlanarRepresentation
+            Coordinates in the xy plane.
+        """
         return cls(x=cartesian.x, y=cartesian.y)
 
     def to_cartesian(self):
+        """
+        Represent the planar coordinates in three-dimensional Cartesian space.
+
+        Returns
+        -------
+        astropy.coordinates.CartesianRepresentation
+            Cartesian coordinates with the same x and y values and z set to zero.
+        """
         return CartesianRepresentation(x=self._x, y=self._y, z=0 * self._x.unit)
 
     @property
     def components(self):
+        """Return the component names as the tuple ``("x", "y")``."""
         return "x", "y"

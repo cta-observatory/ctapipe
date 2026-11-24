@@ -40,7 +40,15 @@ class ArgparseFormatter(
 
 
 def get_parser(function=None, description="N/A"):
-    """Make an ArgumentParser how we like it."""
+    """Make an ArgumentParser how we like it.
+
+    Parameters
+    ----------
+    function : callable or None, optional
+        Function whose docstring supplies the parser description.
+    description : str, optional
+        Parser description to use when no function is given.
+    """
     if function:
         description = function.__doc__
     parser = argparse.ArgumentParser(
@@ -66,6 +74,17 @@ def get_installed_tools():
 
 
 def get_all_descriptions():
+    """Read the descriptions of the installed ctapipe command-line tools.
+
+    Read each console script's module docstring directly from the source
+    and flatten it to one line for display by ``ctapipe-info``.
+
+    Returns
+    -------
+    collections.OrderedDict
+        Tool names mapped to their descriptions, with a placeholder for
+        modules without a docstring.
+    """
     tools = get_installed_tools()
 
     descriptions = OrderedDict()
@@ -99,7 +118,29 @@ def read_training_events(
     n_events=None,
     optional_columns: list[str] | None = None,
 ):
-    """Chunked loading of events for training ML models"""
+    """Chunked loading of events for training ML models
+
+    Parameters
+    ----------
+    loader : TableLoader
+        Input loader for telescope-wise event data.
+    chunk_size : int
+        Number of subarray events to load per chunk.
+    telescope_type : TelescopeDescription
+        Telescope type for which to load training events.
+    reconstructor : SKLearnReconstructor or DispReconstructor
+        Component providing the quality selection and feature expressions.
+    feature_names : list of str
+        Feature and target columns to retain alongside the event and telescope IDs.
+    rng : numpy.random.Generator
+        Generator used when sampling a subset of rows.
+    log : logging.Logger, optional
+        Logger for event counts and sampling messages.
+    n_events : int or None, optional
+        Number of valid rows to sample without replacement. None retains all valid rows.
+    optional_columns : list of str or None, optional
+        Extra columns to retain when present in the input.
+    """
     chunk_iterator = loader.read_telescope_events_chunked(
         chunk_size,
         telescopes=[telescope_type],

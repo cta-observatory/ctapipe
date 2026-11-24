@@ -1,3 +1,10 @@
+"""Transform pointing and shower coordinates between common analysis frames.
+
+Convert altitude and azimuth to right-handed Cartesian directions,
+nominal field-of-view coordinates, or ICRS. The module also projects a
+point on a reconstructed shower axis into a telescope's horizontal frame.
+"""
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
@@ -21,17 +28,21 @@ _zero_m = u.Quantity(0, u.m)
 
 
 def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
-    """Turns an alt/az coordinate into a 3d direction in a right-handed coordinate
-    system.  This is because azimuths are in a left-handed system.
+    """Convert altitude and azimuth to a right-handed Cartesian direction.
+
+    The azimuth convention is left-handed.
 
     See e.g: https://github.com/astropy/astropy/issues/5300
 
     Parameters
     ----------
-    alt: u.Quantity
-        altitude
-    az: u.Quantity
-        azimuth
+    alt : astropy.units.Quantity or float or ndarray
+        Altitude. Give both angles as quantities or both as bare values in radians.
+    az : astropy.units.Quantity or float or ndarray
+        Azimuth, in the same input convention as ``alt``.
+    distance : float or ndarray or astropy.units.Quantity, optional
+        Radial distance that sets the vector length. The default gives a unit
+        direction vector. A quantity preserves its unit in the result.
     """
     # this is an optimization, shaves of ca. 50 % compared to handing over units
     # to the erfa function
@@ -95,6 +106,17 @@ def altaz_to_nominal(az, alt, pointing_az, pointing_alt) -> SkyCoord:
     column of coordinates, from which further expressions can use ``.fov_lon``
     and ``.fov_lat``.
 
+    Parameters
+    ----------
+    az : astropy.units.Quantity
+        Event azimuth in the horizontal frame.
+    alt : astropy.units.Quantity
+        Event altitude in the horizontal frame.
+    pointing_az : astropy.units.Quantity
+        Azimuth of the pointing direction that defines the nominal origin.
+    pointing_alt : astropy.units.Quantity
+        Altitude of the pointing direction that defines the nominal origin.
+
     Returns
     -------
     SkyCoord:
@@ -122,15 +144,15 @@ def altaz_to_icrs(
 
     Parameters
     ----------
-    az: u.Quantity
+    az : u.Quantity
         Horizontal azimuth, scalar or array
-    alt: u.Quantity
+    alt : u.Quantity
         Horizontal altitude, scalar or array
-    obstime: Time
+    obstime : Time
         Observation time, scalar or array
-    location: EarthLocation
+    location : EarthLocation
         Observatory location
-    resolution: u.Quantity[time]
+    resolution : u.Quantity[time]
         Time resolution for the interpolation of obs_times. Higher values speed
         up the computation significantly for a large number of events.
 

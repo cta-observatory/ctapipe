@@ -48,13 +48,13 @@ def chord_length(radius, rho, phi, phi0=0):
 
     Parameters
     ----------
-    radius: float or ndarray
+    radius : float or ndarray
         radius of circle
-    rho: float or ndarray
+    rho : float or ndarray
         fractional distance of impact point from circle center
-    phi: float or ndarray in radians
+    phi : float or ndarray in radians
         rotation angles to calculate length
-    phi0: float
+    phi0 : float
         Phase corresponding to the azimuth of maximum
         intensity of the ring.
 
@@ -71,7 +71,6 @@ def chord_length(radius, rho, phi, phi0=0):
 
 
     """
-
     return _chord_length(radius, rho, phi, phi0)
 
 
@@ -104,17 +103,28 @@ def _chord_length(radius, rho, phi, phi0):
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
-    """Perform line integration along a given axis in the mirror frame
-    given an impact point on the mirror
+    """Compute the mirror path length along a line from the impact point.
+
+    The line is specified by an impact point and an angle in the mirror frame. For a
+    mirror with a central hole, subtract the length through the hole.
 
     Parameters
     ----------
-    angle: ndarray
-        Angle along which to integrate mirror
+    mirror_radius : float
+        Radius of the outer reflector, in the same length units as ``r``.
+    r : float or ndarray
+        Distance of the muon impact point from the reflector center.
+    angle : float or ndarray
+        Integration direction in radians in the mirror plane, relative to
+        the direction in which the effective chord length is maximal.
+    hole_radius : float, optional
+        Radius of the central opening, in the same units as the mirror radius.
+        Use zero for a reflector without a central opening.
 
     Returns
     -------
-    float: length from impact point to mirror edge
+    float or ndarray
+        Effective path length through the reflector, excluding the central opening.
 
     """
     mirror_length = chord_length(mirror_radius, (r / mirror_radius), angle)
@@ -127,8 +137,16 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
 
 
 def pixels_on_ring(radius, pixel_diameter):
-    """Calculate number of pixels of diameter ``pixel_diameter`` on the circumference
-    of a circle with radius ``radius``
+    """Estimate the number of pixels along a ring circumference.
+
+    The estimate uses the pixel diameter and the ring radius.
+
+    Parameters
+    ----------
+    radius : astropy.units.Quantity
+        Angular radius of the ring.
+    pixel_diameter : astropy.units.Quantity
+        Angular pixel width, compatible with the ring radius.
     """
     circumference = 2 * np.pi * radius
     n_pixels = u.Quantity(circumference / pixel_diameter)
@@ -154,20 +172,20 @@ def create_profile(
 
     Parameters
     ----------
-    mirror_radius: float
+    mirror_radius : float
         mirror radius
-    hole_radius: float
+    hole_radius : float
         hole or camera radius
-    impact_parameter: float
+    impact_parameter : float
         Impact distance from mirror center
-    radius: float
+    radius : float
         ring radius
-    phi: float
+    phi : float
         Phase corresponding to the azimuth of maximum
         intensity of the ring.
-    pixel_diameter: float
+    pixel_diameter : float
         pixel FoV
-    oversampling: int
+    oversampling : int
         Oversampling is used to define how much the phi binning is
         smaller than the single pixel FoV.
 
@@ -211,25 +229,46 @@ def image_prediction(
 
     Parameters
     ----------
-    impact_parameter: quantity[length]
-        Impact distance of muon
-    center_x: quantity[angle]
-        Muon ring center in telescope frame
-    center_y: quantity[angle]
-        Muon ring center in telescope frame
-    radius: quantity[angle]
+    mirror_radius : astropy.units.Quantity
+        Outer radius of the reflector.
+    hole_radius : astropy.units.Quantity
+        Radius of the central opening. Use zero with a length unit for a
+        reflector without a central opening.
+    impact_parameter : quantity[length]
+        Distance of the muon impact point from the reflector center.
+    phi : astropy.units.Quantity
+        Angular phase of the light profile, corresponding to the azimuth of
+        maximum light intensity around the ring.
+    center_x : quantity[angle]
+        Field-of-view longitude of the ring center in the telescope frame.
+    center_y : quantity[angle]
+        Field-of-view latitude of the ring center in the telescope frame.
+    radius : quantity[angle]
         Radius of muon ring in telescope frame
-    ring_width: quantity[angle]
+    ring_width : quantity[angle]
         Gaussian width of muon ring
-    pixel_x: quantity[angle]
-        Pixel x coordinate in telescope
-    pixel_y: quantity[angle]
-        Pixel y coordinate in telescope
+    pixel_x : quantity[angle]
+        Per-pixel field-of-view longitude in the telescope frame.
+    pixel_y : quantity[angle]
+        Per-pixel field-of-view latitude in the telescope frame.
+    pixel_diameter : astropy.units.Quantity
+        Angular width of a pixel, used to integrate the ring signal over a
+        pixel and to set the angular sampling of the light profile.
+    oversampling : int, optional
+        Number of azimuthal samples per pixel width used to build and smooth
+        the light profile.
+    min_lambda : astropy.units.Quantity, optional
+        Lower wavelength limit for integrating the Cherenkov emission.
+    max_lambda : astropy.units.Quantity, optional
+        Upper wavelength limit for integrating the Cherenkov emission.
+    pix_type : PixelShape, optional
+        Pixel shape used for the area correction. Supports hexagonal, square,
+        and circular pixels.
 
     Returns
     -------
-    ndarray:
-        Predicted signal
+    ndarray
+        Expected Cherenkov photons per pixel before applying optical efficiency.
     """
     return image_prediction_no_units(
         mirror_radius.to_value(u.m),
@@ -253,16 +292,15 @@ def image_prediction(
 @vectorize([double(double, double, double)], cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def gaussian_cdf(x, mu, sig):
     """
-    Function to compute values of a given gaussians
-    cumulative distribution function (cdf)
+    Evaluate a Gaussian cumulative distribution function.
 
     Parameters
     ----------
-    x: float or ndarray
+    x : float or ndarray
         point, at which the cdf should be evaluated
-    mu: float or ndarray
+    mu : float or ndarray
         gaussian mean
-    sig: float or ndarray
+    sig : float or ndarray
         gaussian standard deviation
 
     Returns
@@ -291,8 +329,40 @@ def image_prediction_no_units(
 ):
     """
     Unit-less version of `image_prediction`.
-    """
 
+    Parameters
+    ----------
+    mirror_radius_m : float
+        Outer reflector radius in metres.
+    hole_radius_m : float
+        Radius of the central opening in metres. Use zero for an unobscured center.
+    impact_parameter_m : float
+        Distance of the muon impact point from the reflector center in metres.
+    phi_rad : float
+        Phase of the maximum ring intensity in radians.
+    center_x_rad : float
+        Field-of-view longitude of the ring center in radians.
+    center_y_rad : float
+        Field-of-view latitude of the ring center in radians.
+    radius_rad : float
+        Angular ring radius in radians.
+    ring_width_rad : float
+        Standard deviation of the radial light profile in radians.
+    pixel_x_rad : ndarray
+        Field-of-view longitude of each pixel in radians.
+    pixel_y_rad : ndarray
+        Field-of-view latitude of each pixel in radians.
+    pixel_diameter_rad : float
+        Angular pixel width in radians.
+    oversampling : int, optional
+        Number of azimuthal samples per pixel width used for the light profile.
+    min_lambda_m : float, optional
+        Lower wavelength bound for the Cherenkov yield integral, in metres.
+    max_lambda_m : float, optional
+        Upper wavelength bound for the Cherenkov yield integral, in metres.
+    pix_type : PixelShape, optional
+        Pixel shape used to apply the area correction.
+    """
     # First produce angular position of each pixel w.r.t muon center
     dx = pixel_x_rad - center_x_rad
     dy = pixel_y_rad - center_y_rad
@@ -371,17 +441,43 @@ def build_negative_log_likelihood(
     hole_radius=0 * u.m,
     pix_type=PixelShape.HEXAGON,
 ):
-    """Create an efficient negative log_likelihood function that does
-    not rely on astropy units internally by defining needed values as closures
-    in this function.
+    """Build a negative log likelihood function for muon-ring intensity.
+
+    Convert the input geometry and optics to numerical values once and capture them in a
+    closure so repeated evaluations do not need unit conversions.
 
     The likelihood is the gaussian approximation,
     i.e. the unnumbered equation on page 22 between (24) and (25), from [denaurois2009]_
 
     The logarithm of the likelihood is calculated analytically as far as possible
     and terms constant under differentation are discarded.
-    """
 
+    Parameters
+    ----------
+    image : ndarray
+        Observed integrated pixel charge in photoelectrons.
+    optics : OpticsDescription
+        Telescope optics supplying the reflective mirror area.
+    geometry_tel_frame : CameraGeometry
+        Camera pixel geometry expressed in the telescope frame.
+    mask : ndarray of bool or None
+        Mask selecting pixels in the fit. With None, use every pixel.
+    oversampling : int
+        Number of azimuthal samples per pixel width used for the model.
+    min_lambda : astropy.units.Quantity
+        Lower wavelength bound for the Cherenkov yield integral.
+    max_lambda : astropy.units.Quantity
+        Upper wavelength bound for the Cherenkov yield integral.
+    spe_width : float
+        Width of the single-photoelectron response in photoelectrons.
+    pedestal : ndarray
+        Pedestal charge standard deviations in photoelectrons, in the original camera
+        pixel order.
+    hole_radius : astropy.units.Quantity, optional
+        Radius of the central reflector opening.
+    pix_type : PixelShape, optional
+        Pixel shape used for the prediction's area correction.
+    """
     # get all the needed values and transform them into appropriate units
     mirror_area = optics.mirror_area.to_value(u.m**2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
@@ -417,24 +513,27 @@ def build_negative_log_likelihood(
 
         Parameters
         ----------
-        impact_parameter: float
-            Impact distance from telescope center
-        center_x: float
-            center of muon ring in the telescope frame
-        center_y: float
-            center of muon ring in the telescope frame
-        radius: float
-            Radius of muon ring
-        ring_width: float
-            Gaussian width of muon ring
-        optical_efficiency_muon: float
-            Efficiency of the optical system
+        impact_parameter : float
+            Distance of the muon impact point from the reflector center, in metres.
+        phi : float
+            Azimuthal phase of maximum ring light intensity, in radians.
+        center_x : float
+            Field-of-view longitude of the ring center, in radians.
+        center_y : float
+            Field-of-view latitude of the ring center, in radians.
+        radius : float
+            Angular radius of the ring, in radians.
+        ring_width : float
+            Standard deviation of the radial light profile, in radians.
+        optical_efficiency_muon : float
+            Dimensionless factor that scales the model prediction to the observed
+            pixel charges.
 
         Returns
         -------
-        float: Likelihood that model matches data
+        float
+            Sum of the approximate negative log likelihood across pixels.
         """
-
         # Generate model prediction
         prediction = image_prediction_no_units(
             mirror_radius_m=mirror_radius,
@@ -491,6 +590,16 @@ class MuonIntensityFitter(TelescopeComponent):
     The image prediction function is currently modeled after :cite:p:`chalmecalvet2013`.
 
     For more information, also see :cite:p:`muon-review`.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometry and optics for predicting the muon-ring
+        signal in each pixel.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. For example, set ``hole_radius_m`` to specify the
+        central obscuration used in the light-yield model.
     """
 
     spe_width = FloatTelescopeParameter(
@@ -533,27 +642,38 @@ class MuonIntensityFitter(TelescopeComponent):
 
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
+        Fit optical efficiency and ring width from a muon image.
+
+        The fit keeps the supplied ring center and radius fixed and also fits the
+        muon impact position. It supports single-mirror telescopes.
 
         Parameters
         ----------
-        tel_id: int
-            the telescope id
-        center_x: Angle quantity
-            Initial guess for muon ring center in telescope frame
-        center_y: Angle quantity
-            Initial guess for muon ring center in telescope frame
-        radius: Angle quantity
-            Initial guess for muon ring radius in telescope frame
-        image: ndarray
-            Amplitude of image pixels
-        pedestal: ndarray
-            Pedestal standard deviation in each pixel
-        mask: ndarray
-            mask marking the pixels to be used in the likelihood fit
+        tel_id : int
+            Telescope ID used to select its optics, geometry, and fit settings.
+        center_x : astropy.units.Quantity
+            Initial guess for the ring center longitude in the telescope frame.
+        center_y : astropy.units.Quantity
+            Initial guess for the ring center latitude in the telescope frame.
+        radius : astropy.units.Quantity
+            Initial guess for the angular radius of the ring.
+        image : ndarray
+            Integrated charge for each camera pixel.
+        pedestal : ndarray
+            Pedestal standard deviation for each pixel, in the same units as image.
+        mask : ndarray of bool or None, optional
+            Pixels to include in the fit. If None, use all pixels.
 
         Returns
         -------
-        MuonEfficiencyContainer
+        ctapipe.containers.MuonEfficiencyContainer
+            Fitted optical efficiency, ring width, and impact position, together
+            with the likelihood and fit validity and boundary flags.
+
+        Raises
+        ------
+        NotImplementedError
+            If the telescope does not have exactly one mirror.
         """
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.n_mirrors != 1:

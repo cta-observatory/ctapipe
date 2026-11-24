@@ -1,7 +1,8 @@
 """
-Class for calculation of likelihood of a pixel expectation, given the pixel amplitude,
-the level of noise in the pixel and the photoelectron resolution.
-This calculation is taken from :cite:p:`denaurois2009`.
+Compute likelihoods for measured camera pixel signals.
+
+The calculation uses the pixel amplitude, noise, and photoelectron resolution. It
+follows :cite:p:`denaurois2009`.
 
 The likelihood is essentially a poissonian convolved with a gaussian, at low signal
 a full possonian approach must be adopted, which requires the sum of contributions
@@ -46,11 +47,13 @@ EPSILON = 5.0e-324
 
 
 class PixelLikelihoodError(RuntimeError):
+    """Exception type for errors in pixel likelihood calculations."""
+
     pass
 
 
 def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
-    """Calculate negative log likelihood for telescope.
+    r"""Calculate negative log likelihood for telescope.
 
     Gaussian approximation from :cite:p:`denaurois2009`, p. 22 (equation between (24) and (25)).
 
@@ -60,17 +63,17 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
         θ = σ_p^2 + μ · (1 + σ_γ^2)
 
-        → P = \\frac{1}{\\sqrt{2 π θ}} · \\exp\\left(- \\frac{(s - μ)^2}{2 θ}\\right)
+        → P = \frac{1}{\sqrt{2 π θ}} · \exp\left(- \frac{(s - μ)^2}{2 θ}\right)
 
-        \\ln{P} = \\ln{\\frac{1}{\\sqrt{2 π θ}}} - \\frac{(s - μ)^2}{2 θ}
+        \ln{P} = \ln{\frac{1}{\sqrt{2 π θ}}} - \frac{(s - μ)^2}{2 θ}
 
-                = \\ln{1} - \\ln{\\sqrt{2 π θ}} - \\frac{(s - μ)^2}{2 θ}
+                = \ln{1} - \ln{\sqrt{2 π θ}} - \frac{(s - μ)^2}{2 θ}
 
-                = - \\frac{\\ln{2 π θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+                = - \frac{\ln{2 π θ}}{2} - \frac{(s - μ)^2}{2 θ}
 
-                = - \\frac{\\ln{2 π} + \\ln{θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+                = - \frac{\ln{2 π} + \ln{θ}}{2} - \frac{(s - μ)^2}{2 θ}
 
-        - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
+        - \ln{P} = \frac{\ln{2 π} + \ln{θ}}{2} + \frac{(s - μ)^2}{2 θ}
 
     We keep the constants in this because the actual value of the likelihood
     can be used to calculate a goodness-of-fit value
@@ -78,20 +81,19 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. peak (:math:`σ_γ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
 
     Returns
     -------
     ndarray
     """
-
     theta = 2 * (pedestal**2 + prediction * (1 + spe_width**2))
     neg_log_l = np.log(np.pi * theta) / 2.0 + (image - prediction) ** 2 / theta
 
@@ -102,20 +104,21 @@ def neg_log_likelihood_numeric(
     image, prediction, spe_width, pedestal, confidence=0.999
 ):
     """
-    Calculate likelihood of prediction given the measured signal,
-    full numerical integration from :cite:p:`denaurois2009`.
+    Compute the negative log likelihood by numerical integration.
+
+    The calculation follows :cite:p:`denaurois2009`.
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. peak (:math:`σ_γ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
-    confidence: float, 0 < x < 1
+    confidence : float, 0 < x < 1
         Upper end of Poisson confidence interval of maximum prediction.
         Determines upper end of poisson integration.
 
@@ -123,7 +126,6 @@ def neg_log_likelihood_numeric(
     -------
     ndarray
     """
-
     epsilon = np.finfo(np.float64).eps
 
     prediction = prediction + epsilon
@@ -150,22 +152,22 @@ def neg_log_likelihood_numeric(
 
 def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety=20.0):
     """
-    Safe implementation of the poissonian likelihood implementation,
-    adaptively switches between the full solution and the gaussian
-    approx depending on the prediction. Prediction safety parameter
-    determines cross over point between the two solutions.
+    Compute the negative log likelihood for measured pixel signals.
+
+    Use numerical integration at or below ``prediction_safety`` and the Gaussian
+    approximation above it.
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. peak (:math:`σ_γ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
-    prediction_safety: float
+    prediction_safety : float
         Decision point to choose between poissonian likelihood
         and gaussian approximation.
 
@@ -173,7 +175,6 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
     -------
     ndarray
     """
-
     approx_mask = prediction > prediction_safety
 
     neg_log_l = np.zeros_like(image, dtype=np.float64)
@@ -197,17 +198,17 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
 
 
 def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
-    """Calculation of the mean of twice the negative log likelihood for a give expectation
-    value of pixel intensity in the gaussian approximation.
-    This is useful in the calculation of the goodness of fit.
+    """Compute the mean of twice the negative log likelihood using a Gaussian.
+
+    The result is used to calculate the goodness of fit.
 
     Parameters
     ----------
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. distribution
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal
 
     Returns
@@ -222,8 +223,7 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
 
 def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     """
-    Wrapper function around likelihood calculation, used in numerical
-    integration.
+    Wrapper function around likelihood calculation, used in numerical integration.
     """
     image = np.asarray(image)
     prediction = np.asarray(prediction)
@@ -233,26 +233,25 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
     """
-    Calculation of the mean of twice the negative log likelihood for a give expectation value
-    of pixel intensity using the full numerical integration.
-    This is useful in the calculation of the goodness of fit.
-    This numerical integration is very slow and really doesn't
-    make a large difference in the goodness of fit in most cases.
+    Compute the mean of twice the negative log likelihood by integration.
+
+    The result is used to calculate the goodness of fit. Numerical integration is slow
+    and usually has little effect on that result.
 
     Parameters
     ----------
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model
-    spe_width: ndarray
+    spe_width : ndarray
         Width of single p.e. distribution
-    pedestal: ndarray
-        Width of pedestal
+    ped : ndarray
+        Pedestal standard deviation per pixel, or a length-one array to use
+        the same value for all pixels.
 
     Returns
     -------
     ndarray
     """
-
     if len(spe_width) == 1:
         spe_width = np.full_like(prediction, spe_width, dtype=np.float64)
 
@@ -287,20 +286,19 @@ def chi_squared(image, prediction, pedestal, error_factor=2.9):
 
     Parameters
     ----------
-    image: ndarray
+    image : ndarray
         Pixel amplitudes from image (:math:`s`).
-    prediction: ndarray
+    prediction : ndarray
         Predicted pixel amplitudes from model (:math:`μ`).
-    pedestal: ndarray
+    pedestal : ndarray
         Width of pedestal (:math:`σ_p`).
-    error_factor: float
+    error_factor : float
         Ad-hoc error factor
 
     Returns
     -------
     ndarray
     """
-
     chi_square = (image - prediction) ** 2 / (pedestal + 0.5 * (image - prediction))
     chi_square *= 1.0 / error_factor
 

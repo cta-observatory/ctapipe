@@ -105,6 +105,20 @@ PROV = Provenance()
 class DataWriter(Component):
     """Serialize a sequence of events into the ctapipe HDF5 format.
 
+    Parameters
+    ----------
+    event_source : EventSource
+        Source providing the subarray, available data levels, and observation or
+        simulation metadata for the output.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the output path
+        and which data levels to write.
+
     Examples
     --------
     inside a Tool:
@@ -204,20 +218,28 @@ class DataWriter(Component):
 
     def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
+        Validate the output configuration and open the HDF5 data product.
+
+        The writer checks that any requested R0 or R1 waveforms are available and
+        validates the configured metadata before creating the file.
 
         Parameters
         ----------
-        event_source : EventSource
-            parent event source, which provides header information for the
-            subarray, observation, simulation configuration, and the obs_id
-        config : , optional
-            configuration class
-        parent : , optional
-            parent of this component in the config hierarchy (this supersedes
-            the config option)
-        **kwargs :
-            other options, such as parameters passed to parent.
+        event_source : ctapipe.io.EventSource
+            Source of the input data levels and of the metadata written for the
+            subarray, observations, and simulation runs.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
 
+        Raises
+        ------
+        ctapipe.core.ToolConfigurationError
+            If R0 or R1 waveform output is requested but absent from the input.
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -273,6 +295,12 @@ class DataWriter(Component):
     def __call__(self, event: SubarrayEventContainer):
         """
         Write a single event to the output file.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event containing the configured subarray and telescope data products to
+            append.
         """
         self._validate_event(event)
         self._at_least_one_event = True
@@ -448,12 +476,11 @@ class DataWriter(Component):
 
     def _write_dl2_telescope(self, tel_event: TelescopeEventContainer):
         """
-        write per-telescope DL2 shower information.
+        Write per-telescope DL2 shower information.
 
         Currently this writes to a single table per type of shower
         reconstruction and per algorithm, with all telescopes combined.
         """
-
         if tel_event.dl2 is None:
             return
         table_name = self.table_name(tel_event.index.tel_id)
@@ -472,8 +499,11 @@ class DataWriter(Component):
 
     def _write_dl2_subarray(self, event: SubarrayEventContainer):
         """
-        write per-telescope DL2 shower information to e.g.
-        `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
+        Write the subarray-level DL2 results for an event.
+
+        For example, geometry results go to
+        ``/dl2/event/subarray/geometry/<algorithm_name>``. Only results present
+        in the event are written.
         """
         if event.dl2 is None:
             return
@@ -522,7 +552,7 @@ class DataWriter(Component):
         self._constant_telescope_pointing_written[obs_id].add(tel_id)
 
     def finish(self):
-        """called after all events are done"""
+        """Called after all events are done"""
         self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
@@ -534,7 +564,7 @@ class DataWriter(Component):
 
     @property
     def datalevels(self):
-        """returns a list of data levels requested"""
+        """Returns a list of data levels requested"""
         data_levels = []
         if self.write_dl1_images:
             data_levels.append(DataLevel.DL1_IMAGES)
@@ -551,7 +581,7 @@ class DataWriter(Component):
         return data_levels
 
     def _setup_compression(self):
-        """setup HDF5 compression"""
+        """Setup HDF5 compression"""
         self._hdf5_filters = tables.Filters(
             complevel=self.compression_level,
             complib=self.compression_type,
@@ -599,8 +629,9 @@ class DataWriter(Component):
 
     def _setup_writer(self):
         """
-        Create a TableWriter and setup any column exclusions
-        When complete, self._writer should be initialized
+        Initialize the table writer and configure column exclusions.
+
+        The initialized writer is stored in ``self._writer``.
         """
         writer = HDF5TableWriter(
             str(self.output_path),
@@ -678,8 +709,7 @@ class DataWriter(Component):
         self.log.debug("Writer initialized: %s", self._writer)
 
     def _write_scheduling_and_observation_blocks(self):
-        """write out SB and OB info"""
-
+        """Write out SB and OB info"""
         self.log.debug(
             "writing %d sbs and %d obs",
             len(self.event_source.scheduling_blocks.values()),
@@ -721,8 +751,13 @@ class DataWriter(Component):
                 )
 
     def write_simulated_shower_distributions(self, distributions):
-        """Write the distribution of thrown showers."""
+        """Write the distribution of thrown showers.
 
+        Parameters
+        ----------
+        distributions : dict[int, SimulatedShowerDistribution]
+            Simulated shower distributions keyed by observation ID.
+        """
         self.log.debug("Writing simulation histograms")
 
         for container in distributions.values():
@@ -732,19 +767,26 @@ class DataWriter(Component):
             )
 
     def table_name(self, tel_id):
-        """Create table name for a telescope-wise table for given ``tel_id``"""
+        """Create table name for a telescope-wise table for given ``tel_id``
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID to encode in the table name.
+        """
         return f"tel_{tel_id:03d}"
 
     def _write_context_metadata_headers(self):
-        """write out any user-defined metadata in the context_metadata field to the
-        headers.
+        """Write user-defined context metadata to the headers.
+
+        The values come from ``context_metadata``. Each key is prefixed with ``CONTEXT``
+        before it is written to the file headers.
 
         This will create a set of headers that start with CONTEXT <KEY> = value
 
         Keys can be hierarchical separated by spaces
 
         """
-
         # first append CONTEXT to each key in the dict
 
         context_dict = {}
@@ -1011,15 +1053,14 @@ class DataWriter(Component):
 
     def _write_atmosphere_profile(self, path):
         """
-        write atmosphere profiles if they are in a tabular format
+        Write atmosphere profiles if they are in a tabular format
 
         Parameters
         ----------
-        path: str
+        path : str
             path in the HDF5 file where to place the profile
 
         """
-
         profile = self.event_source.atmosphere_density_profile
 
         if profile:

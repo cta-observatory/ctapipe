@@ -11,21 +11,15 @@ __all__ = ["EventSeeker"]
 
 class EventSeeker(Component):
     """
-    Provides the functionality to seek through a
-    `~ctapipe.io.EventSource` to find a particular event.
+    Find a particular event in an event source.
 
-    By default, this will loop through events from the start of the file
-    (unless the requested event is the same as the previous requested event,
-    or occurs later in the file). However if the
-    `ctapipe.io.EventSource` has defined a ``__getitem__``
-    method itself, then it will use that method, thereby taking advantage of
-    the random event access some file formats provide.
+    Events can be requested by sequential index or event ID. A source-provided lookup is
+    used when available. Otherwise the seeker iterates over the events, which can be
+    slow for large files.
 
-    To create an instance of an EventSeeker you must provide it a sub-class of
-    `~ctapipe.io.EventSource` (such as `ctapipe.io.SimTelEventSource`),
-    which will be used to loop through the file and provide the event container,
-    filled with the event information using the methods defined in the
-    event_source for that file format.
+    Pass a `~ctapipe.io.EventSource` instance, such as
+    `~ctapipe.io.SimTelEventSource`. For sequential sources, use a back-seekable
+    input when a lookup may need to restart from the beginning.
 
     To obtain a particular event in a simtel file:
 
@@ -45,18 +39,27 @@ class EventSeeker(Component):
     >>> print(event.count)
     1
 
-    **NOTE**: Event_index refers to the number associated to the event
-    assigned by ctapipe (``event.count``), based on the order the events are
-    read from the file.
-    Whereas the event_id refers to the ID attached to the event from the
-    external source of the file (software or camera or CTA array).
+    The event index is the sequential ``event.count`` assigned by ctapipe.
+    The event ID is the identifier supplied by the input file.
+
+    Parameters
+    ----------
+    event_source : EventSource
+        Source to seek within. Backward seeks require a source that can restart.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
     """
 
     def __init__(self, event_source, config=None, parent=None, **kwargs):
         """
-        Class to handle generic input files. Enables obtaining the "source"
-        generator, regardless of the type of file (either hessio or camera
-        file).
+        Initialize the event seeker with an input source.
+
+        Retain the event source and initialize an iterator for sequential lookups.
 
         Parameters
         ----------
@@ -68,11 +71,11 @@ class EventSeeker(Component):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent supplying configuration and logging. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -159,12 +162,10 @@ class EventSeeker(Component):
 
     def _get_event_by_index(self, index):
         """
-        Method for extracting a particular event by looping through events
-        until it finds the requested event index.
-        If a file format allows random event access, then is can define its
-        own `get_event_by_index` method in its
-        `ctapipe.io.eventsource.EventSource` to allow this class to
-        utilise that method instead.
+        Scan the event iterator for the requested index.
+
+        Reset the iterator when seeking behind the current event. Use `get_event_index`
+        as the public entry point, which can use source-provided random access.
 
         Parameters
         ----------
@@ -194,12 +195,11 @@ class EventSeeker(Component):
 
     def _get_event_by_id(self, event_id):
         """
-        Method for extracting a particular event by looping through events
-        until it finds the requested event id.
-        If a file format allows random event access, then is can define its
-        own `get_event_by_id` method in its
-        `ctapipe.io.eventsource.EventSource` to allow this class to
-        utilise that method instead.
+        Scan the event iterator for the requested ID.
+
+        Reset first if an event was already read, since IDs need not be in order. Use
+        `get_event_id` as the public entry point, which can use source-provided random
+        access.
 
         Parameters
         ----------
@@ -230,12 +230,11 @@ class EventSeeker(Component):
 
     def __len__(self):
         """
-        Method for getting number of events in file. By default this is
-        obtained by looping through the file and counting the events. If a
-        file format has a more efficient method of supplying this information,
-        the `ctapipe.io.eventsource.EventSource` for that file format
-        can define its own `__len__` method, which this class will then
-        use instead.
+        Count the events accessible through the event source.
+
+        Use the source's length when available. Otherwise count events by iteration,
+        which requires a non-streaming source. A nonzero count is cached for later
+        calls.
 
         Returns
         -------

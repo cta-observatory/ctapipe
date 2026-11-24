@@ -25,20 +25,19 @@ logger = logging.getLogger(__name__)
 
 def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
     """
-    Check whether ``bins`` are within a ``valid_range`` and either warn
-    or raise an error if not.
+    Warn or raise an error when bin edges lie outside the valid range.
 
     Parameters
     ----------
-    bins: u.Quantity
+    bins : u.Quantity
         The bins to be checked.
-    valid_range: ctapipe.irf.ResultValidRange
+    valid_range : ctapipe.irf.ResultValidRange
         Range for which bins are valid.
         E.g. the range in which G/H cuts are calculated.
-    source: str
+    source : str
         Description of which bins are being checked to give useful
         warnings/ error messages.
-    raise_error: bool
+    raise_error : bool
         Whether to raise an error (True) or give a warning (False) if
         ``bins`` exceed ``valid_range``.
     """
@@ -63,21 +62,22 @@ def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
 @u.quantity_input(e_min=u.TeV, e_max=u.TeV)
 def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
     """
-    Create energy bins with at least ``n_bins_per_decade`` bins per decade,
-    while using the exact lower (``e_min``) and upper (``e_max``) limits.
-    If you want to get exactly ``n_bins_per_decade`` use
-    `pyirf.binning.create_bins_per_decade`.
+    Create logarithmic energy bins with the specified outer edges.
+
+    The bins use the exact ``e_min`` and ``e_max`` limits and have at least
+    ``n_bins_per_decade`` bins per decade. Use `pyirf.binning.create_bins_per_decade`
+    for exactly that bin density.
 
     The number of bins is calculated as
     ``n_bins = ceil((log10(e_max) - log10(e_min)) * n_bins_per_decade)``.
 
     Parameters
     ----------
-    e_min: u.Quantity[energy]
+    e_min : u.Quantity[energy]
         Minimum energy, inclusive
-    e_max: u.Quantity[energy]
+    e_max : u.Quantity[energy]
         Maximum energy, inclusive
-    n_bins_per_decade: int
+    n_bins_per_decade : int
         Minimum number of bins per decade
 
     Returns
@@ -98,12 +98,32 @@ def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
 
 @dataclass
 class ResultValidRange:
+    """Store inclusive bounds for the validity of an analysis result.
+
+    The limits are quantities, for example energy bounds for a set of
+    selection cuts. Use them to check whether requested bin edges are
+    within the range covered by the result.
+    """
+
     min: u.Quantity
     max: u.Quantity
 
 
 class DefaultTrueEnergyBins(Component):
-    """Base class for creating irfs or benchmarks binned in true energy."""
+    """Base class for creating irfs or benchmarks binned in true energy.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``true_energy_min``,
+        ``true_energy_max``, and ``true_energy_n_bins_per_decade`` to control the bin
+        edges.
+    """
 
     true_energy_min = AstroQuantity(
         help="Minimum value for True Energy bins",
@@ -132,7 +152,20 @@ class DefaultTrueEnergyBins(Component):
 
 
 class DefaultRecoEnergyBins(Component):
-    """Base class for creating irfs or benchmarks binned in reconstructed energy."""
+    """Base class for creating irfs or benchmarks binned in reconstructed energy.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``reco_energy_min``,
+        ``reco_energy_max``, and ``reco_energy_n_bins_per_decade`` to control the bin
+        edges.
+    """
 
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",
@@ -182,6 +215,7 @@ class DefaultFoVOffsetBins(Component):
 
     @property
     def fov_offset_bins(self):
+        """Return evenly spaced field-of-view offset bin edges in degrees."""
         return u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
@@ -206,6 +240,7 @@ class DefaultFoVPhiBins(Component):
 
     @property
     def fov_phi_bins(self):
+        """Return uniform field-of-view azimuth bin edges from 0 to 360 degrees."""
         return u.Quantity(
             np.linspace(
                 0.0 * u.deg,

@@ -1,3 +1,9 @@
+"""Describe camera pixel geometry and waveform readout settings.
+
+Geometry describes the layout, shapes, and adjacency of pixels. Readout
+describes waveform sampling and the reference pulse shapes.
+"""
+
 from .description import CameraDescription  # noqa: F401
 from .geometry import (
     CameraGeometry,  # noqa: F401

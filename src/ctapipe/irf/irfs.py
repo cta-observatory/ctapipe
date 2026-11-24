@@ -1,6 +1,7 @@
 """Components to generate IRFs"""
 
 from abc import abstractmethod
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -37,7 +38,19 @@ __all__ = [
 
 
 class PSFMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the point spread function."""
+    """Base class for calculating the point spread function.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the number of bins per decade.
+    """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -49,9 +62,9 @@ class PSFMakerBase(DefaultTrueEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        extname: str
+        extname : str
             Name for the BinTableHDU.
 
         Returns
@@ -61,7 +74,19 @@ class PSFMakerBase(DefaultTrueEnergyBins):
 
 
 class BackgroundRateMakerBase(DefaultRecoEnergyBins):
-    """Base class for calculating the background rate."""
+    """Base class for calculating the background rate.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy bounds and the number of bins per decade.
+    """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -71,17 +96,16 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
         self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
     ) -> BinTableHDU:
         """
-        Calculate the background rate and create a fits binary table HDU
-        in GADF format.
+        Calculate the background rate and create a fits binary table HDU in GADF format.
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        obs_time: astropy.units.Quantity[time]
+        obs_time : astropy.units.Quantity[time]
             Observation time. This must match with how the individual event
             weights are calculated.
-        extname: str
+        extname : str
             Name for the BinTableHDU.
 
         Returns
@@ -91,7 +115,20 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
 
 
 class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the energy dispersion."""
+    """Base class for calculating the energy dispersion.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``energy_migration_binning`` to choose linear or logarithmic bins in the ratio
+        of reconstructed to true energy.
+    """
 
     energy_migration_min = Float(
         help="Minimum value of energy migration ratio",
@@ -136,16 +173,15 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
         extname: str = "ENERGY MIGRATION",
     ) -> BinTableHDU:
         """
-        Calculate the energy dispersion and create a fits binary table HDU
-        in GADF format.
+        Calculate energy dispersion and store it in a GADF FITS table.
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        spatial_selection_applied: bool
+        spatial_selection_applied : bool
             If a direction cut was applied on ``events``, pass ``True``, else ``False``.
-        extname: str
+        extname : str
             Name for the BinTableHDU.
 
         Returns
@@ -155,7 +191,19 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
 
 
 class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the effective area."""
+    """Base class for calculating the effective area.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the number of bins per decade.
+    """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -170,21 +218,20 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
         extname: str = "EFFECTIVE AREA",
     ) -> BinTableHDU:
         """
-        Calculate the effective area and create a fits binary table HDU
-        in GADF format.
+        Calculate the effective area and create a fits binary table HDU in GADF format.
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        spatial_selection_applied: bool
+        spatial_selection_applied : bool
             If a direction cut was applied on ``events``, pass ``True``, else ``False``.
-        signal_is_point_like: bool
+        signal_is_point_like : bool
             If ``events`` were simulated only at a single point in the field of view,
             pass ``True``, else ``False``.
-        sim_info: pyirf.simulations.SimulatedEventsInfoa
+        sim_info : pyirf.simulations.SimulatedEventsInfoa
             The overall statistics of the simulated events.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns
@@ -195,13 +242,27 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
 
 class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the effective area in equidistant
-    bins of logarithmic true energy and field of view offset.
+    Parameterize effective area in true energy and field of view offset bins.
+
+    The response is radially symmetric. The binning in logarithmic true energy and
+    field-of-view offset is uniform.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        and field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self,
         events: QTable,
@@ -239,13 +300,27 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
 
 class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the energy dispersion in
-    equidistant bins of logarithmic true energy and field of view offset.
+    Parameterize dispersion in true energy and field of view offset bins.
+
+    The response is radially symmetric. The binning in logarithmic true energy and
+    field-of-view offset is uniform.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy,
+        energy migration, and field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self,
         events: QTable,
@@ -270,13 +345,27 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
 
 class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the background rate in equidistant
-    bins of logarithmic reconstructed energy and field of view offset.
+    Parameterize background rate in reconstructed energy and offset bins.
+
+    The response is radially symmetric. The binning in logarithmic reconstructed energy
+    and field-of-view offset is uniform.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy and field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
     ) -> BinTableHDU:
@@ -296,8 +385,22 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
 
 class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric point spread function calculated in equidistant bins
-    of source offset, logarithmic true energy, and field of view offset.
+    Parameterize the point spread function assuming radial symmetry.
+
+    The bins are evenly spaced in source offset, logarithmic true energy, and
+    field-of-view offset.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``source_offset_min``, ``source_offset_max``, and ``source_offset_n_bins`` to
+        control the angular separation bins around the true source position.
     """
 
     source_offset_min = AstroQuantity(
@@ -328,6 +431,7 @@ class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
             u.deg,
         )
 
+    @override
     def __call__(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         psf = psf_table(
             events=events,

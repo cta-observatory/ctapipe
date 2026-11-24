@@ -1,7 +1,15 @@
+"""Read ctapipe HDF5 event data and its observation metadata.
+
+`HDF5EventSource` assembles event containers from stored waveform, image,
+parameter, and reconstruction tables where available. The module can also
+identify which data levels a file contains and load its atmospheric profile.
+"""
+
 import logging
 import warnings
 from contextlib import ExitStack
 from pathlib import Path
+from typing import override
 
 import numpy as np
 import tables
@@ -129,7 +137,13 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
 
 
 def get_hdf5_datalevels(h5file: tables.File | str | Path):
-    """Get the data levels present in the hdf5 file"""
+    """Get the data levels present in the hdf5 file
+
+    Parameters
+    ----------
+    h5file : str or pathlib.Path or tables.File
+        ctapipe HDF5 event file, as a path or open PyTables handle.
+    """
     datalevels = []
 
     with ExitStack() as stack:
@@ -157,23 +171,21 @@ def get_hdf5_datalevels(h5file: tables.File | str | Path):
 def read_atmosphere_density_profile(
     h5file: tables.File, path=ATMOSPHERE_DENSITY_PROFILE_TABLE
 ):
-    """return a subclass of AtmosphereDensityProfile by
-    reading a table in a h5 file
+    """Read an atmospheric density profile from an HDF5 table.
 
     Parameters
     ----------
-    h5file: tables.File
+    h5file : tables.File
         file handle of HDF5 file
-    path: str
+    path : str
         path in the file where the serialized model is stored as an
         astropy.table.Table
 
     Returns
     -------
-    AtmosphereDensityProfile:
-        subclass depending on type of table
+    AtmosphereDensityProfile or None
+        Deserialized profile, or None if the table is missing.
     """
-
     if path not in h5file:
         return None
 
@@ -184,6 +196,7 @@ def read_atmosphere_density_profile(
 class HDF5EventSource(EventSource):
     """
     Event source for files in the ctapipe DL1 format.
+
     For general information about the concept of event sources,
     take a look at the parent class ctapipe.io.EventSource.
 
@@ -193,6 +206,19 @@ class HDF5EventSource(EventSource):
     Looping over the EventSource yields events from the _generate_events
     method. An event equals an SubarrayEventContainer instance.
     See ctapipe.containers.SubarrayEventContainer for details.
+
+    Parameters
+    ----------
+    input_url : str or pathlib.Path or None, optional
+        Path to the HDF5 event file. With None, use the configured input path.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, restrict the
+        telescope IDs with ``allowed_tels``.
 
     Attributes
     ----------
@@ -241,17 +267,18 @@ class HDF5EventSource(EventSource):
         """
         EventSource for dl1 files in the standard DL1 data format
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input_url : str
             Path of the file to load
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        parent:
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
             Parent from which the config is used. Mutually exclusive with config
-        kwargs
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
@@ -327,16 +354,19 @@ class HDF5EventSource(EventSource):
         return {dist.obs_id: dist for dist in reader}
 
     @property
+    @override
     def simulated_shower_distributions(self):
         return self._simulated_shower_distributions
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    @override
     def close(self):
         self.file_.close()
 
     @staticmethod
+    @override
     def is_compatible(file_path):
         path = Path(file_path).expanduser()
         if not path.is_file():
@@ -437,34 +467,39 @@ class HDF5EventSource(EventSource):
         return DL1_TEL_MUON_GROUP in self.file_.root
 
     @property
+    @override
     def subarray(self):
         return self._subarray
 
     @lazyproperty
+    @override
     def datalevels(self):
         return get_hdf5_datalevels(self.file_)
 
     @lazyproperty
+    @override
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return read_atmosphere_density_profile(self.file_)
 
     @property
+    @override
     def obs_ids(self):
         return self._obs_ids
 
     @property
+    @override
     def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         return self._scheduling_block
 
     @property
+    @override
     def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         return self._observation_block
 
     @property
     def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         """
-        Returns the simulation config(s) as
-        a dict mapping obs_id to the respective config.
+        Return the simulation configuration for each observation ID.
         """
         return self._simulation_configs
 
@@ -509,9 +544,10 @@ class HDF5EventSource(EventSource):
 
     def _parse_simulation_configs(self):
         """
-        Construct a dict of SimulationConfigContainers from the
-        self.file_.root.configuration.simulation.run.
-        These are used to match the correct header to each event
+        Read the simulation configurations from the file.
+
+        Read the run configuration from ``self.file_.root.configuration.simulation.run``
+        so that each event can be matched to its header.
         """
 
         # Just returning next(reader) would work as long as there are no merged files
@@ -534,8 +570,7 @@ class HDF5EventSource(EventSource):
             return {}
 
     def _parse_sb_and_ob_configs(self):
-        """read Observation and Scheduling block configurations"""
-
+        """Read Observation and Scheduling block configurations"""
         sb_reader = HDF5TableReader(self.file_).read(
             SCHEDULING_BLOCK_TABLE,
             containers=SchedulingBlockContainer,

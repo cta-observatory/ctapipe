@@ -1,6 +1,8 @@
 """
-Definition of the ``PixelStatisticsCalculator`` class, providing all steps needed to
-calculate the monitoring data for the camera calibration.
+Calculate camera monitoring statistics for calibration.
+
+The ``PixelStatisticsCalculator`` combines configured aggregators to produce the
+monitoring data.
 """
 
 import numpy as np
@@ -35,6 +37,21 @@ class PixelStatisticsCalculator(TelescopeComponent):
     while overlapping chunks can be set by the ``chunk_shift`` parameter for the second pass.
     The second pass over the data is only conducted in regions of trouble with a high fraction
     of faulty pixels exceeding the threshold ``faulty_pixels_fraction``.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to select the statistics aggregator for each telescope and
+        configure the outlier detectors.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``stats_aggregator_type`` or ``outlier_detector_list`` to choose how calibration
+        data are aggregated and checked.
     """
 
     stats_aggregator_type = TelescopeParameter(
@@ -69,19 +86,23 @@ class PixelStatisticsCalculator(TelescopeComponent):
         **kwargs,
     ):
         """
+        Set up pixel-statistics aggregators and optional outlier detectors.
+
+        The configuration selects the available aggregators for the subarray and
+        which statistics each outlier detector should inspect.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope descriptions used to resolve telescope-dependent settings
+            and initialize the outlier detectors.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
@@ -200,8 +221,9 @@ class PixelStatisticsCalculator(TelescopeComponent):
             Note: This boolean array can be a ``logical_and`` from multiple first passes of different calibration events.
         tel_id : int
             Telescope ID for which the calibration is being performed.
-        masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing.
+        masked_elements_of_sample : ndarray, optional
+            Boolean mask of unavailable elements. For camera images it has shape
+            ``(n_channels, n_pixels)``.
         col_name : str
             Column name in the table from which the statistics will be aggregated.
 
@@ -292,7 +314,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
             Table containing the aggregated statistics or histograms.
 
         """
-
         outlier_mask = (
             np.zeros_like(aggregated_stats["histogram"], dtype=bool)
             if "histogram" in aggregated_stats.colnames

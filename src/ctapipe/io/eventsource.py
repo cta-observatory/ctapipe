@@ -83,14 +83,18 @@ class EventSource(Component):
 
     Parameters
     ----------
-    input_url : str | Path
-        Path to the input event file.
-    max_events : int
-        Maximum number of events to loop through in generator
-    allowed_tels: Set or None
-        Ids of the telescopes to be included in the data.
-        If given, only this subset of telescopes will be present in the
-        generated events. If None, all available telescopes are used.
+    input_url : str or pathlib.Path or None, optional
+        Path to the input event file. If omitted, use the configured input.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent supplying configuration and logging. Mutually exclusive with
+        ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``max_events`` to limit
+        how many events the source yields. Set ``allowed_tels`` to a set of
+        telescope IDs to include, or leave it as None to use all available
+        telescopes.
     """
 
     #: ctapipe_io entry points may provide EventSource implementations
@@ -117,8 +121,24 @@ class EventSource(Component):
 
     def __new__(cls, input_url=Undefined, config=None, parent=None, **kwargs):
         """
-        Returns a compatible subclass for given input url, either
-        directly or via config / parent
+        Construct an event source compatible with the input.
+
+        The URL can be supplied directly or obtained from the configuration or parent
+        component.
+
+        Parameters
+        ----------
+        input_url : str or pathlib.Path or None, optional
+            Input path used to select a compatible source. If omitted, resolve the path
+            from the configuration.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration and logging.
+            Mutually exclusive with ``config``.
+        **kwargs
+            Options for the selected source's initializer. Source selection itself uses
+            the input path.
         """
         # needed to break recursion, as __new__ of subclass will also
         # call this method
@@ -173,8 +193,9 @@ class EventSource(Component):
     @property
     def is_stream(self):
         """
-        Bool indicating if input is a stream. If it is then it is incompatible
-        with `ctapipe.io.eventseeker.EventSeeker`.
+        Indicate whether the input is a stream.
+
+        If it is then it is incompatible with `ctapipe.io.eventseeker.EventSeeker`.
 
         TODO: Define a method to detect if it is a stream
 
@@ -189,18 +210,20 @@ class EventSource(Component):
     @abstractmethod
     def subarray(self) -> SubarrayDescription:
         """
-        Obtain the subarray from the EventSource
+        Return the instrument description for the source's subarray.
 
         Returns
         -------
-        ctapipe.instrument.SubarrayDecription
+        ctapipe.instrument.SubarrayDescription
 
         """
 
     @property
     def simulation_config(self) -> dict[int, SimulationConfigContainer] | None:
-        """The simulation configurations of all observations provided by the
-        EventSource, or None if the source does not provide simulated data
+        """Return the simulation configurations provided by the source.
+
+        The result maps the IDs of all simulated observations to their configurations.
+        Return ``None`` when the source does not provide simulated data.
 
         Returns
         -------
@@ -218,30 +241,19 @@ class EventSource(Component):
     @property
     @abstractmethod
     def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
-        """
-        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
-        """
+        """Return observation blocks keyed by observation ID."""
         pass
 
     @property
     @abstractmethod
     def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
-        """
-        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
-        """
+        """Return scheduling blocks keyed by scheduling block ID."""
         pass
 
     @property
     @abstractmethod
     def is_simulation(self) -> bool:
-        """
-        Whether the currently opened file is simulated
-
-        Returns
-        -------
-        bool
-
-        """
+        """Indicate whether the source provides simulated events."""
 
     @property
     @abstractmethod
@@ -260,7 +272,7 @@ class EventSource(Component):
 
         Parameters
         ----------
-        datalevels: Iterable
+        datalevels : Iterable
             Iterable of datalevels
         """
         return any(dl in self.datalevels for dl in datalevels)
@@ -269,6 +281,7 @@ class EventSource(Component):
     def obs_ids(self) -> list[int]:
         """
         The observation ids of the runs located in the file
+
         Unmerged files should only contain a single obs id.
 
         Returns
@@ -279,10 +292,11 @@ class EventSource(Component):
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile | None:
-        """atmosphere density profile that can be integrated to
-        convert between h_max and X_max.  This should correspond
-        either to what was used in a simulation, or a measurement
-        for use with observed data.
+        """Return the density profile associated with the observations.
+
+        Use the profile from the simulation or a measured profile for observed data. The
+        profile converts between ``h_max`` and ``X_max``. The default implementation
+        returns ``None``.
 
         Returns
         -------
@@ -294,11 +308,12 @@ class EventSource(Component):
     @property
     def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
         """
-        The distribution of simulated showers for each obs_id.
+        Return the available distributions of simulated showers by observation ID.
 
         Returns
         -------
-        dict[int,ctapipe.containers.SimulatedShowerDistribution]
+        dict[int, ctapipe.containers.SimulatedShowerDistribution]
+            Empty when no simulated shower distributions are available.
         """
         return {}
 
@@ -316,8 +331,7 @@ class EventSource(Component):
 
     def __iter__(self):
         """
-        Generator that iterates through `_generator`, but keeps track of
-        `self.max_events`.
+        Iterate through events up to the configured maximum.
 
         Returns
         -------

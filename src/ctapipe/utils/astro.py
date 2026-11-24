@@ -1,8 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-This module is intended to contain astronomy-related helper tools which are
-not provided by external packages and/or to satisfy particular needs of
-usage within ctapipe.
+Provide astronomy utilities for use in ctapipe.
+
+These helpers cover functionality missing from external packages or specific to ctapipe.
 """
 
 import gzip
@@ -215,8 +215,13 @@ def update_star_catalogs(resource_path=None):
 
     This function is intended for developers to update the resources files bundled
     with ctapipe.
-    """
 
+    Parameters
+    ----------
+    resource_path : pathlib.Path or None, optional
+        Directory for the updated catalog files. None writes into the package's resource
+        directory.
+    """
     if resource_path is None:
         resource_path = Path(__file__).parents[1] / "resources"
 

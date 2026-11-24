@@ -1,3 +1,5 @@
+"""Summarize camera pixel intensities and find the brightest pixels."""
+
 from heapq import nlargest
 
 import numpy as np
@@ -18,8 +20,9 @@ __all__ = [
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def skewness(data, mean=None, std=None):
-    """Calculate skewnewss (normalized third central moment)
-    with allowing precomputed mean and std.
+    """Compute skewness with an optional precomputed mean and standard deviation.
+
+    Skewness is the normalized third central moment.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
     for our use case (1D arrays with ~100-1000 elements)
@@ -28,11 +31,11 @@ def skewness(data, mean=None, std=None):
 
     Parameters
     ----------
-    data: ndarray
+    data : ndarray
         Data for which skewness is calculated
-    mean: float or None
+    mean : float or None
         pre-computed mean, if not given, mean is computed
-    std: float or None
+    std : float or None
         pre-computed std, if not given, std is computed
 
     Returns
@@ -51,8 +54,9 @@ def skewness(data, mean=None, std=None):
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def kurtosis(data, mean=None, std=None, fisher=True):
-    """Calculate kurtosis (normalized fourth central moment)
-    with allowing precomputed mean and std.
+    """Compute kurtosis with an optional precomputed mean and standard deviation.
+
+    Kurtosis is the normalized fourth central moment.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
     for our use case (1D arrays with ~100-1000 elements)
@@ -61,13 +65,13 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 
     Parameters
     ----------
-    data: ndarray
+    data : ndarray
         Data for which skewness is calculated
-    mean: float or None
+    mean : float or None
         pre-computed mean, if not given, mean is computed
-    std: float or None
+    std : float or None
         pre-computed std, if not given, std is computed
-    fisher: bool
+    fisher : bool
         If True, Fisher’s definition is used (normal ==> 0.0).
         If False, Pearson’s definition is used (normal ==> 3.0).
 
@@ -91,7 +95,15 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 def descriptive_statistics(
     values, container_class=ImageStatisticsContainer
 ) -> ImageStatisticsContainer:
-    """compute intensity statistics of an image"""
+    """Compute intensity statistics of an image
+
+    Parameters
+    ----------
+    values : ndarray
+        Values over which to compute the statistics.
+    container_class : type[Container], optional
+        Container class accepting the moments and extrema as keyword arguments.
+    """
     mean = values.mean()
     std = values.std()
     return container_class(
@@ -106,7 +118,15 @@ def descriptive_statistics(
 
 @njit
 def n_largest(n, array):
-    """return the n largest values of an array"""
+    """Return the n largest values of an array
+
+    Parameters
+    ----------
+    n : int
+        Maximum number of entries to select.
+    array : array-like
+        Comparable values from which to select the largest entries.
+    """
     return nlargest(n, array)
 
 
@@ -125,6 +145,15 @@ def arg_n_largest_gu(dummy, array, idx):
 
     Used by the `arg_n_largest` wrapper to return the indices of the n largest
     values of an array.
+
+    Parameters
+    ----------
+    dummy : ndarray
+        Size template. Its length determines how many indices to select.
+    array : ndarray
+        Values to rank.
+    idx : ndarray of int
+        Output buffer filled with indices in descending value order.
     """
     values = []
     for i in range(len(array)):
@@ -136,7 +165,15 @@ def arg_n_largest_gu(dummy, array, idx):
 
 
 def arg_n_largest(n, array):
-    """Return the indices of the n largest values of an array"""
+    """Return the indices of the n largest values of an array
+
+    Parameters
+    ----------
+    n : int
+        Number of indices to return. Use a value no larger than the array length.
+    array : ndarray
+        Values to rank. Ties are resolved by descending index.
+    """
     dummy = np.zeros(n, dtype=np.int64)
     idx = arg_n_largest_gu(dummy, array)
     return idx

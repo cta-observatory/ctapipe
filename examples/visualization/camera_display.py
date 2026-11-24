@@ -269,7 +269,7 @@ disp.add_colorbar(ax=ax)
 
 
 def update(frame):
-    """this function will be called for each frame of the animation"""
+    """This function will be called for each frame of the animation"""
     x, y = np.random.uniform(-fov, fov, size=2)
     width = np.random.uniform(0.01, maxwid)
     length = np.random.uniform(width, maxlen)

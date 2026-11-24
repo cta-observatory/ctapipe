@@ -705,7 +705,7 @@ def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
 
 
 def test_atmosphere_profile(prod5_gamma_simtel_path):
-    """check that for a file with a profile in it that we get it back"""
+    """Check that for a file with a profile in it that we get it back"""
     from ctapipe.atmosphere import AtmosphereDensityProfile
 
     with SimTelEventSource(prod5_gamma_simtel_path) as source:

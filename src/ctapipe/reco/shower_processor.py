@@ -27,6 +27,22 @@ class ShowerProcessor(Component):
     reconstructors, be it directly as model input or as input to the feature generation.
     This may include previously made dl2 predictions,
     in which case the order of ``reconstructor_types`` is important.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray shared by the selected reconstruction components.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric density profile to pass to the reconstructors. Required when any
+        selected reconstructor needs it.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``reconstructor_types`` to
+        choose the algorithms to apply.
     """
 
     reconstructor_types = traits.ComponentNameList(
@@ -49,21 +65,29 @@ class ShowerProcessor(Component):
         **kwargs,
     ):
         """
+        Create the configured shower reconstructors for the subarray.
+
         Parameters
         ----------
-        subarray : SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent : ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
-        """
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions supplied to each reconstructor.
+        atmosphere_profile : ctapipe.atmosphere.AtmosphereDensityProfile or None
+            Density profile to pass to the reconstructors. Required if any
+            selected reconstructor needs atmospheric information.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
 
+        Raises
+        ------
+        TypeError
+            If a selected reconstructor needs an atmosphere profile and none is
+            supplied.
+        """
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.atmosphere_profile = atmosphere_profile

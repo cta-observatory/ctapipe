@@ -22,7 +22,7 @@ from ..tool import (
 
 
 def test_tool_simple():
-    """test the very basic functionality of a Tool"""
+    """Test the very basic functionality of a Tool"""
 
     class MyTool(Tool):
         description = "test"
@@ -43,7 +43,7 @@ def test_tool_simple():
 
 
 def test_tool_version():
-    """check that the tool gets an automatic version string"""
+    """Check that the tool gets an automatic version string"""
 
     class MyTool(Tool):
         description = "test"
@@ -54,7 +54,7 @@ def test_tool_version():
 
 
 def test_provenance_dir():
-    """check that the tool gets the provenance dir"""
+    """Check that the tool gets the provenance dir"""
 
     class MyTool(Tool):
         description = "test"
@@ -67,7 +67,7 @@ def test_provenance_dir():
 
 
 def test_provenance_log_help(tmpdir):
-    """check that the tool does not write a provenance log if only the help was run"""
+    """Check that the tool does not write a provenance log if only the help was run"""
     from ctapipe.core.tool import run_tool
 
     class MyTool(Tool):
@@ -82,7 +82,7 @@ def test_provenance_log_help(tmpdir):
 
 
 def test_show_config(tmpdir, capsys):
-    """check --show-config and --show-config-json work"""
+    """Check --show-config and --show-config-json work"""
     from ctapipe.core.tool import run_tool
 
     class MyTool(Tool):
@@ -99,7 +99,7 @@ def test_show_config(tmpdir, capsys):
 
 
 def test_export_config_to_yaml():
-    """test that we can export a Tool's config to YAML"""
+    """Test that we can export a Tool's config to YAML"""
     import yaml
 
     from ctapipe.tools.process import ProcessorTool
@@ -115,7 +115,7 @@ def test_export_config_to_yaml():
 
 
 def test_tool_html_rep(tmp_path):
-    """check that the HTML rep for Jupyter notebooks works"""
+    """Check that the HTML rep for Jupyter notebooks works"""
 
     class MyTool(Tool):
         description = "test"
@@ -200,8 +200,10 @@ def test_tool_current_config_subcomponents():
 
 
 def test_tool_current_config_subcomponents_list():
-    """Check that we can get the full instance configuration for tools that
-    contain lists of subcomponents (which can be tools)"""
+    """Check that the tool configuration includes lists of subcomponents.
+
+    Subcomponents in the list can themselves be tools.
+    """
     from ctapipe.core.component import Component
 
     class SubComponent(Component):
@@ -264,7 +266,7 @@ def test_tool_exit_code():
 
 def test_tool_command_line_precedence():
     """
-    ensure command-line has higher priority than config file
+    Ensure command-line has higher priority than config file
     """
 
     class SubComponent(Component):
@@ -517,7 +519,7 @@ def test_exit_stack():
 
 
 def test_activity(tmp_path, example_subarray):
-    """check that the config is correctly in the provenance"""
+    """Check that the config is correctly in the provenance"""
 
     class Comp(Component):
         quantity = traits.AstroQuantity(u.m).tag(config=True)
@@ -607,7 +609,7 @@ def test_activity(tmp_path, example_subarray):
     ],
 )
 def test_exit_status(exit_code, expected_status, tmp_path):
-    """check that the config is correctly in the provenance"""
+    """Check that the config is correctly in the provenance"""
 
     class MyTool(Tool):
         exit_code = Int(allow_none=True, default_value=None).tag(config=True)
@@ -653,8 +655,7 @@ class InterruptTestTool(Tool):
 
 
 def test_exit_status_interrupted(tmp_path):
-    """check that the config is correctly in the provenance"""
-
+    """Check that the config is correctly in the provenance"""
     # to make sure we only kill the process once it is running
     barrier = Barrier(2)
     tool = InterruptTestTool(barrier)
@@ -677,9 +678,9 @@ def test_exit_status_interrupted(tmp_path):
 
 
 def test_no_ignore_bad_config_type(tmp_path: Path):
-    """Check that if an unknown type of config file is given, an error is raised
-    instead of silently ignoring the file (which is the default for
-    traitlets.config)
+    """Check that an unsupported configuration file type raises an error.
+
+    By default, `traitlets.config` silently ignores unknown file types.
     """
 
     class SomeTool(Tool):
@@ -708,8 +709,7 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
 
 
 def test_tool_in_tool():
-    """Check that a Tool that calls other Tools has the right config in the
-    provenance log."""
+    """Check that provenance records the configuration of nested tools."""
 
     class InnerTool(Tool):
         param1 = traits.Int(12).tag(config=True)

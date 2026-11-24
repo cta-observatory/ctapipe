@@ -1,4 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+"""Locate and load datasets used by ctapipe.
+
+Look for named datasets in configured directories or the download cache,
+and fetch them from the configured server when needed. The module also
+loads table and structured datasets and locates bundled resources.
+"""
+
 import gzip
 import json
 import logging
@@ -48,7 +56,17 @@ def get_default_url():
 
 
 def get_searchpath_dirs(searchpath=None, url=None):
-    """returns a list of dirs in specified searchpath"""
+    """Returns a list of dirs in specified searchpath
+
+    Parameters
+    ----------
+    searchpath : str or None, optional
+        Colon-separated directory list, with environment-variable expansion. None uses
+        ``CTAPIPE_SVC_PATH``.
+    url : str or None, optional
+        Dataset server base URL identifying the cache directory to append. None uses the
+        configured default URL.
+    """
     if url is None:
         url = get_default_url()
 
@@ -70,25 +88,28 @@ def find_all_matching_datasets(
     url=None,
 ):
     """
-    Returns a list of resource names (or substrings) matching the given
-    pattern, searching first in CTAPIPE_SVC_PATH (a colon-separated list of
-    directories) and then in the download cache.
+    Find matching dataset names in the configured search locations.
+
+    Search the supplied directories and the download cache for the selected URL.
+    The directory list defaults to ``CTAPIPE_SVC_PATH``. This searches local files
+    only. It does not query the remote server.
 
     Parameters
     ----------
-    pattern: str
-       regular expression to use for matching
-    searchpath: str
-       colon-seprated list of directories in which to search, defaulting to
-       CTAPIPE_SVC_PATH environment variable
-    regexp_group: int
-       if not None, return the regular expression group indicated (assuming
-       pattern has a group specifier in it)
+    pattern : str
+        Regular expression matched against each entry name from the start.
+    searchpath : str or None
+        Colon-separated directories to search before the cache.
+    regexp_group : int or None
+        Capture group to return instead of each matching path.
+    url : str or None
+        Dataset server URL used to locate the cache. Defaults to the configured URL.
 
     Returns
     -------
-    list(str):
-       resources names, use get_dataset_path() to retrieve the full filename
+    list of pathlib.Path or list of str
+        Distinct matches in no guaranteed order. With ``regexp_group`` the
+        result contains the captured strings instead of paths.
     """
     if url is None:
         url = get_default_url()
@@ -119,14 +140,18 @@ def find_in_path(filename, searchpath, url=None):
 
     Parameters
     ----------
-    searchpath: str
-        colon-separated list of directories (like PATH)
-    filename:
+    filename : str or path-like
         filename to find
+    searchpath : str or None
+        Colon-separated directories to search. None uses ``CTAPIPE_SVC_PATH``.
+    url : str or None, optional
+        Dataset server base URL used to locate the local download cache.
+        None uses the configured default URL.
 
     Returns
     -------
-    full path to file if found, None otherwise
+    pathlib.Path or None
+        Path to the first match, or None if the file was not found.
 
     """
     if url is None:
@@ -142,8 +167,9 @@ def find_in_path(filename, searchpath, url=None):
 
 def get_dataset_path(filename, url=None):
     """
-    Returns the full file path to an auxiliary dataset needed by
-    ctapipe, given the dataset's full name (filename with no directory).
+    Find the full path to a named ctapipe dataset.
+
+    Supply the filename without its directory.
 
     This will first search for the file in directories listed in
     the environment variable CTAPIPE_SVC_PATH (if set), and if not found,
@@ -151,12 +177,16 @@ def get_dataset_path(filename, url=None):
 
     Parameters
     ----------
-    filename: str
+    filename : str
         name of dataset to fetch
+    url : str or None, optional
+        Base URL used for downloading the dataset and locating its local cache.
+        None uses the configured default URL.
 
     Returns
     -------
-    string with full path to the given dataset
+    pathlib.Path
+        Path to the local dataset file.
     """
     searchpath = os.getenv("CTAPIPE_SVC_PATH")
     if url is None:
@@ -184,22 +214,21 @@ def get_dataset_path(filename, url=None):
 
 def try_filetypes(basename, role, file_types, url=None, **kwargs):
     """
-    Get the contents of dataset as an `astropy.table.Table` object from
-    different file types if available.
+    Load a dataset as an Astropy table using the available file type.
 
     Parameters
     ----------
-    basename: str
+    basename : str
         base-name (without extension) of the dataset
-    role: str
+    role : str
         Provenance role. It should be set to the CTA data hierarchy name when
         possible (e.g. dl1.sub.svc.arraylayout). This will be recorded in the
         provenance system.
-    file_types: dict
+    file_types : dict
         Mapping of file extensions to readers.
     url : str
         URL where the dataset is stored.
-    kwargs:
+    **kwargs
         extra arguments to pass to Table.read()
 
     Returns
@@ -249,24 +278,23 @@ def try_filetypes(basename, role, file_types, url=None, **kwargs):
 
 def get_table_dataset(table_name, role="resource", **kwargs):
     """
-    get a tabular dataset as an `astropy.table.Table` object
+    Get a tabular dataset as an `astropy.table.Table` object
 
     Parameters
     ----------
-    table_name: str
+    table_name : str
         base name of table, without file extension
-    role: str
+    role : str
         should be set to the CTA data hierarchy name when possible (e.g.
         dl1.sub.svc.arraylayout). This will be recorded in the provenance
         system.
-    kwargs:
+    **kwargs
         extra arguments to pass to Table.read()
 
     Returns
     -------
     Table
     """
-
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
     table_types = {
@@ -281,16 +309,16 @@ def get_table_dataset(table_name, role="resource", **kwargs):
 
 def get_structured_dataset(basename, role="resource", **kwargs):
     """
-    find and return a YAML or JSON dataset as a dictionary
+    Find and return a YAML or JSON dataset as a dictionary
 
     Parameters
     ----------
-    basename: str
+    basename : str
         base-name (without extension) of the dataset
-    role: str
+    role : str
         provenence role
-    kwargs: dict
-        any other arguments to pass on to yaml or json loader.
+    **kwargs
+        Keyword arguments forwarded to the loader for the selected file format.
 
     Returns
     -------
@@ -313,7 +341,13 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
 
 def resource_file(filename):
-    """Get the absolute path of ctapipe resource files."""
+    """Get the absolute path of ctapipe resource files.
+
+    Parameters
+    ----------
+    filename : str or path-like
+        Name or relative path of a file in the package's resource directory.
+    """
     return files("ctapipe").joinpath("resources", filename)
 
 
@@ -324,6 +358,11 @@ def get_file_type(
 
     Supports HDF5, FITS, ECSV, JSON, and ZIP, including gzip-compressed files.
     Returns None if the file type is not recognized.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        File whose leading bytes are inspected to determine the format.
     """
     path = Path(path)
     header_bytes = 8

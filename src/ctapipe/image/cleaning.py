@@ -1,7 +1,6 @@
 """
 Image Cleaning Algorithms (identification of noisy pixels)
 
-
 All algorithms return a boolean mask that is True for pixels surviving
 the cleaning.
 
@@ -53,12 +52,13 @@ def tailcuts_clean(
     keep_isolated_pixels=False,
     min_number_picture_neighbors=0,
 ):
-    """Clean an image by selection pixels that pass a two-threshold
-    tail-cuts procedure.  The picture and boundary thresholds are
-    defined with respect to the pedestal dispersion. All pixels that
-    have a signal higher than the picture threshold will be retained,
-    along with all those above the boundary threshold that are
-    neighbors of a picture pixel.
+    """Clean an image using picture and boundary thresholds.
+
+    The picture threshold selects candidate pixels, optionally subject to a minimum
+    number of picture neighbors. Boundary pixels must meet the boundary threshold
+    and neighbor a picture pixel. Unless isolated pixels are kept, picture pixels
+    must also have a neighbor meeting the boundary threshold. Both thresholds are
+    commonly chosen relative to pedestal noise.
 
     To include extra neighbor rows of pixels beyond what are accepted, use the
     `ctapipe.image.dilate` function.
@@ -120,8 +120,10 @@ def tailcuts_clean(
 
 def bright_cleaning(image, threshold, fraction, n_pixels=3):
     """
-    Clean an image by removing pixels below a fraction of the mean charge
-    in the ``n_pixels`` brightest pixels.
+    Clean an image using a threshold based on its brightest pixels.
+
+    The threshold is a fraction of the mean charge of the ``n_pixels`` brightest pixels.
+    If that mean is below the activation threshold, every pixel is retained.
 
     No pixels are removed instead if the mean charge of the brightest pixels
     are below a certain threshold.
@@ -164,8 +166,7 @@ def mars_cleaning_1st_pass(
     min_number_picture_neighbors=0,
 ):
     """
-    Clean an image by selecting pixels that pass a three-threshold tail-cuts
-    procedure.
+    Clean an image by selecting pixels that pass a three-threshold tail-cuts procedure.
 
     All thresholds are defined with respect to the pedestal
     dispersion. All pixels that have a signal higher than the core (picture)
@@ -197,7 +198,6 @@ def mars_cleaning_1st_pass(
     -------
     A boolean mask of selected pixels.
     """
-
     pixels_from_tailcuts_clean = tailcuts_clean(
         geom,
         image,
@@ -236,8 +236,7 @@ def mars_cleaning_1st_pass(
 
 def dilate(geom, mask):
     """
-    Add one row of neighbors to the true values of a pixel mask and return
-    the new mask.
+    Add one row of neighbors to the true values of a pixel mask and return the new mask.
 
     This can be used to include extra rows of pixels in a mask that was
     pre-computed, e.g. via `tailcuts_clean`.
@@ -256,8 +255,7 @@ def apply_time_delta_cleaning(
     geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
     """
-    Identify all pixels from selection that have less than N
-    neighbors that arrived within a given timeframe.
+    Remove selected pixels with too few neighbors close in time.
 
     Parameters
     ----------
@@ -290,24 +288,25 @@ def apply_time_average_cleaning(
     geom, mask, image, arrival_times, picture_thresh, time_limit
 ):
     """
-    Extract all pixels that arrived within a given timeframe
-    with respect to the time average of the pixels on the main island.
+    Select pixels close in arrival time to the brightest island.
 
-    In order to avoid removing signal pixels of large impact-parameter events,
-    the time limit for bright pixels is doubled.
+    The reference time is weighted by squared pixel charge within that island. The time
+    window is doubled for pixels with charge at least twice the picture threshold, which
+    helps retain signal in large-impact events.
 
     Parameters
     ----------
     geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     mask : np.ndarray
-        boolean mask of selected pixels before `apply_time_delta_cleaning`
+        Boolean mask of pixels selected before applying this time cut.
     image : np.ndarray
         pixel charges
     arrival_times : np.ndarray
         pixel timing information
     picture_thresh : float
-        threshold above which ``time_limit`` is extended twice its value
+        Picture threshold. Pixels with at least twice this charge use a
+        time window twice as wide.
     time_limit : int | float
         arrival time limit w.r.t. the average time of the core pixels
 
@@ -378,7 +377,6 @@ def fact_image_cleaning(
     ----------
     See :cite:p:`phd-temme` and for implementation :cite:p:`fact-tools`.
     """
-
     # Step 1
     pixels_to_keep = image >= picture_threshold
 
@@ -444,24 +442,23 @@ def time_constrained_clean(
         pixel charges
     arrival_times : np.ndarray
         pixel timing information
-    picture_threshold : float | np.ndarray
-        threshold above which all pixels are retained
-    boundary_threshold : float | np.ndarray
-        threshold above which pixels are retained if they have a neighbor
-        already above the ``picture_thresh``
+    picture_thresh : float or ndarray
+        Minimum charge for a candidate core pixel.
+    boundary_thresh : float or ndarray
+        Minimum charge for a candidate boundary pixel.
     time_limit_core : int | float
         arrival time limit of core pixels w.r.t the average time
     time_limit_boundary : int | float
         arrival time limit of boundary pixels w.r.t neighboring core pixels
-    min_number_neighbors : int
-        Threshold to determine if a pixel survives cleaning steps.
-        These steps include checks of neighbor arrival time and value
+    min_number_picture_neighbors : int
+        Minimum number of neighbors above ``picture_thresh`` for a candidate
+        core pixel. A boundary pixel needs this many core neighbors within
+        ``time_limit_boundary``.
 
     Returns
     -------
     A boolean mask of selected pixels.
     """
-
     # find core pixels that pass a picture threshold
     pixels_above_picture = image >= picture_thresh
 
@@ -640,8 +637,9 @@ def nsb_image_cleaning(
 
 class ImageCleaner(TelescopeComponent):
     """
-    Abstract class for all configurable Image Cleaning algorithms. Use
-    ``ImageCleaner.from_name()`` to construct an instance of a particular algorithm
+    Define the interface for configurable image cleaners.
+
+    Use ``ImageCleaner.from_name()`` to construct an instance of a particular algorithm
     """
 
     @abstractmethod
@@ -659,28 +657,29 @@ class ImageCleaner(TelescopeComponent):
         Parameters
         ----------
         tel_id : int
-            which telescope id in the subarray is being used (determines
-            which cut is used)
-        image : np.ndarray
-            image pixel data corresponding to the camera geometry
-        arrival_times : np.ndarray
-            image of arrival time (not used in this method)
-        monitoring: `ctapipe.containers.CameraMonitoringContainer`
-            Monitoring information to make use of additional parameters
-            e.g. pedestal std.
+            Telescope ID used to select the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Pulse times in ns in the same pixel order. Timing-based algorithms
+            require these values.
+        monitoring : CameraMonitoringContainer or None, optional
+            Camera monitoring data for algorithms that use measurements such as
+            the pedestal charge standard deviation.
 
         Returns
         -------
-        np.ndarray
-            boolean mask of pixels passing cleaning
+        ndarray of bool
+            Mask of pixels that pass cleaning, in camera pixel order.
         """
         pass
 
 
 class TailcutsImageCleaner(ImageCleaner):
     """
-    Clean images using the standard picture/boundary technique. See
-    `ctapipe.image.tailcuts_clean`.
+    Clean images using picture and boundary thresholds.
+
+    See `ctapipe.image.tailcuts_clean`.
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
@@ -711,8 +710,20 @@ class TailcutsImageCleaner(ImageCleaner):
     ) -> np.ndarray:
         """
         Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
-        """
 
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning thresholds.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Arrival times supplied through the cleaner interface. This algorithm uses
+            the charges and pixel adjacency.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
+        """
         return tailcuts_clean(
             self.subarray.tel[tel_id].camera.geometry,
             image,
@@ -725,8 +736,10 @@ class TailcutsImageCleaner(ImageCleaner):
 
 class NSBImageCleaner(TailcutsImageCleaner):
     """
-    Clean images based on lstchains image cleaning technique described in
-    :cite:p:`lst1-crab-paper`. See `ctapipe.image.nsb_image_cleaning`.
+    Clean images with the lstchain night-sky-background method.
+
+    See :cite:p:`lst1-crab-paper` and `ctapipe.image.nsb_image_cleaning` for the
+    algorithm.
     """
 
     time_limit = FloatTelescopeParameter(
@@ -793,6 +806,19 @@ class NSBImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """
         Apply NSB image cleaning used by lstchain. See `ImageCleaner.__call__()`
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Per-pixel pulse times in ns. Supply these when time-delta cleaning is
+            enabled.
+        monitoring : CameraMonitoringContainer or None, optional
+            Camera monitoring data that can supply pedestal charge standard deviations
+            for pixel-dependent thresholds.
         """
         pedestal_std = None
         if monitoring is not None:
@@ -832,8 +858,20 @@ class MARSImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """
         Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
-        """
 
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning thresholds.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray or None, optional
+            Arrival times supplied through the cleaner interface. This algorithm uses
+            the charges and pixel adjacency.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
+        """
         return mars_cleaning_1st_pass(
             self.subarray.tel[tel_id].camera.geometry,
             image,
@@ -846,8 +884,9 @@ class MARSImageCleaner(TailcutsImageCleaner):
 
 class FACTImageCleaner(TailcutsImageCleaner):
     """
-    Clean images using the FACT technique. See `ctapipe.image.fact_image_cleaning`
-    for algorithm details.
+    Clean images using the FACT technique.
+
+    See `ctapipe.image.fact_image_cleaning` for algorithm details.
     """
 
     time_limit_ns = FloatTelescopeParameter(
@@ -862,8 +901,20 @@ class FACTImageCleaner(TailcutsImageCleaner):
         *,
         monitoring: CameraMonitoringContainer = None,
     ) -> np.ndarray:
-        """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
+        """Apply FACT-style image cleaning. see ImageCleaner.__call__()
 
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray
+            Per-pixel pulse times in ns. The time-based selection requires this array.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
+        """
         return fact_image_cleaning(
             geom=self.subarray.tel[tel_id].camera.geometry,
             image=image,
@@ -877,8 +928,9 @@ class FACTImageCleaner(TailcutsImageCleaner):
 
 class TimeConstrainedImageCleaner(TailcutsImageCleaner):
     """
-    MAGIC-like Image cleaner with timing information (See
-    `ctapipe.image.time_constrained_clean`).
+    Clean images using a MAGIC-style timing cut.
+
+    See `ctapipe.image.time_constrained_clean`.
     """
 
     time_limit_core_ns = FloatTelescopeParameter(
@@ -900,8 +952,19 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """
         Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
-        """
 
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the camera geometry and cleaning settings.
+        image : ndarray
+            Integrated pixel charges in photoelectrons, in camera pixel order.
+        arrival_times : ndarray
+            Per-pixel pulse times in ns. The time-based selection requires this array.
+        monitoring : CameraMonitoringContainer or None, optional
+            Monitoring data supplied through the cleaner interface. Unused by this
+            algorithm.
+        """
         return time_constrained_clean(
             self.subarray.tel[tel_id].camera.geometry,
             image,

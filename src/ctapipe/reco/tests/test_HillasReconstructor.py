@@ -14,7 +14,6 @@ from ctapipe.reco.hillas_reconstructor import HillasReconstructor
 
 def test_estimator_results():
     """Test direction results from cog and point 2 (along the main axis) coordinates"""
-
     weight = np.ones(4)
     cog_alt = [43, 44, 44.5, 43.5] * u.deg
     cog_az = [45, 90, 45, 90] * u.deg
@@ -31,7 +30,7 @@ def test_estimator_results():
 
 
 def test_h_max_results():
-    """test h_max estimation from cog coordinates"""
+    """Test h_max estimation from cog coordinates"""
     cog_alt = [45.0, 45.0, 45.0, 45.0] * u.deg
     cog_az = [180, 90, 0, -90.0] * u.deg
 
@@ -51,17 +50,17 @@ def test_h_max_results():
 
 def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     """
-    The HillasReconstructor is supposed to fail
-    in these cases:
-    - less than two teleskopes
-    - any width is NaN
-    - any width is 0
+    Check that HillasReconstructor marks unusable events as invalid.
 
-    This test takes 1 shower from a test simtel file and modifies a-posteriori
-    some hillas dictionaries to make it non-reconstructable.
-    It is supposed to fail if no Exception or another Exception gets thrown.
+    Reconstruct a valid simulated shower, then modify copies of its Hillas
+    parameters to exercise these cases:
+
+    - Fewer than two telescopes have usable images.
+    - An image width is zero.
+    - An image width is NaN.
+
+    Each case must produce an invalid geometry result.
     """
-
     # 4-LST bright event already calibrated
     # we'll clean it and parametrize it again in the TelescopeFrame
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
@@ -125,10 +124,12 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
 def test_reconstruction_against_simulation(
     subarray_and_event_gamma_off_axis_500_gev,
 ):
-    """Reconstruction is here done only in the TelescopeFrame,
-    since the previous tests test already for the compatibility between
-    frames"""
+    """Compare telescope-frame reconstruction with simulation truth.
 
+    Reconstruction is here done only in the TelescopeFrame,
+    since the previous tests test already for the compatibility between
+    frames
+    """
     # 4-LST bright event already calibrated
     # we'll clean it and parametrize it again in the TelescopeFrame
     subarray, event = subarray_and_event_gamma_off_axis_500_gev

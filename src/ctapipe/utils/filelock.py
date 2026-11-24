@@ -1,3 +1,9 @@
+"""Coordinate cooperating processes using an exclusively created lock file.
+
+Use `FileLock` as a context manager to wait for an existing lock and
+remove the acquired lock when leaving the context.
+"""
+
 import time
 from pathlib import Path
 
@@ -10,6 +16,13 @@ class FileLock:
 
     If the file exists, the lock will block the code until it does not
     exist anymore and then creates it itself.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Path of the lock file to create and remove.
+    description : str, optional
+        Message displayed while waiting for another process to release the lock.
     """
 
     def __init__(self, path, description="Another process is already running, waiting"):

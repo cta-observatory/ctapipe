@@ -1,6 +1,8 @@
 """
-Plot the same event in two camera displays showing the
-different coordinate frames for camera coordinates.
+Compare camera coordinate frames for a simulated shower image.
+
+The same image is displayed in three frames: CameraFrame, TelescopeFrame, and
+EngineeringCameraFrame.
 """
 
 import astropy.units as u
@@ -13,6 +15,7 @@ from ctapipe.visualization import CameraDisplay
 
 
 def main():
+    """Generate a toy shower image and show it in three coordinate frames."""
     _, axs = plt.subplots(1, 3, constrained_layout=True, figsize=(8, 3))
 
     model = Gaussian(0 * u.m, 0.1 * u.m, 0.3 * u.m, 0.05 * u.m, 25 * u.deg)

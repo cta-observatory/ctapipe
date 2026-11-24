@@ -63,6 +63,12 @@ class PixelShape(Enum):
 
         This function supports abbreviations and for backwards compatibility
         "rect" as alias for "square".
+
+        Parameters
+        ----------
+        name : str
+            Pixel shape name, case-insensitive. Hexagonal and circular prefixes and the
+            legacy rectangular alias are accepted.
         """
         name = name.lower()
 
@@ -88,13 +94,11 @@ SIMTEL_PIXEL_SHAPES = {
 
 
 class CameraGeometry:
-    """`CameraGeometry` is a class that stores information about a
-    Cherenkov Camera that is useful for imaging algorithms and
-    displays. It contains lists of pixel positions, areas, pixel
-    shapes, as well as a neighbor (adjacency) list and matrix for each pixel.
-    In general the neighbor_matrix attribute should be used in any algorithm
-    needing pixel neighbors, since it is much faster. See for example
-    `ctapipe.image.tailcuts_clean`
+    """Store the camera geometry used by imaging algorithms.
+
+    The geometry includes pixel positions, areas, shapes, and adjacency information. Use
+    `neighbor_matrix` for efficient access to pixel neighbors, as in
+    `ctapipe.image.tailcuts_clean`.
 
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
@@ -115,8 +119,10 @@ class CameraGeometry:
         other frames.
     pix_area : u.Quantity
         surface area of each pixel
-    pix_type : PixelShape | str
-        shape of the pixels, a `PixelShape` or its name (e.g. "hexagon")
+    pix_type : PixelShape or str
+        Pixel shape enum or name, such as ``"hexagon"``, ``"square"``, or
+        ``"circle"``. The string ``"rectangular"`` is accepted as an alias for
+        square.
     grid_type : None | PixelGridType
         The grid type of the pixel grid. By default, square pixels
         are assumed to be on a regular square grid and circular and hexagonal
@@ -133,6 +139,10 @@ class CameraGeometry:
         between pixels.
     apply_derotation : bool
         If true, rotate the pixel coordinates, so that cam_rotation is 0.
+    _validate : bool, optional
+        Check the shapes of the pixel arrays and normalize the pixel shape,
+        grid type, and rotation angles. Internal callers can set this to
+        False when passing already validated geometry values.
     """
 
     CURRENT_TAB_VERSION = "2.1"
@@ -232,9 +242,15 @@ class CameraGeometry:
 
     @frame.setter
     def frame(self, frame):
-        """
-        Re-interpret the pixel coordinates in a new frame, without transforming
-        them. Frame attributes of the previous ``pix_coord`` are not kept.
+        """Assign a new frame to the existing pixel coordinates.
+
+        The coordinate values are reused without transformation. Frame attributes
+        from the previous ``pix_coord`` are discarded.
+
+        Parameters
+        ----------
+        frame : BaseCoordinateFrame, type, or str
+            Frame instance, frame class, or registered frame name to assign.
         """
         self.pix_coord = SkyCoord(self.pix_x, self.pix_y, frame=frame)
         # returning the newly cached frame stops lazyproperty from caching the
@@ -314,8 +330,9 @@ class CameraGeometry:
 
     def guess_radius(self):
         """
-        Guess the camera radius as mean distance of the border pixels from
-        the center pixel
+        Estimate the camera radius from its border pixels.
+
+        Return the mean distance from the mean pixel position to the border pixels.
         """
         border = self.get_border_pixel_mask()
         cx = self.pix_x.mean()
@@ -326,8 +343,11 @@ class CameraGeometry:
         ).mean()
 
     def transform_to(self, frame: BaseCoordinateFrame):
-        """Transform the pixel coordinates stored in this geometry and the pixel
-        and camera rotations to another camera coordinate frame.
+        """Transform the geometry to another camera frame.
+
+        The method returns a new geometry with transformed positions and rotations. If
+        no source frame is set, it initializes the source geometry with
+        `~ctapipe.coordinates.CameraFrame`.
 
         Note that ``geom.frame`` must contain all the necessary attributes needed
         to transform into the requested frame, i.e. if going from
@@ -336,7 +356,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        frame: ctapipe.coordinates.CameraFrame
+        frame : ctapipe.coordinates.CameraFrame
             The coordinate frame to transform to.
 
         Returns
@@ -464,12 +484,13 @@ class CameraGeometry:
     @lazyproperty
     def pixel_width(self):
         """
+        Return the pixel width for the camera's pixel shape.
+
         in-circle diameter for hexagons, edge width for square pixels,
         diameter for circles.
 
         This is calculated from the pixel area.
         """
-
         if self.pix_type == PixelShape.HEXAGON:
             width = 2 * np.sqrt(self.pix_area / (2 * np.sqrt(3)))
         elif self.pix_type == PixelShape.SQUARE:
@@ -490,6 +511,13 @@ class CameraGeometry:
 
         Note this will not work on cameras with varying pixel sizes or gaps
 
+        Parameters
+        ----------
+        pix_x : astropy.units.Quantity
+            Pixel-center x positions. Supply at least two positions.
+        pix_y : astropy.units.Quantity
+            Corresponding y positions, in compatible length or angle units.
+
         Returns
         -------
             in-circle diameter for hexagons, edge width for square pixels
@@ -500,8 +528,7 @@ class CameraGeometry:
 
     @lazyproperty
     def _pixel_circumradius(self):
-        """pixel circumference radius/radii based on pixel area and layout"""
-
+        """Pixel circumference radius/radii based on pixel area and layout"""
         if self.pix_type == PixelShape.HEXAGON:
             circum_rad = self.pixel_width / np.sqrt(3)
         elif self.pix_type == PixelShape.SQUARE:
@@ -525,7 +552,6 @@ class CameraGeometry:
         kdtree
 
         """
-
         pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
         return KDTree(pixel_centers)
 
@@ -544,6 +570,11 @@ class CameraGeometry:
     def image_index_to_cartesian_index(self, pixel_index):
         """
         Convert pixel index in the 1d image representation to row and col
+
+        Parameters
+        ----------
+        pixel_index : int or ndarray of int
+            Zero-based index or indices in the camera image's pixel order.
         """
         rows, cols = self._pixel_positions_2d
         return rows[pixel_index], cols[pixel_index]
@@ -551,6 +582,13 @@ class CameraGeometry:
     def cartesian_index_to_image_index(self, row, col):
         """
         Convert cartesian index (row, col) to pixel index in 1d representation.
+
+        Parameters
+        ----------
+        row : int or ndarray of int
+            Row index or indices in the Cartesian image grid.
+        col : int or ndarray of int
+            Corresponding column index or indices in the grid.
         """
         return self._pixel_indices_cartesian[row, col]
 
@@ -566,6 +604,7 @@ class CameraGeometry:
     def _pixel_positions_2d(self):
         """
         Pixel positions on the orthogonal grid of the 2d image.
+
         In order for hexagonal pixels to behave as if they were
         square, the grid has to be distorted.
         Namely, slanting and stretching of the 1d pixel positions
@@ -618,12 +657,13 @@ class CameraGeometry:
     def image_to_cartesian_representation(self, image):
         """
         Create a 2D-image from a given flat image or multiple flat images.
+
         In the case of hexagonal pixels, the resulting
         image is skewed to match a rectangular grid.
 
         Parameters
         ----------
-        image: np.ndarray
+        image : np.ndarray
             One or multiple images of shape
             (n_images, n_pixels) or (n_pixels) for a single image.
 
@@ -647,7 +687,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        image_2d: np.ndarray
+        image_2d : np.ndarray
             2D image created by the `image_to_cartesian_representation` function
             of the same geometry.
             shape is expected to be:
@@ -680,7 +720,6 @@ class CameraGeometry:
 
         Notes
         -----
-
         Warning: This method loads a pre-generated ``CameraGeometry`` and is
         thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you
@@ -716,7 +755,7 @@ class CameraGeometry:
 
     def to_table(self):
         """
-        convert this to an `astropy.table.Table`
+        Convert this to an `astropy.table.Table`.
 
         The table format always stores the pixel positions in
         `~ctapipe.coordinates.CameraFrame`, so a geometry in another frame is
@@ -757,18 +796,19 @@ class CameraGeometry:
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
-        Load a CameraGeometry from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read`
+        Load camera geometry from a table or a file.
+
+        The input can be an `astropy.table.Table` or any file supported by its
+        :attr:`~astropy.table.Table.read` method.
 
         Parameters
         ----------
-        url_or_table: string or astropy.table.Table
+        url_or_table : string or astropy.table.Table
             either input filename/url or a Table instance
-        kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.Table.read`, depending on
-            file type (e.g. format, hdu, path)
+        **kwargs
+            Extra keyword arguments passed to `astropy.table.Table.read` when
+            reading a file, such as ``format``, ``hdu``, or ``path``.
         """
-
         tab = url_or_table
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
@@ -816,14 +856,23 @@ class CameraGeometry:
 
     @lazyproperty
     def neighbor_matrix(self):
+        """Return the dense boolean pixel adjacency matrix in camera pixel order."""
         return self.neighbor_matrix_sparse.toarray()
 
     @lazyproperty
     def max_neighbors(self):
+        """Return the maximum number of neighbors of any pixel in the camera."""
         return self.neighbor_matrix_sparse.sum(axis=1).max()
 
     @lazyproperty
     def neighbor_matrix_sparse(self):
+        """
+        Return the sparse pixel adjacency matrix in camera pixel order.
+
+        Use the supplied adjacency matrix if available. Otherwise, infer
+        adjacency from the pixel positions, excluding diagonal neighbors
+        for square pixels.
+        """
         if self._neighbors is not None:
             return self._neighbors
 
@@ -836,12 +885,11 @@ class CameraGeometry:
 
     def calc_pixel_neighbors(self, diagonal=False):
         """
-        Calculate the neighbors of pixels using
-        a kdtree for nearest neighbor lookup.
+        Calculate the neighbors of pixels using a kdtree for nearest neighbor lookup.
 
         Parameters
         ----------
-        diagonal: bool
+        diagonal : bool
             If rectangular geometry, also add diagonal neighbors
         """
         if self.n_pixels <= 1:
@@ -908,8 +956,10 @@ class CameraGeometry:
     @lazyproperty
     def pixel_moment_matrix(self):
         """
-        Pre-calculated matrix needed for higher-order moment calculation,
-        up to 4th order.
+        Return the matrix used to calculate higher-order pixel moments.
+
+        The rows contain powers and products of the pixel coordinates up to total degree
+        four.
 
         Note this is *not* recalculated if the CameraGeometry is modified.
 
@@ -929,7 +979,6 @@ class CameraGeometry:
             x*y^3, y^4
 
         """
-
         x = self.pix_x.value
         y = self.pix_y.value
 
@@ -953,14 +1002,13 @@ class CameraGeometry:
         )
 
     def rotate(self, angle):
-        """rotate the camera coordinates about the center of the camera by
-        specified angle. Modifies the CameraGeometry in-place (so
-        after this is called, the pix_x and pix_y arrays are
-        rotated.
+        """Rotate the pixel coordinates in place about the camera origin.
+
+        The rotation updates ``pix_x`` and ``pix_y``, subtracts the angle from
+        ``pix_rotation``, and resets ``cam_rotation`` to zero.
 
         Notes
         -----
-
         This is intended only to correct simulated data that are
         rotated by a fixed angle.  For the more general case of
         correction for camera pointing errors (rotations,
@@ -969,8 +1017,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-
-        angle: value convertible to an `astropy.coordinates.Angle`
+        angle : value convertible to an `astropy.coordinates.Angle`
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
@@ -988,7 +1035,13 @@ class CameraGeometry:
         self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
-        """print detailed info about this camera"""
+        """Print detailed info about this camera
+
+        Parameters
+        ----------
+        printer : callable, optional
+            Callable that receives each formatted line. Defaults to `print`.
+        """
         printer(f'CameraGeometry: "{self}"')
         printer("   - num-pixels: {}".format(len(self.pix_id)))
         printer(f"   - pixel-type: {self.pix_type}")
@@ -1044,7 +1097,7 @@ class CameraGeometry:
 
         Parameters
         ----------
-        width: int
+        width : int
             The width of the border in pixels
 
         Returns
@@ -1155,6 +1208,26 @@ class CameraGeometry:
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
+        """
+        Translate a sim_telarray pixel shape code to a shape and rotation.
+
+        Parameters
+        ----------
+        pixel_shape : int
+            Pixel shape code from sim_telarray.
+
+        Returns
+        -------
+        PixelShape
+            Camera pixel shape.
+        astropy.coordinates.Angle
+            A copy of the pixel rotation associated with the code.
+
+        Raises
+        ------
+        ValueError
+            If the shape code is unknown.
+        """
         try:
             shape, rotation = SIMTEL_PIXEL_SHAPES[pixel_shape]
             # make sure we don't introduce a mutable global state
@@ -1164,4 +1237,9 @@ class CameraGeometry:
 
 
 class UnknownPixelShapeWarning(UserWarning):
+    """Warn when a SimTel camera has an unrecognized pixel shape.
+
+    The reader falls back to unrotated hexagonal pixels.
+    """
+
     pass

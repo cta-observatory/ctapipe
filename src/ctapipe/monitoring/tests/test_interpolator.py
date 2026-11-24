@@ -170,7 +170,6 @@ def test_before_first_chunk():
 
 def test_azimuth_switchover():
     """Test pointing interpolation"""
-
     table = Table(
         {
             "time": t0 + [0, 1, 2] * u.s,
@@ -189,7 +188,6 @@ def test_azimuth_switchover():
 
 def test_invalid_input():
     """Test invalid pointing tables raise nice errors"""
-
     wrong_time = Table(
         {
             "time": [1, 2, 3] * u.s,
@@ -246,7 +244,6 @@ def test_hdf5(tmp_path):
 
 def test_bounds():
     """Test invalid pointing tables raise nice errors"""
-
     table_pointing = Table(
         {
             "time": t0 + np.arange(0.0, 10.1, 2.0) * u.s,

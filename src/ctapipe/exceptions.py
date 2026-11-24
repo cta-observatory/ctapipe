@@ -1,4 +1,9 @@
+"""Exceptions for missing inputs, optional dependencies, and data compatibility."""
+
+
 class CTAPipeException(Exception):
+    """Common base class for ctapipe-specific exceptions."""
+
     pass
 
 
@@ -7,7 +12,13 @@ class TooFewEvents(CTAPipeException):
 
 
 class OptionalDependencyMissing(ModuleNotFoundError):
-    """Raised if an optional dependency required for a feature is not installed"""
+    """Raised if an optional dependency required for a feature is not installed
+
+    Parameters
+    ----------
+    module : str
+        Import name of the optional dependency required by the requested feature.
+    """
 
     def __init__(self, module):
         self.module = module

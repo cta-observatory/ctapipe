@@ -1,10 +1,10 @@
 """
-Create a working directory for ctapipe-process containing standard
-configuration files.
+Create a working directory for ctapipe-process containing standard configuration files.
 """
 
 from importlib.resources import files
 from pathlib import Path
+from typing import override
 
 from ..core import Provenance, Tool, traits
 from ..version import __version__ as VERSION
@@ -87,19 +87,19 @@ This file was generated using ctapipe version {VERSION}
 
 
 def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
-    """reads input_file and writes output_file, swapping text listed in the
-    transformations dict
+    """Copy a file while applying text substitutions.
+
+    The replacement strings come from the transformations dictionary.
 
     Parameters
     ----------
-    input_file: str
+    input_file : str
         template file to read
-    output_file: str
+    output_file : str
         file to write
-    transformations: Dict[str, str]
+    transforms : dict[str, str]
         dict of search and replacement strings
     """
-
     input_file = Path(input_file)
     output_file = Path(output_file)
 
@@ -147,6 +147,7 @@ class QuickStartTool(Tool):
         ("o", "org"): "QuickStartTool.contact_organization",
     }
 
+    @override
     def setup(self):
         self.workdir.mkdir(parents=True, exist_ok=True)
 
@@ -169,6 +170,7 @@ class QuickStartTool(Tool):
             "VERSION": VERSION,
         }
 
+    @override
     def start(self):
         for filename in CONFIGS_TO_WRITE:
             config = files("ctapipe").joinpath("resources", filename)
@@ -192,12 +194,13 @@ class QuickStartTool(Tool):
             readme.write_text(README_TEXT)
             Provenance().add_output_file(readme, role="README", add_meta=False)
 
+    @override
     def finish(self):
         print(f"Generated examples in {self.workdir}")
 
 
 def main():
-    """run the tool"""
+    """Run the tool"""
     tool = QuickStartTool()
     tool.run()
 

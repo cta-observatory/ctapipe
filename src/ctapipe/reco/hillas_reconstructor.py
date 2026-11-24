@@ -1,6 +1,5 @@
 """
-Line-intersection-based fitting for reconstruction of direction
-and core position of a shower.
+Reconstruct shower direction and core position by intersecting lines.
 """
 
 import warnings
@@ -36,29 +35,31 @@ INVALID = ReconstructedGeometryContainer(
 
 
 def angle(v1, v2):
-    """computes the angle between two vectors
-        assuming cartesian coordinates
+    """Computes the angle between two vectors assuming cartesian coordinates
 
     Parameters
     ----------
-    v1 : numpy array
-    v2 : numpy array
+    v1 : ndarray
+        First Cartesian vector, or array of vectors along the last axis.
+    v2 : ndarray
+        Second Cartesian vector, or array of vectors along the last axis.
 
     Returns
     -------
-    the angle between v1 and v2 as a dimensioned astropy quantity
+    float or ndarray
+        Angle in radians for each pair of vectors.
     """
     norm = np.linalg.norm(v1, axis=-1) * np.linalg.norm(v2, axis=-1)
     return np.arccos(np.clip(np.sum(v1 * v2, axis=-1) / norm, -1.0, 1.0))
 
 
 def normalise(vec):
-    """Sets the length of the vector to 1
-        without changing its direction
+    """Sets the length of the vector to 1 without changing its direction
 
     Parameters
     ----------
-    vec : numpy array
+    vec : ndarray
+        Cartesian vector or array of vectors along the last axis.
 
     Returns
     -------
@@ -80,7 +81,17 @@ def normalise(vec):
 def line_line_intersection_3d(uvw_vectors, origins):
     """
     Intersection of many lines in 3d.
+
     See https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+
+    Parameters
+    ----------
+    uvw_vectors : ndarray
+        Unit vectors along each line, with the three Cartesian components in the last
+        axis.
+    origins : ndarray
+        Position of a point on each line, in the same row order as the direction vectors
+        and in a common length unit.
     """
     C = []
     S = []
@@ -97,14 +108,24 @@ def line_line_intersection_3d(uvw_vectors, origins):
 
 class HillasReconstructor(HillasGeometryReconstructor):
     """
-    class that reconstructs the direction of an atmospheric shower
-    using a simple hillas parametrisation of the camera images it
-    provides a direction estimate in two steps and an estimate for the
-    shower's impact position on the ground.
+    Reconstruct atmospheric showers using Hillas image parameters.
+
+    Estimate the arrival direction from intersections of the shower planes, the core
+    position on the ground, and the height of shower maximum.
 
     so far, it does neither provide an energy estimator nor an
     uncertainty on the reconstructed parameters
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying telescope positions and camera geometry, including the
+        angular camera radii used in the shower-axis fit.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric profile stored by the base reconstructor. This reconstruction
+        estimates shower maximum geometrically.
+    **kwargs
+        Component configuration and trait values forwarded to the base reconstructor.
     """
 
     needs_atmosphere_profile = False
@@ -213,17 +234,15 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_dict : dictionary
-            dictionary of hillas moments
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray information
-        telescopes_pointings: dictionary
-            dictionary of pointing direction per each telescope
-        array_pointing: SkyCoord[AltAz]
-            pointing direction of the array
+        event : SubarrayEventContainer
+            Event supplying the array pointing and the pointing of each telescope.
+        hillas_dict : dict[int, HillasParametersContainer]
+            Hillas image parameters keyed by telescope ID.
 
         Notes
         -----
+        The telescope positions and camera geometry come from the configured subarray.
+
         The part of the algorithm taking into account divergent pointing mode and
         the correction to the psi angle is explained in :cite:p:`phd-gasparetto`,
         section 7.1.4.
@@ -313,8 +332,16 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     @staticmethod
     def estimate_direction(norm, weight):
-        """calculates the origin of the gamma as the weighted average
-        direction of the intersections of all hillas planes
+        """Estimate the shower direction from weighted plane intersections.
+
+        Parameters
+        ----------
+        norm : ndarray
+            Normal vectors of the planes defined by the telescope image axes, with three
+            Cartesian components per telescope.
+        weight : ndarray
+            Weight of each telescope. A pair of intersecting planes receives the product
+            of their weights.
 
         Returns
         -------
@@ -345,17 +372,20 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        hillas_dict: dict[HillasContainer]
-            dictionary of hillas moments
-        array_pointing: SkyCoord[HorizonFrame]
-            Pointing direction of the array
+        array_pointing : astropy.coordinates.SkyCoord
+            Array pointing in AltAz, used to define the tilted ground frame.
+        psi : ndarray
+            Corrected orientation of each image's major axis in radians, in the
+            same telescope order as ``positions``.
+        positions : GroundFrame
+            Positions of the telescopes used for the reconstruction.
 
         Returns
         -------
-        core_x: u.Quantity
-            estimated x position of impact
-        core_y: u.Quantity
-            estimated y position of impact
+        core_pos_ground : GroundFrame
+            Estimated shower impact position projected onto the ground.
+        core_pos_tilted : astropy.coordinates.SkyCoord
+            Estimated shower core in the tilted ground frame.
 
         Notes
         -----
@@ -363,7 +393,6 @@ class HillasReconstructor(HillasGeometryReconstructor):
         the usage of a corrected psi angle is explained in :cite:p:`phd-gasparetto`
         section 7.1.4.
         """
-
         # Since psi has been recalculated in the fake CameraFrame
         # it doesn't need any further corrections because it is now independent
         # of both pointing and cleaning/parametrization frame.
@@ -397,9 +426,19 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     @staticmethod
     def estimate_relative_h_max(cog_vectors, positions):
-        """Estimate the relative (to the observatory) vertical height of
-        shower-max by intersecting the lines of the cog directions of each
-        telescope.
+        """Estimate the height of shower maximum relative to the observatory.
+
+        The estimate uses intersections of the directions to the image centroids from
+        each telescope.
+
+        Parameters
+        ----------
+        cog_vectors : ndarray
+            Unit vectors from each telescope toward its image centroid, in the same
+            Cartesian coordinate system as the telescope positions.
+        positions : SkyCoord or BaseCoordinateFrame
+            Telescope positions in the same order as the centroid vectors, with length
+            units.
 
         Returns
         -------

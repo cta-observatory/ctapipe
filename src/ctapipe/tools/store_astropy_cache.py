@@ -41,6 +41,12 @@ def main(args=None):
 
     See the `astropy docs <https://docs.astropy.org/en/stable/utils/data.html>`_
     for why and when this might be useful.
+
+    Parameters
+    ----------
+    args : list of str or None, optional
+        Command-line options for the cache directory and forced refresh. With None, use
+        the process arguments.
     """
     args = parser.parse_args(args)
 

@@ -269,6 +269,12 @@ class PixelStatus(enum.IntFlag):
         """
         Return only the bits corresponding to the DVR_STATUS
 
+        Parameters
+        ----------
+        pixel_status : PixelStatus or integer ndarray
+            Bit field for one pixel, or an array of pixel-status bit fields from the
+            event.
+
         Returns
         -------
         dvr_status: int or array[uint8]
@@ -283,6 +289,12 @@ class PixelStatus(enum.IntFlag):
     def get_channel_info(pixel_status):
         """
         Return only the bits corresponding to the channel info (high/low gain stored)
+
+        Parameters
+        ----------
+        pixel_status : PixelStatus or integer ndarray
+            Bit field for one pixel, or an array of pixel-status bit fields from the
+            event.
 
         Returns
         -------
@@ -300,6 +312,12 @@ class PixelStatus(enum.IntFlag):
         """Return if pixel values are marked as invalid
 
         This is encoded in the data model as neither high gain nor low gain marked as stored
+
+        Parameters
+        ----------
+        pixel_status : PixelStatus or integer ndarray
+            Bit field for one pixel, or an array of pixel-status bit fields from the
+            event.
         """
         gain_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
         return (pixel_status & gain_bits) == 0
@@ -380,9 +398,10 @@ class SubarrayTriggerContainer(Container):
 
 class HillasParametersContainer(Container):
     """
-    Hillas Parameters in a spherical system centered on the pointing position
-    (TelescopeFrame). The cog position is given as offset in
-    longitude and latitude in degree.
+    Store Hillas parameters in the telescope frame.
+
+    The spherical frame is centered on the pointing direction. The centroid is given as
+    longitude and latitude offsets in degrees.
     """
 
     default_prefix = "hillas"
@@ -775,6 +794,13 @@ class TelescopeImpactParameterContainer(Container):
 
 # Simulation containers
 class SimulatedShowerContainer(Container):
+    """Store the Monte Carlo truth for one simulated air shower.
+
+    The fields describe the primary particle, its energy and direction, the
+    ground impact position, and the longitudinal development of the shower.
+    Use these values as a reference for evaluating reconstruction.
+    """
+
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
     alt = Field(nan * u.deg, "Simulated altitude", unit=u.deg)
@@ -827,6 +853,12 @@ class TelescopeSimulationContainer(Container):
 
 
 class SubarraySimulationContainer(Container):
+    """Store simulated shower truth at the subarray event level.
+
+    The ``shower`` field holds the properties shared by all telescopes for
+    this event. Telescope-specific simulation data are stored separately.
+    """
+
     shower = Field(
         default_factory=SimulatedShowerContainer,
         description="True event information",
@@ -1000,6 +1032,12 @@ class ReconstructedShowerContainer(Container):
 
     @property
     def classification(self):
+        """
+        Return the particle type through its deprecated alias.
+
+        Accessing this property emits a deprecation warning. Use
+        `particle_type` to access the reconstruction results.
+        """
         self._warn_classification_deprecated()
         return self.particle_type
 
@@ -1032,8 +1070,10 @@ class TelescopeDL2Container(ReconstructedShowerContainer):
 # Pointing-related containers
 class TelescopeStructurePointingContainer(Container):
     """
-    Pointing of the telescope structure in local coordinates (Alt/Az)
-    as measured by the telescope hardware (e.g. drive encoders).
+    Store the measured pointing of the telescope structure.
+
+    The pointing is in local altitude and azimuth coordinates and comes from the
+    telescope hardware, such as drive encoders.
     """
 
     default_prefix = "structure_pointing"
@@ -1047,8 +1087,10 @@ class TelescopeStructurePointingContainer(Container):
 
 class TelescopeStructureDisplacementContainer(Container):
     """
-    Difference between ideal and real direction of the telescope axis for
-    a given elevation in local coordinates (e.g. structural bending model).
+    Store the offset between the nominal and actual telescope axes.
+
+    The offset is given in local coordinates for a specified elevation, for example from
+    a structural bending model.
     """
 
     default_prefix = "structure_displacement"
@@ -1066,8 +1108,9 @@ class TelescopeStructureDisplacementContainer(Container):
 
 class CameraDisplacementContainer(Container):
     """
-    Displacement and tilt of the camera w.r.t. its nominal position in the
-    telescope structure.
+    Store the displacement and tilt of the camera.
+
+    Both are relative to the nominal camera position in the telescope structure.
     """
 
     default_prefix = "camera_displacement"
@@ -1109,10 +1152,9 @@ class TelescopeCorrectedPointingContainer(Container):
 
 class TelescopePointingContainer(Container):
     """
-    Container holding pointing information for a single telescope
-    after all necessary correction and calibration steps.
-    These values should be used in the reconstruction to transform
-    between camera and sky coordinates.
+    Store the calibrated pointing of a single telescope.
+
+    Use this pointing in reconstruction to transform between camera and sky coordinates.
     """
 
     default_prefix = "telescope_pointing"
@@ -1725,8 +1767,9 @@ class TelescopeSimulationConfigurationContainer(Container):
 
 class SimulatedShowerDistribution(Container):
     """
-    2D histogram of simulated number of showers simulated as function of energy and
-    core distance.
+    Store the simulated shower counts in energy and core distance bins.
+
+    The counts form a two-dimensional histogram.
     """
 
     default_prefix = ""

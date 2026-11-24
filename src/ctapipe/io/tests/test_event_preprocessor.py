@@ -251,7 +251,6 @@ def test_dl3_requires_cut_functions(
 
 def test_nondefault_reconstructors(minimal_dl2_table):
     """Check that using a different constructor than default still works"""
-
     from ctapipe.io import EventPreprocessor
 
     # define some new reconstructors, and add those columns to the test table:

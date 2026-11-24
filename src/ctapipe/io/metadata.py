@@ -620,6 +620,12 @@ class Product(HasTraits):
 
     The fields describe the product identity, data levels, processing category,
     association, data model, and storage format used by the legacy metadata schema.
+
+    Parameters
+    ----------
+    **kwargs
+        Values for metadata fields. Supply ``data_levels`` as a list or as a
+        comma-separated string.
     """
 
     description = Unicode("unknown")
@@ -646,12 +652,12 @@ class Product(HasTraits):
 
     @default("creation_time")
     def default_time(self):
-        """return current time by default"""
+        """Return current time by default"""
         return Time.now().iso
 
     @default("id_")
     def default_product_id(self):
-        """default id is a UUID"""
+        """Default id is a UUID"""
         return str(uuid.uuid4())
 
     def __repr__(self):
@@ -723,7 +729,7 @@ class Activity(HasTraits):
     # pylint: disable=no-self-use
     @default("start_time")
     def default_time(self):
-        """default time is now"""
+        """Default time is now"""
         return Time.now().iso
 
     def __repr__(self):
@@ -786,8 +792,9 @@ class Instrument(Configurable):
 
 
 def _to_dict(hastraits_instance, prefix=""):
-    """helper to convert a HasTraits to a dict with keys
-    in the required CTAO format (upper-case, space separated)
+    """Convert trait values to a dictionary with CTAO metadata keys.
+
+    The keys are uppercase and space-separated.
     """
     res = {}
 
@@ -894,14 +901,26 @@ class Reference(HasTraits):
 
     @classmethod
     def from_fits(cls, header):
-        """Create a legacy reference record from a FITS header."""
+        """Create a legacy reference record from a FITS header.
+
+        Parameters
+        ----------
+        header : astropy.io.fits.Header
+            FITS header containing the legacy ctapipe reference metadata cards.
+        """
         # for now, just use from_dict, but we might need special handling
         # of some keys
         return cls.from_dict(header)
 
     @classmethod
     def from_json(cls, json_data):
-        """Create a legacy reference record from a JSON metadata mapping."""
+        """Create a legacy reference record from a JSON metadata mapping.
+
+        Parameters
+        ----------
+        json_data : collections.abc.Mapping
+            Decoded JSON metadata containing the legacy ctapipe reference fields.
+        """
         return cls.from_dict(json_data)
 
     def __repr__(self):

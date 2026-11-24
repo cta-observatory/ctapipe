@@ -5,6 +5,7 @@ Handles reading of monitoring files
 import logging
 import warnings
 from contextlib import ExitStack
+from typing import override
 
 import astropy.units as u
 import ctao_datamodel.models.dataproducts as dp
@@ -53,6 +54,11 @@ def get_hdf5_monitoring_types(
 
     Currently only telescope monitoring tables are supported, so the array-wide
     availability is empty. Pixel statistics subtypes use their HDF5 group names.
+
+    Parameters
+    ----------
+    h5file : str or pathlib.Path or tables.File
+        Input file or open handle to inspect for monitoring tables.
     """
     telescope_data = {}
     groups = (
@@ -133,6 +139,20 @@ class HDF5MonitoringSource(MonitoringSource):
     [[False False False ... False False False]]
     True
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray to use for telescope lookups. It must be compatible with the input
+        files. With None, use the description from the first file.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Supply ``input_files`` to select
+        the HDF5 monitoring files to read.
+
     Attributes
     ----------
     input_files: list of Paths
@@ -161,8 +181,8 @@ class HDF5MonitoringSource(MonitoringSource):
         """
         MonitoringSource for monitoring files in the standard HDF5 data format
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         subarray : SubarrayDescription or None
             Optional description of the subarray. If provided, the subarray
             description should match the one from the monitoring file(s).
@@ -170,11 +190,11 @@ class HDF5MonitoringSource(MonitoringSource):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        parent:
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
             Parent from which the config is used. Mutually exclusive with config
-        kwargs
+        **kwargs
+            Trait values that override the configuration.
         """
-
         super().__init__(
             subarray=subarray,
             config=config,
@@ -367,9 +387,11 @@ class HDF5MonitoringSource(MonitoringSource):
 
     @property
     def available_data(self) -> AvailableTypes:
+        """Return an empty tuple since only telescope-level data are available."""
         return ()
 
     @property
+    @override
     def available_telescope_data(
         self,
     ) -> dict[int, tuple[tuple[TelescopeMonitoringType, str | None], ...]]:
@@ -398,19 +420,38 @@ class HDF5MonitoringSource(MonitoringSource):
 
     @property
     def camera_coefficients(self):
+        """Return the camera coefficient tables keyed by telescope ID."""
         return self._camera_coefficients
 
     @property
     def pixel_statistics(self):
+        """Return pixel statistics tables by telescope ID and statistic subtype."""
         return self._pixel_statistics
 
     @property
     def telescope_pointings(self):
+        """Return the telescope pointing tables keyed by telescope ID."""
         return self._telescope_pointings
 
     def get_table(
         self, monitoring_type: MonitoringType, subtype: str | None = None
     ) -> Table:
+        """
+        Request a subarray monitoring table.
+
+        Parameters
+        ----------
+        monitoring_type : MonitoringType
+            Requested subarray monitoring type.
+        subtype : str or None, optional
+            Requested subtype, where applicable.
+
+        Raises
+        ------
+        KeyError
+            Always, since this source provides only telescope-level monitoring.
+            Use `get_telescope_table` for those tables.
+        """
         raise KeyError(
             f"Monitoring data {(monitoring_type, subtype)} not available in this source."
         )
@@ -418,6 +459,24 @@ class HDF5MonitoringSource(MonitoringSource):
     def get_values(
         self, time: Time, monitoring_type: MonitoringType, subtype: str | None = None
     ):
+        """
+        Request subarray monitoring values at a given time.
+
+        Parameters
+        ----------
+        time : astropy.time.Time
+            Requested timestamp or timestamps.
+        monitoring_type : MonitoringType
+            Requested subarray monitoring type.
+        subtype : str or None, optional
+            Requested subtype, where applicable.
+
+        Raises
+        ------
+        KeyError
+            Always, since this source provides only telescope-level monitoring.
+            Use `get_telescope_values` for those values.
+        """
         raise KeyError(
             f"Monitoring data {(monitoring_type, subtype)} not available in this source."
         )
@@ -440,6 +499,7 @@ class HDF5MonitoringSource(MonitoringSource):
             f"{tel_id}. Available data: {available}"
         )
 
+    @override
     def get_telescope_table(
         self,
         tel_id: int,
@@ -542,6 +602,7 @@ class HDF5MonitoringSource(MonitoringSource):
             )
         return interpolator(tel_id, time, self.timestamp_tolerance)
 
+    @override
     def get_telescope_values(
         self,
         tel_id: int,
@@ -735,10 +796,10 @@ class HDF5MonitoringSource(MonitoringSource):
 
         Parameters
         ----------
-        time : astropy.time.Time
-            Target timestamp(s) to find the interval.
         table : astropy.table.Table
             Table containing ordered timestamp data.
+        time : astropy.time.Time
+            Target timestamp(s) to find the interval.
 
         Returns
         -------
@@ -747,7 +808,6 @@ class HDF5MonitoringSource(MonitoringSource):
             the corresponding data (with units preserved as Quantity objects) for the
             requested time(s) as values.
         """
-
         mjd_times = np.atleast_1d(time.to_value("mjd"))
         table_times = table["time"]
         # Convert timestamp tolerance to MJD days

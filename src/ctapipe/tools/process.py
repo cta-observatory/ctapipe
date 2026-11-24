@@ -5,6 +5,7 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 # pylint: disable=W0201
 import logging
 import sys
+from typing import override
 
 from tqdm.auto import tqdm
 
@@ -52,9 +53,10 @@ __all__ = ["ProcessorTool"]
 
 class ProcessorTool(Tool):
     """
-    Process data from lower-data levels up to DL1 and DL2, including image
-    extraction and optionally image parameterization as well as muon analysis
-    and shower reconstruction.
+    Process lower-level data into DL1 and DL2 products.
+
+    Processing includes image extraction and can also perform image parameterization,
+    muon analysis, and shower reconstruction.
 
     Note that the muon analysis and shower reconstruction both depend on
     parametrized images and therefore compute image parameters even if
@@ -192,6 +194,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(Reconstructor)
     )
 
+    @override
     def setup(self):
         # setup components:
         try:
@@ -304,7 +307,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl2(self):
-        """returns true if we should compute DL2 info"""
+        """Returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
 
@@ -312,7 +315,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl1(self):
-        """returns true if we should compute DL1 info"""
+        """Returns true if we should compute DL1 info"""
         if self.force_recompute_dl1:
             return True
 
@@ -327,7 +330,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_calibrate(self):
-        """returns true if data should be calibrated"""
+        """Returns true if data should be calibrated"""
         if self.force_recompute_dl1:
             return True
 
@@ -344,14 +347,14 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_muon_parameters(self):
-        """returns true if we should compute muon parameters info"""
+        """Returns true if we should compute muon parameters info"""
         if self.write.write_muon_parameters:
             return True
 
         return False
 
     def _write_processing_statistics(self):
-        """write out the event selection stats, etc."""
+        """Write out the event selection stats, etc."""
         # NOTE: don't remove this, not part of DataWriter
 
         if self.should_compute_dl1:
@@ -436,7 +439,7 @@ class ProcessorTool(Tool):
 
 
 def main():
-    """run the tool"""
+    """Run the tool"""
     tool = ProcessorTool()
     tool.run()
 

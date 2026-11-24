@@ -4,6 +4,7 @@ Algorithms to select correct gain channel
 
 from abc import abstractmethod
 from enum import IntEnum
+from typing import override
 
 import numpy as np
 
@@ -90,6 +91,7 @@ class ManualGainSelector(GainSelector):
         ["HIGH", "LOW"], default_value="HIGH", help="Which gain channel to retain"
     ).tag(config=True)
 
+    @override
     def select_channel(self, waveforms):
         n_pixels = waveforms.shape[1]
         return np.full(n_pixels, GainChannel[self.channel])
@@ -107,5 +109,6 @@ class ThresholdGainSelector(GainSelector):
         "channel for that pixel.",
     ).tag(config=True)
 
+    @override
     def select_channel(self, waveforms):
         return (waveforms[0] > self.threshold).any(axis=1).astype(np.int8)

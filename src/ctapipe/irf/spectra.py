@@ -46,6 +46,11 @@ SPECTRA = {
 def spectrum_from_name(name: str | Spectra) -> Callable:
     """
     Return spectrum function given a name or Spectra enum value.
+
+    Parameters
+    ----------
+    name : str or Spectra
+        Name of a supported reference spectrum or its enum member.
     """
     spectrum_value = Spectra(name)
     return SPECTRA[spectrum_value]
@@ -67,13 +72,13 @@ def spectrum_from_simulation_config(
 
     Parameters
     ----------
-    simulation_configuration_table: Table
+    simulation_configuration_table : Table
         table as read by TableLoader.read_simulation_configuration()
-    shower_distribution_table: Table
+    shower_distribution_table : Table
         table of simulated shower distribution as read from TableLoader.read_shower_distribution()
-    obs_time: u.Quantity['s']
+    obs_time : u.Quantity['s']
         Observation time in a unit convertible to seconds.
-    method: str
+    method : str
         "powerlaw" (for assuming powerlaw distributions), or "histogram" to return an
         interpolation function from the underlying distribution histogram.
 
@@ -82,7 +87,6 @@ def spectrum_from_simulation_config(
     Callable:
        simulated spectrum function.
     """
-
     if method != "powerlaw":
         return NotImplementedError(f"Method '{method}' is not implemented")
 

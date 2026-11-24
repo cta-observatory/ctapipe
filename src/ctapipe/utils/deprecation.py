@@ -24,6 +24,10 @@ def deprecated(since, **kwargs):
     ----------
     since : str
         The release at which this API became deprecated.  This is required.
+    **kwargs
+        Options forwarded to Astropy's deprecation decorator, such as
+        ``message`` and ``alternative``. The warning type is always
+        ``CTAPipeDeprecationWarning``.
     """
     kwargs["warning_type"] = CTAPipeDeprecationWarning
     return astropy.utils.deprecated(since, **kwargs)
@@ -33,6 +37,19 @@ def deprecated_renamed_argument(old_name, new_name, since, **kwargs):
     """Deprecate a _renamed_ or _removed_ function argument.
 
     Check arguments and usage in `~astropy.utils.decorator.deprecated_renamed_argument`
+
+    Parameters
+    ----------
+    old_name : str
+        Name of the deprecated function argument.
+    new_name : str or None
+        Replacement argument name. Use None when the argument is removed without a
+        replacement.
+    since : str
+        Release in which the old argument became deprecated.
+    **kwargs
+        Options forwarded to Astropy's renamed-argument decorator. ctapipe selects the
+        warning class.
     """
     kwargs["warning_type"] = CTAPipeDeprecationWarning
     return astropy.utils.deprecated_renamed_argument(
@@ -45,6 +62,16 @@ def deprecated_attribute(name, since, **kwargs):
 
     This creates a
     property that will warn when the given attribute name is accessed.
+
+    Parameters
+    ----------
+    name : str
+        Name of the attribute being deprecated.
+    since : str
+        Release in which the attribute became deprecated.
+    **kwargs
+        Options forwarded to Astropy's attribute-deprecation helper. ctapipe selects the
+        warning class.
     """
     kwargs["warning_type"] = CTAPipeDeprecationWarning
     return astropy.utils.deprecated_attribute(name, since, **kwargs)

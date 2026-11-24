@@ -1,5 +1,3 @@
-""" """
-
 import astropy.units as u
 import pytest
 from astropy.coordinates import EarthLocation

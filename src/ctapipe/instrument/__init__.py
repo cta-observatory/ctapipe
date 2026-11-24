@@ -1,3 +1,10 @@
+"""Describe the telescope subarray, its optics, and its cameras.
+
+Use `SubarrayDescription` to work with telescope positions and instrument
+metadata together. Camera geometry, readout settings, and optical models
+provide the instrument information needed for event processing.
+"""
+
 from .atmosphere import get_atmosphere_profile_functions
 from .camera import (
     CameraDescription,

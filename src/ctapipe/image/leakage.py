@@ -12,16 +12,17 @@ __all__ = ["leakage_parameters"]
 def leakage_parameters(geom, image, cleaning_mask):
     """
     Calculating the leakage-values for a given image.
+
     Image must be cleaned for example with tailcuts_clean.
     Leakage describes how strong a shower is on the edge of a telescope.
 
     Parameters
     ----------
-    geom: ctapipe.instrument.CameraGeometry
+    geom : ctapipe.instrument.CameraGeometry
         Camera geometry information
-    image: array
+    image : array
         pixel values
-    cleaning_mask: array, dtype=bool
+    cleaning_mask : array, dtype=bool
         The pixel that survived cleaning, e.g. tailcuts_clean
 
     Returns

@@ -1,13 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""
+"""Reconstruct shower geometry by intersecting Hillas image axes."""
 
-TODO:
-- Speed tests, need to be certain the looping on all telescopes is not killing
-performance
-- Introduce new weighting schemes
-- Make intersect_lines code more readable
-
-"""
+# TODO: Benchmark the loops over telescopes.
+# TODO: Add more weighting schemes.
+# TODO: Make intersect_lines easier to read.
 
 import itertools
 import warnings
@@ -46,8 +42,10 @@ H_MAX_UPPER_LIMIT_M = 100_000
 
 def _far_outside_fov(fov_lat, fov_lon):
     """
-    Check if a given latitude or longiude in the FoV is further away from
-    the FoV center than `FOV_ANGULAR_DISTANCE_LIMIT`
+    Check whether either field-of-view coordinate exceeds the limit.
+
+    Compare the absolute longitude and latitude separately against
+    ``FOV_ANGULAR_DISTANCE_LIMIT_RAD``. The coordinates are in radians.
 
     Parameters
     ----------
@@ -67,8 +65,9 @@ def _far_outside_fov(fov_lat, fov_lon):
 
 class HillasIntersection(HillasGeometryReconstructor):
     """
-    This class is a simple re-implementation of Hillas parameter based event
-    reconstruction. See algorithm I of :cite:p:`hofmann-1999-comparison`.
+    Reconstruct showers by intersecting axes derived from Hillas parameters.
+
+    See algorithm I of :cite:p:`hofmann-1999-comparison`.
 
     In this case the Hillas parameters are all constructed in the shared
     angular (Nominal) system. Direction reconstruction is performed by
@@ -86,6 +85,17 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     A more detailed explanation can be found in section 3.2 of
     :cite:p:`ctao-mc-design-studies`.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray providing the telescope positions and camera geometries for the
+        shower-axis intersections.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric profile stored by the base reconstructor. This reconstruction
+        estimates shower maximum geometrically.
+    **kwargs
+        Component configuration and trait values forwarded to the base reconstructor.
     """
 
     weighting = traits.CaselessStrEnum(
@@ -100,6 +110,18 @@ class HillasIntersection(HillasGeometryReconstructor):
     def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
         Weighting must be a function similar to the weight_mean_intensity function already implemented
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray providing the telescope positions and camera geometries for the
+            shower-axis intersections.
+        atmosphere_profile : AtmosphereDensityProfile or None, optional
+            Atmospheric profile stored by the base reconstructor. This reconstruction
+            estimates shower maximum geometrically.
+        **kwargs
+            Component configuration and trait values forwarded to the base
+            reconstructor.
         """
         super().__init__(subarray, atmosphere_profile, **kwargs)
 
@@ -121,7 +143,6 @@ class HillasIntersection(HillasGeometryReconstructor):
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
         """
-
         self._prepare_event(event)
         try:
             hillas_dict = self._create_hillas_dict(event)
@@ -147,25 +168,36 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
+        Reconstruct shower geometry by intersecting telescope image axes.
+
+        Transform the image centroids to the array's nominal frame to estimate
+        arrival direction, then use the tilted ground frame for the core fit.
 
         Parameters
         ----------
-        hillas_dict: dict
-            Dictionary containing Hillas parameters for all telescopes
-            in reconstruction
-        inst : ctapipe.io.InstrumentContainer
-            instrumental description
-        array_pointing: SkyCoord[AltAz]
-            pointing direction of the array
-        telescopes_pointings: dict[SkyCoord[AltAz]]
-            dictionary of pointing direction per each telescope
+        hillas_dict : dict of int to ctapipe.containers.HillasParametersContainer
+            Image parameters indexed by telescope ID. At least two images with
+            nonzero, non-NaN widths are required.
+        array_pointing : astropy.coordinates.SkyCoord
+            Array pointing in the AltAz frame.
+        telescopes_pointings : dict of int to astropy.coordinates.SkyCoord or None
+            AltAz pointing per participating telescope. If None, use the array
+            pointing for all telescopes.
 
         Returns
         -------
-        ReconstructedGeometryContainer:
+        ctapipe.containers.ReconstructedGeometryContainer
+            Reconstructed direction, core position, and shower maximum height.
+            If the fitted direction lies too far from the field-of-view center,
+            return an invalid reconstruction.
 
+        Raises
+        ------
+        TooFewTelescopesException
+            If fewer than two telescope images are supplied.
+        InvalidWidthException
+            If an image width is zero or NaN.
         """
-
         # filter warnings for missing obs time. this is needed because MC data has no obs time
         warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
@@ -289,12 +321,14 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def reconstruct_nominal(self, hillas_parameters):
         """
-        Perform event reconstruction by simple Hillas parameter intersection
-        in the nominal system
+        Reconstruct the arrival direction by crossing image axes in the nominal frame.
+
+        Combine the pairwise intersections with weights. Return four NaNs if fewer than
+        two images are available.
 
         Parameters
         ----------
-        hillas_parameters: dict
+        hillas_parameters : dict
             Hillas parameter objects
 
         Returns
@@ -356,23 +390,25 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     def reconstruct_tilted(self, hillas_parameters, tel_x, tel_y):
         """
-        Core position reconstruction by image axis intersection in the tilted
-        system
+        Reconstruct the core position by crossing image axes in the tilted frame.
+
+        The uncertainties are the weighted spreads of the intersections. Return four
+        NaNs if fewer than two images are available.
 
         Parameters
         ----------
-        hillas_parameters: dict
+        hillas_parameters : dict
             Hillas parameter objects
-        tel_x: dict
+        tel_x : dict
             Telescope X positions, tilted system
-        tel_y: dict
+        tel_y : dict
             Telescope Y positions, tilted system
 
         Returns
         -------
         (float, float, float, float):
             core position X, core position Y, core uncertainty X,
-            core uncertainty X
+            core uncertainty Y
         """
         if len(hillas_parameters) < 2:
             return (np.nan, np.nan, np.nan, np.nan)  # Throw away events with < 2 images
@@ -436,32 +472,35 @@ class HillasIntersection(HillasGeometryReconstructor):
         self, source_x, source_y, core_x, core_y, hillas_parameters, tel_x, tel_y, zen
     ):
         """
-        Geometrical depth of shower maximum reconstruction, assuming the shower
-        maximum lies at the image centroid
+        Estimate the altitude of shower maximum above sea level.
+
+        Use image centroids to obtain geometric estimates for individual telescopes,
+        weighted by Hillas intensity. Convert the result to vertical height, add the
+        reference altitude, and return NaN above the configured height limit.
 
         Parameters
         ----------
-        source_x: float
+        source_x : float
             Source X position in nominal system
-        source_y: float
+        source_y : float
             Source Y position in nominal system
-        core_x: float
+        core_x : float
             Core X position in nominal system
-        core_y: float
+        core_y : float
             Core Y position in nominal system
-        hillas_parameters: dict
+        hillas_parameters : dict
             Dictionary of hillas parameters objects
-        tel_x: dict
+        tel_x : dict
             Dictionary of telescope X positions in tilted frame
-        tel_y: dict
+        tel_y : dict
             Dictionary of telescope Y positions in tilted frame
-        zen: float
+        zen : float
             Zenith angle of shower
 
         Returns
         -------
-        float:
-            Estimated depth of shower maximum
+        astropy.units.Quantity
+            Estimated altitude of shower maximum above sea level in meters.
         """
         cog_x = list()
         cog_y = list()
@@ -511,17 +550,17 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         Parameters
         ----------
-        xp1: ndarray
+        xp1 : ndarray
             X position of first image
-        yp1: ndarray
+        yp1 : ndarray
             Y position of first image
-        phi1: ndarray
+        phi1 : ndarray
             Rotation angle of first image
-        xp2: ndarray
+        xp2 : ndarray
             X position of second image
-        yp2: ndarray
+        yp2 : ndarray
             Y position of second image
-        phi2: ndarray
+        phi2 : ndarray
             Rotation angle of second image
 
         Returns
@@ -554,10 +593,40 @@ class HillasIntersection(HillasGeometryReconstructor):
 
     @staticmethod
     def weight_mean_intensity(p1, p2):
+        """
+        Weight a telescope pair by the charges of its cleaned images.
+
+        Parameters
+        ----------
+        p1 : float or ndarray
+            Integrated charge of the first cleaned image.
+        p2 : float or ndarray
+            Integrated charge of the second cleaned image, in the same units as p1.
+
+        Returns
+        -------
+        float or ndarray
+            Half the harmonic mean of the two charges, in the same units.
+        """
         return (p1 * p2) / (p1 + p2)
 
     @staticmethod
     def weight_sin(phi1, phi2):
+        """
+        Weight an image-axis intersection by the opening angle of the axes.
+
+        Parameters
+        ----------
+        phi1 : float or ndarray or astropy.units.Quantity
+            Orientation of the first image axis. Bare numbers are in radians.
+        phi2 : float or ndarray or astropy.units.Quantity
+            Orientation of the second image axis in the same convention.
+
+        Returns
+        -------
+        float or ndarray or astropy.units.Quantity
+            Absolute sine of the angle between the two axes.
+        """
         return np.abs(np.sin(phi1 - phi2))
 
 
@@ -565,32 +634,36 @@ def get_shower_height(
     source_x, source_y, cog_x, cog_y, core_x, core_y, tel_pos_x, tel_pos_y
 ):
     """
-    Function to calculate the depth of shower maximum geometrically under the assumption
-    that the shower maximum lies at the brightest point of the camera image.
+    Estimate the distance to shower maximum from the image displacement.
+
+    Use the ratio of the impact distance to the angular separation between the source
+    position and the image centroid.
+
     Parameters
     ----------
-    source_x: float
+    source_x : float
         Event source position in nominal frame
-    source_y: float
+    source_y : float
         Event source position in nominal frame
-    cog_x: list[float]
+    cog_x : list[float]
         Center of gravity x-position for all the telescopes in rad
-    cog_y: list[float]
+    cog_y : list[float]
         Center of gravity y-position for all the telescopes in rad
-    core_x: float
+    core_x : float
         Event core position in telescope tilted frame
-    core_y: float
+    core_y : float
         Event core position in telescope tilted frame
-    tel_pos_x: list
+    tel_pos_x : list
         List of telescope X positions in tilted frame
-    tel_pos_y: list
+    tel_pos_y : list
         List of telescope Y positions in tilted frame
 
     Returns
     -------
-    float: Depth of maximum of air shower
+    ndarray
+        Distance to shower maximum for each telescope, in the units of the
+        supplied impact coordinates when the angles are given in radians.
     """
-
     # Calculate displacement of image centroid from source position (in rad)
     disp = np.sqrt((cog_x - source_x) ** 2 + (cog_y - source_y) ** 2)
     # Calculate impact parameter of the shower

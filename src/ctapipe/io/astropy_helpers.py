@@ -43,21 +43,24 @@ def read_table(
 
     Parameters
     ----------
-    h5file: Union[str, Path, tables.file.File]
+    h5file : Union[str, Path, tables.file.File]
         input filename or PyTables file handle
-    path: str
+    path : str
         path to table in the file
-    start: int or None
+    start : int or None
         if given, this is the first row to be loaded
-    stop: int or None
+    stop : int or None
         if given, this is the last row to be loaded (not inclusive)
-    step: int or None
+    step : int or None
         step between rows.
-    condition: str
+    condition : str
         A numexpr expression to only load rows fulfilling this condition.
         For example, use "hillas_length > 0" to only load rows where the
         hillas length is larger than 0 (so not nan and not 0).
         Ignored when reading tables that were written using astropy.
+    table_cls : type[astropy.table.Table], optional
+        Class to use for the result. Use `~astropy.table.QTable` to represent
+        columns with units as quantities.
 
     Returns
     -------
@@ -65,7 +68,6 @@ def read_table(
         table in Astropy Format
 
     """
-
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
@@ -143,24 +145,27 @@ def write_table(
 
     Parameters
     ----------
-    table: astropy.table.Table
+    table : astropy.table.Table
         The table to be written.
-    h5file: Union[str, Path, tables.file.File]
+    h5file : Union[str, Path, tables.file.File]
         input filename or PyTables file handle. If a PyTables file handle,
         must be opened writable.
-    path: str
+    path : str
         dataset path inside the ``h5file``
-    append: bool
-        Whether to try to append to or replace an existing table
-    overwrite: bool
-        If table is already in file and overwrite and append are false,
-        raise an error.
-    mode: str
+    append : bool
+        Append rows if the table already exists.
+    overwrite : bool
+        Replace an existing table. Mutually exclusive with ``append``. When both
+        options are False, writing to an existing table raises an error.
+    mode : str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
-    time_format: str
+    time_format : str
         Format to use for storing time columns.
         Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
+    filters : tables.Filters, optional
+        PyTables filters used when creating a table, including compression.
+        When appending rows, the existing table retains its filters.
     """
     copied = False
     parent, table_name = os.path.split(path)
@@ -286,10 +291,26 @@ def join_allow_empty(left, right, keys, join_type="left", keep_order=False, **kw
     See https://github.com/astropy/astropy/issues/12012 for why
     this is necessary.
 
-    This behaves as `~astropy.table.join`, with the only difference of
-    allowing empty tables to be joined.
-    """
+    Joins with an empty input return a copy of the table selected by the
+    join mode.
 
+    Parameters
+    ----------
+    left : astropy.table.Table
+        Left input table, which may be empty.
+    right : astropy.table.Table
+        Right input table, which may be empty.
+    keys : str or sequence of str
+        Column name or names used as join keys.
+    join_type : str, optional
+        Join mode, such as ``"left"``, ``"right"``, ``"inner"``, or ``"outer"``.
+    keep_order : bool, optional
+        Preserve the order of the retained side in a left or right join.
+        With two nonempty inputs, this adds a sort-index column to that
+        input table. An ordered right join can fail when row counts differ.
+    **kwargs
+        Additional options forwarded to `astropy.table.join`.
+    """
     left_empty = len(left) == 0
     right_empty = len(right) == 0
 

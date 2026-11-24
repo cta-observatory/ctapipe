@@ -1,3 +1,9 @@
+"""Plot telescope positions and event information on a Matplotlib array display.
+
+Color telescopes by measured or reconstructed values and overlay vectors
+or lines derived from Hillas parameters to inspect shower geometry.
+"""
+
 from itertools import cycle
 
 import numpy as np
@@ -11,16 +17,16 @@ from .mpl_camera import polar_to_cart
 
 class ArrayDisplay:
     """
-    Display a top-town view of a telescope array.
+    Display a top-down view of a telescope array.
 
     This can be used in two ways: by default, you get a display of all
     telescopes in the subarray, colored by telescope type, however you can
     also color the telescopes by a value (like trigger pattern, or some other
     scalar per-telescope parameter). To set the color value, simply set the
-    ``value`` attribute, and the fill color will be updated with the value. You
+    ``values`` attribute, and the fill color will be updated with the value. You
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
-    ``array_disp.telescope.set_linewidth(0)``)
+    ``array_disp.telescopes.set_linewidth(0)``)
 
     To display a vector field over the telescope positions, e.g. for
     reconstruction, call `set_vector_uv()` to set cartesian vectors,
@@ -30,19 +36,25 @@ class ArrayDisplay:
 
     Parameters
     ----------
-    subarray: ctapipe.instrument.SubarrayDescription
+    subarray : ctapipe.instrument.SubarrayDescription
         the array layout to display
-    axes: matplotlib.axes.Axes
+    axes : matplotlib.axes.Axes
         matplotlib axes to plot on, or None to use current one
-    title: str
-        title of array plot
-    tel_scale: float
-        scaling between telescope mirror radius in m to displayed size
-    autoupdate: bool
+    autoupdate : bool
         redraw when the input changes
-    radius: Union[float, list, None]
+    tel_scale : float
+        scaling between telescope mirror radius in m to displayed size
+    alpha : float, optional
+        Opacity of telescope markers and their legend entries, between 0 and 1.
+    title : str
+        title of array plot
+    radius : Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
+    frame : astropy.coordinates.BaseCoordinateFrame, optional
+        Ground coordinate frame to transform telescope positions into before
+        plotting their Cartesian x and y coordinates. Defaults to
+        `~ctapipe.coordinates.GroundFrame`.
     """
 
     def __init__(
@@ -154,17 +166,25 @@ class ArrayDisplay:
 
     @values.setter
     def values(self, values):
-        """set the telescope colors to display"""
+        """Set the telescope colors to display
+
+        Parameters
+        ----------
+        values : array-like
+            Values in the telescope order of the displayed subarray.
+        """
         self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 
     def add_radial_grid(self, spacing=100 * u.m):
-        """add some dotted rings for distance estimation. The number of rings
-        is estimated automatically from the spacing and the array footprint.
+        """Add dotted radial distance markers to the array display.
+
+        The number of rings is estimated from the specified spacing and the array
+        footprint.
 
         Parameters
         ----------
-        spacing: Quantity
+        spacing : Quantity
             spacing between rings
 
         """
@@ -199,17 +219,17 @@ class ArrayDisplay:
         self.axes.add_collection(circle_patches)
 
     def set_vector_uv(self, uu, vv, c=None, **kwargs):
-        """sets the vector field U,V and color for all telescopes
+        """Sets the vector field U,V and color for all telescopes
 
         Parameters
         ----------
-        uu: array[n_tels]
+        uu : array[n_tels]
             x-component of direction vector
-        vv: array[n_tels]
+        vv : array[n_tels]
             y-component of direction vector
-        c: color or list of colors
+        c : color or list of colors
             vector color for each telescope (or one for all)
-        kwargs:
+        **kwargs
             extra args passed to plt.quiver(), ignored on subsequent updates
         """
         coords = self.tel_coords
@@ -245,16 +265,19 @@ class ArrayDisplay:
             self._quiver.set_UVC(uu, vv, c)
 
     def set_vector_rho_phi(self, rho, phi, c=None, **kwargs):
-        """sets the vector field using R, Phi for each telescope
+        """Sets the vector field using R, Phi for each telescope
 
         Parameters
         ----------
-        rho: float or array[float]
+        rho : float or array[float]
             vector magnitude for each telescope
-        phi: array[Angle]
+        phi : array[Angle]
             vector angle for each telescope
-        c: color or list of colors
+        c : color or list of colors
             vector color for each telescope (or one for all)
+        **kwargs
+            Options forwarded to `matplotlib.axes.Axes.quiver` when creating the
+            vector field. Subsequent calls update the existing vectors and colors.
         """
         phi = Angle(phi).rad
         uu, vv = polar_to_cart(rho, phi)
@@ -276,18 +299,17 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        hillas_dict: Dict[int, HillasParametersContainer]
+        hillas_dict : Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
         core_dict : Dict[int, CoreParameters]
             mapping of tel_id to CoreParametersContainer
-        length: Float
+        length : Float
             length of the arrow (in meters)
-        time_gradient: Dict[int, value of time gradient (no units)]
+        time_gradient : Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
-        angle_offset: Float
+        angle_offset : Float
             This should be the ``event.monitoring.pointing.azimuth`` parameter
         """
-
         # rot_angle_ellipse is psi parameter in HillasParametersContainer
         rho = np.zeros(self.subarray.n_tels) * u.m
         rot_angle_ellipse = np.zeros(self.subarray.n_tels) * u.deg
@@ -317,14 +339,16 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        hillas_dict: Dict[int, HillasParametersContainer]
+        hillas_dict : Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
-        core_dict : Dict[int, CoreParameters]
-            mapping of tel_id to CoreParametersContainer
-        range: float
+        core_dict : dict[int, astropy.units.Quantity]
+            Ground-plane direction angle for each telescope ID.
+        range : float
             half of the length of the segments to be plotted (in meters)
+        **kwargs
+            Line style options forwarded to `matplotlib.axes.Axes.plot`.
+            The display supplies the line color according to telescope type.
         """
-
         # transform to GroundFrame
         positions_in_frame = SkyCoord(self.tel_coords, frame=self.frame)
         coords = positions_in_frame.transform_to(GroundFrame())
@@ -357,6 +381,7 @@ class ArrayDisplay:
             )
 
     def add_labels(self):
+        """Label each plotted telescope with its ID."""
         px = self.tel_coords.x.to_value("m")
         py = self.tel_coords.y.to_value("m")
         for tel, x, y, r in zip(self.subarray.tels, px, py, self.radii):
@@ -373,12 +398,13 @@ class ArrayDisplay:
             self._labels.append(lab)
 
     def remove_labels(self):
+        """Remove the telescope labels from the array display."""
         for lab in self._labels:
             lab.remove()
         self._labels = []
 
     def _update(self):
-        """signal a redraw if necessary"""
+        """Signal a redraw if necessary"""
         import matplotlib.pyplot as plt
 
         if self.autoupdate:
@@ -390,15 +416,14 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        x: ndarray
+        x : ndarray
             array of image X coordinates
-        y: ndarray
+        y : ndarray
             array of image Y coordinates
-        background: ndarray
+        background : ndarray
             Array of image to use in background
-        kwargs: key=value
-            any style keywords to pass to matplotlib
+        **kwargs
+            Keyword arguments forwarded to `matplotlib.axes.Axes.contour`.
         """
-
         # use zorder to ensure the contours appear under the telescopes.
         self.axes.contour(x, y, background, zorder=0, **kwargs)

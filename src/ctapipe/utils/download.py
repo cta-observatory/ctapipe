@@ -1,3 +1,9 @@
+"""Download remote files and reuse local copies in the dataset cache.
+
+Downloads use partial files until they complete. A lock coordinates downloads
+to the same cache entry across processes.
+"""
+
 import logging
 import os
 from pathlib import Path
@@ -18,18 +24,23 @@ USER_AGENT = f"ctapipe/{__version__}"
 
 def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     """
-    Download a file. Will write to ``path + '.part'`` while downloading
-    and rename after successful download to the final name.
+    Download a file.
+
+    Will write to ``path + '.part'`` while downloading and rename after successful
+    download to the final name.
 
     Parameters
     ----------
-    url: str or url
+    url : str or url
         The URL to download
-    path: pathlib.Path or str
+    path : pathlib.Path or str
         Where to store the downloaded data.
-    auth: None or tuple of (username, password) or a request.AuthBase instance.
-    chunk_size: int
+    auth : tuple or requests.auth.AuthBase or None, optional
+        Username and password pair or authentication handler for the HTTP request.
+    chunk_size : int
         Chunk size for writing the data file, 10 kB by default.
+    progress : bool, optional
+        Show a progress bar while downloading.
     """
     log.info(f"Downloading {url} to {path}")
     name = urlparse(url).path.split("/")[-1]
@@ -86,6 +97,38 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
 def download_cached(
     url, cache_name="ctapipe", auth=None, env_prefix="CTAPIPE_DATA_", progress=False
 ) -> Path:
+    """Get the local path to a URL, downloading it on a cache miss.
+
+    Use an existing cached file without contacting the server. A file lock
+    prevents concurrent downloads to the same cache entry.
+
+    Parameters
+    ----------
+    url : str
+        URL of the file to retrieve. Its host and path identify the cache entry.
+    cache_name : str, optional
+        Directory name under the user's ``.cache`` directory. If
+        ``CTAPIPE_CACHE`` is set, it specifies the cache root instead.
+    auth : bool or tuple of str or requests.auth.AuthBase or None, optional
+        Authentication passed to the HTTP request. Use a (username, password)
+        pair or set this to True to read the pair from the environment.
+    env_prefix : str, optional
+        Prefix for the ``USER`` and ``PASSWORD`` environment variables read
+        when ``auth=True`` and the file needs to be downloaded.
+    progress : bool, optional
+        Show a progress bar while downloading the file.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the cached file.
+
+    Raises
+    ------
+    KeyError
+        If ``auth=True``, the file is not cached, and a required credential
+        variable is missing.
+    """
     path = get_cache_path(url, cache_name=cache_name)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = path.with_suffix(path.suffix + ".lock")
@@ -121,27 +164,27 @@ def download_file_cached(
     progress=False,
 ):
     """
-    Downloads a file from a dataserver and caches the result locally
-    in ``$HOME/.cache/<cache_name>``.
-    If the file is found in the cache, no new download is performed.
+    Download a file and cache it locally.
+
+    Reuse files in ``$HOME/.cache/<cache_name>`` without downloading them again.
 
     Parameters
     ----------
-    name: str or pathlib.Path
+    name : str or pathlib.Path
         the name of the file, relative to the data server url
-    cache_name: str
+    cache_name : str
         What name to use for the cache directory
-    env_prefix: str
-        Prefix for the environt variables used for overriding the URL,
-        and providing username and password in case authentication is required.
-    auth: True, None or tuple of (username, password)
+    auth : True, None or tuple of (username, password)
         Authentication data for the request. Will be passed to ``requests.get``.
         If ``True``, read username and password for the request from
         the env variables ``env_prefix + 'USER'`` and ``env_prefix + PASSWORD``
-    default_url: str
+    env_prefix : str
+        Prefix for the environt variables used for overriding the URL,
+        and providing username and password in case authentication is required.
+    default_url : str
         The default url from which to download ``name``, can be overridden
         by setting the env variable ``env_prefix + URL``
-    progress: bool
+    progress : bool
         Whether or not to show a progress bar for downloads
 
     Returns

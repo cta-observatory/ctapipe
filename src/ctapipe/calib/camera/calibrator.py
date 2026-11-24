@@ -1,6 +1,8 @@
 """
-Definition of the `CameraCalibrator` class, providing all steps needed to apply
-calibration and image extraction, as well as supporting algorithms.
+Calibrate camera waveforms and extract images.
+
+The module provides `CameraCalibrator` and supporting routines for timing alignment and
+waveform processing.
 """
 
 import astropy.units as u
@@ -81,8 +83,28 @@ def _get_invalid_pixels(
 
 class CameraCalibrator(TelescopeComponent):
     """
-    Calibrator to handle the full camera calibration chain, in order to fill
-    the DL1 data level in the event container.
+    Calibrate camera data to DL1.
+
+    The results populate the DL1 fields of the event container.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying camera readouts and telescope-dependent extraction and
+        calibration settings.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    image_extractor : ImageExtractor or None, optional
+        Preconstructed extractor to use for every telescope. With None, use the
+        configured ``image_extractor_type`` for each telescope.
+    data_volume_reducer : DataVolumeReducer or None, optional
+        Preconstructed waveform reducer. With None, instantiate the configured
+        ``data_volume_reducer_type``.
+    **kwargs
+        Trait values that override the configuration.
 
     Attributes
     ----------
@@ -147,26 +169,27 @@ class CameraCalibrator(TelescopeComponent):
         **kwargs,
     ):
         """
+        Configure the components used to calibrate camera events.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
-        data_volume_reducer: ctapipe.image.reducer.DataVolumeReducer
-            The DataVolumeReducer to use.
-            This is used to override the options from the config system
-            and to enable passing a preconfigured reducer.
-        image_extractor: ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use. If None, the default via the
-            configuration system will be constructed.
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used for calibration and for
+            resolving telescope-dependent settings.
+        config : traitlets.loader.Config or None, optional
+            Configuration used to initialize trait values. Mutually exclusive with
+            ``parent``.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        image_extractor : ctapipe.image.ImageExtractor or None, optional
+            Preconfigured extractor to use for all telescopes. If None, create
+            the extractors selected by ``image_extractor_type``.
+        data_volume_reducer : ctapipe.image.DataVolumeReducer or None, optional
+            Preconfigured reducer. If None, create the reducer selected by
+            ``data_volume_reducer_type``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
@@ -244,6 +267,17 @@ class CameraCalibrator(TelescopeComponent):
             return False
 
     def r1_to_dl0(self, tel_event: TelescopeEventContainer):
+        """
+        Reduce the waveform data volume for one telescope event.
+
+        Copy the R1 waveforms to DL0, zero the samples of rejected pixels, and
+        set the data-volume reduction flags in the DL0 pixel status.
+
+        Parameters
+        ----------
+        tel_event : TelescopeEventContainer
+            Telescope event with R1 waveforms. The DL0 camera data are updated in place.
+        """
         tel_id = tel_event.index.tel_id
         r1 = tel_event.r1
 
@@ -320,6 +354,21 @@ class CameraCalibrator(TelescopeComponent):
         return factor
 
     def dl0_to_dl1(self, tel_event: TelescopeEventContainer):
+        """
+        Calibrate DL0 waveforms into a DL1 camera image for one telescope.
+
+        Apply the available pedestal and timing corrections and run the
+        configured extractor, typically for integrated charge and pulse time.
+        For single-sample readouts, use the sample values as image charges
+        and initialize the pulse times to zero. Apply the charge calibration
+        to the resulting image, squaring the factors for waveform variances.
+
+        Parameters
+        ----------
+        tel_event : TelescopeEventContainer
+            Telescope event with DL0 camera data and monitoring information.
+            The DL1 container is replaced in place.
+        """
         tel_id = tel_event.index.tel_id
         dl0 = tel_event.dl0.camera
         waveforms = dl0.waveform
@@ -416,8 +465,10 @@ class CameraCalibrator(TelescopeComponent):
 
     def __call__(self, event):
         """
-        Perform the full camera calibration from R1 to DL1. Any calibration
-        relating to data levels before the data level the file is read into
+        Perform the full camera calibration from R1 to DL1.
+
+        Any calibration relating to data levels before the data level the file is read
+        into
         will be skipped.
 
         Parameters
@@ -429,7 +480,15 @@ class CameraCalibrator(TelescopeComponent):
             self.calibrate_tel_event(tel_event)
 
     def calibrate_tel_event(self, tel_event):
-        """Calibrate from R1 or existing DL0 waveforms to DL1."""
+        """Calibrate from R1 or existing DL0 waveforms to DL1.
+
+        Parameters
+        ----------
+        tel_event : TelescopeEventContainer
+            Telescope event with R1 or DL0 waveforms and calibration monitoring
+            information. The method updates the DL0 data when R1 is present and writes
+            the DL1 image in place.
+        """
         if not self._check_r1_empty(tel_event.r1):
             self.r1_to_dl0(tel_event)
         elif self._check_dl0_empty(tel_event.dl0):
@@ -443,16 +502,17 @@ class CameraCalibrator(TelescopeComponent):
 
 def shift_waveforms(waveforms, time_shift_samples):
     """
-    Shift the waveforms by the mean integer shift to mediate
-    time differences between pixels.
-    The remaining shift (mean + fractional part) is returned
-    to be applied later to the extracted peak time.
+    Align waveforms by shifting each pixel by an integer number of samples.
+
+    Round each pixel's offset relative to the mean offset for its gain channel. Return
+    the uncorrected offset in samples, including the common and fractional parts, so it
+    can be applied to the extracted peak time.
 
     Parameters
     ----------
-    waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
+    waveforms : ndarray of shape (n_channels, n_pixels, n_samples)
         The waveforms to shift
-    time_shift_samples: ndarray
+    time_shift_samples : ndarray
         The shift to apply in units of samples.
         Waveforms are shifted to the left by the smallest integer
         that minimizes inter-pixel differences.

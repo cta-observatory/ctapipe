@@ -142,7 +142,6 @@ def test_transforms(tmp_path):
 
 def test_file_closed(tmp_path):
     """Test read_table closes the file even when an exception happens during read"""
-
     path = tmp_path / "empty.hdf5"
     with tables.open_file(path, "w"):
         pass

@@ -192,7 +192,7 @@ def test_muon_ring_fitter(
     picture_thresh,
     boundary_thresh,
 ):
-    """test MuonRingFitter"""
+    """Test MuonRingFitter"""
     pytest.importorskip("iminuit")
 
     # Dynamically retrieve the fixture for the specified camera
@@ -286,7 +286,7 @@ def test_muon_ring_fitter_error_calculator(
     radius,
     width,
 ):
-    """test MuonRingFitter error_calculator"""
+    """Test MuonRingFitter error_calculator"""
     pytest.importorskip("iminuit")
 
     # Dynamically retrieve the fixture for the specified camera

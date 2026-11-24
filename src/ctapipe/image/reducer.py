@@ -3,6 +3,7 @@ Algorithms for the data volume reduction.
 """
 
 from abc import abstractmethod
+from typing import override
 
 import numpy as np
 
@@ -24,37 +25,54 @@ __all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeRedu
 class DataVolumeReducer(TelescopeComponent):
     """
     Base component for data volume reducers.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to resolve telescope-dependent reduction settings and supply
+        camera geometry to reducers that need it.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Reducer-specific traits are
+        defined by the concrete implementation.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
+        Initialize the reducer's telescope-dependent configuration.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        kwargs
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used when selecting pixels.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         self.subarray = subarray
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
     def __call__(self, waveforms, tel_id=None, selected_gain_channel=None):
         """
-        Call the relevant functions to perform data volume reduction on the
-        waveforms.
+        Call the relevant functions to perform data volume reduction on the waveforms.
 
         Parameters
         ----------
-        waveforms: ndarray
+        waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        tel_id: int
+        tel_id : int
             The telescope id. Required for the 'image_extractor' and
             'camera.geometry' in 'TailCutsDataVolumeReducer'.
-        selected_gain_channel: ndarray
+        selected_gain_channel : ndarray
             The channel selected in the gain selection, per pixel. Required for
             the 'image_extractor' in 'TailCutsDataVolumeReducer'.
             extraction.
@@ -73,17 +91,18 @@ class DataVolumeReducer(TelescopeComponent):
     def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
         """
         Abstract method to be defined by a DataVolumeReducer subclass.
+
         Call the relevant functions for the required pixel selection.
 
         Parameters
         ----------
-        waveforms: ndarray
+        waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        tel_id: int
+        tel_id : int
             The telescope id. Required for the 'image_extractor' and
             'camera.geometry' in 'TailCutsDataVolumeReducer'.
-        selected_gain_channel: ndarray
+        selected_gain_channel : ndarray
             The channel selected in the gain selection, per pixel. Required for
             the 'image_extractor' in 'TailCutsDataVolumeReducer'.
 
@@ -99,6 +118,7 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
+    @override
     def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
         n_pixels = waveforms.shape[-2]
         return np.ones(n_pixels, dtype=bool)
@@ -112,6 +132,25 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
     2) Add iteratively all pixels with Signal S >= boundary_thresh
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying camera geometry and telescope-dependent cleaning and
+        extraction settings.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    cleaner : ImageCleaner or None, optional
+        Preconstructed image cleaner. With None, use a
+        `~ctapipe.image.TailcutsImageCleaner`.
+    image_extractor : ImageExtractor or None, optional
+        Preconstructed extractor used for all telescopes. With None, use the configured
+        ``image_extractor_type``.
+    **kwargs
+        Trait values that override the configuration.
 
     Attributes
     ----------
@@ -150,15 +189,24 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         **kwargs,
     ):
         """
+        Configure charge extraction and tail-cuts pixel selection.
+
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        kwargs
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used by the cleaner and extractors.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        cleaner : ctapipe.image.ImageCleaner or None, optional
+            Preconfigured cleaner. If None, create a TailcutsImageCleaner.
+        image_extractor : ctapipe.image.ImageExtractor or None, optional
+            Preconfigured charge extractor to use for all telescopes. If None,
+            create the extractors selected by ``image_extractor_type``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
@@ -178,6 +226,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             self.image_extractor_type = [("type", "*", name)]
             self.image_extractors[name] = image_extractor
 
+    @override
     def select_pixels(self, waveforms, tel_id, selected_gain_channel=None):
         camera_geom = self.subarray.tel[tel_id].camera.geometry
         # Pulse-integrate waveforms

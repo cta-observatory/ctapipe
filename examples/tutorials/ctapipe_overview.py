@@ -562,7 +562,6 @@ disp.add_colorbar()
 ###############################################################################
 def num_islands_python(camera, clean):
     """A breadth first search to find connected islands of neighboring pixels in the cleaning set"""
-
     # the camera geometry has a [n_pixel, n_pixel] boolean array
     # that is True where two pixels are neighbors
     neighbors = camera.neighbor_matrix

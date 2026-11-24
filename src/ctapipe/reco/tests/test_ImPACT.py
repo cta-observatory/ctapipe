@@ -28,7 +28,7 @@ SIMTEL_PATH = get_dataset_path(
 
 
 def get_simtel_profile_from_eventsource():
-    """get a TableAtmosphereDensityProfile from a simtel file"""
+    """Get a TableAtmosphereDensityProfile from a simtel file"""
     from ctapipe.io import EventSource
 
     with EventSource(SIMTEL_PATH) as source:
@@ -37,7 +37,7 @@ def get_simtel_profile_from_eventsource():
 
 @pytest.fixture(scope="session")
 def table_profile():
-    """a table profile for testing"""
+    """A table profile for testing"""
     return get_simtel_profile_from_eventsource()
 
 
@@ -63,7 +63,6 @@ class TestImPACT:
         """
         Test that averaging of the brightest pixel position give a sensible outcome
         """
-
         impact_reco = ImPACTReconstructor(example_subarray, table_profile)
         pixel_x = np.array([0.0, 1.0, 0.0, -1.0]) * u.deg
         pixel_y = np.array([-1.0, 0.0, 1.0, 0.0]) * u.deg
@@ -101,7 +100,6 @@ class TestImPACT:
 
     def test_xmax_calculation(self, example_subarray, table_profile):
         """Test calculation of hmax and interpolation of Xmax tables"""
-
         impact_reco = ImPACTReconstructor(example_subarray, table_profile)
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
@@ -119,7 +117,6 @@ class TestImPACT:
 
     def test_interpolation(self, tmp_path, example_subarray, table_profile):
         """Test interpolation works on dummy template library"""
-
         impact_reco = ImPACTReconstructor(example_subarray, table_profile)
 
         create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
@@ -190,8 +187,7 @@ class TestImPACT:
 def test_selected_subarray(
     subarray_and_event_gamma_off_axis_500_gev, tmp_path, table_profile
 ):
-    """test that reconstructor also works with "missing" ids"""
-
+    """Test that reconstructor also works with "missing" ids"""
     create_dummy_templates(str(tmp_path) + "/LSTCam.template.gz", 1)
 
     subarray, event = subarray_and_event_gamma_off_axis_500_gev

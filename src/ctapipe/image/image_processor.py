@@ -58,6 +58,20 @@ class ImageProcessor(TelescopeComponent):
     Takes DL1/Image data and cleans and parametrizes the images into DL1/parameters.
 
     Should be run after CameraCalibrator to produce all DL1 information.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying camera geometry for image cleaning and parameterization in
+        the telescope frame.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``image_cleaner_type`` to choose the cleaning algorithm.
     """
 
     image_cleaner_type = ComponentName(
@@ -72,21 +86,24 @@ class ImageProcessor(TelescopeComponent):
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
+        Set up image cleaning, modification, and parameterization.
+
+        Create the configured cleaner and image-quality query and cache camera
+        geometries in the telescope frame for parameterization.
+
         Parameters
         ----------
-        subarray: SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope and camera descriptions used for processing and for resolving
+            telescope-dependent settings.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
-
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.clean = ImageCleaner.from_name(
@@ -105,6 +122,20 @@ class ImageProcessor(TelescopeComponent):
         }
 
     def __call__(self, event: SubarrayEventContainer):
+        """
+        Clean and parameterize the DL1 images for all telescopes in an event.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with DL1 camera images. The telescope images may be modified,
+            and their cleaning masks and image parameters are set in place.
+
+        Raises
+        ------
+        ValueError
+            If a telescope event has no DL1 image.
+        """
         for tel_event in event.tel.values():
             self._process_telescope_event(tel_event)
 

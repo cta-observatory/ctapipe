@@ -25,8 +25,19 @@ __all__ = ["TelescopeDescription"]
 
 class TelescopeDescription:
     """
-    Describes a Cherenkov Telescope and its associated
-    `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
+    Describe a Cherenkov telescope and its camera and optics.
+
+    The optics and camera are represented by `~ctapipe.instrument.OpticsDescription` and
+    `~ctapipe.instrument.CameraDescription`.
+
+    Parameters
+    ----------
+    name : str
+        Name of the telescope design.
+    optics : OpticsDescription
+        Optical system of the telescope.
+    camera : CameraDescription
+        Camera geometry and readout description.
 
     Attributes
     ----------
@@ -75,20 +86,18 @@ class TelescopeDescription:
     @classmethod
     def from_name(cls, optics_name, camera_name):
         """
-        construct a TelescopeDescription from a name (telescope description
-        string)
+        Construct a TelescopeDescription from a name (telescope description string)
 
         Parameters
         ----------
-        camera_name : str
-           camera name
         optics_name : str
            optics name (e.g. LST, or SST-ASTRI), also called
            telescope_description
+        camera_name : str
+           camera name
 
         Notes
         -----
-
         Warning: This method loads a pre-generated ``TelescopeDescription`` and is
         thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you

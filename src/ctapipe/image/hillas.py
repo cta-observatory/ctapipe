@@ -18,20 +18,21 @@ __all__ = ["hillas_parameters", "HillasParameterizationError"]
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
     """
-    Return longitudinal and transverse coordinates for x and y
-    for a given set of hillas parameters
+    Transform camera positions into longitudinal and transverse coordinates.
+
+    The axes are defined by the supplied Hillas parameters.
 
     Parameters
     ----------
-    x: u.Quantity[length]
+    x : u.Quantity[length]
         x coordinate in camera coordinates
-    y: u.Quantity[length]
+    y : u.Quantity[length]
         y coordinate in camera coordinates
-    cog_x: u.Quantity[length]
+    cog_x : u.Quantity[length]
         x coordinate of center of gravity
-    cog_y: u.Quantity[length]
+    cog_y : u.Quantity[length]
         y coordinate of center of gravity
-    psi: Angle
+    psi : Angle
         orientation angle
 
     Returns
@@ -54,6 +55,12 @@ def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
 
 
 class HillasParameterizationError(RuntimeError):
+    """Raised when Hillas moments cannot be computed for a camera image.
+
+    This can occur when the total image charge is zero or when the
+    covariance calculation fails.
+    """
+
     pass
 
 

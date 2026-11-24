@@ -1,3 +1,9 @@
+"""Merge compatible ctapipe HDF5 data products into one file.
+
+`HDF5Merger` combines event tables and their associated instrument,
+observation, and simulation data. It can append to an existing output file.
+"""
+
 import enum
 import uuid
 import warnings
@@ -82,6 +88,12 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
 
 
 class NodeType(enum.Enum):
+    """Describe the layouts of HDF5 nodes handled by the merger.
+
+    The layout determines whether the merger combines a single table
+    or iterates over groups of tables organized by telescope or result.
+    """
+
     # a single table
     TABLE = enum.auto()
     # a group comprising tel_XXX tables
@@ -134,6 +146,14 @@ class CannotMerge(OSError):
 class HDF5Merger(Component):
     """
     Class to copy / append / merge ctapipe hdf5 files
+
+    Parameters
+    ----------
+    output_path : str or pathlib.Path or None, optional
+        Destination HDF5 file. With None, use the configured output path.
+    **kwargs
+        Component configuration and trait values such as ``merge_strategy``, ``append``,
+        and ``overwrite``.
     """
 
     contact_info = Instance(
@@ -304,6 +324,11 @@ class HDF5Merger(Component):
     def __call__(self, other: str | Path | tables.File):
         """
         Append file ``other`` to the output file
+
+        Parameters
+        ----------
+        other : str or pathlib.Path or tables.File
+            ctapipe HDF5 input file to merge, as a path or open read handle.
         """
         exit_stack = ExitStack()
         if not isinstance(other, tables.File):
@@ -867,6 +892,7 @@ class HDF5Merger(Component):
         self.close()
 
     def close(self):
+        """Close the merged HDF5 file and record its path in provenance."""
         if hasattr(self, "h5file"):
             self.h5file.close()
         Provenance().add_output_file(str(self.output_path))
@@ -906,7 +932,6 @@ class HDF5Merger(Component):
 
     def _append_table_group(self, file, input_group, filter_columns=None, once=False):
         """Add a group that has a number of child tables to outputfile"""
-
         if not isinstance(input_group, tables.Group):
             raise TypeError(f"node must be a `tables.Group`, got {input_group}")
 

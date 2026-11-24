@@ -51,7 +51,20 @@ class DL2EventQualityQuery(QualityQuery):
 
 
 class DL2EventPreprocessor(Component):
-    """Defines pre-selection cuts and the necessary renaming of columns."""
+    """Defines pre-selection cuts and the necessary renaming of columns.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``energy_reconstructor`` to choose the prefix for the reconstructed energy
+        column.
+    """
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -254,6 +267,15 @@ class DL2EventPreprocessor(Component):
 class DL2EventLoader(Component):
     """
     Component for loading events and simulation metadata, applying preselection and optional derived column logic.
+
+    Parameters
+    ----------
+    file : pathlib.Path
+        HDF5 event file to read.
+    target_spectrum : Spectra
+        Reference spectrum used for spectral reweighting.
+    **kwargs
+        Component configuration and trait values, including the choice of event reader.
     """
 
     # User-selectable event reading function and kwargs
@@ -300,7 +322,6 @@ class DL2EventLoader(Component):
         meta : dict
             Metadata dictionary with simulation info and input spectrum.
         """
-
         opts = dict(dl2=True, simulated=True, observation_info=True)
 
         with TableLoader(self.file, parent=self, **opts) as loader:

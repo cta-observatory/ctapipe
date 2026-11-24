@@ -1,9 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Utilities to generate toymodel (fake) reconstruction inputs for testing
-purposes.
+Utilities to generate toymodel (fake) reconstruction inputs for testing purposes.
 
-Examples:
+Examples
+--------
 
 .. code-block:: python
 
@@ -47,8 +47,10 @@ VALID_GAIN_CHANNEL = {"HIGH", "LOW", "ALL"}
 
 
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
-    """Create a pulse time image for a toymodel shower. Assumes the time development
-    occurs only along the longitudinal (major) axis of the shower, and scales
+    """Generate a pulse time image for a simulated shower.
+
+    Assumes the time development occurs only along the longitudinal (major) axis of the
+    shower, and scales
     linearly with distance along the axis.
 
     Parameters
@@ -90,25 +92,26 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
 
 class WaveformModel:
+    """Generate toy pixel waveforms from a camera's reference pulses.
+
+    Place each pixel's charge at the requested arrival time, convolve with
+    the reference pulse for each gain channel, and sample at the camera
+    readout rate. Use this model to test image extraction. It omits electronic
+    noise and the photosensor's excess noise factor, so it cannot estimate
+    camera charge resolution.
+
+    Parameters
+    ----------
+    reference_pulse : ndarray
+        Reference pulse samples with shape (n_channels, n_samples).
+    reference_pulse_sample_width : astropy.units.Quantity
+        Duration of one reference pulse sample.
+    sample_width : astropy.units.Quantity
+        Duration of one sample in the generated waveform.
+    """
+
     @u.quantity_input(reference_pulse_sample_width=u.ns, sample_width=u.ns)
     def __init__(self, reference_pulse, reference_pulse_sample_width, sample_width):
-        """Generate a toy model waveform for each gain channel using the reference
-        pulse shape of a camera. Useful for testing image extraction algorithms.
-
-        Does not include the electronic noise and the Excess Noise Factor of
-        the photosensor, and therefore should not be used to make charge
-        resolution conclusions about a camera.
-
-        Parameters
-        ----------
-        reference_pulse_sample_width : u.Quantity[time]
-            Sample width of the reference pulse shape
-        reference_pulse : ndarray
-            Reference pulse shape for each channel
-        sample_width : u.Quantity[time]
-            Sample width of the waveform
-
-        """
         self.n_channels = reference_pulse.shape[-2]
         self.upsampling = 10
         reference_pulse_sample_width = reference_pulse_sample_width.to_value(u.ns)
@@ -185,6 +188,8 @@ class WaveformModel:
         Parameters
         ----------
         readout : `ctapipe.instrument.CameraReadout`
+            Camera readout supplying the reference pulse shapes, reference pulse
+            sample width, and waveform sampling rate.
         gain_channel : str
             The reference pulse gain channel to use.
             Choose between 'HIGH', 'LOW' and 'ALL'.
@@ -209,12 +214,29 @@ class WaveformModel:
 
 
 class ImageModel(metaclass=ABCMeta):
+    """Base class for generating toy shower images on a camera geometry.
+
+    Subclasses provide a spatial probability density. The model scales it
+    by the pixel area and expected total signal, then can draw Poisson signal
+    and night-sky background to make a randomized DL1 image.
+    """
+
     @abstractmethod
     def pdf(self, x, y):
-        """Probability density function."""
+        """Probability density function.
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
+
         For the signal, poisson random numbers are drawn from
         the expected signal distribution for each pixel.
         For the background, for each pixel a poisson random number
@@ -224,10 +246,13 @@ class ImageModel(metaclass=ABCMeta):
         ----------
         camera : `ctapipe.instrument.CameraGeometry`
             camera geometry object
-        intensity : int
-            Total number of photo electrons to generate
-        nsb_level_pe : type
-            level of NSB/pedestal in photo-electrons
+        intensity : float
+            Total expected signal in photoelectrons before sampling.
+        nsb_level_pe : float
+            Mean night-sky background in photoelectrons per pixel.
+        rng : numpy.random.Generator or None, optional
+            Generator for the Poisson draws of signal and background. With None,
+            use the module's default generator.
 
         Returns
         -------
@@ -248,14 +273,13 @@ class ImageModel(metaclass=ABCMeta):
         return image, signal, noise
 
     def expected_signal(self, camera, intensity):
-        """Expected signal in each pixel for the given camera
-        and total intensity.
+        """Expected signal in each pixel for the given camera and total intensity.
 
         Parameters
         ----------
-        camera: `ctapipe.instrument.CameraGeometry`
+        camera : `ctapipe.instrument.CameraGeometry`
             camera geometry object
-        intensity: int
+        intensity : int
             Total number of expected photo electrons
 
         Returns
@@ -268,25 +292,26 @@ class ImageModel(metaclass=ABCMeta):
 
 
 class Gaussian(ImageModel):
+    """Model a shower image as an elliptical Gaussian in two dimensions.
+
+    Use the model to predict the charge pattern on a camera or generate
+    toy images for analysis and reconstruction tests.
+
+    Parameters
+    ----------
+    x : astropy.units.Quantity
+        First coordinate of the centroid in the camera or telescope frame.
+    y : astropy.units.Quantity
+        Second coordinate of the centroid, in units compatible with ``x``.
+    length : astropy.units.Quantity
+        Standard deviation along the major axis, in units compatible with ``x``.
+    width : astropy.units.Quantity
+        Standard deviation along the minor axis, in units compatible with ``x``.
+    psi : astropy.units.Quantity or str
+        Orientation of the major axis. Zero aligns it with the x axis.
+    """
+
     def __init__(self, x, y, length, width, psi):
-        """Create 2D Gaussian model for a shower image in a camera.
-
-        Parameters
-        ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
-            width of shower (minor axis)
-        length: u.Quantity[length]
-            length of shower (major axis)
-        psi : u.Quantity[angle]
-            rotation angle about the centroid (0=x-axis)
-
-        Returns
-        -------
-        a `scipy.stats` object
-
-        """
         self.unit = x.unit
         self.x = x
         self.y = y
@@ -309,7 +334,16 @@ class Gaussian(ImageModel):
         )
 
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane"""
+        """2d probability for photon electrons in the camera plane
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
         X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
         return u.Quantity(
             self.dist.pdf(X),
@@ -319,10 +353,27 @@ class Gaussian(ImageModel):
 
 
 class SkewedGaussian(ImageModel):
-    """A shower image that has a skewness along the major axis."""
+    """A shower image that has a skewness along the major axis.
+
+    Parameters
+    ----------
+    x : astropy.units.Quantity
+        Image centroid x coordinate in the camera plane.
+    y : astropy.units.Quantity
+        Image centroid y coordinate in the camera plane, with units compatible with x.
+    length : astropy.units.Quantity
+        Standard deviation along the major axis.
+    width : astropy.units.Quantity
+        Standard deviation along the minor axis.
+    psi : astropy.units.Quantity
+        Angle of the major axis measured from the x-axis.
+    skewness : float
+        Dimensionless skewness along the major axis. Zero gives a symmetric image.
+    """
 
     def __init__(self, x, y, length, width, psi, skewness):
         """Create 2D skewed Gaussian model for a shower image in a camera.
+
         Skewness is only applied along the main shower axis.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution and
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html
@@ -330,18 +381,18 @@ class SkewedGaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
-            width of shower (minor axis)
-        length: u.Quantity[length]
-            length of shower (major axis)
-        psi : u.Quantity[angle]
-            rotation angle about the centroid (0=x-axis)
-
-        Returns
-        -------
-        a `scipy.stats` object
+        x : astropy.units.Quantity
+            Centroid x coordinate in the camera plane.
+        y : astropy.units.Quantity
+            Centroid y coordinate in the camera plane, in units compatible with x.
+        length : astropy.units.Quantity
+            Standard deviation along the shower's major axis.
+        width : astropy.units.Quantity
+            Standard deviation along the shower's minor axis.
+        psi : astropy.units.Quantity
+            Orientation of the major axis about the centroid, measured from the x-axis.
+        skewness : float
+            Dimensionless skewness along the major axis. Zero gives a symmetric profile.
 
         """
         self.unit = x.unit
@@ -371,7 +422,16 @@ class SkewedGaussian(ImageModel):
         return a, loc, scale
 
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane."""
+        """2d probability for photon electrons in the camera plane.
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
         pos = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
         long, trans = self.rotation @ (pos - self.mu).T
         return u.Quantity(
@@ -432,7 +492,16 @@ class RingGaussian(ImageModel):
             self.norm = 0.25 / ellipe(self.rho**2)
 
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane."""
+        """2d probability for photon electrons in the camera plane.
+
+        Parameters
+        ----------
+        x : astropy.units.Quantity
+            Camera-plane x coordinates of the evaluation points.
+        y : astropy.units.Quantity
+            Camera-plane y coordinates of the corresponding points, with units
+            compatible with x.
+        """
         dx = (x - self.x).to_value(self.unit)
         dy = (y - self.y).to_value(self.unit)
         r = np.sqrt(dx**2 + dy**2)

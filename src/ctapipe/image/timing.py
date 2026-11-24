@@ -17,7 +17,15 @@ __all__ = ["timing_parameters"]
 
 @njit(cache=not CTAPIPE_DISABLE_NUMBA_CACHE)
 def rmse(truth, prediction):
-    """Root mean squared error"""
+    """Root mean squared error
+
+    Parameters
+    ----------
+    truth : ndarray
+        Reference values.
+    prediction : ndarray
+        Predicted values, with shape and units compatible with the references.
+    """
     return np.sqrt(np.mean((truth - prediction) ** 2))
 
 
@@ -55,7 +63,6 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         If the geometry coordinates and Hillas parameters do not have compatible
         angular units.
     """
-
     # numba needs arguments to be the same type, so upcast to float64 if necessary
     peak_time = peak_time.astype(np.float64)
 

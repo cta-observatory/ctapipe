@@ -43,19 +43,25 @@ class CollectTraitWarningsHandler(logging.NullHandler):
 
 
 class ToolConfigurationError(Exception):
+    """Raised when a tool's configuration prevents it from running.
+
+    Parameters
+    ----------
+    message : str
+        Description of the configuration problem.
+    """
+
     def __init__(self, message):
         # Call the base class constructor with the parameters it needs
         self.message = message
 
 
 class Tool(Application):
-    """A base class for all executable tools (applications) that handles
-    configuration loading/saving, logging, command-line processing,
-    and provenance meta-data handling. It is based on
-    `traitlets.config.Application`. Tools may contain configurable
-    `ctapipe.core.Component` classes that do work, and their
-    configuration parameters will propagate automatically to the
-    `Tool`.
+    """Provide the common command-line interface for executable tools.
+
+    Based on `traitlets.config.Application`, this class handles configuration loading
+    and saving, logging, command-line arguments, and provenance. Configuration
+    parameters of nested `ctapipe.core.Component` instances propagate to the tool.
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
@@ -142,6 +148,11 @@ class Tool(Application):
     *entry_points*, it will become a command-line tool (see examples
     in the ``ctapipe/tools`` subdirectory).
 
+    Parameters
+    ----------
+    **kwargs
+        Options forwarded to `traitlets.config.Application`, including a configuration
+        object or explicit trait values such as ``log_level``.
     """
 
     config_files = List(
@@ -241,12 +252,22 @@ class Tool(Application):
 
         This will guarantee that ``context_manager.__exit__`` is called when
         `~ctapipe.core.tool.Tool.run` finishes, even when an error occurs.
+
+        Parameters
+        ----------
+        context_manager : contextlib.AbstractContextManager
+            Context manager to enter and register for cleanup when the tool exits.
         """
         return self._exit_stack.enter_context(context_manager)
 
     def initialize(self, argv=None):
         """
         Handle config and any other low-level setup.
+
+        Parameters
+        ----------
+        argv : list of str or None, optional
+            Command-line arguments to parse. With None, use the process arguments.
         """
         self.parse_command_line(argv)
         self.update_logging_config()
@@ -269,12 +290,13 @@ class Tool(Application):
 
     def load_config_file(self, path: str | pathlib.Path) -> None:
         """
-        Load a configuration file in one of the supported formats, and merge it with
-        the current config if it exists.
+        Load a configuration file and merge it into the current configuration.
+
+        An unsupported file extension raises `ToolConfigurationError`.
 
         Parameters
         ----------
-        path: Union[str, pathlib.Path]
+        path : Union[str, pathlib.Path]
             config file to load. [yaml, toml, json, py] formats are supported
         """
         path = pathlib.Path(path)
@@ -319,15 +341,15 @@ class Tool(Application):
 
     def add_component(self, component_instance):
         """
-        constructs and adds a component to the list of registered components,
-        so that later we can ask for the current configuration of all instances,
-        e.g. in`get_full_config()`.  All sub-components of a tool should be
-        constructed using this function, in order to ensure the configuration is
-        properly traced.
+        Register a component for configuration reporting.
+
+        Call this for each tool subcomponent so its configuration can be tracked. Pass a
+        constructed instance and keep it as a tool attribute for configuration
+        reporting. The method returns that instance.
 
         Parameters
         ----------
-        component_instance: Component
+        component_instance : Component
             constructed instance of a component
 
         Returns
@@ -348,19 +370,15 @@ class Tool(Application):
 
     def check_output(self, *output_paths):
         """
-        Test if output files exist and if they do, throw an error
-        unless ``self.overwrite`` is set to True.
-        This should be checked during tool setup to avoid having a tool only
-        realize the output can not be written after some long-running calculations
-        (e.g. training of ML-models).
-        Because we currently do not collect all created output files in the tool
-        (they can be attached to some component), the output files need
-        to be given and can not easily be derived from ``self``.
+        Reject existing output files unless overwriting is enabled.
+
+        Check during setup to catch existing outputs before expensive calculations.
+        Supply the output paths explicitly because some may belong to subcomponents.
 
         Parameters
         ----------
-        output_paths: Path
-            One or more output path to check.
+        *output_paths : pathlib.Path or None
+            Output paths to check. Skip any ``None`` entries.
 
         """
         for output in output_paths:
@@ -406,8 +424,7 @@ class Tool(Application):
 
         Parameters
         ----------
-
-        argv: list(str)
+        argv : list(str)
             command-line arguments, or None to get them
             from sys.argv automatically
 
@@ -416,7 +433,6 @@ class Tool(Application):
             codes. If None, ``CTAPIPE_TOOL_DEBUG`` environment variable is used.
             If the variable is not set, this defaults to False.
         """
-
         # return codes are taken from:
         #  https://tldp.org/LDP/abs/html/exitcodes.html
         if raises is None:
@@ -490,6 +506,7 @@ class Tool(Application):
         self.exit(exit_status)
 
     def write_provenance(self):
+        """Log activity outputs and append the collected provenance to the log file."""
         for activity in Provenance().finished_activities:
             output_str = " ".join([x["url"] for x in activity.output])
             self.log.info("Output: %s", output_str)
@@ -503,17 +520,19 @@ class Tool(Application):
 
     @property
     def version_string(self):
-        """a formatted version string with version, release, and git hash"""
+        """A formatted version string with version, release, and git hash"""
         return f"{version}"
 
     def get_current_config(self):
-        """return the current configuration as a dict (e.g. the values
-        of all traits, even if they were not set during configuration)
+        """Return the current configurable trait values as a nested dictionary.
+
+        The result includes default values and the configuration of components
+        stored in tool attributes, including lists and tuples of components.
         """
         return Component.get_current_config(self)
 
     def _repr_html_(self):
-        """nice HTML rep, with blue for non-default values"""
+        """Nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
         docstring = (
@@ -581,18 +600,27 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
 
     Parameters
     ----------
-    tool_instance: Tool
+    tool_instance : Tool
         a constructed Tool instance
-    classes: list, optional
+    classes : list, optional
         The list of other classes in the config file.
         Used to reduce redundant information.
     """
-
     tool = tool_instance.__class__
     config = tool_instance.get_current_config()[tool_instance.__class__.__name__]
 
     def commented(text, indent_level=2, width=70):
-        """return a commented, wrapped block."""
+        """Return a commented, wrapped block.
+
+        Parameters
+        ----------
+        text : str
+            Text to wrap as YAML comments.
+        indent_level : int, optional
+            Number of spaces before each comment marker.
+        width : int, optional
+            Maximum width of each line, including indentation and the comment marker.
+        """
         return textwrap.fill(
             text,
             width=width,
@@ -656,6 +684,8 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
 
     Parameters
     ----------
+    tool : ctapipe.core.Tool
+        Tool instance to run in the current Python process.
     argv : List[str]
         List of command line arguments for the tool.
     cwd : str or pathlib.Path

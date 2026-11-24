@@ -31,7 +31,9 @@ def shallow_copy_table(
 
     Parameters
     ----------
-    output_cls: type[Table] | type[QTable] | None
+    table : astropy.table.Table or astropy.table.QTable
+        Source table whose column data are shared and whose metadata are copied.
+    output_cls : type[Table] | type[QTable] | None
         type of the output table. If None, use the input table type
     """
     output_cls = output_cls or table.__class__
@@ -52,6 +54,17 @@ class FeatureGenerator(Component):
     Raises Exceptions in two cases:
     1. If a feature already exists in the table
     2. If a feature cannot be built with the given expression
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``features`` to pairs of
+        output column names and expressions.
     """
 
     features = List(
@@ -79,10 +92,10 @@ class FeatureGenerator(Component):
 
         Parameters
         ----------
-        table: QTable | Table
+        table : QTable | Table
             Input table. Internally a Table will be converted to a QTable so that
             unit propagation works, so expressions should only rely on properties of QTables.
-        **kwargs:
+        **kwargs
             Other objects that should be available in expressions. For example,
             if a you pass ``subarray=subarray``, expressions can use that
             object. This can also be special functions like ``f=my_function``,

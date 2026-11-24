@@ -1,6 +1,8 @@
 """
-Table interpolation class, to allow interpolation of 2D images in any number of other
-dimensions. Reads in an interim FITS table as defined below:
+Interpolate two-dimensional templates stored in lookup tables.
+
+The FITS input contains two-dimensional images on a grid in any number of additional
+dimensions.
 
 Tables organised as a standard FITS image file with each table as an image HDU.
 ---------------
@@ -35,20 +37,25 @@ from scipy import interpolate
 
 class TableInterpolator:
     """
-    This is a simple class for loading lookup tables from a fits file and
-    interpolating between them
+    Load and interpolate templates from a FITS table.
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        FITS file containing the template images and lookup coordinates.
+    verbose : int, optional
+        Verbosity for reporting template loading and interpolation.
     """
 
     def __init__(self, filename, verbose=1):
         """
-        Initialisation of class to load templates from a file and create the interpolation
-        objects
+        Load the templates and initialize their interpolators.
 
         Parameters
         ----------
-        filename: string
+        filename : string
             Location of Template file
-        verbose: int
+        verbose : int
             Verbosity level,
             0 = no logging
             1 = File + interpolation point information
@@ -76,12 +83,11 @@ class TableInterpolator:
 
     def parse_fits_table(self, filename):
         """
-        Function opens tables contained within fits files and parses them into a format
-        recognisable by the interpolator.
+        Parse a FITS lookup table for the interpolator.
 
         Parameters
         ----------
-        filename: str
+        filename : str
             Name of table file
 
         Returns
@@ -128,23 +134,27 @@ class TableInterpolator:
 
     def interpolate(self, params, pixel_pos_x, pixel_pos_y):
         """
+        Evaluate an interpolated image template at the requested pixel positions.
+
+        The template is first interpolated over the shower parameters and then
+        evaluated on its regular image grid.
 
         Parameters
         ----------
-        params: ndarray
-            numpy array of interpolation parameters
-            currently [energy, impact distance, xmax]
-        pixel_pos_x: ndarray
-            pixel position in degrees
-        pixel_pos_y: ndarray
-            pixel position in degrees
+        params : array-like
+            Shower parameters in the order specified by the template file,
+            typically energy, impact distance, and depth of shower maximum.
+        pixel_pos_x : ndarray
+            Pixel x coordinates in degrees.
+        pixel_pos_y : ndarray
+            Corresponding pixel y coordinates in degrees.
 
         Returns
         -------
-        ndarray of expected intensity for all pixel positions given
-
+        ndarray
+            Expected intensity at each pixel position. Positions outside the
+            template's image grid receive zero.
         """
-
         image = self.interpolated_image(params)
         self.grid_interp.values = image
 
@@ -157,7 +167,7 @@ class TableInterpolator:
 
         Parameters
         ----------
-        params: ndarray
+        params : ndarray
             numpy array of interpolation parameters
             currently [energy, impact distance, xmax]
 

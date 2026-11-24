@@ -1,8 +1,8 @@
 """
-This class is largely created as a more versatile alternative to the Linear ND
-interpolator, allowing the user to pass the interpolator an array of classes and then
-perform interpolation between the results of a member function of that class. Currently
-the name of the target interpolation function is passed in a string at initialisation.
+Interpolate unstructured samples or values computed from them.
+
+Pass the name of the member function at initialization to interpolate its results. This
+extends the behavior of SciPy's `~scipy.interpolate.LinearNDInterpolator`.
 TODO:
 - Figure out what to do when out of bounds of interpolation range
 - Implement for higher dimensions
@@ -17,13 +17,29 @@ from scipy.spatial import Delaunay
 
 class UnstructuredInterpolator:
     """
-    This class performs linear interpolation between an unstructured set of data
-    points. However the class is expanded such that it can interpolate between the
-    values returned from class member functions. The primary use case of this being to
-    interpolate between the predictions of a set of machine learning algorithms or
-    regular grid interpolators.
-    In the case that a numpy array is passed as the interpolation values this class will
-    behave exactly the same as the scipy LinearNDInterpolator
+    Interpolate values on an unstructured grid.
+
+    The interpolator also accepts outputs of class methods, such as predictions from
+    estimators or regular-grid interpolators. With array inputs and no separate
+    evaluation points, it uses Delaunay simplices as in SciPy's
+    `~scipy.interpolate.LinearNDInterpolator` for points inside the interpolation domain.
+
+    Parameters
+    ----------
+    keys : ndarray
+        Sample coordinates with shape ``(n_samples, n_dimensions)``.
+    values : array-like
+        Numeric values, arrays, or callable objects associated with the sample
+        coordinates in the same order.
+    function_name : str or None, optional
+        Method to call on object-valued samples. None calls the objects directly.
+    remember_last : bool, optional
+        Reuse the previous simplex information where possible.
+    bounds : array-like or None, optional
+        Lower and upper coordinates of each gridded template axis, needed when
+        resampling numeric templates at specified positions.
+    dtype : numpy.dtype or None, optional
+        Data type for the stored template values and bounds. None infers the data type.
     """
 
     def __init__(
@@ -36,15 +52,27 @@ class UnstructuredInterpolator:
         dtype=None,
     ):
         """
+        Build a Delaunay triangulation for interpolation on unstructured samples.
+
         Parameters
         ----------
-        keys: ndarray
-            Interpolation grid points
-        values: ndarray
-            Interpolation values
-        function_name: str
-            Name of class member function to call in the case we are interpolating
-            between class predictions, for numpy arrays leave blank
+        keys : array-like
+            Sample coordinates with shape (n_samples, n_dimensions).
+        values : array-like
+            Numeric values, arrays, or callable objects associated with the sample
+            coordinates, in the same order.
+        function_name : str or None, optional
+            Method to call on object-valued samples. With None, call the objects
+            directly. Ignored for numeric values.
+        remember_last : bool, optional
+            Allow reuse of the previous interpolation simplex information when
+            evaluating the same or nearby points.
+        bounds : array-like or None, optional
+            Lower and upper coordinates for each gridded image axis. Supply bounds
+            when evaluating array-valued image templates at separate pixel positions.
+        dtype : numpy.dtype or None, optional
+            Data type for stored values and grid bounds. If None, infer it from
+            the inputs.
         """
         self.keys = keys
         if dtype:
@@ -93,8 +121,9 @@ class UnstructuredInterpolator:
 
     def reset(self):
         """
-        Function used to reset some class values stored after previous event,
-        also used as their initialisation in the init function
+        Reset interpolation state saved for the previous event.
+
+        The same reset also initializes this state at construction.
         """
         self._previous_v = None
         self._previous_m = None
@@ -103,6 +132,30 @@ class UnstructuredInterpolator:
         self._previous_points = None
 
     def __call__(self, points, eval_points=None):
+        """
+        Interpolate sample values linearly on the Delaunay triangulation.
+
+        At each query point, use the barycentric weights of the simplex
+        vertices. For gridded templates, the vertex values can first be
+        sampled at additional positions in the template plane.
+
+        Parameters
+        ----------
+        points : array-like
+            Query coordinates with shape ``(n_queries, n_dimensions)``, or a
+            single point with shape ``(n_dimensions,)``. Use points inside the
+            convex hull of the sample coordinates for interpolation.
+        eval_points : ndarray or None, optional
+            For gridded templates with bounds, evaluate each template at
+            positions of shape ``(n_queries, n_positions, 2)``, in the coordinate
+            units of those bounds. For object-valued samples, provide the
+            evaluation positions for the configured callable.
+
+        Returns
+        -------
+        ndarray
+            Interpolated values with one leading entry per query.
+        """
         # Convert to a numpy array here in case we get a list
         points = np.array(points, dtype=np.float32)
         if eval_points is not None:
@@ -201,12 +254,14 @@ class UnstructuredInterpolator:
     def _call_class_function(self, point_num, eval_points):
         """
         Function to loop over class function and return array of outputs
+
         Parameters
         ----------
-        point_num: int
+        point_num : int
             Index of class position in values list
-        eval_points: ndarray
+        eval_points : ndarray
             Inputs used to evaluate class member function
+
         Returns
         -------
         ndarray: output from member function
@@ -245,15 +300,18 @@ class UnstructuredInterpolator:
 
         Parameters
         ----------
-        point_num: int
-        Index of class position in values list
-        eval_points: ndarray
-        Inputs used to evaluate class member function
+        point_num : ndarray of int
+            Indices of template values at the simplex vertices, with shape
+            ``(n_queries, n_vertices)``.
+        eval_points : ndarray or numpy.ma.MaskedArray
+            Template-plane positions with shape ``(n_queries, n_positions, 2)``.
+
         Returns
         -------
-        ndarray: output from member function
+        numpy.ma.MaskedArray
+            Template values at the requested positions for each simplex vertex,
+            with shape ``(n_queries, n_vertices, n_positions)``.
         """
-
         # Check if our array is masked and remember its shape
         is_masked = ma.is_masked(eval_points)
         shape = point_num.shape

@@ -1,8 +1,7 @@
-"""This module defines the important coordinate systems to be used in
-reconstruction with the CTA pipeline and the transformations between
-this different systems. Frames and transformations are defined using
-the astropy.coordinates framework. This module defines transformations
-for ground based cartesian and planar systems.
+"""Define ground coordinate frames and their transformations.
+
+The ground-based Cartesian and planar transformations used in reconstruction are
+implemented with `astropy.coordinates`.
 """
 
 import astropy.units as u
@@ -104,8 +103,10 @@ class GroundFrame(BaseCoordinateFrame):
 
 
 class EastingNorthingFrame(BaseCoordinateFrame):
-    """GroundFrame but in standard Easting/Northing coordinates instead of
-    SimTel/Corsika conventions
+    """Represent ground positions in easting and northing coordinates.
+
+    Unlike `GroundFrame`, this frame names its Cartesian axes easting, northing, and
+    height. Its ``reference_location`` locates the origin on Earth.
 
     Frame attributes: None
 
@@ -123,6 +124,14 @@ class EastingNorthingFrame(BaseCoordinateFrame):
     }
 
     def to_earth_location(self):
+        """
+        Convert local ground coordinates to an Earth location.
+
+        Returns
+        -------
+        astropy.coordinates.EarthLocation
+            Geographic location relative to the frame's reference location.
+        """
         # in astropy, x points north, y points east
         cart = CartesianRepresentation(self.northing, self.easting, self.height)
         altaz = AltAz(cart, location=self.reference_location)
@@ -130,6 +139,21 @@ class EastingNorthingFrame(BaseCoordinateFrame):
 
     @classmethod
     def from_earth_location(cls, location, reference_location):
+        """
+        Express an Earth location in local ground coordinates.
+
+        Parameters
+        ----------
+        location : astropy.coordinates.EarthLocation
+            Location to express in the local frame.
+        reference_location : astropy.coordinates.EarthLocation
+            Origin of the local frame.
+
+        Returns
+        -------
+        GroundFrame
+            Northing, easting, and height relative to the reference location.
+        """
         altaz = _earthlocation_to_altaz(location, reference_location)
         x, y, z = altaz.cartesian.xyz
         # in astropy, x points north, y points east
@@ -142,15 +166,15 @@ class EastingNorthingFrame(BaseCoordinateFrame):
 
     @property
     def observation_level(self):
+        """Return the height of the frame's reference location as a quantity."""
         return self.reference_location.height
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
-    """Tilted ground coordinate frame.  The tilted ground coordinate frame
-    is a cartesian system describing the 2 dimensional projected
-    positions of objects in a tilted plane described by
-    pointing_direction Typically this frame will be used for the
-    reconstruction of the shower core position
+    """Represent ground positions in a plane tilted by the pointing direction.
+
+    The two-dimensional Cartesian projection is useful for reconstructing the shower
+    core.
 
     Frame attributes:
 
@@ -167,16 +191,15 @@ class TiltedGroundFrame(BaseCoordinateFrame):
 
 
 def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
-    """Get Transformation matrix for conversion from the ground system to
-    the Tilted system and back again (This function is directly lifted
-    from read_hess, probably could be streamlined using python
-    functionality)
+    """Build the transformation matrix between ground and tilted coordinates.
+
+    The implementation comes from `read_hess`.
 
     Parameters
     ----------
-    azimuth: float or ndarray
+    azimuth : float or ndarray
         Azimuth angle in radians of the tilted system used
-    altitude: float or ndarray
+    altitude : float or ndarray
         Altitude angle in radiuan of the tilted system used
 
     Returns
@@ -205,8 +228,10 @@ def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
 
 def _get_xyz(coord):
     """
-    Essentially the same as coord.cartesian.xyz, but much faster by
-    avoiding some astropy bottlenecks.
+    Get Cartesian coordinates as an array.
+
+    Return the x, y, and z components in a single quantity, using the existing Cartesian
+    representation directly when available.
     """
     # this is a speed optimization. Much faster to use data if already a
     # Cartesian object
@@ -226,9 +251,9 @@ def ground_to_tilted(ground_coord, tilted_frame):
 
     Parameters
     ----------
-    ground_coord: `astropy.coordinates.SkyCoord`
+    ground_coord : `astropy.coordinates.SkyCoord`
         Coordinate in GroundFrame
-    tilted_frame: `ctapipe.coordinates.TiltedFrame`
+    tilted_frame : `ctapipe.coordinates.TiltedFrame`
         Frame to transform to
 
     Returns
@@ -257,9 +282,9 @@ def tilted_to_ground(tilted_coord, ground_frame):
 
     Parameters
     ----------
-    tilted_coord: `astropy.coordinates.SkyCoord`
+    tilted_coord : `astropy.coordinates.SkyCoord`
         TiltedGroundFrame system
-    ground_frame: `astropy.coordinates.SkyCoord`
+    ground_frame : `astropy.coordinates.SkyCoord`
         GroundFrame system
 
     Returns
@@ -283,15 +308,14 @@ def tilted_to_ground(tilted_coord, ground_frame):
 
 
 def project_to_ground(tilt_system):
-    """Project position in the tilted system onto the ground. This is
-    needed as the standard transformation will return the 3d position
-    of the tilted frame. This projection may ultimately be the
-    standard use case so may be implemented in the tilted to ground
-    transformation
+    """Project a position in the tilted frame onto the ground.
+
+    Unlike a coordinate transformation alone, this projection sets the output height to
+    zero. Use it when the position must lie on the ground plane.
 
     Parameters
     ----------
-    tilt_system: `astropy.coordinates.SkyCoord`
+    tilt_system : `astropy.coordinates.SkyCoord`
         coordinate in the the tilted ground system
 
     Returns
@@ -323,8 +347,17 @@ def project_to_ground(tilt_system):
 
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
 def ground_to_ground(ground_coords, ground_frame):
-    """Null transform for going from ground to ground, since there are no
-    attributes of the GroundSystem"""
+    """Return the same coordinates when transforming within the ground frame.
+
+    The transform returns the input coordinates directly.
+
+    Parameters
+    ----------
+    ground_coords : GroundFrame
+        Input ground coordinates returned by this identity transform.
+    ground_frame : GroundFrame
+        Target ground frame required by the Astropy transform interface.
+    """
     return ground_coords
 
 
@@ -336,17 +369,28 @@ GROUND_TO_EASTNORTH = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
 @frame_transform_graph.transform(AffineTransform, GroundFrame, EastingNorthingFrame)
 def ground_to_easting_northing(ground_coords, eastnorth_frame):
     """
-    convert GroundFrame points into eastings/northings for plotting purposes
+    Convert GroundFrame points into eastings/northings for plotting purposes
 
+    Parameters
+    ----------
+    ground_coords : GroundFrame
+        Source ground coordinates. The axis conversion is independent of position.
+    eastnorth_frame : EastingNorthingFrame
+        Target frame in easting, northing, and height.
     """
-
     return GROUND_TO_EASTNORTH, NO_OFFSET
 
 
 @frame_transform_graph.transform(AffineTransform, EastingNorthingFrame, GroundFrame)
 def easting_northing_to_ground(eastnorth_coords, ground_frame):
     """
-    convert  eastings/northings back to GroundFrame
+    Convert  eastings/northings back to GroundFrame
 
+    Parameters
+    ----------
+    eastnorth_coords : EastingNorthingFrame
+        Source coordinates in easting, northing, and height.
+    ground_frame : GroundFrame
+        Target frame for the inverse axis conversion.
     """
     return GROUND_TO_EASTNORTH.T, NO_OFFSET

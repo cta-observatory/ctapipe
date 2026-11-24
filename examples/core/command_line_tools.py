@@ -49,7 +49,19 @@ class SecondaryMyComponent(MyComponent):
 
 
 class AdvancedComponent(Component):
-    """An advanced technique"""
+    """Demonstrate configuration inheritance for a nested component.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set ``infile`` or
+        ``outfile`` for this component.
+    """
 
     value1 = Int(default_value=-1, help="Value to use").tag(config=True)
     infile = Path(

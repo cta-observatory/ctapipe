@@ -197,7 +197,6 @@ def test_table_loader_keeps_original_order(dl2_merged_file):
 
 def test_read_telescope_events_type(dl2_shower_geometry_file):
     """Test reading telescope events for a given telescope type"""
-
     from ctapipe.io.tableloader import TableLoader
 
     subarray = SubarrayDescription.from_hdf(dl2_shower_geometry_file)
@@ -222,7 +221,6 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
 
 def test_read_telescope_events_by_type(dl2_shower_geometry_file):
     """Test reading telescope events for by types"""
-
     from ctapipe.io.tableloader import TableLoader
 
     subarray = SubarrayDescription.from_hdf(dl2_shower_geometry_file)

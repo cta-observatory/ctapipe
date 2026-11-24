@@ -599,7 +599,7 @@ def test_read_write_container_with_int_enum(tmp_path):
 
 
 def test_column_exclusions(tmp_path):
-    """test if we can exclude columns using regexps for the table and column name"""
+    """Test if we can exclude columns using regexps for the table and column name"""
     tmp_file = tmp_path / "test_column_exclusions.hdf5"
 
     class SomeContainer(Container):
@@ -639,7 +639,7 @@ def test_column_exclusions(tmp_path):
 
 
 def test_column_transforms(tmp_path):
-    """ensure a user-added column transform is applied"""
+    """Ensure a user-added column transform is applied"""
     from ctapipe.containers import NAN_TIME
     from ctapipe.io.tableio import FixedPointColumnTransform
 
@@ -672,7 +672,7 @@ def test_column_transforms(tmp_path):
 
 
 def test_fixed_point_column_transform(tmp_path):
-    """ensure a user-added column transform is applied"""
+    """Ensure a user-added column transform is applied"""
     from ctapipe.io.tableio import FixedPointColumnTransform
 
     tmp_file = tmp_path / "test_column_transforms.hdf5"
@@ -708,8 +708,7 @@ def test_fixed_point_column_transform(tmp_path):
 
 
 def test_column_transforms_regexps(tmp_path):
-    """ensure a user-added column transform is applied when given as a regexp"""
-
+    """Ensure a user-added column transform is applied when given as a regexp"""
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     def multiply_by_10(x):

@@ -7,6 +7,7 @@ from abc import abstractmethod
 from enum import Enum, StrEnum, auto, unique
 from functools import cached_property
 from pathlib import Path
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -258,14 +259,21 @@ class MirrorDescription:
         )
 
     def __eq__(self, other):
-        """For eq, we just compare equal hash"""
+        """For eq, we just compare equal hash
+
+        Parameters
+        ----------
+        other : object
+            Object whose hash is compared with that of this description.
+        """
         return hash(self) == hash(other)
 
     def __str__(self, n_str=3):
         """
-        Summary of the mirror facets: a header with the total number of
-        facets, followed by one line per facet for the first ``n_str``
-        facets (or all facets, if there are fewer than ``n_str``).
+        Summarize the mirror facets.
+
+        The header gives the total number of facets. The following lines describe up to
+        ``n_str`` facets, one per line.
 
         Parameters
         ----------
@@ -297,6 +305,8 @@ class OpticsDescription:
     ----------
     name : str
         Name of this optical system
+    size_type : SizeType or str
+        Telescope size class, such as ``LST``, ``MST``, or ``SST``.
     n_mirrors : int
         Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
     equivalent_focal_length : astropy.units.Quantity[length]
@@ -315,13 +325,16 @@ class OpticsDescription:
         total reflective surface area of the optical system (in m^2)
     n_mirror_tiles : int
         number of mirror facets
+    reflector_shape : ReflectorShape or str
+        Optical design of the reflector, such as ``PARABOLIC`` or
+        ``SCHWARZSCHILD_COUDER``.
     mirror_description : MirrorDescription or None
         Optional description of the individual mirror facets of the reflector
 
     Raises
     ------
     ValueError:
-        if tel_type or mirror_type are not one of the accepted values
+        If ``size_type`` or ``reflector_shape`` is invalid.
     TypeError, astropy.units.UnitsError:
         if the units of one of the inputs are missing or incompatible
     """
@@ -398,7 +411,13 @@ class OpticsDescription:
         )
 
     def __eq__(self, other):
-        """For eq, we just compare equal hash"""
+        """For eq, we just compare equal hash
+
+        Parameters
+        ----------
+        other : object
+            Object whose hash is compared with that of this description.
+        """
         return hash(self) == hash(other)
 
     @classmethod
@@ -411,9 +430,9 @@ class OpticsDescription:
 
         Parameters
         ----------
-        name: str
+        name : str
             string representation of optics (MST, LST, SST-1M, SST-ASTRI,...)
-        optics_table: str
+        optics_table : str
             base filename of optics table if not 'optics.*'
 
 
@@ -458,13 +477,14 @@ class OpticsDescription:
     @classmethod
     def get_known_optics_names(cls, optics_table="optics"):
         """
-        return the list of optics names from ctapipe resources, i.e. those that can be
-        constructed by name (this does not return the list of known names from an
-        already open Monte-Carlo file)
+        List the optics descriptions available by name.
+
+        The names come from ctapipe resources, independently of any open Monte Carlo
+        file.
 
         Parameters
         ----------
-        optics_table: str or astropy Table
+        optics_table : str or astropy Table
             table where to read the optics description from. If a string, this is
             opened with `ctapipe.utils.get_table_dataset()`
         """
@@ -544,6 +564,13 @@ class OpticsDescription:
         ``mirror_description``, otherwise it is set to None.
 
         See `OpticsDescription.to_table` for the opposite operation.
+
+        Parameters
+        ----------
+        table : astropy.table.Table or str or pathlib.Path
+            Optics table, or a file containing one, with version and telescope metadata.
+        **kwargs
+            Options forwarded to `astropy.table.Table.read` when opening a file.
         """
         if not isinstance(table, Table):
             table = Table.read(table, **kwargs)
@@ -625,6 +652,12 @@ class OpticsDescription:
 
         By default, this function will try to use the effective focal length and raise
         an error if it is not available.
+
+        Parameters
+        ----------
+        focal_length_choice : FocalLengthKind or str, optional
+            Select the ray-traced effective or nominal equivalent focal length. Accepted
+            string names are ``"effective"`` and ``"equivalent"``.
         """
         if isinstance(focal_length_choice, str):
             focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
@@ -674,12 +707,12 @@ class PSFModel(TelescopeComponent):
             longitude coordinate of the point source on the focal plane
         lat0 : u.Quantity[angle]
             latitude coordinate of the point source on the focal plane
+
         Returns
-        ----------
+        -------
         psf : np.ndarray
             value of the PSF at the specified location with the specified position of the point source
         """
-
         pass
 
 
@@ -720,7 +753,14 @@ class ComaPSFModel(PSFModel):
     Parameters
     ----------
     subarray : ctapipe.instrument.SubarrayDescription
-        Description of the subarray.
+        Subarray supplying the cameras and their angular pixel widths.
+    config : traitlets.loader.Config or None, optional
+        Configuration, including the telescope-dependent coma model parameters.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging. Mutually
+        exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
 
     Notes
     -----
@@ -806,8 +846,20 @@ class ComaPSFModel(PSFModel):
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """Initialize the ComaPSFModel component and check for missing configuration parameters."""
+        """Initialize the coma model and check its required configuration.
 
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray supplying the cameras and their angular pixel widths.
+        config : traitlets.loader.Config or None, optional
+            Configuration, including the telescope-dependent coma model parameters.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration and logging.
+            Mutually exclusive with ``config``.
+        **kwargs
+            Trait values that override the configuration.
+        """
         super().__init__(
             subarray=subarray,
             config=config,
@@ -865,6 +917,7 @@ class ComaPSFModel(PSFModel):
         a3 = self.polar_scale_offset.tel[tel_id]
         return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
+    @override
     @u.quantity_input(
         lon=u.deg,
         lat=u.deg,
@@ -943,6 +996,21 @@ class ZernikePSFModel(PSFModel):
     represented by linear coma terms and quadratic astigmatism terms,
     providing a compact phenomenological description of off-axis optical
     degradation while retaining a physically motivated wavefront model.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to resolve telescope-dependent wavefront coefficients and pupil
+        sampling settings.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        telescope-dependent Zernike coefficients or the pupil sampling through
+        ``pupil_size``.
     """
 
     # Universal model performance parameters
@@ -1087,7 +1155,23 @@ class ZernikePSFModel(PSFModel):
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """Initialize the ZernikePSFModel component and check for missing optional dependency."""
+        """Initialize the wavefront PSF model and check that zernike is installed.
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray used to resolve telescope-dependent wavefront coefficients and
+            pupil sampling settings.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration and logging.
+            Mutually exclusive with ``config``.
+        **kwargs
+            Trait values that override the configuration. For example, set the
+            telescope-dependent Zernike coefficients or the pupil sampling through
+            ``pupil_size``.
+        """
         if RZern is None:
             raise OptionalDependencyMissing("zernike")
         super().__init__(
@@ -1132,11 +1216,11 @@ class ZernikePSFModel(PSFModel):
 
     def _coeff_vector(self, tel_id, lon0_deg, lat0_deg):
         """
-        Build the Noll coefficient vector [m] for a given telescope and
-        field-of-view offset. Internally works with plain floats in fixed
-        units (m for OPD amplitudes, deg for angles) after unwrapping the
-        Quantity-valued traits, since the downstream Zernike/FFT machinery
-        is unit-agnostic.
+        Build the Noll coefficient vector for a telescope and field offset.
+
+        The calculation unpacks the quantities into plain floats in meters for optical
+        path difference amplitudes and degrees for angles. The Zernike and FFT
+        calculations operate on those floats.
         """
         rz, _, _ = self._zernike_grid(tel_id)
         coeff = np.zeros(rz.nk)
@@ -1260,6 +1344,7 @@ class ZernikePSFModel(PSFModel):
 
         return intensity
 
+    @override
     @u.quantity_input(
         lon=u.deg,
         lat=u.deg,

@@ -25,6 +25,12 @@ class ExpressionEngine:
     Additionally, astropy.units is exposed as ``u`` and numpy as ``np``.
 
     Basic mathematical functions are also exposed without the np prefix.
+
+    Parameters
+    ----------
+    expressions : sequence of tuple[str, str]
+        Pairs of result names and Python expressions. Expressions are compiled in the
+        given order and evaluated against the provided locals.
     """
 
     def __init__(self, expressions):
@@ -43,6 +49,24 @@ class ExpressionEngine:
                 ) from err
 
     def __call__(self, locals):
+        """
+        Evaluate the configured expressions in order.
+
+        Parameters
+        ----------
+        locals : Mapping
+            Local names and values available to the expressions.
+
+        Yields
+        ------
+        object
+            Result of each expression in configuration order.
+
+        Raises
+        ------
+        ExpressionError
+            If an expression cannot be evaluated.
+        """
         for compiled, expression in zip(self.compiled, self.expressions):
             try:
                 yield eval(compiled, ALLOWED_GLOBALS, locals)

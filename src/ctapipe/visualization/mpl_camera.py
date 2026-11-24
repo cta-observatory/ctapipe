@@ -21,7 +21,15 @@ logger = logging.getLogger(__name__)
 
 
 def polar_to_cart(rho, phi):
-    """ "returns r, theta(degrees)"""
+    """Convert polar coordinates with an angle in radians to Cartesian coordinates.
+
+    Parameters
+    ----------
+    rho : float or ndarray or astropy.units.Quantity
+        Radial coordinate or vector magnitude.
+    phi : float or ndarray or astropy.units.Quantity
+        Angle measured from the x-axis. Bare values are in radians.
+    """
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
@@ -35,31 +43,33 @@ class CameraDisplay:
     ----------
     geometry : `~ctapipe.instrument.CameraGeometry`
         Definition of the Camera/Image
-    image: array_like
+    image : array_like
         array of values corresponding to the pixels in the CameraGeometry.
-    ax : `matplotlib.axes.Axes`
-        A matplotlib axes object to plot on, or None to create a new one
-    title : str (default "Camera")
-        Title to put on camera plot
+    cmap : str or matplotlib.colors.Colormap, optional
+        Color map for the pixel values. Defaults to ``"inferno"``.
     norm : str or `matplotlib.colors.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
         - 'lin': linear scale
         - 'log': logarithmic scale (base 10)
-    cmap : str or `matplotlib.colors.Colormap` (default 'hot')
-        Color map to use (see `matplotlib.cm`)
-    allow_pick : bool (default False)
-        if True, allow user to click and select a pixel
-    autoupdate : bool (default True)
-        redraw automatically (otherwise need to call plt.draw())
+        - 'symlog': symmetric logarithmic scale (base 10)
     autoscale : bool (default True)
         rescale the vmin/vmax values when the image changes.
         This is set to False if ``set_limits_*`` is called to explicitly
         set data limits.
+    title : str or None, optional
+        Plot title. None uses the camera geometry name.
+    allow_pick : bool (default False)
+        if True, allow user to click and select a pixel
+    autoupdate : bool (default True)
+        redraw automatically (otherwise need to call plt.draw())
+    show_frame : bool, optional
+        Annotate the display with the camera geometry's coordinate frame name.
+    ax : matplotlib.axes.Axes or None, optional
+        Axes to plot on. None uses the current Matplotlib axes.
 
     Notes
     -----
-
     Speed:
         CameraDisplay is not intended to be very fast (matplotlib
         is not a very speed performant graphics library, it is
@@ -190,6 +200,34 @@ class CameraDisplay:
 
     @staticmethod
     def create_patches(shape, pix_x, pix_y, pix_width, pix_rotation=0 * u.deg):
+        """
+        Create a Matplotlib patch for each camera pixel.
+
+        Parameters
+        ----------
+        shape : PixelShape
+            Common shape of the pixels.
+        pix_x : array-like
+            Pixel center x coordinates in the display coordinate units.
+        pix_y : array-like
+            Pixel center y coordinates in the display coordinate units.
+        pix_width : array-like
+            Width per pixel in the same units as the coordinates. This is the
+            side length for squares, the diameter for circles, and the
+            flat-to-flat distance for hexagons.
+        pix_rotation : astropy.units.Quantity, optional
+            Rotation of the square or hexagonal pixels.
+
+        Returns
+        -------
+        list of matplotlib.patches.Patch
+            Patches in the order of the input pixel coordinates.
+
+        Raises
+        ------
+        ValueError
+            If the pixel shape is unsupported.
+        """
         if shape == PixelShape.HEXAGON:
             return CameraDisplay._create_hex_patches(
                 pix_x, pix_y, pix_width, pix_rotation
@@ -258,14 +296,13 @@ class CameraDisplay:
             The pixels to highlight.
             Can either be a list or array of integers or a
             boolean mask of length number of pixels
-        color: a matplotlib conform color
+        color : a matplotlib conform color
             the color for the pixel highlighting
-        linewidth: float
+        linewidth : float
             linewidth of the highlighting in points
-        alpha: 0 <= alpha <= 1
+        alpha : 0 <= alpha <= 1
             The transparency
         """
-
         linewidths = np.zeros_like(self.image)
         linewidths[pixels] = linewidth
         self.pixel_highlighting.set_linewidth(linewidths)
@@ -274,18 +311,32 @@ class CameraDisplay:
         self._update()
 
     def enable_pixel_picker(self):
-        """enable ability to click on pixels"""
+        """Enable ability to click on pixels"""
         self.pixels.set_picker(True)
         self.pixels.set_pickradius(self.geom.pixel_width.to_value(self.unit)[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
-        """set the color scale limits from min to max"""
+        """Set the color scale limits from min to max
+
+        Parameters
+        ----------
+        zmin : float
+            Lower limit of the color scale in the units of the displayed values.
+        zmax : float
+            Upper limit of the color scale in the units of the displayed values.
+        """
         self.pixels.set_clim(zmin, zmax)
         self._update()
 
     def set_limits_percent(self, percent=95):
-        """auto-scale the color range to percent of maximum"""
+        """Set the upper color limit to a fraction of the data range.
+
+        Parameters
+        ----------
+        percent : float, optional
+            Percentage of the data range to keep, measured upward from the minimum.
+        """
         from matplotlib.colors import LogNorm
 
         zmin = np.nanmin(self.pixels.get_array())
@@ -363,7 +414,7 @@ class CameraDisplay:
 
         Parameters
         ----------
-        image: array_like
+        image : array_like
             array of values corresponding to the pixels in the CameraGeometry.
         """
         image = np.asanyarray(image)
@@ -381,12 +432,12 @@ class CameraDisplay:
         self._update()
 
     def _update(self):
-        """signal a redraw if autoupdate is turned on"""
+        """Signal a redraw if autoupdate is turned on"""
         if self.autoupdate:
             self.update()
 
     def update(self):
-        """redraw the display now"""
+        """Redraw the display now"""
         fig = self.axes.figure
         fig.canvas.draw_idle()
         if self.colorbar is not None:
@@ -398,10 +449,13 @@ class CameraDisplay:
 
     def add_colorbar(self, **kwargs):
         """
-        add a colorbar to the camera plot
-        kwargs are passed to ``figure.colorbar(self.pixels, **kwargs)``
-        See matplotlib documentation for the supported kwargs:
-        https://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
+        Add a colorbar to the camera plot.
+
+        Parameters
+        ----------
+        **kwargs
+            Options forwarded to `~matplotlib.figure.Figure.colorbar`. The ``ax``
+            argument defaults to the axes of this camera display.
         """
         if self.colorbar is not None:
             raise ValueError(
@@ -415,21 +469,21 @@ class CameraDisplay:
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
-        plot an ellipse on top of the camera
+        Plot an ellipse on top of the camera
 
         Parameters
         ----------
-        centroid: (float, float)
+        centroid : (float, float)
             position of centroid
-        length: float
+        length : float
             major axis
-        width: float
+        width : float
             minor axis
-        angle: float
+        angle : float
             rotation angle wrt x-axis about the centroid, anticlockwise, in radians
-        asymmetry: float
+        asymmetry : float
             3rd-order moment for directionality if known
-        kwargs:
+        **kwargs
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
@@ -462,8 +516,8 @@ class CameraDisplay:
         keep_old : bool
             If False, any previously created overlays will be removed
             before plotting the new one
-        kwargs :
-            All kwargs are passed to ``matplotlib.Axes.plot``
+        **kwargs
+            Keyword arguments forwarded to `matplotlib.axes.Axes.plot`.
         """
         if not keep_old:
             self.clear_overlays()
@@ -490,25 +544,25 @@ class CameraDisplay:
         psi_uncertainty_length=3.0,
         **kwargs,
     ):
-        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
+        """Helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------
-        hillas_parameters: `~ctapipe.containers.HillasParametersContainer`
+        hillas_parameters : `~ctapipe.containers.HillasParametersContainer`
             structuring containing Hillas-style parameterization
-        with_label: bool
+        with_label : bool
             If True, show coordinates of centroid and width and length
-        keep_old: bool
+        keep_old : bool
             If True, to not remove old overlays
-        n_sigma: float
+        n_sigma : float
             How many sigmas to use for the ellipse
         psi_uncertainty : bool
             If true, add wedges that indicates the uncertainty on psi
         psi_uncertainty_length : float
             Length of the psi uncertainty wedges as multiple of the hillas_length
-        kwargs: key=value
-            any style keywords to pass to matplotlib (e.g. color='red'
-            or linewidth=6)
+        **kwargs
+            Style options forwarded to the Matplotlib ellipse patch, such as
+            ``color`` or ``linewidth``.
         """
         if not keep_old:
             self.clear_overlays()
@@ -564,7 +618,7 @@ class CameraDisplay:
             overlay.remove()
 
     def _on_pick(self, event):
-        """handler for when a pixel is clicked"""
+        """Handler for when a pixel is clicked"""
         if event.artist is not self.pixels:
             # do nothing if the event was triggered by something
             # other than this displays pixels artist
@@ -584,16 +638,24 @@ class CameraDisplay:
         self.on_pixel_clicked(pix_id)  # call user-function
 
     def on_pixel_clicked(self, pix_id):
-        """virtual function to override in sub-classes to do something special
-        when a pixel is clicked
+        """Handle a click on a camera pixel.
+
+        The default handler prints the pixel index. Override this method to
+        customize click behavior.
+
+        Parameters
+        ----------
+        pix_id : int
+            Index of the selected pixel in the plotted patch collection.
         """
         print(f"Clicked pixel_id {pix_id}")
 
     def show(self):
+        """Show the Matplotlib figure containing the camera display."""
         self.axes.figure.show()
 
     def auto_set_axes_labels(self):
-        """set the axes labels based on the Frame attribute"""
+        """Set the axes labels based on the Frame attribute"""
         axes_labels = ("X", "Y")
         if self.geom.frame is not None:
             axes_labels = list(
@@ -604,8 +666,13 @@ class CameraDisplay:
         self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
 
     def add_frame_name(self, color="grey"):
-        """label the frame type of the display (e.g. CameraFrame)"""
+        """Label the frame type of the display (e.g. CameraFrame)
 
+        Parameters
+        ----------
+        color : color, optional
+            Matplotlib color for the coordinate frame annotation.
+        """
         frame_name = (
             self.geom.frame.__class__.__name__
             if self.geom.frame is not None

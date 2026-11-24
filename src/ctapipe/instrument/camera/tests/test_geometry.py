@@ -61,13 +61,13 @@ def test_make_rectangular_camera_geometry():
 
 
 def test_load_lst_camera(prod5_lst):
-    """test that a specific camera has the expected attributes"""
+    """Test that a specific camera has the expected attributes"""
     assert len(prod5_lst.camera.geometry.pix_x) == 1855
     assert prod5_lst.camera.geometry.pix_type == PixelShape.HEXAGON
 
 
 def test_position_to_pix_index(prod5_lst):
-    """test that we can lookup a pixel from a coordinate"""
+    """Test that we can lookup a pixel from a coordinate"""
     geometry = prod5_lst.camera.geometry
 
     x, y = (0.80 * u.m, 0.79 * u.m)
@@ -84,7 +84,7 @@ def test_position_to_pix_index(prod5_lst):
 
 
 def test_find_neighbor_pixels():
-    """test basic neighbor functionality"""
+    """Test basic neighbor functionality"""
     n_pixels_grid = 5
     x, y = u.Quantity(
         np.meshgrid(
@@ -110,9 +110,10 @@ def test_find_neighbor_pixels():
 
 def test_neighbor_pixels(camera_geometry):
     """
-    test if each camera has a reasonable number of neighbor pixels (4 for
-    rectangular, and 6 for hexagonal.  Other than edge pixels, the majority
-    should have the same value
+    Check the expected number of neighbors for interior pixels.
+
+    Most interior pixels should have four neighbors in rectangular cameras and six in
+    hexagonal cameras.
     """
     geom = camera_geometry
     n_pix = len(geom.pix_id)
@@ -155,8 +156,7 @@ def test_calc_pixel_neighbors_square():
 
 def test_calc_pixel_neighbors_square_diagonal():
     """
-    check that neighbors for square-pixel cameras are what we expect,
-    namely that the diagonals are included if requested.
+    Check whether square pixel neighbors include diagonals as requested.
     """
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
@@ -226,8 +226,7 @@ def test_write_read(tmpdir, prod5_lst):
 
 def test_precal_neighbors():
     """
-    test that pre-calculated neighbor lists don't get
-    overwritten by automatic ones
+    Test that pre-calculated neighbor lists don't get overwritten by automatic ones
     """
     geom = CameraGeometry(
         name="TestCam",
@@ -322,7 +321,7 @@ def test_slicing_rotation(camera_geometry):
 
 
 def test_rectangle_patch_neighbors():
-    """ " test that a simple rectangular camera has the expected neighbors"""
+    """Check that a rectangular camera has the expected pixel neighbors."""
     pix_x = np.array([-1.1, 0.1, 0.9, -1, 0, 1, -0.9, -0.1, 1.1]) * u.m
     pix_y = np.array([1.1, 1, 0.9, -0.1, 0, 0.1, -0.9, -1, -1.1]) * u.m
     pix_area = np.full(len(pix_x), 0.01) * u.m**2
@@ -340,7 +339,7 @@ def test_rectangle_patch_neighbors():
 
 
 def test_border_pixels(prod5_lst, prod3_astri):
-    """check we can find border pixels"""
+    """Check we can find border pixels"""
     prod5_lst_cam = prod5_lst.camera.geometry
 
     assert np.sum(prod5_lst_cam.get_border_pixel_mask(1)) == 168
@@ -356,7 +355,7 @@ def test_border_pixels(prod5_lst, prod3_astri):
 
 
 def test_equals(prod5_lst, prod5_mst_nectarcam):
-    """check we can use the == operator"""
+    """Check we can use the == operator"""
     cam1 = prod5_lst.camera.geometry
     cam2 = deepcopy(prod5_lst.camera.geometry)
     cam3 = prod5_mst_nectarcam.camera.geometry
@@ -367,7 +366,7 @@ def test_equals(prod5_lst, prod5_mst_nectarcam):
 
 
 def test_hashing(prod5_lst, prod5_mst_nectarcam):
-    """ " check that hashes are correctly computed"""
+    """Check that equivalent camera geometries hash consistently."""
     cam1 = prod5_lst.camera.geometry
     cam2 = deepcopy(prod5_lst.camera.geometry)
     cam3 = prod5_mst_nectarcam.camera.geometry
@@ -376,14 +375,14 @@ def test_hashing(prod5_lst, prod5_mst_nectarcam):
 
 
 def test_camera_from_name(camera_geometry):
-    """check we can construct all cameras from name"""
+    """Check we can construct all cameras from name"""
     with pytest.warns(FromNameWarning):
         camera = CameraGeometry.from_name(camera_geometry.name)
     assert str(camera) == camera_geometry.name
 
 
 def test_camera_coordinate_transform(camera_geometry):
-    """test conversion of the coordinates stored in a camera frame"""
+    """Test conversion of the coordinates stored in a camera frame"""
     from ctapipe.coordinates import (
         CameraFrame,
         EngineeringCameraFrame,
@@ -523,10 +522,10 @@ def test_transform_keeps_frame_attributes(camera_geometry, as_class):
 
 
 def test_transform_roundtrip_through_telescope_frame(camera_geometry):
-    """
-    TelescopeFrame does not have a focal_length, but it must be kept in
-    pix_coord so the transformation back to CameraFrame works without
-    specifying it again.
+    """Check that the focal length survives a round trip through TelescopeFrame.
+
+    TelescopeFrame has no focal_length attribute. The pixel coordinates must
+    retain it for the transformation back to CameraFrame.
     """
     from ctapipe.coordinates import CameraFrame, TelescopeFrame
 

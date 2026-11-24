@@ -3,6 +3,7 @@ Perform statistics calculation from pixel-wise image data
 """
 
 import pathlib
+from typing import override
 
 import numpy as np
 from astropy.table import vstack
@@ -116,6 +117,7 @@ class PixelStatisticsCalculatorTool(Tool):
         TableLoader,
     ] + classes_with_traits(PixelStatisticsCalculator)
 
+    @override
     def setup(self):
         if self.output_path is None:
             self.log.critical(
@@ -344,6 +346,7 @@ class PixelStatisticsCalculatorTool(Tool):
         combined_stats.sort(["time_start"])
         return combined_stats
 
+    @override
     def finish(self):
         self.log.info("Tool is shutting down")
 

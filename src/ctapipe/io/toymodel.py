@@ -4,6 +4,7 @@ Create a toymodel event stream of array events
 """
 
 import logging
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -26,6 +27,28 @@ logger = logging.getLogger(__name__)
 
 
 class ToyEventSource(TelescopeComponent, EventSource):
+    """Generate toy DL1 camera images without reading an event file.
+
+    Sample a set of participating telescopes and generate a skewed Gaussian
+    shower image for each using its camera geometry. This produces test
+    events for image processing without running a shower simulation.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the telescopes and camera geometries.
+    config : traitlets.loader.Config or None, optional
+        Source configuration when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration. Mutually exclusive with
+        ``config``.
+    rng : numpy.random.Generator or None, optional
+        Generator for choosing participating telescopes and shower parameters.
+        If None, initialize it from the configured seed.
+    **kwargs
+        Trait values that override the configuration.
+    """
+
     # override input url from EventSource, we don't need one here
     input_url = traits.Path(
         allow_none=True,
@@ -71,28 +94,60 @@ class ToyEventSource(TelescopeComponent, EventSource):
 
     @staticmethod
     def calc_width(eccentricity, length):
+        """
+        Compute an ellipse's width from its length and eccentricity.
+
+        Parameters
+        ----------
+        eccentricity : float or ndarray
+            Ellipse eccentricity between zero and one.
+        length : float or ndarray or astropy.units.Quantity
+            Extent along the major axis, in the desired units for the width.
+
+        Returns
+        -------
+        float or ndarray or astropy.units.Quantity
+            Extent along the minor axis, in the same units as the length.
+        """
         return length * np.sqrt(1 - eccentricity**2)
 
     @property
+    @override
     def is_simulation(self):
         return True
 
     @property
+    @override
     def datalevels(self):
         return (DataLevel.DL1_IMAGES,)
 
     @property
+    @override
     def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         sb = SchedulingBlockContainer(sb_id=self._sb_id)
         return {sb.sb_id: sb}
 
     @property
+    @override
     def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         ob = ObservationBlockContainer(obs_id=self._obs_id, sb_id=self._sb_id)
         return {ob.obs_id: ob}
 
     @staticmethod
     def is_compatible(file_path):
+        """
+        Report whether this source can open a file.
+
+        Parameters
+        ----------
+        file_path : str or pathlib.Path
+            Path to check for compatibility.
+
+        Returns
+        -------
+        bool
+            Always False. The source generates events in memory.
+        """
         del file_path
         return False
 
@@ -106,6 +161,17 @@ class ToyEventSource(TelescopeComponent, EventSource):
             self.event_id += 1
 
     def generate_event(self):
+        """
+        Generate one toy shower event using the current event ID.
+
+        Sample which telescopes trigger, then simulate an elliptical DL1 image
+        for each triggered telescope. Iterating over the source advances the event ID.
+
+        Returns
+        -------
+        SubarrayEventContainer
+            Synthetic event with telescope images and a subarray trigger.
+        """
         from ..image import toymodel
 
         event = SubarrayEventContainer(

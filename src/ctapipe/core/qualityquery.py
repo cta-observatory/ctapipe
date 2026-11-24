@@ -18,11 +18,22 @@ class QualityCriteriaError(TypeError):
 
 class QualityQuery(Component):
     """
-    Manages a set of user-configurable (at runtime or in a config file) selection
-    criteria that operate on the same type of input. Each time it is called, it
-    returns a boolean array of whether or not each criterion passed. It  also keeps
-    track of the total number of times each criterium is passed, as well as a
-    cumulative product of criterium (i.e. the criteria applied in-order)
+    Apply configurable selection criteria to the same input.
+
+    Configure the criteria at runtime or in a configuration file. Each call returns a
+    boolean array and tracks how often each criterion passes, both individually and
+    after applying preceding criteria.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``quality_criteria`` to pairs
+        of labels and selection expressions.
     """
 
     quality_criteria = List(
@@ -76,7 +87,7 @@ class QualityQuery(Component):
 
         Parameters
         ----------
-        functions: bool:
+        functions : bool:
             include the function string as a column
 
         Returns
@@ -104,7 +115,7 @@ class QualityQuery(Component):
 
         Parameters
         ----------
-        **kwargs:
+        **kwargs
             Are passed as locals to evaluate the given expression
 
         Returns

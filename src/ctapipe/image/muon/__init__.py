@@ -1,3 +1,10 @@
+"""Fit and characterize muon rings in Cherenkov camera images.
+
+Use the circle fits to estimate ring geometry, the ring features to assess
+image quality, and the intensity fit to estimate the optical throughput of
+a telescope.
+"""
+
 from .features import (
     intensity_ratio_inside_ring,
     mean_squared_error,

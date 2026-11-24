@@ -7,6 +7,7 @@ import warnings
 from abc import abstractmethod
 from collections import defaultdict
 from copy import deepcopy
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -103,6 +104,23 @@ class SKLearnReconstructor(Reconstructor):
 
     Keeps a dictionary of sklearn models, the current tools are designed
     to train one model per telescope type.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray used to identify telescope types and supply instrument features.
+        Required when creating a new reconstructor.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Profile passed to the base reconstructor when creating a new model.
+    models : dict or None, optional
+        Preconstructed estimators keyed by telescope type for a new reconstructor. With
+        None, start with an empty model mapping.
+    n_jobs : int or None, optional
+        Unused by this initializer. Set the ``n_jobs`` trait through the component
+        configuration, or supply a supported threading option in ``model_config``.
+    **kwargs
+        Component configuration and trait values. Set ``model_cls`` for a new
+        reconstructor or ``load_path`` to load one from disk.
     """
 
     #: Name of the target table column for training.
@@ -205,7 +223,9 @@ class SKLearnReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event: SubarrayEventContainer
+        event : SubarrayEventContainer
+            Event providing the features for prediction and receiving the DL2 results
+            in place.
         """
 
     def __getstate__(self):
@@ -237,6 +257,16 @@ class SKLearnReconstructor(Reconstructor):
         """
 
     def write(self, path, overwrite=False):
+        """
+        Save the reconstructor, telescope-type models, and subarray in a BagIt archive.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Destination archive path.
+        overwrite : bool, optional
+            Replace an existing archive at that path if True.
+        """
         path = pathlib.Path(path)
 
         with BagItWriter(path, parent=self, overwrite=overwrite) as writer:
@@ -245,6 +275,7 @@ class SKLearnReconstructor(Reconstructor):
                 writer.write_joblib(key, model)
 
     @classmethod
+    @override
     def read(cls, path, parent=None, subarray=None, **kwargs):
         instance = super().read(path, parent=parent, subarray=subarray, **kwargs)
         _model_keys_to_str(instance, path)
@@ -252,6 +283,7 @@ class SKLearnReconstructor(Reconstructor):
 
     @lazyproperty
     def instrument_table(self):
+        """Return the joined layout, optics, and camera table used to build features."""
         return QTable(self.subarray.to_table("joined"))
 
     def _new_model(self):
@@ -273,6 +305,14 @@ class SKLearnReconstructor(Reconstructor):
     def fit(self, key, table):
         """
         Create and fit a new model for ``key`` using the data in ``table``.
+
+        Parameters
+        ----------
+        key : str
+            Telescope-type key under which to store the trained estimator.
+        table : astropy.table.Table
+            Training rows with the configured feature and target columns. Rows with NaN
+            features are dropped.
         """
         self._models[key] = self._new_model()
 
@@ -429,6 +469,15 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
     property = ReconstructionProperty.ENERGY
 
     def __call__(self, event: SubarrayEventContainer) -> None:
+        """
+        Predict shower energy from each telescope and combine the estimates.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with telescope image features. Energy estimates and their
+            validity are written in place to telescope and subarray DL2 data.
+        """
         self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
@@ -458,6 +507,22 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
+        """
+        Predict telescope-wise shower energies for a table of events.
+
+        Parameters
+        ----------
+        key : str
+            Telescope-type key of the energy model.
+        table : astropy.table.Table
+            Event feature table for this telescope type.
+
+        Returns
+        -------
+        dict[ReconstructionProperty, astropy.table.Table]
+            Mapping from ``ReconstructionProperty.ENERGY`` to the table of energies
+            and validity flags. Rows failing the quality selection retain NaN energies.
+        """
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -495,6 +560,15 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: SubarrayEventContainer) -> None:
+        """
+        Predict particle classification scores per telescope and combine them.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with telescope image features. Classification scores and their
+            validity are written in place to telescope and subarray DL2 data.
+        """
         self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():
             table = collect_features(event, tel_id, self.instrument_table)
@@ -522,6 +596,22 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
+        """
+        Predict telescope-wise particle classification scores for a table of events.
+
+        Parameters
+        ----------
+        key : str
+            Telescope-type key of the classifier model.
+        table : astropy.table.Table
+            Event feature table for this telescope type.
+
+        Returns
+        -------
+        dict[ReconstructionProperty, astropy.table.Table]
+            Mapping from ``ReconstructionProperty.PARTICLE_TYPE`` to the table of scores
+            and validity flags. Rows failing the quality selection retain NaN scores.
+        """
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -548,8 +638,23 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
 class DispReconstructor(Reconstructor):
     """
-    Predict absolute value and sign for disp origin reconstruction and
-    convert to altitude and azimuth prediction for each telescope.
+    Predict the signed displacement and use it to estimate arrival direction.
+
+    Convert the displacement into an altitude and azimuth prediction for each telescope.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None, optional
+        Subarray used to identify telescope types and supply instrument features.
+        Required when creating a new reconstructor.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Profile passed to the base reconstructor when creating a new model.
+    models : dict or None, optional
+        Mapping from telescope type to pairs of displacement-magnitude and sign
+        estimators. With None, start with an empty model mapping.
+    **kwargs
+        Component configuration and trait values. Set ``norm_cls`` and ``sign_cls`` for
+        new models or ``load_path`` to load saved models.
     """
 
     target = "true_disp"
@@ -690,6 +795,14 @@ class DispReconstructor(Reconstructor):
     def fit(self, key, table):
         """
         Create and fit new models for ``key`` using the data in ``table``.
+
+        Parameters
+        ----------
+        key : str
+            Telescope-type key under which to store the trained DISP estimators.
+        table : astropy.table.Table
+            Training rows with the configured features and true displacement target.
+            Rows with NaN features are dropped.
         """
         self._models[key] = self._new_models()
 
@@ -700,6 +813,16 @@ class DispReconstructor(Reconstructor):
         self._models[key][1].fit(X, sign)
 
     def write(self, path, overwrite=False):
+        """
+        Save the DISP reconstructor, telescope-type models, and subarray to an archive.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Destination BagIt archive path.
+        overwrite : bool, optional
+            Replace an existing archive at that path if True.
+        """
         path = pathlib.Path(path)
 
         with BagItWriter(path, parent=self, overwrite=overwrite) as writer:
@@ -708,6 +831,7 @@ class DispReconstructor(Reconstructor):
                 writer.write_joblib(key, model)
 
     @classmethod
+    @override
     def read(cls, path, parent=None, subarray=None, **kwargs):
         instance = super().read(path, parent=parent, subarray=subarray, **kwargs)
         _model_keys_to_str(instance, path)
@@ -715,6 +839,7 @@ class DispReconstructor(Reconstructor):
 
     @lazyproperty
     def instrument_table(self):
+        """Return the joined layout, optics, and camera table for DISP features."""
         return self.subarray.to_table("joined")
 
     def _predict(self, key, table):
@@ -755,7 +880,10 @@ class DispReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event: SubarrayEventContainer
+        event : SubarrayEventContainer
+            Event with telescope image parameters and pointing. The method writes
+            the DISP and direction predictions per telescope and combines the
+            directions into a subarray DL2 geometry estimate.
         """
         self._prepare_event(event)
         for tel_id, tel_event in event.tel.items():
@@ -816,18 +944,18 @@ class DispReconstructor(Reconstructor):
 
         Parameters
         ----------
+        key : str
+            Telescope-type key used to select the DISP regression and sign models.
         table : `~astropy.table.Table`
             Table of features
 
         Returns
         -------
-        disp_table : `~astropy.table.Table`
-            Table with disp predictions, matches the corresponding
-            container definition
-        altaz_table : `~astropy.table.Table`
-            Table with resulting predictions of horizontal coordinates
+        dict[ReconstructionProperty, astropy.table.Table]
+            DISP predictions under ``ReconstructionProperty.DISP`` and the
+            corresponding horizontal coordinates under
+            ``ReconstructionProperty.GEOMETRY``.
         """
-
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -896,7 +1024,19 @@ class DispReconstructor(Reconstructor):
 
 
 class CrossValidator(Component):
-    """Class to train sklearn based reconstructors in a cross validation."""
+    """Class to train sklearn based reconstructors in a cross validation.
+
+    Parameters
+    ----------
+    model_component : SKLearnReconstructor or DispReconstructor
+        Reconstruction component defining the model, features, and training target to
+        validate.
+    overwrite : bool, optional
+        Replace an existing cross-validation output file if True.
+    **kwargs
+        Component configuration and trait values, such as the fold count and output
+        path.
+    """
 
     n_cross_validations = traits.Int(
         default_value=5, help="Number of cross validation iterations."
@@ -1004,7 +1144,19 @@ class CrossValidator(Component):
             yield train_mask[reverse_idx], test_mask[reverse_idx]
 
     def __call__(self, telescope_type, table, keep_subarray_events=False):
-        """Perform cross validation for the given model."""
+        """Perform cross validation for the given model.
+
+        Parameters
+        ----------
+        telescope_type : str or TelescopeDescription
+            Telescope type labeling the training sample and its validation results.
+        table : astropy.table.Table
+            Training events for this telescope type, with the features and target needed
+            by the model.
+        keep_subarray_events : bool, optional
+            Keep telescope rows from the same subarray event in the same fold for energy
+            or classification models. DISP validation splits telescope events.
+        """
         if self.n_cross_validations == 0:
             return
 

@@ -663,7 +663,7 @@ def test_extractor_simtel_eventsource(extractor, prod5_gamma_simtel_path):
 
 
 def test_dl1_pixel_status(example_subarray):
-    """check that the pixel status is propagated to DL1"""
+    """Check that the pixel status is propagated to DL1"""
     tel_id = next(iter(example_subarray.tel))
     n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
     selected_gain_channel = np.arange(n_pixels) % 2

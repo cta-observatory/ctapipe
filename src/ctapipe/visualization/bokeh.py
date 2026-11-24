@@ -1,3 +1,9 @@
+"""Display Cherenkov cameras and telescope arrays interactively with Bokeh.
+
+Plot pixel values or telescope positions and update their colors as data
+change. Camera displays support image overlays and pixel selection.
+"""
+
 import sys
 from abc import ABCMeta
 from tempfile import NamedTemporaryFile
@@ -51,7 +57,13 @@ CMAPS = {
 
 
 def palette_from_mpl_name(name):
-    """Create a bokeh palette from a matplotlib colormap name"""
+    """Create a bokeh palette from a matplotlib colormap name
+
+    Parameters
+    ----------
+    name : str
+        Name of a built-in Bokeh palette alias or a Matplotlib colormap.
+    """
     if name in CMAPS:
         return CMAPS[name]
 
@@ -68,14 +80,23 @@ def palette_from_mpl_name(name):
 
 def is_notebook():
     """
-    Returns True if currently running in a notebook session,
-    see https://stackoverflow.com/a/37661854/3838691
+    Check whether the notebook kernel module has been imported.
+
+    The check tests for ``ipykernel`` in ``sys.modules``. See
+    https://stackoverflow.com/a/37661854/3838691 for the detection approach.
     """
     return "ipykernel" in sys.modules
 
 
 def generate_hex_vertices(geom):
-    """Generate vertices of pixels for a hexagonal grid camera geometry"""
+    """Generate vertices of pixels for a hexagonal grid camera geometry
+
+    Parameters
+    ----------
+    geom : CameraGeometry
+        Geometry supplying the pixel centers, widths, and rotation for the hexagon
+        vertices.
+    """
     phi = np.arange(0, 2 * np.pi, np.pi / 3)
 
     # apply pixel rotation and conversion from flat top to pointy top
@@ -95,7 +116,14 @@ def generate_hex_vertices(geom):
 
 
 def generate_square_vertices(geom):
-    """Generate vertices of pixels for a square grid camera geometry"""
+    """Generate vertices of pixels for a square grid camera geometry
+
+    Parameters
+    ----------
+    geom : CameraGeometry
+        Geometry supplying the pixel centers and side lengths for the axis-aligned
+        square vertices.
+    """
     unit = geom.pix_x.unit
     width = geom.pixel_width.to_value(unit) / 2
     x = geom.pix_x.to_value(unit)
@@ -110,7 +138,21 @@ def generate_square_vertices(geom):
 
 
 class BokehPlot(metaclass=ABCMeta):
-    """Base class for bokeh plots"""
+    """Base class for bokeh plots
+
+    Parameters
+    ----------
+    use_notebook : bool or None, optional
+        Enable notebook display. None detects whether code is running in a notebook.
+    autoscale : bool, optional
+        Adjust the color limits automatically when display values change.
+    cmap : str or sequence of str, optional
+        Colormap name or sequence of color specifications.
+    norm : str or bokeh.models.ContinuousColorMapper, optional
+        Linear or logarithmic normalization, or an existing continuous color mapper.
+    **figure_kwargs
+        Options forwarded to `bokeh.plotting.figure`.
+    """
 
     def __init__(
         self,
@@ -164,6 +206,7 @@ class BokehPlot(metaclass=ABCMeta):
             push_notebook(handle=self._handle)
 
     def add_colorbar(self):
+        """Add a colorbar to the right of the figure using the current color mapper."""
         self._color_bar = ColorBar(
             color_mapper=self._color_mapper,
             label_standoff=12,
@@ -174,12 +217,26 @@ class BokehPlot(metaclass=ABCMeta):
         self.update()
 
     def set_limits_minmax(self, zmin, zmax):
-        """Set the limits of the color range to ``zmin`` / ``zmax``"""
+        """Set the limits of the color range to ``zmin`` / ``zmax``
+
+        Parameters
+        ----------
+        zmin : float
+            Lower limit of the color scale in the units of the displayed values.
+        zmax : float
+            Upper limit of the color scale in the units of the displayed values.
+        """
         self._color_mapper.update(low=zmin, high=zmax)
         self.update()
 
     def set_limits_percent(self, percent=95):
-        """Set the limits to min / fraction of max value"""
+        """Set the upper color limit to a fraction of the data range.
+
+        Parameters
+        ----------
+        percent : float, optional
+            Percentage of the data range to keep, measured upward from the minimum.
+        """
         low = np.nanmin(self.datasource.data["values"])
         high = np.nanmax(self.datasource.data["values"])
 
@@ -193,7 +250,13 @@ class BokehPlot(metaclass=ABCMeta):
 
     @cmap.setter
     def cmap(self, cmap):
-        """Set colormap"""
+        """Set colormap
+
+        Parameters
+        ----------
+        cmap : str or sequence of str
+            Colormap name or sequence of colors to use as the palette.
+        """
         if isinstance(cmap, str):
             cmap = palette_from_mpl_name(cmap)
 
@@ -247,7 +310,14 @@ class BokehPlot(metaclass=ABCMeta):
 
     @norm.setter
     def norm(self, norm):
-        """Set the norm"""
+        """Set the norm
+
+        Parameters
+        ----------
+        norm : str or bokeh.models.ContinuousColorMapper
+            Use ``"lin"`` for a linear scale, ``"log"`` for a logarithmic scale, or pass
+            a continuous color mapper.
+        """
         if not isinstance(norm, ContinuousColorMapper):
             if norm == "lin":
                 norm = LinearColorMapper
@@ -273,21 +343,24 @@ class CameraDisplay(BokehPlot):
 
     Parameters
     ----------
-    geometry: CameraGeometry
+    geometry : CameraGeometry
         CameraGeometry for the display
-    image: array
+    image : array
         Values to display for each pixel
-    cmap: str or bokeh.palette.Palette
+    cmap : str or bokeh.palette.Palette
         matplotlib colormap name or bokeh palette for color mapping values
-    norm: str or bokeh.
+    norm : str or bokeh.
         lin, log, symlog or a bokeh.models.ColorMapper instance
-    autoscale: bool
+    autoscale : bool
         Whether to automatically adjust color range after updating image
-    use_notebook: bool or None
+    title : str or None, optional
+        Plot title. By default, use the camera geometry and frame name
+        if a geometry is supplied.
+    use_notebook : bool or None
         Whether to use bokehs notebook output. If None, tries to autodetect
         running in a notebook.
-
-    **figure_kwargs are passed to bokeh.plots.figure
+    **figure_kwargs
+        Keyword arguments forwarded to `bokeh.plotting.figure`.
     """
 
     def __init__(
@@ -385,7 +458,14 @@ class CameraDisplay(BokehPlot):
             )
 
     def enable_pixel_picker(self, callback):
-        """Call ``callback`` when a pixel is clicked"""
+        """Call ``callback`` when a pixel is clicked
+
+        Parameters
+        ----------
+        callback : callable
+            Callback taking ``(attr, old, new)`` when the Bokeh selection indices
+            change.
+        """
         if self._tap_tool is None:
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
@@ -400,11 +480,11 @@ class CameraDisplay(BokehPlot):
             The pixels to highlight.
             Can either be a list or array of integers or a
             boolean mask of length number of pixels
-        color: a matplotlib conform color
+        color : a matplotlib conform color
             the color for the pixel highlighting
-        linewidth: float
+        linewidth : float
             linewidth of the highlighting in points
-        alpha: 0 <= alpha <= 1
+        alpha : 0 <= alpha <= 1
             The transparency
         """
         n_pixels = self._geometry.n_pixels
@@ -432,7 +512,13 @@ class CameraDisplay(BokehPlot):
 
     @geometry.setter
     def geometry(self, new_geometry):
-        """Set the geometry"""
+        """Set the geometry
+
+        Parameters
+        ----------
+        new_geometry : CameraGeometry
+            Geometry with which to rebuild the camera glyphs and reset the data source.
+        """
         self._geometry = new_geometry
         if self._patches in self.figure.renderers:
             self.figure.renderers.remove(self._patches)
@@ -448,29 +534,35 @@ class CameraDisplay(BokehPlot):
 
     @image.setter
     def image(self, new_image):
-        """Set the image"""
+        """Set the image
+
+        Parameters
+        ----------
+        new_image : array-like
+            Values in the pixel order of the current camera geometry.
+        """
         self.datasource.patch({"values": [(slice(None), new_image)]})
         if self.autoscale:
             self.rescale()
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
-        plot an ellipse on top of the camera
+        Plot an ellipse on top of the camera
 
         Parameters
         ----------
-        centroid: (float, float)
+        centroid : (float, float)
             position of centroid
-        length: float
+        length : float
             major axis
-        width: float
+        width : float
             minor axis
-        angle: float
+        angle : float
             rotation angle wrt x-axis about the centroid, anticlockwise, in radians
-        asymmetry: float
+        asymmetry : float
             3rd-order moment for directionality if known
-        kwargs:
-            any MatPlotLib style arguments to pass to the Ellipse patch
+        **kwargs
+            Additional properties passed to the Bokeh Ellipse glyph.
         """
         ellipse = Ellipse(
             x=centroid[0],
@@ -489,19 +581,21 @@ class CameraDisplay(BokehPlot):
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
-        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
+        """Helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------
-        hillas_parameters: `~ctapipe.containers.HillasParametersContainer`
+        hillas_parameters : `~ctapipe.containers.HillasParametersContainer`
             structuring containing Hillas-style parameterization
-        with_label: bool
+        with_label : bool
             If True, show coordinates of centroid and width and length
-        keep_old: bool
+        keep_old : bool
             If True, to not remove old overlays
-        kwargs: key=value
-            any style keywords to pass to matplotlib (e.g. color='red'
-            or linewidth=6)
+        n_sigma : float, optional
+            Scale the ellipse's semi-axes by this many Hillas lengths and widths.
+        **kwargs
+            Style options for the Bokeh ellipse glyph, such as ``line_color``
+            or ``line_width``.
         """
         if not keep_old:
             self.clear_overlays()
@@ -556,31 +650,31 @@ class ArrayDisplay(BokehPlot):
 
     Parameters
     ----------
-    subarray: ctapipe.instrument.SubarrayDescription
+    subarray : ctapipe.instrument.SubarrayDescription
         the array layout to display
-    values: array
+    values : array
         Value to display for each telescope. If None, the telescope type will
         be used.
-    scale: float
+    scale : float
         scaling between telescope mirror radius in m to displayed size
-    title: str
-        title of array plot
-    alpha: float
+    alpha : float
         Alpha value for telescopes
-    cmap: str or bokeh.palette.Palette
+    title : str
+        title of array plot
+    cmap : str or bokeh.palette.Palette
         matplotlib colormap name or bokeh palette for color mapping values
-    norm: str or bokeh.
+    norm : str or bokeh.
         lin, log, symlog or a bokeh.models.ColorMapper instance
-    radius: Union[float, list, None]
+    radius : Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
-    use_notebook: bool or None
+    use_notebook : bool or None
         Whether to use bokehs notebook output. If None, tries to autodetect
         running in a notebook.
-    frame: GroundFrame or TiltedGroundFrame
+    frame : GroundFrame or TiltedGroundFrame
         If given, transform telescope positions into this frame
-
-    **figure_kwargs are passed to bokeh.plots.figure
+    **figure_kwargs
+        Keyword arguments forwarded to `bokeh.plotting.figure`.
     """
 
     def __init__(
@@ -700,7 +794,13 @@ class ArrayDisplay(BokehPlot):
 
     @values.setter
     def values(self, new_values):
-        """Set the image"""
+        """Set the values used to color the telescopes.
+
+        Parameters
+        ----------
+        new_values : array-like
+            Values in the telescope order of the displayed subarray.
+        """
         # currently displaying telescope types
         if self._patches.glyph.fill_color["field"] == "type":
             self.norm = "lin"

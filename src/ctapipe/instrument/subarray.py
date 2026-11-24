@@ -54,8 +54,23 @@ def _range_extraction(sequence):
 
 class SubarrayDescription:
     """
-    Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes
-    along with their positions on the ground.
+    Describe an array of telescopes and their ground positions.
+
+    The individual telescopes are represented by
+    `~ctapipe.instrument.TelescopeDescription` objects.
+
+    Parameters
+    ----------
+    name : str
+        Name of the subarray.
+    tel_positions : dict[int, astropy.units.Quantity] or None
+        Ground offsets ``(x, y, z)`` with length units, keyed by telescope ID. Use the
+        same IDs as in ``tel_descriptions``.
+    tel_descriptions : dict[int, TelescopeDescription] or None
+        Camera and optics descriptions keyed by telescope ID.
+    reference_location : astropy.coordinates.EarthLocation
+        Earth location of the ground frame origin from which the telescope positions are
+        measured.
 
     Attributes
     ----------
@@ -130,7 +145,7 @@ class SubarrayDescription:
 
     @property
     def n_tels(self):
-        """number of telescopes in this subarray"""
+        """Number of telescopes in this subarray"""
         return len(self.tels)
 
     def __len__(self):
@@ -138,7 +153,12 @@ class SubarrayDescription:
 
     def info(self, printer=print):
         """
-        print descriptive info about subarray
+        Print descriptive info about subarray
+
+        Parameters
+        ----------
+        printer : callable, optional
+            Callable that receives each formatted line. Defaults to `print`.
         """
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.n_tels}")
@@ -173,7 +193,6 @@ class SubarrayDescription:
     @lazyproperty
     def tel_coords(self):
         """Telescope positions in `~ctapipe.coordinates.GroundFrame`"""
-
         pos_x = [p[0].to_value(u.m) for p in self.positions.values()]
         pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
         pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
@@ -205,7 +224,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_indices(self):
-        """dictionary mapping telescope ids to telescope index"""
+        """Dictionary mapping telescope ids to telescope index"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
     @lazyproperty
@@ -227,7 +246,7 @@ class SubarrayDescription:
         return idx
 
     def tel_ids_to_indices(self, tel_ids):
-        """maps a telescope id (or array of them) to flat indices
+        """Maps a telescope id (or array of them) to flat indices
 
         Parameters
         ----------
@@ -243,9 +262,10 @@ class SubarrayDescription:
         return self.tel_index_array[tel_ids]
 
     def tel_ids_to_mask(self, tel_ids):
-        """Convert a list of telescope ids to a boolean mask
-        of length ``n_tels`` where the **index** of the telescope
-        is set to ``True`` for each tel_id in tel_ids
+        """Convert telescope IDs to a mask indexed by telescope order.
+
+        The boolean mask has length ``n_tels``. Each requested ID sets the entry at that
+        telescope's index to ``True``.
 
         Parameters
         ----------
@@ -269,9 +289,10 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_mask: array-like
+        tel_mask : array-like
             Boolean array of length ``n_tels`` with indices of the
             telescopes in ``tel_ids`` set to True.
+
         Returns
         -------
         np.array:
@@ -281,21 +302,24 @@ class SubarrayDescription:
 
     @property
     def footprint(self):
-        """area of smallest circle containing array on ground"""
+        """Area of smallest circle containing array on ground"""
         pos_x = self.tel_coords.x
         pos_y = self.tel_coords.y
         return (np.hypot(pos_x, pos_y).max() ** 2 * np.pi).to("km^2")
 
     def to_table(self, kind="subarray", meta_convention="hdf"):
         """
-        export SubarrayDescription information as an `astropy.table.Table`
+        Export SubarrayDescription information as an `astropy.table.Table`
 
         Parameters
         ----------
-        kind: str
-            which table to generate (subarray or optics)
+        kind : str, optional
+            Table to generate. Use ``"subarray"`` for the telescope layout,
+            ``"optics"`` for the optics table, or ``"joined"`` to combine them.
+        meta_convention : str, optional
+            Keyword convention for the reference location in the layout table.
+            Use ``"hdf"`` for ``reference_itrs_*`` or ``"fits"`` for ``OBSGEO-*``.
         """
-
         if meta_convention not in {"hdf", "fits"}:
             raise ValueError(
                 f"meta_convention must be 'hdf' or 'fits', not {meta_convention}"
@@ -403,19 +427,19 @@ class SubarrayDescription:
 
     def select_subarray(self, tel_ids, name=None) -> "SubarrayDescription":
         """
-        return a new SubarrayDescription that is a sub-array of this one
+        Return a new SubarrayDescription that is a sub-array of this one
 
         Parameters
         ----------
-        tel_ids: list(int)
+        tel_ids : list(int)
             list of telescope IDs to include in the new subarray
-        name: str
+        name : str
             name of new sub-selection
+
         Returns
         -------
         SubarrayDescription
         """
-
         unknown_tel_ids = set(tel_ids).difference(self.tel.keys())
         if len(unknown_tel_ids) > 0:
             known = _range_extraction(self.tel.keys())
@@ -504,11 +528,11 @@ class SubarrayDescription:
 
     def get_tel_ids_for_type(self, tel_type) -> tuple[int]:
         """
-        return tuple of tel_ids that have the given tel_type
+        Return tuple of tel_ids that have the given tel_type
 
         Parameters
         ----------
-        tel_type: str or TelescopeDescription
+        tel_type : str or TelescopeDescription
            telescope type string (e.g. 'MST_MST_NectarCam')
         """
         if isinstance(tel_type, TelescopeDescription):
@@ -527,11 +551,11 @@ class SubarrayDescription:
 
     def get_tel_indices_for_type(self, tel_type):
         """
-        return tuple of telescope indices that have the given tel_type
+        Return tuple of telescope indices that have the given tel_type
 
         Parameters
         ----------
-        tel_type: str or TelescopeDescription
+        tel_type : str or TelescopeDescription
            telescope type string (e.g. 'MST_MST_NectarCam')
         """
         return self.tel_ids_to_indices(self.get_tel_ids_for_type(tel_type))
@@ -554,7 +578,6 @@ class SubarrayDescription:
         multiplicity : int or np.ndarray
             Number of true values for given telescope mask and telescope type
         """
-
         if tel_type is None:
             return np.count_nonzero(tel_mask, axis=-1)
 
@@ -566,12 +589,11 @@ class SubarrayDescription:
         self, telescopes: Iterable[int | str | TelescopeDescription]
     ) -> tuple[int]:
         """
-        Convert a list of telescope ids and telescope descriptions to
-        a list of unique telescope ids.
+        Resolve telescope IDs and descriptions to unique IDs.
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
+        telescopes : List[Union[int, str, TelescopeDescription]]
             List of Telescope IDs and descriptions.
             Supported inputs for telescope descriptions are instances of
             `~ctapipe.instrument.TelescopeDescription` as well as their
@@ -627,7 +649,7 @@ class SubarrayDescription:
         return True
 
     def to_hdf(self, h5file, overwrite=False, mode="a"):
-        """write the SubarrayDescription
+        """Write the SubarrayDescription
 
         Parameters
         ----------
@@ -685,6 +707,21 @@ class SubarrayDescription:
 
     @classmethod
     def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
+        """
+        Read a subarray description from instrument tables in an HDF5 file.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path or tables.File
+            Path to an HDF5 file or an already open PyTables file.
+        focal_length_choice : FocalLengthKind, optional
+            Choose the effective or equivalent focal length for the camera frames.
+
+        Returns
+        -------
+        SubarrayDescription
+            Subarray with its telescope positions, optics, and cameras.
+        """
         # here to prevent circular import
         from ..io import read_table
 
@@ -810,6 +847,13 @@ class SubarrayDescription:
         installed io plugin.
 
         kwargs are passed to the event source
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Location of an event file that includes an instrument description.
+        **kwargs
+            Options passed to the event source selected for the file.
         """
         # here to prevent circular import
         from ..io import EventSource
@@ -823,6 +867,11 @@ class SubarrayDescription:
 
         Currently only checks if the tel_ids are the same in all subarrays.
         More checks can be added if needed.
+
+        Parameters
+        ----------
+        subarray_list : sequence of SubarrayDescription
+            Subarrays whose sets of telescope IDs are compared.
         """
         return all(
             set(subarray.tel_ids) == set(subarray_list[0].tel_ids)

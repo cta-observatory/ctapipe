@@ -23,7 +23,27 @@ def parse_dotted_version(version):
 
 
 class CameraReadout:
-    """Stores properties related to the readout of a Cherenkov Camera."""
+    """Stores properties related to the readout of a Cherenkov Camera.
+
+    Parameters
+    ----------
+    name : str
+        Name of the camera.
+    sampling_rate : astropy.units.Quantity
+        Sampling frequency of the recorded waveforms.
+    reference_pulse_shape : ndarray
+        Reference pulse shapes, with one row per gain channel.
+    reference_pulse_sample_width : astropy.units.Quantity
+        Time step between samples of the reference pulse shape.
+    n_channels : int
+        Number of gain channels.
+    n_pixels : int
+        Number of camera pixels.
+    n_samples : int
+        Number of samples in a standard readout waveform.
+    n_samples_long : int or None, optional
+        Number of samples in a long waveform, when available.
+    """
 
     CURRENT_TAB_VERSION = "3.0"
     SUPPORTED_TAB_VERSIONS = {"3.0"}
@@ -54,7 +74,7 @@ class CameraReadout:
 
         Parameters
         ----------
-        name: str
+        name : str
              Camera name (e.g. NectarCam, LSTCam, ...)
         sampling_rate : u.Quantity[frequency]
             Sampling rate of the waveform
@@ -135,14 +155,14 @@ class CameraReadout:
         This expects that there is a resource accessible
         via `~ctapipe.utils.get_table_dataset` called
         ``"[array]-[camera].camreadout.fits.gz"`` or
-        ``"[array]-[camera]-[version].camgeom.fits.gz"``.
+        ``"[array]-[camera]-[version].camreadout.fits.gz"``.
 
         Parameters
         ----------
-        name: str
+        name : str
              Camera name (e.g. NectarCam, LSTCam, ...)
-        version:
-           camera version id (currently unused)
+        version : int or None, optional
+            Version appended to the camera name as a three-digit suffix.
 
         Returns
         -------
@@ -192,16 +212,18 @@ class CameraReadout:
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
-        """Load a CameraReadout from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read`.
+        """Load the camera readout from a table or a file.
+
+        The input can be an `astropy.table.Table` or any file supported by its
+        :attr:`~astropy.table.Table.read` method.
 
         Parameters
         ----------
-        url_or_table: string or astropy.table.Table
+        url_or_table : string or astropy.table.Table
             either input filename/url or a Table instance
-        kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.Table.read`, depending on
-            file type (e.g. format, hdu, path)
+        **kwargs
+            Extra keyword arguments passed to `astropy.table.Table.read` when
+            reading a file, such as ``format``, ``hdu``, or ``path``.
 
         """
         tab = url_or_table

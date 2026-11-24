@@ -20,7 +20,7 @@ LOCATION = EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
 
 
 def create_subarray(tel_type, n_tels=10):
-    """generate a simple subarray for testing purposes"""
+    """Generate a simple subarray for testing purposes"""
     rng = np.random.default_rng(0)
 
     pos = {}
@@ -126,8 +126,7 @@ def test_tel_ids_to_mask(prod5_lst, reference_location):
 
 def test_get_tel_ids_for_type(example_subarray):
     """
-    check that we can get a list of telescope ids by a telescope type, which can
-    be passed by string or `TelescopeDescription` instance
+    Check lookup by telescope type using either a string or a description.
     """
     sub = example_subarray
     types = sub.telescope_types
@@ -171,9 +170,7 @@ def test_hdf(example_subarray, tmp_path):
 
 
 def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam, reference_location):
-    """Test writing / reading subarray to hdf5 with a subarray that has two
-    different telescopes with the same camera
-    """
+    """Check that a subarray with a shared camera survives an HDF5 round trip."""
     frankenstein_lst = TelescopeDescription(
         name="LST",
         optics=prod5_lst.optics,
@@ -199,9 +196,7 @@ def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam, reference_loca
 
 
 def test_hdf_duplicate_string_repr(tmp_path, prod5_lst, reference_location):
-    """Test writing and reading of a subarray with two telescopes that
-    are different but have the same name.
-    """
+    """Check the HDF5 round trip for different telescopes with the same name."""
     # test with a subarray that has two different telescopes with the same
     # camera
     tel1 = prod5_lst
@@ -296,8 +291,7 @@ def test_multiplicity(subarray_prod5_paranal):
 
 def test_subarrays(subarray_prod5_paranal: SubarrayDescription):
     """
-    Check that constructing a new SubarrayDescription by using
-    `select_subarray()` works as expected.
+    Check that selecting telescopes produces the expected subarray.
     """
     subarray = subarray_prod5_paranal.select_subarray([1, 2, 3, 4], name="NewArray")
     assert subarray.name == "NewArray"

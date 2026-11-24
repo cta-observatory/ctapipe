@@ -24,9 +24,8 @@ def test_find_datasets():
 
 def test_datasets_in_custom_path(tmpdir_factory, monkeypatch, server):
     """
-    check that a dataset in a user-defined CTAPIPE_SVC_PATH is located
+    Check that a dataset in a user-defined CTAPIPE_SVC_PATH is located
     """
-
     tmpdir1 = tmpdir_factory.mktemp("datasets1")
     tmpdir2 = tmpdir_factory.mktemp("datasets2")
     monkeypatch.setenv("CTAPIPE_SVC_PATH", ":".join([str(tmpdir1), str(tmpdir2)]))

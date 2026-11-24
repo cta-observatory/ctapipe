@@ -4,6 +4,7 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 
 from contextlib import ExitStack
 from copy import copy
+from typing import override
 
 from ..calib import CameraCalibrator
 from ..core import Component, QualityQuery, Tool
@@ -20,7 +21,22 @@ __all__ = ["ImagePlotter", "DisplayDL1Calib"]
 
 
 class ImagePlotter(Component):
-    """Plotter for camera images"""
+    """Plotter for camera images
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometry for each telescope's charge and
+        pulse-time displays.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``output_path`` to write a PDF
+        of the camera displays.
+    """
 
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
@@ -42,15 +58,17 @@ class ImagePlotter(Component):
 
         Parameters
         ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray supplying camera geometries for the telescope images.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent supplying configuration and logging. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self._current_tel = None
@@ -84,7 +102,15 @@ class ImagePlotter(Component):
         self.closed = True
 
     def plot(self, event, tel_id):
-        """Update plot with new event data."""
+        """Update plot with new event data.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event containing the telescope's DL1 charge and pulse-time images.
+        tel_id : int
+            Telescope ID whose camera display to update.
+        """
         from matplotlib import pyplot as plt
 
         image = event.tel[tel_id].dl1.image
@@ -157,12 +183,24 @@ class ImagePlotter(Component):
         return self._exit_stack.__exit__(exc_type, exc_value, traceback)
 
     def finish(self):
+        """Close the output PDF if one has been opened."""
         if self.pdf is not None:
             self.log.info("Closing PDF")
             self.pdf.close()
 
 
 class DisplayDL1Calib(Tool):
+    """Display pixel charge and pulse time for selected DL1 telescope events.
+
+    Read existing DL1 images or extract them from waveforms when needed.
+    Inspect the plots on screen or save them to a PDF.
+
+    Parameters
+    ----------
+    **kwargs
+        Configuration and trait overrides passed to `ctapipe.core.Tool`.
+    """
+
     name = "ctapipe-display-dl1"
     description = __doc__
 
@@ -195,6 +233,7 @@ class DisplayDL1Calib(Tool):
         self.calibrator = None
         self.plotter = None
 
+    @override
     def setup(self):
         try:
             self.eventsource = self.enter_context(EventSource(parent=self))
@@ -218,6 +257,7 @@ class DisplayDL1Calib(Tool):
         self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
         self.plotter = self.enter_context(ImagePlotter(parent=self, subarray=subarray))
 
+    @override
     def start(self):
         for event in self.eventsource:
             if self.eventsource.has_any_datalevel((DataLevel.R1, DataLevel.DL0)):
@@ -239,6 +279,7 @@ class DisplayDL1Calib(Tool):
                         )
                         return
 
+    @override
     def finish(self):
         self.plotter.finish()
 

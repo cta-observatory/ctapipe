@@ -1,12 +1,14 @@
 """
-Dump instrumental descriptions in a monte-carlo (simtelarray) input file to
-FITS files that can be loaded independently (e.g. with
-CameraGeometry.from_table()).  The name of the output files are
-automatically generated.
+Export simulated instrument descriptions to FITS files.
+
+Output names are generated automatically. The files can be loaded independently,
+for example with
+`CameraGeometry.from_table <ctapipe.instrument.CameraGeometry.from_table>`.
 """
 
 import os
 import pathlib
+from typing import override
 
 import ctao_datamodel as dm
 import ctao_datamodel.models.dataproducts as dp
@@ -25,6 +27,13 @@ __all__ = ["DumpInstrumentTool"]
 
 
 class DumpInstrumentTool(Tool):
+    """Export the instrument description from an event source.
+
+    Write camera geometry, readout, optics, and subarray information as
+    individual FITS or ECSV tables, one HDF5 file, or a CTAO service data
+    directory.
+    """
+
     description = Unicode(__doc__)
     name = "ctapipe-dump-instrument"
 
@@ -62,6 +71,7 @@ class DumpInstrumentTool(Tool):
 
     classes = [EventSource, meta.Contact, meta.Curation]
 
+    @override
     def setup(self):
 
         self.contact_info = meta.Contact(parent=self)
@@ -80,6 +90,7 @@ class DumpInstrumentTool(Tool):
             )
             self.exit(1)
 
+    @override
     def start(self):
         if self.outdir is None:
             self.outdir = pathlib.Path(os.getcwd())
@@ -95,13 +106,13 @@ class DumpInstrumentTool(Tool):
             self.write_optics_descriptions()
             self.write_subarray_description()
 
+    @override
     def finish(self):
         pass
 
     @staticmethod
     def _get_file_format_info(format_name):
-        """returns file extension + dict of required parameters for
-        Table.write"""
+        """Returns file extension + dict of required parameters for Table.write"""
         if format_name == "fits":
             return "fits.gz", dict()
         elif format_name == "ecsv":
@@ -110,7 +121,7 @@ class DumpInstrumentTool(Tool):
             raise NameError(f"format {format_name} not supported")
 
     def write_camera_definitions(self):
-        """writes out camgeom and camreadout files for each camera"""
+        """Writes out camgeom and camreadout files for each camera"""
         self.subarray.info(printer=self.log.info)
         for camera in self.subarray.camera_types:
             self.write_single_camera(camera)
@@ -155,7 +166,7 @@ class DumpInstrumentTool(Tool):
             self.log.exception("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
-        """writes out optics files for each telescope type"""
+        """Writes out optics files for each telescope type"""
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format)
 
@@ -171,6 +182,12 @@ class DumpInstrumentTool(Tool):
             )
 
     def write_subarray_description(self):
+        """
+        Write the telescope layout as a separate table in the configured format.
+
+        The file name is derived from the subarray name. Its metadata records the
+        source file, and provenance records the output after a successful write.
+        """
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format)
         tab = sub.to_table(kind="subarray", meta_convention="fits")

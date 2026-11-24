@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-"""Atmosphere density models and functions to transform between column density
-(X in grammage units) and height (meters) units.
+"""Model atmospheric density and convert between height and column density.
+
+Heights are in meters and column densities in grams per square centimeter.
 
 Zenith angle is taken into account in the line-of-sight integral to compute the
 column density X assuming Earth as a flat plane (the curvature is not taken into
@@ -13,6 +14,7 @@ import abc
 import warnings
 from dataclasses import dataclass
 from functools import partial
+from typing import override
 
 import numpy as np
 from astropy import units as u
@@ -28,6 +30,7 @@ __all__ = [
     "ExponentialAtmosphereDensityProfile",
     "TableAtmosphereDensityProfile",
     "FiveLayerAtmosphereDensityProfile",
+    "SlantDepthZenithRangeWarning",
 ]
 
 SUPPORTED_TABLE_VERSIONS = {
@@ -40,8 +43,9 @@ DENSITY_UNIT = u.g / u.cm**3
 
 class SlantDepthZenithRangeWarning(UserWarning):
     """
-    Issued when the zenith angle of an event is beyond
-    the range where the slant depth computation is correct (approx. 70 deg)
+    Warn when the zenith angle exceeds the valid range for slant depth.
+
+    The approximation becomes unreliable above about 70 degrees.
     """
 
 
@@ -53,18 +57,31 @@ class AtmosphereDensityProfile(abc.ABC):
     @abc.abstractmethod
     def __call__(self, height: u.Quantity) -> u.Quantity:
         """
+        Evaluate atmospheric mass density at the given height.
+
+        Parameters
+        ----------
+        height : astropy.units.Quantity
+            Altitude above sea level as a scalar or array with length units.
+
         Returns
         -------
-        u.Quantity["g cm-3"]
-            the density at height h
+        astropy.units.Quantity
+            Atmospheric mass density in grams per cubic centimeter.
         """
 
     @abc.abstractmethod
     def integral(self, height: u.Quantity) -> u.Quantity:
-        r"""Integral of the profile along the height axis, i.e. the *atmospheric
-        depth* :math:`X`.
+        r"""Integrate the density profile vertically to obtain atmospheric depth.
+
+        Atmospheric depth is denoted by :math:`X`.
 
         .. math:: X(h) = \int_{h}^{\infty} \rho(h') dh'
+
+        Parameters
+        ----------
+        height : astropy.units.Quantity
+            Lower integration limit, as altitude above sea level with length units.
 
         Returns
         -------
@@ -75,14 +92,19 @@ class AtmosphereDensityProfile(abc.ABC):
 
     @abc.abstractmethod
     def height_from_overburden(self, overburden: u.Quantity) -> u.Quantity:
-        r"""Get the height a.s.l. from the mass overburden in the atmosphere.
-            Inverse of the integral function
+        """Convert atmospheric overburden to altitude above sea level.
+
+        This is the inverse of `integral`.
+
+        Parameters
+        ----------
+        overburden : astropy.units.Quantity
+            Vertical column density, in units of mass per area.
 
         Returns
         -------
-        u.Quantity["m"]:
-            Height a.s.l. for given overburden
-
+        astropy.units.Quantity
+            Corresponding altitude, in units of length.
         """
 
     def slant_depth_from_height(
@@ -91,26 +113,24 @@ class AtmosphereDensityProfile(abc.ABC):
         zenith_angle=0 * u.deg,
         output_units=GRAMMAGE_UNIT,
     ):
-        r"""Line-of-sight integral from height to infinity, along
-        the direction specified by the zenith angle. This is sometimes called
-        the *slant depth*. The atmosphere here is assumed to be Cartesian, the
-        curvature of the Earth is not taken into account. This approximation breaks down
-        for large zenith angles (>70 deg), in which case this function
-        does not give correct results. Inverse of height_from_slant_depth function.
+        r"""Compute slant depth from a height and zenith angle.
+
+        The integral runs from the starting height to infinity along the line of sight.
+        It assumes a flat Earth and emits a `SlantDepthZenithRangeWarning` for angles
+        above 70 degrees. See `height_from_slant_depth` for the inverse operation.
 
         .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h') dh' / \cos{\Psi}
 
         Parameters
         ----------
-        height: u.Quantity["length"]
+        height : u.Quantity["length"]
            height a.s.l. at which to start integral
-        zenith_angle: u.Quantity["angle"]
+        zenith_angle : u.Quantity["angle"]
            zenith angle of observation
-        output_units: u.Unit
+        output_units : u.Unit
            unit to output (must be convertible to g/cm2)
 
         """
-
         if np.any(zenith_angle > 70 * u.deg):
             warnings.warn(
                 "Zenith angle too high for accurate slant depth",
@@ -125,20 +145,21 @@ class AtmosphereDensityProfile(abc.ABC):
         zenith_angle=0 * u.deg,
         output_units=u.m,
     ):
-        r"""Calculates height a.s.l. in the atmosphere from traversed slant depth
-            taking into account the shower zenith angle.
+        r"""Compute the height from slant depth and zenith angle.
+
+        The result is altitude above sea level. The flat-Earth approximation emits a
+        `SlantDepthZenithRangeWarning` for angles above 70 degrees.
 
         Parameters
         ----------
-        slant_depth: u.Quantity["grammage"]
+        slant_depth : u.Quantity["grammage"]
            line-of-site distance from observer to point
-        zenith_angle: u.Quantity["angle"]
+        zenith_angle : u.Quantity["angle"]
            zenith angle of observation
-        output_units: u.Unit
+        output_units : u.Unit
            unit to output (must be convertible to m)
 
         """
-
         if np.any(zenith_angle > 70 * u.deg):
             warnings.warn(
                 "Zenith angle too high for accurate slant depth",
@@ -200,9 +221,17 @@ class AtmosphereDensityProfile(abc.ABC):
 
     @classmethod
     def from_table(cls, table: Table):
-        """return a subclass of AtmosphereDensityProfile from a serialized
-        table"""
+        """Deserialize a density profile from a table.
 
+        The ``TAB_TYPE`` metadata selects the concrete profile class, and ``TAB_VER``
+        must be supported.
+
+        Parameters
+        ----------
+        table : astropy.table.Table
+            Serialized profile with ``TAB_TYPE`` and ``TAB_VER`` metadata identifying
+            the model and format version.
+        """
         table = QTable(table, copy=False)
 
         if "TAB_TYPE" not in table.meta:
@@ -224,12 +253,12 @@ class AtmosphereDensityProfile(abc.ABC):
 
 @dataclass
 class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
-    """
+    r"""
     A simple functional density profile modeled as an exponential.
 
     The is defined following the form:
 
-    .. math:: \\rho(h) = \\rho_0 e^{-h/h_0}
+    .. math:: \rho(h) = \rho_0 e^{-h/h_0}
 
 
     .. code-block:: python
@@ -250,6 +279,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     scale_height: u.Quantity = 8 * u.km
     scale_density: u.Quantity = 0.00125 * u.g / u.cm**3
 
+    @override
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         return np.where(
@@ -258,6 +288,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
             np.nan,
         )
 
+    @override
     @u.quantity_input(height=u.m)
     def integral(
         self,
@@ -271,6 +302,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
             np.nan,
         )
 
+    @override
     @u.quantity_input(overburden=u.g / u.cm**2)
     def height_from_overburden(self, overburden) -> u.Quantity:
         return np.where(
@@ -282,8 +314,9 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
 
 
 class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
-    """Tabular profile from a table that has both the density and it's integral
-    pre-computed.  The table is interpolated to return the density and its integral.
+    """Interpolate atmospheric density and its integral from a table.
+
+    The table supplies precomputed values for both quantities.
 
     .. code-block:: python
 
@@ -303,6 +336,14 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         profile = TableAtmosphereDensityProfile(table=table)
         print(profile(10 * u.km))
 
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Samples with ``height`` above sea level, mass ``density``, and
+        ``column_density`` in mass per unit area, all with units. Rows with
+        negative heights or nonpositive densities are discarded. Cubic
+        interpolation requires at least four retained samples, with
+        distinct heights and column densities.
 
     Attributes
     ----------
@@ -317,12 +358,23 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     def __init__(self, table: Table):
         """
+        Initialize a density profile from tabulated atmospheric data.
+
+        Discard rows with negative height or nonpositive density or column density.
+        Interpolate the density and column density in logarithmic space and build
+        an inverse interpolator from column density to height.
+
         Parameters
         ----------
-        table : Table
-            Table with columns `height`, `density`, and `column_density`
-        """
+        table : astropy.table.Table
+            Table with ``height``, ``density``, and ``column_density`` columns
+            carrying length, mass-density, and mass-per-area units, respectively.
 
+        Raises
+        ------
+        ValueError
+            If a required column is missing.
+        """
         for col in ["height", "density", "column_density"]:
             if col not in table.colnames:
                 raise ValueError(f"Missing expected column: {col} in table")
@@ -359,16 +411,19 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         self.table.meta["TAB_TYPE"] = "ctapipe.atmosphere.TableAtmosphereDensityProfile"
         self.table.meta["TAB_VER"] = 1
 
+    @override
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         log_density = self._density_interp(height.to_value(u.km))
         return u.Quantity(10**log_density, DENSITY_UNIT, copy=COPY_IF_NEEDED)
 
+    @override
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         log_col_density = self._col_density_interp(height.to_value(u.km))
         return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=COPY_IF_NEEDED)
 
+    @override
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
         log_overburden = np.log10(overburden.to_value(GRAMMAGE_UNIT))
@@ -388,32 +443,32 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
 # pylint: disable=invalid-name,unused-argument
 def _exponential(h, a, b, c):
-    """exponential atmosphere"""
+    """Exponential atmosphere"""
     return a + b * np.exp(-h / c)
 
 
 def _inv_exponential(T, a, b, c):
-    "inverse function for exponential atmosphere"
+    "Inverse function for exponential atmosphere"
     return -c * np.log((T - a) / b)
 
 
 def _d_exponential(h, a, b, c):
-    """derivative of exponential atmosphere"""
+    """Derivative of exponential atmosphere"""
     return -b / c * np.exp(-h / c)
 
 
 def _linear(h, a, b, c):
-    """linear atmosphere"""
+    """Linear atmosphere"""
     return np.where(h < a * c / b, a - b * h / c, 0)
 
 
 def _inv_linear(T, a, b, c):
-    "inverse function for linear atmosphere"
+    "Inverse function for linear atmosphere"
     return np.where(T > 0, -c / b * (T - a), np.inf)
 
 
 def _d_linear(h, a, b, c):
-    """derivative of linear atmosphere"""
+    """Derivative of linear atmosphere"""
     return -b / c
 
 
@@ -432,6 +487,12 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
     Layer 5 is modeled with:
 
     .. math:: T(h) = a_5 - b_5 \frac{h}{c_5}
+
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Five rows in order of increasing layer boundary altitude. Supply ``height`` and
+        ``c`` as lengths, and ``a`` and ``b`` as mass per unit area.
 
     References
     ----------
@@ -465,8 +526,17 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @classmethod
     def from_array(cls, array: np.ndarray, metadata: dict = None):
-        """construct from a 5x5 array as provided by eventio"""
+        """Construct from a 5x5 array as provided by eventio
 
+        Parameters
+        ----------
+        array : ndarray
+            CORSIKA parameters of shape ``(5, 5)`` in ascending layer order. Columns are
+            height in cm, a and b in g/cm², c in cm, and 1/c in inverse cm.
+        metadata : dict or None, optional
+            Metadata to attach to the profile table. The constructor sets the format
+            type and version.
+        """
         if metadata is None:
             metadata = {}
 
@@ -488,6 +558,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         )
         return cls(table)
 
+    @override
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         which_func = np.digitize(height, self.table["height"])
@@ -501,6 +572,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             )
         ).to(DENSITY_UNIT)
 
+    @override
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         which_func = np.digitize(height, self.table["height"])
@@ -513,6 +585,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             )
         ).to(GRAMMAGE_UNIT)
 
+    @override
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
         overburdens_at_heights = np.flip(self.integral(self.table["height"].to(u.km)))

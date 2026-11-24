@@ -5,6 +5,7 @@ Base functionality for reading and writing tabular data
 import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from typing import override
 
 import numpy as np
 from astropy.time import Time
@@ -37,6 +38,16 @@ class TableWriter(Component, metaclass=ABCMeta):
     where each `~ctapipe.core.Field` becomes a column.
     Subclasses of this implement specific output types.
 
+    Parameters
+    ----------
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    add_prefix : bool, optional
+        Prefix column names with the container's prefix when writing.
+    **kwargs
+        Component configuration and trait values for the table writer.
+
     See Also
     --------
     ctapipe.io.HDF5TableWriter: Implementation of this base class for writing HDF5 files
@@ -56,14 +67,15 @@ class TableWriter(Component, metaclass=ABCMeta):
         self.close()
 
     def exclude(self, table_regexp, pattern):
-        """Exclude any columns (Fields) matching the pattern from being written. The
-        patterns are matched with re.fullmatch.
+        """Exclude matching fields when writing a table.
+
+        The patterns are matched with re.fullmatch.
 
         Parameters
         ----------
-        table_regexp: str
+        table_regexp : str
             regexp matching to match table name to apply exclusion
-        pattern: str
+        pattern : str
             regular expression string to match column name in the table
 
         """
@@ -79,16 +91,18 @@ class TableWriter(Component, metaclass=ABCMeta):
         return False
 
     def add_column_transform(self, table_name, col_name, transform):
-        """Add a transformation function for a column. This function will be called on
-        the value in the container before it is written to the output file.
+        """Register a transform for one column.
+
+        This function will be called on the value in the container before it is written
+        to the output file.
 
         Parameters
         ----------
-        table_name: str
+        table_name : str
             identifier of table being written
-        col_name: str
+        col_name : str
             name of column in the table (or item in the Container).
-        transform: ColumnTransform
+        transform : ColumnTransform
             function that transforms input into output
 
         """
@@ -99,18 +113,19 @@ class TableWriter(Component, metaclass=ABCMeta):
         )
 
     def add_column_transform_regexp(self, table_regexp, col_regexp, transform):
-        """Add a transformation function for a set of columns and tables that match the
-        given regular expressions. Each requested transform pattern will be
-        turned into an explicit column transform when the table schema is built.
+        """Register a transform for matching tables and columns.
+
+        Table and column names are matched by regular expression. Matches are resolved
+        into explicit column transforms when the table schema is built.
 
         Parameters
         ----------
-        table_name: regexp
-            pattern matching the table name (via re.matchall)
-        col_name: regexp
-            pattern matching the column name if the table name also matches
-            (via re.matchall)
-        transform: ColumnTransform
+        table_regexp : str
+            Regular expression required to match the full table name.
+        col_regexp : str
+            Regular expression required to match the full column name in a matching
+            table.
+        transform : ColumnTransform
             function that tranformns input value into output value
 
         """
@@ -124,20 +139,19 @@ class TableWriter(Component, metaclass=ABCMeta):
         )
 
     def _realize_regexp_transforms(self, table_name, containers):
-        """Loops though all requested transform regexps, checks if they apply the the
-        given table, if so, checks each Field in the given Container, and if
-        that matches, calls `self.add_column_transform(table, fieldname)` to
-        create an explicit (non-regexp) transform. This is done for speed
-        reasons: if we called the regexp for each table and each column, it adds
-        a significant overhead.
+        """Resolve transform patterns to specific fields for a table.
+
+        For each matching field in the container, register an explicit transform with
+        `add_column_transform`. This avoids checking the regular expressions for every
+        table and column on each write.
 
         This should be called when building the table schema.
 
         Parameters
         ----------
-        table_name: str
+        table_name : str
             table name
-        containers: List[Container]
+        containers : List[Container]
             List of containers to check
         """
         for table_regexp, column_regexp_dict in self._transform_regexps.items():
@@ -166,6 +180,7 @@ class TableWriter(Component, metaclass=ABCMeta):
     def write(self, table_name, containers, **kwargs):
         """
         Write the contents of the given container or containers to a table.
+
         The first call to write  will create a schema and initialize the table
         within the file.
         The shape of data within the container must not change between calls,
@@ -173,11 +188,11 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         Parameters
         ----------
-        table_name: str
+        table_name : str
             name of table to write to
-        containers: ctapipe.core.Container or iterable thereof
+        containers : ctapipe.core.Container or iterable thereof
             container instance(s) to write
-        **kwargs:
+        **kwargs
             may be passed to a lower level implementation to set options
         """
         pass
@@ -185,13 +200,13 @@ class TableWriter(Component, metaclass=ABCMeta):
     @abstractmethod
     def open(self, filename, **kwargs):
         """
-        open an output file
+        Open an output file
 
         Parameters
         ----------
-        filename: str
+        filename : str
             output file name
-        kwargs:
+        **kwargs
             any extra args to pass to the subclass open method
         """
         pass
@@ -203,7 +218,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     def _apply_col_transform(self, table_name, col_name, value):
         """
-        apply value transform function if it exists for this column
+        Apply value transform function if it exists for this column
         """
         if col_name in self._transforms[table_name]:
             tr = self._transforms[table_name][col_name]
@@ -213,10 +228,10 @@ class TableWriter(Component, metaclass=ABCMeta):
 
 class TableReader(Component, metaclass=ABCMeta):
     """
-    Base class for row-wise table readers. Generally methods that read a
-    full table at once are preferred to this method, since they are faster,
-    but this can be used to re-play a table row by row into a
-    `ctapipe.core.Container` class (the opposite of TableWriter)
+    Define the interface for reading table rows.
+
+    Prefer reading the whole table at once when feasible for performance. This interface
+    is useful for replaying rows as `ctapipe.core.Container` objects.
     """
 
     def __init__(self):
@@ -231,18 +246,19 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def add_column_transform(self, table_name, col_name, transform):
         """
-        Add a transformation function for a column. This function will be
-        called on the value in the container before it is written to the
-        output file.
+        Register a column transform for reading a table.
+
+        The reader calls the transform's ``inverse`` method on stored values before
+        placing them in a container.
 
         Parameters
         ----------
-        table_name: str
-            identifier of table being written
-        col_name: str
-            name of column in the table (or item in the Container)
-        transform: callable
-            function that take a value and returns a new one
+        table_name : str
+            Name of the table being read.
+        col_name : str
+            Name of the column to transform.
+        transform : ColumnTransform
+            Transform whose inverse is applied to the stored value.
         """
         self._transforms[table_name][col_name] = transform
         self.log.debug(
@@ -251,7 +267,7 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def _apply_col_transform(self, table_name, col_name, value):
         """
-        apply value transform function if it exists for this column
+        Apply value transform function if it exists for this column
         """
         if col_name in self._transforms[table_name]:
             tr = self._transforms[table_name][col_name]
@@ -261,27 +277,40 @@ class TableReader(Component, metaclass=ABCMeta):
     @abstractmethod
     def read(self, table_name, containers, prefixes, **kwargs):
         """
-        Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
-        no containers are copied, the data are overwritten inside.
+        Yield table rows as containers.
+
+        The concrete reader determines how the containers are constructed.
 
         Parameters
         ----------
-        table_name: str
-            name of table to read from
-        containers: ctapipe.core.Container or iterable thereof
-            Container instance(s) to fill
-        prefixes: bool, str or iterable of str
-            prefixes used during writing of the table
+        table_name : str
+            Name of the table to read.
+        containers : type or sequence of types
+            Container classes to populate.
+        prefixes : bool, str, iterable of str or None
+            How to match column prefixes used when writing the table.
+        **kwargs
+            Additional options supported by the concrete reader.
         """
         pass
 
     @abstractmethod
     def open(self, filename, **kwargs):
+        """
+        Open the input file for reading.
+
+        Parameters
+        ----------
+        filename : str or pathlib.Path
+            Path of the input file.
+        **kwargs
+            Additional options for the file backend.
+        """
         pass
 
     @abstractmethod
     def close(self):
+        """Close the input file."""
         pass
 
 
@@ -299,11 +328,30 @@ class ColumnTransform(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self, value):
+        """
+        Convert a column value to its representation for storage.
+
+        Parameters
+        ----------
+        value : object
+            Python or Astropy value, such as an array, quantity, or timestamp.
+
+        Returns
+        -------
+        object
+            Encoded value suitable for the table backend.
+        """
         pass
 
     @abstractmethod
     def inverse(self, value):
-        """Invert the transformation applied in ``__call__``"""
+        """Invert the transformation applied in ``__call__``
+
+        Parameters
+        ----------
+        value : object
+            Stored column value to convert back to its in-memory representation.
+        """
         return value
 
     @abstractmethod
@@ -312,12 +360,25 @@ class ColumnTransform(metaclass=ABCMeta):
 
         Needs to fully describe the transformation so upon reading, the
         transformation can be inverted based on this metadata.
+
+        Parameters
+        ----------
+        colname : str
+            Column name used to form the keys of the transformation metadata.
         """
         return {}
 
 
 class TimeColumnTransform(ColumnTransform):
-    """A Column transformation that converts astropy time objects to a specific format."""
+    """A Column transformation that converts astropy time objects to a specific format.
+
+    Parameters
+    ----------
+    scale : str
+        Astropy time scale used with standard Time formats, such as ``"tai"``.
+    format : str
+        Astropy Time output format, or ``"ctao_high_res"`` for the CTAO time encoding.
+    """
 
     def __init__(self, scale, format):
         self.scale = scale
@@ -325,7 +386,13 @@ class TimeColumnTransform(ColumnTransform):
 
     def __call__(self, value: Time):
         """
-        Convert an astropy time object to an mjd value in tai scale
+        Convert Astropy times to the configured storage format.
+
+        Parameters
+        ----------
+        value : astropy.time.Time
+            Scalar or array of times to convert to the configured storage
+            representation.
         """
         # ctao_high_res is not implemented as an astropy format but using
         # conversion functions defined in ctapipe
@@ -334,6 +401,7 @@ class TimeColumnTransform(ColumnTransform):
         # for all other formats, use astropy mechanism
         return getattr(getattr(value, self.scale), self.format)
 
+    @override
     def inverse(self, value):
         # ctao_high_res is not implemented as an astropy format but using
         # conversion functions defined in ctapipe
@@ -342,6 +410,7 @@ class TimeColumnTransform(ColumnTransform):
         # for all other formats, use astropy mechanism
         return Time(value, scale=self.scale, format=self.format, copy=COPY_IF_NEEDED)
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "time",
@@ -351,17 +420,26 @@ class TimeColumnTransform(ColumnTransform):
 
 
 class QuantityColumnTransform(ColumnTransform):
-    """A Column Transform that transforms quantities to their values in the given unit"""
+    """A Column Transform that transforms quantities to their values in the given unit
+
+    Parameters
+    ----------
+    unit : astropy.units.UnitBase or str
+        Unit whose numeric values are stored and whose units are restored when reading.
+    """
 
     def __init__(self, unit):
         self.unit = unit
 
+    @override
     def __call__(self, value):
         return value.to_value(self.unit)
 
+    @override
     def inverse(self, value):
         return Quantity(value, self.unit, copy=COPY_IF_NEEDED)
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "quantity",
@@ -393,6 +471,18 @@ class FixedPointColumnTransform(ColumnTransform):
     values but be transformed back into -inf, nan, inf respectively.
 
     This is a lossy transformation.
+
+    Parameters
+    ----------
+    scale : float
+        Multiplier applied before rounding the source values to integers.
+    offset : int
+        Integer offset added after rounding to shift the stored range.
+    source_dtype : numpy.dtype or str
+        Numeric dtype used for the source values and decoded results.
+    target_dtype : numpy.dtype or str
+        Integer storage dtype. Its range determines the reserved codes for nonfinite
+        values.
     """
 
     def __init__(self, scale, offset, source_dtype, target_dtype):
@@ -422,6 +512,7 @@ class FixedPointColumnTransform(ColumnTransform):
             self.minval = iinfo.min + 2
             self.maxval = iinfo.max - 1
 
+    @override
     def __call__(self, value):
         is_scalar = np.array(value, copy=COPY_IF_NEEDED).shape == ()
         value = np.atleast_1d(value).astype(self.source_dtype, copy=COPY_IF_NEEDED)
@@ -446,6 +537,7 @@ class FixedPointColumnTransform(ColumnTransform):
 
         return result
 
+    @override
     def inverse(self, value):
         is_scalar = np.array(value, copy=COPY_IF_NEEDED).shape == ()
         value = np.atleast_1d(value)
@@ -466,6 +558,7 @@ class FixedPointColumnTransform(ColumnTransform):
 
         return result
 
+    @override
     def get_meta(self, colname: str):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "fixed_point",
@@ -479,18 +572,27 @@ class FixedPointColumnTransform(ColumnTransform):
 
 
 class EnumColumnTransform(ColumnTransform):
-    """Store the value of an enum"""
+    """Store the value of an enum
+
+    Parameters
+    ----------
+    enum : type[enum.Enum]
+        Enum class whose member values are stored and used to reconstruct the members.
+    """
 
     def __init__(self, enum):
         self.enum = enum
 
     @staticmethod
+    @override
     def __call__(value):
         return value.value
 
+    @override
     def inverse(self, value):
         return self.enum(value)
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "enum",
@@ -512,6 +614,13 @@ def encode_utf8_max_len(string, max_length):
     when truncating strings in hdf5 data of ctapipe
 
     See https://stackoverflow.com/a/56724327/3838691
+
+    Parameters
+    ----------
+    string : str
+        Text to encode as UTF-8.
+    max_length : int
+        Maximum number of encoded bytes. Truncation preserves complete UTF-8 characters.
     """
     utf8 = string.encode("utf-8")
 
@@ -534,12 +643,18 @@ class StringTransform(ColumnTransform):
 
     Should not be used anymore when tables starts supporting
     variable length strings in tables.
+
+    Parameters
+    ----------
+    max_length : int
+        Maximum width of the stored UTF-8 strings, in bytes.
     """
 
     def __init__(self, max_length):
         self.max_length = max_length
         self.dtype = f"S{max_length:d}"
 
+    @override
     def __call__(self, value):
         if isinstance(value, str):
             return encode_utf8_max_len(value, self.max_length)
@@ -548,6 +663,7 @@ class StringTransform(ColumnTransform):
             [encode_utf8_max_len(v, self.max_length) for v in value]
         ).astype(self.dtype)
 
+    @override
     def inverse(self, value):
         if isinstance(value, bytes):
             return value.decode("utf-8")
@@ -557,6 +673,7 @@ class StringTransform(ColumnTransform):
         value = np.array(value, copy=COPY_IF_NEEDED)
         return np.array([v.decode("utf-8") for v in value])
 
+    @override
     def get_meta(self, colname):
         return {
             f"CTAFIELD_{colname}_TRANSFORM": "string",
@@ -565,22 +682,32 @@ class StringTransform(ColumnTransform):
 
 
 class TelListToMaskTransform(ColumnTransform):
-    """convert variable-length list of tel_ids to a fixed-length mask"""
+    """convert variable-length list of tel_ids to a fixed-length mask
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray that defines the mask length and the order of telescope IDs along the
+        mask axis.
+    """
 
     def __init__(self, subarray: SubarrayDescription):
         self._forward = subarray.tel_ids_to_mask
         self._inverse = subarray.tel_mask_to_tel_ids
 
+    @override
     def __call__(self, value):
         if value is None:
             return None
 
         return self._forward(value)
 
+    @override
     def inverse(self, value):
         if value is None:
             return None
         return self._inverse(value)
 
+    @override
     def get_meta(self, colname):
         return {f"CTAFIELD_{colname}_TRANSFORM": "tel_list_to_mask"}

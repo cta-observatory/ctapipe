@@ -85,7 +85,13 @@ class PluginEventSource(EventSource):
 
     @classmethod
     def is_compatible(cls, path):
-        """Foo"""
+        """Foo
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Input path to check for the test plugin's ``.plugin`` suffix.
+        """
         return str(path).endswith(".plugin")
 
     def _generator(self):
@@ -104,5 +110,12 @@ class PluginReconstructor(Reconstructor):
     ).tag(config=True)
 
     def __call__(self, event: SubarrayEventContainer):
-        """Foo"""
+        """Foo
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event with an initialized subarray DL2 container, where the plugin stores a
+            geometry result.
+        """
         event.dl2.geometry["PluginReconstructor"] = ReconstructedGeometryContainer()

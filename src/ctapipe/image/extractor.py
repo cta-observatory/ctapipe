@@ -25,6 +25,7 @@ __all__ = [
 from abc import abstractmethod
 from collections.abc import Callable
 from functools import lru_cache
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -192,7 +193,6 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
         Shape: (n_channels, n_pix)
 
     """
-
     # first find the cumulative waveform
     cwf = np.cumsum(waveforms)
     # add zero at the beginning so it is easier to subtract the two arrays later
@@ -245,7 +245,6 @@ def neighbor_average_maximum(
     peak_pos : ndarray
         Index of the maximum for each pixel's neighbor averaged waveform.
     """
-
     n_channels, n_pixels, _ = waveforms.shape
     indptr = neighbors_indptr
     indices = neighbors_indices
@@ -271,8 +270,10 @@ def neighbor_average_maximum(
 
 def subtract_baseline(waveforms, baseline_start, baseline_end):
     """
-    Subtracts the waveform baseline, estimated as the mean waveform value
-    in the interval [baseline_start:baseline_end]
+    Subtract a mean baseline from each waveform.
+
+    The baseline is calculated along the sample axis over
+    ``[baseline_start:baseline_end]`` for each waveform independently.
 
     Parameters
     ----------
@@ -362,32 +363,27 @@ def integration_correction(
 
 
 class ImageExtractor(TelescopeComponent):
+    """Base class for extracting pixel charge and pulse time from waveforms.
+
+    Subclasses choose how to integrate the signal and estimate the pulse time.
+    An integration correction can compensate for signal outside the selected
+    window so that a noiseless reference pulse with unit charge yields one.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Telescope settings and camera descriptions. Extractors use the
+        sampling rate and may also use the reference pulse or pixel adjacency.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging. Mutually
+        exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
+    """
+
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """
-        Base component to handle the extraction of charge and pulse time
-        from an image cube (waveforms), taking into account the sampling rate
-        of the waveform.
-
-        Assuming a waveform with sample units X and containing a noise-less unit
-        pulse, the aim of the ImageExtractor is to return 1 X*ns.
-
-        Parameters
-        ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in charge extraction, such as reference
-            pulse shape, sampling rate, neighboring pixels. Also required for
-            configuring the TelescopeParameter traitlets.
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self.sampling_rate_ghz = {
@@ -397,9 +393,11 @@ class ImageExtractor(TelescopeComponent):
 
     def _calculate_correction(self, tel_id):
         """
-        Calculate the correction for the extracted charge such that the value
-        returned would equal 1 for a noise-less unit pulse. `ImageExtractor` types
-        calculating corrections need to overwrite this method.
+        Compute the charge correction for the integration window.
+
+        The correction makes the extracted charge of a noiseless unit pulse equal to
+        one. Extractors that calculate their own corrections should override this
+        method.
 
         This method should be decorated with @lru_cache to ensure it is only
         calculated once per telescope.
@@ -407,6 +405,7 @@ class ImageExtractor(TelescopeComponent):
         Parameters
         ----------
         tel_id : int
+            Telescope ID used to look up the reference pulse and extraction settings.
 
         Returns
         -------
@@ -431,8 +430,7 @@ class ImageExtractor(TelescopeComponent):
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
         """
-        Call the relevant functions to fully extract the charge and time
-        for the particular extractor.
+        Extract charge and pulse time from the waveforms.
 
         Parameters
         ----------
@@ -440,12 +438,10 @@ class ImageExtractor(TelescopeComponent):
             Waveforms stored in a numpy array of shape
             (n_channels, n_pix, n_samples).
         tel_id : int
-            The telescope id. Used to obtain to correct traitlet configuration
-            and instrument properties
-        selected_gain_channel : ndarray
-            The channel selected in the gain selection, per pixel. Required in
-            some cases to calculate the correct correction for the charge
-            extraction.
+            Telescope ID used to look up configuration and instrument properties.
+        selected_gain_channel : ndarray or None
+            Selected gain channel for each pixel, or None if no gain selection
+            was applied. Used by some extractors for the integration correction.
         broken_pixels : ndarray
             Mask of broken pixels used for certain `ImageExtractor` types.
             Shape: (n_channels, n_pix), matching the waveform channel axis.
@@ -454,8 +450,8 @@ class ImageExtractor(TelescopeComponent):
 
         Returns
         -------
-        TelescopeDL1Container:
-            extracted images and validity flags
+        TelescopeDL1Container
+            DL1 image, pulse times where available, and extraction validity.
         """
 
 
@@ -464,6 +460,7 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -511,6 +508,7 @@ class FixedWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -535,8 +533,7 @@ class FixedWindowSum(ImageExtractor):
 
 class GlobalPeakWindowSum(ImageExtractor):
     """
-    Extractor which sums in a window about the
-    peak from the global average waveform.
+    Extractor which sums in a window about the peak from the global average waveform.
 
     To reduce the influence of noise pixels, the average can be calculated
     only on the ``pixel_fraction`` brightest pixels.
@@ -579,6 +576,7 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -622,8 +620,7 @@ class GlobalPeakWindowSum(ImageExtractor):
 
 class LocalPeakWindowSum(ImageExtractor):
     """
-    Extractor which sums in a window about the
-    peak in each pixel's waveform.
+    Extractor which sums in a window about the peak in each pixel's waveform.
     """
 
     window_width = IntTelescopeParameter(
@@ -651,6 +648,7 @@ class LocalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -717,6 +715,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
         return correction
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -738,8 +737,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
 class NeighborPeakWindowSum(ImageExtractor):
     """
-    Extractor which sums in a window about the
-    peak defined by the waveforms in neighboring pixels.
+    Sum each waveform near the peak of its neighbors' average waveform.
     """
 
     window_width = IntTelescopeParameter(
@@ -773,6 +771,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
         )
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -807,8 +806,7 @@ class NeighborPeakWindowSum(ImageExtractor):
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     """
-    Extractor that first subtracts the baseline before summing in a
-    window about the peak defined by the waveforms in neighboring pixels.
+    Subtract the baseline and integrate around the neighboring pixel peak.
     """
 
     baseline_start = Int(0, help="Start sample for baseline estimation").tag(
@@ -816,6 +814,7 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     )
     baseline_end = Int(10, help="End sample for baseline estimation").tag(config=True)
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
@@ -828,13 +827,23 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
 
 
 class TwoPassWindowSum(ImageExtractor):
-    """Extractor based on [1]_ which integrates the waveform a second time using
-    a time-gradient linear fit. This is in particular the version implemented
-    in the CTA-MARS analysis pipeline [2]_.
+    """Refine waveform integration using a fitted time gradient.
+
+    The second integration pass follows [1]_. This is the version used by the CTA-MARS
+    analysis pipeline [2]_.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the camera geometry and readout properties used for waveform
+        integration and the time-gradient fit.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. Set ``disable_second_pass`` for single-pass
+        extraction.
 
     Notes
     -----
-
     #. slide a 3-samples window through the waveform, finding max counts sum;
        the range of the sliding is the one allowing extension from 3 to 5;
        add 1 sample on each side and integrate charge in the 5-sample window;
@@ -909,14 +918,11 @@ class TwoPassWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=4096)
     def _calculate_correction(self, tel_id, width, shift):
-        """Obtain the correction for the integration window specified for each
-        pixel.
+        """Obtain the correction for the integration window specified for each pixel.
 
-        The TwoPassWindowSum image extractor applies potentially different
-        parameters for the integration window to each pixel, depending on the
-        position of the peak. It has been decided to apply gain selection
-        directly here. For basic definitions look at the documentation of
-        `integration_correction`.
+        The second pass can use different windows for individual pixels. For
+        each requested window, this method uses the telescope's reference pulse
+        and sample widths. See `integration_correction` for the normalization.
 
         Parameters
         ----------
@@ -930,7 +936,7 @@ class TwoPassWindowSum(ImageExtractor):
         Returns
         -------
         correction : ndarray
-            Value of the pixel-wise gain-selected integration correction.
+            Correction factors for the requested window, one per gain channel.
 
         """
         readout = self.subarray.tel[tel_id].camera.readout
@@ -1033,14 +1039,14 @@ class TwoPassWindowSum(ImageExtractor):
             DL0-level waveforms of one event.
         tel_id : int
             Index of the telescope.
-        selected_gain_channel: array of shape (N_channels, N_pixels)
+        selected_gain_channel : array of shape (N_channels, N_pixels)
             Array containing the index of the selected gain channel for each
             pixel (0 for low gain, 1 for high gain).
         charge_1stpass_uncorrected : array of shape N_pixels
             Pixel charges reconstructed with the 1st pass, but not corrected.
         pulse_time_1stpass : array of shape N_pixels
             Pixel-wise pulse times reconstructed with the 1st pass.
-        correction: array of shape N_pixels
+        correction : array of shape N_pixels
             Charge correction from 1st pass.
 
         Returns
@@ -1280,6 +1286,30 @@ class TwoPassWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
+        """
+        Extract image charge and pulse times in two passes from gain-selected data.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms of shape ``(1, n_pixels, n_samples)``.
+        tel_id : int
+            Telescope ID used to select the settings and camera geometry.
+        selected_gain_channel : ndarray
+            Selected gain channel for each pixel.
+        broken_pixels : ndarray of bool
+            Mask of unusable pixels with shape ``(1, n_pixels)``.
+
+        Returns
+        -------
+        TelescopeDL1Container
+            Integrated charges, pulse times in ns, and extraction validity.
+
+        Raises
+        ------
+        AttributeError
+            If the waveforms do not have exactly one gain channel.
+        """
         if waveforms.shape[-3] != 1:
             raise AttributeError(
                 "The data needs to be gain selected to use the TwoPassWindowSum."
@@ -1318,6 +1348,32 @@ class VarianceExtractor(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:
+        """
+        Compute the variance across waveform samples in each pixel and gain channel.
+
+        NaN samples are ignored. The result is marked valid if at least one
+        variance is finite.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms of shape ``(n_channels, n_pixels, n_samples)``.
+        tel_id : int
+            Telescope ID.
+        selected_gain_channel : ndarray or None
+            Selected gain channel per pixel, if gain selection was applied.
+        broken_pixels : ndarray of bool
+            Mask of unusable pixels.
+
+        Returns
+        -------
+        TelescopeDL1Container
+            Waveform variances in the image field, with no pulse times.
+
+        Notes
+        -----
+        Only ``waveforms`` is used. The other parameters follow the extractor interface.
+        """
         image = np.nanvar(waveforms, dtype="float32", axis=2)
         container = TelescopeDL1Container(
             image=image,
@@ -1337,8 +1393,11 @@ def deconvolution_parameters(
     time_profile_pdf: None | Callable[[npt.ArrayLike], npt.ArrayLike] = None,
 ) -> tuple[list[float], list[float], list[float]]:
     """
-    Estimates deconvolution and recalibration parameters from the camera's reference
-    single-p.e. pulse shape for the given configuration of FlashCamExtractor.
+    Estimate deconvolution parameters from the reference pulse.
+
+    The method uses the camera's single-photoelectron pulse and the given
+    FlashCamExtractor configuration to estimate deconvolution and recalibration
+    parameters.
 
     Parameters
     ----------
@@ -1454,6 +1513,7 @@ def deconvolution_parameters(
 def __filtfilt_fast(signal, filt):
     """
     Apply a linear filter forward and backward to a signal, based on scipy.signal.filtfilt.
+
     filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
     """
     forward = convolve1d(signal, filt, axis=-1, mode="nearest")
@@ -1468,8 +1528,9 @@ def deconvolve(
     pole_zero: float,
 ) -> np.ndarray:
     """
-    Applies pole-zero deconvolution and upsampling to pixel waveforms. Use
-    `deconvolution_parameters(...)` to estimate the required `pole_zero` parameter
+    Apply pole-zero deconvolution and upsample the waveforms.
+
+    Use `deconvolution_parameters(...)` to estimate the required `pole_zero` parameter
     for the specific camera model.
 
     Parameters
@@ -1597,6 +1658,15 @@ class FlashCamExtractor(ImageExtractor):
     [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium.
     A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying the sampling rates, reference pulses, and pixel adjacency
+        used for deconvolution and integration.
+    **kwargs
+        Component configuration and trait values. Pass ``config`` or ``parent`` to
+        supply the configuration. For example, set ``leading_edge_timing`` to estimate
+        the pulse time from its rising edge.
     """
 
     upsampling = IntTelescopeParameter(
@@ -1672,9 +1742,20 @@ class FlashCamExtractor(ImageExtractor):
 
     @staticmethod
     def clip(x, lo=0.0, hi=np.inf):
-        """Applies soft clipping to ±1 and then hard clipping to (lo, hi)."""
+        """Applies soft clipping to ±1 and then hard clipping to (lo, hi).
+
+        Parameters
+        ----------
+        x : float or ndarray
+            Values to compress with ``x / (1 + abs(x))`` before clipping.
+        lo : float, optional
+            Lower bound applied to the compressed values.
+        hi : float, optional
+            Upper bound applied to the compressed values.
+        """
         return np.clip(x / (1.0 + np.abs(x)), lo, hi)
 
+    @override
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> TelescopeDL1Container:

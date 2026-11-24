@@ -1,3 +1,9 @@
+"""Prepare coordinates and fit seeds for ImPACT reconstruction.
+
+The helpers also estimate the expected shower-maximum depth from the
+primary energy and generate dummy image templates for tests.
+"""
+
 import gzip
 import pickle
 
@@ -16,24 +22,24 @@ __all__ = [
 
 
 class EmptyImages(Exception):
+    """Raised when ImPACT is asked to reconstruct an event without images."""
+
     pass
 
 
 def guess_shower_depth(energy):
     """
-    Simple estimation of depth of shower max based on the expected gamma-ray elongation
-    rate.
+    Estimate shower maximum depth from the gamma-ray elongation rate.
 
     Parameters
     ----------
-    energy: float
+    energy : float
         Energy of the shower in TeV
 
     Returns
     -------
     float: Expected depth of shower maximum
     """
-
     x_max_exp = 300 + (93 * np.log10(energy))
 
     return x_max_exp
@@ -42,25 +48,28 @@ def guess_shower_depth(energy):
 @numba.njit
 def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     """
-    Function to perform rotation and translation of pixel lists. Array
-    manipulation slowing this function significantly. Now Numba accelerated.
+    Rotate and translate pixel positions.
+
+    Use a shared origin for all input images and one rotation angle per image.
+    This routine is compiled with Numba for use inside the ImPACT fit.
 
     Parameters
     ----------
-    pixel_pos_x: ndarray
-        Array of pixel x positions
-    pixel_pos_y: ndarray
-        Array of pixel x positions
-    x_trans: float
-        Translation of position in x coordinates
-    y_trans: float
-        Translation of position in y coordinates
-    phi: float
-        Rotation angle of pixels
+    pixel_pos_x : ndarray
+        Pixel x coordinates with shape (n_images, n_pixels).
+    pixel_pos_y : ndarray
+        Pixel y coordinates with the same shape as ``pixel_pos_x``.
+    x_trans : float
+        X coordinate of the shared origin in the units of the input positions.
+    y_trans : float
+        Y coordinate of the shared origin in the units of the input positions.
+    phi : ndarray
+        Rotation angle in radians for each image.
 
     Returns
     -------
-        ndarray,ndarray: Transformed pixel x and y coordinates
+    x, y : ndarray
+        Transformed coordinates with the same shape as the inputs.
 
     """
     shape = pixel_pos_x.shape
@@ -87,15 +96,15 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 
     Parameters
     ----------
-    source_x: float
+    source_x : float
         Source X position in nominal system (radians)
-    source_y:float
+    source_y : float
         Source Y position in nominal system (radians)
-    tilt_x: float
+    tilt_x : float
         Core X position in tilited system (radians)
-    tilt_y: float
+    tilt_y : float
         Core Y position in tilited system (radians)
-    energy: float
+    energy : float
         Energy in TeV
 
     Returns
@@ -134,18 +143,32 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 def generate_fake_template(
     center, length, width=0.3, xb=301, yb=151, bounds=((-5, 1), (-1.5, 1.5))
 ):
-    """Simple function to generate template for testing
+    """Generate a rectangular signal template for testing.
 
-    Args:
-        center (float): X axis coordinate of image center
-        length (float): Image length
-        width (float, optional): Image width. Defaults to 0.3.
-        xb (int, optional): Number of x bins in template. Defaults to 300.
-        yb (int, optional): Number of y bins in template. Defaults to 150.
-        bounds (tuple, optional): Boundaries of templates. Defaults to ((-5, 1), (-1.5, 1.5)).
+    Parameters
+    ----------
+    center : float
+        Center of the rectangular signal region along the x-axis.
+    length : float
+        Extent from the center to either end of the rectangle along x.
+    width : float, optional
+        Extent from the center to either edge along y.
+    xb : int, optional
+        Number of x samples in the template grid.
+    yb : int, optional
+        Number of y samples in the template grid.
+    bounds : tuple of tuple, optional
+        Lower and upper limits for each template axis, in the same units as the
+        rectangle dimensions.
 
-    Returns:
-        ndarray, ndarray, ndarray: Template image, x bin centres, y bin centres
+    Returns
+    -------
+    template : ndarray
+        Template image with shape ``(yb, xb)``.
+    x : ndarray
+        Template grid with the x coordinates.
+    y : ndarray
+        Template grid with the y coordinates.
     """
     x, y = np.meshgrid(
         np.linspace(bounds[0][0], bounds[0][1], xb),
@@ -169,15 +192,25 @@ def create_dummy_templates(
     dist_range=np.linspace(0, 200, 5),
     xmax_range=np.linspace(-200, 200, 9),
 ):
-    """Create file with dummy template library
+    """Write a template library for testing ImPACT.
 
-    Args:
-        output_file (str): Output file name
-        energy (float): Peak energy of templates
-        pe (float, optional): Peak template amplitude. Defaults to 1000.
-        energy_range (ndarray, optional): Range of energy templates. Defaults to np.logspace(-1, 1,7).
-        dist_range (ndarray, optional): Range of distance templates. Defaults to np.linspace(0, 200, 5).
-        xmax_range (ndarray, optional): Range of xmax templates. Defaults to np.linspace(-200,200, 9).
+    Parameters
+    ----------
+    output_file : str or pathlib.Path
+        Output file for the gzip-compressed template mapping.
+    energy : float
+        Shower energy in TeV at which the template has its maximum normalization.
+    pe : float, optional
+        Photoelectron scale of the template at the peak energy. Defaults to 1000.
+    energy_range : array-like, optional
+        Energies in TeV in the grid. Defaults to seven logarithmically spaced
+        values from 0.1 to 10 TeV.
+    dist_range : array-like, optional
+        Impact distances in the grid. Defaults to five evenly spaced values
+        from 0 to 200 metres.
+    xmax_range : array-like, optional
+        Shower maximum offsets from the expected depth. Defaults to nine evenly
+        spaced values from -200 to 200 g/cm².
     """
     template_dict = {}
     for en in energy_range:

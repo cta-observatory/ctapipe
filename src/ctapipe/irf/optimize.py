@@ -3,6 +3,7 @@
 import operator
 from abc import abstractmethod
 from collections.abc import Sequence
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -29,7 +30,31 @@ __all__ = [
 
 
 class OptimizationResult:
-    """Result of an optimization of G/H and theta cuts or only G/H cuts."""
+    """Result of an optimization of G/H and theta cuts or only G/H cuts.
+
+    Parameters
+    ----------
+    valid_energy_min : astropy.units.Quantity
+        Lower reconstructed-energy bound of the valid cut range.
+    valid_energy_max : astropy.units.Quantity
+        Upper reconstructed-energy bound of the valid cut range.
+    valid_offset_min : astropy.units.Quantity
+        Lower field-of-view offset bound of the valid cut range.
+    valid_offset_max : astropy.units.Quantity
+        Upper field-of-view offset bound of the valid cut range.
+    gh_cuts : astropy.table.QTable
+        Gammaness thresholds binned in reconstructed energy.
+    clf_prefix : str
+        Classifier prefix identifying the gammaness predictions to which these cuts
+        apply.
+    quality_query : QualityQuery or sequence or None, optional
+        Quality criteria to apply before the optimized cuts, as a query or pairs of
+        names and expressions.
+    spatial_selection_table : astropy.table.QTable or None, optional
+        Energy-dependent spatial cuts on the angular separation from the source.
+    multiplicity_cuts : astropy.table.QTable or None, optional
+        Energy-dependent telescope multiplicity cuts, if available.
+    """
 
     def __init__(
         self,
@@ -82,8 +107,15 @@ class OptimizationResult:
         return representation
 
     def write(self, output_name: Path | str, overwrite: bool = False) -> None:
-        """Write an ``OptimizationResult`` to a file in FITS format."""
+        """Write an ``OptimizationResult`` to a file in FITS format.
 
+        Parameters
+        ----------
+        output_name : str or pathlib.Path
+            Destination FITS file for the cut tables and selection metadata.
+        overwrite : bool, optional
+            Replace an existing FITS file if True.
+        """
         cut_expr_tab = Table(
             rows=self.quality_query.quality_criteria,
             names=["name", "cut_expr"],
@@ -124,8 +156,13 @@ class OptimizationResult:
 
     @classmethod
     def read(cls, file_name):
-        """Read an ``OptimizationResult`` from a file in FITS format."""
+        """Read an ``OptimizationResult`` from a file in FITS format.
 
+        Parameters
+        ----------
+        file_name : str or pathlib.Path
+            FITS file containing a serialized optimization result.
+        """
         with fits.open(file_name) as hdul:
             cut_expr_tab = Table.read(hdul["QUALITY_CUTS_EXPR"])
             cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
@@ -183,18 +220,19 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
         clf_prefix: str,
     ) -> OptimizationResult:
         """
-        Optimize G/H (and optionally spatial selection) cuts
-        and fill them in an ``OptimizationResult``.
+        Optimize gamma-hadron and optional spatial selection cuts.
+
+        Store the resulting cuts in an `OptimizationResult`.
 
         Parameters
         ----------
-        events: dict[str, astropy.table.QTable]
+        events : dict[str, astropy.table.QTable]
             Dictionary containing tables of events used for calculating cuts.
             This has to include "signal" events and can include "background" events.
-        quality_query: ctapipe.io.DL2EventPreprocessor
+        quality_query : ctapipe.io.DL2EventPreprocessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events.
-        clf_prefix: str
+        clf_prefix : str
             Prefix of the output from the G/H classifier for which the
             cut will be optimized.
         """
@@ -220,6 +258,27 @@ class GhPercentileCutCalculator(Component):
     ).tag(config=True)
 
     def __call__(self, gammaness, reco_energy, reco_energy_bins):
+        """
+        Compute lower gammaness thresholds in reconstructed energy bins.
+
+        In each bin, use the gammaness percentile at 100 minus the configured
+        target percentage of events to retain. Use the maximum input gammaness
+        in bins with too few events. Smoothing can be applied across bins.
+
+        Parameters
+        ----------
+        gammaness : ndarray
+            Gamma-ray classification score for each event.
+        reco_energy : astropy.units.Quantity
+            Reconstructed energy for each event.
+        reco_energy_bins : astropy.units.Quantity
+            Edges of the reconstructed energy bins.
+
+        Returns
+        -------
+        astropy.table.QTable
+            Energy bin bounds and centers, event counts, and gammaness thresholds.
+        """
         if self.smoothing and self.smoothing < 0:
             self.smoothing = None
 
@@ -274,6 +333,28 @@ class ThetaPercentileCutCalculator(Component):
     ).tag(config=True)
 
     def __call__(self, theta, reco_energy, reco_energy_bins):
+        """
+        Compute upper angular separation thresholds in reconstructed energy bins.
+
+        Use the configured percentile of the separations in each bin and the
+        configured fill value in bins with too few events. The percentile cuts
+        can be clipped to angular bounds and smoothed across bins.
+
+        Parameters
+        ----------
+        theta : astropy.units.Quantity
+            Angular separation between the reconstructed direction and the source
+            position for each event.
+        reco_energy : astropy.units.Quantity
+            Reconstructed energy for each event.
+        reco_energy_bins : astropy.units.Quantity
+            Edges of the reconstructed energy bins.
+
+        Returns
+        -------
+        astropy.table.QTable
+            Energy bin bounds and centers, event counts, and angular thresholds.
+        """
         if self.smoothing and self.smoothing < 0:
             self.smoothing = None
 
@@ -292,10 +373,23 @@ class ThetaPercentileCutCalculator(Component):
 
 class PercentileCuts(CutOptimizerBase):
     """
-    Calculates G/H separation cut based on the percentile of signal events
-    to keep in each bin via ``GhPercentileCutCalculator``.
-    Optionally also calculates a percentile cut on theta based on the signal
-    events surviving this G/H cut via ``ThetaPercentileCutCalculator``.
+    Set gamma-hadron cuts using signal percentiles.
+
+    `GhPercentileCutCalculator` retains a configured percentage of signal events in each
+    bin. Optionally, `ThetaPercentileCutCalculator` derives a cut from the events that
+    pass the gamma-hadron cut.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy bins for the percentile cuts. The child calculators inherit
+        their settings through the component configuration.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -303,6 +397,7 @@ class PercentileCuts(CutOptimizerBase):
         self.gh_cut_calculator = GhPercentileCutCalculator(parent=self)
         self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
 
+    @override
     def __call__(
         self,
         events: dict[str, QTable],
@@ -345,6 +440,7 @@ class PercentileCuts(CutOptimizerBase):
 class PointSourceSensitivityOptimizerBase(CutOptimizerBase):
     """
     Base class for optimizers optimizing cuts for maximum point source efficiency.
+
     This holds some configurable traits shared between different optimization
     algorithms implemented in subclasses of this class.
     """
@@ -403,6 +499,18 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
     This approach computes a simple, percentile based cut for theta and
     then performs a grid search for best sensitivity only for the G/H cut
     using `pyirf.cut_optimization.optimize_gh_cut`.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``gh_cut_efficiency_step`` to control the spacing of the gamma-ray efficiency
+        grid used in the scan.
     """
 
     initial_gh_cut_efficency = Float(
@@ -413,6 +521,7 @@ class PointSourceSensitivityGhOptimizer(PointSourceSensitivityOptimizerBase):
         super().__init__(config=config, parent=parent, **kwargs)
         self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
 
+    @override
     def __call__(
         self,
         events: dict[str, QTable],
@@ -528,6 +637,7 @@ class PointSourceSensitivityOptimizer(PointSourceSensitivityOptimizerBase):
         help="Event-multiplicity cuts used for scanning after optimal cut",
     ).tag(config=True)
 
+    @override
     def __call__(
         self,
         events: dict[str, QTable],

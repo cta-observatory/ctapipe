@@ -1,3 +1,10 @@
+"""Define the interface for event reconstruction and its telescope quality cuts.
+
+Reconstructors operate on events with DL1 parameters and store results
+in DL2 containers. The module also provides a common base for Hillas-based
+geometry reconstruction and a loader for serialized reconstructors.
+"""
+
 import warnings
 import weakref
 import zipfile
@@ -64,8 +71,10 @@ class InvalidWidthException(Exception):
 
 
 class StereoQualityQuery(QualityQuery):
-    """Quality criteria for dl1 parameters checked for telescope events to enter
-    into stereo reconstruction"""
+    """Select telescope events that pass the stereo reconstruction cuts.
+
+    The cuts are evaluated on DL1 image parameters.
+    """
 
     quality_criteria = List(
         default_value=[
@@ -79,8 +88,22 @@ class StereoQualityQuery(QualityQuery):
 
 class Reconstructor(TelescopeComponent):
     """
-    This is the base class from which all reconstruction
-    algorithms should inherit from
+    Define the common interface for event reconstructors.
+
+    Subclasses process events with DL1 parameters and store reconstruction
+    results in their DL2 containers. Algorithms that need an atmospheric
+    profile indicate this through ``needs_atmosphere_profile``.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying instrument information and telescope-dependent settings to
+        the reconstruction algorithm.
+    atmosphere_profile : AtmosphereDensityProfile or None, optional
+        Atmospheric density profile for algorithms that use it to convert between
+        altitude and slant depth.
+    **kwargs
+        Component configuration and trait values forwarded to the telescope component.
     """
 
     #: ctapipe_reco entry points may provide Reconstructor implementations
@@ -139,15 +162,16 @@ class Reconstructor(TelescopeComponent):
         ----------
         path : str or pathlib.Path
             Path to a Reconstructor instance pickled using joblib
-        parent : None or Component or Tool
-            Attach a new parent to the loaded class, this will properly
+        parent : Component or Tool or None, optional
+            Parent to attach to the loaded instance. When supplied, the instance
+            uses a child of the parent's logger.
         subarray : SubarrayDescription
             Attach a new subarray to the loaded reconstructor
             A warning will be raised if the telescope types of the
             subarray stored in the pickled class do not match with the
             provided subarray.
-
-        **kwargs are set on the loaded instance
+        **kwargs
+            Additional attributes to set on the loaded instance.
 
         Returns
         -------

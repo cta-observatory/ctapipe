@@ -13,16 +13,18 @@ __all__ = ["CameraDescription"]
 
 class CameraDescription:
     """
-    Describes a Cherenkov camera and its associated
-    `~ctapipe.instrument.CameraGeometry` and `~ctapipe.instrument.CameraReadout`
+    Describe a Cherenkov camera, its geometry, and its readout.
+
+    The associated objects are a `~ctapipe.instrument.CameraGeometry` and a
+    `~ctapipe.instrument.CameraReadout`.
 
     Parameters
     ----------
-    name: str
+    name : str
         Camera name (e.g. NectarCam, LSTCam, ...)
-    geometry: CameraGeometry
+    geometry : CameraGeometry
        The pixel geometry of this camera
-    readout: CameraReadout
+    readout : CameraReadout
        The readout properties for this camera
     """
 
@@ -48,6 +50,7 @@ class CameraDescription:
     def get_known_camera_names(cls):
         """
         Returns a list of camera names that are available currently on the system.
+
         Beware that the `from_name` method also tries to download camera descriptions
         from the data server, so this list might not be exhaustive.
 
@@ -55,7 +58,6 @@ class CameraDescription:
         -------
         list(str)
         """
-
         pattern = r"(.*)\.camgeom\.fits(\.gz)?"
         return find_all_matching_datasets(pattern, regexp_group=1)
 
@@ -65,13 +67,12 @@ class CameraDescription:
 
         Parameters
         ----------
-        name: str
+        name : str
             Camera name (e.g. NectarCam, LSTCam, ...)
 
 
         Notes
         -----
-
         Warning: This method loads a pre-generated ``CameraDescription`` and is
         thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you

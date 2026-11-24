@@ -56,7 +56,15 @@ logger = logging.getLogger(__name__)
 
 
 class PathError:
-    """Signal configuration error of a Path"""
+    """Signal configuration error of a Path
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Path that failed validation.
+    reason : str
+        Explanation of the validation failure.
+    """
 
     def __init__(self, path, reason):
         self.path = path
@@ -92,7 +100,17 @@ flag = traitlets.config.boolean_flag
 
 
 class AstroQuantity(TraitType):
-    """A trait containing an ``astropy.units`` quantity."""
+    """A trait containing an ``astropy.units`` quantity.
+
+    Parameters
+    ----------
+    physical_type : astropy.units.PhysicalType or UnitBase or None, optional
+        Required physical type, or a unit from which to infer it. None accepts any
+        physical type.
+    **kwargs
+        Options forwarded to the base trait, such as ``default_value``, ``allow_none``,
+        and ``help``.
+    """
 
     def __init__(self, physical_type=None, **kwargs):
         super().__init__(**kwargs)
@@ -134,7 +152,16 @@ class AstroQuantity(TraitType):
         return info
 
     def validate(self, obj, value):
-        """Validate input as astropy quantity."""
+        """Validate input as astropy quantity.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose quantity trait is being validated.
+        value : object
+            Input accepted by `astropy.units.Quantity`. A mapping is unpacked as
+            constructor keyword arguments.
+        """
         try:
             if isinstance(value, Mapping):
                 quantity = u.Quantity(**value)
@@ -160,7 +187,16 @@ class AstroTime(TraitType):
     """A trait representing a point in Time, as understood by ``astropy.time``."""
 
     def validate(self, obj, value):
-        """try to parse and return an ISO time string"""
+        """Try to parse and return an ISO time string
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose time trait is being validated.
+        value : object
+            Input accepted by `astropy.time.Time`, such as an ISO timestamp or a Time
+            instance.
+        """
         try:
             the_time = Time(value)
             the_time.format = "iso"
@@ -180,6 +216,22 @@ class AstroTime(TraitType):
 class Path(TraitType):
     """
     A path Trait for input/output files.
+
+    Parameters
+    ----------
+    default_value : str or bytes or pathlib.Path or None, optional
+        Initial value for the path trait.
+    allow_none : bool, optional
+        Allow the value to be None.
+    exists : bool or None, optional
+        Require the path to exist with True or to be absent with False. None permits
+        either.
+    directory_ok : bool, optional
+        Allow paths that are directories.
+    file_ok : bool, optional
+        Allow paths that are files.
+    **kwargs
+        Other options forwarded to the base trait, such as ``help``.
 
     Attributes
     ----------
@@ -238,7 +290,16 @@ class Path(TraitType):
         return info
 
     def validate(self, obj, value):
-        """Validate trait value."""
+        """Validate trait value.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose path trait is being validated.
+        value : str or bytes or pathlib.Path or None
+            Local path, supported URL, or None when allowed. Environment variables in
+            paths are expanded.
+        """
         if value is None or value is Undefined:
             if self.allow_none:
                 return value
@@ -302,13 +363,24 @@ class Path(TraitType):
 
 
 def create_class_enum_trait(base_class, default_value, help=None, allow_none=False):
-    """create a configurable CaselessStrEnum traitlet from baseclass
+    """Create a configurable CaselessStrEnum traitlet from baseclass
 
     the enumeration should contain all names of non_abstract_children()
     of said baseclass and the default choice should be given by
     ``base_class._default`` name.
 
     default must be specified and must be the name of one child-class
+
+    Parameters
+    ----------
+    base_class : type
+        Base class whose nonabstract subclasses supply the allowed names.
+    default_value : str
+        Default subclass name, drawn from the available choices.
+    help : str or None, optional
+        Help text for the trait. None builds it from the base class name.
+    allow_none : bool, optional
+        Allow the trait value to be None.
     """
     if help is None:
         help = "{} to use.".format(base_class.__name__)
@@ -327,7 +399,15 @@ def create_class_enum_trait(base_class, default_value, help=None, allow_none=Fal
 
 
 class ComponentName(Unicode):
-    """A trait that is the name of a Component class"""
+    """A trait that is the name of a Component class
+
+    Parameters
+    ----------
+    cls : type[Component]
+        Base component class whose concrete subclasses are accepted by name.
+    **kwargs
+        Trait options such as ``default_value``, ``allow_none``, and ``help``.
+    """
 
     def __init__(self, cls, **kwargs):
         # we need to prevent triggering importing plugins at
@@ -366,7 +446,16 @@ class ComponentName(Unicode):
             return f"Any subclass of {self.cls}"
 
     def validate(self, obj, value):
-        """Validate component name."""
+        """Validate component name.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose component-name trait is being validated.
+        value : str or None
+            Name of a concrete subclass of the configured component class, or None when
+            allowed.
+        """
         if self.allow_none and value is None:
             return None
 
@@ -377,7 +466,15 @@ class ComponentName(Unicode):
 
 
 class ComponentNameList(List):
-    """A trait that is a list of Component classes"""
+    """A trait that is a list of Component classes
+
+    Parameters
+    ----------
+    cls : type[Component]
+        Base component class whose concrete subclasses can be listed by name.
+    **kwargs
+        Options forwarded to the list trait, such as ``default_value`` and ``help``.
+    """
 
     def __init__(self, cls, **kwargs):
         # we need to prevent triggering importing plugins at
@@ -418,9 +515,17 @@ class ComponentNameList(List):
 
 
 def classes_with_traits(base_class):
-    """Returns a list of the base class plus its non-abstract children
-    if they have traits"""
+    """Find a base class and concrete subclasses that define traits.
 
+    If the base class declares a plugin entry point, discover and import its plugins
+    before listing subclasses.
+
+    Parameters
+    ----------
+    base_class : type
+        Base class from which to discover configurable subclasses, including registered
+        plugins when available.
+    """
     if hasattr(base_class, "plugin_entry_point"):
         detect_and_import_plugins(base_class.plugin_entry_point)
 
@@ -454,29 +559,78 @@ def has_traits(cls, ignore=("config", "parent")):
     all our components have at least 'config' and 'parent' as traitlets
     this is inherited from `traitlets.config.Configurable` so we ignore them
     here.
+
+    Parameters
+    ----------
+    cls : type[traitlets.HasTraits]
+        Class to inspect for trait names.
+    ignore : iterable of str, optional
+        Names to omit when checking for traits.
     """
     return bool(set(cls.class_trait_names()) - set(ignore))
 
 
 class FloatTelescopeParameter(TelescopeParameter):
-    """a `~ctapipe.core.telescope_component.TelescopeParameter` with Float trait type"""
+    """Define a floating-point trait whose value can vary by telescope.
+
+    Parameters
+    ----------
+    **kwargs
+        Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`, such
+        as ``default_value`` and ``help``.
+    """
 
     def __init__(self, **kwargs):
-        """Create a new FloatTelescopeParameter"""
+        """Initialize a floating-point telescope parameter.
+
+        Parameters
+        ----------
+        **kwargs
+            Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`,
+            such as ``default_value`` and ``help``.
+        """
         super().__init__(trait=Float(), **kwargs)
 
 
 class IntTelescopeParameter(TelescopeParameter):
-    """a `~ctapipe.core.telescope_component.TelescopeParameter` with Int trait type"""
+    """Define an integer trait whose value can vary by telescope.
+
+    Parameters
+    ----------
+    **kwargs
+        Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`, such
+        as ``default_value`` and ``help``.
+    """
 
     def __init__(self, **kwargs):
-        """Create a new IntTelescopeParameter"""
+        """Initialize an integer telescope parameter.
+
+        Parameters
+        ----------
+        **kwargs
+            Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`,
+            such as ``default_value`` and ``help``.
+        """
         super().__init__(trait=Int(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):
-    """a `~ctapipe.core.telescope_component.TelescopeParameter` with Bool trait type"""
+    """Define a boolean trait whose value can vary by telescope.
+
+    Parameters
+    ----------
+    **kwargs
+        Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`, such
+        as ``default_value`` and ``help``.
+    """
 
     def __init__(self, **kwargs):
-        """Create a new BoolTelescopeParameter"""
+        """Initialize a boolean telescope parameter.
+
+        Parameters
+        ----------
+        **kwargs
+            Options passed to `~ctapipe.core.telescope_component.TelescopeParameter`,
+            such as ``default_value`` and ``help``.
+        """
         super().__init__(trait=Bool(), **kwargs)

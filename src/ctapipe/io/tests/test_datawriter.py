@@ -120,8 +120,7 @@ def test_writer_accepts_trigger_only_dl0():
 
 
 def generate_dummy_dl2(event):
-    """generate some dummy DL2 info and see if we can write it"""
-
+    """Generate some dummy DL2 info and see if we can write it"""
     event.dl2 = SubarrayDL2Container()
     for tel_event in event.tel.values():
         tel_event.dl2 = TelescopeDL2Container()
@@ -190,7 +189,6 @@ def test_write(tmpdir: Path, south_site_config):
     """
     Check that we can write and read data from R0-DL2 to files
     """
-
     output_path = Path(tmpdir / "events.dl1.h5")
     source = EventSource(get_dataset_path("gamma_prod5.simtel.zst"))
     calibrate = CameraCalibrator(subarray=source.subarray)
@@ -336,7 +334,6 @@ def test_roundtrip(tmpdir: Path, south_site_config):
     tmpdir :
         temp directory fixture
     """
-
     output_path = Path(tmpdir / "events.DL1DL2.h5")
     source = EventSource(get_dataset_path("gamma_prod5.simtel.zst"))
     calibrate = CameraCalibrator(subarray=source.subarray)
@@ -414,7 +411,6 @@ def test_dl1writer_no_events(tmpdir: Path, south_site_config):
     tmpdir :
         temp directory fixture
     """
-
     output_path = Path(tmpdir / "no_events.dl1.h5")
     with EventSource("dataset://gamma_prod5.simtel.zst") as source:
         # exhaust source

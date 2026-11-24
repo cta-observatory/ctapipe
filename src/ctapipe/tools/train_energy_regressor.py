@@ -109,7 +109,6 @@ class TrainEnergyRegressor(Tool):
         """
         Train models per telescope type.
         """
-
         types = sorted({str(tel) for tel in self.loader.subarray.telescope_types})
         self.log.info("Inputfile: %s", self.loader.input_url)
         self.log.info("Training models for %d types", len(types))

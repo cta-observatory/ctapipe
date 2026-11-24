@@ -62,6 +62,11 @@ def json_config_handler(obj):
     >>> config = {"quantity": 5 * u.m}
     >>> json.dumps(config, default=json_config_handler)
     '{"quantity": {"value": 5.0, "unit": "m"}}'
+
+    Parameters
+    ----------
+    obj : object
+        Value passed to the encoder when the standard JSON encoder cannot serialize it.
     """
     from ctapipe.io.metadata import (
         Contact,
@@ -109,7 +114,14 @@ def modules_of_distribution(distribution: Distribution):
 
 @cache
 def get_distribution_of_module(module: ModuleType | str):
-    """Get the package distribution for an imported module"""
+    """Get the package distribution for an imported module
+
+    Parameters
+    ----------
+    module : module or str
+        Imported module or importable module name whose installed distribution is
+        sought.
+    """
     if isinstance(module, str):
         name = module
         module = import_module(module)
@@ -137,6 +149,11 @@ def get_module_version(name):
     If the module does not expose a ``__version__`` attribute, this function
     will try to determine the *distribution* of the module and return its
     version.
+
+    Parameters
+    ----------
+    name : str
+        Importable module name to query for its version.
     """
     # we try first with module.__version__
     # to support editable installs
@@ -160,9 +177,9 @@ class MissingReferenceMetadata(UserWarning):
 
 class _ActivityProvenance:
     """
-    Low-level helper class to collect provenance information for a given
-    *activity*.  Users should use `Provenance` as a top-level API,
-    not this class directly.
+    Collect provenance for a single activity.
+
+    Use `Provenance` as the public interface.
     """
 
     def __init__(self, activity_name=sys.executable):
@@ -180,9 +197,12 @@ class _ActivityProvenance:
         self.name = activity_name
 
     def start(self):
-        """begin recording provenance for this activity. Set's up the system
-        and startup provenance data. Generally should be called at start of a
-        program."""
+        """Begin recording provenance for this activity.
+
+        Set's up the system and startup provenance data. Generally should be called at
+        start of a
+        program.
+        """
         self._prov["start"].update(_sample_cpu_and_memory())
         self._prov["system"].update(_get_system_provenance())
 
@@ -197,18 +217,21 @@ class _ActivityProvenance:
 
     def register_input(self, url, role=None, add_meta=True, reference_meta=None):
         """
-        Add a URL of a file to the list of inputs (can be a filename or full
-        url, if no URL specifier is given, assume 'file://')
+        Record an input file in the activity provenance.
+
+        Accepts a path or a full URL. Paths without a scheme are treated as ``file://``
+        URLs.
 
         Parameters
         ----------
-        url: str
+        url : str
             filename or url of input file
-        role: str
+        role : str
             role name that this input satisfies
-        add_meta: bool
-            If true, try to load reference metadata from input file
-            and add to provenance.
+        add_meta : bool, optional
+            Try reading reference metadata from the input file when none is supplied.
+        reference_meta : dict or None, optional
+            Reference metadata to record directly, in place of reading the file.
         """
         self._register(
             "input", url, role=role, add_meta=add_meta, reference_meta=reference_meta
@@ -216,32 +239,50 @@ class _ActivityProvenance:
 
     def register_output(self, url, role=None, add_meta=True, reference_meta=None):
         """
-        Add a URL of a file to the list of outputs (can be a filename or full
-        url, if no URL specifier is given, assume 'file://')
+        Record an output file in the activity provenance.
+
+        Accepts a path or a full URL. Paths without a scheme are treated as ``file://``
+        URLs.
 
         Should only be called once the file is finalized, so that reference metadata
         can be read.
 
         Parameters
         ----------
-        url: str
+        url : str
             filename or url of output file
-        role: str
+        role : str
             role name that this output satisfies
-        add_meta: bool
-            If true, try to load reference metadata from input file
-            and add to provenance.
+        add_meta : bool, optional
+            Try reading reference metadata from the output file when none is supplied.
+        reference_meta : dict or None, optional
+            Reference metadata to record directly, in place of reading the file.
         """
         self._register(
             "output", url, role=role, add_meta=add_meta, reference_meta=reference_meta
         )
 
     def register_config(self, config):
-        """add a dictionary of configuration parameters to this activity"""
+        """Record the configuration used for this activity.
+
+        Parameters
+        ----------
+        config : dict
+            Configuration to store for this activity. Replaces any previously recorded
+            configuration.
+        """
         self._prov["config"] = config
 
     def finish(self, status="success", exit_code=0):
-        """record final provenance information, normally called at shutdown."""
+        """Record final provenance information, normally called at shutdown.
+
+        Parameters
+        ----------
+        status : str, optional
+            Status label to record on completion.
+        exit_code : int, optional
+            Exit code to record for the activity.
+        """
         self._prov["stop"].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
@@ -308,7 +349,13 @@ class Provenance(metaclass=Singleton):
         self._finished_activities = []
 
     def start_activity(self, activity_name=sys.executable):
-        """push activity onto the stack"""
+        """Push activity onto the stack
+
+        Parameters
+        ----------
+        activity_name : str, optional
+            Name to identify the new activity. Defaults to the Python executable path.
+        """
         activity = _ActivityProvenance(activity_name)
         activity.start()
         self._activities.append(activity)
@@ -325,14 +372,18 @@ class Provenance(metaclass=Singleton):
         return self.current_activity
 
     def add_input_file(self, filename, role=None, add_meta=True, reference_meta=None):
-        """register an input to the current activity
+        """Register an input to the current activity
 
         Parameters
         ----------
-        filename: str
+        filename : str
             name or url of file
-        role: str
+        role : str
             role this input file satisfies (optional)
+        add_meta : bool, optional
+            Try reading reference metadata from the input file when none is supplied.
+        reference_meta : dict or None, optional
+            Reference metadata to record directly, in place of reading the file.
         """
         activity = self._get_current_or_start_activity()
         activity.register_input(
@@ -349,14 +400,17 @@ class Provenance(metaclass=Singleton):
 
     def add_output_file(self, filename, role=None, add_meta=True):
         """
-        register an output to the current activity
+        Register an output to the current activity
 
         Parameters
         ----------
-        filename: str
+        filename : str
             name or url of file
-        role: str
+        role : str
             role this output file satisfies (optional)
+        add_meta : bool, optional
+            Try reading reference metadata from the output file and recording it
+            with the provenance entry.
 
         """
         activity = self._get_current_or_start_activity()
@@ -369,11 +423,11 @@ class Provenance(metaclass=Singleton):
 
     def add_config(self, config):
         """
-        add configuration parameters to the current activity
+        Add configuration parameters to the current activity
 
         Parameters
         ----------
-        config: dict
+        config : dict
             configuration parameters
         """
         activity = self._get_current_or_start_activity()
@@ -385,7 +439,17 @@ class Provenance(metaclass=Singleton):
         )
 
     def finish_activity(self, status="completed", exit_code=0, activity_name=None):
-        """end the current activity"""
+        """End the current activity
+
+        Parameters
+        ----------
+        status : str, optional
+            Status label to store for the finished activity.
+        exit_code : int, optional
+            Exit code to record for the activity.
+        activity_name : str or None, optional
+            Expected name of the current activity. When supplied, it must match.
+        """
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError(
@@ -400,42 +464,57 @@ class Provenance(metaclass=Singleton):
 
     @contextmanager
     def activity(self, name):
-        """context manager for activities"""
+        """Context manager for activities
+
+        Parameters
+        ----------
+        name : str
+            Name of the activity to start when entering the context.
+        """
         self.start_activity(name)
         yield
         self.finish_activity(name)
 
     @property
     def current_activity(self):
+        """Return the most recently started active activity, or None."""
         if len(self._activities) == 0:
             return None
         return self._activities[-1]  # current activity is at the top of stack
 
     @property
     def finished_activities(self):
+        """Return the list of finished activities in completion order."""
         return self._finished_activities
 
     @property
     def provenance(self):
-        """returns provenence for full list of activities"""
+        """Returns provenence for full list of activities"""
         return [x.provenance for x in self._finished_activities]
 
     def as_json(self, **kwargs):
-        """return all finished provenance as JSON.  Kwargs for `json.dumps`
-        may be included, e.g. ``indent=4``
+        """Serialize finished activity provenance as JSON.
+
+        Parameters
+        ----------
+        **kwargs
+            Options forwarded to `json.dumps`, such as ``indent``. ctapipe supplies the
+            ``default`` encoder.
         """
         return json.dumps(self.provenance, default=json_config_handler, **kwargs)
 
     @property
     def active_activity_names(self):
+        """Return the names of active activities in the order they were started."""
         return [x.name for x in self._activities]
 
     @property
     def finished_activity_names(self):
+        """Return the names of finished activities in completion order."""
         return [x.name for x in self._finished_activities]
 
     def clear(self):
-        """remove all tracked activities"""
+        """Remove all tracked activities"""
         self._activities = []
         self._finished_activities = []
 
@@ -456,9 +535,10 @@ def _get_python_packages():
 
 
 def _get_system_provenance():
-    """return a dict containing provenance for all things that are
-    fixed during the runtime"""
+    """Collect system provenance that stays fixed during execution.
 
+    The result is a dictionary.
+    """
     bits, linkage = platform.architecture()
 
     return dict(

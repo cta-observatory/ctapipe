@@ -11,7 +11,15 @@ MAX_UINT32 = np.iinfo(np.uint32).max
 
 
 def ctao_high_res_to_time(seconds, quarter_nanoseconds):
-    """Convert CTAO high resolution timestamp to astropy Time."""
+    """Convert CTAO high resolution timestamp to astropy Time.
+
+    Parameters
+    ----------
+    seconds : int or ndarray of int
+        Whole seconds since 1970-01-01 00:00:00 TAI.
+    quarter_nanoseconds : int or ndarray of int
+        Fractional part in quarter-nanosecond ticks for the corresponding timestamps.
+    """
     # unix_tai accepts two floats for maximum precision
     # we can just pass integral and fractional part
     fractional_seconds = quarter_nanoseconds * QNS_TO_S
@@ -25,7 +33,13 @@ def ctao_high_res_to_time(seconds, quarter_nanoseconds):
 
 
 def to_seconds(days):
-    """Return fractional and whole seconds from a number in days."""
+    """Return fractional and whole seconds from a number in days.
+
+    Parameters
+    ----------
+    days : float or ndarray
+        Day counts to convert, using 86,400 seconds per day.
+    """
     seconds = days * DAY_TO_S
     return np.modf(seconds)
 
@@ -36,6 +50,11 @@ def time_to_ctao_high_res(time: Time):
 
     Out-of-range values are clipped to 0 (before 1970-01-01T00:00:00 TAI) and
     MAX_UINT32 (after 2106-02-07T06:28:15 TAI) respectively.
+
+    Parameters
+    ----------
+    time : astropy.time.Time
+        Scalar or array of timestamps to encode on the TAI scale.
     """
     # make sure we are in TAI
     time_tai = time.tai

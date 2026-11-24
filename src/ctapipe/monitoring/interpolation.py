@@ -1,3 +1,10 @@
+"""Evaluate telescope monitoring data at event timestamps.
+
+Interpolate pointing data and look up camera statistics and calibration
+values in time chunks. Overlapping chunks can supply values missing from
+the most recent applicable chunk.
+"""
+
 from abc import ABCMeta, abstractmethod
 from typing import Any
 
@@ -36,6 +43,9 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
     ----------
     h5file : None | tables.File
         An open hdf5 file with read access.
+    **kwargs
+        Component configuration and trait values for the interpolator. Pass
+        ``config`` or ``parent`` to supply the configuration.
     """
 
     #: Columns that are used if present, but may be absent (e.g. older files).
@@ -123,6 +133,9 @@ class LinearInterpolator(MonitoringInterpolator):
     ----------
     h5file : None | tables.File
         An open hdf5 file with read access.
+    **kwargs
+        Component configuration and trait values. Use ``bounds_error`` and
+        ``extrapolate`` to control evaluation outside the tabulated time range.
     """
 
     bounds_error = traits.Bool(
@@ -184,7 +197,6 @@ class PointingInterpolator(LinearInterpolator):
         azimuth : astropy.units.Quantity[deg]
             Interpolated azimuth angle.
         """
-
         self._check_interpolators(tel_id)
 
         mjd = time.tai.mjd
@@ -239,6 +251,15 @@ class ChunkInterpolator(MonitoringInterpolator):
     The data columns are all ``required_columns`` and those of
     ``optional_columns`` present in the table, except ``time_start`` and
     ``time_end``. All tables of one file are assumed to share the same columns.
+
+    Parameters
+    ----------
+    h5file : tables.File or None, optional
+        Open monitoring HDF5 file for lazy loading. With None, supply the monitoring
+        tables using `add_table`.
+    **kwargs
+        Component configuration and trait values forwarded to the monitoring
+        interpolator.
     """
 
     #: Columns holding integer counts: 0 instead of NaN where no chunk is valid.
@@ -274,7 +295,6 @@ class ChunkInterpolator(MonitoringInterpolator):
             Interpolated data for the specified column(s). Optional columns
             absent from the table are not included.
         """
-
         if tel_id not in self.values:
             self._read_parameter_table(tel_id)
 
@@ -303,7 +323,6 @@ class ChunkInterpolator(MonitoringInterpolator):
             for the data of the chunks. Columns in ``optional_columns``
             are used if present.
         """
-
         self._check_tables(input_table)
 
         input_table = input_table.copy()
@@ -336,7 +355,6 @@ class ChunkInterpolator(MonitoringInterpolator):
         timestamp_tolerance : astropy.units.Quantity
             Time difference in seconds to consider two timestamps equal. Default is 0s.
         """
-
         time_start = self.time_start[tel_id]
         time_end = self.time_end[tel_id]
         values = self.values[tel_id][column]

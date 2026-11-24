@@ -1,3 +1,9 @@
+"""Fit circles to weighted camera pixel positions for muon-ring analysis.
+
+The Kundu-Chaudhuri and Taubin methods estimate the ring center and radius
+from pixel coordinates and image weights.
+"""
+
 import astropy.units as u
 import numpy as np
 from astropy.units import Quantity
@@ -22,13 +28,13 @@ def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
 
     Parameters
     ----------
-    x: array-like or astropy quantity
+    x : array-like or astropy quantity
         x coordinates of the points
-    y: array-like or astropy quantity
+    y : array-like or astropy quantity
         y coordinates of the points
-    weights: array-like
+    weights : array-like
         weights of the points
-    nan_errors_flag: bool
+    nan_errors_flag : bool
         The flag defines whether errors are set to NaN.
 
     Returns
@@ -46,7 +52,6 @@ def kundu_chaudhuri_circle_fit(x, y, weights, nan_errors_flag=False):
     center_y_err : astropy.units.Quantity
         Fitted y-coordinate of the circle center error.
     """
-
     weights_sum = np.sum(weights)
     mean_x = np.sum(x * weights) / weights_sum
     mean_y = np.sum(y * weights) / weights_sum
@@ -139,7 +144,6 @@ def taubin_circle_fit(
     ----------
     - Barcelona_Muons_TPA_final.pdf (slide 6)
     """
-
     if Minuit is None:
         raise OptionalDependencyMissing("iminuit")
 
@@ -197,19 +201,34 @@ def taubin_circle_fit(
 
 
 def make_loss_function(x, y, w):
-    """closure around taubin_loss_function to make
-    surviving pixel positions availaboe inside.
+    """Bind the surviving pixel positions to the Taubin loss function.
 
-    x, y: positions of pixels surviving the cleaning
-        should not be quantities
-    w : array-like of float, weights for the points
+    Parameters
+    ----------
+    x : ndarray
+        Coordinates along the first axis for the selected pixels, as bare values.
+    y : ndarray
+        Coordinates along the second axis for the same pixels, in the same units as x.
+    w : ndarray
+        Fit weights for the selected pixels.
     """
 
     def taubin_loss_function(xc, yc, r):
-        """taubin fit formula
-        reference : Barcelona_Muons_TPA_final.pdf (slide 6)
-        """
+        """Evaluate the Taubin fit formula.
 
+        reference : Barcelona_Muons_TPA_final.pdf (slide 6)
+
+        Parameters
+        ----------
+        xc : float
+            Trial circle center along the first axis, in the same units as the pixel
+            coordinates.
+        yc : float
+            Trial circle center along the second axis, in the same units as the pixel
+            coordinates.
+        r : float
+            Trial circle radius, in the same units as the pixel coordinates.
+        """
         distance_squared = (x - xc) ** 2 + (y - yc) ** 2
         upper_term = ((w * (distance_squared - r**2)) ** 2).sum()
         lower_term = (w * distance_squared).sum()
@@ -229,11 +248,11 @@ def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y)
 
     Parameters
     ----------
-    x: array-like or astropy quantity
+    x : array-like or astropy quantity
         x coordinates of the points
-    y: array-like or astropy quantity
+    y : array-like or astropy quantity
         y coordinates of the points
-    weights: array-like
+    weights : array-like
         weights of the points
     radius : astropy.units.Quantity
         Fitted radius of the circle.
@@ -251,7 +270,6 @@ def naive_circle_fit_error_calculator(x, y, weights, radius, center_x, center_y)
     center_y_err : astropy.units.Quantity
         Fitted y-coordinate of the circle center error.
     """
-
     weights_sum = np.sum(weights)
     radius_squared = (x - center_x) ** 2 + (y - center_y) ** 2
     delta = radius_squared - radius**2

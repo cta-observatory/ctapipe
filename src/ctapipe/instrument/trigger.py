@@ -1,3 +1,9 @@
+"""Apply a software stereo trigger to processed subarray events.
+
+Filter telescope events by event type and enforce configurable minimum
+multiplicities for the array and for individual telescope types.
+"""
+
 import numpy as np
 
 from ..containers import EventType, SubarrayEventContainer
@@ -47,6 +53,15 @@ class SoftwareTrigger(TelescopeComponent):
        SoftwareTrigger:
            allowed_telescope_event_types:
                - "RANDOM_MONO"
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray supplying telescope types and IDs for multiplicity checks.
+    *args
+        Positional configuration arguments forwarded to the telescope component.
+    **kwargs
+        Component configuration and trait values such as ``min_telescopes_of_type``.
     """
 
     min_telescopes = Int(
@@ -114,11 +129,19 @@ class SoftwareTrigger(TelescopeComponent):
 
     def __call__(self, event: SubarrayEventContainer) -> bool:
         """
-        Remove telescope events that have not the required number of telescopes of
-        a given type from the subarray event and decide if the event would
-        have triggered the stereo trigger.
+        Filter telescope events by multiplicity and evaluate the stereo trigger.
+
+        The method updates the event in place and requires subarray DL0 trigger
+        information. It returns whether the remaining telescopes satisfy the stereo
+        trigger.
 
         Data is cleared from events that did not trigger.
+
+        Parameters
+        ----------
+        event : SubarrayEventContainer
+            Event containing the subarray DL0 trigger list. For accepted events, the
+            trigger updates the telescope data selection in place.
 
         Returns
         -------

@@ -1,3 +1,9 @@
+"""Define structured containers and their fields for passing data between components.
+
+Fields describe defaults, units, and validation constraints. Containers
+can be nested or grouped in maps keyed by identifiers such as telescope ID.
+"""
+
 import logging
 import warnings
 from collections import defaultdict
@@ -22,6 +28,8 @@ def _fqdn(obj):
 
 
 class FieldValidationError(ValueError):
+    """Raised when a value does not satisfy a container field's constraints."""
+
     pass
 
 
@@ -54,24 +62,23 @@ class Field[T]:
         For mutable default values, use ``default_factory`` instead.
     description : str
         Help text associated with the item
+    default_factory : Callable
+        A callable providing a fresh instance as default value.
     unit : str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
     ucd : str
         universal content descriptor (see Virtual Observatory standards)
-    type : type
-        expected type of value
     dtype : None or np.dtype
         expected data type of the value, None to ignore in validation.
         Means value is expected to be a numpy array or astropy quantity
+    type : type
+        expected type of value
     ndim : int or None
         expected dimensionality of the data, for arrays, None to ignore
     allow_none : bool
         if the value of None is given to this Field, skip validation
-    max_len : int
-        if type is str, max_len is the maximum number of bytes of the utf-8
-        encoded string to be used.
-    default_factory : Callable
-        A callable providing a fresh instance as default value.
+    max_length : int or None
+        For string fields, the maximum number of bytes in the UTF-8 encoding.
     time_resolution : TimeResolution | None
         For time fields, whether to serialize as high or low resolution
         timestamp.
@@ -269,11 +276,11 @@ class Field[T]:
 
     def validate(self, value):
         """
-        check that a given value is appropriate for this Field
+        Check that a given value is appropriate for this Field
 
         Parameters
         ----------
-        value: Any
+        value : Any
            the value to test
 
         Raises
@@ -281,7 +288,6 @@ class Field[T]:
         FieldValidationError:
             if the value is not valid
         """
-
         if self.allow_none and value is None:
             return
 
@@ -343,7 +349,21 @@ class Field[T]:
 
 
 class DeprecatedField(Field):
-    """used to mark which fields may be removed in next version"""
+    """used to mark which fields may be removed in next version
+
+    Parameters
+    ----------
+    default : object
+        Default value assigned to the deprecated field.
+    description : str, optional
+        Description of the field.
+    unit : str or astropy.units.UnitBase or None, optional
+        Unit used when writing the field.
+    ucd : str or None, optional
+        Virtual Observatory unified content descriptor.
+    reason : str, optional
+        Explanation or replacement to include in the deprecation warning.
+    """
 
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)
@@ -409,8 +429,7 @@ class ContainerMeta(type):
 
 
 class Container(metaclass=ContainerMeta):
-    """Generic class that can hold and accumulate data to be passed
-    between Components.
+    """Generic class that can hold and accumulate data to be passed between Components.
 
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
@@ -457,6 +476,13 @@ class Container(metaclass=ContainerMeta):
     Finally, a Container can have associated metadata via its
     `meta` attribute, which is a `dict` of keywords to values.
 
+    Parameters
+    ----------
+    prefix : str or None, optional
+        Prefix for flattened field names. With None, use the container's default prefix.
+    **fields
+        Initial values keyed by field name. Omitted fields are initialized from their
+        defaults.
     """
 
     def __init__(self, prefix=None, **fields):
@@ -485,7 +511,13 @@ class Container(metaclass=ContainerMeta):
         return setattr(self, key, value)
 
     def items(self, add_prefix=False):
-        """Generator over (key, value) pairs for the items"""
+        """Generator over (key, value) pairs for the items
+
+        Parameters
+        ----------
+        add_prefix : bool, optional
+            Include the container's prefix in each emitted field name.
+        """
         if not add_prefix or self.prefix == "":
             return ((k, getattr(self, k)) for k in self.fields.keys())
 
@@ -505,14 +537,14 @@ class Container(metaclass=ContainerMeta):
 
         Parameters
         ----------
-        recursive: bool
+        recursive : bool
             sub-Containers should also be converted to dicts
-        flatten: type
+        flatten : type
             return a flat dictionary, with any sub-field keys generated
             by appending the sub-Container name.
-        add_prefix: bool
+        add_prefix : bool
             include the container's prefix in the name of each item
-        add_key: bool
+        add_key : bool
             include map key
         """
         if not recursive:
@@ -538,14 +570,8 @@ class Container(metaclass=ContainerMeta):
 
     def reset(self):
         """
-        Reset all values back to their default values
-
-        Parameters
-        ----------
-        recursive: bool
-            If true, also reset all sub-containers
+        Reset all fields to their defaults, creating fresh values from factories.
         """
-
         for name, field in self.fields.items():
             if field.default_factory is not None:
                 setattr(self, name, field.default_factory())
@@ -554,8 +580,15 @@ class Container(metaclass=ContainerMeta):
 
     def update(self, **values):
         """
-        update more than one parameter at once (e.g. ``update(x=3,y=4)``
-        or ``update(**dict_of_values)``)
+        Update several container fields at once.
+
+        Pass fields as keyword arguments, for example ``update(x=3, y=4)`` or
+        ``update(**dict_of_values)``.
+
+        Parameters
+        ----------
+        **values
+            New values keyed by field name.
         """
         for key in values:
             self[key] = values[key]
@@ -578,14 +611,15 @@ class Container(metaclass=ContainerMeta):
 
     def validate(self):
         """
-        Check that all fields in the Container have the expected characteristics (as
-        defined by the Field metadata).  This is not intended to be run every time a
-        Container is filled, since it is slow, only for testing a first event.
+        Validate the container fields against their metadata.
+
+        Validation can be slow. Typically, validate the first event rather than every
+        event.
 
         Raises
         ------
-        ValueError:
-            if the Container's values are not valid
+        FieldValidationError
+            If a field value does not satisfy its metadata constraints.
         """
         for name, field in self.fields.items():
             try:
@@ -597,12 +631,33 @@ class Container(metaclass=ContainerMeta):
 
 
 class Map[K, V](defaultdict[K, V]):
-    """A dictionary of sub-containers that can be added to a Container. This
-    may be used e.g. to store a set of identical sub-Containers (e.g. indexed
-    by ``tel_id`` or algorithm name).
+    """Store related subcontainers in a dictionary.
+
+    A container can use this mapping to group identical subcontainers by telescope ID or
+    algorithm name.
     """
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):
+        """
+        Convert the map and optionally its nested values to a dict.
+
+        Parameters
+        ----------
+        recursive : bool, optional
+            Convert nested containers and maps to dictionaries.
+        flatten : bool, optional
+            With recursive conversion, merge the entries from nested values into
+            the output dictionary. Later entries overwrite duplicate keys.
+        add_prefix : bool, optional
+            Include container prefixes when converting nested containers.
+        add_key : bool, optional
+            When flattening, prefix each promoted key with its outer map key.
+
+        Returns
+        -------
+        dict
+            Dictionary of the map's entries.
+        """
         if not recursive:
             return dict(self.items())
         else:
@@ -627,7 +682,19 @@ class Map[K, V](defaultdict[K, V]):
             return d
 
     def reset(self, recursive=True):
-        """Calls all ``Container.reset`` for all values in the Map"""
+        """Forward a reset request to each container value.
+
+        Parameters
+        ----------
+        recursive : bool, optional
+            Value forwarded as ``recursive`` to each contained container's reset method.
+
+        Raises
+        ------
+        TypeError
+            If a member's reset method does not accept ``recursive``, as with
+            the default `Container.reset` implementation.
+        """
         for val in self.values():
             if isinstance(val, Container):
                 val.reset(recursive=recursive)

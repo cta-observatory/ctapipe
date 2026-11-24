@@ -19,12 +19,21 @@ __all__ = ["non_abstract_children", "Component"]
 
 def find_config_in_hierarchy(parent, class_name, trait_name):
     """
-    Find the value of a config item in the hierarchy by going up the hierarchy
-    from the parent and then down again to the child.
-    This is needed as parent.config is the full config and not the
-    config starting at the level of the parent.
-    """
+    Look up a configuration value in the component hierarchy.
 
+    The search walks up to the parent and back down to the child. The parent's
+    configuration covers the full hierarchy.
+
+    Parameters
+    ----------
+    parent : ctapipe.core.Component or ctapipe.core.Tool
+        Parent at which to start following the component chain for the configuration
+        lookup.
+    class_name : str
+        Name of the child component class whose section contains the setting.
+    trait_name : str
+        Trait name to look up in that section.
+    """
     config = parent.config
 
     # find the path from the config root to the desired object
@@ -59,6 +68,7 @@ def non_abstract_children(base):
     base : class
         High level class object that is inherited by the
         desired subclasses
+
     Returns
     -------
     non_abstract : dict
@@ -78,8 +88,9 @@ def non_abstract_children(base):
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     """
-    Metaclass to be able to make Component abstract
-    see: https://stackoverflow.com/a/7314847/3838691
+    Allow configurable components to be abstract.
+
+    See https://stackoverflow.com/a/7314847/3838691 for the metaclass approach.
     """
 
     pass
@@ -123,25 +134,39 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp = MyComponent()
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration from a file, command-line arguments, or another caller.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
+        Initialize component configuration and logging.
+
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-        parent: Tool or Component
-            If a Component is created by another Component or Tool,
-            you need to pass the creating Component as parent, e.g.
-            `parent=self`. This makes sure the config is correctly
-            handed down to the child components.
-            Do not pass config in this case.
-        kwargs
-            Traitlets to be overridden.
-            TraitError is raised if kwargs contains a key that does not
-            correspond to a traitlet.
+        config : traitlets.loader.Config or None, optional
+            Configuration from a file, command-line arguments, or other caller.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            When a component or tool creates a child component, pass
+            ``parent=self`` so the child inherits its configuration and uses
+            a child of its logger. Leave ``config`` unset in this case.
+        **kwargs
+            Trait values that override the configuration.
+
+        Raises
+        ------
+        ValueError
+            If both ``config`` and ``parent`` are provided.
+        TraitError
+            If a supplied trait value is invalid or an unknown trait is supplied.
         """
         if parent is not None and config is not None:
             raise ValueError(
@@ -194,7 +219,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             Passes the correct logger and configuration to the component.
             This argument is typically only specified when using this method
             from within a Tool (config need not be passed if parent is used).
-        kwargs
+        **kwargs
+            Additional keyword arguments forwarded to the subclass constructor.
 
         Returns
         -------
@@ -225,8 +251,10 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return subclasses
 
     def get_current_config(self):
-        """return the current configuration as a dict (e.g. the values
-        of all traits, even if they were not set during configuration)
+        """Return the current configurable trait values as a nested dictionary.
+
+        The result includes default values and the configuration of nested tools and
+        components.
         """
         from .tool import Tool  # to avoid circular import
 
@@ -248,7 +276,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return config
 
     def _repr_html_(self):
-        """nice HTML rep, with blue for non-default values"""
+        """Nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
 

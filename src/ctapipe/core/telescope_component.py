@@ -25,9 +25,23 @@ logger = logging.getLogger(__name__)
 
 class TelescopeComponent(Component):
     """
-    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,
-    and which contains configurable `~ctapipe.core.telescope_component.TelescopeParameter`
-    fields that must be configured on construction.
+    Configure a component with telescope-dependent parameters.
+
+    Use `~ctapipe.core.telescope_component.TelescopeParameter` for settings that
+    vary by telescope.
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription or None
+        Subarray used to resolve telescope-dependent parameters by telescope type or ID.
+        Pass None to attach a subarray later.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
@@ -36,6 +50,7 @@ class TelescopeComponent(Component):
 
     @property
     def subarray(self):
+        """Return the subarray used for telescope-dependent parameter lookups."""
         return self._subarray
 
     @subarray.setter
@@ -64,7 +79,7 @@ class TelescopeComponent(Component):
         ----------
         name : str
             Name of the subclass to obtain
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             The current subarray for this TelescopeComponent.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
@@ -76,8 +91,8 @@ class TelescopeComponent(Component):
             Passes the correct logger and configuration to the component.
             This argument is typically only specified when using this method
             from within a Tool (config need not be passed if parent is used).
-        kwargs
-            Are passed to the subclass
+        **kwargs
+            Additional keyword arguments forwarded to the subclass constructor.
 
         Returns
         -------
@@ -92,8 +107,16 @@ class TelescopeComponent(Component):
 
 class TelescopePatternList(UserList):
     """
-    Representation for a list of telescope pattern tuples. This is a helper class
-    used  by the Trait TelescopeParameter as its value type
+    Store the patterns used to configure telescope parameters.
+
+    The list stores the pattern tuples used as the value of a `TelescopeParameter`
+    trait.
+
+    Parameters
+    ----------
+    *args
+        Arguments forwarded to the list constructor, typically an iterable of telescope
+        patterns or scalar defaults.
     """
 
     def __init__(self, *args):
@@ -106,7 +129,7 @@ class TelescopePatternList(UserList):
 
     @property
     def tel(self):
-        """access the value per telescope_id, e.g. ``param.tel[2]``"""
+        """Access the value per telescope_id, e.g. ``param.tel[2]``"""
         if self._lookup:
             return self._lookup
         else:
@@ -117,6 +140,20 @@ class TelescopePatternList(UserList):
 
     @staticmethod
     def single_to_pattern(value):
+        """
+        Convert a scalar parameter to a pattern matching every telescope type.
+
+        Parameters
+        ----------
+        value : object
+            A scalar parameter value or a three-item tuple whose command is
+            ``"type"`` or ``"id"``.
+
+        Returns
+        -------
+        list or tuple
+            The input pattern tuple, or ``["type", "*", value]`` for a scalar.
+        """
         # make sure we only change things that are not already a
         # pattern tuple
         if (
@@ -129,29 +166,45 @@ class TelescopePatternList(UserList):
         return value
 
     def append(self, value):
-        """Validate and then append a new value"""
+        """Validate and then append a new value
+
+        Parameters
+        ----------
+        value : object
+            Telescope pattern tuple or scalar default to append.
+        """
         super().append(self.single_to_pattern(value))
 
     def attach_subarray(self, subarray):
         """
-        Register a SubarrayDescription so that the user-specified values can be
-        looked up by tel_id. This must be done before using the ``.tel[x]`` property
+        Attach the subarray for telescope-specific lookups.
+
+        Call this before accessing ``.tel[x]``.
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray whose telescope IDs and types are matched against the patterns.
         """
         self._subarray = subarray
         self._lookup.attach_subarray(subarray)
 
 
 class TelescopeParameterLookup:
-    def __init__(self, telescope_parameter_list):
-        """
-        Handles the lookup of corresponding configuration value from a list of
-        tuples for a tel_id.
+    """Resolve telescope-dependent configuration for a subarray.
 
-        Parameters
-        ----------
-        telescope_parameter_list : list
-            List of tuples in the form `[(command, argument, value), ...]`
-        """
+    Attach a subarray before looking up values by telescope ID or type.
+    Rules are applied in order, so a later match can replace an earlier
+    one. Use a None key to retrieve the global value, if one was configured.
+
+    Parameters
+    ----------
+    telescope_parameter_list : list of tuple
+        Rules given as ``(command, argument, value)`` tuples. The lookup
+        copies this list before resolving values for a subarray.
+    """
+
+    def __init__(self, telescope_parameter_list):
         self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._value_for_tel_id = None
         self._value_for_type = None
@@ -164,12 +217,11 @@ class TelescopeParameterLookup:
 
     def attach_subarray(self, subarray):
         """
-        Prepare the TelescopeParameter by informing it of the
-        subarray description
+        Prepare the TelescopeParameter by informing it of the subarray description
 
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             Description of the subarray
             (includes mapping of tel_id to tel_type)
         """
@@ -203,6 +255,12 @@ class TelescopeParameterLookup:
     def __getitem__(self, tel: int | str | None):
         """
         Returns the resolved parameter for the given telescope id
+
+        Parameters
+        ----------
+        tel : int or str or None
+            Telescope ID, telescope type name, or None for the configured global
+            setting.
         """
         if tel is None:
             if self._subarray_global_value is not Undefined:
@@ -253,8 +311,10 @@ class TelescopeParameterLookup:
 
 class TelescopeParameter(List):
     """
-    Allow a parameter value to be specified as a simple value (of type *dtype*),
-    or as a list of patterns that match different telescopes.
+    Configure either a single value or values matched by telescope pattern.
+
+    A single value has type *dtype*. Telescope-specific values are provided as a list of
+    patterns.
 
     The patterns are given as a list of 3-tuples in the
     form: ``[(command, argument, value), ...]``.
@@ -269,6 +329,16 @@ class TelescopeParameter(List):
 
     These are evaluated in-order, so you can first set a default value, and then set
     values for specific telescopes or types to override them.
+
+    Parameters
+    ----------
+    trait : traitlets.TraitType
+        Trait instance used to validate each telescope's value.
+    default_value : object, optional
+        Single default value or list of telescope patterns. Omit to use the trait's
+        default initialization.
+    **kwargs
+        Trait options such as ``help`` and ``allow_none``.
 
     Examples
     --------
@@ -295,6 +365,16 @@ class TelescopeParameter(List):
     def __init__(self, trait, default_value=Undefined, **kwargs):
         """
         Create a new TelescopeParameter
+
+        Parameters
+        ----------
+        trait : traitlets.TraitType
+            Trait instance used to validate each telescope's value.
+        default_value : object, optional
+            Single default value or list of telescope patterns. Omit to use the trait's
+            default initialization.
+        **kwargs
+            Trait options such as ``help`` and ``allow_none``.
         """
         self._help = ""
 
@@ -313,6 +393,7 @@ class TelescopeParameter(List):
 
     @property
     def help(self):
+        """Return the help for this parameter followed by the wrapped trait's help."""
         sep = "." if not self._help.endswith(".") else ""
         return f"{self._help}{sep} {self._trait.help}"
 
@@ -321,7 +402,14 @@ class TelescopeParameter(List):
         self._help = value
 
     def from_string(self, s):
-        """Turn string into List."""
+        """Turn string into List.
+
+        Parameters
+        ----------
+        s : str
+            Configuration string representing a scalar value or a list of telescope
+            patterns.
+        """
         val = super().from_string(s)
         # for strings, parsing fails and traitlets returns None
         if val == [("type", "*", None)] and s != "None":
@@ -334,7 +422,16 @@ class TelescopeParameter(List):
         return self._trait.validate(obj, value)
 
     def validate(self, obj, value):
-        """Validate telescope-component dict."""
+        """Validate telescope-component dict.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose telescope parameter is being validated.
+        value : object
+            Scalar to apply to every telescope, or a list of telescope-ID or
+            telescope-type patterns.
+        """
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]
@@ -378,6 +475,16 @@ class TelescopeParameter(List):
         return normalized_value
 
     def set(self, obj, value):
+        """
+        Set a telescope parameter and retain its subarray lookup.
+
+        Parameters
+        ----------
+        obj : traitlets.HasTraits
+            Object whose parameter is being set.
+        value : object
+            Telescope patterns or a single value to apply to every telescope type.
+        """
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]

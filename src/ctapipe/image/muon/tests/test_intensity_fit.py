@@ -235,13 +235,13 @@ def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
 
     Parameters
     ----------
-    Rmirror: quantity[length]
+    r_mirror : quantity[length]
         mirror radius
-    theta_cher: quantity[angle]
+    theta_cher : quantity[angle]
         Cherenkov angle
-    lambda_min: quantity[length]
+    lambda_min : quantity[length]
         photon wavelength
-    lambda_max: quantity[length]
+    lambda_max : quantity[length]
         photon wavelength
 
     Returns
@@ -249,7 +249,6 @@ def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
     float: number of Cherenkov photons
 
     """
-
     return (
         np.pi
         * alpha

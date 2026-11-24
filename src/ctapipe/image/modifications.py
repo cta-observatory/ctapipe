@@ -1,3 +1,10 @@
+"""Adjust simulated waveforms and images to match camera conditions.
+
+Add sampled night-sky background noise to R1 waveforms before data volume
+reduction. At image level, add noise to the integrated pixel charges or
+redistribute charge among neighboring pixels to simulate optical blurring.
+"""
+
 from collections import defaultdict
 
 import numpy as np
@@ -45,39 +52,34 @@ def _smear_psf_randomly(
     image, fraction, indices, indptr, smear_probabilities, seed=None
 ):
     """
-    Create a new image with values smeared across the
-    neighbor pixels specified by `indices` and `indptr`.
-    These are what defines the sparse neighbor matrix
-    and are available as attributes from the neighbor matrix.
-    The amount of charge that is distributed away from a given
-    pixel is drawn from a poissonian distribution.
-    The distribution of this charge among the neighboring
-    pixels follows a multinomial.
-    Pixels at the camera edge lose charge this way.
-    No geometry is available in this function due to the numba optimization,
-    so the indices, indptr and smear_probabilities have to match
-    to get sensible results.
+    Redistribute pixel values randomly among their neighbors.
 
-    Parameters:
-    -----------
-    image: ndarray
+    The sparse neighbor matrix provides `indices` and `indptr`. The amount of
+    redistributed charge follows a Poisson distribution, and its allocation among
+    neighbors follows a multinomial distribution. Pixels at the camera edge lose charge.
+    The function does not have access to the geometry, so the indices, pointers, and
+    smearing probabilities must be consistent.
+
+    Parameters
+    ----------
+    image : ndarray
         1d array of the pixel charge values
-    fraction: float
+    fraction : float
         fraction of charge that will be distributed among neighbors (modulo poissonian)
-    indices: ndarray[int]
+    indices : ndarray[int]
         CSR format index array of the neighbor matrix
-    indptr: ndarray[int]
+    indptr : ndarray[int]
         CSR format index pointer array of the neighbor matrix
-    smear_probabilities: ndarray[float]
+    smear_probabilities : ndarray[float]
         shape: (n_neighbors, )
         A priori distribution of the charge amongst neighbors.
         In most cases probably of the form np.full(n_neighbors, 1/n_neighbors)
-    seed: int
+    seed : int
         Random seed for the numpy rng.
         Because this is numba optimized, a rng instance can not be used here
 
-    Returns:
-    --------
+    Returns
+    -------
     new_image: ndarray
         1d array with smeared values
     """
@@ -114,8 +116,9 @@ def _smear_psf_randomly(
 
 class NoiseEventTypeFilter(EventTypeFilter):
     """
-    Event filter to select noise events for MC tuning
-    By default it selects SKY_PEDESTAL events
+    Select noise events for simulation tuning.
+
+    By default, the filter selects ``SKY_PEDESTAL`` events.
     """
 
     @default("allowed_types")
@@ -128,33 +131,31 @@ def build_wf_noise_pixelwise(
     waveforms, n_noise_realizations, nsb_level, rng, sample_pixels_independently
 ):
     """
-    Combine "elemental noise waveforms" into total noise waveforms by
-    combining a given number of them, chosen randomly
+    Combine randomly selected noise waveforms into noise realizations.
+
+    Each realization samples elementary events without replacement. Sample the same
+    events for all pixels or draw a separate sample per pixel, depending on
+    ``sample_pixels_independently``.
 
     Parameters
     ----------
-    waveforms: array (nevents, ngains, npixels, nsamples), the elemental noise
-    waveforms
-
-    n_noise_realizations: int
-    the number of total noise waveforms we want to generate
-
-    nsb_level: int
-    the number of elemental noise waveforms we combine to produce each total
-    noise waveform
-
-    rng: random number generator
-
-    sample_pixels_independently: bool
-    if True, each pixel will use a different random combination of the elemental
-    noise events to build the noise to be added to its waveform.
-    if False, the waveform for each pixel in any given noise realization comes
-    from the same random combination of the input elemental noise events.
-
+    waveforms : ndarray
+        Input noise waveforms of shape ``(n_events, n_gains, n_pixels, n_samples)``.
+    n_noise_realizations : int
+        Number of noise waveform realizations to generate.
+    nsb_level : int
+        Number of input noise events to sum for each realization.
+    rng : numpy.random.Generator
+        Random number generator used to choose the noise events.
+    sample_pixels_independently : bool
+        If True, draw noise events independently for each pixel. If False,
+        each realization uses the same selected events for all pixels.
 
     Returns
     -------
-    array (n_noise, ngains, npixels, nsamples), total noise waveforms
+    ndarray
+        Summed noise waveforms of shape
+        ``(n_noise_realizations, n_gains, n_pixels, n_samples)``.
 
     """
     n_events, n_gains, n_pixels, n_samples = waveforms.shape
@@ -213,7 +214,19 @@ class WaveformModifier(TelescopeComponent):
     events. This is to guarantee that the different noise waveforms are not
     too correlated
 
-
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray of the events to which the sampled noise waveforms will be added.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Supply ``nsb_file`` for the input
+        noise waveforms and set ``nsb_level`` to control how many waveforms are summed
+        per realization.
     """
 
     nsb_file = Path(
@@ -261,23 +274,28 @@ class WaveformModifier(TelescopeComponent):
         **kwargs,
     ):
         """
+        Prepare noise waveforms to add to simulated telescope events.
+
+        Read the configured noise database, center its samples, and combine random
+        samples into noise realizations for each telescope.
 
         Parameters
         ----------
-        subarray: SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Subarray that will receive the noise waveforms.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
 
+        Raises
+        ------
+        ValueError
+            If the database contains too few usable noise events.
         """
-
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
@@ -345,23 +363,23 @@ class WaveformModifier(TelescopeComponent):
 
     def check_noise_statistics(self, nsb_database):
         """
-        Check that we have enough NSB-only events for all telescopes. We
-        require that the number of NSB events for any telescope is at
+        Check that each telescope has enough night sky background events.
+
+        We require that the number of NSB events for any telescope is at
         least two times the number of waveforms (=nsb_level) that we will add
         up. This is to avoid excessive correlation among the waveforms.
 
         Parameters
         ----------
-        nsb_database: dict
-        Dictionary with one key per telescope, containing an array [n_events,
-        n_gains, n_pixels, n_samples] (noise waveforms)
+        nsb_database : dict[int, ndarray]
+            Noise waveforms keyed by telescope ID, each with shape
+            ``(n_events, n_gains, n_pixels, n_samples)``.
 
         Returns
         -------
         stats_ok : bool
-        True if statistics of noise events is considered sufficient
+            True if every telescope has enough noise events.
         """
-
         stats_ok = True
         for tel_id in nsb_database:
             nevents = nsb_database[tel_id].shape[0]
@@ -380,23 +398,18 @@ class WaveformModifier(TelescopeComponent):
 
     def zero_baseline(self, nsb_database):
         """
-        For each telescope and gain we average the waveform values for all
-        pixels, and subtract those averages from the waveforms.
-        In this way we make sure we do not introduce any net average charge,
-        but only increase the fluctuations.
+        Center the noise samples for each telescope and gain channel.
+
+        Subtract one scalar mean across all events, pixels, and samples in place. This
+        allows the sampled waveforms to add fluctuations without adding charge on
+        average.
 
         Parameters
         ----------
-        nsb_database: dict
-        Dictionary with one key per telescope, containing an array [n_events,
-        n_gains, n_pixels, n_samples] (noise waveforms)
-
-        Returns
-        -------
-        nsb_database: dict
-        Dictionary, same as above but after baseline zeroing
+        nsb_database : dict[int, ndarray]
+            Noise waveforms keyed by telescope ID, each with shape
+            ``(n_events, n_gains, n_pixels, n_samples)``.
         """
-
         for tel_id in nsb_database:
             for channel in range(nsb_database[tel_id].shape[1]):
                 mean = np.mean(nsb_database[tel_id][:, channel, :, :])
@@ -404,12 +417,27 @@ class WaveformModifier(TelescopeComponent):
 
     def __call__(self, event: SubarrayEventContainer):
         """
+        Add sampled noise to an event's R1 waveforms in place.
+
+        Apply this before data volume reduction while the waveforms still cover
+        all pixels. If gain selection has already been applied, use the matching
+        noise gain channel for each pixel.
+
         Parameters
         ----------
-        event: container
-            A `~ctapipe.containers.SubarrayEventContainer` event container
-        """
+        event : ctapipe.containers.SubarrayEventContainer
+            Event with R1 waveforms to modify for each telescope.
 
+        Returns
+        -------
+        None
+            The event's R1 waveform arrays are replaced with the noisy waveforms.
+
+        Raises
+        ------
+        ValueError
+            If any telescope event does not contain R1 waveforms.
+        """
         for tel_id, tel_event in event.tel.items():
             r1 = tel_event.r1
             if r1 is None or r1.waveform is None:
@@ -430,17 +458,30 @@ class WaveformModifier(TelescopeComponent):
 
 class ImageModifier(TelescopeComponent):
     """
-    Component to tune simulated background to
-    overserved NSB values.
-    A differentiation between bright and dim pixels is taking place
-    because this happens at DL1a level and in general the integration window
-    would change for peak-searching extraction algorithms with different background levels
-    introducing a bias to the charge in dim pixels.
+    Tune simulated night sky background to observations.
+
+    Bright and dim pixels are handled separately at DL1a. For peak-searching extractors,
+    changing the background can shift the integration window and bias the charge of dim
+    pixels.
 
     The performed steps include:
     - Smearing of the image (simulating a worse PSF)
     - Adding poissonian noise (different for bright and dim pixels)
     - Adding a bias to dim pixel charges (see above)
+
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Subarray used to look up telescope-dependent settings and the pixel neighbours
+        used in PSF smearing.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set
+        ``psf_smear_factor`` and the noise levels by telescope.
     """
 
     psf_smear_factor = FloatTelescopeParameter(
@@ -469,25 +510,44 @@ class ImageModifier(TelescopeComponent):
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
+        Configure telescope-dependent image smearing and noise.
+
+        Initialize the random number generator used by the image modifications
+        from the configured seed.
+
         Parameters
         ----------
-        subarray: SubarrayDescription
-            Description of the subarray. Provides information about the
-            camera which are useful in calibration. Also required for
-            configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy,
-            this is mutually exclusive with passing ``config``
+        subarray : ctapipe.instrument.SubarrayDescription
+            Telescope descriptions and camera geometries used by the modifications.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
-
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.rng = np.random.default_rng(self.rng_seed)
 
     def __call__(self, tel_id, image, rng=None):
+        """
+        Apply the configured PSF smearing and charge-dependent noise to an image.
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope ID used to look up the geometry and modification settings.
+        image : ndarray
+            Image charges indexed by camera pixel.
+        rng : object, optional
+            Unused. Random draws use the modifier's configured generator.
+
+        Returns
+        -------
+        ndarray
+            Image charges after modification, with the input data type.
+        """
         dtype = image.dtype
 
         if self.psf_smear_factor.tel[tel_id] > 0:

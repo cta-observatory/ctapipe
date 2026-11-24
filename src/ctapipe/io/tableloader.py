@@ -1,6 +1,7 @@
 """
-Class and related functions to read DL1 (a,b) and/or DL2 (a) data
-from an HDF5 file produced with ctapipe-process.
+Read DL1 and DL2 tables written by ctapipe-process.
+
+Supports DL1a, DL1b, and DL2a data in HDF5 files.
 """
 
 import warnings
@@ -64,9 +65,14 @@ class ChunkIterator:
         a chunk.
     n_total : int
         Total number of elements
-    chunk_size : size of one chunk, last chunk will have size <= chunk_size
-
-    *args and **kwargs will be passed to `func`
+    chunk_size : int
+        Number of elements per chunk. The last chunk may be smaller.
+    args : tuple
+        Positional arguments forwarded to `func`.
+    kwargs : dict
+        Keyword arguments forwarded to `func`. The optional ``start`` and
+        ``stop`` entries delimit the full range to iterate over. The iterator
+        passes the bounds for the current chunk to `func`.
 
     """
 
@@ -121,8 +127,7 @@ class ChunkIterator:
 
 def _empty_telescope_events_table():
     """
-    Create a new astropy table with correct column names and dtypes
-    for telescope event based data.
+    Create an empty table with the schema for telescope events.
     """
     return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.uint64, np.uint64, np.uint16])
 
@@ -187,6 +192,16 @@ class TableLoader(Component):
       telescope type, which is needed for e.g. DL1 image data that might have
       different shapes for each of the telescope types as tables do not support
       variable length columns.
+
+    Parameters
+    ----------
+    input_url : str or pathlib.Path or None, optional
+        Path to the ctapipe event file. Supply this or an open file handle, or configure
+        ``input_url``.
+    h5file : tables.File or None, optional
+        Already open event file. The caller retains responsibility for closing it.
+    **kwargs
+        Component configuration and trait values selecting the data products to load.
 
     Attributes
     ----------
@@ -454,17 +469,21 @@ class TableLoader(Component):
 
         Parameters
         ----------
-
-        dl2: bool
+        start : int or None, optional
+            First row of the subarray trigger table to read, inclusive. None
+            starts at the beginning.
+        stop : int or None, optional
+            End row of the subarray trigger table, exclusive. None reads through
+            the end of the table.
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        start: int
-            First *subarray* event to read
-        stop: int
-            Last *subarray* event (non-inclusive)
+        keep_order : bool, optional
+            Restore the subarray trigger table's row order after joining data
+            from other tables.
 
         Returns
         -------
@@ -523,8 +542,14 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk
+        *args
+            Positional arguments forwarded to `read_subarray_events`. Leave this
+            empty because the iterator passes the chunk bounds by keyword.
+        **kwargs
+            Options for `read_subarray_events`. Use ``start`` and ``stop`` to restrict
+            the full range to iterate over.
         """
         return ChunkIterator(
             self.read_subarray_events,
@@ -555,30 +580,30 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        tel_id: int
+        tel_id : int
             Telescope identification number.
-        start: int
-            First *subarray* event to read
-        stop: int
-            Last *subarray* event (non-inclusive)
-        dl1_images: bool
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
+        start : int
+            First *subarray* event to read
+        stop : int
+            Last *subarray* event (non-inclusive)
 
         Returns
         -------
@@ -800,32 +825,32 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: Optional[List[Union[int, str, TelescopeDescription]]]
+        telescopes : Optional[List[Union[int, str, TelescopeDescription]]]
             A list containing any combination of telescope IDs and/or
             telescope descriptions. If None, all available telescopes are read.
-        start: int
+        start : int
             First *subarray* event to read
-        stop: int
+        stop : int
             Last *subarray* event (non-inclusive)
-        dl1_images: bool
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -899,12 +924,14 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
-
-        **kwargs are passed to `read_telescope_events`
+        *args
+            Positional arguments forwarded to `read_telescope_events`.
+        **kwargs
+            Keyword arguments forwarded to `read_telescope_events`.
         """
         return ChunkIterator(
             self.read_telescope_events,
@@ -917,8 +944,10 @@ class TableLoader(Component):
     @lazyproperty
     def _n_telescope_events(self):
         """
-        Number of telescope events in the file for each telescope previous
-        to the nth subarray event.
+        Count earlier telescope events separately for each telescope.
+
+        Row n records the per-telescope counts before subarray event n. Counts are
+        derived from the trigger table.
         """
         # we need to load the trigger table until "stop" to
         # know which telescopes participated in which events
@@ -942,8 +971,9 @@ class TableLoader(Component):
     @lazyproperty
     def _n_total_telescope_events(self):
         """
-        Number of telescope events in the file for each telescope previous
-        to the nth subarray event.
+        Count all telescope events before each subarray event.
+
+        Sum the per-telescope counts for each row of the trigger table.
         """
         return self._n_telescope_events.sum(axis=1)
 
@@ -967,27 +997,33 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
+        telescopes : List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
-        dl1_images: bool
+        start : int or None, optional
+            First subarray event row to include, in trigger table order. None
+            starts at the beginning.
+        stop : int or None, optional
+            Subarray event row at which to stop, exclusive. None reads through
+            the end of the trigger table.
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -1074,12 +1110,14 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
-
-        **kwargs are passed to `read_telescope_events`
+        *args
+            Positional arguments forwarded to `read_telescope_events_by_type`.
+        **kwargs
+            Keyword arguments forwarded to `read_telescope_events_by_type`.
         """
         return ChunkIterator(
             self.read_telescope_events_by_type,
@@ -1109,27 +1147,33 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
+        telescopes : List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
-        dl1_images: bool
+        start : int or None, optional
+            First subarray event row to include, in trigger table order. None
+            starts at the beginning.
+        stop : int or None, optional
+            Subarray event row at which to stop, exclusive. None reads through
+            the end of the trigger table.
+        dl1_images : bool
             load extracted images
-        dl1_parameters: bool
+        dl1_parameters : bool
             load reconstructed image parameters
-        dl1_muons: bool
+        dl1_muons : bool
             load muon ring parameters
-        dl2: bool
+        dl2 : bool
             load available dl2 stereo parameters
-        simulated: bool
+        simulated : bool
             load simulated shower information
-        true_images: bool
+        true_images : bool
             load simulated shower images
-        true_parameters: bool
+        true_parameters : bool
             load image parameters obtained from true images
-        instrument: bool
+        instrument : bool
             join subarray instrument information to each event
-        observation_info: bool
+        observation_info : bool
             join observation information to each event
-        pointing: bool
+        pointing : bool
             join pointing information to each event
 
         Returns
@@ -1214,12 +1258,14 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        chunk_size: int
+        chunk_size : int
             Number of subarray events to load per chunk.
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
-
-        *args, **kwargs are passed to `read_telescope_events_by_id`
+        *args
+            Positional arguments forwarded to `read_telescope_events_by_id`.
+        **kwargs
+            Keyword arguments forwarded to `read_telescope_events_by_id`.
         """
         return ChunkIterator(
             self.read_telescope_events_by_id,

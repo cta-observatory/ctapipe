@@ -1,3 +1,9 @@
+"""Choose and apply a circle fit to selected pixels in a muon image.
+
+`MuonRingFitter` wraps the Kundu-Chaudhuri and Taubin fits in a common
+interface and supports using the former to initialize the latter.
+"""
+
 import numpy as np
 import traitlets as traits
 
@@ -13,18 +19,56 @@ from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 
 
 def kundu_chaudhuri(fov_lon, fov_lat, weights, mask):
-    """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface"""
+    """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface
+
+    Parameters
+    ----------
+    fov_lon : astropy.units.Quantity
+        Field-of-view longitude of each camera pixel.
+    fov_lat : astropy.units.Quantity
+        Field-of-view latitude of each camera pixel.
+    weights : ndarray
+        Pixel weights, typically the integrated charges used in the circle fit.
+    mask : ndarray of bool
+        Mask selecting the pixels used to fit the ring.
+    """
     return kundu_chaudhuri_circle_fit(fov_lon[mask], fov_lat[mask], weights[mask])
 
 
 def taubin(fov_lon, fov_lat, weights, mask):
-    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface"""
+    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface
+
+    Parameters
+    ----------
+    fov_lon : astropy.units.Quantity
+        Field-of-view longitude of each camera pixel.
+    fov_lat : astropy.units.Quantity
+        Field-of-view latitude of each camera pixel.
+    weights : ndarray
+        Pixel weights supplied through the common fit interface. This fit uses equal
+        weights.
+    mask : ndarray of bool
+        Mask selecting the pixels used to fit the ring.
+    """
     return taubin_circle_fit(fov_lon, fov_lat, mask)
 
 
 def kundu_chaudhuri_taubin(fov_lon, fov_lat, weights, mask):
-    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface
-    with initial parameters provided by kundu_chaudhuri"""
+    """Fit a circle with Taubin refinement after an initial Kundu-Chaudhuri fit.
+
+    The fit accepts field-of-view longitude and latitude, weights, and a mask.
+
+    Parameters
+    ----------
+    fov_lon : astropy.units.Quantity
+        Field-of-view longitude of each camera pixel.
+    fov_lat : astropy.units.Quantity
+        Field-of-view latitude of each camera pixel.
+    weights : ndarray
+        Pixel weights, typically the integrated charges used in the circle fit.
+    mask : ndarray of bool
+        Mask selecting the pixels used to fit the ring.
+    """
     taubin_r_initial, xc_initial, yc_initial, _, _, _ = kundu_chaudhuri_circle_fit(
         fov_lon[mask], fov_lat[mask], weights[mask], nan_errors_flag=True
     )
@@ -60,12 +104,12 @@ class MuonRingFitter(Component):
 
         Parameters
         ----------
-        geom: CameraGeometry
+        geom : CameraGeometry
             Defines the pixel coordinates.
             Must be in the `ctapipe.coordinates.TelescopeFrame`
-        image: np.ndarray[np.float32]
+        image : np.ndarray[np.float32]
             Image intensity values
-        clean_mask: np.array([],dtype=bool)
+        clean_mask : np.array([],dtype=bool)
             Boolean mask of clean pixels, where True means the pixel contains signal.
             This can be generated using a `ctapipe.image.ImageCleaner`.
 
@@ -74,7 +118,6 @@ class MuonRingFitter(Component):
         MuonRingContainer:
             Results of the ring fit.
         """
-
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
         (
             radius,

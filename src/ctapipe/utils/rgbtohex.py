@@ -1,3 +1,9 @@
+"""Map numerical intensities to display colors.
+
+Scale values into the viridis colormap and return byte-valued RGBA colors
+or hexadecimal color strings for display backends.
+"""
+
 import codecs
 
 import numpy as np
@@ -13,9 +19,9 @@ def intensity_to_rgb(array, minval=None, maxval=None):
     ----------
     array : ndarray
         1D numpy array containing intensity values for a z axis
-    minval: int
+    minval : int
         minimum value of the image
-    maxval: int
+    maxval : int
         maximum value of the image
 
     Returns
@@ -54,9 +60,9 @@ def intensity_to_hex(array, minval=None, maxval=None):
     ----------
     array : ndarray
         1D numpy array containing intensity values for a z axis
-    minval: int
+    minval : int
         minimum value of the image
-    maxval: int
+    maxval : int
         maximum value of the image
 
     Returns

@@ -1,6 +1,7 @@
 """Components to generate benchmarks"""
 
 from abc import abstractmethod
+from typing import override
 
 import astropy.units as u
 import numpy as np
@@ -47,6 +48,17 @@ def _get_2d_result_table(
 class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
     """
     Base class for calculating the bias and resolution of the energy prediction.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the number of bins per decade.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -61,9 +73,9 @@ class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns
@@ -74,13 +86,24 @@ class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
 
 class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffsetBins):
     """
-    Calculates the bias and the resolution of the energy prediction in bins of
-    true energy and fov offset.
+    Calculate energy bias and resolution in true energy and offset bins.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the true-energy
+        bounds and the field-of-view offset bins.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self, events: QTable, extname: str = "ENERGY BIAS RESOLUTION"
     ) -> BinTableHDU:
@@ -110,6 +133,17 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffse
 class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
     """
     Base class for calculating the angular resolution.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Use ``use_reco_energy`` to choose
+        the energy axis and ``quantiles`` to choose the containment fractions.
     """
 
     use_reco_energy = Bool(
@@ -135,9 +169,9 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
 
         Parameters
         ----------
-        events: astropy.table.QTable
+        events : astropy.table.QTable
             Reconstructed events to be used.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns
@@ -148,13 +182,26 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
 
 class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins):
     """
-    Calculates the angular resolution in bins of either true or reconstructed energy
-    and fov offset.
+    Calculate angular resolution in energy and field of view offset bins.
+
+    The energy axis can use either true or reconstructed energy.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the field-of-view
+        offset bins and the containment fractions in ``quantiles``.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self, events: QTable, extname: str = "ANGULAR RESOLUTION"
     ) -> BinTableHDU:
@@ -204,6 +251,17 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
     All other benchmarks/ IRF components prioritize respecting the lower and upper
     bounds for the energy binning over creating exactly ``n_bins_per_decade`` bins
     per decade.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy bins and ``alpha``, the on-to-off region size ratio.
     """
 
     alpha = Float(
@@ -234,20 +292,21 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
         extname: str = "SENSITIVITY",
     ) -> BinTableHDU:
         """
-        Calculate the point source sensitivity
-        based on ``pyirf.sensitivity.calculate_sensitivity``.
+        Calculate the point-source sensitivity.
+
+        Uses `pyirf.sensitivity.calculate_sensitivity`.
 
         Parameters
         ----------
-        signal_events: astropy.table.QTable
+        signal_events : astropy.table.QTable
             Reconstructed signal events to be used.
-        background_events: astropy.table.QTable
+        background_events : astropy.table.QTable
             Reconstructed background events to be used.
-        spatial_selection_table: QTable
+        spatial_selection_table : QTable
             Direction cut that was applied on ``signal_events``.
-        gamma_spectrum: ctapipe.irf.Spectra
+        gamma_spectrum : ctapipe.irf.Spectra
             Spectra by which to scale the relative sensitivity to get the flux sensitivity.
-        extname: str
+        extname : str
             Name of the BinTableHDU.
 
         Returns
@@ -258,13 +317,25 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
 
 class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
     """
-    Calculates the point source sensitivity in bins of reconstructed energy
-    and fov offset.
+    Calculate point-source sensitivity in reconstructed energy and offset bins.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, set the
+        reconstructed-energy and field-of-view offset bins or the on-to-off region size
+        ratio ``alpha``.
     """
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
+    @override
     def __call__(
         self,
         signal_events: QTable,

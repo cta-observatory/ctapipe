@@ -1,8 +1,8 @@
 """
-Methods for guessing details about a telescope from some metadata, so that
-we can create TelescopeDescriptions from Monte-Carlo where some
-parameters like the names of the camera and optics structure are not
-stored in the file.
+Infer telescope properties from available metadata.
+
+This lets us construct telescope descriptions from Monte Carlo files that omit metadata
+such as the camera and optics names.
 """
 
 from collections import namedtuple
@@ -90,17 +90,22 @@ LOOKUP_TREE = _build_lookup_tree(TELESCOPE_NAMES)
 
 def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
     """
-    From n_pixels of the camera and the focal_length,
-    guess which telescope we are dealing with.
-    This is mainly needed to add human readable names
-    to telescopes read from simtel array.
+    Infer the telescope type from the pixel count and focal length.
+
+    The lookup uses camera pixel count and focal length and can use the mirror facet
+    count to distinguish entries. This supplies readable telescope names for SimTelArray
+    inputs.
 
     Parameters
     ----------
-    n_pixels: int
+    n_pixels : int
         number of pixels of the telescope's camera
-    focal_length: float or u.Quantity[length]
+    focal_length : float or u.Quantity[length]
         Focal length, either in m or as astropy quantity
+    n_mirror_tiles : int or None, optional
+        Number of mirror facets, used to distinguish telescope types with the
+        same pixel count and focal length. If no specific match is found,
+        fall back to the entry for which the facet count is irrelevant, if present.
 
     Returns
     -------
@@ -124,6 +129,23 @@ def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
 
 @u.quantity_input(mirror_area=u.m**2)
 def type_from_mirror_area(mirror_area):
+    """Estimate the telescope size class from its mirror area.
+
+    Use the diameter of a circle with the given area as a proxy for
+    telescope size, for example when the telescope type is missing from
+    simulation metadata.
+
+    Parameters
+    ----------
+    mirror_area : astropy.units.Quantity
+        Scalar mirror area in units convertible to square meters.
+
+    Returns
+    -------
+    str
+        ``SST`` below 8 m, ``MST`` from 8 m up to but excluding 16 m,
+        or ``LST`` from 16 m upward.
+    """
     mirror_diameter = (2 * np.sqrt(mirror_area / np.pi)).to_value(u.m)
 
     if mirror_diameter < 8:
@@ -136,7 +158,17 @@ def type_from_mirror_area(mirror_area):
 
 
 def unknown_telescope(mirror_area, n_pixels, n_mirrors=-1):
-    """Create a GuessingResult for an unknown_telescope"""
+    """Create a GuessingResult for an unknown_telescope
+
+    Parameters
+    ----------
+    mirror_area : float or astropy.units.Quantity
+        Reflective mirror area, in square metres for a bare number.
+    n_pixels : int
+        Camera pixel count used to label the unknown camera.
+    n_mirrors : int, optional
+        Known number of mirrors. The default -1 records an unknown count.
+    """
     # this allows passing a plain number in square meter and any quantity
     # with an area unit
     mirror_area = u.Quantity(mirror_area, u.m**2)

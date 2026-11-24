@@ -1,3 +1,10 @@
+"""Read SimTelArray event files and expose simulated events to ctapipe.
+
+`SimTelEventSource` reads the EventIO format and supplies the instrument
+description along with raw and calibrated waveforms. The module also reads
+simulation and atmosphere metadata.
+"""
+
 import enum
 import pathlib
 import warnings
@@ -5,6 +12,7 @@ from contextlib import nullcontext
 from enum import Enum, IntFlag, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
+from typing import override
 
 import numpy as np
 from astropy import units as u
@@ -225,7 +233,13 @@ NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
 def parse_simtel_time(simtel_time):
-    """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
+    """Convert a unix time second / nanosecond tuple into astropy.time.Time
+
+    Parameters
+    ----------
+    simtel_time : tuple of int
+        sim_telarray timestamp as Unix seconds and additional nanoseconds, in UTC.
+    """
     return Time(
         simtel_time[0],
         simtel_time[1] * 1e-9,
@@ -251,7 +265,18 @@ def _location_from_meta(global_meta):
 
 
 def build_camera(simtel_telescope, telescope, frame):
-    """Create CameraDescription from eventio data structures"""
+    """Create CameraDescription from eventio data structures
+
+    Parameters
+    ----------
+    simtel_telescope : dict
+        eventio telescope description containing the sim_telarray camera and pixel
+        settings and organization.
+    telescope : GuessingResult
+        Inferred telescope description supplying the camera name.
+    frame : CameraFrame
+        Coordinate frame to assign to the camera geometry.
+    """
     camera_settings = simtel_telescope["camera_settings"]
     pixel_settings = simtel_telescope["pixel_settings"]
     camera_organization = simtel_telescope["camera_organization"]
@@ -345,12 +370,12 @@ def _telescope_from_meta(telescope_meta, mirror_area):
 
 def apply_simtel_r1_calibration(r0_waveforms, pedestal, factor, calib_shift=0.0):
     """
-    Perform the R1 calibration for R0 simtel waveforms. This includes:
-        - Pedestal subtraction
-        - Conversion of samples into units proportional to photoelectrons
-          (If the full signal in the waveform was integrated, then the resulting
-          value would be in photoelectrons.)
-          (Also applies flat-fielding)
+    Calibrate raw simtel waveforms from R0 to R1.
+
+    Subtract the pedestal and multiply by the conversion factor for each
+    pixel and gain channel. The factor includes flat-fielding and scales
+    the samples so the integrated signal is in photoelectrons. Apply the
+    optional calibration offset after conversion.
 
     Parameters
     ----------
@@ -364,7 +389,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, factor, calib_shift=0.0)
         Conversion factor between R0 waveform samples and ~p.e., stored in the
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
-    calib_shift: float
+    calib_shift : float
         Shift the resulting R1 output in p.e. for simulating miscalibration.
         Defaults to no shift.
 
@@ -417,8 +442,10 @@ def apply_gain_selection(r0_waveforms, r1_waveforms, gain_selector):
 @unique
 class AtmosphereProfileKind(Enum):
     """
-    choice for which kind of atmosphere density profile to load if more than
-    one is present"""
+    Choose the atmosphere profile to load from a simulation file.
+
+    The choice applies when the file contains more than one profile.
+    """
 
     #: Don't load a profile
     NONE = auto()
@@ -440,9 +467,9 @@ def read_atmosphere_profile_from_simtel(
 
     Parameters
     ----------
-    simtelfile: str | SimTelFile
+    simtelfile : str | SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
-    kind: AtmosphereProfileKind | str
+    kind : AtmosphereProfileKind | str
         which type of model to load. In AUTO mode, table is tried first,
         and if it doesn't exist, fivelayer is used.
 
@@ -549,6 +576,19 @@ class SimTelEventSource(EventSource):
     If these parameters are not included in the input data, ctapipe will
     fallback guesses these based on available data and the list of known telescopes
     for `ctapipe.instrument.guess_telescope`.
+
+    Parameters
+    ----------
+    input_url : str or pathlib.Path or None, optional
+        Path to a sim_telarray event file. If omitted, use the configured input.
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. For example, choose the gain
+        selector via ``gain_selector_type``.
     """
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
@@ -644,17 +684,16 @@ class SimTelEventSource(EventSource):
 
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
-            The GainSelector to use. If None, then ThresholdGainSelector will be used.
-        kwargs
+        input_url : str or pathlib.Path, optional
+            Path to the sim_telarray file. If omitted, use the configured input.
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent supplying configuration and logging. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration. Set ``gain_selector_type``
+            to choose the gain selector. The default is ``ThresholdGainSelector``.
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
         if SimTelFile is None:
@@ -711,28 +750,34 @@ class SimTelEventSource(EventSource):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    @override
     def close(self):
         self.file_.close()
 
     @property
+    @override
     def is_simulation(self):
         return True
 
     @property
+    @override
     def datalevels(self):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
+    @override
     def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         return self._simulation_config
 
     @property
+    @override
     def telescope_simulation_config(
         self,
     ) -> dict[int, dict[int, TelescopeSimulationConfigurationContainer]]:
         return self._telescope_simulation_config
 
     @property
+    @override
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return self._atmosphere_density_profile
 
@@ -751,6 +796,7 @@ class SimTelEventSource(EventSource):
         return self._scheduling_blocks
 
     @property
+    @override
     def is_stream(self):
         # eventio 1.x
         fh = getattr(self.file_, "_filehandle", None)
@@ -761,14 +807,16 @@ class SimTelEventSource(EventSource):
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
-        Constructs a SubarrayDescription object from the
-        ``telescope_descriptions`` given by ``SimTelFile``
+        Build the subarray description from SimTel telescope metadata.
+
+        The metadata comes from the ``telescope_descriptions`` provided by
+        ``SimTelFile``.
 
         Parameters
         ----------
-        telescope_descriptions: dict
+        telescope_descriptions : dict
             telescope descriptions as given by ``SimTelFile.telescope_descriptions``
-        header: dict
+        header : dict
             header as returned by ``SimTelFile.header``
 
         Returns
@@ -776,7 +824,6 @@ class SimTelEventSource(EventSource):
         SubarrayDescription :
             instrumental information
         """
-
         tel_descriptions = {}  # tel_id : TelescopeDescription
         tel_positions = {}  # tel_id : TelescopeDescription
 
@@ -867,12 +914,13 @@ class SimTelEventSource(EventSource):
 
     def _make_dummy_location(self):
         """
+        Create a fallback observatory location for a simulated run.
+
         Returns
         -------
-        EarthLocation:
-            Dummy earth location that is at the correct height (as given in the
-            SimulationConfigContainer), but with the lat/lon set to (0,0), i.e.
-            on "Null Island"
+        astropy.coordinates.EarthLocation
+            Location at longitude and latitude zero with the site altitude from
+            the current observation's simulation configuration.
         """
         return EarthLocation(
             lon=0 * u.deg,
@@ -881,6 +929,7 @@ class SimTelEventSource(EventSource):
         )
 
     @staticmethod
+    @override
     def is_compatible(file_path):
         try:
             from eventio.file_types import is_eventio
@@ -893,11 +942,25 @@ class SimTelEventSource(EventSource):
         return is_eventio(path)
 
     @property
+    @override
     def subarray(self):
         return self._subarray_info
 
     @property
     def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
+        """
+        Return the simulated shower histogram keyed by observation ID.
+
+        SimTel stores histograms at the end of the file. Consume all events
+        before requesting them. Limiting iteration with ``max_events`` can
+        prevent the histograms from being read. If none have been read,
+        emit a warning and return an empty dictionary.
+
+        Returns
+        -------
+        dict[int, SimulatedShowerDistribution]
+            Distribution of simulated showers in true energy and core distance.
+        """
         if self.file_.histograms is None:
             warnings.warn(
                 "eventio file has no histograms (yet)."
@@ -1291,11 +1354,9 @@ class SimTelEventSource(EventSource):
 
     def _parse_simulation_header(self):
         """
-        Parse the simulation infos and return a dict with
-        observation ids mapped to SimulationConfigContainers.
-        As merged simtel files are not supported at this
-        point in time, this dictionary will always have
-        length 1.
+        Parse simulation headers into configurations keyed by observation ID.
+
+        Merged SimTel files are unsupported, so the result contains one entry.
         """
         obs_id = self.obs_id
         # With only one run, we can take the first entry:
@@ -1357,10 +1418,11 @@ class SimTelEventSource(EventSource):
         return {self.obs_id: configs}
 
     def _fill_scheduling_and_observation_blocks(self):
-        """fill scheduling and observation blocks must be run after the
-        simulation config is filled
-        """
+        """Build scheduling and observation blocks from the SimTel run header.
 
+        The observation ID can be replaced or offset by configuration. Both results are
+        keyed by observation ID.
+        """
         header = self.file_.header
         az, alt = header["direction"]
 

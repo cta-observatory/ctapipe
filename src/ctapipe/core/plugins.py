@@ -8,7 +8,13 @@ installed_entry_points = entry_points()
 
 
 def detect_and_import_plugins(group):
-    """detect and import plugins with given prefix,"""
+    """Detect and import plugins with given prefix,
+
+    Parameters
+    ----------
+    group : str
+        Entry-point group to discover, such as ``ctapipe_io``.
+    """
     modules = set()
     for entry_point in installed_entry_points.select(group=group):
         log.debug("Loading %s plugin: %s", group, entry_point.value)

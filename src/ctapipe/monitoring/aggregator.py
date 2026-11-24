@@ -304,6 +304,17 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
     Aggregators use a chunking strategy to divide input tables and compute
     aggregated statistics and histograms for each chunk.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``chunking_type`` to choose
+        the component that divides the input table.
     """
 
     chunking_type = ComponentName(
@@ -314,12 +325,20 @@ class BaseAggregator(Component, metaclass=ABCMeta):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
+        Initialize the strategy for splitting events into aggregation chunks.
+
+        Create the chunking component selected by ``chunking_type`` and give it
+        this aggregator as its configuration parent.
+
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments
-        parent : ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -428,6 +447,17 @@ class HistogramAggregator(BaseAggregator):
     Compute aggregated histograms from a chunk of event-wise data using Hist.
 
     Works with any N-dimensional event-wise data by aggregating along axis=0 (event dimension).
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config or None, optional
+        Configuration to use when no parent is provided.
+    parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+        Parent from which to inherit configuration and logging.
+        Mutually exclusive with ``config``.
+    **kwargs
+        Trait values that override the configuration. Set ``axis_definition`` to choose
+        the histogram axis type and binning.
     """
 
     axis_definition = Dict(
@@ -448,12 +478,27 @@ class HistogramAggregator(BaseAggregator):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
+        Configure chunked histogram aggregation and build its histogram axis.
+
+        The ``axis_definition`` trait selects the ``hist.axis`` class using
+        ``class_name``. Its remaining entries are passed to the axis constructor.
+
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments
-        parent : ctapipe.core.Component or ctapipe.core.Tool
-            Parent of this component in the configuration hierarchy
+        config : traitlets.loader.Config or None, optional
+            Configuration to use when no parent is provided.
+        parent : ctapipe.core.Component or ctapipe.core.Tool or None, optional
+            Parent from which to inherit configuration. Mutually exclusive with
+            ``config``.
+        **kwargs
+            Trait values that override the configuration.
+
+        Raises
+        ------
+        OptionalDependencyMissing
+            If the optional ``hist`` package is unavailable.
+        traitlets.TraitError
+            If ``axis_definition`` does not specify an axis class.
         """
         if hist is None:
             raise OptionalDependencyMissing("hist")
@@ -571,8 +616,10 @@ class HistogramAggregator(BaseAggregator):
     def hist_from_tablerow(
         row: Row,
     ):
-        """Build a ``hist.Hist`` from an Astropy table row produced by the
-        ``HistogramAggregator``.
+        """Rebuild a histogram from an aggregator table row.
+
+        The input is an Astropy table row produced by `HistogramAggregator`. The result
+        is a `hist.Hist <https://hist.readthedocs.io/en/stable/reference/hist.html#hist.Hist>`_.
 
         This is a thin wrapper that constructs a ``ChunkHistogramContainer``
         from the provided ``row`` (reading ``n_events``, ``histogram`` and
@@ -657,8 +704,9 @@ class HistogramAggregator(BaseAggregator):
 
 class StatisticsAggregator(BaseAggregator):
     """
-    Base component to handle the computation of aggregated statistic values from a table
-    containing any event-wise quantities (e.g., images, scalars, vectors, or other arrays).
+    Compute aggregate statistics from a table of event quantities.
+
+    The event quantities can be images, scalars, vectors, or other arrays.
 
     Aggregation is performed along axis=0 (the event dimension) for any N-dimensional data.
     """

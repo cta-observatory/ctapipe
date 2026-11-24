@@ -13,8 +13,7 @@ from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 
 def test_statistics_calculator(example_subarray):
-    """test basic functionality of the PixelStatisticsCalculator"""
-
+    """Test basic functionality of the PixelStatisticsCalculator"""
     # Create dummy data for testing
     n_images = 5050
     times = Time(
@@ -91,7 +90,7 @@ def test_statistics_calculator(example_subarray):
 
 
 def test_statistics_calculator_with_histogram_aggregator(example_subarray):
-    """test that PixelStatisticsCalculator works with HistogramAggregator"""
+    """Test that PixelStatisticsCalculator works with HistogramAggregator"""
     pytest.importorskip("hist")
 
     n_images = 120
@@ -156,8 +155,7 @@ def test_statistics_calculator_with_histogram_aggregator(example_subarray):
 
 
 def test_outlier_detector(example_subarray):
-    """test the chunk shift option and the boundary case for the last chunk"""
-
+    """Test the chunk shift option and the boundary case for the last chunk"""
     # Create dummy data for testing
     times = Time(
         np.linspace(60117.911, 60117.9258, num=5500), scale="tai", format="mjd"

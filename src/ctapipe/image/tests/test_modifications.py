@@ -12,7 +12,6 @@ def test_waveform_modifier():
     """
     Test the addition of noise on R1 waveforms
     """
-
     nsb_only_file = get_dataset_path("only_nsb_LaPalma_Alpha__nsb_x0.25.simtel.zst")
 
     with EventSource(nsb_only_file, skip_calibration_events=False) as source:
@@ -59,8 +58,7 @@ def test_waveform_modifier():
 
 def test_add_noise():
     """
-    Test that adding noise changes a dummy
-    image in the expected way.
+    Test that adding noise changes a dummy image in the expected way.
     """
     image = np.array([0, 0, 5, 1, 0, 0])
     rng = np.random.default_rng(42)
@@ -84,6 +82,7 @@ def test_add_noise():
 def test_smear_image(prod5_lst):
     """
     Test that smearing the image leads to the expected results.
+
     For random smearing this will not work with all seeds.
     With the selected seed it will not lose charge
     (No pixel outside of the camera receives light) but

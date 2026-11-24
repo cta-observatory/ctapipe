@@ -1,3 +1,11 @@
+"""Extract, clean, and characterize Cherenkov camera images.
+
+Extract pixel charge and pulse time from waveforms, select shower pixels,
+and measure image properties such as Hillas moments, timing, and leakage.
+The package also includes waveform and image modifiers, pixel likelihoods,
+and tools for muon-ring analysis.
+"""
+
 from .cleaning import (
     ImageCleaner,
     NSBImageCleaner,
