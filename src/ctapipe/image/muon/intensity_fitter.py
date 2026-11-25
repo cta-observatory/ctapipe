@@ -53,9 +53,8 @@ def bandwidth_to_efficiency(bandwidth, lambda_min=300 * u.nm, lambda_max=600 * u
 
 @u.quantity_input(efficiency=u.one, lambda_min=u.nm, lambda_max=u.nm)
 def efficiency_to_bandwith(efficiency, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
-    return (efficiency * _efficiency_to_bandwidth_factor(lambda_min, lambda_max)).to(
-        u.eV
-    )
+    factor = _efficiency_to_bandwidth_factor(lambda_min, lambda_max)
+    return (efficiency * factor).to(u.eV)
 
 
 def chord_length(radius, rho, phi, phi0=0):
