@@ -9,7 +9,7 @@ import numpy as np
 from astropy import units as u
 from astropy.constants import c, h
 from numba import double, vectorize
-from scipy.constants import alpha, e
+from scipy.constants import alpha
 from scipy.ndimage import correlate1d
 
 from ...containers import MuonBandwidthContainer
@@ -25,6 +25,8 @@ try:
     from iminuit import Minuit
 except ModuleNotFoundError:
     Minuit = None
+
+IMAGE_SCALE = (alpha / h / c).to_value(1 / u.eV / u.m)
 
 __all__ = [
     "MuonIntensityFitter",
