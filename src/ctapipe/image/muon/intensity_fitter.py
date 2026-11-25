@@ -49,12 +49,23 @@ def _efficiency_to_bandwidth_factor(lambda_min=300 * u.nm, lambda_max=600 * u.nm
 
 @u.quantity_input(bandwidth=u.eV, lambda_min=u.nm, lambda_max=u.nm)
 def bandwidth_to_efficiency(bandwidth, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    """
+    Convert bandwidth to efficiency.
+
+    Assumes the bandwidth does not depend on photon wavelength/energy.
+    """
     factor = _efficiency_to_bandwidth_factor(lambda_min, lambda_max)
     return (bandwidth / factor).to_value(u.one)
 
 
 @u.quantity_input(efficiency=u.one, lambda_min=u.nm, lambda_max=u.nm)
 def efficiency_to_bandwith(efficiency, lambda_min=300 * u.nm, lambda_max=600 * u.nm):
+    """
+    Convert efficiency to bandwidth.
+
+    Assumes the efficiency does not depend on photon wavelength/energy.
+    """
+
     factor = _efficiency_to_bandwidth_factor(lambda_min, lambda_max)
     return (efficiency * factor).to(u.eV)
 
