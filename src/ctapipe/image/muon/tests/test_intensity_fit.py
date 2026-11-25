@@ -3,7 +3,7 @@ from collections import namedtuple
 import astropy.units as u
 import numpy as np
 import pytest
-from scipy.constants import alpha
+from scipy.constants import alpha, c, e, h
 
 parameter_names = [
     "radius",
@@ -176,6 +176,33 @@ def test_scts(prod5_sst, reference_location):
             image=np.zeros(telescope.camera.geometry.n_pixels),
             pedestal=np.zeros(telescope.camera.geometry.n_pixels),
         )
+
+
+def test_efficiency_to_bandwidth():
+    """Test test efficiency to bandwidth."""
+    from ctapipe.image.muon.intensity_fitter import efficiency_to_bandwith
+
+    unitles_photon_energy_max_ev = 4
+    unitles_photon_energy_min_ev = 2
+    efficiency = 1.0
+
+    expected = (
+        (unitles_photon_energy_max_ev - unitles_photon_energy_min_ev)
+        * efficiency
+        * u.eV
+    )
+
+    converted = efficiency_to_bandwith(
+        efficiency,
+        lambda_min=c * h / unitles_photon_energy_max_ev / e * u.m,
+        lambda_max=c * h / unitles_photon_energy_min_ev / e * u.m,
+    )
+
+    assert u.isclose(
+        expected,
+        converted,
+        rtol=0.0002,
+    )
 
 
 def test_normalisation_factor(prod5_lst, reference_location):
