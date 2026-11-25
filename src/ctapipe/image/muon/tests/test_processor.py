@@ -21,7 +21,7 @@ def test_processor(dl1_muon_file):
         image_processor = ImageProcessor(source.subarray)
         muon_processor = MuonProcessor(source.subarray)
 
-        efficiencies = []
+        bandwidths = []
         for event in source:
             image_processor(event)
             muon_processor(event)
