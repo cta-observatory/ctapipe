@@ -140,13 +140,13 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
         center_x=center_x,
         center_y=center_y,
         radius=radius,
-        image=image * efficiency,
+        image=image * bandwidth.to_value(u.eV),
         pedestal=np.full_like(image, 1.1),
     )
 
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
     assert u.isclose(result.width, ring_width, rtol=0.05)
-    assert u.isclose(result.optical_bandwidth, efficiency * u.eV, rtol=0.05)
+    assert u.isclose(result.optical_bandwidth, bandwidth, rtol=0.05)
     assert result.is_valid
     assert not result.parameters_at_limit
     assert np.isfinite(result.likelihood_value)
@@ -229,7 +229,6 @@ def test_normalisation_factor(prod5_lst, reference_location):
     )
 
     assert u.isclose(measured, expected, rtol=0.02)
-    assert u.isclose(1.0, 1.0, rtol=0.02)
 
 
 def expected_nphot(r_mirror, theta_cher, lambda_min, lambda_max):
