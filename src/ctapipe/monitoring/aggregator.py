@@ -34,7 +34,7 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.table import Row, Table
 from scipy.stats import norm
-from traitlets import TraitError
+from traitlets import TraitError, validate
 
 from ..containers import (
     ChunkHistogramContainer,
@@ -67,7 +67,7 @@ class BaseChunking(Component, metaclass=ABCMeta):
     """
 
     allow_undersized_tables = Bool(
-        default_value=False,
+        default_value=True,
         help=(
             "If True, allow processing tables smaller than chunk size/duration by yielding "
             "the entire table as a single chunk. If False, raise an error."
@@ -133,6 +133,12 @@ class SizeChunking(BaseChunking):
             "If None, chunks do not overlap."
         ),
     ).tag(config=True)
+
+    @validate("chunk_shift")
+    def _validate_chunkshift(self, proposal):
+        if self.chunk_size is None and proposal["value"] is not None:
+            raise TraitError("chunk_shift must be None for chunk_size=None")
+        return proposal["value"]
 
     def _generate_final_chunk(self, table, last_chunk_start):
         """Generate the final chunk according to last_chunk_policy."""

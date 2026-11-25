@@ -8,7 +8,7 @@ from io import BufferedReader
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, EarthLocation
+from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from astropy.table import Table
 from astropy.time import Time
 
@@ -49,6 +49,7 @@ from ..containers import (
     TelescopePointingContainer,
     TelescopeR0Container,
     TelescopeR1Container,
+    TelescopeSimulationConfigurationContainer,
     TelescopeSimulationContainer,
     TelescopeTriggerContainer,
 )
@@ -266,17 +267,20 @@ def build_camera(simtel_telescope, telescope, frame):
         pix_type = "hexagon"
         pix_rotation = "0d"
 
+    pix_coord = SkyCoord(
+        u.Quantity(camera_settings["pixel_x"], u.m),
+        u.Quantity(camera_settings["pixel_y"], u.m),
+        frame=frame,
+    )
     geometry = CameraGeometry(
-        telescope.camera_name,
+        name=telescope.camera_name,
         pix_id=np.arange(camera_settings["n_pixels"]),
-        pix_x=u.Quantity(camera_settings["pixel_x"], u.m),
-        pix_y=u.Quantity(camera_settings["pixel_y"], u.m),
+        pix_coord=pix_coord,
         pix_area=u.Quantity(camera_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(camera_settings["cam_rot"], u.rad),
         apply_derotation=True,
-        frame=frame,
     )
     readout = CameraReadout(
         telescope.camera_name,
@@ -684,6 +688,7 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
+        self._telescope_simulation_config = self._parse_telescope_simulation_config()
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -720,6 +725,12 @@ class SimTelEventSource(EventSource):
     @property
     def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         return self._simulation_config
+
+    @property
+    def telescope_simulation_config(
+        self,
+    ) -> dict[int, dict[int, TelescopeSimulationConfigurationContainer]]:
+        return self._telescope_simulation_config
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
@@ -1333,6 +1344,17 @@ class SimTelEventSource(EventSource):
             nsb_scaling_factor=nsb_scaling_factor,
         )
         return {obs_id: simulation_config}
+
+    def _parse_telescope_simulation_config(self):
+        configs = {}
+        for tel_id in self.subarray.tel:
+            meta = self.file_.telescope_meta.get(tel_id, {})
+            probability = float(meta.get(b"RANDOM_MONO_PROBability", np.nan))
+            configs[tel_id] = TelescopeSimulationConfigurationContainer(
+                random_mono_probability=probability
+            )
+
+        return {self.obs_id: configs}
 
     def _fill_scheduling_and_observation_blocks(self):
         """fill scheduling and observation blocks must be run after the

@@ -286,21 +286,20 @@ class HDF5MonitoringSource(MonitoringSource):
             PedestalImageInterpolator,
         )
 
-        _interpolators = {
+        _interpolator_types = {
             "flatfield_image": FlatfieldImageInterpolator,
             "flatfield_peak_time": FlatfieldPeakTimeInterpolator,
         }
         for event_type in PEDESTAL_EVENT_TYPES:
-            _interpolators[f"{event_type.name.lower()}_image"] = (
-                PedestalImageInterpolator
-            )
+            key = f"{event_type.name.lower()}_image"
+            _interpolator_types[key] = PedestalImageInterpolator
 
         for tel_id, data in telescope_data.items():
             for monitoring_type, name in data:
                 if monitoring_type != TelescopeMonitoringType.PIXEL_STATISTICS:
                     continue
 
-                if name not in _interpolators:
+                if name not in _interpolator_types:
                     self.log.info(
                         "Skipping unsupported pixel statistics subtype %r",
                         name,
@@ -308,7 +307,7 @@ class HDF5MonitoringSource(MonitoringSource):
                     continue
 
                 if name not in self._pixel_stats:
-                    interpolator = _interpolators[name](parent=self)
+                    interpolator = _interpolator_types[name](parent=self)
                     self._pixel_stats[name] = interpolator
 
                 h5path = f"{DL1_PIXEL_STATISTICS_GROUP}/{name}/tel_{tel_id:03d}"
@@ -343,7 +342,7 @@ class HDF5MonitoringSource(MonitoringSource):
 
         # Instantiate the pointing interpolator
         if self._pointing_interpolator is None:
-            self._pointing_interpolator = PointingInterpolator()
+            self._pointing_interpolator = PointingInterpolator(parent=self)
 
         # Read the pointing data from the file
         for tel_id, data in telescope_data.items():

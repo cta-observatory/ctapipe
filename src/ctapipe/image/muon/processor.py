@@ -122,9 +122,8 @@ class MuonProcessor(TelescopeComponent):
         self.dl1_query = ImageParameterQuery(parent=self)
         self.ring_query = RingQuery(parent=self)
 
-        frame = TelescopeFrame()
         self.geometries = {
-            tel_id: tel.camera.geometry.transform_to(frame)
+            tel_id: tel.camera.geometry.transform_to(TelescopeFrame)
             for tel_id, tel in self.subarray.tel.items()
         }
         self.fov_radius = {

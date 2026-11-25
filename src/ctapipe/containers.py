@@ -77,6 +77,7 @@ __all__ = [
     "TelescopeStructurePointingContainer",
     "TelescopeR0Container",
     "TelescopeR1Container",
+    "TelescopeSimulationConfigurationContainer",
     "TelescopeSimulationContainer",
     "TelescopeTriggerContainer",
     "TimingParametersContainer",
@@ -1726,6 +1727,20 @@ class SimulationConfigContainer(Container):
 
     nsb_scaling_factor = Field(
         None, description="Simulated NSB as multiple of the nominal dark night NSB."
+    )
+
+
+class TelescopeSimulationConfigurationContainer(Container):
+    """Simulation configuration for a telescope in an observation block."""
+
+    default_prefix = ""
+
+    random_mono_probability = Field(
+        nan,
+        description=(
+            "Probability that a telescope trigger passes stereo selection "
+            "as a random mono event. NaN if unavailable."
+        ),
     )
 
 

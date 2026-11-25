@@ -31,6 +31,21 @@ How To Update the Online Docs?
 The docs are automatically built and deployed using readthedocs.
 
 
+Computing performance benchmarks
+================================
+
+Apply the ``benchmark`` label to a pull request to compare the target branch
+commit with the PR merge commit. Subsequent pushes rerun the comparison while
+the label is present. The workflow updates a single comment on the PR with
+the comparison and a link to the Actions run. The ``asv-pr-results`` artifact
+contains the raw measurements.
+
+The `ctapipe-asv repository <https://github.com/cta-observatory/ctapipe-asv>`_
+runs the nightly benchmarks against ctapipe's ``main`` branch and publishes the
+historical dashboard on its GitHub Pages site. See the suite's README for
+runner and publishing setup.
+
+
 How To Make a Release?
 ======================
 

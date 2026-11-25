@@ -182,7 +182,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         tel_id,
         masked_elements_of_sample=None,
         col_name="image",
-    ) -> Table:
+    ) -> Table | None:
         """
         Conduct a second pass over the data to refine the statistics or histograms in regions with a high percentage of faulty pixels.
 
@@ -207,8 +207,9 @@ class PixelStatisticsCalculator(TelescopeComponent):
 
         Returns
         -------
-        astropy.table.Table
+        astropy.table.Table or None
             Table containing the aggregated statistics or histograms after the second pass, their outlier masks, and the validity of the chunks.
+            Returns None if no additional chunks fit in the regions with faulty data.
         """
         # Check if at least one chunk is faulty
         if np.all(valid_chunks):
@@ -262,6 +263,10 @@ class PixelStatisticsCalculator(TelescopeComponent):
                         col_name=col_name,
                     )
                 )
+        # No additional chunks may fit, e.g. for an undersized input table.
+        if not aggregated_stats_secondpass:
+            return None
+
         # Stack the aggregated statistics of each faulty chunk
         aggregated_stats_secondpass = vstack(aggregated_stats_secondpass)
         # Detect faulty pixels with multiple instances of OutlierDetector of the second pass

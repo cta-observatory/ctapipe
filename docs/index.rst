@@ -63,59 +63,62 @@ algorithms for the Cherenkov Telescope Array Observatory (CTAO).
 
         :octicon:`book;40px`
 
-        User Guide
-        ^^^^^^^^^^
+        .. card-header::
+
+          User Guide
 
         Learn how to get started as a user. This guide
         will help you install ctapipe.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: user-guide/index
-            :expand:
-            :color: primary
-            :click-parent:
+          .. button-ref:: user-guide/index
+              :expand:
+              :color: primary
+              :click-parent:
 
-            To the user guide
+              To the user guide
 
 
     .. grid-item-card::
 
         :octicon:`person-add;40px`
 
-        Developer Guide
-        ^^^^^^^^^^^^^^^
+        .. card-header ::
+
+          Developer Guide
 
         Learn how to get started as a developer.
         This guide will help you install ctapipe for development
         and explains how to contribute.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: developer-guide/index
-            :expand:
-            :color: primary
-            :click-parent:
+          .. button-ref:: developer-guide/index
+              :expand:
+              :color: primary
+              :click-parent:
 
-            To the developer guide
+              To the developer guide
 
 
     .. grid-item-card::
 
         :octicon:`code;40px`
 
-        API Docs
-        ^^^^^^^^
+        .. card-header::
+
+          API Docs
 
         The API docs contain detailed descriptions of
         of the various modules, classes and functions
         included in ctapipe.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: api-reference/index
-            :expand:
-            :color: primary
-            :click-parent:
+          .. button-ref:: api-reference/index
+              :expand:
+              :color: primary
+              :click-parent:
 
-            To the API docs
+              To the API docs

@@ -487,6 +487,12 @@ def test_read_simulation_config(dl2_merged_file):
         assert np.all(runs["obs_id"] == [4, 1])
         assert u.allclose(runs["energy_range_min"].quantity, [0.004, 0.003] * u.TeV)
 
+        telescopes = table_loader.read_telescope_simulation_configuration()
+        assert telescopes.keys() == table_loader.subarray.tel.keys()
+        for tel_id, configs in telescopes.items():
+            np.testing.assert_array_equal(configs["obs_id"], runs["obs_id"])
+            np.testing.assert_array_equal(configs["tel_id"], [tel_id, tel_id])
+
 
 def test_read_shower_distributions(dl2_merged_file):
     from ctapipe.io import TableLoader

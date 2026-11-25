@@ -460,11 +460,16 @@ def test_merge_single_ob(tmp_path, dl1_file, dl1_chunks):
 
     with TableLoader(output) as loader:
         merged_tel_events = loader.read_telescope_events()
+        merged_tel_config = loader.read_telescope_simulation_configuration()
 
     with TableLoader(dl1_file) as loader:
         initial_tel_events = loader.read_telescope_events()
+        initial_tel_config = loader.read_telescope_simulation_configuration()
 
     assert_table_equal(merged_tel_events, initial_tel_events)
+    assert merged_tel_config.keys() == initial_tel_config.keys()
+    for tel_id, config in initial_tel_config.items():
+        assert_table_equal(merged_tel_config[tel_id], config)
 
 
 def test_merge_single_ob_append(tmp_path, dl1_file, dl1_chunks):

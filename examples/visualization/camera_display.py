@@ -92,8 +92,8 @@ CameraDisplay(geom)
 
 fig, ax = plt.subplots(1, 3, figsize=(15, 4))
 CameraDisplay(geom, image=image, ax=ax[0])
-CameraDisplay(geom.transform_to(EngineeringCameraFrame()), image=image, ax=ax[1])
-CameraDisplay(geom.transform_to(TelescopeFrame()), image=image, ax=ax[2])
+CameraDisplay(geom.transform_to(EngineeringCameraFrame), image=image, ax=ax[1])
+CameraDisplay(geom.transform_to(TelescopeFrame), image=image, ax=ax[2])
 
 
 ######################################################################
@@ -101,7 +101,7 @@ CameraDisplay(geom.transform_to(TelescopeFrame()), image=image, ax=ax[2])
 #
 
 geom_camframe = geom
-geom = geom_camframe.transform_to(TelescopeFrame())
+geom = geom_camframe.transform_to(TelescopeFrame)
 
 
 ######################################################################
@@ -256,7 +256,7 @@ disp.overlay_coordinate(coord, markersize=20, marker="*")
 
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-geom = subarray.tel[1].camera.geometry.transform_to(TelescopeFrame())
+geom = subarray.tel[1].camera.geometry.transform_to(TelescopeFrame)
 
 fov = 2.0
 maxwid = 0.1
@@ -339,7 +339,7 @@ with EventSource(
     event = next(iter(source))
 
 tel_id = next(iter(event.tel))
-geom = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
+geom = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame)
 waveform = event.tel[tel_id].r0.waveform
 n_chan, n_pix, n_samp = waveform.shape
 

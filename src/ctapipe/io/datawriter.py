@@ -28,6 +28,7 @@ from . import metadata as meta
 from .astropy_helpers import write_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
+from .hdf5dataformat import SIMULATION_TELESCOPE_CONFIG_GROUP
 from .hdf5tableio import HDF5TableWriter
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
@@ -50,7 +51,9 @@ DL2_SUBLEVELS = {
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v8.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
+
 - v8.1.0: - Migration from muon optical efficiency to muon optical bandwidth
+          - Add per-telescope simulation configuration tables with random mono probability.
 - v8.0.0: - Trigger information is moved from DL1 to DL0
           - Added field tels_with_data to SubarrayTriggerContainer and thus
             /dl0/event/subarray/trigger table to be compliant with CTAO DL0 data model
@@ -692,12 +695,7 @@ class DataWriter(Component):
             self._writer.write("configuration/observation/observation_block", ob)
 
     def _write_simulation_configuration(self):
-        """
-        Write the simulation headers to a single row of a table. Later
-        if this file is merged with others, that table will grow.
-
-        Note that this function should be run first
-        """
+        """Write per-observation and per-telescope simulation configuration."""
         self.log.debug("Writing simulation configuration")
 
         class ExtraSimInfo(Container):
@@ -711,6 +709,18 @@ class DataWriter(Component):
             config.prefix = ""
 
             self._writer.write("configuration/simulation/run", [extramc, config])
+
+        telescope_configs = self.event_source.telescope_simulation_config or {}
+        telescope_config_group = SIMULATION_TELESCOPE_CONFIG_GROUP.lstrip("/")
+        for obs_id, configs in telescope_configs.items():
+            for tel_id, config in configs.items():
+                index = TelescopeConfigurationIndexContainer(
+                    obs_id=np.uint64(obs_id), tel_id=np.uint16(tel_id)
+                )
+                self._writer.write(
+                    f"{telescope_config_group}/{self.table_name(tel_id)}",
+                    (index, config),
+                )
 
     def write_simulated_shower_distributions(self, distributions):
         """Write the distribution of thrown showers."""
