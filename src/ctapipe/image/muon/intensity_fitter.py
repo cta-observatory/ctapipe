@@ -340,7 +340,7 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha / h.value / c.value * e
+    pred *= IMAGE_SCALE
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
