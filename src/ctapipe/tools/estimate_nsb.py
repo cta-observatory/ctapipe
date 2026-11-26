@@ -17,6 +17,7 @@ from ctapipe.image.modifications import PedestalEventTypeFilter, WaveformModifie
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource, read_table
 from ctapipe.io.hdf5dataformat import DL1_PIXEL_STATISTICS_GROUP
+from ctapipe.monitoring import StatisticsAggregator
 
 
 class EstimateNSBlevelTool(Tool):
@@ -112,7 +113,10 @@ class EstimateNSBlevelTool(Tool):
 
     quantile_threshold = Float(
         default_value=0.9,
-        help="The quantile threshold to compute the quantile of the pixel charge distribution",
+        help=(
+            "The quantile threshold to compute the quantile of the pixel charge distribution. "
+            "Only quantiles in StatisticsAggregator are allowed."
+        ),
     ).tag(config=True)
 
     n_grid_points = Int(
@@ -165,8 +169,16 @@ class EstimateNSBlevelTool(Tool):
             parent=self,
         )
 
-        # TODO: check that the quantile_threshold is a valid quantity in input_file
-        # self.quantile_threshold
+        valid_quantiles = StatisticsAggregator._QUANTILES
+        q_vals = list(valid_quantiles.values())
+        q_keys = list(valid_quantiles.keys())
+        bool_present = np.isclose(self.quantile_threshold, q_vals)
+        if not np.any(bool_present):
+            raise TraitError(
+                f"`quantile_threshold` must be one of the following values: {q_vals}"
+            )
+
+        self.key_q_th = q_keys[np.argmax(bool_present)]
 
         # Verify that nsb_range only contains two elements
         if self.nsb_range is not None and len(self.nsb_range) != 2:
@@ -225,14 +237,14 @@ class EstimateNSBlevelTool(Tool):
         This is intended to enable the processing of simulation files containing showers,
         since they are those in which we want to increase the NSB level to better match the real data.
         """
-        for tel_id in event.trigger.tels_with_trigger:
+        for tel_id, tel_event in event.tel.items():
             if tel_id not in self.tel_id_list:
                 return
 
-            wf = event.r1.tel[tel_id].waveform
+            wf = tel_event.r1.waveform
 
             if not self.is_simulated_pedestal:
-                true_pe = event.simulation.tel[tel_id].true_image
+                true_pe = tel_event.simulation.true_image
                 # select noise-only waveforms
                 wf[:, true_pe > 0, :] = np.nan
             else:
@@ -244,9 +256,9 @@ class EstimateNSBlevelTool(Tool):
                 GainChannel.HIGH,
                 source.subarray.tel[tel_id].camera.geometry.n_pixels,
             )
-            broken_pixels[tel_id] = event.monitoring.tel[
-                tel_id
-            ].camera.coefficients.outlier_mask[GainChannel.HIGH]
+            broken_pixels[tel_id] = (
+                tel_event.monitoring.camera.coefficients.outlier_mask[GainChannel.HIGH]
+            )
             q_ev = extractor(
                 waveforms=wf,
                 tel_id=tel_id,
@@ -282,8 +294,8 @@ class EstimateNSBlevelTool(Tool):
             self.ped_pixel_charge_var[tel_id] = (
                 ped_stats["std"][:, GainChannel.HIGH, :].value ** 2
             )
-            # TODO: adapt it to map the StatisticsAggregator keys with the quantile_threshold value
-            self.ped_pixel_charge_q[tel_id] = ped_stats["q90"][
+
+            self.ped_pixel_charge_q[tel_id] = ped_stats[self.key_q_th][
                 :, GainChannel.HIGH, :
             ].value
             outlier_mask = ped_stats["outlier_mask"][:, GainChannel.HIGH, :].value
@@ -324,7 +336,7 @@ class EstimateNSBlevelTool(Tool):
 
         The pixel charge is computed for each telescope, event, and pixel.
         """
-        self.sim_pixel_charge, self.sim_waveforms, _ = (
+        self.sim_pixel_charge, self.sim_waveforms, self.sim_broken_pixels = (
             self._extract_images_per_pixel_and_event(
                 self.simulation_file, self.image_extractor
             )
@@ -457,15 +469,10 @@ class EstimateNSBlevelTool(Tool):
         nsb_grid = np.arange(nsb_min, nsb_max)
         return nsb_grid, nsb_lvl
 
-    def compute_quantile(self, pixel_charge):
+    def compute_quantile(self):
         """
         Compute the self.quantile_threshold quantile of the charge images
         using all pixels.
-
-        Parameters
-        ----------
-        pixel_charge: dict
-            Tel_id-wise pixel charge information.
 
         Returns
         -------
@@ -475,10 +482,9 @@ class EstimateNSBlevelTool(Tool):
         """
         charge_q = {}
         for tel_id in self.tel_id_list:
-            tel_pixel_charge = np.array(pixel_charge[tel_id])
+            tel_pixel_charge = np.array(self.nsb_added_pixel_charge[tel_id])
 
-            # TODO: how can I mask this?
-            tel_pixel_charge = tel_pixel_charge[..., ~self.faulty_pixels[tel_id][0]]
+            tel_pixel_charge = tel_pixel_charge[..., ~self.sim_broken_pixels[tel_id]]
 
             # Reshape the NSB-only pixel charge to (n_nsb_levels, n_events * n_pixels)
             shape_pixel_charge = np.shape(tel_pixel_charge)
@@ -585,7 +591,7 @@ class EstimateNSBlevelTool(Tool):
         # and compute the pixel charge
         self.calculate_pixel_charge_nsb_only_grid(nsb_levels=nsb_grid)
 
-        self.qnsb_q = self.compute_quantile(self.nsb_added_pixel_charge)
+        self.qnsb_q = self.compute_quantile()
 
         self.nsb_level, self.exact_nsb_level = self.quantile_curve_fit()
 
