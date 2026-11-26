@@ -46,6 +46,7 @@ def test_subarray_description(prod5_mst_nectarcam):
     assert len(sub.telescope_types) == 1
 
     assert str(sub) == "test array"
+    assert sub.subarray_id is None
     assert sub.n_tels == n_tels
     assert len(sub.tel_ids) == n_tels
     assert sub.tel_ids[0] == 1
@@ -140,15 +141,20 @@ def test_get_tel_ids_for_type(example_subarray):
         sub.get_tel_ids_for_type("NON_EXISTENT_TYPE")
 
 
-def test_hdf(example_subarray, tmp_path):
+@pytest.mark.parametrize("subarray_id", [None, 0, 42])
+def test_hdf(example_subarray, tmp_path, subarray_id):
     import tables
 
+    example_subarray = example_subarray.select_subarray(
+        example_subarray.tel_ids, subarray_id=subarray_id
+    )
     path = tmp_path / "subarray.h5"
 
     example_subarray.to_hdf(path)
     read = SubarrayDescription.from_hdf(path, focal_length_choice="EQUIVALENT")
 
     assert example_subarray == read
+    assert read.subarray_id == subarray_id
 
     # test we can write the read subarray
     read.to_hdf(path, overwrite=True)
@@ -305,6 +311,57 @@ def test_subarrays(subarray_prod5_paranal: SubarrayDescription):
     assert subarray.reference_location == subarray_prod5_paranal.reference_location
 
 
+def test_subarray_id(prod5_mst_nectarcam):
+    subarray = SubarrayDescription(
+        "CTAO subarray",
+        tel_positions={1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m},
+        tel_descriptions={1: prod5_mst_nectarcam, 2: prod5_mst_nectarcam},
+        reference_location=LOCATION,
+        subarray_id=42,
+    )
+    assert subarray.subarray_id == 42
+    assert subarray.select_subarray([1]).subarray_id is None
+    assert subarray.select_subarray([1], subarray_id=0).subarray_id == 0
+    assert subarray.select_subarray(subarray.tel_ids).subarray_id is None
+    assert subarray.subarray_id == 42
+
+    other = deepcopy(subarray)
+    assert other == subarray
+    other.subarray_id = None
+    assert other != subarray
+
+
+@pytest.mark.parametrize("subarray_id", [None, 0, 42])
+@pytest.mark.parametrize("kind", ["subarray", "joined"])
+@pytest.mark.parametrize("format", ["fits", "ascii.ecsv"])
+def test_subarray_id_table(example_subarray, tmp_path, subarray_id, kind, format):
+    from astropy.table import Table
+
+    subarray = example_subarray.select_subarray(
+        example_subarray.tel_ids, subarray_id=subarray_id
+    )
+    table = subarray.to_table(kind=kind, meta_convention="fits")
+    path = tmp_path / "subarray.table"
+    table.write(path, format=format)
+    read = Table.read(path, format=format)
+    assert read.meta.get("SUBARRID") == subarray_id
+
+
+def test_hdf_without_subarray_id(example_subarray, tmp_path):
+    import tables
+
+    path = tmp_path / "legacy.h5"
+    subarray = example_subarray.select_subarray(
+        example_subarray.tel_ids, subarray_id=42
+    )
+    subarray.to_hdf(path)
+    with tables.open_file(path, "a") as h5file:
+        del h5file.root.configuration.instrument.subarray.layout.attrs["SUBARRAY_ID"]
+
+    read = SubarrayDescription.from_hdf(path, focal_length_choice="EQUIVALENT")
+    assert read.subarray_id is None
+
+
 def test_check_matchings_subarray(example_subarray, subarray_prod5_paranal):
     """Test SubarrayDescription.check_matching_subarrays static method"""
     assert SubarrayDescription.check_matching_subarrays(
@@ -358,6 +415,7 @@ def test_from_service_data_complete(svc_path):
     # Verify basic properties
     assert isinstance(subarray, SubarrayDescription)
     assert subarray.name == "CTAO-N LST Subarray"
+    assert subarray.subarray_id == 1
     assert subarray.n_tels == 4  # 4 LSTs in test data
     assert len(subarray.tel_ids) == 4
 
@@ -390,6 +448,7 @@ def test_from_service_data_complete(svc_path):
         subarray_mixed = SubarrayDescription.from_service_data(subarray_id=3)
 
     assert subarray_mixed.name == "CTAO-N Test Array"
+    assert subarray_mixed.subarray_id == 3
     assert subarray_mixed.n_tels == 4  # 2 LSTs + 2 MSTs
     assert len(subarray_mixed.telescope_types) == 2  # LST and MST
     assert len(subarray_mixed.camera_types) == 2  # LST and Nectar cameras
@@ -453,7 +512,8 @@ def test_from_service_data_aeid_specific(svc_path_aeid_specific):
     assert tel_002.camera.name.lower() == "lstcam"
 
 
-def test_service_data_roundtrip(tmp_path, monkeypatch):
+@pytest.mark.parametrize("subarray_id_override", [None, 7])
+def test_service_data_roundtrip(tmp_path, monkeypatch, subarray_id_override):
     """Test that we can write to service data format and read it back"""
     import os
     import warnings
@@ -470,6 +530,8 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     # Load the original subarray from simulation file
     with EventSource(input_file) as source:
         original_subarray = source.subarray
+    assert original_subarray.subarray_id is None
+    original_subarray.subarray_id = 42
 
     # Write to service data format using the tool
     tool = DumpInstrumentTool()
@@ -478,7 +540,8 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     tool.is_simulation = True
     tool.outdir = tmp_path
     tool.format = "service"
-    tool.write_service_data(subarray_id=1, site="CTAO-South")
+    tool.write_service_data(subarray_id=subarray_id_override, site="CTAO-South")
+    expected_id = 42 if subarray_id_override is None else subarray_id_override
 
     # Set CTAPIPE_SVC_PATH to point to the service data directory
     # Files are now organized under instrument/, so add those directories to search paths
@@ -504,7 +567,8 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
     # Read back from service data format
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=MissingReferenceMetadata)
-        loaded_subarray = SubarrayDescription.from_service_data(subarray_id=1)
+        loaded_subarray = SubarrayDescription.from_service_data(subarray_id=expected_id)
+    assert loaded_subarray.subarray_id == expected_id
 
     # Compare the original and loaded subarrays
     assert loaded_subarray.n_tels == original_subarray.n_tels

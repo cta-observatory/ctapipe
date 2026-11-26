@@ -1,0 +1,3 @@
+Added an optional ``subarray_id`` to ``SubarrayDescription``, defaulting to ``None``.
+``select_subarray`` clears the identifier unless a new one is supplied.
+Known identifiers are preserved in HDF5, FITS/ECSV tables, and CTAO service data.
