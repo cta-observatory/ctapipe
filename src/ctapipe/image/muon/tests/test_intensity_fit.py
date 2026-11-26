@@ -245,7 +245,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
 
     # image_prediction gives photons per eV of optical bandwidth;
     # multiply by the bandwidth corresponding to 100 % efficiency
-    measured = np.sum(image) * efficiency_to_bandwith(
+    measured = np.sum(image) * efficiency_to_bandwidth(
         1.0, lambda_min, lambda_max
     ).to_value(u.eV)
     expected = expected_nphot(
