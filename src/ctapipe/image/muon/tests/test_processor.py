@@ -2,6 +2,7 @@
 Tests for MuonProcessor functionality
 """
 
+import astropy.units as u
 import numpy as np
 import pytest
 
@@ -20,17 +21,17 @@ def test_processor(dl1_muon_file):
         image_processor = ImageProcessor(source.subarray)
         muon_processor = MuonProcessor(source.subarray)
 
-        efficiencies = []
+        bandwidths = []
         for event in source:
             image_processor(event)
             muon_processor(event)
-            for tel_id, tel_event in event.tel.items():
-                efficiencies.append(tel_event.muon.efficiency.optical_efficiency)
-
-        assert len(efficiencies) > 0  # Assert there were events analyzed
+            for tel_event in event.tel.values():
+                bandwidths.append(tel_event.muon.efficiency.optical_bandwidth)
+        bandwidths = u.Quantity(bandwidths)
+        assert len(bandwidths) > 0  # Assert there were events analyzed
         assert np.any(
-            np.isfinite(efficiencies)
+            np.isfinite(bandwidths)
         )  # Assert at least some were completely analyzed
         assert np.all(
-            np.logical_or(np.isfinite(efficiencies), np.isnan(efficiencies))
+            np.logical_or(np.isfinite(bandwidths), np.isnan(bandwidths))
         )  # Assert all were at least provided defaults

@@ -51,7 +51,9 @@ DL2_SUBLEVELS = {
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v8.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v8.1.0: - Add per-telescope simulation configuration tables with random mono probability.
+
+- v8.1.0: - Migration from muon optical efficiency to muon optical bandwidth
+          - Add per-telescope simulation configuration tables with random mono probability.
 - v8.0.0: - Trigger information is moved from DL1 to DL0
           - Added field tels_with_data to SubarrayTriggerContainer and thus
             /dl0/event/subarray/trigger table to be compliant with CTAO DL0 data model
