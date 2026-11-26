@@ -182,20 +182,20 @@ def test_efficiency_to_bandwidth():
     """Test efficiency to bandwidth."""
     from ctapipe.image.muon.intensity_fitter import efficiency_to_bandwidth
 
-    unitles_photon_energy_max_ev = 4
-    unitles_photon_energy_min_ev = 2
+    unitless_photon_energy_max_ev = 4
+    unitless_photon_energy_min_ev = 2
     efficiency = 1.0
 
     expected = (
-        (unitles_photon_energy_max_ev - unitles_photon_energy_min_ev)
+        (unitless_photon_energy_max_ev - unitless_photon_energy_min_ev)
         * efficiency
         * u.eV
     )
 
     converted = efficiency_to_bandwidth(
         efficiency,
-        lambda_min=c * h / unitles_photon_energy_max_ev / e * u.m,
-        lambda_max=c * h / unitles_photon_energy_min_ev / e * u.m,
+        lambda_min=c * h / unitless_photon_energy_max_ev / e * u.m,
+        lambda_max=c * h / unitless_photon_energy_min_ev / e * u.m,
     )
 
     assert u.isclose(
