@@ -192,7 +192,7 @@ def test_efficiency_to_bandwidth():
         * u.eV
     )
 
-    converted = efficiency_to_bandwith(
+    converted = efficiency_to_bandwidth(
         efficiency,
         lambda_min=c * h / unitles_photon_energy_max_ev / e * u.m,
         lambda_max=c * h / unitles_photon_energy_min_ev / e * u.m,
