@@ -232,7 +232,7 @@ class DumpInstrumentTool(Tool):
         """Flatten CTAO product metadata for JSON or ECSV serialization."""
         return dm.flatten_model_instance(product)
 
-    def write_service_data(self, subarray_id=1, site=None):
+    def write_service_data(self, subarray_id=None, site=None):
         """
         Write SubarrayDescription to service data directory structure.
 
@@ -242,7 +242,8 @@ class DumpInstrumentTool(Tool):
         Parameters
         ----------
         subarray_id : int, optional
-            Subarray ID to assign (default: 1)
+            Subarray ID to assign. Defaults to the subarray's identifier,
+            or 1 if its identifier is unknown.
         site : str, optional
             Site name (e.g., "CTAO-North", "CTAO-South").
             If not provided, it will be inferred from the reference location.
@@ -252,6 +253,8 @@ class DumpInstrumentTool(Tool):
         from astropy.table import QTable
 
         sub = self.subarray
+        if subarray_id is None:
+            subarray_id = sub.subarray_id if sub.subarray_id is not None else 1
         self.outdir.mkdir(exist_ok=True, parents=True)
 
         # Create instrument directory to match CTAO service data structure

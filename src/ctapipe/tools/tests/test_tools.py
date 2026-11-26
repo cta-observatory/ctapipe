@@ -222,7 +222,11 @@ def test_dump_instrument(tmp_path, monkeypatch):
         m.setenv("CTAPIPE_SVC_PATH", str(tmp_path / "instrument"))
         roundtrip_sub = SubarrayDescription.from_service_data(1)
 
-        assert roundtrip_sub == SubarrayDescription.from_hdf(tmp_path / "subarray.h5")
+        hdf_sub = SubarrayDescription.from_hdf(tmp_path / "subarray.h5")
+        assert hdf_sub.subarray_id is None
+        assert roundtrip_sub.subarray_id == 1
+        hdf_sub.subarray_id = 1
+        assert roundtrip_sub == hdf_sub
 
     ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
     assert ret == 0

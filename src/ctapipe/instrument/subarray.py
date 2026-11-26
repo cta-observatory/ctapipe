@@ -61,6 +61,8 @@ class SubarrayDescription:
     ----------
     name: str
        name of subarray
+    subarray_id: int or None
+       subarray identifier, if known
     tel_coords: ctapipe.coordinates.GroundFrame
        coordinates of all telescopes
     tels:
@@ -90,6 +92,7 @@ class SubarrayDescription:
         tel_positions,
         tel_descriptions,
         reference_location,
+        subarray_id=None,
     ):
         """
         Initialize a new SubarrayDescription
@@ -106,8 +109,12 @@ class SubarrayDescription:
         reference_location : `astropy.coordinates.EarthLocation`
             EarthLocation of the array reference position, (0, 0, 0) of the
             coordinate system used for `tel_positions`.
+        subarray_id : int or None
+            CTAO subarray identifier. Defaults to None, as it is generally
+            unknown for simulated arrays.
         """
         self.name = name
+        self.subarray_id = subarray_id
         self.positions = tel_positions or dict()
         self.tels: dict[int, TelescopeDescription] = tel_descriptions or dict()
         self.reference_location = reference_location
@@ -294,6 +301,9 @@ class SubarrayDescription:
         ----------
         kind: str
             which table to generate (subarray or optics)
+        meta_convention : {"hdf", "fits"}
+            Metadata convention. A known subarray identifier is stored as
+            ``SUBARRAY_ID`` for HDF5 and ``SUBARRID`` for FITS.
         """
 
         if meta_convention not in {"hdf", "fits"}:
@@ -302,8 +312,8 @@ class SubarrayDescription:
             )
 
         if kind == "joined":
-            table = self.to_table()
-            optics = self.to_table(kind="optics")
+            table = self.to_table(meta_convention=meta_convention)
+            optics = self.to_table(kind="optics", meta_convention=meta_convention)
             optics["optics_index"] = np.arange(len(optics))
             table = join(
                 table,
@@ -325,6 +335,10 @@ class SubarrayDescription:
         }
 
         if kind == "subarray":
+            if self.subarray_id is not None:
+                key = "SUBARRAY_ID" if meta_convention == "hdf" else "SUBARRID"
+                meta[key] = self.subarray_id
+
             if self.reference_location is not None:
                 itrs = self.reference_location.itrs
                 if meta_convention == "hdf":
@@ -401,7 +415,9 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, tel_ids, name=None) -> "SubarrayDescription":
+    def select_subarray(
+        self, tel_ids, name=None, subarray_id=None
+    ) -> "SubarrayDescription":
         """
         return a new SubarrayDescription that is a sub-array of this one
 
@@ -411,6 +427,9 @@ class SubarrayDescription:
             list of telescope IDs to include in the new subarray
         name: str
             name of new sub-selection
+        subarray_id : int or None
+            CTAO identifier for the selected subarray. Defaults to None,
+            invalidating the original subarray identifier.
         Returns
         -------
         SubarrayDescription
@@ -432,6 +451,7 @@ class SubarrayDescription:
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
             reference_location=self.reference_location,
+            subarray_id=subarray_id,
         )
         return newsub
 
@@ -605,6 +625,9 @@ class SubarrayDescription:
             return False
 
         if self.name != other.name:
+            return False
+
+        if self.subarray_id != other.subarray_id:
             return False
 
         if self.tels.keys() != other.tels.keys():
@@ -794,6 +817,7 @@ class SubarrayDescription:
 
         return cls(
             name=str(name),
+            subarray_id=layout.meta.get("SUBARRAY_ID"),
             tel_positions={
                 tel_id: pos for tel_id, pos in zip(layout["tel_id"], positions)
             },
@@ -1076,6 +1100,7 @@ class SubarrayDescription:
 
         return cls(
             name=subarray_info["name"],
+            subarray_id=subarray_id,
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
             reference_location=reference_location,
