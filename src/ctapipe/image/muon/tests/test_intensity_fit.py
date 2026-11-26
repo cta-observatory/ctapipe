@@ -179,7 +179,7 @@ def test_scts(prod5_sst, reference_location):
 
 
 def test_efficiency_to_bandwidth():
-    """Test test efficiency to bandwidth."""
+    """Test efficiency to bandwidth."""
     from ctapipe.image.muon.intensity_fitter import efficiency_to_bandwith
 
     unitles_photon_energy_max_ev = 4
