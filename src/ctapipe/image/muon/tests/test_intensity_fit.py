@@ -209,7 +209,7 @@ def test_normalisation_factor(prod5_lst, reference_location):
     """Test of the absolute normalization factor."""
     from ctapipe.coordinates import TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
-        efficiency_to_bandwith,
+        efficiency_to_bandwidth,
         image_prediction,
     )
 
