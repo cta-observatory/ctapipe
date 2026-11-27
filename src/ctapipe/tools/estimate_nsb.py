@@ -317,7 +317,9 @@ class EstimateNSBlevelTool(Tool):
             # Only consider chunks with enough valid pixels
             n_valid_per_chunk = np.sum(~self.faulty_pixels[tel_id], axis=1)
             self.valid_chunks[tel_id] = n_valid_per_chunk > self.min_npixels_valid
-            arg_chunks_invalid = np.where(~np.atleast_1d(self.valid_chunks[tel_id]))[0]
+            arg_chunks_invalid = np.nonzero(~np.atleast_1d(self.valid_chunks[tel_id]))[
+                0
+            ]
 
             if (~self.valid_chunks[tel_id]).any():
                 self.log.warning(

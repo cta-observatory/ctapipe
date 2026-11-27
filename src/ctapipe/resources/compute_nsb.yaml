@@ -1,0 +1,17 @@
+# ==============================================================================
+# ctapipe-estimate-nsb config file
+# version: VERSION
+#
+# Configuration for estimating the NSB level
+# ==============================================================================
+
+EstimateNSBlevelTool:
+  quantile_threshold: 0.9
+  min_npixels_valid: 1000
+  min_nped_events: 100
+  is_simulated_pedestal: True
+  image_extractor_type: "FixedWindowSum"
+
+FixedWindowSum:
+  window_width: 12
+  window_shift: 6

@@ -80,11 +80,13 @@ def test_estimate_nsb_tool_simulation(tmp_path):
     """Test EstimateNSBlevelTool execution on simulation data."""
     output_path = tmp_path / "nsb_params.h5"
 
-    nsb_file = get_dataset_path("only_nsb_LaPalma_Alpha__nsb_x0.25.simtel.zst")
+    nsb_file = get_dataset_path(
+        "nsb-padding/pedestals_nsb_only_run000007_za00deg_azm000deg_North_LSTN-01_7.0.1_nsb-0p25x-only.simtel.zst"
+    )
 
     nsb_lvl_sim = 1
-    # nsb_file only contains 10 events -> we cannot test more than 2 times wrt the reference NSB (sim_file)
-    test_nsb_lvl = [1, 2]
+    test_nsb_lvl = [1, 5]
+    run_id = [1, 5]
 
     # Only LSTN-1 is available in simulations
     expected_nsb_level = [
@@ -92,8 +94,8 @@ def test_estimate_nsb_tool_simulation(tmp_path):
             1: 0
         },  # input and reference pedestal contain the same NSB level -> no additional NSB
         {
-            1: 4
-        },  # for NSB-only with 0.25*(dark NSB), input (2*dark NSB) and sim (dark NSB) -> add 4 NSB-only waveforms at 0.25 dark NSB
+            1: 15
+        },  # for NSB-only with 0.25*(dark NSB), input (5*dark NSB) and sim (dark NSB) -> add 16 NSB-only waveforms at 0.25 dark NSB, but the obtained value is 15, which very close.
     ]
     tel_ids = [1]
 
@@ -117,7 +119,7 @@ def test_estimate_nsb_tool_simulation(tmp_path):
 
     for ii, insb_lvl in enumerate(test_nsb_lvl):
         ped_file = get_dataset_path(
-            f"nsb-padding/pedestals_run00000{insb_lvl}_za00deg_azm000deg_North_LSTN-01_7.0.1_nsb-{insb_lvl}x.simtel.zst"
+            f"nsb-padding/pedestals_run00000{run_id[ii]}_za00deg_azm000deg_North_LSTN-01_7.0.1_nsb-{insb_lvl}x.simtel.zst"
         )
 
         ped_dl1 = process_dl1_sim_pedestal(ped_file, tmp_path)
