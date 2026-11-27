@@ -571,3 +571,54 @@ def test_service_data_roundtrip(tmp_path, monkeypatch):
         assert np.allclose(
             orig_camera.geometry.pix_y.value, loaded_camera.geometry.pix_y.value
         )
+
+
+def test_hdf_mirror_facets(tmp_path, prod5_lst, lstn_01_mirror_facets_path):
+    """Preserve distinct and shared facets, while allowing missing tables."""
+    import tables
+
+    telescope = deepcopy(prod5_lst)
+    telescope.optics = OpticsDescription.from_table(
+        lstn_01_mirror_facets_path, format="ascii.ecsv"
+    )
+    different_facets = deepcopy(telescope)
+    different_facets.optics.mirror_description.x[0] += 1 * u.cm
+    no_facets = deepcopy(telescope)
+    no_facets.optics.mirror_description = None
+
+    subarray = create_subarray(telescope, n_tels=4)
+    subarray.tels[3] = different_facets
+    subarray.tels[4] = no_facets
+    path = tmp_path / "subarray.h5"
+    subarray.to_hdf(path)
+
+    with tables.open_file(path) as h5file:
+        # Telescopes 1 and 2 share one facet table; telescope 4 has none.
+        assert (
+            h5file.root.configuration.instrument.telescope.tel_optics._v_nchildren == 2
+        )
+        read = SubarrayDescription.from_hdf(h5file)
+    assert read == subarray
+    assert read.tel[1].optics.mirror_description == telescope.optics.mirror_description
+    assert read.tel[3].optics.mirror_description == (
+        different_facets.optics.mirror_description
+    )
+    assert read.tel[4].optics.mirror_description is None
+
+    # Absence of even one facet table must not prevent loading the subarray.
+    optics_index = subarray.optics_types.index(telescope.optics)
+    with tables.open_file(path, "a") as h5file:
+        h5file.remove_node(
+            f"/configuration/instrument/telescope/tel_optics/optics_{optics_index}"
+        )
+    read = SubarrayDescription.from_hdf(path)
+    assert read.tel[1].optics.mirror_description is None
+    assert read.tel[3].optics.mirror_description is not None
+
+    # Overwriting with no facet information must remove the old tables.
+    for optics in subarray.optics_types:
+        optics.mirror_description = None
+    subarray.to_hdf(path, overwrite=True)
+    assert SubarrayDescription.from_hdf(path) == subarray
+    with tables.open_file(path) as h5file:
+        assert "/configuration/instrument/telescope/tel_optics" not in h5file.root

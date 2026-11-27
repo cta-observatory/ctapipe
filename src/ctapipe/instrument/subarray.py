@@ -629,6 +629,10 @@ class SubarrayDescription:
     def to_hdf(self, h5file, overwrite=False, mode="a"):
         """write the SubarrayDescription
 
+        Available mirror facet descriptions are stored as per-optics
+        ``tel_optics/optics_{index}`` tables below
+        ``/configuration/instrument/telescope``.
+
         Parameters
         ----------
         h5file : str, bytes, path or tables.File
@@ -669,6 +673,19 @@ class SubarrayDescription:
                 path="/configuration/instrument/telescope/optics",
                 overwrite=overwrite,
             )
+            tel_optics_path = "/configuration/instrument/telescope/tel_optics"
+            if overwrite and tel_optics_path in h5file.root:
+                h5file.remove_node(tel_optics_path, recursive=True)
+
+            for i, optics in enumerate(self.optics_types):
+                if optics.mirror_description is not None:
+                    write_table(
+                        optics.to_table(),
+                        h5file,
+                        path=f"{tel_optics_path}/optics_{i}",
+                        overwrite=overwrite,
+                    )
+
             for i, camera in enumerate(self.camera_types):
                 write_table(
                     camera.geometry.to_table(),
@@ -685,6 +702,11 @@ class SubarrayDescription:
 
     @classmethod
     def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
+        """Read a subarray, including mirror facet tables when available.
+
+        Missing ``tel_optics`` tables are supported and leave the corresponding
+        optics' ``mirror_description`` unset.
+        """
         # here to prevent circular import
         from ..io import read_table
 
@@ -760,6 +782,18 @@ class SubarrayDescription:
             )
             for row in optics_table
         ]
+
+        for i, optics in enumerate(optic_descriptions):
+            try:
+                table = read_table(
+                    path,
+                    f"/configuration/instrument/telescope/tel_optics/optics_{i}",
+                )
+            except tables.NoSuchNodeError:
+                continue
+            optics.mirror_description = OpticsDescription.from_table(
+                table
+            ).mirror_description
 
         # give correct frame for the camera to each telescope
         telescope_descriptions = {}

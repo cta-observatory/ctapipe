@@ -947,6 +947,11 @@ class SimTelEventSource(EventSource):
                 f"found {len(mirrors.facet_id)} facet rows, "
                 f"simtel has {optics.n_mirror_tiles} mirror facets"
             )
+        self.log.info(
+            "Loaded tel_optics table for tel_id=%d from %s",
+            tel_id,
+            table.meta["input_path"],
+        )
         optics.mirror_description = mirrors
 
     def _make_dummy_location(self):

@@ -239,6 +239,7 @@ def try_filetypes(basename, role, file_types, url=None, **kwargs):
 
     if path is not None:
         table = reader(path, **kwargs)
+        table.meta["input_path"] = path
         Provenance().add_input_file(path, role)
         return table
 

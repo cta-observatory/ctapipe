@@ -921,7 +921,7 @@ def test_load_tel_optics(
     lstn_01_mirror_facets_path,
     mstn_01_mirror_facets_path,
 ):
-    from ctapipe.instrument import OpticsDescription
+    from ctapipe.instrument import OpticsDescription, SubarrayDescription
 
     paths = {1: lstn_01_mirror_facets_path, 5: mstn_01_mirror_facets_path}
     for tel_id, path in paths.items():
@@ -954,6 +954,10 @@ def test_load_tel_optics(
             np.testing.assert_equal(
                 enriched.subarray.positions[tel_id], original.subarray.positions[tel_id]
             )
+
+        hdf_path = tmp_path / "subarray.h5"
+        enriched.subarray.to_hdf(hdf_path)
+        assert SubarrayDescription.from_hdf(hdf_path) == enriched.subarray
 
 
 def test_load_tel_optics_incompatible(
