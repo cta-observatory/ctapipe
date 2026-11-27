@@ -112,6 +112,17 @@ def _smear_psf_randomly(
     return new_image
 
 
+class PedestalEventTypeFilter(EventTypeFilter):
+    """
+    Event filter to select pedestal events for real data.
+    By default it selects SKY_PEDESTAL and PEDESTAL events
+    """
+
+    @default("allowed_types")
+    def allowed_types_default(self):
+        return {EventType.SKY_PEDESTAL, EventType.PEDESTAL}
+
+
 class NoiseEventTypeFilter(EventTypeFilter):
     """
     Event filter to select noise events for MC tuning
