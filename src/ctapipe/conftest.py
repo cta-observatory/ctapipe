@@ -5,6 +5,7 @@ common pytest fixtures for tests in ctapipe
 import importlib
 import importlib.util
 import json
+import os
 import shutil
 import warnings
 from copy import deepcopy
@@ -40,6 +41,8 @@ PYTEST_HEADER_MODULES["numba"] = "numba"
 
 NORTH_SITE_METADATA = "--ProductMetadata.instance={'site_id': 'CTAO-North'}"
 SOUTH_SITE_METADATA = "--ProductMetadata.instance={'site_id': 'CTAO-South'}"
+
+os.environ["CTAPIPE_ENABLE_TEST_DATA_SERVER"] = "1"
 
 # names of camera geometries available on the data server
 camera_names = [

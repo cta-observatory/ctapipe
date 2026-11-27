@@ -15,6 +15,7 @@ from requests.exceptions import HTTPError
 
 from ..compat import ECSV_FMT
 from ..core import Provenance
+from ..core.env import env_bool
 from .download import download_file_cached, get_cache_path
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,9 @@ def get_searchpath_dirs(searchpath=None, url=None):
         searchpaths = []
     else:
         searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
-    searchpaths.append(get_cache_path(url))
+
+    if env_bool("CTAPIPE_ENABLE_TEST_DATA_SERVER"):
+        searchpaths.append(get_cache_path(url))
     return searchpaths
 
 
@@ -168,13 +171,14 @@ def get_dataset_path(filename, url=None):
         if filepath:
             return filepath
 
-    # last, try downloading the data
-    try:
-        return download_file_cached(filename, default_url=url, progress=True)
-    except HTTPError as e:
-        # let 404 raise the FileNotFoundError instead of HTTPError
-        if e.response.status_code != 404:
-            raise
+    if env_bool("CTAPIPE_ENABLE_TEST_DATA_SERVER"):
+        # last, try downloading the data
+        try:
+            return download_file_cached(filename, default_url=url, progress=True)
+        except HTTPError as e:
+            # let 404 raise the FileNotFoundError instead of HTTPError
+            if e.response.status_code != 404:
+                raise
 
     raise FileNotFoundError(
         f"Couldn't find resource: '{filename}' locally, in CTAPIPE_SVC_PATH "

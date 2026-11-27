@@ -1,0 +1,8 @@
+By default, ctapipe no longer considers the test data server
+when using ``get_dataset_path`` to avoid test data file usage
+in production settings.
+
+Set the environment variable ``CTAPIPE_ENABLE_TEST_DATA_SERVER=1``
+to enable test data usage.
+
+This variable is automatically set when running tests.
