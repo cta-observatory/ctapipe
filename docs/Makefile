@@ -8,6 +8,8 @@ SPHINXPROJ    = ctapipe
 SOURCEDIR     = .
 BUILDDIR      = _build
 
+export CTAPIPE_ENABLE_TEST_DATA_SERVER=1
+
 
 # Put it first so that "make" without argument is like "make help".
 help:
