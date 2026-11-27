@@ -5,8 +5,8 @@ Estimate the level of NSB required to match MC simulations to observations.
 import pathlib
 
 import numpy as np
-import yaml
-from scipy.stats import mode
+import tables
+from astropy.table import Table
 from traitlets import Bool, Float, Int, List, Path, TraitError
 
 from ctapipe.calib.camera.gainselection import GainChannel
@@ -15,7 +15,7 @@ from ctapipe.core.traits import ComponentName, classes_with_traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.modifications import PedestalEventTypeFilter, WaveformModifier
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import EventSource, read_table
+from ctapipe.io import EventSource, read_table, write_table
 from ctapipe.io.hdf5dataformat import DL1_PIXEL_STATISTICS_GROUP
 from ctapipe.monitoring import StatisticsAggregator
 
@@ -73,7 +73,7 @@ class EstimateNSBlevelTool(Tool):
     simulation_file = Path(
         help=(
             "Path to a pedestal MC simulation simulated with the same settings "
-            "as nsb_file (requires r1 waveforms with only one gain channel)"
+            "as nsb_file (requires r1 waveforms)"
         ),
     ).tag(config=True)
 
@@ -83,13 +83,7 @@ class EstimateNSBlevelTool(Tool):
 
     # Optional parameters:
     output_path = Path(
-        help="Output filename", default_value=pathlib.Path("nsb_params.yaml")
-    ).tag(config=True)
-
-    # Parameters to identify faulty pixel
-    mod_zscore_th = Float(
-        default_value=3.5,
-        help="Modified Z-score threshold for identifying bright outlier pixels.",
+        help="Output filename", default_value=pathlib.Path("nsb_params.h5")
     ).tag(config=True)
 
     min_npixels_valid = Int(
@@ -159,9 +153,22 @@ class EstimateNSBlevelTool(Tool):
 
         self.check_output(self.output_path)
 
-        self.subarray = SubarrayDescription.read(self.input_file)
+        self.subarray = SubarrayDescription.read(self.nsb_file)
+
         # Only consider tel_ids in the input file
-        self.tel_id_list = self.subarray.tel_ids
+        self.tel_id_list = []
+        with tables.open_file(self.input_file, mode="r") as f:
+            try:
+                self.ped_type = "pedestal"
+                pixel_ped_path = f"{DL1_PIXEL_STATISTICS_GROUP}/{self.ped_type}_image"
+                nodes = f.iter_nodes(pixel_ped_path, classname="Leaf")
+            except tables.NoSuchNodeError:
+                self.ped_type = "sky_pedestal"
+                pixel_ped_path = f"{DL1_PIXEL_STATISTICS_GROUP}/{self.ped_type}_image"
+                nodes = f.iter_nodes(pixel_ped_path, classname="Leaf")
+
+            for node in nodes:
+                self.tel_id_list.append(int(node._v_name.split("_")[-1]))
 
         self.image_extractor = ImageExtractor.from_name(
             self.image_extractor_type,
@@ -287,7 +294,7 @@ class EstimateNSBlevelTool(Tool):
         for tel_id in self.tel_id_list:
             ped_stats = read_table(
                 self.input_file,
-                path=f"{DL1_PIXEL_STATISTICS_GROUP}/pedestal_image/tel_{tel_id:03d}",
+                path=f"{DL1_PIXEL_STATISTICS_GROUP}/{self.ped_type}_image/tel_{tel_id:03d}",
             )
 
             # Select only the high-gain channel in case more than one channel is available
@@ -310,17 +317,18 @@ class EstimateNSBlevelTool(Tool):
             # Only consider chunks with enough valid pixels
             n_valid_per_chunk = np.sum(~self.faulty_pixels[tel_id], axis=1)
             self.valid_chunks[tel_id] = n_valid_per_chunk > self.min_npixels_valid
+            arg_chunks_invalid = np.where(~np.atleast_1d(self.valid_chunks[tel_id]))[0]
 
             if (~self.valid_chunks[tel_id]).any():
                 self.log.warning(
                     "Too many pixels were discarded (either because of broken pixels or contained few pedestal events) "
-                    + f"for tel_id={tel_id} and chunks {np.where(not self.valid_chunks[tel_id])[0]} to estimate pedestal statistics."
+                    + f"for tel_id={tel_id} and chunks {arg_chunks_invalid} to estimate pedestal statistics."
                     + "These chunks will be discarded from the analysis."
                 )
 
                 n_outliers_per_chunk = np.sum(outlier_mask, axis=1)
                 n_pixels_with_few_stat_per_chunk = np.sum(
-                    ~pixels_few_stat_per_chunk_mask, axis=1
+                    pixels_few_stat_per_chunk_mask, axis=1
                 )
 
                 self.log.warning(
@@ -440,33 +448,40 @@ class EstimateNSBlevelTool(Tool):
             # obtain the pixel charge variance per pixel for simulations
             ped_sim_var_pix = np.nanvar(self.sim_pixel_charge[tel_id], axis=0)
 
-            ped_sim_var_pix_median = np.median(
-                ped_sim_var_pix[~self.faulty_pixels[tel_id]]
-            )
+            # All pixels are used to compute the median
+            ped_sim_var_pix_median = np.median(ped_sim_var_pix)
 
             nsb_lvl[tel_id] = np.zeros(len(self.valid_chunks[tel_id]), dtype=float)
 
             for chunk_id in range(len(self.valid_chunks[tel_id])):
                 if not self.valid_chunks[tel_id][chunk_id]:
                     nsb_lvl[tel_id][chunk_id] = np.nan
+                else:
+                    # median pixel charge variance
+                    ped_var_pix_median = np.median(
+                        self.ped_pixel_charge_var[tel_id][chunk_id][
+                            ~self.faulty_pixels[tel_id][chunk_id]
+                        ]
+                    )
 
-                # median pixel charge variance
-                ped_var_pix_median = np.median(
-                    self.ped_pixel_charge_var[tel_id][chunk_id][
-                        ~self.faulty_pixels[tel_id][chunk_id]
-                    ]
-                )
-
-                nsb_lvl[tel_id][chunk_id] = ped_var_pix_median / ped_sim_var_pix_median
+                    nsb_lvl[tel_id][chunk_id] = (
+                        ped_var_pix_median / ped_sim_var_pix_median
+                    )
 
         all_nsb_vals = np.concatenate(
             [nsb_lvl[tel_id].flatten() for tel_id in self.tel_id_list]
         )
-        min_val = np.nanmin(all_nsb_vals)
-        max_val = np.nanmax(all_nsb_vals)
-        nsb_min = np.floor(max(min_val - self.n_grid_points, 1)).astype(int)
-        nsb_max = np.ceil(max_val + self.n_grid_points + 1).astype(int)
-        nsb_grid = np.arange(nsb_min, nsb_max)
+
+        if np.isnan(all_nsb_vals).all():
+            # Dummy grid when all chunks from all telescopes are invalid
+            nsb_grid = np.arange(1, 5)
+        else:
+            min_val = np.nanmin(all_nsb_vals)
+            max_val = np.nanmax(all_nsb_vals)
+            nsb_min = np.floor(max(min_val - self.n_grid_points, 1)).astype(int)
+            nsb_max = np.ceil(max_val + self.n_grid_points + 1).astype(int)
+            nsb_grid = np.arange(nsb_min, nsb_max)
+
         return nsb_grid, nsb_lvl
 
     def compute_quantile(self):
@@ -543,6 +558,7 @@ class EstimateNSBlevelTool(Tool):
                 if not self.valid_chunks[tel_id][chunk_id]:
                     required_nsb_level[tel_id][chunk_id] = np.nan
                     exact_nsb_level[tel_id][chunk_id] = np.nan
+                    continue
 
                 if (
                     charge_q[tel_id][chunk_id] > max_qnsb_q
@@ -557,7 +573,7 @@ class EstimateNSBlevelTool(Tool):
                         "The NSB level is extrapolated from the fitted parabola between"
                         + f" NSB levels [{self.nsb_levels[0]}, {self.nsb_levels[-1]}]."
                     )
-                    required_nsb_level[tel_id] = round(
+                    required_nsb_level[tel_id][chunk_id] = round(
                         model_fit(charge_q[tel_id][chunk_id])
                     )
 
@@ -579,6 +595,22 @@ class EstimateNSBlevelTool(Tool):
         """
         self.read_pixel_charge_stats()
 
+        # compute median pixel charge quantile
+        ped_median_charge_q = {}
+        for tel_id in self.tel_id_list:
+            ped_median_charge_q[tel_id] = np.zeros(
+                len(self.valid_chunks[tel_id]), dtype=float
+            )
+            for chunk_id in range(len(self.valid_chunks[tel_id])):
+                if not self.valid_chunks[tel_id][chunk_id]:
+                    ped_median_charge_q[tel_id][chunk_id] = np.nan
+                else:
+                    ped_median_charge_q[tel_id][chunk_id] = np.median(
+                        self.ped_pixel_charge_q[tel_id][chunk_id][
+                            ~self.faulty_pixels[tel_id][chunk_id]
+                        ]
+                    )
+
         self.calculate_pixel_charge_sim()
 
         # estimate the NSB range from median variance
@@ -593,46 +625,36 @@ class EstimateNSBlevelTool(Tool):
 
         self.qnsb_q = self.compute_quantile()
 
-        self.nsb_level, self.exact_nsb_level = self.quantile_curve_fit()
+        self.nsb_level, self.exact_nsb_level = self.quantile_curve_fit(
+            ped_median_charge_q
+        )
 
     def finish(self):
         """
         Write the parameters to the output file.
         """
 
-        exact_nsb_level_array = np.array(
-            [self.exact_nsb_level[k] for k in sorted(self.exact_nsb_level)]
-        )
-        nsb_level_array = np.array([self.nsb_level[k] for k in sorted(self.nsb_level)])
-
-        output_info = {
-            "nsb-only-file": str(self.nsb_file),
-            "simulation-file": str(self.simulation_file),
-            "input-file": str(self.input_file),
-            "valid_chunks": {
-                int(tel_id): list(vals)
-                for tel_id, vals in sorted(self.valid_chunks.items())
-            },
-            "exact_nsb_level": {
-                int(tel_id): list(vals)
-                for tel_id, vals in sorted(self.exact_nsb_level.items())
-            },
-            "nsb_level": {
-                int(tel_id): list(vals)
-                for tel_id, vals in sorted(self.nsb_level.items())
-            },
-            "mode_exact_nsb_level_per_chunk": mode(
-                exact_nsb_level_array, axis=0
-            ).mode.tolist(),
-            "mode_exact_nsb_level_per_tel": mode(
-                exact_nsb_level_array, axis=1
-            ).mode.tolist(),
-            "mode_nsb_level_per_chunk": mode(nsb_level_array, axis=0).mode.tolist(),
-            "mode_nsb_level_per_tel": mode(nsb_level_array, axis=1).mode.tolist(),
+        meta_info = {
+            "nsb_only_file": str(self.nsb_file),
+            "simulation_file": str(self.simulation_file),
+            "input_file": str(self.input_file),
         }
 
-        with open(self.output_path, "w") as yaml_file:
-            yaml.dump(output_info, yaml_file, sort_keys=False)
+        for tel_id in self.tel_id_list:
+            data = {
+                "nsb_level": self.nsb_level[tel_id],
+                "exact_nsb_level": self.exact_nsb_level[tel_id],
+                "is_valid": self.valid_chunks[tel_id],
+            }
+            nsb_tab = Table(data)
+            nsb_tab.meta = meta_info
+
+            write_table(
+                table=nsb_tab,
+                h5file=self.output_path,
+                path=f"/dl1/monitoring/nsb/tel_{tel_id:03d}",
+                overwrite=True,
+            )
 
         self.log.info(f"NSB parameters were written to {self.output_path}")
 
