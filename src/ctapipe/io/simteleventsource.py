@@ -74,6 +74,7 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
+from ..utils import get_table_dataset
 from ..utils.arrays import cached_arange
 from .datalevels import DataLevel
 from .eventsource import EventSource
@@ -549,11 +550,33 @@ class SimTelEventSource(EventSource):
     If these parameters are not included in the input data, ctapipe will
     fallback guesses these based on available data and the list of known telescopes
     for `ctapipe.instrument.guess_telescope`.
+
+    Set ``load_tel_optics=True`` to load mirror facet descriptions from service
+    data using `~ctapipe.utils.get_table_dataset` (including ``CTAPIPE_SVC_PATH``).
+    For each selected telescope, this first looks for
+    ``array-elements/{tel_id:03d}/{tel_id:03d}.tel_optics``, then falls back to
+    ``array-elements/{optics_name}/{optics_name}.tel_optics``. Supported table
+    extensions are discovered automatically. Missing files raise
+    `FileNotFoundError`; incompatible optics raise `ValueError`.
+
+    Mirror counts, size, reflector shape, focal lengths and mirror area are
+    checked against the input file, allowing relative numerical differences of
+    ``1e-5`` for float32 rounding. Unknown values in the input cannot be checked.
+    Only the mirror facet description is added; all other instrument data,
+    including the focal length used for coordinate transforms, comes from the
+    simtel file.
     """
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
     )
+    load_tel_optics = Bool(
+        False,
+        help=(
+            "Load mirror facet descriptions from tel_optics service tables. "
+            "Requires compatible tables for all selected telescopes."
+        ),
+    ).tag(config=True)
     back_seekable = Bool(
         False,
         help=(
@@ -863,7 +886,68 @@ class SimTelEventSource(EventSource):
         if self.allowed_tels:
             subarray = subarray.select_subarray(self.allowed_tels)
 
+        if self.load_tel_optics:
+            for tel_id, telescope in subarray.tel.items():
+                self._load_tel_optics(tel_id, telescope.optics)
+
         return subarray
+
+    def _load_tel_optics(self, tel_id, optics):
+        """Validate service optics and attach facets to the simtel description."""
+        ae_id = f"{tel_id:03d}"
+        try:
+            table = get_table_dataset(
+                f"array-elements/{ae_id}/{ae_id}.tel_optics",
+                role="dl0.tel.svc.optics",
+            )
+        except FileNotFoundError:
+            table = get_table_dataset(
+                f"array-elements/{optics.name}/{optics.name}.tel_optics",
+                role="dl0.tel.svc.optics",
+            )
+
+        service_optics = OpticsDescription.from_table(table)
+        for attribute in (
+            "size_type",
+            "reflector_shape",
+            "n_mirrors",
+            "n_mirror_tiles",
+        ):
+            value = getattr(optics, attribute)
+            # Old simtel files may not identify the reflector or telescope size.
+            if getattr(value, "value", value) == "UNKNOWN":
+                continue
+            if value != getattr(service_optics, attribute):
+                raise ValueError(
+                    f"Incompatible tel_optics for telescope {tel_id}: {attribute} "
+                    f"is {getattr(service_optics, attribute)}, simtel has {value}"
+                )
+
+        for attribute in (
+            "equivalent_focal_length",
+            "effective_focal_length",
+            "mirror_area",
+        ):
+            value = getattr(optics, attribute)
+            # An unknown effective focal length cannot be checked against simtel.
+            if np.isnan(value.value):
+                continue
+            service_value = getattr(service_optics, attribute).to_value(value.unit)
+            # Allow for float32 rounding in simtel array files.
+            if not np.isclose(value.value, service_value, rtol=1e-5, atol=1e-6):
+                raise ValueError(
+                    f"Incompatible tel_optics for telescope {tel_id}: {attribute} "
+                    f"is {getattr(service_optics, attribute)}, simtel has {value}"
+                )
+
+        mirrors = service_optics.mirror_description
+        if mirrors is not None and len(mirrors.facet_id) != optics.n_mirror_tiles:
+            raise ValueError(
+                f"Incompatible tel_optics for telescope {tel_id}: "
+                f"found {len(mirrors.facet_id)} facet rows, "
+                f"simtel has {optics.n_mirror_tiles} mirror facets"
+            )
+        optics.mirror_description = mirrors
 
     def _make_dummy_location(self):
         """

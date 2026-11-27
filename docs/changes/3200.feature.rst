@@ -1,0 +1,3 @@
+Added the ``load_tel_optics`` option to ``SimTelEventSource`` to discover
+external ``tel_optics`` service tables and load individual mirror facet
+information after validating compatibility with the simtel instrument data.
