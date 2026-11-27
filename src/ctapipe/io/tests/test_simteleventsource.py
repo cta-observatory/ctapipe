@@ -912,3 +912,65 @@ def test_random_mono_probability():
         assert len(configs) == 32
         for config in configs.values():
             assert config.random_mono_probability == 0.01
+
+
+def test_load_tel_optics(
+    tmp_path,
+    monkeypatch,
+    prod6_gamma_lapalma_simtel_path,
+    lstn_01_mirror_facets_path,
+    mstn_01_mirror_facets_path,
+):
+    from ctapipe.instrument import OpticsDescription, SubarrayDescription
+
+    paths = {1: lstn_01_mirror_facets_path, 5: mstn_01_mirror_facets_path}
+    for tel_id, path in paths.items():
+        directory = tmp_path / "array-elements" / f"{tel_id:03d}"
+        directory.mkdir(parents=True)
+        (directory / f"{tel_id:03d}.tel_optics.ecsv").symlink_to(path)
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", str(tmp_path))
+
+    with (
+        SimTelEventSource(
+            prod6_gamma_lapalma_simtel_path, allowed_tels={1, 5}
+        ) as original,
+        SimTelEventSource(
+            prod6_gamma_lapalma_simtel_path,
+            allowed_tels={1, 5},
+            load_tel_optics=True,
+        ) as enriched,
+    ):
+        assert set(enriched.subarray.tel) == {1, 5}
+        for tel_id, path in paths.items():
+            telescope = enriched.subarray.tel[tel_id]
+            expected = OpticsDescription.from_table(path, format="ascii.ecsv")
+            assert telescope.optics.mirror_description is not None
+            assert telescope.optics.mirror_description == expected.mirror_description
+            assert original.subarray.tel[tel_id].optics.mirror_description is None
+            assert telescope.optics.to_table().meta == (
+                original.subarray.tel[tel_id].optics.to_table().meta
+            )
+            assert telescope.camera == original.subarray.tel[tel_id].camera
+            np.testing.assert_equal(
+                enriched.subarray.positions[tel_id], original.subarray.positions[tel_id]
+            )
+
+        hdf_path = tmp_path / "subarray.h5"
+        enriched.subarray.to_hdf(hdf_path)
+        assert SubarrayDescription.from_hdf(hdf_path) == enriched.subarray
+
+
+def test_load_tel_optics_incompatible(
+    tmp_path, monkeypatch, prod6_gamma_lapalma_simtel_path, ssts_01_mirror_facets_path
+):
+    directory = tmp_path / "array-elements" / "001"
+    directory.mkdir(parents=True)
+    (directory / "001.tel_optics.ecsv").symlink_to(ssts_01_mirror_facets_path)
+    monkeypatch.setenv("CTAPIPE_SVC_PATH", str(tmp_path))
+
+    with pytest.raises(ValueError, match="Incompatible tel_optics for telescope 1"):
+        SimTelEventSource(
+            prod6_gamma_lapalma_simtel_path,
+            allowed_tels={1},
+            load_tel_optics=True,
+        )

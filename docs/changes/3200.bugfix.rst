@@ -1,0 +1,2 @@
+Preserve available mirror facet descriptions in optional ``tel_optics`` tables
+when writing and reading a ``SubarrayDescription`` in HDF5 format.
